@@ -2,7 +2,7 @@
 @using EventForge.Client.Services.Sales
 @using MudBlazor
 @inject ISalesService SalesService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Outlined.CallSplit"
@@ -316,21 +316,17 @@
             
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.split.success", "Sessione divisa in {0} parti", result.ChildSessions.Count), 
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.split.success", "Sessione divisa in {0} parti", result.ChildSessions.Count));
                 MudDialog?.Close(DialogResult.Ok(result));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.split.error", "Errore durante lo split della sessione"), 
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("sales.split.error", "Errore durante lo split della sessione"));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}");
         }
     }
     

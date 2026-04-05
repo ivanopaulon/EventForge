@@ -3,7 +3,7 @@
 @inject ITranslationService TranslationService
 @inject IInventoryService InventoryService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Inventory"
           Title="Gestione Inventari Attivi"
@@ -460,11 +460,8 @@
     {
         if (_selectedInventories.Count < 2)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.mergeMinimumError", 
-                    "Seleziona almeno 2 inventari da accorpare"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.mergeMinimumError", 
+                    "Seleziona almeno 2 inventari da accorpare"));
             return;
         }
 
@@ -499,11 +496,8 @@
             _selectedInventories.Clear();
             StateHasChanged();
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.mergeSuccess", 
-                    "Inventari accorpati con successo"),
-                Severity.Success
-            );
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.mergeSuccess", 
+                    "Inventari accorpati con successo"));
             
             // Notifica parent per ricaricare dati
             await OnFinalizeAllRequested.InvokeAsync();

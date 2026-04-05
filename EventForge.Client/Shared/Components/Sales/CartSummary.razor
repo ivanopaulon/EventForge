@@ -1,5 +1,5 @@
 @using EventForge.DTOs.Sales
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <MudPaper Class="pa-4 cart-summary" Elevation="2">
     <div class="d-flex align-center mb-3">
@@ -163,7 +163,7 @@
     {
         item.Quantity++;
         await OnItemQuantityChanged.InvokeAsync(item);
-        Snackbar.Add($"Quantità aggiornata: {item.ProductName}", Severity.Success);
+        AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
     }
 
     private async Task DecreaseQuantity(SaleItemDto item)
@@ -172,14 +172,14 @@
         {
             item.Quantity--;
             await OnItemQuantityChanged.InvokeAsync(item);
-            Snackbar.Add($"Quantità aggiornata: {item.ProductName}", Severity.Success);
+            AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
         }
     }
 
     private async Task RemoveItem(SaleItemDto item)
     {
         await OnItemRemoved.InvokeAsync(item);
-        Snackbar.Add($"Rimosso: {item.ProductName}", Severity.Warning);
+        AppNotification.ShowWarning($"Rimosso: {item.ProductName}");
     }
 
     private async Task ClearCart()
@@ -187,7 +187,7 @@
         if (Items?.Any() == true)
         {
             await OnCartCleared.InvokeAsync();
-            Snackbar.Add("Carrello svuotato", Severity.Warning);
+            AppNotification.ShowWarning("Carrello svuotato");
         }
     }
 }

@@ -4,7 +4,7 @@
 @using MudBlazor
 @inject IAuthService AuthService
 @inject IAuthenticationDialogService AuthDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @implements IDisposable
 
@@ -199,10 +199,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.tenantsLoadError",
-                    "Errore nel caricamento dei tenant: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError",
+                    "Errore nel caricamento dei tenant: {0}", ex.Message));
             _tenants = new List<TenantResponseDto>();
         }
         finally
@@ -220,9 +218,7 @@
 
         if (string.IsNullOrWhiteSpace(_selectedTenantId))
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"));
             return;
         }
 
@@ -238,9 +234,7 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("auth.loginSuccess", "Login effettuato con successo!"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login effettuato con successo!"));
 
                 if (result.MustChangePassword)
                 {
@@ -260,9 +254,7 @@
                 _progressValue = 100;
                 _progressColor = Color.Error;
                 _subtitle = SubtitleLoginError;
-                Snackbar.Add(
-                    TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."));
             }
         }
         catch (Exception ex)
@@ -271,9 +263,7 @@
             _progressValue = 100;
             _progressColor = Color.Error;
             _subtitle = SubtitleLoginError;
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message));
         }
         finally
         {
@@ -323,10 +313,8 @@
     {
         if (_changePasswordIsMandatory)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.passwordChangeRequired",
-                    "Cambio password obbligatorio. Effettua il logout."),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired",
+                    "Cambio password obbligatorio. Effettua il logout."));
             await AuthService.LogoutAsync();
             CloseOverlay(false);
         }

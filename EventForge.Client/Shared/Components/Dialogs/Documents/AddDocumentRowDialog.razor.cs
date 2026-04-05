@@ -29,7 +29,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [Inject] private IDocumentRowCalculationService CalculationService { get; set; } = null!;
     [Inject] private IDocumentDialogCacheService CacheService { get; set; } = null!;
     [Inject] private IPriceResolutionService PriceResolutionService { get; set; } = null!;
-    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IAppNotificationService AppNotification { get; set; } = null!;
     [Inject] private ITranslationService TranslationService { get; set; } = null!;
     [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
@@ -392,9 +392,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (successMessageKey != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation(successMessageKey, "Operazione completata"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation(successMessageKey, "Operazione completata"));
             }
 
             return result;
@@ -405,11 +403,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (showErrorToUser)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation(
+                AppNotification.ShowError(TranslationService.GetTranslation(
                         "error.networkError",
-                        "Errore di connessione. Verifica la connessione di rete."),
-                    Severity.Error);
+                        "Errore di connessione. Verifica la connessione di rete."));
             }
         }
         catch (TaskCanceledException ex)
@@ -418,11 +414,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (showErrorToUser)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation(
+                AppNotification.ShowWarning(TranslationService.GetTranslation(
                         "error.operationCancelled",
-                        "Operazione annullata"),
-                    Severity.Warning);
+                        "Operazione annullata"));
             }
         }
         catch (Exception ex)
@@ -431,11 +425,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (showErrorToUser)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation(
+                AppNotification.ShowError(TranslationService.GetTranslation(
                         $"error.{operationName}",
-                        $"Errore durante {operationName}"),
-                    Severity.Error);
+                        $"Errore durante {operationName}"));
             }
         }
 
@@ -647,11 +639,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             await InvokeAsync(StateHasChanged);
 
             // Show success message
-            Snackbar.Add(
-                "Prezzo applicato",
-                Severity.Success,
-                config => config.VisibleStateDuration = 1500
-            );
+            AppNotification.ShowSuccess("Prezzo applicato");
 
             // Invalidate calculation cache (same as original HandleRecentPriceApplied)
             _cachedCalculationResult = null;
@@ -690,10 +678,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading row {RowId} for edit", rowId);
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.errorLoadingRow",
-                    "Errore nel caricamento della riga"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingRow",
+                    "Errore nel caricamento della riga"));
         }
     }
 
@@ -818,9 +804,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 _state.Barcode.Input = string.Empty;
                 _state.Barcode.ScannedBarcode = string.Empty;
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"));
             }
             else
             {
@@ -830,7 +814,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching product by barcode {Barcode}", barcode);
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
         finally
         {
@@ -887,10 +871,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Barcode.Input = string.Empty;
             _state.Barcode.ScannedBarcode = string.Empty;
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.productCreatedAndSelected",
-                    "Prodotto creato e selezionato"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.productCreatedAndSelected",
+                    "Prodotto creato e selezionato"));
         }
         else if (data is string action && action == "skip")
         {
@@ -912,10 +894,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     _state.Barcode.Input = string.Empty;
                     _state.Barcode.ScannedBarcode = string.Empty;
 
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
-                            "Codice assegnato e prodotto selezionato"),
-                        Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
+                            "Codice assegnato e prodotto selezionato"));
                 }
             }
             catch (Exception ex)
@@ -1017,10 +997,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.loadProductData",
-                    "Errore caricamento dati prodotto"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.loadProductData",
+                    "Errore caricamento dati prodotto"));
 
             // ✅ Ensure UI update even on error
             await InvokeAsync(StateHasChanged);
@@ -1213,10 +1191,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
                     _appliedPromotionsSummary = string.Join(", ", itemResult.AppliedPromotions.Select(ap => ap.PromotionName));
 
-                    Snackbar.Add(
-                        $"🏷️ {TranslationService.GetTranslation("documents.promotionsApplied", "Promozioni applicate")}: {_appliedPromotionsSummary}",
-                        Severity.Success,
-                        config => config.VisibleStateDuration = 4000);
+                    AppNotification.ShowSuccess(
+                        $"🏷️ {TranslationService.GetTranslation("documents.promotionsApplied", "Promozioni applicate")}: {_appliedPromotionsSummary}");
 
                     Logger.LogInformation(
                         "Promotions applied to product {ProductId}: [{Promotions}], EffectiveDiscount={Discount}%",
@@ -1293,10 +1269,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         else
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.noUnitsConfigured",
-                    "Nessuna unità di misura configurata per questo prodotto"),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.noUnitsConfigured",
+                    "Nessuna unità di misura configurata per questo prodotto"));
             _state.SelectedUnitOfMeasureId = null;
             _state.Model.UnitOfMeasure = null;
             _state.Model.UnitOfMeasureId = null;
@@ -1313,9 +1287,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private async Task HandleProductPopulationError(Exception ex, ProductDto product)
     {
         Logger.LogError(ex, "Error populating from product {ProductId}", product.Id);
-        Snackbar.Add(
-            TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"),
-            Severity.Error);
+        AppNotification.ShowError(TranslationService.GetTranslation("error.loadProductData", "Errore caricamento dati prodotto"));
 
         // ✅ Ensure UI update even on error
         await InvokeAsync(StateHasChanged);
@@ -1481,10 +1453,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product units for product {ProductId}", product.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.errorLoadingUnits",
-                    "Errore nel caricamento delle unità di misura"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingUnits",
+                    "Errore nel caricamento delle unità di misura"));
         }
     }
 
@@ -1799,7 +1769,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             if (!isValid)
             {
-                Snackbar.Add("Correggi gli errori prima di salvare", Severity.Error);
+                AppNotification.ShowError("Correggi gli errori prima di salvare");
                 return;
             }
 
@@ -1824,7 +1794,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             var errorMessage = _isEditMode
                 ? "Errore durante l'aggiornamento della riga"
                 : "Errore durante l'aggiunta della riga";
-            Snackbar.Add(TranslationService.GetTranslation(errorKey, errorMessage), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation(errorKey, errorMessage));
         }
         finally
         {
@@ -1984,18 +1954,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Invalidate cached calculation result
             InvalidateCalculationCache();
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.priceApplied", "Prezzo applicato: {0:C2}", suggestion.EffectiveUnitPrice));
 
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying price suggestion");
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.priceApplyError", "Errore nell'applicazione del prezzo"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.priceApplyError", "Errore nell'applicazione del prezzo"));
         }
     }
 
@@ -2012,9 +1978,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             Logger.LogWarning("OpenEditProductDialog called but no product selected. _state.SelectedProduct: {StateProduct}, _selectedProduct: {SelectedProduct}",
                 _state.SelectedProduct?.Id, _selectedProduct?.Id);
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
             return;
         }
 
@@ -2075,9 +2039,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Invalidate cached calculation result
             InvalidateCalculationCache();
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
 
             await InvokeAsync(StateHasChanged);
         }
@@ -2127,18 +2089,14 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Invalidate cached calculation result
             InvalidateCalculationCache();
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
 
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error reloading product after update");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.reloadError", "Errore nel ricaricamento del prodotto"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.reloadError", "Errore nel ricaricamento del prodotto"));
         }
     }
 
@@ -2174,10 +2132,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error handling product with code found");
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.productLoad", "Errore nel caricamento del prodotto"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.productLoad", "Errore nel caricamento del prodotto"));
         }
     }
 
@@ -2246,7 +2201,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 }
                 else
                 {
-                    Snackbar.Add("Seleziona prima un prodotto", Severity.Warning);
+                    AppNotification.ShowWarning("Seleziona prima un prodotto");
                 }
                 break;
 
@@ -2313,7 +2268,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             ResetForm();
             await FocusBarcodeField();
 
-            Snackbar.Add("Pronto per la prossima riga", Severity.Success, config => config.VisibleStateDuration = 1500);
+            AppNotification.ShowSuccess("Pronto per la prossima riga");
         }
     }
 
@@ -2321,7 +2276,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         _model.Quantity = _model.Quantity + 1m;
         StateHasChanged();
-        Snackbar.Add("Quantità incrementata", Severity.Info, config => config.VisibleStateDuration = 500);
+        AppNotification.ShowInfo("Quantità incrementata");
     }
 
     private void DecrementQuantity()
@@ -2330,7 +2285,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             _model.Quantity = _model.Quantity - 1m;
             StateHasChanged();
-            Snackbar.Add("Quantità decrementata", Severity.Info, config => config.VisibleStateDuration = 500);
+            AppNotification.ShowInfo("Quantità decrementata");
         }
     }
 
@@ -2512,7 +2467,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             if (productWithCode?.Product == null)
             {
                 Logger.LogWarning("Product not found for barcode: {Barcode}", barcode);
-                Snackbar.Add($"⚠️ Prodotto non trovato: {barcode}", Severity.Warning);
+                AppNotification.ShowWarning($"⚠️ Prodotto non trovato: {barcode}");
                 await PlayErrorBeep();
                 return;
             }
@@ -2562,9 +2517,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 Logger.LogWarning(
                     "Validation failed for continuous scan: {Errors}",
                     errors);
-                Snackbar.Add(
-                    $"❌ {TranslationService.GetTranslation("validation.incompleteData", "Dati incompleti")}: {errors}",
-                    Severity.Error);
+                AppNotification.ShowError($"❌ {TranslationService.GetTranslation("validation.incompleteData", "Dati incompleti")}: {errors}");
                 await PlayErrorBeep();
                 return;
             }
@@ -2619,7 +2572,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in continuous scan for barcode: {Barcode}", barcode);
-            Snackbar.Add($"❌ Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"❌ Errore: {ex.Message}");
             await PlayErrorBeep();
         }
         finally
@@ -2883,10 +2836,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Model.UnitPrice = newPrice;
             _state.Model.IsPriceManual = true;
 
-            Snackbar.Add(
-                $"⚠️ {TranslationService.GetTranslation("documents.priceManuallyModified", "Prezzo modificato manualmente")}",
-                Severity.Warning,
-                config => config.VisibleStateDuration = 2000
+            AppNotification.ShowWarning(
+                $"⚠️ {TranslationService.GetTranslation("documents.priceManuallyModified", "Prezzo modificato manualmente")}"
             );
 
             Logger.LogInformation(

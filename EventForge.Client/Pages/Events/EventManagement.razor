@@ -20,7 +20,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<EventManagement> Logger
 
 <div class="management-page-root">
@@ -337,7 +337,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading calendar data.");
-            Snackbar.Add(TranslationService.GetTranslation("events.loadError", "Errore nel caricamento del calendario"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("events.loadError", "Errore nel caricamento del calendario"));
         }
         finally
         {
@@ -604,13 +604,13 @@
             _allItems.RemoveAll(i => i.EntityId == $"rem_{id}");
             _remindersMap.Remove(id);
             UpdateCount("reminders"); UpdateCount("tasks");
-            Snackbar.Add(TranslationService.GetTranslation("events.completed", "Completato"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("events.completed", "Completato"));
             await RefreshSchedulerAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error completing reminder {Id}.", id);
-            Snackbar.Add(TranslationService.GetTranslation("events.completeError", "Errore nel completamento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("events.completeError", "Errore nel completamento"));
         }
     }
 

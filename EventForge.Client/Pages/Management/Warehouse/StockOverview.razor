@@ -13,7 +13,7 @@
 @inject IStorageLocationService StorageLocationService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
@@ -826,7 +826,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("stock.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.loadingPageError", "Errore nel caricamento della pagina: {0}", ex.Message));
             Logger.LogError(ex, "Error loading stock overview page");
         }
         finally
@@ -861,7 +861,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error showing login dialog");
-            Snackbar.Add(TranslationService.GetTranslation("auth.loginError", "Errore durante il login"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", "Errore durante il login"));
         }
     }
 
@@ -881,7 +881,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading warehouses");
-            Snackbar.Add(TranslationService.GetTranslation("stock.loadingWarehousesError", "Errore nel caricamento dei magazzini"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.loadingWarehousesError", "Errore nel caricamento dei magazzini"));
         }
     }
 
@@ -912,7 +912,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("stock.loadingError", "Errore nel caricamento delle giacenze: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.loadingError", "Errore nel caricamento delle giacenze: {0}", ex.Message));
             Logger.LogError(ex, "Error loading stock overview");
             _stockItems = new List<StockLocationDetail>();
         }
@@ -969,7 +969,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _filters.WarehouseId);
-                Snackbar.Add(TranslationService.GetTranslation("stock.loadingLocationsError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stock.loadingLocationsError", "Errore nel caricamento delle ubicazioni"));
             }
         }
         else
@@ -1065,7 +1065,7 @@
                         "{0} movimento/i creati — ricarico le giacenze.", applyResult.MovementsCreated)
                     : TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingUpdated",
                         "{0} movimento/i aggiornati — ricarico le giacenze.", applyResult.MovementsUpdated);
-            Snackbar.Add(msg, Severity.Success);
+            AppNotification.ShowSuccess(msg);
             await LoadAndReconcileAsync();
         }
     }
@@ -1116,26 +1116,20 @@
                 var discrepancies = result.Items.Count(i => i.Severity != ReconciliationSeverity.Correct);
                 if (discrepancies > 0)
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslationFormatted("stock.reconciliationDone",
+                    AppNotification.ShowWarning(TranslationService.GetTranslationFormatted("stock.reconciliationDone",
                             "Riconciliazione completata: {0} discrepanz{1} trovat{1}.",
-                            discrepancies, discrepancies == 1 ? "a" : "e"),
-                        Severity.Warning);
+                            discrepancies, discrepancies == 1 ? "a" : "e"));
                 }
                 else
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("stock.reconciliationOk", "Riconciliazione completata: nessuna discrepanza trovata."),
-                        Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.reconciliationOk", "Riconciliazione completata: nessuna discrepanza trovata."));
                 }
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error calculating stock reconciliation");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stock.reconciliationError", "Errore nel calcolo della riconciliazione"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.reconciliationError", "Errore nel calcolo della riconciliazione"));
         }
     }
 
@@ -1159,9 +1153,7 @@
     {
         try
         {
-            Snackbar.Add(
-                TranslationService.GetTranslationFormatted("stock.exportInProgress", "Esportazione di {0} elementi in corso...", _selectedStockItems.Count), 
-                Severity.Info);
+            AppNotification.ShowInfo(TranslationService.GetTranslationFormatted("stock.exportInProgress", "Esportazione di {0} elementi in corso...", _selectedStockItems.Count));
             
             // TODO: Implementare logica esportazione Excel
             // Possibile approccio:
@@ -1170,16 +1162,12 @@
             
             await Task.Delay(1000); // Placeholder
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("stock.exportSuccess", "Esportazione completata"), 
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.exportSuccess", "Esportazione completata"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting stock items");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stock.exportError", "Errore durante l'esportazione"), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.exportError", "Errore durante l'esportazione"));
         }
     }
 
@@ -1190,9 +1178,7 @@
     {
         try
         {
-            Snackbar.Add(
-                TranslationService.GetTranslationFormatted("stock.printInProgress", "Preparazione stampa di {0} etichette...", _selectedStockItems.Count), 
-                Severity.Info);
+            AppNotification.ShowInfo(TranslationService.GetTranslationFormatted("stock.printInProgress", "Preparazione stampa di {0} etichette...", _selectedStockItems.Count));
             
             // TODO: Implementare logica stampa etichette
             // Possibile approccio:
@@ -1201,16 +1187,12 @@
             
             await Task.Delay(1000); // Placeholder
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("stock.printSuccess", "Etichette pronte per la stampa"), 
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.printSuccess", "Etichette pronte per la stampa"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error printing labels");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stock.printError", "Errore durante la preparazione stampa"), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.printError", "Errore durante la preparazione stampa"));
         }
     }
 
@@ -1246,10 +1228,8 @@
             // Check if stock entry exists
             if (item.StockId == Guid.Empty)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stock.useFullEditForNewStock", 
-                        "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record."),
-                    Severity.Info);
+                AppNotification.ShowInfo(TranslationService.GetTranslation("stock.useFullEditForNewStock", 
+                        "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record."));
                 return;
             }
 
@@ -1262,7 +1242,7 @@
                     "stock.quickEditLimitExceeded", 
                     "Differenza troppo grande (> {0} unità). Usa la modalità di modifica completa.", 
                     QuickEditMaxDifference);
-                Snackbar.Add(message, Severity.Warning);
+                AppNotification.ShowWarning(message);
                 return;
             }
 
@@ -1282,19 +1262,19 @@
             
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"));
                 await LoadStockOverviewAsync();
                 CancelQuickEdit();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving quick edit for stock {StockId}", item.StockId);
-            Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento: {0}", ex.Message));
         }
     }
 
@@ -1380,7 +1360,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _editingWarehouseId);
-                Snackbar.Add(TranslationService.GetTranslation("stock.locationLoadError", "Errore nel caricamento delle ubicazioni"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stock.locationLoadError", "Errore nel caricamento delle ubicazioni"));
             }
         }
         
@@ -1396,7 +1376,7 @@
         var validationError = ValidateFullEdit();
         if (validationError != null)
         {
-            Snackbar.Add(validationError, Severity.Warning);
+            AppNotification.ShowWarning(validationError);
             return;
         }
 
@@ -1424,15 +1404,15 @@
                 
                 if (createdStock != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("stock.stockCreated", 
-                        "Giacenza creata con successo!"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.stockCreated", 
+                        "Giacenza creata con successo!"));
                     await LoadStockOverviewAsync();
                     CloseFullEditPopover();
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("stock.createError", 
-                        "Errore nella creazione della giacenza"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("stock.createError", 
+                        "Errore nella creazione della giacenza"));
                 }
                 return;
             }
@@ -1454,19 +1434,19 @@
             
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.quantityUpdated", "Quantità aggiornata con successo!"));
                 await LoadStockOverviewAsync();
                 CloseFullEditPopover();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stock.updateError", "Errore nell'aggiornamento della quantità"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving stock adjustment");
-            Snackbar.Add(TranslationService.GetTranslationFormatted("stock.updateErrorWithDetails", "Errore nell'aggiornamento: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("stock.updateErrorWithDetails", "Errore nell'aggiornamento: {0}", ex.Message));
         }
         finally
         {

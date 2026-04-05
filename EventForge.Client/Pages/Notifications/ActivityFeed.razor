@@ -7,7 +7,7 @@
 @inject INotificationService NotificationService
 @inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
@@ -279,7 +279,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle attività: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle attività: {ex.Message}");
         }
         finally
         {
@@ -297,7 +297,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle attività: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle attività: {ex.Message}");
         }
     }
 
@@ -317,7 +317,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento di più attività: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento di più attività: {ex.Message}");
         }
         finally
         {
@@ -334,7 +334,7 @@
         await LoadActivities();
         _isLoading = false;
         
-        Snackbar.Add(TranslationService.GetTranslation("activityFeed.refreshed", "Feed aggiornato"), Severity.Success);
+        AppNotification.ShowSuccess(TranslationService.GetTranslation("activityFeed.refreshed", "Feed aggiornato"));
     }
 
     private void ToggleFilters()
@@ -350,7 +350,7 @@
         await LoadActivities();
         _isLoading = false;
 
-        Snackbar.Add(TranslationService.GetTranslation("activityFeed.filtersApplied", "Filtri applicati"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("activityFeed.filtersApplied", "Filtri applicati"));
     }
 
     private void NavigateToActivity(string url)

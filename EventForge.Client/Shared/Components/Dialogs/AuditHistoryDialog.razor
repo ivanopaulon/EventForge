@@ -6,7 +6,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Audit
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.History"
           Title="@GetDialogTitle()"
@@ -377,8 +377,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslationFormatted("error.loadAuditHistory",
-                "Errore nel caricamento della cronologia: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("error.loadAuditHistory",
+                "Errore nel caricamento della cronologia: {0}", ex.Message));
         }
         finally
         {

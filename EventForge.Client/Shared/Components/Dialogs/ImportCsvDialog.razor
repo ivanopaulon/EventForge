@@ -5,7 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.JSInterop
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject HttpClient Http
 @inject ILogger<ImportCsvDialog> Logger
@@ -463,14 +463,14 @@
         // Validate and upload file
         if (_selectedFile == null)
         {
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.noFileSelected", "Seleziona un file CSV"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.noFileSelected", "Seleziona un file CSV"));
             return;
         }
 
         // Validate file size
         if (_selectedFile.Size > 10 * 1024 * 1024)
         {
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.fileTooLarge", "Il file supera i 10 MB"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("csvImport.fileTooLarge", "Il file supera i 10 MB"));
             return;
         }
 
@@ -494,7 +494,7 @@
                     
                     if (!_validationResult.IsValid)
                     {
-                        Snackbar.Add(TranslationService.GetTranslation("csvImport.validationFailed", "Il file contiene errori"), Severity.Warning);
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.validationFailed", "Il file contiene errori"));
                     }
                     
                     // Move to next step
@@ -503,13 +503,13 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("csvImport.validationError", "Errore durante la validazione del file"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("csvImport.validationError", "Errore durante la validazione del file"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error validating CSV file");
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.validationException", "Errore durante la validazione: " + ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("csvImport.validationException", "Errore durante la validazione: " + ex.Message));
         }
     }
 
@@ -518,13 +518,13 @@
         // Validate column mapping
         if (string.IsNullOrWhiteSpace(_columnMapping.ProductCodeColumn))
         {
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.productCodeRequired", "La colonna Codice Prodotto è obbligatoria"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.productCodeRequired", "La colonna Codice Prodotto è obbligatoria"));
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_columnMapping.UnitCostColumn))
         {
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.unitCostRequired", "La colonna Costo Unitario è obbligatoria"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.unitCostRequired", "La colonna Costo Unitario è obbligatoria"));
             return;
         }
 
@@ -564,11 +564,11 @@
                 
                 if (_importResult?.Success == true)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("csvImport.importSuccess", "Importazione completata con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.importSuccess", "Importazione completata con successo"));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("csvImport.importPartialSuccess", "Importazione completata con alcuni errori"), Severity.Warning);
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.importPartialSuccess", "Importazione completata con alcuni errori"));
                 }
 
                 // Move to results step
@@ -578,13 +578,13 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Logger.LogError("Import failed: {Error}", error);
-                Snackbar.Add(TranslationService.GetTranslation("csvImport.importFailed", "Errore durante l'importazione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("csvImport.importFailed", "Errore durante l'importazione"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error importing CSV file");
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.importException", "Errore: " + ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("csvImport.importException", "Errore: " + ex.Message));
         }
         finally
         {
@@ -607,12 +607,12 @@
             
             await JSRuntime.InvokeVoidAsync("downloadFile", "supplier_products_template.csv", "text/csv", content);
             
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.templateDownloaded", "Template scaricato"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.templateDownloaded", "Template scaricato"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error downloading template");
-            Snackbar.Add(TranslationService.GetTranslation("csvImport.downloadError", "Errore durante il download"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("csvImport.downloadError", "Errore durante il download"));
         }
     }
 

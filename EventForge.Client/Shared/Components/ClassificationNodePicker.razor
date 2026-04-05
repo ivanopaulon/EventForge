@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject IEntityManagementService EntityManagementService
 @inject ILogger<ClassificationNodePicker> Logger
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <MudPaper Class="pa-3" Elevation="0">
@@ -118,7 +118,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading classification nodes in picker");
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento dei nodi"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento dei nodi"));
         }
         finally
         {

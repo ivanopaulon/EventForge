@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject IBusinessPartyService BusinessPartyService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyProductsTab> Logger
 
@@ -246,7 +246,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading products for business party {BusinessPartyId}", BusinessPartyId);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento dei prodotti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadError", "Errore nel caricamento dei prodotti"));
             return new TableData<BusinessPartyProductAnalysisDto> { Items = new List<BusinessPartyProductAnalysisDto>(), TotalItems = 0 };
         }
         finally
@@ -324,7 +324,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error showing product documents for product {ProductId}", productId);
-            Snackbar.Add(TranslationService.GetTranslation("product.documentsError", "Errore nella visualizzazione dei documenti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.documentsError", "Errore nella visualizzazione dei documenti"));
         }
     }
 }

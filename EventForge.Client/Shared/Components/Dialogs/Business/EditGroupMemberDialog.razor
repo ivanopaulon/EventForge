@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @inject IBusinessPartyGroupService GroupService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<EditGroupMemberDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Edit"
@@ -222,13 +222,13 @@
             
             await GroupService.UpdateMemberAsync(Member.Id, updateDto);
             
-            Snackbar.Add("Membro aggiornato con successo", Severity.Success);
+            AppNotification.ShowSuccess("Membro aggiornato con successo");
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating member {MemberId}", Member.Id);
-            Snackbar.Add("Errore durante l'aggiornamento del membro", Severity.Error);
+            AppNotification.ShowError("Errore durante l'aggiornamento del membro");
         }
     }
     

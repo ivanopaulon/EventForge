@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Dashboard
 @inject ITranslationService TranslationService
 @inject IDashboardConfigurationService DashboardConfigurationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<DashboardConfigurationDialog> Logger
 @inject IDialogService DialogService
 
@@ -212,7 +212,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading dashboard configurations");
-            Snackbar.Add("Errore nel caricamento delle configurazioni", Severity.Error);
+            AppNotification.ShowError("Errore nel caricamento delle configurazioni");
         }
         finally
         {
@@ -256,7 +256,7 @@
         {
             createdMetric.Order = _metrics.Count;
             _metrics.Add(createdMetric);
-            Snackbar.Add("Metrica aggiunta con successo", Severity.Success);
+            AppNotification.ShowSuccess("Metrica aggiunta con successo");
         }
     }
 
@@ -287,7 +287,7 @@
         {
             _metrics[index] = editedMetric;
             _metrics[index].Order = index; // Preserve order
-            Snackbar.Add("Metrica modificata con successo", Severity.Success);
+            AppNotification.ShowSuccess("Metrica modificata con successo");
         }
     }
 
@@ -354,7 +354,7 @@
             Order = _metrics.Count
         };
         _metrics.Add(duplicate);
-        Snackbar.Add("Metrica duplicata", Severity.Success);
+        AppNotification.ShowSuccess("Metrica duplicata");
     }
 
     private string GetMetricTypeLabel(MetricType type)
@@ -379,7 +379,7 @@
     {
         if (!CanSave())
         {
-            Snackbar.Add("Inserisci un nome e almeno una metrica", Severity.Warning);
+            AppNotification.ShowWarning("Inserisci un nome e almeno una metrica");
             return;
         }
 
@@ -397,7 +397,7 @@
                 };
 
                 await DashboardConfigurationService.UpdateConfigurationAsync(_editingConfigurationId.Value, updateDto);
-                Snackbar.Add("Configurazione aggiornata con successo!", Severity.Success);
+                AppNotification.ShowSuccess("Configurazione aggiornata con successo!");
             }
             else
             {
@@ -412,7 +412,7 @@
                 };
 
                 await DashboardConfigurationService.CreateConfigurationAsync(createDto);
-                Snackbar.Add("Configurazione salvata con successo!", Severity.Success);
+                AppNotification.ShowSuccess("Configurazione salvata con successo!");
             }
 
             MudDialog.Close(DialogResult.Ok(true));
@@ -420,7 +420,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving dashboard configuration");
-            Snackbar.Add("Errore nel salvataggio della configurazione", Severity.Error);
+            AppNotification.ShowError("Errore nel salvataggio della configurazione");
         }
     }
 
@@ -451,7 +451,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading configuration for edit");
-            Snackbar.Add("Errore nel caricamento della configurazione", Severity.Error);
+            AppNotification.ShowError("Errore nel caricamento della configurazione");
         }
     }
 
@@ -460,13 +460,13 @@
         try
         {
             await DashboardConfigurationService.DeleteConfigurationAsync(id);
-            Snackbar.Add("Configurazione eliminata", Severity.Success);
+            AppNotification.ShowSuccess("Configurazione eliminata");
             await LoadConfigurationsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error deleting configuration");
-            Snackbar.Add("Errore nell'eliminazione della configurazione", Severity.Error);
+            AppNotification.ShowError("Errore nell'eliminazione della configurazione");
         }
     }
 
@@ -475,13 +475,13 @@
         try
         {
             await DashboardConfigurationService.SetAsDefaultAsync(id);
-            Snackbar.Add("Configurazione impostata come predefinita", Severity.Success);
+            AppNotification.ShowSuccess("Configurazione impostata come predefinita");
             await LoadConfigurationsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error setting configuration as default");
-            Snackbar.Add("Errore nell'impostazione della configurazione predefinita", Severity.Error);
+            AppNotification.ShowError("Errore nell'impostazione della configurazione predefinita");
         }
     }
 

@@ -3,7 +3,7 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 @inject IPriceListService PriceListService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<DuplicatePriceListDialog> Logger
 @inject NavigationManager NavigationManager
 
@@ -329,9 +329,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error duplicating price list");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.duplicateFailed", $"Errore duplicazione: {ex.Message}"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.duplicateFailed", $"Errore duplicazione: {ex.Message}"));
         }
         finally
         {

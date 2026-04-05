@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<AssignProductToSupplierDialog> Logger
 
@@ -235,14 +235,14 @@
         }
         else
         {
-            Snackbar.Add(TranslationService.GetTranslation("validation.productRequired", "Il prodotto è obbligatorio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.productRequired", "Il prodotto è obbligatorio"));
             return;
         }
 
         // Validate unit cost is provided
         if (!_model.UnitCost.HasValue || _model.UnitCost.Value <= 0)
         {
-            Snackbar.Add(TranslationService.GetTranslation("validation.unitCostRequired", "Il costo unitario è obbligatorio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.unitCostRequired", "Il costo unitario è obbligatorio"));
             return;
         }
 
@@ -252,23 +252,19 @@
             var result = await ProductService.CreateProductSupplierAsync(_model);
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productAssignedSuccessfully", "Prodotto assegnato al fornitore con successo"), 
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.productAssignedSuccessfully", "Prodotto assegnato al fornitore con successo"));
                 MudDialog?.Close(DialogResult.Ok(result));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productAssignFailed", "Errore durante l'assegnazione del prodotto"), 
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.productAssignFailed", "Errore durante l'assegnazione del prodotto"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to assign product to supplier {SupplierId}", SupplierId);
             var errorMessage = TranslationService.GetTranslation("messages.productAssignFailed", "Errore durante l'assegnazione del prodotto");
-            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{errorMessage}: {ex.Message}");
         }
         finally
         {

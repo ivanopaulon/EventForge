@@ -11,7 +11,7 @@
 @inject IWarehouseService WarehouseService
 @inject IStorageLocationService StorageLocationService
 @inject IDocumentTypeService DocumentTypeService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StockReconciliation> Logger
@@ -726,7 +726,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing stock reconciliation page");
-            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore nel caricamento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.loadFailed", "Errore nel caricamento"));
         }
         finally
         {
@@ -758,9 +758,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading warehouses");
-            Snackbar.Add(
-                TranslationService.GetTranslation("messages.warehousesLoadFailed", "Errore nel caricamento dei magazzini"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.warehousesLoadFailed", "Errore nel caricamento dei magazzini"));
             _warehouses = new();
         }
     }
@@ -796,9 +794,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _selectedWarehouseId);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.locationsLoadFailed", "Errore nel caricamento delle ubicazioni"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.locationsLoadFailed", "Errore nel caricamento delle ubicazioni"));
                 _locations = new();
             }
             finally
@@ -813,10 +809,8 @@
         // Validate dates
         if (_fromDate.HasValue && _toDate.HasValue && _fromDate > _toDate)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.error.invalidDateRange", 
-                    "La data 'Da' non può essere successiva alla data 'A'"),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("stockReconciliation.error.invalidDateRange", 
+                    "La data 'Da' non può essere successiva alla data 'A'"));
             return;
         }
 
@@ -842,23 +836,17 @@
 
             if (_reconciliationResult != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.success.calculated", "Calculation completed successfully"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("stockReconciliation.success.calculated", "Calculation completed successfully"));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error calculating stock reconciliation");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.calculationFailed", "Error during reconciliation calculation"));
         }
         finally
         {
@@ -926,29 +914,23 @@
 
             if (result != null && result.Success)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslationFormatted(
+                AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
                         "stockReconciliation.success.applied",
                         "Reconciliation applied successfully. Updated {0} stock records.",
-                        result.UpdatedCount),
-                    Severity.Success);
+                        result.UpdatedCount));
 
                 // Reload the preview
                 await CalculatePreviewAsync();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying stock reconciliation");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.applyFailed", "Error applying reconciliation"));
         }
         finally
         {
@@ -986,23 +968,17 @@
                 var base64 = Convert.ToBase64String(fileData);
                 await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, base64);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.exportSuccess", "Esportazione completata"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.exportSuccess", "Esportazione completata"));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting stock reconciliation report");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.error.exportFailed", "Error exporting report"));
         }
         finally
         {
@@ -1101,26 +1077,20 @@
 
             if (_rebuildResult != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslationFormatted(
+                AppNotification.ShowInfo(TranslationService.GetTranslationFormatted(
                         "stockReconciliation.rebuild.previewSuccess",
                         "Anteprima completata: {0} righe analizzate, {1} movimenti da creare.",
-                        _rebuildResult.RowsScanned, _rebuildResult.MovementsCreated),
-                    Severity.Info);
+                        _rebuildResult.RowsScanned, _rebuildResult.MovementsCreated));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.rebuild.error.previewFailed", "Errore durante l'analisi dei movimenti"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.rebuild.error.previewFailed", "Errore durante l'analisi dei movimenti"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error previewing rebuild of missing stock movements");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.rebuild.error.previewFailed", "Errore durante l'analisi dei movimenti"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.rebuild.error.previewFailed", "Errore durante l'analisi dei movimenti"));
         }
         finally
         {
@@ -1159,26 +1129,24 @@
 
             if (_rebuildResult != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslationFormatted(
+                var msg = TranslationService.GetTranslationFormatted(
                         "stockReconciliation.rebuild.executeSuccess",
                         "Ricostruzione completata: {0} movimenti creati, {1} errori.",
-                        _rebuildResult.MovementsCreated, _rebuildResult.Errors),
-                    _rebuildResult.Errors > 0 ? Severity.Warning : Severity.Success);
+                        _rebuildResult.MovementsCreated, _rebuildResult.Errors);
+                if (_rebuildResult.Errors > 0)
+                    AppNotification.ShowWarning(msg);
+                else
+                    AppNotification.ShowSuccess(msg);
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("stockReconciliation.rebuild.error.executeFailed", "Errore durante la ricostruzione dei movimenti"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.rebuild.error.executeFailed", "Errore durante la ricostruzione dei movimenti"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error executing rebuild of missing stock movements");
-            Snackbar.Add(
-                TranslationService.GetTranslation("stockReconciliation.rebuild.error.executeFailed", "Errore durante la ricostruzione dei movimenti"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("stockReconciliation.rebuild.error.executeFailed", "Errore durante la ricostruzione dei movimenti"));
         }
         finally
         {

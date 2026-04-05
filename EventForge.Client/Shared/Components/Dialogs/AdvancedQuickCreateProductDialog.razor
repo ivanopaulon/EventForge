@@ -6,7 +6,7 @@
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
 @inject IUMService UMService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<AdvancedQuickCreateProductDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.AddShoppingCart"
@@ -405,10 +405,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading VAT rates");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"));
         }
         finally
         {
@@ -426,10 +423,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading units of measure");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.uomLoadError", "Errore nel caricamento unità di misura"), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.uomLoadError", "Errore nel caricamento unità di misura"));
         }
         finally
         {
@@ -514,10 +508,7 @@
                 await _form.ValidateAsync();
                 if (!_isFormValid)
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
-                        Severity.Warning
-                    );
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"));
                     return;
                 }
             }
@@ -529,19 +520,13 @@
                 {
                     if (!unit.UnitOfMeasureId.HasValue)
                     {
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("validation.unitOfMeasureRequired", "Tutte le unità devono avere un'unità di misura"), 
-                            Severity.Warning
-                        );
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("validation.unitOfMeasureRequired", "Tutte le unità devono avere un'unità di misura"));
                         return;
                     }
 
                     if (unit.ConversionFactor < 0.001m)
                     {
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("validation.conversionFactorInvalid", "Il fattore di conversione deve essere >= 0.001"), 
-                            Severity.Warning
-                        );
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("validation.conversionFactorInvalid", "Il fattore di conversione deve essere >= 0.001"));
                         return;
                     }
                 }
@@ -554,10 +539,7 @@
                 {
                     if (string.IsNullOrWhiteSpace(code.Code))
                     {
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("validation.codeRequired", "Tutti i codici devono avere un valore"), 
-                            Severity.Warning
-                        );
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("validation.codeRequired", "Tutti i codici devono avere un valore"));
                         return;
                     }
                 }
@@ -639,10 +621,7 @@
             if (createdProduct != null)
             {
                 var totalItems = _alternativeUnits.Count + _alternativeCodes.Count;
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo con {0} unità/codici", totalItems), 
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo con {0} unità/codici", totalItems));
                 
                 // Close dialog and return the created product as ProductDto
                 var productDto = new ProductDto
@@ -663,19 +642,13 @@
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), 
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating product with codes and units");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message));
         }
         finally
         {

@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Warehouse
 @using EventForge.Client.Services
 @inject IInventoryService InventoryService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 
@@ -368,7 +368,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento degli inventari: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento degli inventari: {ex.Message}");
         }
         finally
         {
@@ -386,14 +386,14 @@
 
             if (_preview == null)
             {
-                Snackbar.Add("Impossibile generare l'anteprima.", Severity.Error);
+                AppNotification.ShowError("Impossibile generare l'anteprima.");
                 return;
             }
             _activeStep = 1;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore anteprima: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore anteprima: {ex.Message}");
         }
         finally
         {
@@ -426,16 +426,16 @@
 
             if (_result == null)
             {
-                Snackbar.Add("Errore durante l'accorpamento.", Severity.Error);
+                AppNotification.ShowError("Errore durante l'accorpamento.");
                 return;
             }
 
-            Snackbar.Add($"Accorpamento completato! Documento: {_result.MergedDocumentNumber}", Severity.Success);
+            AppNotification.ShowSuccess($"Accorpamento completato! Documento: {_result.MergedDocumentNumber}");
             _activeStep = 2;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore accorpamento: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore accorpamento: {ex.Message}");
         }
         finally
         {

@@ -14,7 +14,7 @@
 @inject ILogManagementService LogManagementService
 @inject IProfileService ProfileService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @implements IDisposable
 
@@ -809,7 +809,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("health.errorLoadingLogs", "Error loading logs: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("health.errorLoadingLogs", "Error loading logs: {0}", ex.Message));
             
             if (_isAdmin)
             {
@@ -879,7 +879,7 @@
     private async Task ExportLogs()
     {
         // Stub implementation for now
-        Snackbar.Add(TranslationService.GetTranslation("health.exportNotImplemented", "Export feature coming soon"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("health.exportNotImplemented", "Export feature coming soon"));
         await Task.CompletedTask;
     }
 
@@ -1024,25 +1024,16 @@
                 // Remove the terminated session from the list
                 ActiveSessions?.RemoveAll(s => s.Id == sessionId);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("health.sessionTerminated", "Session terminated successfully"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("health.sessionTerminated", "Session terminated successfully"));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("health.sessionTerminationFailed", "Failed to terminate session"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("health.sessionTerminationFailed", "Failed to terminate session"));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("health.errorTerminatingSession", "Error terminating session: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("health.errorTerminatingSession", "Error terminating session: {0}", ex.Message));
         }
         finally
         {
@@ -1079,25 +1070,16 @@
                 // Remove all non-current sessions from the list
                 ActiveSessions?.RemoveAll(s => !s.IsCurrentSession);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("health.allOtherSessionsTerminated", "All other sessions terminated successfully"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("health.allOtherSessionsTerminated", "All other sessions terminated successfully"));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("health.terminationFailed", "Failed to terminate other sessions"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("health.terminationFailed", "Failed to terminate other sessions"));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("health.errorTerminatingSessions", "Error terminating sessions: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("health.errorTerminatingSessions", "Error terminating sessions: {0}", ex.Message));
         }
         finally
         {

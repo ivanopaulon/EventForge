@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<EditProductCodeDialog> Logger
 
@@ -169,7 +169,7 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"));
                 }
             }
             else
@@ -190,14 +190,14 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"));
                 }
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving product code");
-            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message));
         }
         finally
         {

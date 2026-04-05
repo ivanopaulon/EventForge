@@ -5,7 +5,7 @@
 @using MudBlazor
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ManageSupplierProductsDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.LocalShipping"
@@ -219,9 +219,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading products for supplier {SupplierId}", SupplierId);
-            Snackbar.Add(
-                TranslationService.GetTranslation("supplier.loadProductsError", "Errore nel caricamento dei prodotti"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("supplier.loadProductsError", "Errore nel caricamento dei prodotti"));
         }
         finally
         {
@@ -277,18 +275,14 @@
 
             var count = await ProductService.BulkUpdateProductSupplierAssociationsAsync(SupplierId, selectedProductIds);
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("supplier.productsSaved", "Associazioni salvate con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("supplier.productsSaved", "Associazioni salvate con successo"));
 
             MudDialog.Close(DialogResult.Ok(count));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving product-supplier associations for supplier {SupplierId}", SupplierId);
-            Snackbar.Add(
-                TranslationService.GetTranslation("supplier.saveError", "Errore nel salvataggio delle associazioni"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("supplier.saveError", "Errore nel salvataggio delle associazioni"));
         }
         finally
         {

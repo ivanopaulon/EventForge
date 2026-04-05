@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<GeneralInfoTab> Logger
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
@@ -259,13 +259,13 @@
 
  if (file.Size > maxBytes)
  {
- Snackbar.Add(TranslationService.GetTranslation("product.imageTooLarge", "Immagine troppo grande (max5MB)"), Severity.Error);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageTooLarge", "Immagine troppo grande (max5MB)"));
  return;
  }
 
  if (!string.IsNullOrWhiteSpace(file.ContentType) && !allowedTypes.Contains(file.ContentType))
  {
- Snackbar.Add(TranslationService.GetTranslation("product.imageTypeNotAllowed", "Formato immagine non supportato"), Severity.Error);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageTypeNotAllowed", "Formato immagine non supportato"));
  return;
  }
 
@@ -282,7 +282,7 @@
  Product.ThumbnailUrl = updatedProduct.ThumbnailUrl;
  _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product.ThumbnailUrl);
 
- Snackbar.Add(TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"), Severity.Success);
+ AppNotification.ShowSuccess(TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"));
 
  _selectedImage = null;
 
@@ -294,13 +294,13 @@
  else
  {
  Logger.LogWarning("Image upload returned null for product {ProductId}", Product.Id);
- Snackbar.Add(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"), Severity.Error);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"));
  }
  }
  catch (Exception ex)
  {
  Logger.LogError(ex, "Error uploading image for product {ProductId}", Product.Id);
- Snackbar.Add(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"), Severity.Error);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"));
  }
  finally
  {

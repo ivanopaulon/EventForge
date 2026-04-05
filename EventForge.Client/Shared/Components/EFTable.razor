@@ -8,7 +8,7 @@
 @inject ILogger<EFTable<TItem>> Logger
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IHttpClientService HttpClientService
 
 @if (AllowDragDropGrouping && ServerData == null)
@@ -981,9 +981,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during export");
-            Snackbar.Add(
-                TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message));
         }
         finally
         {
@@ -1029,9 +1027,7 @@
             var displayItems = GetDisplayItems().ToList();
             if (!displayItems.Any())
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
-                    Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
                 return;
             }
 
@@ -1060,16 +1056,12 @@
             await stream.CopyToAsync(ms);
             var bytes = ms.ToArray();
             await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
-            Snackbar.Add(
-                TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during Excel export");
-            Snackbar.Add(
-                TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message));
         }
         finally
         {
@@ -1084,9 +1076,7 @@
 
         if (!displayItems.Any())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
             return;
         }
 
@@ -1129,9 +1119,7 @@
 
         await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
 
-        Snackbar.Add(
-            TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
-            Severity.Success);
+        AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
     }
 
     private static string ToCamelCase(string name) =>
@@ -1143,9 +1131,7 @@
         
         if (!displayItems.Any())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"), 
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
             return;
         }
         
@@ -1178,9 +1164,7 @@
         
         await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes, "text/csv");
         
-        Snackbar.Add(
-            TranslationService.GetTranslation("export.success", "Export completato con successo!"), 
-            Severity.Success);
+        AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
     }
     
     private string EscapeCsv(string value)

@@ -19,7 +19,7 @@ namespace EventForge.Client.Shared.Components.Business
         [Inject] private ITranslationService TranslationService { get; set; } = null!;
         [Inject] private ILogger<UnifiedBusinessPartySelector> Logger { get; set; } = null!;
         [Inject] private IDialogService DialogService { get; set; } = null!;
-        [Inject] private ISnackbar Snackbar { get; set; } = null!;
+        [Inject] private IAppNotificationService AppNotification { get; set; } = null!;
 
         #region Parameters - Appearance
 
@@ -394,10 +394,7 @@ namespace EventForge.Client.Shared.Components.Business
                 await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
                 await OnBusinessPartyCreated.InvokeAsync(createdParty);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name));
             }
         }
 
@@ -427,10 +424,7 @@ namespace EventForge.Client.Shared.Components.Business
                 await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);
                 await OnBusinessPartyUpdated.InvokeAsync(updatedParty);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"));
             }
         }
 

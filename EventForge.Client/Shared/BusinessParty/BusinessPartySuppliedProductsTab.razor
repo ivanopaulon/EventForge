@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject IProductService ProductService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartySuppliedProductsTab> Logger
 
@@ -194,7 +194,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading products for supplier {BusinessPartyId}", BusinessPartyId);
-            Snackbar.Add(TranslationService.GetTranslation("productSupplier.loadError", "Errore nel caricamento dei prodotti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("productSupplier.loadError", "Errore nel caricamento dei prodotti"));
             _currentPageProducts = new List<ProductSupplierDto>();
             return new TableData<ProductSupplierDto> { Items = new List<ProductSupplierDto>(), TotalItems = 0 };
         }
@@ -244,7 +244,7 @@
     {
         if (_selectedProducts.Count == 0)
         {
-            Snackbar.Add(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"));
             return;
         }
 
@@ -273,9 +273,7 @@
             _selectedProducts.Clear();
             _selectAll = false;
             await _efTable!.ReloadServerDataAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"));
         }
     }
 
@@ -305,9 +303,7 @@
         if (result is { Canceled: false } && _efTable != null)
         {
             await _efTable!.ReloadServerDataAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("productSupplier.bulkUpdateSuccess", "Catalogo aggiornato con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkUpdateSuccess", "Catalogo aggiornato con successo"));
         }
     }
 
@@ -335,7 +331,7 @@
         if (result is { Canceled: false } && _efTable != null)
         {
             await _efTable!.ReloadServerDataAsync();
-            Snackbar.Add(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"));
         }
     }
 
@@ -390,9 +386,7 @@
         if (result is { Canceled: false } && _efTable != null)
         {
             await _efTable!.ReloadServerDataAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"));
         }
     }
 
@@ -409,7 +403,7 @@
             try
             {
                 await ProductService.RemoveProductSupplierAsync(productSupplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("productSupplier.deleteSuccess", "Associazione eliminata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.deleteSuccess", "Associazione eliminata con successo"));
                 
                 if (_efTable != null)
                 {
@@ -419,7 +413,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product supplier {Id}", productSupplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("productSupplier.deleteError", "Errore nell'eliminazione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("productSupplier.deleteError", "Errore nell'eliminazione"));
             }
         }
     }

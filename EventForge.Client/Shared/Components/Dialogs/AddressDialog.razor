@@ -1,7 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Common
 @inject IEntityManagementService EntityManagementService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<AddressDialog> Logger
 
@@ -168,7 +168,7 @@
                 };
 
                 await EntityManagementService.UpdateAddressAsync(Address.Id, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"));
             }
             else if (OwnerId.HasValue && !string.IsNullOrEmpty(OwnerType))
             {
@@ -187,7 +187,7 @@
                 };
 
                 await EntityManagementService.CreateAddressAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"));
             }
 
             MudDialog.Close(DialogResult.Ok(true));
@@ -198,7 +198,7 @@
             var errorMsg = _isEditMode 
                 ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento")
                 : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione");
-            Snackbar.Add(errorMsg, Severity.Error);
+            AppNotification.ShowError(errorMsg);
         }
         finally
         {

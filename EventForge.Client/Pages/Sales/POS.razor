@@ -15,7 +15,7 @@
 @attribute [Authorize]
 @inject POSViewModel ViewModel
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
@@ -342,7 +342,10 @@
 
     private void HandleNotification(string message, bool isSuccess)
     {
-        Snackbar.Add(message, isSuccess ? Severity.Success : Severity.Error);
+        if (isSuccess)
+            AppNotification.ShowSuccess(message);
+        else
+            AppNotification.ShowError(message);
     }
 
     private async Task OnProductSelectedAsync(ProductDto? product)
@@ -354,11 +357,11 @@
         if (result.Success)
         {
             _currentProduct = null;
-            Snackbar.Add($"✅ {product.Name} aggiunto", Severity.Success);
+            AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
         }
         else
         {
-            Snackbar.Add(result.Error ?? "Errore", Severity.Error);
+            AppNotification.ShowError(result.Error ?? "Errore");
         }
     }
 
@@ -387,10 +390,7 @@
             // Handle "skip" action
             if (result.Data is string action && action == "skip")
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"),
-                    Severity.Info
-                );
+                AppNotification.ShowInfo(TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"));
                 return;
             }
             
@@ -518,7 +518,7 @@
         var result = await ViewModel.RemoveItemAsync(item);
         if (!result.Success && result.Error != null)
         {
-            Snackbar.Add("❌ " + result.Error, Severity.Error);
+            AppNotification.ShowError("❌ " + result.Error);
         }
     }
 
@@ -548,11 +548,11 @@
             
             if (updatedSession != null)
             {
-                Snackbar.Add($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}", Severity.Success);
+                AppNotification.ShowSuccess($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}");
             }
             else
             {
-                Snackbar.Add("❌ Errore applicazione sconto", Severity.Error);
+                AppNotification.ShowError("❌ Errore applicazione sconto");
             }
         }
     }
@@ -568,9 +568,9 @@
         {
             var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
             if (success)
-                Snackbar.Add($"✅ Coupon applicato: {promotionName}", Severity.Success);
+                AppNotification.ShowSuccess($"✅ Coupon applicato: {promotionName}");
             else
-                Snackbar.Add($"❌ {error}", Severity.Warning);
+                AppNotification.ShowWarning($"❌ {error}");
         }
     }
 
@@ -595,11 +595,11 @@
             
             if (updatedSession != null)
             {
-                Snackbar.Add($"✅ Nota aggiunta: {noteDto.Text}", Severity.Success);
+                AppNotification.ShowSuccess($"✅ Nota aggiunta: {noteDto.Text}");
             }
             else
             {
-                Snackbar.Add("❌ Errore aggiunta nota", Severity.Error);
+                AppNotification.ShowError("❌ Errore aggiunta nota");
             }
         }
     }
@@ -613,7 +613,7 @@
 
         if (result.Success)
         {
-            Snackbar.Add(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"));
         }
     }
 
@@ -634,7 +634,7 @@
                 {
                     await ViewModel.RemoveItemAsync(item);
                 }
-                Snackbar.Add(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"));
             }
         }
     }
@@ -644,28 +644,19 @@
         // Pre-validation checks
         if (!ViewModel.HasActiveSession)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.noActiveSession", "Nessuna sessione attiva"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("errors.noActiveSession", "Nessuna sessione attiva"));
             return;
         }
 
         if (!ViewModel.CurrentSession!.Items.Any())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"));
             return;
         }
 
         if (ViewModel.CurrentSession.IsFullyPaid)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.billAlreadySettled", "Il conto è già saldato"),
-                Severity.Info
-            );
+            AppNotification.ShowInfo(TranslationService.GetTranslation("sales.billAlreadySettled", "Il conto è già saldato"));
             return;
         }
 
@@ -709,15 +700,12 @@
                     ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
                     : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
                 
-                Snackbar.Add(message, Severity.Success);
+                AppNotification.ShowSuccess(message);
             }
 
             if (failedPayments > 0)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
             }
         }
     }
@@ -727,7 +715,7 @@
         var result = await ViewModel.CloseSaleAsync();
         if (!result.Success && result.Error != null)
         {
-            Snackbar.Add(result.Error, Severity.Error);
+            AppNotification.ShowError(result.Error);
         }
     }
 
@@ -736,7 +724,7 @@
         var result = await ViewModel.ParkSessionAsync();
         if (!result.Success && result.Error != null)
         {
-            Snackbar.Add(result.Error, Severity.Error);
+            AppNotification.ShowError(result.Error);
         }
     }
 
@@ -757,7 +745,7 @@
             var result = await ViewModel.CancelSessionAsync();
             if (!result.Success && result.Error != null)
             {
-                Snackbar.Add(result.Error, Severity.Error);
+                AppNotification.ShowError(result.Error);
             }
         }
     }
@@ -775,17 +763,11 @@
             // Use browser print functionality
             await JSRuntime.InvokeVoidAsync("printReceipt", receiptContent);
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."),
-                Severity.Info
-            );
+            AppNotification.ShowInfo(TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."));
         }
         catch (Exception)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"));
         }
     }
 

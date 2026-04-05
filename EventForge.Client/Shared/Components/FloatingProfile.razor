@@ -4,7 +4,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @implements IDisposable
 
@@ -126,12 +126,12 @@
         try
         {
             await AuthService.LogoutAsync();
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"));
             // Do not show login overlay after logout — user must request login explicitly
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message));
         }
     }
 

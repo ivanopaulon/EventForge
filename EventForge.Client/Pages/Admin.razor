@@ -3,7 +3,7 @@
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 @inject IAuthService AuthService
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <PageTitle>@TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard") - PRYM</PageTitle>
@@ -171,7 +171,7 @@ else
             {
                 _isAuthorized = false;
                 _isLoading = false;
-                Snackbar.Add(TranslationService.GetTranslation("admin.accessDeniedWarning", "Access denied. Administrator role required."), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("admin.accessDeniedWarning", "Access denied. Administrator role required."));
                 return;
             }
 
@@ -181,7 +181,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("admin.loadError", "Error loading admin page: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("admin.loadError", "Error loading admin page: {0}", ex.Message));
             await ShowLoginDialog();
         }
         finally

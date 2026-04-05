@@ -5,7 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IPriceListService PriceListService
 @inject IUMService UMService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<EditPriceListEntryDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.PriceChange"
@@ -235,7 +235,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing EditPriceListEntryDialog");
-            Snackbar.Add(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"));
         }
         finally
         {
@@ -256,13 +256,13 @@
         try
         {
             var updated = await PriceListService.UpdateEntryAsync(Entry.Id, _model);
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.entryUpdated", "Voce aggiornata con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.entryUpdated", "Voce aggiornata con successo"));
             MudDialog.Close(DialogResult.Ok(updated));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating price list entry {EntryId}", Entry.Id);
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.entryUpdateError", "Errore durante l'aggiornamento della voce"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.entryUpdateError", "Errore durante l'aggiornamento della voce"));
         }
         finally
         {

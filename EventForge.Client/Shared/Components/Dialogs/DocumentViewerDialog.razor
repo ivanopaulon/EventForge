@@ -4,7 +4,7 @@
 @inject IHttpClientService HttpClientService
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<DocumentViewerDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Description"
@@ -192,12 +192,12 @@
             var fileName = $"Documento_{_document.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
             await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
 
-            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting document {DocumentId}", DocumentHeaderId);
-            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"));
         }
         finally
         {

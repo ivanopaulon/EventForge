@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Warehouse
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject ILotService LotService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<LotManagement> Logger
@@ -252,12 +252,12 @@
             var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
             if (result)
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
                 await _managementPage.RefreshAsync();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("common.error", "Errore"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
             }
         }
     }
@@ -275,12 +275,12 @@
             var result = await LotService.UnblockLotAsync(lot.Id);
             if (result)
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"));
                 await _managementPage.RefreshAsync();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("common.error", "Errore"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
             }
         }
     }

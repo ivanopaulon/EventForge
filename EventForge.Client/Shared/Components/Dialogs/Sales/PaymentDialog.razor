@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Sales
 @using MudBlazor
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Payment"
           Title="Pagamento"
@@ -314,10 +314,7 @@
         // Validation
         if (_selectedMethod == null)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.selectMethodFirst", "Seleziona un metodo di pagamento"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("sales.selectMethodFirst", "Seleziona un metodo di pagamento"));
             return;
         }
 
@@ -360,10 +357,7 @@
 
         _pendingPayments.Add(pendingPayment);
 
-        Snackbar.Add(
-            TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto"),
-            Severity.Success
-        );
+        AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto"));
 
         // Reset form
         _selectedMethod = null;
@@ -377,10 +371,7 @@
     {
         _pendingPayments.Remove(payment);
         
-        Snackbar.Add(
-            TranslationService.GetTranslation("sales.paymentRemoved", "Pagamento rimosso"),
-            Severity.Info
-        );
+        AppNotification.ShowInfo(TranslationService.GetTranslation("sales.paymentRemoved", "Pagamento rimosso"));
 
         // Reset amount to remaining
         _paymentAmount = CurrentRemainingAmount > 0 ? CurrentRemainingAmount : 0;
@@ -391,10 +382,7 @@
     {
         if (!IsBillSettled)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"));
             return;
         }
 

@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Common
 @inject IPriceListService PriceListService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<GenerateFromDefaultPricesDialog> Logger
 
@@ -298,7 +298,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading preview");
-            Snackbar.Add($"Errore anteprima: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore anteprima: {ex.Message}");
         }
         finally
         {
@@ -320,16 +320,14 @@
             // Call generate endpoint
             var newPriceListId = await PriceListService.GenerateFromDefaultPricesAsync(dto, CancellationToken.None);
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"), 
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"));
             
             MudDialog.Close(DialogResult.Ok(newPriceListId));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error generating price list");
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
         finally
         {

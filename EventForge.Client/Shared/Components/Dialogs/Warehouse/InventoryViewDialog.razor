@@ -5,7 +5,7 @@
 @inject IInventoryService InventoryService
 @inject IHttpClientService HttpClientService
 @inject IJSRuntime JSRuntime
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<InventoryViewDialog> Logger
 @inject IDialogService DialogService
 
@@ -255,11 +255,8 @@
         // Check if inventory has items
         if (_document.TotalItems == 0)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.cannotFinalizeEmptyInventory", 
-                    "Impossibile finalizzare un inventario senza articoli"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.cannotFinalizeEmptyInventory", 
+                    "Impossibile finalizzare un inventario senza articoli"));
             return;
         }
 
@@ -284,32 +281,23 @@
 
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess",
-                        "Inventario {0} finalizzato con successo", result.Number),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess",
+                        "Inventario {0} finalizzato con successo", result.Number));
 
                 // Close dialog and return true to indicate finalization
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
-                        "Errore durante la finalizzazione dell'inventario"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
+                        "Errore durante la finalizzazione dell'inventario"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error finalizing inventory {DocumentId}", _document.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
-                    "Errore durante la finalizzazione"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryFinalizeError",
+                    "Errore durante la finalizzazione"));
         }
         finally
         {
@@ -327,7 +315,7 @@
     {
         if (_document == null || _document.Rows.Count == 0)
         {
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.noRows", "Nessuna riga presente"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.noRows", "Nessuna riga presente"));
             return;
         }
 
@@ -384,12 +372,12 @@
             var fileName = $"Inventario_{_document.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
             await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
 
-            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting inventory {DocumentId}", _document?.Id);
-            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"));
         }
         finally
         {

@@ -8,7 +8,7 @@
 @inject ILookupCacheService LookupCacheService
 @inject IEntityManagementService EntityManagementService
 @inject ILogger<ClassificationTab> Logger
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 
 <MudStack Spacing="3">
@@ -222,7 +222,7 @@
             {
                 Logger.LogWarning(ex, "Failed to load brands");
                 _brands = new List<BrandDto>();
-                Snackbar.Add(TranslationService.GetTranslation("product.loadBrandsError", "Errore nel caricamento dei marchi"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadBrandsError", "Errore nel caricamento dei marchi"));
             }
 
             try
@@ -245,7 +245,7 @@
             {
                 Logger.LogWarning(ex, "Failed to load models");
                 _models = new List<ModelDto>();
-                Snackbar.Add(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"));
             }
 
             try
@@ -267,7 +267,7 @@
             {
                 Logger.LogWarning(ex, "Failed to load units of measure");
                 _unitsOfMeasure = Enumerable.Empty<UMDto>();
-                Snackbar.Add(TranslationService.GetTranslation("product.loadUMError", "Errore nel caricamento unità di misura"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadUMError", "Errore nel caricamento unità di misura"));
             }
 
             _lookupsLoaded = true;
@@ -275,7 +275,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Unexpected error loading classification lookups");
-            Snackbar.Add(TranslationService.GetTranslation("product.loadLookupsError", "Errore caricamento dati classificazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadLookupsError", "Errore caricamento dati classificazione"));
         }
         finally
         {
@@ -306,7 +306,7 @@
         {
             Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId}", Product?.BrandId);
             _models = new List<ModelDto>();
-            Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"));
         }
         finally
         {
@@ -415,7 +415,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening classification picker");
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.openPickerError", "Errore nell'apertura del selettore nodi"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.openPickerError", "Errore nell'apertura del selettore nodi"));
         }
     }
 
@@ -470,7 +470,7 @@
                 {
                     Logger.LogWarning(ex, "Failed to load models for brand {BrandId}", Product.BrandId);
                     _models = new List<ModelDto>();
-                    Snackbar.Add(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"), Severity.Warning);
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"));
                     Product.ModelId = null;
                 }
             }

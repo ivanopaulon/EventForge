@@ -5,7 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<QuickCreateProductDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.AddShoppingCart"
@@ -174,10 +174,7 @@
                 if (_cachedExistingProduct == null)
                 {
                     Logger.LogError("Product {ProductId} not found during initialization", ProductId);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
-                        Severity.Error
-                    );
+                    AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
                     return;
                 }
                 Logger.LogInformation("Cached complete product data for {ProductCode}", _cachedExistingProduct.Code);
@@ -227,10 +224,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading VAT rates");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"));
         }
         finally
         {
@@ -248,10 +242,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading units of measure");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.unitsLoadError", "Errore nel caricamento delle unità di misura"), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.unitsLoadError", "Errore nel caricamento delle unità di misura"));
             _availableUnits = Enumerable.Empty<UMDto>();
         }
     }
@@ -280,10 +271,7 @@
                 await _form.ValidateAsync();
                 if (!_isFormValid)
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
-                        Severity.Warning
-                    );
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"));
                     return;
                 }
             }
@@ -299,10 +287,7 @@
                 if (existingProduct == null)
                 {
                     Logger.LogError("Product {ProductId} not found when attempting to update", ProductId);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), 
-                        Severity.Error
-                    );
+                    AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
                     return;
                 }
             }
@@ -361,10 +346,7 @@
                 Logger.LogInformation("Product {ProductId} updated successfully - Name: {Name}, Description: {Description}",
                     updatedProduct.Id, updatedProduct.Name, updatedProduct.Description);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), 
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
                 
                 // Close dialog and return the updated product
                 MudDialog.Close(DialogResult.Ok(updatedProduct));
@@ -372,19 +354,13 @@
             else
             {
                 Logger.LogError("Product update returned null for ProductId {ProductId}", ProductId);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"), 
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating product {ProductId}: {Message}", ProductId, ex.Message);
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto: {0}", ex.Message), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto: {0}", ex.Message));
         }
         finally
         {
@@ -404,10 +380,7 @@
                 await _form.ValidateAsync();
                 if (!_isFormValid)
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"), 
-                        Severity.Warning
-                    );
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"));
                     return;
                 }
             }
@@ -458,36 +431,24 @@
                     {
                         Logger.LogError(codeEx, "Error auto-assigning code to product");
                         // Don't fail the whole operation if code assignment fails
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("products.codeAssignmentWarning", "Prodotto creato ma codice non assegnato automaticamente"), 
-                            Severity.Warning
-                        );
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("products.codeAssignmentWarning", "Prodotto creato ma codice non assegnato automaticamente"));
                     }
                 }
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"), 
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
                 
                 // Close dialog and return the created product
                 MudDialog.Close(DialogResult.Ok(createdProduct));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"), 
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating product");
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message), 
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message));
         }
         finally
         {

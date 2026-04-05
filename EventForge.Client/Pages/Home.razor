@@ -13,7 +13,7 @@
 @inject IDocumentHeaderService DocumentHeaderService
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<Home> Logger
 
 <PageTitle>@TranslationService.GetTranslation("home.title", "PRYM - Dashboard")</PageTitle>
@@ -360,12 +360,12 @@
             await EventService.UpdateEventAsync(ev.Id, updateDto);
             _upcomingEvents.Remove(ev);
             StateHasChanged();
-            Snackbar.Add("Evento completato", Severity.Success);
+            AppNotification.ShowSuccess("Evento completato");
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to complete event {EventId}", ev.Id);
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -377,12 +377,12 @@
             _openTasks.Remove(reminder);
             _activeReminders.Remove(reminder);
             StateHasChanged();
-            Snackbar.Add("Completato", Severity.Success);
+            AppNotification.ShowSuccess("Completato");
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to complete reminder {ReminderId}", reminder.Id);
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 }

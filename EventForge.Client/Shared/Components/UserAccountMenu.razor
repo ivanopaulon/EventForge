@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Auth
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @implements IDisposable
 
@@ -82,7 +82,7 @@
         try
         {
             await AuthService.LogoutAsync();
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"));
 
             // Trigger the logout callback if provided
             if (OnLogout.HasDelegate)
@@ -93,7 +93,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message));
         }
     }
 

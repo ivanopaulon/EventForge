@@ -3,7 +3,7 @@
 @inject IBusinessPartyService BusinessPartyService
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyDocumentsTab> Logger
 
@@ -180,7 +180,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading documents for business party {BusinessPartyId}", BusinessPartyId);
-            Snackbar.Add(TranslationService.GetTranslation("document.loadError", "Errore nel caricamento dei documenti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("document.loadError", "Errore nel caricamento dei documenti"));
             return new TableData<DocumentHeaderDto> { Items = new List<DocumentHeaderDto>(), TotalItems = 0 };
         }
         finally
@@ -230,7 +230,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error viewing document {DocumentId}", documentId);
-            Snackbar.Add(TranslationService.GetTranslation("document.viewError", "Errore nella visualizzazione del documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("document.viewError", "Errore nella visualizzazione del documento"));
         }
     }
 

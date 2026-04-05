@@ -3,7 +3,7 @@
 @implements IDisposable
 @inject IClientLogService ClientLogService
 @inject IJSRuntime JSRuntime
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 @code {
@@ -26,17 +26,11 @@
             // Show user-friendly notification via Snackbar
             InvokeAsync(() =>
             {
-                Snackbar.Add(
+                AppNotification.ShowError(
                     TranslationService.GetTranslation(
                         "error.unexpectedError", 
                         "Si è verificato un errore imprevisto. L'operazione potrebbe non essere stata completata."
-                    ), 
-                    Severity.Error, 
-                    config =>
-                    {
-                        config.VisibleStateDuration = 5000; // Show for 5 seconds
-                        config.ShowCloseIcon = true;
-                    }
+                    )
                 );
             });
             

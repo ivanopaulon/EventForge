@@ -3,7 +3,7 @@
 @attribute [AllowAnonymous]
 @inject IAuthService AuthService
 @inject IProfileService ProfileService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@(_isChangePasswordMode ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Login)"
@@ -196,10 +196,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.tenantsLoadError", 
-                    "Errore nel caricamento dei tenant: {0}", ex.Message), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError", 
+                    "Errore nel caricamento dei tenant: {0}", ex.Message));
             _tenants = new List<TenantResponseDto>();
         }
         finally
@@ -218,9 +216,7 @@
         // Ensure tenant selected
         if (string.IsNullOrWhiteSpace(_selectedTenantId))
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"), 
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"));
             return;
         }
 
@@ -235,9 +231,7 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), 
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"));
                 
                 // Check if user must change password
                 if (result.MustChangePassword)
@@ -252,18 +246,14 @@
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("auth.loginFailed", 
-                        "Login failed. Please check your credentials."), 
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", 
+                        "Login failed. Please check your credentials."));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.loginError", 
-                    "Errore durante il login: {0}", ex.Message), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", 
+                    "Errore durante il login: {0}", ex.Message));
         }
         finally
         {
@@ -309,10 +299,8 @@
         if (_changePasswordIsMandatory)
         {
             // Mandatory change cancelled: logout and close dialog
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.passwordChangeRequired", 
-                    "Password change is required. You have been logged out."),
-                Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired", 
+                    "Password change is required. You have been logged out."));
             
             await AuthService.LogoutAsync();
             

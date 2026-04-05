@@ -3,7 +3,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ProductNotFoundDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.SearchOff"
@@ -258,10 +258,7 @@
 
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", _selectedProduct.Name), 
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.barcodeAssignedSuccess", "Codice a barre assegnato con successo a {0}", _selectedProduct.Name));
                 
                 // Use typed result
                 var assignResult = new AssignResult
@@ -275,13 +272,13 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error assigning barcode to product");
-            Snackbar.Add(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.assignError", "Errore nell'assegnazione del codice"));
         }
         finally
         {

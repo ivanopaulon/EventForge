@@ -6,7 +6,7 @@
 @inject ITransferOrderService TransferOrderService
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<TransferOrderManagement> Logger
@@ -263,7 +263,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.loadWarehousesError", "Error loading warehouses: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.loadWarehousesError", "Error loading warehouses: {0}", ex.Message));
             Logger.LogError(ex, "Error loading warehouses");
         }
     }
@@ -285,7 +285,7 @@
         if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"));
         }
     }
 
@@ -301,7 +301,7 @@
         if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"));
         }
     }
 
@@ -319,7 +319,7 @@
         if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"));
         }
     }
 

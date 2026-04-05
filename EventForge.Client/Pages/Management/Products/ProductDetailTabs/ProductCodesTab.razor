@@ -4,7 +4,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ProductCodesTab> Logger
 
 <MudStack Spacing="3">
@@ -89,7 +89,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product codes for product {ProductId}", Product.Id);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadCodesError", "Errore nel caricamento dei codici"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadCodesError", "Errore nel caricamento dei codici"));
         }
     }
 
@@ -166,14 +166,14 @@
             try
             {
                 await ProductService.DeleteProductCodeAsync(code.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.codeDeleted", "Codice eliminato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("product.codeDeleted", "Codice eliminato con successo"));
                 await LoadCodesAsync();
                 await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product code {CodeId}", code.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteCodeError", "Errore nell'eliminazione del codice"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("product.deleteCodeError", "Errore nell'eliminazione del codice"));
             }
         }
     }

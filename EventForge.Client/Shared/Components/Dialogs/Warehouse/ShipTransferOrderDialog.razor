@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Warehouse
 @inject ITransferOrderService TransferOrderService
 @inject IStockService StockService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<ShipTransferOrderDialog> Logger
 
@@ -178,7 +178,7 @@
     {
         if (TransferOrder == null)
         {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"));
             MudDialog.Cancel();
             return;
         }
@@ -220,7 +220,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error validating stock");
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.stockValidationError", "Errore nella verifica dello stock"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.stockValidationError", "Errore nella verifica dello stock"));
         }
         finally
         {
@@ -255,18 +255,18 @@
             var result = await TransferOrderService.ShipTransferOrderAsync(TransferOrder.Id, _model);
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Ordine spedito con successo!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.shipSuccess", "Ordine spedito con successo!"));
                 MudDialog.Close(DialogResult.Ok(result));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error shipping transfer order");
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.shipError", "Errore nella spedizione: {0}", ex.Message));
         }
         finally
         {

@@ -8,7 +8,7 @@
 @inject IPriceListService PriceListService
 @inject IMockFidelityService FidelityService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IJSRuntime JSRuntime
 @inject ILogger<CommercialeTab> Logger
 
@@ -262,12 +262,12 @@
             {
                 var createdCard = await FidelityService.CreateCardAsync(newCard);
                 await LoadFidelityCardsAsync();
-                Snackbar.Add("Card fedeltà creata con successo", Severity.Success);
+                AppNotification.ShowSuccess("Card fedeltà creata con successo");
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error creating fidelity card");
-                Snackbar.Add("Errore durante la creazione della card", Severity.Error);
+                AppNotification.ShowError("Errore durante la creazione della card");
             }
         }
     }
@@ -299,12 +299,12 @@
             {
                 await FidelityService.UpdateCardAsync(updatedCard);
                 await LoadFidelityCardsAsync();
-                Snackbar.Add("Card fedeltà aggiornata con successo", Severity.Success);
+                AppNotification.ShowSuccess("Card fedeltà aggiornata con successo");
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error updating fidelity card");
-                Snackbar.Add("Errore durante l'aggiornamento della card", Severity.Error);
+                AppNotification.ShowError("Errore durante l'aggiornamento della card");
             }
         }
     }
@@ -336,7 +336,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading transaction history");
-            Snackbar.Add("Errore durante il caricamento dello storico", Severity.Error);
+            AppNotification.ShowError("Errore durante il caricamento dello storico");
         }
     }
     
@@ -368,12 +368,12 @@
                 if (operation.OperationType == ManageFidelityPointsDialog.PointsOperationType.Add)
                 {
                     await FidelityService.AddPointsAsync(card.Id, operation.Points, operation.Description);
-                    Snackbar.Add($"Aggiunti {operation.Points} punti", Severity.Success);
+                    AppNotification.ShowSuccess($"Aggiunti {operation.Points} punti");
                 }
                 else
                 {
                     await FidelityService.RedeemPointsAsync(card.Id, operation.Points, operation.Description);
-                    Snackbar.Add($"Riscattati {operation.Points} punti", Severity.Success);
+                    AppNotification.ShowSuccess($"Riscattati {operation.Points} punti");
                 }
                 
                 await LoadFidelityCardsAsync();
@@ -381,7 +381,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error managing points");
-                Snackbar.Add("Errore durante la gestione dei punti", Severity.Error);
+                AppNotification.ShowError("Errore durante la gestione dei punti");
             }
         }
     }
@@ -392,12 +392,12 @@
         {
             await FidelityService.SuspendCardAsync(card.Id);
             await LoadFidelityCardsAsync();
-            Snackbar.Add("Card sospesa con successo", Severity.Warning);
+            AppNotification.ShowWarning("Card sospesa con successo");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error suspending card");
-            Snackbar.Add("Errore durante la sospensione della card", Severity.Error);
+            AppNotification.ShowError("Errore durante la sospensione della card");
         }
     }
     
@@ -407,12 +407,12 @@
         {
             await FidelityService.ActivateCardAsync(card.Id);
             await LoadFidelityCardsAsync();
-            Snackbar.Add("Card riattivata con successo", Severity.Success);
+            AppNotification.ShowSuccess("Card riattivata con successo");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error activating card");
-            Snackbar.Add("Errore durante la riattivazione della card", Severity.Error);
+            AppNotification.ShowError("Errore durante la riattivazione della card");
         }
     }
     
@@ -422,12 +422,12 @@
         {
             await FidelityService.RevokeCardAsync(card.Id);
             await LoadFidelityCardsAsync();
-            Snackbar.Add("Card revocata con successo", Severity.Error);
+            AppNotification.ShowError("Card revocata con successo");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error revoking card");
-            Snackbar.Add("Errore durante la revoca della card", Severity.Error);
+            AppNotification.ShowError("Errore durante la revoca della card");
         }
     }
 }

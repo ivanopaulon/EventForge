@@ -4,7 +4,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @inject IEntityManagementService EntityManagementService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ILogger<ReferencesTab> Logger
 
@@ -101,7 +101,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading references for business party {PartyId}", Party.Id);
-            Snackbar.Add(TranslationService.GetTranslation("businessParty.referencesLoadError", "Errore nel caricamento delle persone di riferimento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("businessParty.referencesLoadError", "Errore nel caricamento delle persone di riferimento"));
         }
         finally
         {
@@ -179,14 +179,14 @@
             try
             {
                 await EntityManagementService.DeleteReferenceAsync(reference.Id);
-                Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"));
                 await LoadReferencesAsync();
                 await OnPartyUpdated.InvokeAsync();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting reference {ReferenceId}", reference.Id);
-                Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"));
             }
         }
     }

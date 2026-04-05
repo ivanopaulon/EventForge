@@ -3,7 +3,7 @@
 @attribute [Authorize]
 @inject ITranslationService TranslationService
 @inject IJSRuntime JSRuntime
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <MudPaper Elevation="3" Class="pa-3 enhanced-message-composer" Style="@ComposerStyle">
     <!-- Reply indicator if replying to a message -->

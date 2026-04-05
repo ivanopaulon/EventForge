@@ -2,7 +2,7 @@
 @using EventForge.Client.Services.Sales
 @using MudBlazor
 @inject ISalesService SalesService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Outlined.MergeType"
@@ -141,21 +141,17 @@
             
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.merge.success", "Sessioni unite con successo - Totale: {0}", result.FinalTotal.ToString("C2")), 
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.merge.success", "Sessioni unite con successo - Totale: {0}", result.FinalTotal.ToString("C2")));
                 MudDialog?.Close(DialogResult.Ok(result));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("sales.merge.error", "Errore durante l'unione delle sessioni"), 
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("sales.merge.error", "Errore durante l'unione delle sessioni"));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{TranslationService.GetTranslation("common.error", "Errore")}: {ex.Message}");
         }
     }
     

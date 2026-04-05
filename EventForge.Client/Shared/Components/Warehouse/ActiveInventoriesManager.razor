@@ -2,7 +2,7 @@
 @using EventForge.Client.Shared.Components.Dialogs.Warehouse
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <MudCard Class="mb-4">
     <MudCardHeader>
@@ -121,11 +121,8 @@
         var warehouses = _selectedInventories.Select(i => i.WarehouseId).Distinct().ToList();
         if (warehouses.Count > 1)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.differentWarehousesError",
-                    "Tutti gli inventari devono appartenere allo stesso magazzino"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.differentWarehousesError",
+                    "Tutti gli inventari devono appartenere allo stesso magazzino"));
             return;
         }
 

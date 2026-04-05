@@ -5,7 +5,7 @@
 @using EventForge.Client.Shared.Components
 @attribute [AllowAnonymous]
 @inject IAuthService AuthService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
 
@@ -205,7 +205,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.tenantsLoadError", "Errore nel caricamento dei tenant: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError", "Errore nel caricamento dei tenant: {0}", ex.Message));
             _tenants = new List<TenantResponseDto>();
         }
         finally
@@ -224,7 +224,7 @@
         // Ensure tenant selected
         if (string.IsNullOrWhiteSpace(_selectedTenantId))
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"));
             return;
         }
 
@@ -239,19 +239,19 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"));
 
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
                 NavigationManager.NavigateTo(isAdmin ? "/product-management/products" : "/product-management/products");
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.loginFailed", "Login failed. Please check your credentials."), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", "Login failed. Please check your credentials."));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("auth.loginError", "Login error: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", "Login error: {0}", ex.Message));
         }
         finally
         {

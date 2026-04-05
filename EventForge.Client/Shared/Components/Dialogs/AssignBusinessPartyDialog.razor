@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Business
 @using EventForge.DTOs.Common
 @inject IBusinessPartyService BusinessPartyService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<AssignBusinessPartyDialog> Logger
 
@@ -198,7 +198,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load business parties");
-            Snackbar.Add(TranslationService.GetTranslation("messages.businessPartiesLoadFailed", "Errore nel caricamento dei partner commerciali"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.businessPartiesLoadFailed", "Errore nel caricamento dei partner commerciali"));
         }
     }
 
@@ -274,7 +274,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to prepare business party assignment");
-            Snackbar.Add(TranslationService.GetTranslation("messages.businessPartyAssignFailed", "Errore durante la preparazione dell'assegnazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.businessPartyAssignFailed", "Errore durante la preparazione dell'assegnazione"));
         }
         finally
         {

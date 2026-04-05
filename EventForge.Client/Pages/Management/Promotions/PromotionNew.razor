@@ -7,7 +7,7 @@
 @inject IPromotionClientService PromotionService
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<PromotionNew> Logger
 
@@ -246,16 +246,14 @@
         try
         {
             var created = await PromotionService.CreateAsync(_model);
-            Snackbar.Add(
-                TranslationService.GetTranslationFormatted("promotion.created",
-                    "Promozione '{0}' creata con successo.", created.Name),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("promotion.created",
+                    "Promozione '{0}' creata con successo.", created.Name));
             NavigationManager.NavigateTo($"/management/promotions/{created.Id}");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating promotion");
-            Snackbar.Add(TranslationService.GetTranslation("promotion.createError", "Errore durante la creazione della promozione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.createError", "Errore durante la creazione della promozione"));
         }
         finally
         {

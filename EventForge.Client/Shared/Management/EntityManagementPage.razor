@@ -10,7 +10,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -464,8 +464,8 @@
     {
         if (Config.CanDelete != null && !Config.CanDelete(entity))
         {
-            Snackbar.Add(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
-                "Impossibile eliminare questo elemento"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
+                "Impossibile eliminare questo elemento"));
             return;
         }
 
@@ -489,8 +489,8 @@
                 var existing = _entities.FirstOrDefault(e => Config.GetId(e) == id);
                 if (existing != null) _entities.Remove(existing);
                 RefreshFilteredEntities();
-                Snackbar.Add(TranslationService.GetTranslation(Config.DeleteSuccessMessageKey,
-                    "Elemento eliminato con successo!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation(Config.DeleteSuccessMessageKey,
+                    "Elemento eliminato con successo!"));
                 StateHasChanged();
             }
             catch (Exception ex)
@@ -514,8 +514,8 @@
 
         if (deletableEntities.Count == 0)
         {
-            Snackbar.Add(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
-                "Impossibile eliminare gli elementi selezionati"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation(Config.CannotDeleteMessageKey,
+                "Impossibile eliminare gli elementi selezionati"));
             return;
         }
 
@@ -576,18 +576,18 @@
 
                 if (failedCount == 0 && skippedCount == 0)
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted(Config.BulkDeleteSuccessMessageKey,
-                        "{0} elementi eliminati con successo!", deletedCount), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(Config.BulkDeleteSuccessMessageKey,
+                        "{0} elementi eliminati con successo!", deletedCount));
                 }
                 else if (skippedCount > 0 && failedCount == 0)
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("common.bulkDeletePartialSkipped",
-                        "{0} elementi eliminati, {1} non eliminabili ignorati", deletedCount, skippedCount), Severity.Warning);
+                    AppNotification.ShowWarning(TranslationService.GetTranslationFormatted("common.bulkDeletePartialSkipped",
+                        "{0} elementi eliminati, {1} non eliminabili ignorati", deletedCount, skippedCount));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("common.bulkDeletePartial",
-                        "{0} elementi eliminati, {1} falliti", deletedCount, failedCount), Severity.Warning);
+                    AppNotification.ShowWarning(TranslationService.GetTranslationFormatted("common.bulkDeletePartial",
+                        "{0} elementi eliminati, {1} falliti", deletedCount, failedCount));
                 }
             }
             catch (Exception ex)
@@ -644,8 +644,8 @@
                 _isLoadingEntities = true;
                 StateHasChanged();
                 await Service.ToggleStatusAsync(Config.GetId(entity), !isActive, _cts.Token);
-                Snackbar.Add(TranslationService.GetTranslation("common.statusChangeSuccess",
-                    "Stato aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("common.statusChangeSuccess",
+                    "Stato aggiornato con successo"));
                 // Reload to reflect the updated status from the server
                 await LoadEntitiesAsync();
             }
