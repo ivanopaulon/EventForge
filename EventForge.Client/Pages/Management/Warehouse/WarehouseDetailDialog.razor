@@ -6,7 +6,7 @@
 @attribute [Authorize]
 @inject IWarehouseService WarehouseService
 @inject IStorageLocationService StorageLocationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<WarehouseDetailDialog> Logger
@@ -340,7 +340,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading storage facility {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento del magazzino"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento del magazzino"));
         }
         finally
         {
@@ -365,7 +365,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading storage locations for facility {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"));
         }
         finally
         {
@@ -399,7 +399,7 @@
                     Notes = _facility.Notes
                 };
                 await WarehouseService.CreateStorageFacilityAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -417,7 +417,7 @@
                     Notes = _facility.Notes
                 };
                 await WarehouseService.UpdateStorageFacilityAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -426,7 +426,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving storage facility");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.saveError", "Errore nel salvataggio del magazzino"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.saveError", "Errore nel salvataggio del magazzino"));
         }
         finally
         {
@@ -492,7 +492,7 @@
         if (result is { Canceled: false })
         {
             await LoadStorageLocationsAsync();
-            Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"));
         }
     }
 
@@ -517,7 +517,7 @@
         if (result is { Canceled: false })
         {
             await LoadStorageLocationsAsync();
-            Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"));
         }
     }
 
@@ -538,17 +538,17 @@
                 if (deleted)
                 {
                     await LoadStorageLocationsAsync();
-                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminato con successo"));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Eliminazione fallita"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.deleteFailed", "Eliminazione fallita"));
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting storage location {LocationId}", location.Id);
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteLocationError", "Errore nell'eliminazione dell'ubicazione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.deleteLocationError", "Errore nell'eliminazione dell'ubicazione"));
             }
         }
     }

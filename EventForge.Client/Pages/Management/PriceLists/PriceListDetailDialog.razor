@@ -8,7 +8,7 @@
 @attribute [Authorize]
 @inject IPriceListService PriceListService
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<PriceListDetailDialog> Logger
@@ -750,7 +750,7 @@
 
             if (_priceList == null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("pricelist.notFound", "Listino non trovato"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("pricelist.notFound", "Listino non trovato"));
                 MudDialog.Close();
                 return;
             }
@@ -763,7 +763,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading price list {Id}", Id);
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
         finally
         {
@@ -807,7 +807,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading price list entries");
-            Snackbar.Add($"Errore nel caricamento delle voci: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle voci: {ex.Message}");
         }
         finally
         {
@@ -839,7 +839,7 @@
 
     private async Task HandleProductNotFound(string barcode)
     {
-        Snackbar.Add($"Prodotto non trovato: {barcode}", Severity.Warning);
+        AppNotification.ShowWarning($"Prodotto non trovato: {barcode}");
     }
 
     private async Task AddProductQuick()
@@ -868,12 +868,12 @@
             _selectedProductToAdd = null;
             _quickAddPrice = 0;
 
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.entryAdded", "Prodotto aggiunto al listino"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.entryAdded", "Prodotto aggiunto al listino"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error adding product to price list");
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -900,7 +900,7 @@
     {
         if (_editingPrice <= 0)
         {
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.invalidPrice", "Prezzo non valido"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("pricelist.invalidPrice", "Prezzo non valido"));
             return;
         }
 
@@ -923,13 +923,13 @@
             _totalValue = _allEntries.Sum(e => e.Price);
 
             _editingEntryId = null;
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.priceUpdated", "Prezzo aggiornato"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.priceUpdated", "Prezzo aggiornato"));
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating price");
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -1005,12 +1005,12 @@
             {
                 await PriceListService.DeleteEntryAsync(entry.Id, default);
                 await LoadEntriesAsync();
-                Snackbar.Add(TranslationService.GetTranslation("pricelist.entryRemoved", "Voce rimossa"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.entryRemoved", "Voce rimossa"));
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting entry");
-                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Errore: {ex.Message}");
             }
         }
     }
@@ -1033,12 +1033,12 @@
 
                 await LoadEntriesAsync();
                 _selectedEntries.Clear();
-                Snackbar.Add($"Voci rimosse", Severity.Success);
+                AppNotification.ShowSuccess($"Voci rimosse");
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error bulk deleting");
-                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Errore: {ex.Message}");
             }
         }
     }
@@ -1057,14 +1057,14 @@
             {
                 _priceList = updated;
                 _hasChanges = false;
-                Snackbar.Add(TranslationService.GetTranslation("pricelist.saved", "Listino salvato"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.saved", "Listino salvato"));
                 MudDialog.Close(DialogResult.Ok(true));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving price list");
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
         finally
         {
@@ -1084,20 +1084,20 @@
             try
             {
                 await PriceListService.DeleteAsync(Id, default);
-                Snackbar.Add(TranslationService.GetTranslation("pricelist.deleted", "Listino eliminato"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.deleted", "Listino eliminato"));
                 MudDialog.Close(DialogResult.Ok(true));
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting price list");
-                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Errore: {ex.Message}");
             }
         }
     }
 
     private async Task OpenAddProductsDialog()
     {
-        Snackbar.Add("Dialog multi-selezione in arrivo nella prossima PR", Severity.Info);
+        AppNotification.ShowInfo("Dialog multi-selezione in arrivo nella prossima PR");
     }
 
     private async Task OpenEditEntryDialog(PriceListEntryDto entry)
@@ -1135,9 +1135,7 @@
         if (result is { Canceled: false })
         {
             await LoadEntriesAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.bulkUpdateSuccess", "Prezzi aggiornati con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.bulkUpdateSuccess", "Prezzi aggiornati con successo"));
         }
     }
 
@@ -1158,9 +1156,7 @@
         if (result is { Canceled: false })
         {
             await LoadEntriesAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.importSuccess", "Import completato con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.importSuccess", "Import completato con successo"));
         }
     }
 
@@ -1171,18 +1167,14 @@
             _isLoading = true;
             var entries = await PriceListService.ExportEntriesAsync(Id, includeInactive: false);
 
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("pricelist.exportReady", "Esportazione pronta")}: {entries.Count} {TranslationService.GetTranslation("pricelist.entries", "voci")}",
-                Severity.Success);
+            AppNotification.ShowSuccess($"{TranslationService.GetTranslation("pricelist.exportReady", "Esportazione pronta")}: {entries.Count} {TranslationService.GetTranslation("pricelist.entries", "voci")}");
 
             Logger.LogInformation("Export ready for {Count} entries. Actual Excel generation not yet implemented.", entries.Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting price list entries");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.exportFailed", "Errore esportazione"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.exportFailed", "Errore esportazione"));
         }
         finally
         {
@@ -1277,7 +1269,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading assigned business parties for price list {Id}", Id);
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartiesLoadFailed", "Errore caricamento partner commerciali"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.businessPartiesLoadFailed", "Errore caricamento partner commerciali"));
         }
     }
 
@@ -1305,13 +1297,13 @@
         try
         {
             await PriceListService.AssignBusinessPartyAsync(Id, dto, default);
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartyAssignedSuccess", "Partner assegnato con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.businessPartyAssignedSuccess", "Partner assegnato con successo"));
             await LoadAssignedBusinessPartiesAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error assigning business party to price list {Id}", Id);
-            Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartyAssignFailed", "Errore assegnazione partner"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.businessPartyAssignFailed", "Errore assegnazione partner"));
         }
     }
 

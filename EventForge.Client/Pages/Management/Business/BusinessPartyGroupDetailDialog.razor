@@ -5,7 +5,7 @@
 @using EventForge.Client.Shared.Components.Dialogs.Business
 @attribute [Authorize]
 @inject IBusinessPartyGroupService GroupService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyGroupDetailDialog> Logger
@@ -332,7 +332,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading group {EntityId}", EntityId);
-            Snackbar.Add("Errore nel caricamento del gruppo", Severity.Error);
+            AppNotification.ShowError("Errore nel caricamento del gruppo");
         }
         finally
         {
@@ -352,12 +352,12 @@
             _members = result?.Items?.ToList();
 
             if (result?.TotalCount > 100)
-                Snackbar.Add($"Visualizzati i primi 100 membri di {result.TotalCount} totali", Severity.Info);
+                AppNotification.ShowInfo($"Visualizzati i primi 100 membri di {result.TotalCount} totali");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading members for group {EntityId}", EntityId);
-            Snackbar.Add("Errore nel caricamento dei membri", Severity.Error);
+            AppNotification.ShowError("Errore nel caricamento dei membri");
         }
         finally
         {
@@ -382,7 +382,7 @@
                     ColorHex = _colorHex
                 };
                 await GroupService.CreateGroupAsync(createDto);
-                Snackbar.Add("Gruppo creato con successo", Severity.Success);
+                AppNotification.ShowSuccess("Gruppo creato con successo");
             }
             else if (EntityId.HasValue)
             {
@@ -399,7 +399,7 @@
                     ValidTo = _group?.ValidTo
                 };
                 await GroupService.UpdateGroupAsync(EntityId.Value, updateDto);
-                Snackbar.Add("Gruppo aggiornato con successo", Severity.Success);
+                AppNotification.ShowSuccess("Gruppo aggiornato con successo");
             }
 
             _hasLocalChanges = false;
@@ -408,7 +408,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving group");
-            Snackbar.Add("Errore nel salvataggio del gruppo", Severity.Error);
+            AppNotification.ShowError("Errore nel salvataggio del gruppo");
         }
         finally
         {
@@ -507,18 +507,18 @@
             var removed = await GroupService.RemoveMemberAsync(_group.Id, businessPartyId);
             if (removed)
             {
-                Snackbar.Add("Membro rimosso con successo", Severity.Success);
+                AppNotification.ShowSuccess("Membro rimosso con successo");
                 await LoadMembersAsync();
             }
             else
             {
-                Snackbar.Add("Impossibile rimuovere il membro: membro non trovato o già rimosso", Severity.Warning);
+                AppNotification.ShowWarning("Impossibile rimuovere il membro: membro non trovato o già rimosso");
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to remove business party {BusinessPartyId}", businessPartyId);
-            Snackbar.Add("Errore durante la rimozione del membro", Severity.Error);
+            AppNotification.ShowError("Errore durante la rimozione del membro");
         }
     }
 
@@ -549,12 +549,12 @@
 
             await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "text/csv", csv.ToString());
 
-            Snackbar.Add($"Esportati {_members.Count()} membri", Severity.Success);
+            AppNotification.ShowSuccess($"Esportati {_members.Count()} membri");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to export members to CSV");
-            Snackbar.Add("Errore durante l'esportazione", Severity.Error);
+            AppNotification.ShowError("Errore durante l'esportazione");
         }
     }
 

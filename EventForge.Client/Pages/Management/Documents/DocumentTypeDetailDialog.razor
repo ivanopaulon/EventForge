@@ -7,7 +7,7 @@
 @attribute [Authorize]
 @inject IDocumentTypeService DocumentTypeService
 @inject IWarehouseService WarehouseService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentTypeDetailDialog> Logger
@@ -284,7 +284,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document type {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento del tipo documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documentType.loadError", "Errore nel caricamento del tipo documento"));
         }
         finally
         {
@@ -303,7 +303,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading warehouses");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento dei magazzini"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.loadError", "Errore nel caricamento dei magazzini"));
         }
     }
 
@@ -331,7 +331,7 @@
                 };
 
                 await DocumentTypeService.CreateDocumentTypeAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("documentType.createSuccess", "Tipo documento creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documentType.createSuccess", "Tipo documento creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -347,7 +347,7 @@
                 };
 
                 await DocumentTypeService.UpdateDocumentTypeAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documentType.updateSuccess", "Tipo documento aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -356,7 +356,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving document type");
-            Snackbar.Add(TranslationService.GetTranslation("documentType.saveError", "Errore nel salvataggio del tipo documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documentType.saveError", "Errore nel salvataggio del tipo documento"));
         }
         finally
         {
