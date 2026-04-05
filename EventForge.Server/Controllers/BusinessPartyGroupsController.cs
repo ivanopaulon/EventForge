@@ -32,8 +32,7 @@ public class BusinessPartyGroupsController : BaseApiController
     /// <summary>
     /// Gets all business party groups with optional pagination and filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page number and page size).</param>
     /// <param name="groupType">Optional group type filter</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business party groups</returns>
@@ -212,8 +211,7 @@ public class BusinessPartyGroupsController : BaseApiController
     /// Gets all members of a specific business party group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page number and page size).</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of group members</returns>
     [HttpGet("{groupId:guid}/members")]

@@ -79,7 +79,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem("Rate limit exceeded: " + ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while creating the chat");
         }
@@ -118,7 +118,7 @@ public class ChatController : BaseApiController
 
             return Ok(chat);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving the chat");
         }
@@ -154,7 +154,7 @@ public class ChatController : BaseApiController
             var result = await _chatService.SearchChatsAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while searching chats");
         }
@@ -224,7 +224,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while updating the chat");
         }
@@ -267,7 +267,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while deleting the chat");
         }
@@ -311,7 +311,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while sending the message"
                 );
@@ -341,7 +341,7 @@ public class ChatController : BaseApiController
             var result = await _chatService.GetMessagesAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving messages"
                 );
@@ -462,7 +462,7 @@ public class ChatController : BaseApiController
 
             return Ok(message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving the message"
                 );
@@ -514,7 +514,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while editing the message"
                 );
@@ -559,7 +559,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while deleting the message"
                 );
@@ -595,7 +595,7 @@ public class ChatController : BaseApiController
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while marking the message as read"
                 );
@@ -637,7 +637,7 @@ public class ChatController : BaseApiController
             var result = await _chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while marking messages as read"
                 );
@@ -713,7 +713,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while uploading the file"
                 );
@@ -751,7 +751,7 @@ public class ChatController : BaseApiController
 
             return Ok(downloadInfo);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving file information"
                 );
@@ -790,7 +790,7 @@ public class ChatController : BaseApiController
 
             return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while downloading the file"
                 );
@@ -828,7 +828,7 @@ public class ChatController : BaseApiController
             var result = await _chatService.GetChatStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving statistics"
                 );
@@ -879,7 +879,7 @@ public class ChatController : BaseApiController
 
             return Accepted(result.StatusUrl, result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while starting the export operation"
                 );
@@ -926,7 +926,7 @@ public class ChatController : BaseApiController
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving export status"
                 );
@@ -995,7 +995,7 @@ public class ChatController : BaseApiController
             var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
             return File(bytes, "application/json", $"chat-export-{exportId}.json");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while downloading the export file"
                 );
@@ -1024,7 +1024,7 @@ public class ChatController : BaseApiController
             var result = await _chatService.GetChatSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving system health"
                 );

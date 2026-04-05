@@ -103,6 +103,7 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// Ends impersonation and returns to original super admin context.
     /// </summary>
     /// <param name="request">End impersonation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     [HttpPost("end-impersonation")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -127,6 +128,7 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// <param name="operationType">Optional operation type filter</param>
     /// <param name="pageNumber">Page number for pagination</param>
     /// <param name="pageSize">Page size for pagination</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated audit trail entries</returns>
     [HttpGet("audit-trail")]
     [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
@@ -154,6 +156,7 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// Validates if the current user can access a specific tenant.
     /// </summary>
     /// <param name="tenantId">Tenant ID to validate</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     [HttpGet("validate-access/{tenantId}")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

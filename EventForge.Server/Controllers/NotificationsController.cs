@@ -66,7 +66,7 @@ public class NotificationsController(
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while sending the notification"
                 );
@@ -109,7 +109,7 @@ public class NotificationsController(
             var result = await notificationService.SendBulkNotificationsAsync(notifications, batchSize, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while processing bulk notifications"
                 );
@@ -235,7 +235,7 @@ public class NotificationsController(
 
             return Ok(notification);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving the notification"
                 );
@@ -277,7 +277,7 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while acknowledging the notification"
                 );
@@ -316,7 +316,7 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while silencing the notification"
                 );
@@ -354,7 +354,7 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while archiving the notification"
                 );
@@ -396,7 +396,7 @@ public class NotificationsController(
             var result = await notificationService.ProcessBulkActionAsync(bulkAction, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while processing the bulk action"
                 );
@@ -434,7 +434,7 @@ public class NotificationsController(
             var result = await notificationService.GetNotificationStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving statistics"
                 );
@@ -491,7 +491,7 @@ public class NotificationsController(
 
             return Accepted(result.StatusUrl, result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while starting the export operation"
                 );
@@ -538,7 +538,7 @@ public class NotificationsController(
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving export status"
                 );
@@ -599,7 +599,7 @@ public class NotificationsController(
             var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
             return File(bytes, "application/json", $"notifications-export-{exportId}.json");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while downloading the export file"
                 );
@@ -628,7 +628,7 @@ public class NotificationsController(
             var result = await notificationService.GetSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving system health"
                 );

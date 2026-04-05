@@ -727,7 +727,6 @@ public class EntityManagementController : BaseApiController
     #region Classification Node Management
 
     /// <summary>
-    /// <summary>
     /// Retrieves all classification nodes with pagination and parent filtering
     /// </summary>
     /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>

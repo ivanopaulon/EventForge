@@ -770,8 +770,8 @@ public class ProfileController(
                     if (string.IsNullOrEmpty(displayPrefs.BodyFont))
                     {
                         // Migrate from PrimaryFontFamily if present
-                        displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.PrimaryFontFamily)
-                            ? displayPrefs.PrimaryFontFamily
+                        displayPrefs.BodyFont = !string.IsNullOrEmpty(displayPrefs.BodyFont)
+                            ? displayPrefs.BodyFont
                             : "Noto Sans";
                     }
 
@@ -781,8 +781,8 @@ public class ProfileController(
                     if (string.IsNullOrEmpty(displayPrefs.MonospaceFont))
                     {
                         // Migrate from MonospaceFontFamily if present
-                        displayPrefs.MonospaceFont = !string.IsNullOrEmpty(displayPrefs.MonospaceFontFamily)
-                            ? displayPrefs.MonospaceFontFamily
+                        displayPrefs.MonospaceFont = !string.IsNullOrEmpty(displayPrefs.MonospaceFont)
+                            ? displayPrefs.MonospaceFont
                             : "Noto Sans Mono";
                     }
 

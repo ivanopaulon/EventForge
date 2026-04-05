@@ -31,6 +31,7 @@ public class ClientLogsController : BaseApiController
     /// Receives a single client log entry and enqueues it for asynchronous processing.
     /// </summary>
     /// <param name="clientLog">The client log entry</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted response</returns>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
@@ -62,6 +63,7 @@ public class ClientLogsController : BaseApiController
     /// Receives a batch of client log entries and enqueues them for asynchronous processing.
     /// </summary>
     /// <param name="batchRequest">The batch of client log entries</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted response</returns>
     [HttpPost("batch")]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("ClientLogs")]
