@@ -17,27 +17,13 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/settings")]
 [ApiController]
 [Authorize(Policy = AuthorizationPolicies.RequireSuperAdmin)]
-public class SettingsController : BaseApiController
+public class SettingsController(
+    EventForgeDbContext context,
+    ILogger<SettingsController> logger,
+    IConfiguration configuration,
+    IHostApplicationLifetime appLifetime,
+    IWebHostEnvironment environment) : BaseApiController
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<SettingsController> _logger;
-    private readonly IConfiguration _configuration;
-    private readonly IHostApplicationLifetime _appLifetime;
-    private readonly IWebHostEnvironment _environment;
-
-    public SettingsController(
-        EventForgeDbContext context,
-        ILogger<SettingsController> logger,
-        IConfiguration configuration,
-        IHostApplicationLifetime appLifetime,
-        IWebHostEnvironment environment)
-    {
-        _context = context;
-        _logger = logger;
-        _configuration = configuration;
-        _appLifetime = appLifetime;
-        _environment = environment;
-    }
 
     /// <summary>
     /// Gets all configuration settings with versioning information.
@@ -47,7 +33,7 @@ public class SettingsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<ConfigurationValueDto>>> GetAllConfigurations(CancellationToken cancellationToken = default)
     {
-        var configs = await _context.SystemConfigurations
+        var configs = await context.SystemConfigurations
             .Where(c => c.IsActive)
             .OrderBy(c => c.Category)
             .ThenBy(c => c.Key)
@@ -81,16 +67,16 @@ public class SettingsController : BaseApiController
     /// </summary>
     [HttpGet("configuration/{key}")]
     [ProducesResponseType(typeof(ConfigurationValueDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ConfigurationValueDto>> GetConfiguration(string key, CancellationToken cancellationToken = default)
     {
-        var config = await _context.SystemConfigurations
+        var config = await context.SystemConfigurations
             .Where(c => c.Key == key && c.IsActive)
             .OrderByDescending(c => c.Version)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (config == null)
+        if (config is null)
             return NotFound($"Configuration key '{key}' not found.");
 
         var dto = new ConfigurationValueDto
@@ -128,16 +114,16 @@ public class SettingsController : BaseApiController
 
         try
         {
-            await _context.Database.CanConnectAsync(cancellationToken);
+            await context.Database.CanConnectAsync(cancellationToken);
             stopwatch.Stop();
 
-            var provider = _configuration["DatabaseProvider"] ?? "SqlServer";
+            var provider = configuration["DatabaseProvider"] ?? "SqlServer";
 
             return Ok(new DatabaseConnectionStatusDto
             {
                 IsConnected = true,
                 Provider = provider,
-                DatabaseName = _context.Database.GetDbConnection().Database,
+                DatabaseName = context.Database.GetDbConnection().Database,
                 ConnectionTimeMs = stopwatch.Elapsed.TotalMilliseconds,
                 CheckedAt = DateTime.UtcNow
             });
@@ -149,7 +135,7 @@ public class SettingsController : BaseApiController
             return Ok(new DatabaseConnectionStatusDto
             {
                 IsConnected = false,
-                Provider = _configuration["DatabaseProvider"] ?? "Unknown",
+                Provider = configuration["DatabaseProvider"] ?? "Unknown",
                 ConnectionTimeMs = stopwatch.Elapsed.TotalMilliseconds,
                 ErrorMessage = ex.Message,
                 CheckedAt = DateTime.UtcNow
@@ -192,7 +178,7 @@ public class SettingsController : BaseApiController
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var logs = await _context.SystemOperationLogs
+        var logs = await context.SystemOperationLogs
             .OrderByDescending(l => l.ExecutedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -224,12 +210,12 @@ public class SettingsController : BaseApiController
     /// Gets current configuration from appsettings.json file.
     /// </summary>
     [HttpGet("file")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetCurrentConfigurationFromFile()
     {
-        var connectionString = _configuration.GetConnectionString("DefaultConnection")
-                            ?? _configuration.GetConnectionString("SqlServer");
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+                            ?? configuration.GetConnectionString("SqlServer");
 
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -254,17 +240,17 @@ public class SettingsController : BaseApiController
                 },
                 Jwt = new
                 {
-                    Issuer = _configuration["Authentication:Jwt:Issuer"],
-                    Audience = _configuration["Authentication:Jwt:Audience"],
-                    ExpirationMinutes = _configuration.GetValue<int>("Authentication:Jwt:ExpirationMinutes", 60)
+                    Issuer = configuration["Authentication:Jwt:Issuer"],
+                    Audience = configuration["Authentication:Jwt:Audience"],
+                    ExpirationMinutes = configuration.GetValue<int>("Authentication:Jwt:ExpirationMinutes", 60)
                     // SecretKey NOT returned for security
                 },
                 Security = new
                 {
-                    EnforceHttps = _configuration.GetValue<bool>("Security:EnforceHttps", true),
-                    EnableHsts = _configuration.GetValue<bool>("Security:EnableHsts", true)
+                    EnforceHttps = configuration.GetValue<bool>("Security:EnforceHttps", true),
+                    EnableHsts = configuration.GetValue<bool>("Security:EnableHsts", true)
                 },
-                FilePath = Path.Combine(_environment.ContentRootPath, "appsettings.json")
+                FilePath = Path.Combine(environment.ContentRootPath, "appsettings.json")
             });
         }
         catch (Exception ex)
@@ -303,13 +289,8 @@ public class SettingsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Connection test failed");
-            return BadRequest(new
-            {
-                Success = false,
-                Error = "Connection failed",
-                Message = ex.Message
-            });
+            logger.LogWarning(ex, "Connection test failed");
+            return CreateValidationProblemDetails($"Connection failed: {ex.Message}");
         }
     }
 
@@ -327,7 +308,7 @@ public class SettingsController : BaseApiController
             // 1. Validate
             if (string.IsNullOrEmpty(request.ServerAddress) || string.IsNullOrEmpty(request.DatabaseName))
             {
-                return BadRequest("Server address and database name are required");
+                return CreateValidationProblemDetails("Server address and database name are required");
             }
 
             // 2. Build and test new connection string
@@ -346,7 +327,7 @@ public class SettingsController : BaseApiController
             await testConn.CloseAsync();
 
             // 3. Read current appsettings.json
-            var appsettingsPath = Path.Combine(_environment.ContentRootPath, "appsettings.json");
+            var appsettingsPath = Path.Combine(environment.ContentRootPath, "appsettings.json");
 
             if (!SystemFile.Exists(appsettingsPath))
             {
@@ -439,14 +420,14 @@ public class SettingsController : BaseApiController
             // 5. Create backup
             var backupPath = $"{appsettingsPath}.backup.{DateTime.UtcNow:yyyyMMddHHmmss}";
             await SystemFile.WriteAllTextAsync(backupPath, currentJson, cancellationToken);
-            _logger.LogInformation("Configuration backup created at {Path}", backupPath);
+            logger.LogInformation("Configuration backup created at {Path}", backupPath);
 
             // 6. Write updated configuration
             var options = new JsonSerializerOptions { WriteIndented = true };
             var newJson = JsonSerializer.Serialize(updatedConfig, options);
             await SystemFile.WriteAllTextAsync(appsettingsPath, newJson, cancellationToken);
 
-            _logger.LogWarning("Configuration updated by {User}. Server restart required.",
+            logger.LogWarning("Configuration updated by {User}. Server restart required.",
                 User.Identity?.Name ?? "unknown");
 
             return Ok(new
@@ -459,13 +440,8 @@ public class SettingsController : BaseApiController
         }
         catch (SqlException ex)
         {
-            _logger.LogError(ex, "Database connection test failed during save");
-            return BadRequest(new
-            {
-                Success = false,
-                Error = "Database connection failed",
-                Message = ex.Message
-            });
+            logger.LogError(ex, "Database connection test failed during save");
+            return CreateValidationProblemDetails($"Database connection failed: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -477,15 +453,16 @@ public class SettingsController : BaseApiController
     /// Triggers server restart.
     /// </summary>
     [HttpPost("restart")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult TriggerServerRestart()
     {
-        _logger.LogWarning("Server restart requested by {User}", User.Identity?.Name ?? "unknown");
+        logger.LogWarning("Server restart requested by {User}", User.Identity?.Name ?? "unknown");
 
         Task.Run(async () =>
         {
             await Task.Delay(2000); // Give time to return response
-            _appLifetime.StopApplication();
+            appLifetime.StopApplication();
         });
 
         return Ok(new
