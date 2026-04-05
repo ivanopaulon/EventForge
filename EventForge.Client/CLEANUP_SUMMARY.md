@@ -163,3 +163,45 @@ This cleanup successfully removed 16 files and over 5,400 lines of deprecated co
 **Build Status**: ✅ Successful (0 errors, 92 pre-existing warnings)  
 **Cleanup Date**: November 20, 2025  
 **Impact**: Positive - cleaner, more maintainable codebase
+
+---
+
+## Wave C — BusinessParty ServerData tabs + CSS consolidation (April 2026)
+
+### MudTable → EFTable (ServerData) migration
+
+The following tabs inside `BusinessPartyDetailTabs` were migrated from raw `MudTable` with
+`ServerData` to `EFTable` with `ServerData`:
+
+| File | Before | After |
+|---|---|---|
+| `BusinessPartyDocumentsTab.razor` | `MudTable + ServerData` | `EFTable + ServerData` |
+| `BusinessPartyProductsTab.razor` | `MudTable + ServerData + SelectedItemChanged` | `EFTable + ServerData + OnRowClick` |
+| `BusinessPartySuppliedProductsTab.razor` | `MudTable + ServerData + manual checkbox` | `EFTable + ServerData + manual checkbox` |
+
+Changes per file:
+- `MudTable @ref="_table"` → `EFTable @ref="_efTable" TItem=...`
+- `_table.ReloadServerData()` → `_efTable!.ReloadServerDataAsync()`
+- `Loading="@_isLoading"` → `IsLoading="@_isLoading"`
+- `LoadingContent` slot removed (EFTable handles loading internally)
+- `PagerContent` slot removed; replaced with `ShowInternalPager="true" PageSizeOptions=...`
+- `HeaderContent` now uses `Context="_"` (column configs ignored, plain `<MudTh>` used)
+- `RowTemplate` now uses explicit `Context="context"`
+- `SelectedItemChanged` (MudTable single-select) → `OnRowClick` (EFTable row click)
+
+### CSS consolidation
+
+4 per-module CSS files consolidated into a single `management.css`:
+
+| Removed | Merged into |
+|---|---|
+| `management-business.css` | `management.css` |
+| `management-financial.css` | `management.css` |
+| `management-products.css` | `management.css` |
+| `management-warehouse.css` | `management.css` |
+
+`.eftable-wrapper` was declared 4 times (once per file); now declared once.
+`index.html` updated: 4 `<link>` tags → 1.
+
+**Build Status**: ✅ 0 warnings, 0 errors  
+**Cleanup Date**: April 2026

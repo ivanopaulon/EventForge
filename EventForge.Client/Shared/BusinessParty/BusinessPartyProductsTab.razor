@@ -79,22 +79,23 @@
     <MudGrid>
         <!-- Products Table -->
         <MudItem xs="12" md="7">
-            <MudTable @ref="_table"
-                      ServerData="@(new Func<TableState, CancellationToken, Task<TableData<BusinessPartyProductAnalysisDto>>>(LoadServerData))"
-                      Hover="true"
-                      Dense="true"
-                      Loading="@_isLoading"
-                      LoadingProgressColor="Color.Primary"
-                      FixedHeader="true"
-                      Height="calc(100vh - 450px)"
-                      T="BusinessPartyProductAnalysisDto"
-                      SelectedItemChanged="@OnProductSelected">
+            <EFTable @ref="_efTable"
+                     TItem="BusinessPartyProductAnalysisDto"
+                     ServerData="@(new Func<TableState, CancellationToken, Task<TableData<BusinessPartyProductAnalysisDto>>>(LoadServerData))"
+                     IsLoading="@_isLoading"
+                     Hover="true"
+                     Dense="true"
+                     FixedHeader="true"
+                     Height="calc(100vh - 450px)"
+                     ShowInternalPager="true"
+                     PageSizeOptions="new int[] { 10, 20, 50, 100 }"
+                     OnRowClick="@(e => OnProductRowClick(e.Item))">
                 <ToolBarContent>
                     <MudText Typo="Typo.h6">@TranslationService.GetTranslation("businessParty.products", "Prodotti")</MudText>
                     <MudSpacer />
                     <MudText Typo="Typo.body2" Class="mr-4">@TranslationService.GetTranslation("common.total", "Totale"): @_totalCount</MudText>
                 </ToolBarContent>
-                <HeaderContent>
+                <HeaderContent Context="_">
                     <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
                     <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")</MudTh>
@@ -104,7 +105,7 @@
                     <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")</MudTh>
                     <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")</MudTh>
                 </HeaderContent>
-                <RowTemplate>
+                <RowTemplate Context="context">
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">@context.ProductCode</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">@context.ProductName</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")" Style="text-align: right;">
@@ -129,13 +130,7 @@
                 <NoRecordsContent>
                     <MudText>@TranslationService.GetTranslation("product.noRecords", "Nessun prodotto trovato")</MudText>
                 </NoRecordsContent>
-                <LoadingContent>
-                    <MudText>@TranslationService.GetTranslation("common.loading", "Caricamento...")</MudText>
-                </LoadingContent>
-                <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 20, 50, 100 }" />
-                </PagerContent>
-            </MudTable>
+            </EFTable>
         </MudItem>
 
         <!-- Charts Panel -->
@@ -193,7 +188,7 @@
 @code {
     [Parameter] public Guid BusinessPartyId { get; set; }
 
-    private MudTable<BusinessPartyProductAnalysisDto>? _table;
+    private EFTable<BusinessPartyProductAnalysisDto>? _efTable;
     private bool _isLoading = false;
     private int _totalCount = 0;
     private DateRange? _dateRange;
@@ -208,9 +203,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_table != null)
+        if (_efTable != null)
         {
-            await _table.ReloadServerData();
+            await _efTable.ReloadServerDataAsync();
         }
     }
 
@@ -281,9 +276,9 @@
 
     private async Task LoadProductsAsync()
     {
-        if (_table != null)
+        if (_efTable != null)
         {
-            await _table.ReloadServerData();
+            await _efTable.ReloadServerDataAsync();
         }
     }
 
@@ -296,7 +291,7 @@
         await LoadProductsAsync();
     }
 
-    private void OnProductSelected(BusinessPartyProductAnalysisDto? product)
+    private void OnProductRowClick(BusinessPartyProductAnalysisDto? product)
     {
         _selectedProduct = product;
         StateHasChanged();

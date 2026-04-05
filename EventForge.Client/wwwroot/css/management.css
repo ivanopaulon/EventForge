@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════════════════════════
+   management.css — Consolidated management module styles
+   (merged from management-business.css, management-financial.css,
+    management-products.css, management-warehouse.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Shared ─────────────────────────────────────────────────── */
+
+.eftable-wrapper {
+    flex: 1 1 auto;
+    min-height: 0; /* CRUCIAL for overflow in flexbox */
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .eftable-wrapper {
+        padding: 4px 8px;
+    }
+}
+
+/* ─── Business module ─────────────────────────────────────────── */
+
+.customer-page-root,
+.supplier-page-root,
+.group-page-root,
+.document-counter-page-root,
+.document-type-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.customer-top,
+.supplier-top,
+.group-top,
+.document-counter-top,
+.document-type-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+@media (max-width: 768px) {
+    .customer-page-root,
+    .supplier-page-root,
+    .group-page-root,
+    .document-counter-page-root,
+    .document-type-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .customer-top,
+    .supplier-top,
+    .group-top,
+    .document-counter-top,
+    .document-type-top {
+        padding: 8px;
+    }
+}
+
+/* ─── Financial module ────────────────────────────────────────── */
+
+.vat-rate-page-root,
+.vat-nature-page-root,
+.um-page-root,
+.pricelist-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.vat-rate-top,
+.pricelist-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+.vat-rate-filters,
+.pricelist-filters {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .vat-nature-page-root,
+    .um-page-root,
+    .pricelist-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .pricelist-top { padding: 8px; }
+    .pricelist-filters { padding: 4px 8px; }
+}
+
+/* ─── Products module ─────────────────────────────────────────── */
+
+.brand-page-root,
+.product-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .brand-page-root,
+    .product-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+}
+
+/* Classification Node picker highlight — used by ClassificationNodePicker.razor */
+.matched-node {
+    background-color: rgba(255, 235, 59, 0.15);
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: inline-block;
+}
+
+/* ─── Warehouse module ────────────────────────────────────────── */
+
+.warehouse-page-root,
+.lot-page-root,
+.inventory-page-root,
+.transfer-order-page-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.lot-top,
+.inventory-top,
+.transfer-order-top {
+    flex: 0 0 auto;
+    padding: 12px;
+}
+
+/* Row highlighting during quick edit */
+.editing-row-highlight {
+    background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
+    transition: background-color 0.3s ease;
+    animation: pulse-highlight 1s ease-in-out;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% { background-color: rgba(var(--mud-palette-primary-rgb), 0.08); }
+    50%       { background-color: rgba(var(--mud-palette-primary-rgb), 0.15); }
+}
+
+/* Transfer order toolbar input width */
+.ef-input {
+    max-width: 220px;
+}
+
+@media (max-width: 1200px) {
+    .ef-input { max-width: 180px; }
+}
+
+@media (max-width: 960px) {
+    .ef-input { max-width: 150px; }
+}
+
+@media (max-width: 768px) {
+    .warehouse-page-root,
+    .lot-page-root,
+    .inventory-page-root,
+    .transfer-order-page-root {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .lot-top,
+    .inventory-top,
+    .transfer-order-top {
+        padding: 8px;
+    }
+
+    .ef-input {
+        max-width: 100%;
+        min-width: 120px;
+    }
+}
