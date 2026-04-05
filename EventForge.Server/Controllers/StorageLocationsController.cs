@@ -15,8 +15,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("InventoryManagement")]
 public class StorageLocationsController(
     IStorageLocationService service,
-    ITenantContext tenantContext,
-    ILogger<StorageLocationsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

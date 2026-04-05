@@ -17,9 +17,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("ProductManagement")]
 public class BrandsController(
     IBrandService service,
-    ITenantContext tenantContext,
-    ILogger<BrandsController> logger,
-    ICacheInvalidationService cacheInvalidation) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

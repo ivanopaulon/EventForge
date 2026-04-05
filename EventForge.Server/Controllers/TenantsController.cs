@@ -12,7 +12,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class TenantsController(ITenantService tenantService, ITenantContext tenantContext, EventForgeDbContext context) : BaseApiController
+public class TenantsController(ITenantService tenantService, EventForgeDbContext context) : BaseApiController
 {
     /// <summary>
     /// Creates a new tenant without generating any default admin users.

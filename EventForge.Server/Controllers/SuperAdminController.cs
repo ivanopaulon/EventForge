@@ -12,12 +12,7 @@ namespace EventForge.Server.Controllers;
 [Authorize(Roles = "SuperAdmin")]
 public class SuperAdminController(
     IConfigurationService configurationService,
-    IBackupService backupService,
-    ITenantService tenantService,
-    ITenantContext tenantContext,
-    IAuditLogService auditLogService,
-    IHubContext<AuditLogHub> hubContext,
-    ILogger<SuperAdminController> logger) : BaseApiController
+    IBackupService backupService) : BaseApiController
 {
 
     #region Configuration Management

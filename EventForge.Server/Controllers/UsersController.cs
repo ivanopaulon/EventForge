@@ -12,8 +12,7 @@ namespace EventForge.Server.Controllers;
 [Authorize(Roles = "Admin,SuperAdmin")]
 public class UsersController(
     IUserService service,
-    ITenantContext tenantContext,
-    ILogger<UsersController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

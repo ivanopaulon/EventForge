@@ -27,7 +27,6 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class NotificationsController(
     INotificationService notificationService,
-    ITenantContext tenantContext,
     ILogger<NotificationsController> logger) : BaseApiController
 {
 

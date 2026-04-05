@@ -14,8 +14,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 public class MonitoringController(
     IMonitoringService monitoringService,
-    ITenantContext tenantContext,
-    ILogger<MonitoringController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

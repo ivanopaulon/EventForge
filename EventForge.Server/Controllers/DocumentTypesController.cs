@@ -16,7 +16,6 @@ namespace EventForge.Server.Controllers;
 public class DocumentTypesController(
     IDocumentTypeService documentTypeService,
     ITenantContext tenantContext,
-    ILogger<DocumentTypesController> logger,
     ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
     /// <summary>

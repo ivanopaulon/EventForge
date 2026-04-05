@@ -8,7 +8,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
-public class ExportController(IExcelExportService excelExportService, ILogger<ExportController> logger) : BaseApiController
+public class ExportController(IExcelExportService excelExportService) : BaseApiController
 {
 
     [HttpPost("excel")]

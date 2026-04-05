@@ -14,8 +14,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 public class AnalyticsController(
     IAnalyticsService analyticsService,
-    ITenantContext tenantContext,
-    ILogger<AnalyticsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

@@ -12,8 +12,7 @@ namespace EventForge.Server.Controllers;
 [Authorize(Roles = "Admin,SuperAdmin")]
 public class AuditLogsController(
     IAuditLogService service,
-    ITenantContext tenantContext,
-    ILogger<AuditLogsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>
