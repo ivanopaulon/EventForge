@@ -13,13 +13,6 @@ public class DocumentAttachmentService(
     ILogger<DocumentAttachmentService> logger) : IDocumentAttachmentService
 {
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentAttachmentService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    /// <param name="logger">Logger instance</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentAttachmentDto>> GetDocumentHeaderAttachmentsAsync(
         Guid documentHeaderId,

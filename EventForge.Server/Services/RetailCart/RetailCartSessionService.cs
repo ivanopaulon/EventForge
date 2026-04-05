@@ -16,6 +16,7 @@ namespace EventForge.Server.Services.RetailCart
         ILogger<RetailCartSessionService> logger,
         IMemoryCache cache) : IRetailCartSessionService
     {
+        private readonly IMemoryCache _cache = cache;
 
         // In-memory storage - in production this would be replaced with persistent storage
         private static readonly ConcurrentDictionary<string, CartSession> _sessions = new();

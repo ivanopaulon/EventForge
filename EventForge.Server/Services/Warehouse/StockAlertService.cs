@@ -13,6 +13,7 @@ public class StockAlertService(
     ITenantContext tenantContext,
     ILogger<StockAlertService> logger) : IStockAlertService
 {
+    private readonly IAuditLogService _auditLogService = auditLogService;
 
     public async Task<PagedResult<StockAlertDto>> GetAlertsAsync(
         int page = 1,

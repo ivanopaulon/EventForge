@@ -143,7 +143,7 @@ public class PriceListFilteringTests : IDisposable
         Assert.Equal(1, page1.Page);
 
         Assert.Equal(3, page2.TotalCount); // Same total count
-        Assert.Equal(1, page2.Items.Count()); // Page 2 has remaining 1 item
+        Assert.Single(page2.Items); // Page 2 has remaining 1 item
         Assert.Equal(2, page2.Page);
     }
 

@@ -15,6 +15,7 @@ public class BrandingService(
     ILogger<BrandingService> logger,
     IWebHostEnvironment environment) : IBrandingService
 {
+    private readonly ITenantContext _tenantContext = tenantContext;
 
     private const string CACHE_KEY_PREFIX = "branding_";
     private const string GLOBAL_CACHE_KEY = "branding_global";

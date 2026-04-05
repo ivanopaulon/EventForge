@@ -13,12 +13,6 @@ public class DocumentRecurrenceService(
     ILogger<DocumentRecurrenceService> logger) : IDocumentRecurrenceService
 {
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentRecurrenceService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="logger">Logger</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {

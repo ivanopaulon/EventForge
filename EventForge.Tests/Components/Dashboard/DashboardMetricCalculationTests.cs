@@ -155,8 +155,8 @@ public class DashboardMetricCalculationTests
         // Assert
         Assert.Equal(3, groups.Count()); // Active, Suspended, Deleted
         Assert.Equal(3, groups.First(g => g.Key.Equals(VatRateStatus.Active)).Count());
-        Assert.Equal(1, groups.First(g => g.Key.Equals(VatRateStatus.Suspended)).Count());
-        Assert.Equal(1, groups.First(g => g.Key.Equals(VatRateStatus.Deleted)).Count());
+        Assert.Single(groups.First(g => g.Key.Equals(VatRateStatus.Suspended)));
+        Assert.Single(groups.First(g => g.Key.Equals(VatRateStatus.Deleted)));
     }
 
     [Fact]

@@ -16,6 +16,7 @@ public class InventoryBulkSeedService(
     ITenantContext tenantContext,
     ILogger<InventoryBulkSeedService> logger) : IInventoryBulkSeedService
 {
+    private readonly IStorageLocationService _storageLocationService = storageLocationService;
 
     // Thread-local Random to avoid thread safety issues
     private static readonly ThreadLocal<Random> _random = new(() => new Random());

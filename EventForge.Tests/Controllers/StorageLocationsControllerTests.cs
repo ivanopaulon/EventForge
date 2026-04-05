@@ -40,8 +40,7 @@ public class StorageLocationsControllerTests
 
         _controller = new StorageLocationsController(
             _mockService.Object,
-            _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockTenantContext.Object)
         {
             ControllerContext = new ControllerContext
             {

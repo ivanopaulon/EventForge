@@ -15,6 +15,7 @@ public class SetupWizardService(
     IServiceProvider serviceProvider,
     ILogger<SetupWizardService> logger) : ISetupWizardService
 {
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task<SetupResult> CompleteSetupAsync(SetupConfiguration config, CancellationToken cancellationToken = default)
     {

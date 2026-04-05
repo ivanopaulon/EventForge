@@ -18,14 +18,6 @@ public class DocumentTypeService(
 
     private const string CACHE_KEY_ALL = "DocumentTypes_All";
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentTypeService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="tenantContext">Tenant context</param>
-    /// <param name="logger">Logger</param>
-    /// <param name="cacheService">Cache service</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTypeDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {

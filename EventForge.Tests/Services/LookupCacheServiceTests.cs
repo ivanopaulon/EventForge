@@ -75,7 +75,7 @@ public class LookupCacheServiceTests
     public async Task GetBrandsAsync_WithNullApiResponse_ReturnsTransientFailure()
     {
         // Arrange
-        _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100)).ReturnsAsync((PagedResult<BrandDto>?)null);
+        _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100)).ReturnsAsync((PagedResult<BrandDto>)null!);
 
         // Act
         var result = await _service.GetBrandsAsync();
@@ -134,7 +134,7 @@ public class LookupCacheServiceTests
     public async Task GetBrandsAsync_OnFailure_DoesNotCacheResult()
     {
         // Arrange
-        _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100)).ReturnsAsync((PagedResult<BrandDto>?)null);
+        _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100)).ReturnsAsync((PagedResult<BrandDto>)null!);
 
         // Act
         var result1 = await _service.GetBrandsAsync();
@@ -272,7 +272,7 @@ public class LookupCacheServiceTests
     }
 
     [Fact]
-    public void ClearCache_RemovesAllCachedEntries()
+    public async Task ClearCache_RemovesAllCachedEntries()
     {
         // Arrange
         var brands = new List<BrandDto> { new() { Id = Guid.NewGuid(), Name = "Brand1" } };
@@ -286,9 +286,9 @@ public class LookupCacheServiceTests
         _brandServiceMock.Setup(x => x.GetBrandsAsync(1, 100)).ReturnsAsync(pagedResult);
 
         // Act
-        _service.GetBrandsAsync().Wait(); // Cache the result
+        await _service.GetBrandsAsync(); // Cache the result
         _service.ClearCache();
-        _service.GetBrandsAsync().Wait(); // Should call API again
+        await _service.GetBrandsAsync(); // Should call API again
 
         // Assert
         _brandServiceMock.Verify(x => x.GetBrandsAsync(1, 100), Times.Exactly(2));

@@ -10,6 +10,7 @@ public class UserService(
     ITenantContext tenantContext,
     ILogger<UserService> logger) : IUserService
 {
+    private readonly ILogger<UserService> _logger = logger;
 
     /// <summary>
     /// Gets all users with pagination.

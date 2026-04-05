@@ -23,6 +23,7 @@ public class DocumentExportService(
     ILogger<DocumentExportService> logger,
     ITenantContext tenantContext) : IDocumentExportService
 {
+    private readonly IDocumentHeaderService _documentHeaderService = documentHeaderService;
 
     private readonly Dictionary<Guid, DocumentExportResultDto> _exportCache = new();
     private static readonly bool _staticInitialized = InitStatic();

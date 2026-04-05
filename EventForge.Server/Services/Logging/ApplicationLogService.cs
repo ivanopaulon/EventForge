@@ -9,6 +9,7 @@ public class ApplicationLogService(
     EventForgeDbContext context,
     ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
+    private readonly ILogger<ApplicationLogService> _logger = logger;
 
     /// <summary>
     /// Gets all application logs with pagination.

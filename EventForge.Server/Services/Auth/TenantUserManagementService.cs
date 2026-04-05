@@ -16,6 +16,7 @@ public class TenantUserManagementService(
     IHubContext<AuditLogHub> hubContext,
     ILogger<TenantUserManagementService> logger) : ITenantUserManagementService
 {
+    private readonly IHubContext<AuditLogHub> _hubContext = hubContext;
 
     /// <summary>
     /// Validates that the current user can access the specified tenant.

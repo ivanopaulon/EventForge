@@ -12,14 +12,6 @@ public class ReferenceService(
     ITenantContext tenantContext,
     ILogger<ReferenceService> logger) : IReferenceService
 {
-
-    /// <summary>
-    /// Initializes a new instance of the ReferenceService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    /// <param name="logger">Logger instance</param>
     /// <inheritdoc />
     public async Task<PagedResult<ReferenceDto>> GetReferencesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {

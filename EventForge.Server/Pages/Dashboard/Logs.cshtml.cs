@@ -50,7 +50,7 @@ public class LogsModel(ILogManagementService logManagementService, ILogger<LogsM
             var result = await logManagementService.GetApplicationLogsAsync(queryParams, HttpContext.RequestAborted);
 
             Logs = result.Items?.ToList() ?? [];
-            TotalCount = result.TotalCount;
+            TotalCount = (int)result.TotalCount;
             TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
             CurrentPage = Math.Max(1, Math.Min(CurrentPage, Math.Max(1, TotalPages)));
         }
