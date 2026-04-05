@@ -9,28 +9,22 @@ namespace EventForge.Client.Services
         Task<DetailedHealthStatusDto?> GetDetailedHealthAsync();
     }
 
-    public class HealthService : IHealthService
+    public class HealthService(
+        IHttpClientFactory httpClientFactory,
+        ILogger<HealthService> logger) : IHealthService
     {
         private const string BaseUrl = "health";
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<HealthService> _logger;
-
-        public HealthService(IHttpClientFactory httpClientFactory, ILogger<HealthService> logger)
-        {
-            _httpClientFactory = httpClientFactory;
-            _logger = logger;
-        }
 
         public async Task<HealthStatusDto?> GetHealthAsync()
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync("api/v1/health");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}",
+                    logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}",
                         response.StatusCode, response.ReasonPhrase);
                     return null;
                 }
@@ -39,12 +33,12 @@ namespace EventForge.Client.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Network error calling health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Network error calling health endpoint: {Message}", ex.Message);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error calling health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Unexpected error calling health endpoint: {Message}", ex.Message);
                 return null;
             }
         }
@@ -53,12 +47,12 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync("api/v1/health/detailed");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}",
+                    logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}",
                         response.StatusCode, response.ReasonPhrase);
                     return null;
                 }
@@ -67,12 +61,12 @@ namespace EventForge.Client.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Network error calling detailed health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Network error calling detailed health endpoint: {Message}", ex.Message);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error calling detailed health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Unexpected error calling detailed health endpoint: {Message}", ex.Message);
                 return null;
             }
         }

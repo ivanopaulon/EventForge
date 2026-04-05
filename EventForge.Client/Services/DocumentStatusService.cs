@@ -6,17 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of document status service using HTTP client.
 /// </summary>
-public class DocumentStatusService : IDocumentStatusService
+public class DocumentStatusService(
+    IHttpClientService httpClientService,
+    ILogger<DocumentStatusService> logger) : IDocumentStatusService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<DocumentStatusService> _logger;
     private const string BaseUrl = "api/v1/documents";
-
-    public DocumentStatusService(IHttpClientService httpClientService, ILogger<DocumentStatusService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<DocumentHeaderDto?> ChangeStatusAsync(Guid documentId, DocumentStatus newStatus, string? reason = null)
     {
@@ -28,13 +22,13 @@ public class DocumentStatusService : IDocumentStatusService
                 Reason = reason
             };
 
-            return await _httpClientService.PutAsync<ChangeDocumentStatusDto, DocumentHeaderDto>(
+            return await httpClientService.PutAsync<ChangeDocumentStatusDto, DocumentHeaderDto>(
                 $"{BaseUrl}/{documentId}/status",
                 dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error changing status for document {DocumentId} to {NewStatus}", documentId, newStatus);
+            logger.LogError(ex, "Error changing status for document {DocumentId} to {NewStatus}", documentId, newStatus);
             return null;
         }
     }
@@ -43,12 +37,12 @@ public class DocumentStatusService : IDocumentStatusService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<DocumentStatusHistoryDto>>(
+            return await httpClientService.GetAsync<List<DocumentStatusHistoryDto>>(
                 $"{BaseUrl}/{documentId}/status/history");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving status history for document {DocumentId}", documentId);
+            logger.LogError(ex, "Error retrieving status history for document {DocumentId}", documentId);
             return null;
         }
     }
@@ -57,12 +51,12 @@ public class DocumentStatusService : IDocumentStatusService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<DocumentStatus>>(
+            return await httpClientService.GetAsync<List<DocumentStatus>>(
                 $"{BaseUrl}/{documentId}/status/available-transitions");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available transitions for document {DocumentId}", documentId);
+            logger.LogError(ex, "Error retrieving available transitions for document {DocumentId}", documentId);
             return null;
         }
     }
