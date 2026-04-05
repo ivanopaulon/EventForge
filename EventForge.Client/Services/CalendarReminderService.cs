@@ -15,9 +15,7 @@ public interface ICalendarReminderService
     Task DeleteCalendarReminderAsync(Guid id, CancellationToken ct = default);
 }
 
-public class CalendarReminderService(
-    IHttpClientService httpClientService,
-    ILogger<CalendarReminderService> logger) : ICalendarReminderService
+public class CalendarReminderService(IHttpClientService httpClientService) : ICalendarReminderService
 {
 
     public async Task<PagedResult<CalendarReminderDto>> GetCalendarRemindersAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)

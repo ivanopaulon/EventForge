@@ -59,8 +59,7 @@ namespace EventForge.Client.Services
 
     public class BusinessPartyService(
         IHttpClientService httpClientService,
-        ILogger<BusinessPartyService> logger,
-        ILoadingDialogService loadingDialogService) : IBusinessPartyService
+        ILogger<BusinessPartyService> logger) : IBusinessPartyService
     {
         private const string BaseUrl = "api/v1/businessparties";
 

@@ -18,9 +18,7 @@ namespace EventForge.Client.Services
         Task DeleteEventAsync(Guid id, CancellationToken ct = default);
     }
 
-    public class EventService(
-        IHttpClientService httpClientService,
-        ILogger<EventService> logger) : IEventService
+    public class EventService(IHttpClientService httpClientService) : IEventService
     {
 
         public async Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)

@@ -6,9 +6,7 @@ namespace EventForge.Client.Services
     /// <summary>
     /// Service for managing dashboard configurations.
     /// </summary>
-    public class DashboardConfigurationService(
-        IHttpClientService httpClientService,
-        ILogger<DashboardConfigurationService> logger) : IDashboardConfigurationService
+    public class DashboardConfigurationService(IHttpClientService httpClientService) : IDashboardConfigurationService
     {
 
         public async Task<IEnumerable<DashboardConfigurationDto>> GetConfigurationsAsync(string entityType, CancellationToken ct = default)

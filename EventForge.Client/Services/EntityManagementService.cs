@@ -40,7 +40,6 @@ namespace EventForge.Client.Services
 
     public class EntityManagementService(
         IHttpClientService httpClientService,
-        ILogger<EntityManagementService> logger,
         ILoadingDialogService loadingDialogService) : IEntityManagementService
     {
 
