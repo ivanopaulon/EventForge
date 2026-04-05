@@ -111,16 +111,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -221,12 +212,12 @@ public class ProductManagementController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(q))
         {
-            return BadRequest(CreateValidationProblemDetails("Query parameter 'q' is required."));
+            return CreateValidationProblemDetails("Query parameter 'q' is required.");
         }
 
         if (maxResults < 1 || maxResults > 100)
         {
-            return BadRequest(CreateValidationProblemDetails("maxResults must be between 1 and 100."));
+            return CreateValidationProblemDetails("maxResults must be between 1 and 100.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -874,16 +865,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _umService.GetUMsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1082,16 +1064,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _priceListService.GetPriceListsAsync(pagination, direction, status, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1446,7 +1419,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1479,7 +1452,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1507,7 +1480,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1537,7 +1510,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1585,7 +1558,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1639,7 +1612,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1672,16 +1645,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _promotionService.GetPromotionsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2233,16 +2197,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _brandService.GetBrandsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2440,16 +2395,7 @@ public class ProductManagementController : BaseApiController
                 ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, pagination, cancellationToken)
                 : await _modelService.GetModelsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2901,16 +2847,7 @@ public class ProductManagementController : BaseApiController
         {
             var result = await _productService.GetProductsBySupplierAsync(supplierId, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -3016,16 +2953,7 @@ public class ProductManagementController : BaseApiController
                 TotalCount = documentsResult.TotalCount
             };
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -3373,19 +3301,13 @@ public class ProductManagementController : BaseApiController
         if (!type.Equals("purchase", StringComparison.OrdinalIgnoreCase) &&
             !type.Equals("sale", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Detail = "Type parameter must be either 'purchase' or 'sale'."
-            });
+            return CreateValidationProblemDetails("Type parameter must be either 'purchase' or 'sale'.");
         }
 
         // Validate top parameter
         if (top < 1 || top > 10)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Detail = "Top parameter must be between 1 and 10."
-            });
+            return CreateValidationProblemDetails("Top parameter must be between 1 and 10.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -3397,10 +3319,7 @@ public class ProductManagementController : BaseApiController
             var productExists = await _productService.ProductExistsAsync(productId, cancellationToken);
             if (!productExists)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Detail = $"Product with ID {productId} not found."
-                });
+                return CreateNotFoundProblem($"Product with ID {productId} not found.");
             }
 
             var transactions = await _productService.GetRecentProductTransactionsAsync(
@@ -3605,11 +3524,7 @@ public class ProductManagementController : BaseApiController
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid bulk update request");
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

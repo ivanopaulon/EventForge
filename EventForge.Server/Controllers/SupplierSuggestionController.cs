@@ -49,11 +49,7 @@ public class SupplierSuggestionController : BaseApiController
     {
         if (productId == Guid.Empty)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid product ID",
-                Detail = "Product ID cannot be empty."
-            });
+            return CreateValidationProblemDetails("Product ID cannot be empty.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -67,20 +63,12 @@ public class SupplierSuggestionController : BaseApiController
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
             _logger.LogWarning(ex, "Product {ProductId} not found for supplier suggestions", productId);
-            return NotFound(new ProblemDetails
-            {
-                Title = "Product not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Title = "Internal server error",
-                Detail = "An error occurred while getting supplier suggestions."
-            });
+            return CreateInternalServerErrorProblem("An error occurred while getting supplier suggestions.", ex);
         }
     }
 
@@ -107,30 +95,18 @@ public class SupplierSuggestionController : BaseApiController
     {
         if (productId == Guid.Empty)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid product ID",
-                Detail = "Product ID cannot be empty."
-            });
+            return CreateValidationProblemDetails("Product ID cannot be empty.");
         }
 
         if (request.SupplierId == Guid.Empty)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid supplier ID",
-                Detail = "Supplier ID cannot be empty."
-            });
+            return CreateValidationProblemDetails("Supplier ID cannot be empty.");
         }
 
         // Ensure route and body product IDs match
         if (request.ProductId != Guid.Empty && request.ProductId != productId)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Product ID mismatch",
-                Detail = "Product ID in route must match product ID in request body."
-            });
+            return CreateValidationProblemDetails("Product ID in route must match product ID in request body.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -143,11 +119,7 @@ public class SupplierSuggestionController : BaseApiController
 
             if (!success)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Not found",
-                    Detail = "Product or supplier not found."
-                });
+                return CreateNotFoundProblem("Product or supplier not found.");
             }
 
             return Ok(new
@@ -161,11 +133,7 @@ public class SupplierSuggestionController : BaseApiController
         {
             _logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
                 request.SupplierId, productId);
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Title = "Internal server error",
-                Detail = "An error occurred while applying the suggested supplier."
-            });
+            return CreateInternalServerErrorProblem("An error occurred while applying the suggested supplier.", ex);
         }
     }
 
@@ -190,11 +158,7 @@ public class SupplierSuggestionController : BaseApiController
     {
         if (supplierId == Guid.Empty)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid supplier ID",
-                Detail = "Supplier ID cannot be empty."
-            });
+            return CreateValidationProblemDetails("Supplier ID cannot be empty.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -208,20 +172,12 @@ public class SupplierSuggestionController : BaseApiController
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
             _logger.LogWarning(ex, "Supplier {SupplierId} not found for reliability metrics", supplierId);
-            return NotFound(new ProblemDetails
-            {
-                Title = "Supplier not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Title = "Internal server error",
-                Detail = "An error occurred while getting supplier reliability."
-            });
+            return CreateInternalServerErrorProblem("An error occurred while getting supplier reliability.", ex);
         }
     }
 }

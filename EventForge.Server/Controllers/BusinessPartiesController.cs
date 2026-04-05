@@ -70,16 +70,7 @@ public class BusinessPartiesController : BaseApiController
             var result = await _businessPartyService.GetBusinessPartiesAsync(pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -168,6 +159,8 @@ public class BusinessPartiesController : BaseApiController
     /// Gets business parties by type.
     /// </summary>
     /// <param name="partyType">Business party type</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 50)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties of the specified type</returns>
     /// <response code="200">Returns the list of business parties</response>
@@ -175,15 +168,29 @@ public class BusinessPartiesController : BaseApiController
     [HttpGet("by-type/{partyType}")]
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(
+        DTOs.Common.BusinessPartyType partyType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var businessParties = await _businessPartyService.GetBusinessPartiesByTypeAsync(partyType, cancellationToken);
-            return Ok(businessParties);
+            var allParties = (await _businessPartyService.GetBusinessPartiesByTypeAsync(partyType, cancellationToken)).ToList();
+            var pagedItems = allParties.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pagination = new PaginationParameters(page, pageSize);
+            var pagedResult = new PagedResult<BusinessPartyDto>
+            {
+                Items = pagedItems,
+                TotalCount = allParties.Count,
+                Page = page,
+                PageSize = pageSize
+            };
+            SetPaginationHeaders(pagedResult, pagination);
+            return Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -195,6 +202,9 @@ public class BusinessPartiesController : BaseApiController
     /// Gets all business parties (natural persons) that have a date of birth set.
     /// Used for birthday tracking in the calendar scheduler.
     /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties with a date of birth</returns>
     /// <response code="200">Returns the list of business parties with birthdays</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
@@ -202,6 +212,8 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesWithBirthdays(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -209,8 +221,18 @@ public class BusinessPartiesController : BaseApiController
 
         try
         {
-            var parties = await _businessPartyService.GetBusinessPartiesWithBirthdayAsync(cancellationToken);
-            return Ok(parties);
+            var allParties = (await _businessPartyService.GetBusinessPartiesWithBirthdayAsync(cancellationToken)).ToList();
+            var pagedItems = allParties.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pagination = new PaginationParameters(page, pageSize);
+            var pagedResult = new PagedResult<BusinessPartyDto>
+            {
+                Items = pagedItems,
+                TotalCount = allParties.Count,
+                Page = page,
+                PageSize = pageSize
+            };
+            SetPaginationHeaders(pagedResult, pagination);
+            return Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -396,16 +418,7 @@ public class BusinessPartiesController : BaseApiController
             var result = await _businessPartyService.GetBusinessPartyAccountingAsync(pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -652,16 +665,7 @@ public class BusinessPartiesController : BaseApiController
                 businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -720,16 +724,7 @@ public class BusinessPartiesController : BaseApiController
                 businessPartyId, fromDate, toDate, type, topN, pagination, sortBy, sortDescending, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -861,11 +856,7 @@ public class BusinessPartiesController : BaseApiController
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid file",
-                Detail = "CSV file is required"
-            });
+            return CreateValidationProblemDetails("CSV file is required");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -914,11 +905,7 @@ public class BusinessPartiesController : BaseApiController
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid file",
-                Detail = "CSV file is required"
-            });
+            return CreateValidationProblemDetails("CSV file is required");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);

@@ -90,16 +90,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _warehouseFacade.GetStorageFacilitiesAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -219,16 +210,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _warehouseFacade.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -344,16 +326,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -725,16 +698,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -840,22 +804,12 @@ public class WarehouseManagementController : BaseApiController
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation when creating/updating stock - StockId: {StockId}", dto.StockId);
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Invalid Operation",
-                Detail = ex.Message,
-                Status = StatusCodes.Status400BadRequest
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when creating/updating stock - StockId: {StockId}", dto.StockId);
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Validation Error",
-                Detail = ex.Message,
-                Status = StatusCodes.Status400BadRequest
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -894,7 +848,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
-            return result ? Ok() : BadRequest("Insufficient stock available for reservation.");
+            return result ? Ok() : CreateValidationProblemDetails("Insufficient stock available for reservation.");
         }
         catch (Exception ex)
         {
@@ -974,16 +928,7 @@ public class WarehouseManagementController : BaseApiController
                 lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1021,7 +966,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             var result = await _warehouseFacade.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
-            return result != null ? Ok(result) : NotFound("Stock entry not found.");
+            return result != null ? Ok(result) : CreateNotFoundProblem("Stock entry not found.");
         }
         catch (Exception ex)
         {
@@ -1064,16 +1009,7 @@ public class WarehouseManagementController : BaseApiController
         {
             var result = await _warehouseFacade.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1243,16 +1179,7 @@ public class WarehouseManagementController : BaseApiController
                 PageSize = stockResult.PageSize
             };
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1479,16 +1406,7 @@ public class WarehouseManagementController : BaseApiController
                 PageSize = documentsResult.PageSize
             };
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1521,12 +1439,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Enrich rows with complete product and location data
@@ -1671,12 +1584,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Get current stock level to calculate adjustment
@@ -1698,22 +1606,12 @@ public class WarehouseManagementController : BaseApiController
 
             if (product == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Product not found",
-                    Detail = $"Product with ID {rowDto.ProductId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Product with ID {rowDto.ProductId} was not found.");
             }
 
             if (location == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Location not found",
-                    Detail = $"Location with ID {rowDto.LocationId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Location with ID {rowDto.LocationId} was not found.");
             }
 
             // Get unit of measure symbol if available
@@ -1884,23 +1782,13 @@ public class WarehouseManagementController : BaseApiController
 
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Only allow updating Draft documents (status is Open in entity)
             if (documentHeader.Status != DTOs.Common.DocumentStatus.Open)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Document cannot be updated",
-                    Detail = "Only Draft inventory documents can be updated. This document has already been finalized.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails("Only Draft inventory documents can be updated. This document has already been finalized.");
             }
 
             // Update the document header fields via facade
@@ -1979,23 +1867,13 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Check if document is still open
             if ((int)documentHeader.Status != (int)DocumentStatus.Open)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Document not editable",
-                    Detail = "Cannot modify rows in a closed or cancelled inventory document.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails("Cannot modify rows in a closed or cancelled inventory document.");
             }
 
             // Update the row via facade
@@ -2010,12 +1888,7 @@ public class WarehouseManagementController : BaseApiController
 
             if (!updated)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Row not found",
-                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Row with ID {rowId} was not found in document {documentId}.");
             }
 
             // Get updated document
@@ -2074,23 +1947,13 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Check if document is still open
             if ((int)documentHeader.Status != (int)DocumentStatus.Open)
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Document not editable",
-                    Detail = "Cannot delete rows from a closed or cancelled inventory document.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails("Cannot delete rows from a closed or cancelled inventory document.");
             }
 
             // Soft delete the row via facade
@@ -2098,12 +1961,7 @@ public class WarehouseManagementController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Row not found",
-                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Row with ID {rowId} was not found in document {documentId}.");
             }
 
             // Get updated document
@@ -2161,12 +2019,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Validate document is in Open status
@@ -2176,12 +2029,7 @@ public class WarehouseManagementController : BaseApiController
                     "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
                     documentId, documentHeader.Status);
 
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid document status",
-                    Detail = $"Cannot finalize document: status is '{documentHeader.Status}'. Only documents in 'Open' status can be finalized.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails($"Cannot finalize document: status is '{documentHeader.Status}'. Only documents in 'Open' status can be finalized.");
             }
 
             // Validate document has rows
@@ -2191,12 +2039,7 @@ public class WarehouseManagementController : BaseApiController
                     "Inventory document {DocumentId} has no rows to process",
                     documentId);
 
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Empty document",
-                    Detail = "Cannot finalize an inventory document with no rows.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails("Cannot finalize an inventory document with no rows.");
             }
 
             // Start timing and initialize counters
@@ -2216,24 +2059,14 @@ public class WarehouseManagementController : BaseApiController
             var missingProducts = await _warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
             if (missingProducts.Any())
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid inventory data",
-                    Detail = $"Document contains {missingProducts.Count} non-existent product(s). Cannot finalize.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails($"Document contains {missingProducts.Count} non-existent product(s). Cannot finalize.");
             }
 
             // Validate locations
             var missingLocations = await _warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
             if (missingLocations.Any())
             {
-                return BadRequest(new ProblemDetails
-                {
-                    Title = "Invalid inventory data",
-                    Detail = $"Document contains {missingLocations.Count} non-existent location(s). Cannot finalize.",
-                    Status = StatusCodes.Status400BadRequest
-                });
+                return CreateValidationProblemDetails($"Document contains {missingLocations.Count} non-existent location(s). Cannot finalize.");
             }
 
             // Process each row and apply stock adjustments
@@ -2470,12 +2303,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // 2. Count total rows without loading them
@@ -2715,12 +2543,7 @@ public class WarehouseManagementController : BaseApiController
 
             if (!cancelled)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             _logger.LogInformation("Cancelled inventory document {DocumentId} without applying adjustments", documentId);
@@ -2923,12 +2746,7 @@ public class WarehouseManagementController : BaseApiController
             var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
             if (documentHeader == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Document not found",
-                    Detail = $"Inventory document with ID {documentId} was not found.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // 2-3. Get paginated rows via facade
@@ -2953,16 +2771,7 @@ public class WarehouseManagementController : BaseApiController
                 "Returned page {Page} with {Count} rows for document {DocumentId} (total: {TotalRows})",
                 pagination.Page, enrichedRows.Count, documentId, totalRows);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -3112,12 +2921,7 @@ public class WarehouseManagementController : BaseApiController
             var success = await _warehouseFacade.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
             if (!success)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Title = "Row not found",
-                    Detail = $"Row with ID {rowId} was not found in document {documentId}.",
-                    Status = StatusCodes.Status404NotFound
-                });
+                return CreateNotFoundProblem($"Row with ID {rowId} was not found in document {documentId}.");
             }
             return Ok(new { success = true });
         }
@@ -3442,12 +3246,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Title = "Richiesta non valida",
-                Detail = ex.Message,
-                Status = StatusCodes.Status400BadRequest
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -3612,11 +3411,7 @@ public class WarehouseManagementController : BaseApiController
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid bulk transfer request");
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

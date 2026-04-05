@@ -117,7 +117,7 @@ public class LicenseController : BaseApiController
 
             if (license == null)
             {
-                return NotFound($"License with ID {id} not found");
+                return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             var licenseDto = new LicenseDto
@@ -186,7 +186,7 @@ public class LicenseController : BaseApiController
 
             if (existingLicense != null)
             {
-                return Conflict($"License with name '{createLicenseDto.Name}' already exists");
+                return CreateConflictProblem($"License with name '{createLicenseDto.Name}' already exists");
             }
 
             var license = new License
@@ -251,7 +251,7 @@ public class LicenseController : BaseApiController
 
             if (license == null)
             {
-                return NotFound($"License with ID {id} not found");
+                return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             // Check if the new name conflicts with another license
@@ -260,7 +260,7 @@ public class LicenseController : BaseApiController
 
             if (existingLicense != null)
             {
-                return Conflict($"License with name '{updateLicenseDto.Name}' already exists");
+                return CreateConflictProblem($"License with name '{updateLicenseDto.Name}' already exists");
             }
 
             license.Name = updateLicenseDto.Name;
@@ -315,14 +315,14 @@ public class LicenseController : BaseApiController
 
             if (license == null)
             {
-                return NotFound($"License with ID {id} not found");
+                return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             // Check if there are active tenant licenses
             var activeTenantLicenses = license.TenantLicenses.Count(tl => tl.IsAssignmentActive);
             if (activeTenantLicenses > 0)
             {
-                return BadRequest($"Cannot delete license. It is currently assigned to {activeTenantLicenses} tenant(s)");
+                return CreateValidationProblemDetails($"Cannot delete license. It is currently assigned to {activeTenantLicenses} tenant(s)");
             }
 
             // Soft delete
@@ -443,7 +443,7 @@ public class LicenseController : BaseApiController
 
             if (tenant == null)
             {
-                return NotFound($"Tenant with ID {assignLicenseDto.TenantId} not found");
+                return CreateNotFoundProblem($"Tenant with ID {assignLicenseDto.TenantId} not found");
             }
 
             // Verify license exists
@@ -455,7 +455,7 @@ public class LicenseController : BaseApiController
 
             if (license == null)
             {
-                return NotFound($"License with ID {assignLicenseDto.LicenseId} not found");
+                return CreateNotFoundProblem($"License with ID {assignLicenseDto.LicenseId} not found");
             }
 
             // Check if tenant already has an active license
@@ -556,7 +556,7 @@ public class LicenseController : BaseApiController
 
             if (tenantLicense == null)
             {
-                return NotFound($"No active license found for tenant {tenantId}");
+                return CreateNotFoundProblem($"No active license found for tenant {tenantId}");
             }
 
             var tenantLicenseDto = new TenantLicenseDto
@@ -640,7 +640,7 @@ public class LicenseController : BaseApiController
 
             if (license == null)
             {
-                return NotFound($"License with ID {id} not found");
+                return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             // Get all existing features with the requested names
@@ -835,7 +835,7 @@ public class LicenseController : BaseApiController
 
             if (template == null)
             {
-                return NotFound($"Feature template with ID {id} not found");
+                return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
 
             var dto = new FeatureTemplateDto
@@ -885,7 +885,7 @@ public class LicenseController : BaseApiController
 
             if (exists)
             {
-                return BadRequest($"Feature template with name '{dto.Name}' already exists");
+                return CreateValidationProblemDetails($"Feature template with name '{dto.Name}' already exists");
             }
 
             var template = new FeatureTemplate
@@ -956,7 +956,7 @@ public class LicenseController : BaseApiController
 
             if (template == null)
             {
-                return NotFound($"Feature template with ID {id} not found");
+                return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
 
             // Update properties
@@ -1020,7 +1020,7 @@ public class LicenseController : BaseApiController
 
             if (template == null)
             {
-                return NotFound($"Feature template with ID {id} not found");
+                return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
 
             // Soft delete
@@ -1065,7 +1065,7 @@ public class LicenseController : BaseApiController
 
             if (template == null)
             {
-                return NotFound($"Feature template with ID {id} not found");
+                return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
 
             // Toggle availability
