@@ -10,33 +10,15 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
-public class SuperAdminController : BaseApiController
+public class SuperAdminController(
+    IConfigurationService configurationService,
+    IBackupService backupService,
+    ITenantService tenantService,
+    ITenantContext tenantContext,
+    IAuditLogService auditLogService,
+    IHubContext<AuditLogHub> hubContext,
+    ILogger<SuperAdminController> logger) : BaseApiController
 {
-    private readonly IConfigurationService _configurationService;
-    private readonly IBackupService _backupService;
-    private readonly ITenantService _tenantService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IAuditLogService _auditLogService;
-    private readonly IHubContext<AuditLogHub> _hubContext;
-    private readonly ILogger<SuperAdminController> _logger;
-
-    public SuperAdminController(
-        IConfigurationService configurationService,
-        IBackupService backupService,
-        ITenantService tenantService,
-        ITenantContext tenantContext,
-        IAuditLogService auditLogService,
-        IHubContext<AuditLogHub> hubContext,
-        ILogger<SuperAdminController> logger)
-    {
-        _configurationService = configurationService;
-        _backupService = backupService;
-        _tenantService = tenantService;
-        _tenantContext = tenantContext;
-        _auditLogService = auditLogService;
-        _hubContext = hubContext;
-        _logger = logger;
-    }
 
     #region Configuration Management
 
@@ -48,11 +30,11 @@ public class SuperAdminController : BaseApiController
     [HttpGet("configuration")]
     [ProducesResponseType(typeof(IEnumerable<ConfigurationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ConfigurationDto>>> GetConfigurations()
+    public async Task<ActionResult<IEnumerable<ConfigurationDto>>> GetConfigurations(CancellationToken cancellationToken = default)
     {
         try
         {
-            var configurations = await _configurationService.GetAllConfigurationsAsync();
+            var configurations = await configurationService.GetAllConfigurationsAsync(cancellationToken);
             return Ok(configurations);
         }
         catch (Exception ex)
@@ -65,11 +47,13 @@ public class SuperAdminController : BaseApiController
     /// Gets configuration settings by category.
     /// </summary>
     [HttpGet("configuration/category/{category}")]
-    public async Task<ActionResult<IEnumerable<ConfigurationDto>>> GetConfigurationsByCategory(string category)
+    [ProducesResponseType(typeof(IEnumerable<ConfigurationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<ConfigurationDto>>> GetConfigurationsByCategory(string category, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configurations = await _configurationService.GetConfigurationsByCategoryAsync(category);
+            var configurations = await configurationService.GetConfigurationsByCategoryAsync(category, cancellationToken);
             return Ok(configurations);
         }
         catch (Exception ex)
@@ -82,11 +66,13 @@ public class SuperAdminController : BaseApiController
     /// Gets all available configuration categories.
     /// </summary>
     [HttpGet("configuration/categories")]
-    public async Task<ActionResult<IEnumerable<string>>> GetConfigurationCategories()
+    [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<string>>> GetConfigurationCategories(CancellationToken cancellationToken = default)
     {
         try
         {
-            var categories = await _configurationService.GetCategoriesAsync();
+            var categories = await configurationService.GetCategoriesAsync(cancellationToken);
             return Ok(categories);
         }
         catch (Exception ex)
@@ -99,11 +85,14 @@ public class SuperAdminController : BaseApiController
     /// Creates a new configuration setting.
     /// </summary>
     [HttpPost("configuration")]
-    public async Task<ActionResult<ConfigurationDto>> CreateConfiguration([FromBody] CreateConfigurationDto createDto)
+    [ProducesResponseType(typeof(ConfigurationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConfigurationDto>> CreateConfiguration([FromBody] CreateConfigurationDto createDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configuration = await _configurationService.CreateConfigurationAsync(createDto);
+            var configuration = await configurationService.CreateConfigurationAsync(createDto, cancellationToken);
             return CreatedAtAction(nameof(GetConfiguration), new { key = configuration.Key }, configuration);
         }
         catch (InvalidOperationException ex)
@@ -120,12 +109,15 @@ public class SuperAdminController : BaseApiController
     /// Gets a specific configuration setting.
     /// </summary>
     [HttpGet("configuration/{key}")]
-    public async Task<ActionResult<ConfigurationDto>> GetConfiguration(string key)
+    [ProducesResponseType(typeof(ConfigurationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConfigurationDto>> GetConfiguration(string key, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configuration = await _configurationService.GetConfigurationAsync(key);
-            if (configuration == null)
+            var configuration = await configurationService.GetConfigurationAsync(key, cancellationToken);
+            if (configuration is null)
             {
                 return CreateNotFoundProblem($"Configuration with key '{key}' not found");
             }
@@ -141,11 +133,14 @@ public class SuperAdminController : BaseApiController
     /// Updates a configuration setting.
     /// </summary>
     [HttpPut("configuration/{key}")]
-    public async Task<ActionResult<ConfigurationDto>> UpdateConfiguration(string key, [FromBody] UpdateConfigurationDto updateDto)
+    [ProducesResponseType(typeof(ConfigurationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConfigurationDto>> UpdateConfiguration(string key, [FromBody] UpdateConfigurationDto updateDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var configuration = await _configurationService.UpdateConfigurationAsync(key, updateDto);
+            var configuration = await configurationService.UpdateConfigurationAsync(key, updateDto, cancellationToken);
             return Ok(configuration);
         }
         catch (InvalidOperationException ex)
@@ -162,11 +157,14 @@ public class SuperAdminController : BaseApiController
     /// Deletes a configuration setting.
     /// </summary>
     [HttpDelete("configuration/{key}")]
-    public async Task<IActionResult> DeleteConfiguration(string key)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteConfiguration(string key, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _configurationService.DeleteConfigurationAsync(key);
+            await configurationService.DeleteConfigurationAsync(key, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException ex)
@@ -183,11 +181,13 @@ public class SuperAdminController : BaseApiController
     /// Tests SMTP configuration.
     /// </summary>
     [HttpPost("configuration/test-smtp")]
-    public async Task<ActionResult<SmtpTestResultDto>> TestSmtp([FromBody] SmtpTestDto testDto)
+    [ProducesResponseType(typeof(SmtpTestResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<SmtpTestResultDto>> TestSmtp([FromBody] SmtpTestDto testDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _configurationService.TestSmtpAsync(testDto);
+            var result = await configurationService.TestSmtpAsync(testDto, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -200,11 +200,13 @@ public class SuperAdminController : BaseApiController
     /// Reloads configuration from database.
     /// </summary>
     [HttpPost("configuration/reload")]
-    public async Task<IActionResult> ReloadConfiguration()
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ReloadConfiguration(CancellationToken cancellationToken = default)
     {
         try
         {
-            await _configurationService.ReloadConfigurationAsync();
+            await configurationService.ReloadConfigurationAsync(cancellationToken);
             return Ok(new { message = "Configuration reloaded successfully" });
         }
         catch (Exception ex)
@@ -221,11 +223,14 @@ public class SuperAdminController : BaseApiController
     /// Starts a manual backup operation.
     /// </summary>
     [HttpPost("backup")]
-    public async Task<ActionResult<BackupStatusDto>> StartBackup([FromBody] BackupRequestDto request)
+    [ProducesResponseType(typeof(BackupStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BackupStatusDto>> StartBackup([FromBody] BackupRequestDto request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var backup = await _backupService.StartBackupAsync(request);
+            var backup = await backupService.StartBackupAsync(request, cancellationToken);
             return Ok(backup);
         }
         catch (UnauthorizedAccessException ex)
@@ -242,12 +247,15 @@ public class SuperAdminController : BaseApiController
     /// Gets the status of a backup operation.
     /// </summary>
     [HttpGet("backup/{backupId}")]
-    public async Task<ActionResult<BackupStatusDto>> GetBackupStatus(Guid backupId)
+    [ProducesResponseType(typeof(BackupStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BackupStatusDto>> GetBackupStatus(Guid backupId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var backup = await _backupService.GetBackupStatusAsync(backupId);
-            if (backup == null)
+            var backup = await backupService.GetBackupStatusAsync(backupId, cancellationToken);
+            if (backup is null)
             {
                 return CreateNotFoundProblem($"Backup operation {backupId} not found");
             }
@@ -263,11 +271,13 @@ public class SuperAdminController : BaseApiController
     /// Gets all backup operations.
     /// </summary>
     [HttpGet("backup")]
-    public async Task<ActionResult<IEnumerable<BackupStatusDto>>> GetBackups([FromQuery] int limit = 50)
+    [ProducesResponseType(typeof(IEnumerable<BackupStatusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<BackupStatusDto>>> GetBackups([FromQuery] int limit = 50, CancellationToken cancellationToken = default)
     {
         try
         {
-            var backups = await _backupService.GetBackupsAsync(limit);
+            var backups = await backupService.GetBackupsAsync(limit, cancellationToken);
             return Ok(backups);
         }
         catch (Exception ex)
@@ -280,11 +290,14 @@ public class SuperAdminController : BaseApiController
     /// Cancels a running backup operation.
     /// </summary>
     [HttpPost("backup/{backupId}/cancel")]
-    public async Task<IActionResult> CancelBackup(Guid backupId)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CancelBackup(Guid backupId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _backupService.CancelBackupAsync(backupId);
+            await backupService.CancelBackupAsync(backupId, cancellationToken);
             return Ok(new { message = "Backup cancelled successfully" });
         }
         catch (InvalidOperationException ex)
@@ -301,12 +314,15 @@ public class SuperAdminController : BaseApiController
     /// Downloads a completed backup file.
     /// </summary>
     [HttpGet("backup/{backupId}/download")]
-    public async Task<IActionResult> DownloadBackup(Guid backupId)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DownloadBackup(Guid backupId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _backupService.DownloadBackupAsync(backupId);
-            if (result == null)
+            var result = await backupService.DownloadBackupAsync(backupId, cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem("Backup file not found or not completed");
             }
@@ -323,11 +339,14 @@ public class SuperAdminController : BaseApiController
     /// Deletes a backup operation and file.
     /// </summary>
     [HttpDelete("backup/{backupId}")]
-    public async Task<IActionResult> DeleteBackup(Guid backupId)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteBackup(Guid backupId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _backupService.DeleteBackupAsync(backupId);
+            await backupService.DeleteBackupAsync(backupId, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException ex)
