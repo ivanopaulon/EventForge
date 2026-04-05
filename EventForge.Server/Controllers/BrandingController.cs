@@ -11,24 +11,12 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/branding")]
 [ApiController]
-public class BrandingController : BaseApiController
+public class BrandingController(
+    IBrandingService brandingService,
+    ITenantContext tenantContext,
+    IConfiguration configuration,
+    ILogger<BrandingController> logger) : BaseApiController
 {
-    private readonly IBrandingService _brandingService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<BrandingController> _logger;
-
-    public BrandingController(
-        IBrandingService brandingService,
-        ITenantContext tenantContext,
-        IConfiguration configuration,
-        ILogger<BrandingController> logger)
-    {
-        _brandingService = brandingService;
-        _tenantContext = tenantContext;
-        _configuration = configuration;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Returns public client-side configuration values (no authentication required).
@@ -41,7 +29,7 @@ public class BrandingController : BaseApiController
     {
         return Ok(new ClientPublicConfigDto
         {
-            SyncfusionLicenseKey = _configuration["SyncfusionLicenseKey"]
+            SyncfusionLicenseKey = configuration["SyncfusionLicenseKey"]
         });
     }
 
@@ -62,11 +50,11 @@ public class BrandingController : BaseApiController
         try
         {
             // Use current tenant if not specified
-            var targetTenantId = tenantId ?? _tenantContext.CurrentTenantId;
+            var targetTenantId = tenantId ?? tenantContext.CurrentTenantId;
 
-            var branding = await _brandingService.GetBrandingAsync(targetTenantId, ct);
+            var branding = await brandingService.GetBrandingAsync(targetTenantId, ct);
 
-            _logger.LogDebug("Branding configuration retrieved for TenantId: {TenantId}", targetTenantId);
+            logger.LogDebug("Branding configuration retrieved for TenantId: {TenantId}", targetTenantId);
 
             return Ok(branding);
         }
@@ -101,9 +89,9 @@ public class BrandingController : BaseApiController
             }
 
             var username = GetCurrentUser();
-            var branding = await _brandingService.UpdateGlobalBrandingAsync(updateDto, username, ct);
+            var branding = await brandingService.UpdateGlobalBrandingAsync(updateDto, username, ct);
 
-            _logger.LogInformation("Global branding updated by user: {Username}", username);
+            logger.LogInformation("Global branding updated by user: {Username}", username);
 
             return Ok(branding);
         }
@@ -141,24 +129,24 @@ public class BrandingController : BaseApiController
             }
 
             // Validate tenant access
-            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (tenantContext.CurrentTenantId != tenantId && !tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}",
+                logger.LogWarning("User {Username} attempted to update branding for unauthorized tenant {TenantId}",
                     GetCurrentUser(), tenantId);
                 return CreateForbiddenProblem("You do not have permission to update branding for this tenant.");
             }
 
             var username = GetCurrentUser();
-            var branding = await _brandingService.UpdateTenantBrandingAsync(tenantId, updateDto, username, ct);
+            var branding = await brandingService.UpdateTenantBrandingAsync(tenantId, updateDto, username, ct);
 
-            _logger.LogInformation("Tenant branding updated for TenantId: {TenantId} by user: {Username}",
+            logger.LogInformation("Tenant branding updated for TenantId: {TenantId} by user: {Username}",
                 tenantId, username);
 
             return Ok(branding);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Tenant not found: {TenantId}", tenantId);
+            logger.LogWarning(ex, "Tenant not found: {TenantId}", tenantId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -187,23 +175,23 @@ public class BrandingController : BaseApiController
         try
         {
             // Validate tenant access
-            if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
+            if (tenantContext.CurrentTenantId != tenantId && !tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}",
+                logger.LogWarning("User {Username} attempted to delete branding for unauthorized tenant {TenantId}",
                     GetCurrentUser(), tenantId);
                 return CreateForbiddenProblem("You do not have permission to delete branding for this tenant.");
             }
 
-            await _brandingService.DeleteTenantBrandingAsync(tenantId, ct);
+            await brandingService.DeleteTenantBrandingAsync(tenantId, ct);
 
-            _logger.LogInformation("Tenant branding deleted for TenantId: {TenantId} by user: {Username}",
+            logger.LogInformation("Tenant branding deleted for TenantId: {TenantId} by user: {Username}",
                 tenantId, GetCurrentUser());
 
             return NoContent();
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Tenant not found: {TenantId}", tenantId);
+            logger.LogWarning(ex, "Tenant not found: {TenantId}", tenantId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -237,9 +225,9 @@ public class BrandingController : BaseApiController
             // Validate tenant access if tenant-specific upload
             if (tenantId.HasValue)
             {
-                if (_tenantContext.CurrentTenantId != tenantId && !_tenantContext.IsSuperAdmin)
+                if (tenantContext.CurrentTenantId != tenantId && !tenantContext.IsSuperAdmin)
                 {
-                    _logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}",
+                    logger.LogWarning("User {Username} attempted to upload logo for unauthorized tenant {TenantId}",
                         GetCurrentUser(), tenantId);
                     return CreateForbiddenProblem("You do not have permission to upload logo for this tenant.");
                 }
@@ -247,24 +235,24 @@ public class BrandingController : BaseApiController
             else
             {
                 // Global upload requires SuperAdmin
-                if (!_tenantContext.IsSuperAdmin)
+                if (!tenantContext.IsSuperAdmin)
                 {
-                    _logger.LogWarning("Non-SuperAdmin user {Username} attempted to upload global logo",
+                    logger.LogWarning("Non-SuperAdmin user {Username} attempted to upload global logo",
                         GetCurrentUser());
                     return CreateForbiddenProblem("Only SuperAdmin can upload global logos.");
                 }
             }
 
-            var logoUrl = await _brandingService.UploadLogoAsync(file, tenantId, ct);
+            var logoUrl = await brandingService.UploadLogoAsync(file, tenantId, ct);
 
-            _logger.LogInformation("Logo uploaded successfully: {LogoUrl} by user: {Username}",
+            logger.LogInformation("Logo uploaded successfully: {LogoUrl} by user: {Username}",
                 logoUrl, GetCurrentUser());
 
             return Ok(new { logoUrl });
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid logo upload attempt");
+            logger.LogWarning(ex, "Invalid logo upload attempt");
             return BadRequest(new ProblemDetails
             {
                 Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",

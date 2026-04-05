@@ -12,24 +12,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/devtools")]
 [Authorize]
 [ApiController]
-public class DevToolsController : BaseApiController
+public class DevToolsController(
+    IProductGeneratorService productGeneratorService,
+    ITenantContext tenantContext,
+    IConfiguration configuration,
+    ILogger<DevToolsController> logger) : BaseApiController
 {
-    private readonly IProductGeneratorService _productGeneratorService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<DevToolsController> _logger;
-
-    public DevToolsController(
-        IProductGeneratorService productGeneratorService,
-        ITenantContext tenantContext,
-        IConfiguration configuration,
-        ILogger<DevToolsController> logger)
-    {
-        _productGeneratorService = productGeneratorService ?? throw new ArgumentNullException(nameof(productGeneratorService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Avvia la generazione di prodotti di test.
@@ -52,7 +40,7 @@ public class DevToolsController : BaseApiController
         // Verifica che i devtools siano abilitati
         if (!IsDevToolsEnabled())
         {
-            _logger.LogWarning("Tentativo di accesso a devtools quando non abilitati. Utente: {User}",
+            logger.LogWarning("Tentativo di accesso a devtools quando non abilitati. Utente: {User}",
                 User.Identity?.Name ?? "Unknown");
             return Forbid();
         }
@@ -60,23 +48,22 @@ public class DevToolsController : BaseApiController
         // Verifica che l'utente sia admin
         if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
         {
-            _logger.LogWarning("Tentativo di accesso a devtools da utente non admin. Utente: {User}",
+            logger.LogWarning("Tentativo di accesso a devtools da utente non admin. Utente: {User}",
                 User.Identity?.Name ?? "Unknown");
             return Forbid();
         }
 
         // Valida il tenant
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        var tenantId = _tenantContext.CurrentTenantId!.Value;
-        var userId = _tenantContext.CurrentUserId!.Value;
+        var tenantId = tenantContext.CurrentTenantId!.Value;
+        var userId = tenantContext.CurrentUserId!.Value;
 
         try
         {
-            var jobId = await _productGeneratorService.StartGenerationJobAsync(request, tenantId, userId, cancellationToken);
+            var jobId = await productGeneratorService.StartGenerationJobAsync(request, tenantId, userId, cancellationToken);
 
-            _logger.LogInformation("Job di generazione prodotti avviato. JobId: {JobId}, Count: {Count}, TenantId: {TenantId}, UserId: {UserId}",
+            logger.LogInformation("Job di generazione prodotti avviato. JobId: {JobId}, Count: {Count}, TenantId: {TenantId}, UserId: {UserId}",
                 jobId, request.Count, tenantId, userId);
 
             var response = new GenerateProductsResponseDto
@@ -90,7 +77,7 @@ public class DevToolsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nell'avvio del job di generazione prodotti");
+            logger.LogError(ex, "Errore nell'avvio del job di generazione prodotti");
             return Problem(
                 title: "Errore nell'avvio del job",
                 detail: ex.Message,
@@ -125,8 +112,8 @@ public class DevToolsController : BaseApiController
             return Forbid();
         }
 
-        var status = _productGeneratorService.GetJobStatus(jobId);
-        if (status == null)
+        var status = productGeneratorService.GetJobStatus(jobId);
+        if (status is null)
         {
             return NotFound(new { message = $"Job con ID {jobId} non trovato." });
         }
@@ -160,13 +147,13 @@ public class DevToolsController : BaseApiController
             return Forbid();
         }
 
-        var cancelled = _productGeneratorService.CancelJob(jobId);
+        var cancelled = productGeneratorService.CancelJob(jobId);
         if (!cancelled)
         {
             return NotFound(new { message = $"Job con ID {jobId} non trovato o non può essere cancellato." });
         }
 
-        _logger.LogInformation("Job {JobId} cancellato dall'utente {User}", jobId, User.Identity?.Name ?? "Unknown");
+        logger.LogInformation("Job {JobId} cancellato dall'utente {User}", jobId, User.Identity?.Name ?? "Unknown");
 
         return Ok(new { message = "Job cancellato con successo." });
     }
@@ -179,8 +166,8 @@ public class DevToolsController : BaseApiController
     /// </summary>
     private bool IsDevToolsEnabled()
     {
-        var devToolsEnabled = _configuration.GetValue<string>("DEVTOOLS_ENABLED");
-        var environment = _configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT");
+        var devToolsEnabled = configuration.GetValue<string>("DEVTOOLS_ENABLED");
+        var environment = configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT");
 
         return devToolsEnabled?.Equals("true", StringComparison.OrdinalIgnoreCase) == true ||
                environment?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true;

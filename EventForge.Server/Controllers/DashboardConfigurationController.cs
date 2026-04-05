@@ -10,18 +10,10 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Authorize]
 [Route("api/v1/[controller]")]
-public class DashboardConfigurationController : BaseApiController
+public class DashboardConfigurationController(
+    IDashboardConfigurationService service,
+    ILogger<DashboardConfigurationController> logger) : BaseApiController
 {
-    private readonly IDashboardConfigurationService _service;
-    private readonly ILogger<DashboardConfigurationController> _logger;
-
-    public DashboardConfigurationController(
-        IDashboardConfigurationService service,
-        ILogger<DashboardConfigurationController> logger)
-    {
-        _service = service;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Gets all dashboard configurations for the current user and entity type.
@@ -33,7 +25,7 @@ public class DashboardConfigurationController : BaseApiController
     {
         try
         {
-            var configurations = await _service.GetConfigurationsAsync(entityType, cancellationToken);
+            var configurations = await service.GetConfigurationsAsync(entityType, cancellationToken);
             return Ok(configurations);
         }
         catch (Exception ex)
@@ -53,8 +45,8 @@ public class DashboardConfigurationController : BaseApiController
     {
         try
         {
-            var configuration = await _service.GetConfigurationByIdAsync(id, cancellationToken);
-            if (configuration == null)
+            var configuration = await service.GetConfigurationByIdAsync(id, cancellationToken);
+            if (configuration is null)
             {
                 return CreateNotFoundProblem($"Dashboard configuration with id {id} not found.");
             }
@@ -77,8 +69,8 @@ public class DashboardConfigurationController : BaseApiController
     {
         try
         {
-            var configuration = await _service.GetDefaultConfigurationAsync(entityType, cancellationToken);
-            if (configuration == null)
+            var configuration = await service.GetDefaultConfigurationAsync(entityType, cancellationToken);
+            if (configuration is null)
             {
                 return CreateNotFoundProblem($"Default dashboard configuration for entity type '{entityType}' not found.");
             }
@@ -106,7 +98,7 @@ public class DashboardConfigurationController : BaseApiController
 
         try
         {
-            var configuration = await _service.CreateConfigurationAsync(dto, cancellationToken);
+            var configuration = await service.CreateConfigurationAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetConfigurationById), new { id = configuration.Id }, configuration);
         }
         catch (Exception ex)
@@ -132,7 +124,7 @@ public class DashboardConfigurationController : BaseApiController
 
         try
         {
-            var configuration = await _service.UpdateConfigurationAsync(id, dto, cancellationToken);
+            var configuration = await service.UpdateConfigurationAsync(id, dto, cancellationToken);
             return Ok(configuration);
         }
         catch (InvalidOperationException)
@@ -156,7 +148,7 @@ public class DashboardConfigurationController : BaseApiController
     {
         try
         {
-            await _service.DeleteConfigurationAsync(id, cancellationToken);
+            await service.DeleteConfigurationAsync(id, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -180,7 +172,7 @@ public class DashboardConfigurationController : BaseApiController
     {
         try
         {
-            await _service.SetAsDefaultAsync(id, cancellationToken);
+            await service.SetAsDefaultAsync(id, cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException)
