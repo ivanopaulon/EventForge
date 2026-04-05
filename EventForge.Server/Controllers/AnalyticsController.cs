@@ -12,21 +12,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/analytics")]
 [Authorize]
 [ApiController]
-public class AnalyticsController : BaseApiController
+public class AnalyticsController(
+    IAnalyticsService analyticsService,
+    ITenantContext tenantContext,
+    ILogger<AnalyticsController> logger) : BaseApiController
 {
-    private readonly IAnalyticsService _analyticsService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<AnalyticsController> _logger;
-
-    public AnalyticsController(
-        IAnalyticsService analyticsService,
-        ITenantContext tenantContext,
-        ILogger<AnalyticsController> logger)
-    {
-        _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Returns promotion analytics dashboard data.
@@ -45,12 +35,12 @@ public class AnalyticsController : BaseApiController
         [FromQuery] AnalyticsFilterDto filter,
         CancellationToken ct = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _analyticsService.GetPromotionAnalyticsAsync(filter, ct);
+            var result = await analyticsService.GetPromotionAnalyticsAsync(filter, ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -76,12 +66,12 @@ public class AnalyticsController : BaseApiController
         [FromQuery] AnalyticsFilterDto filter,
         CancellationToken ct = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _analyticsService.GetPricingAnalyticsAsync(filter, ct);
+            var result = await analyticsService.GetPricingAnalyticsAsync(filter, ct);
             return Ok(result);
         }
         catch (Exception ex)
@@ -107,12 +97,12 @@ public class AnalyticsController : BaseApiController
         [FromQuery] AnalyticsFilterDto filter,
         CancellationToken ct = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _analyticsService.GetSalesAnalyticsAsync(filter, ct);
+            var result = await analyticsService.GetSalesAnalyticsAsync(filter, ct);
             return Ok(result);
         }
         catch (Exception ex)

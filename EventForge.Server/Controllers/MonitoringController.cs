@@ -12,21 +12,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/monitoring")]
 [Authorize(Roles = "Admin,SuperAdmin")]
 [ApiController]
-public class MonitoringController : BaseApiController
+public class MonitoringController(
+    IMonitoringService monitoringService,
+    ITenantContext tenantContext,
+    ILogger<MonitoringController> logger) : BaseApiController
 {
-    private readonly IMonitoringService _monitoringService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<MonitoringController> _logger;
-
-    public MonitoringController(
-        IMonitoringService monitoringService,
-        ITenantContext tenantContext,
-        ILogger<MonitoringController> logger)
-    {
-        _monitoringService = monitoringService ?? throw new ArgumentNullException(nameof(monitoringService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Returns a monitoring dashboard snapshot for the current tenant.
@@ -49,7 +39,7 @@ public class MonitoringController : BaseApiController
         [FromQuery] int recentErrorCount = 20,
         CancellationToken ct = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError is not null) return tenantError;
 
         topN = Math.Clamp(topN, 1, 50);
@@ -57,7 +47,7 @@ public class MonitoringController : BaseApiController
 
         try
         {
-            var result = await _monitoringService.GetDashboardAsync(topN, recentErrorCount, ct);
+            var result = await monitoringService.GetDashboardAsync(topN, recentErrorCount, ct);
             return Ok(result);
         }
         catch (Exception ex)
