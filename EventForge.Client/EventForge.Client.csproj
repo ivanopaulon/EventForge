@@ -12,6 +12,7 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- MudBlazor Analyzer Configuration: Disable strict attribute pattern checking -->
     <MudAllowedAttributePattern>Any</MudAllowedAttributePattern>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" />
@@ -31,6 +32,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
   <ItemGroup>
     <Content Update="wwwroot\EventForge.ico">
