@@ -897,7 +897,7 @@
                 {
                     DocumentTypeId = _model.DocumentTypeId,
                     Series = _model.Series,
-                    Number = _model.Number,
+                    Number = _model.Number ?? string.Empty,
                     Date = _model.Date,
                     BusinessPartyId = _model.BusinessPartyId,
                     Notes = _model.Notes
@@ -1029,7 +1029,7 @@
         // ✅ OPTIMIZATION: Reload only if dialog was cancelled or no data returned
         // When rows are added in the dialog, they're saved to the server but we need to refresh
         // to see them since the dialog doesn't return each individual row (it allows multiple additions)
-        if (result is { Canceled: true } || result.Data == null)
+        if (result is { Canceled: true } || result?.Data == null)
         {
             // Reload to get any rows that were added during the session
             await LoadDocumentAsync(_currentDocument.Id);
@@ -1076,7 +1076,7 @@
         if (result is { Canceled: false } && result.Data is DocumentRowDto updatedRow)
         {
             // Update only the modified row in the local collection
-            var rowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updatedRow.Id);
+            var rowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updatedRow.Id);
             if (rowIndex >= 0)
             {
                 _currentDocument.Rows[rowIndex] = updatedRow;
@@ -1129,10 +1129,10 @@
                     Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
                     
                     // ✅ OPTIMIZATION: Remove row from local collection instead of full reload
-                    var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == row.Id);
+                    var rowToRemove = _currentDocument!.Rows!.FirstOrDefault(r => r.Id == row.Id);
                     if (rowToRemove != null)
                     {
-                        _currentDocument.Rows.Remove(rowToRemove);
+                        _currentDocument.Rows!.Remove(rowToRemove);
                         Logger.LogInformation("Removed row {RowId} from local collection", row.Id);
                     }
                     
@@ -1203,10 +1203,10 @@
                     // ✅ OPTIMIZATION: Remove rows from local collection instead of full reload
                     foreach (var rowId in deletedRowIds)
                     {
-                        var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == rowId);
+                        var rowToRemove = _currentDocument!.Rows!.FirstOrDefault(r => r.Id == rowId);
                         if (rowToRemove != null)
                         {
-                            _currentDocument.Rows.Remove(rowToRemove);
+                            _currentDocument.Rows!.Remove(rowToRemove);
                         }
                     }
                     Logger.LogInformation("Removed {Count} rows from local collection", deletedRowIds.Count);
@@ -1342,7 +1342,7 @@
                     
                     // ✅ OPTIMIZATION: Update local collection instead of full reload
                     // Update the main row
-                    var mainRowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updated.Id);
+                    var mainRowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updated.Id);
                     if (mainRowIndex >= 0)
                     {
                         _currentDocument.Rows[mainRowIndex] = updated;
@@ -1351,10 +1351,10 @@
                     // Remove merged rows
                     foreach (var rowId in deletedRowIds)
                     {
-                        var rowToRemove = _currentDocument.Rows.FirstOrDefault(r => r.Id == rowId);
+                        var rowToRemove = _currentDocument.Rows!.FirstOrDefault(r => r.Id == rowId);
                         if (rowToRemove != null)
                         {
-                            _currentDocument.Rows.Remove(rowToRemove);
+                            _currentDocument.Rows!.Remove(rowToRemove);
                         }
                     }
                     Logger.LogInformation("Merged {MergedCount} rows into row {MainRowId}, removed {DeletedCount} rows locally", 

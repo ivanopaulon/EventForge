@@ -176,7 +176,7 @@ public class CsvImportService : ICsvImportService
         }
 
         if (string.IsNullOrWhiteSpace(row.Description))
-            row.Description = row.ProductCode; // Fallback to product code
+            row.Description = row.ProductCode ?? string.Empty; // Fallback to product code
 
         // Quantity
         if (mapping.TryGetValue("Quantity", out int qtyIdx) && qtyIdx < values.Count)

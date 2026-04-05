@@ -134,7 +134,6 @@
     private bool _lookupsLoaded = false;
     private Guid? _currentBrandId;
     private bool _suppressBrandChange = false;
-    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -272,7 +271,6 @@
             }
 
             _lookupsLoaded = true;
-            _isLoading = false;
         }
         catch (Exception ex)
         {
@@ -444,7 +442,7 @@
             if (Product?.BrandId == null)
             {
                 _models = new List<ModelDto>();
-                Product.ModelId = null;
+                if (Product != null) Product.ModelId = null;
             }
             else
             {

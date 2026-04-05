@@ -765,7 +765,6 @@
     private CreatePromotionRuleDto _ruleModel = new();
     private List<ProductDto> _availableProducts = new();
     private List<BusinessPartyGroupDto> _availableGroups = new();
-    private bool _isLoadingProducts = false;
     private TimeSpan? _ruleStartTime;
     private TimeSpan? _ruleEndTime;
     private IReadOnlyCollection<Guid> _selectedProductIds = new List<Guid>();
@@ -860,7 +859,6 @@
     {
         try
         {
-            _isLoadingProducts = true;
             var productsResult = await ProductService.GetProductsAsync(1, 200);
             _availableProducts = productsResult?.Items?.ToList() ?? new();
             var groupsResult = await BusinessPartyGroupService.GetGroupsAsync(1, 200);
@@ -872,7 +870,6 @@
         }
         finally
         {
-            _isLoadingProducts = false;
             StateHasChanged();
         }
     }

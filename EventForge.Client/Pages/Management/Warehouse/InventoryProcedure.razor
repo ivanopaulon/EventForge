@@ -1404,10 +1404,6 @@
         {
             await ShowUnifiedInventoryEntryDialog();
         }
-        else
-        {
-            await ShowLegacyInventoryEntryDialog();
-        }
     }
 
     private async Task ShowUnifiedInventoryEntryDialog()
@@ -2084,10 +2080,6 @@
         {
             await EditInventoryRowUnified(row, product);
         }
-        else
-        {
-            await EditInventoryRowLegacy(row, product);
-        }
     }
 
     private async Task EditInventoryRowUnified(InventoryDocumentRowDto row, ProductDto product)
@@ -2141,7 +2133,7 @@
                     Notes = editResult.Notes
                 };
 
-                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument!.Id, row.Id, updateDto);
 
                 if (updatedDocument != null)
                 {
@@ -2223,7 +2215,7 @@
                     Notes = editResult.Notes
                 };
 
-                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument!.Id, row.Id, updateDto);
 
                 if (updatedDocument != null)
                 {

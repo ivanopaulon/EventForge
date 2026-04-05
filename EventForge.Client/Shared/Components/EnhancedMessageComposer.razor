@@ -520,6 +520,7 @@
     {
         return contentType?.ToLower() switch
         {
+            null => Icons.Material.Filled.AttachFile,
             var ct when ct.StartsWith("image/") => Icons.Material.Filled.Image,
             var ct when ct.StartsWith("video/") => Icons.Material.Filled.VideoFile,
             var ct when ct.StartsWith("audio/") => Icons.Material.Filled.AudioFile,

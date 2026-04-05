@@ -327,7 +327,7 @@
             {
                 // Fields modified in this dialog
                 Name = _model.Name,
-                Description = _model.Description,
+                Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
                 UnitOfMeasureId = _model.UnitOfMeasureId,
@@ -425,7 +425,7 @@
             {
                 Code = _model.Code,
                 Name = _model.Name,
-                Description = _model.Description,
+                Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
                 UnitOfMeasureId = _model.UnitOfMeasureId,

@@ -167,7 +167,7 @@ public class SignalRService : IAsyncDisposable
             _auditHubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(token!);
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                 })
                 .WithAutomaticReconnect()
                 .Build();
@@ -299,7 +299,7 @@ public class SignalRService : IAsyncDisposable
             _notificationHubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(token!);
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                 })
                 .WithAutomaticReconnect()
                 .Build();
@@ -574,7 +574,7 @@ public class SignalRService : IAsyncDisposable
             _chatHubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(token!);
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                 })
                 .WithAutomaticReconnect()
                 .Build();
@@ -644,7 +644,7 @@ public class SignalRService : IAsyncDisposable
             _documentCollaborationHubConnection = new HubConnectionBuilder()
                 .WithUrl(hubUrl, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(token!);
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                 })
                 .WithAutomaticReconnect()
                 .Build();

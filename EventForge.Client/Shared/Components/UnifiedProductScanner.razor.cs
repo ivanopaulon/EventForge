@@ -136,9 +136,6 @@ namespace EventForge.Client.Shared.Components
         private string? _currentUnitSymbol;
         private string? _currentVatName;
 
-        // Edit mode tracking
-        private bool _isEditMode = false;
-
         // Prompt mode tracking
         private bool _showNotFoundPrompt = false;
         private string _notFoundBarcode = string.Empty;
@@ -464,7 +461,7 @@ namespace EventForge.Client.Shared.Components
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
             {
                 // Update the selected product with the edited data
                 SelectedProduct = updatedProduct;
@@ -511,7 +508,7 @@ namespace EventForge.Client.Shared.Components
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto createdProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
             {
                 // Set the created product as selected
                 SelectedProduct = createdProduct;

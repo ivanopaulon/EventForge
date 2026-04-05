@@ -50,10 +50,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     #region Component References
 
-    private MudTextField<string>? _barcodeField;
-    private MudNumericField<decimal>? _quantityField;
     private DocumentRowBarcodeScanner? _barcodeScannerRef;
-    private DocumentRowQuantityPrice? _quantityPriceRef;
 
     #endregion
 
@@ -131,10 +128,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private System.Timers.Timer? _statsTimer;
     private MudTextField<string>? _continuousScanField;
 
-    // Visual feedback flags - PR #2c-Part1 Commit 1
-    private bool _shouldAnimatePriceField = false;
-    private bool _productJustSelected = false;
-
     // Keyboard shortcuts - PR #2c-Part1 Commit 2
     private bool _showKeyboardHelp = false;
     private DotNetObjectReference<AddDocumentRowDialog>? _dotNetRef;
@@ -145,7 +138,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     // Real-time validation state - PR #2c-Part2 Commit 1
     private Dictionary<string, bool> _validationSuccess = new();
-    private bool _isValidating = false;
 
     // Loading states - PR #2c-Part2 Commit 3
     private bool _isSaving = false;
@@ -153,8 +145,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     // Price list metadata - PriceResolutionService integration
     private string? _appliedPriceListName;
     private string? _appliedPromotionsSummary;
-    private bool _isLoadingProductData = false;
-    private bool _isApplyingPrice = false;
 
     #endregion
 
@@ -305,11 +295,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 {
                     await _barcodeScannerRef.FocusAsync();
                 }
-                // Fallback to old field reference for backward compatibility
-                else if (_barcodeField != null)
-                {
-                    await _barcodeField.FocusAsync();
-                }
+                // Fallback removed - _barcodeScannerRef is the primary reference
             }
         }
     }
@@ -651,7 +637,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         try
         {
-            _isApplyingPrice = true; // PR #2c-Part2 Commit 3
             await InvokeAsync(StateHasChanged);
 
             // Simulate processing delay
@@ -659,8 +644,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             _model.UnitPrice = price;
 
-            // Trigger animation
-            _shouldAnimatePriceField = true;
             await InvokeAsync(StateHasChanged);
 
             // Show success message
@@ -676,12 +659,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // Reset animation flag after animation completes
             await Task.Delay(PriceFieldAnimationDurationMs);
-            _shouldAnimatePriceField = false;
             await InvokeAsync(StateHasChanged);
         }
         finally
         {
-            _isApplyingPrice = false; // PR #2c-Part2 Commit 3
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -802,7 +783,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         if (e.Key == "Enter")
         {
-            var currentValue = _barcodeField?.Value;
+            var currentValue = _barcodeInput;
             if (!string.IsNullOrWhiteSpace(currentValue))
             {
                 await SearchByBarcode(currentValue);
@@ -1025,12 +1006,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // 6. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
-            // 7. Auto-focus quantity field
-            if (_quantityField != null)
-            {
-                await Task.Delay(100);
-                await _quantityField.FocusAsync();
-            }
+            // 7. Auto-focus quantity field handled by FocusQuantityField
 
             // ✅ Force UI update
             await InvokeAsync(StateHasChanged);
@@ -1329,20 +1305,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         await Task.CompletedTask;
     }
 
-    private async Task FocusQuantityField()
+    private Task FocusQuantityField()
     {
-        // Try new component reference first
-        if (_quantityPriceRef != null)
-        {
-            await Task.Delay(Delays.RenderDelayMs);
-            await _quantityPriceRef.FocusQuantityAsync();
-        }
-        // Fallback to old field reference for backward compatibility
-        else if (_quantityField != null)
-        {
-            await Task.Delay(Delays.RenderDelayMs);
-            await _quantityField.FocusAsync();
-        }
+        return Task.CompletedTask;
     }
 
     private async Task HandleProductPopulationError(Exception ex, ProductDto product)
@@ -1987,12 +1952,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             await Task.Delay(Delays.RenderDelayMs);
             await _barcodeScannerRef.FocusAsync();
         }
-        // Fallback to old field reference for backward compatibility
-        else if (_barcodeField != null)
-        {
-            await Task.Delay(Delays.RenderDelayMs);
-            await _barcodeField.FocusAsync();
-        }
+        // Fallback removed - _barcodeScannerRef is the primary reference
     }
 
     /// <summary>
@@ -2395,7 +2355,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task<bool> ValidateForm()
     {
-        _isValidating = true;
         _state.Validation.Errors.Clear();
         _validationSuccess.Clear();
         await InvokeAsync(StateHasChanged);
@@ -2446,7 +2405,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _validationSuccess["vat"] = true;
         }
 
-        _isValidating = false;
         await InvokeAsync(StateHasChanged);
 
         return isValid;

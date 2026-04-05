@@ -710,7 +710,6 @@
 
     // Tab 3: Business Parties
     private List<PriceListBusinessPartyDto> _assignedBusinessParties = new();
-    private bool _isLoadingBusinessParties = false;
 
     // Quick Add State
     private ProductDto? _selectedProductToAdd;
@@ -1271,7 +1270,6 @@
     // Tab 3: Business Party Management Methods
     private async Task LoadAssignedBusinessPartiesAsync()
     {
-        _isLoadingBusinessParties = true;
         try
         {
             _assignedBusinessParties = (await PriceListService.GetAssignedBusinessPartiesAsync(Id, default)).ToList();
@@ -1280,10 +1278,6 @@
         {
             Logger.LogError(ex, "Error loading assigned business parties for price list {Id}", Id);
             Snackbar.Add(TranslationService.GetTranslation("pricelist.businessPartiesLoadFailed", "Errore caricamento partner commerciali"), Severity.Error);
-        }
-        finally
-        {
-            _isLoadingBusinessParties = false;
         }
     }
 

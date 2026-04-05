@@ -613,7 +613,7 @@
 
     // Filter and search state
     private StockFilters _filters = new();
-    private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _searchDebounceCts = new CancellationTokenSource();
     
     // Quick Filters
     private List<QuickFilter<StockLocationDetail>> _quickFilters = new()
@@ -701,7 +701,6 @@
 
     // Reconciliation overlay state
     private Dictionary<Guid, StockReconciliationItemDto> _reconciliationData = new();
-    private bool _isCalculatingReconciliation = false;
     private bool _reconciliationCalculated = false;
 
     // Column configuration for EFTable
@@ -1088,7 +1087,6 @@
     /// </summary>
     private async Task CalculateReconciliationAsync()
     {
-        _isCalculatingReconciliation = true;
         try
         {
             var request = new StockReconciliationRequestDto
@@ -1138,10 +1136,6 @@
             Snackbar.Add(
                 TranslationService.GetTranslation("stock.reconciliationError", "Errore nel calcolo della riconciliazione"),
                 Severity.Error);
-        }
-        finally
-        {
-            _isCalculatingReconciliation = false;
         }
     }
 

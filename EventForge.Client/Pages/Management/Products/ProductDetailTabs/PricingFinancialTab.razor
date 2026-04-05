@@ -79,11 +79,9 @@
     private PriceTrendDto? _priceTrend;
     private bool _isLoadingPriceTrend = false;
     private bool _priceTrendLoaded = false;
-    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        _isLoading = true;
         try
         {
             var vatRates = await LookupCacheService.GetVatRatesRawAsync();
@@ -96,7 +94,6 @@
         }
         finally
         {
-            _isLoading = false;
             StateHasChanged();
         }
     }

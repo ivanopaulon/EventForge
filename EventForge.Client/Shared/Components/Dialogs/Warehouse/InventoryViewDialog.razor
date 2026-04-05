@@ -342,9 +342,9 @@
                 new { PropertyName = "productCode",        DisplayName = "Codice",         NumberFormat = (string?)null, IsVisible = true },
                 new { PropertyName = "productName",        DisplayName = "Prodotto",       NumberFormat = (string?)null, IsVisible = true },
                 new { PropertyName = "locationName",       DisplayName = "Ubicazione",     NumberFormat = (string?)null, IsVisible = true },
-                new { PropertyName = "quantity",           DisplayName = "Quantit\u00e0",   NumberFormat = "#,##0.00",   IsVisible = true },
-                new { PropertyName = "previousQuantity",   DisplayName = "Qt\u00e0 Prec.",  NumberFormat = "#,##0.00",   IsVisible = true },
-                new { PropertyName = "adjustmentQuantity", DisplayName = "Rettifica",      NumberFormat = "+#,##0.00;-#,##0.00;0", IsVisible = true },
+                new { PropertyName = "quantity",           DisplayName = "Quantit\u00e0",   NumberFormat = (string?)"#,##0.00",   IsVisible = true },
+                new { PropertyName = "previousQuantity",   DisplayName = "Qt\u00e0 Prec.",  NumberFormat = (string?)"#,##0.00",   IsVisible = true },
+                new { PropertyName = "adjustmentQuantity", DisplayName = "Rettifica",      NumberFormat = (string?)"+#,##0.00;-#,##0.00;0", IsVisible = true },
                 new { PropertyName = "lotCode",            DisplayName = "Lotto",          NumberFormat = (string?)null, IsVisible = true },
                 new { PropertyName = "notes",              DisplayName = "Note",           NumberFormat = (string?)null, IsVisible = true }
             };

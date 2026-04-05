@@ -564,7 +564,7 @@
             new DialogOptions { MaxWidth = MaxWidth.Small });
 
         var dialogResult = await dialog.Result;
-        if (!dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
+        if (dialogResult is not null && !dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
         {
             var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
             if (success)
@@ -780,7 +780,7 @@
                 Severity.Info
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             Snackbar.Add(
                 TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"),
