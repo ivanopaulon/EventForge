@@ -10,12 +10,10 @@ namespace EventForge.Server.Services.Setup;
 /// Implementation of setup wizard service.
 /// </summary>
 public class SetupWizardService(
-    IConfiguration configuration,
     IWebHostEnvironment environment,
     IServiceProvider serviceProvider,
     ILogger<SetupWizardService> logger) : ISetupWizardService
 {
-    private readonly IConfiguration _configuration = configuration;
 
     public async Task<SetupResult> CompleteSetupAsync(SetupConfiguration config, CancellationToken cancellationToken = default)
     {

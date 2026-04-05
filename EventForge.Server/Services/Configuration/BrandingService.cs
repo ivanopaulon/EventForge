@@ -9,13 +9,11 @@ namespace EventForge.Server.Services.Configuration;
 /// </summary>
 public class BrandingService(
     EventForgeDbContext context,
-    ITenantContext tenantContext,
     IConfigurationService configurationService,
     IMemoryCache cache,
     ILogger<BrandingService> logger,
     IWebHostEnvironment environment) : IBrandingService
 {
-    private readonly ITenantContext _tenantContext = tenantContext;
 
     private const string CACHE_KEY_PREFIX = "branding_";
     private const string GLOBAL_CACHE_KEY = "branding_global";

@@ -18,12 +18,10 @@ namespace EventForge.Server.Services.Documents;
 /// </summary>
 public class DocumentExportService(
     EventForgeDbContext context,
-    IDocumentHeaderService documentHeaderService,
     IDocumentAccessLogService accessLogService,
     ILogger<DocumentExportService> logger,
     ITenantContext tenantContext) : IDocumentExportService
 {
-    private readonly IDocumentHeaderService _documentHeaderService = documentHeaderService;
 
     private readonly Dictionary<Guid, DocumentExportResultDto> _exportCache = new();
     private static readonly bool _staticInitialized = InitStatic();

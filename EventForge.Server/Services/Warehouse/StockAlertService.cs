@@ -9,11 +9,9 @@ namespace EventForge.Server.Services.Warehouse;
 /// </summary>
 public class StockAlertService(
     EventForgeDbContext context,
-    IAuditLogService auditLogService,
     ITenantContext tenantContext,
     ILogger<StockAlertService> logger) : IStockAlertService
 {
-    private readonly IAuditLogService _auditLogService = auditLogService;
 
     public async Task<PagedResult<StockAlertDto>> GetAlertsAsync(
         int page = 1,

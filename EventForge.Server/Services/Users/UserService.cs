@@ -7,10 +7,8 @@ namespace EventForge.Server.Services.Users;
 /// </summary>
 public class UserService(
     EventForgeDbContext context,
-    ITenantContext tenantContext,
-    ILogger<UserService> logger) : IUserService
+    ITenantContext tenantContext) : IUserService
 {
-    private readonly ILogger<UserService> _logger = logger;
 
     /// <summary>
     /// Gets all users with pagination.

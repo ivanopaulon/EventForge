@@ -12,11 +12,9 @@ namespace EventForge.Server.Services.Warehouse;
 public class InventoryBulkSeedService(
     EventForgeDbContext context,
     IDocumentHeaderService documentHeaderService,
-    IStorageLocationService storageLocationService,
     ITenantContext tenantContext,
     ILogger<InventoryBulkSeedService> logger) : IInventoryBulkSeedService
 {
-    private readonly IStorageLocationService _storageLocationService = storageLocationService;
 
     // Thread-local Random to avoid thread safety issues
     private static readonly ThreadLocal<Random> _random = new(() => new Random());

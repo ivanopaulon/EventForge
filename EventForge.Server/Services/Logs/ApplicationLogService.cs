@@ -24,11 +24,8 @@ internal class DbLogRecord
 /// Provides read-only access to Serilog logs stored in the database.
 /// </summary>
 public class ApplicationLogService(
-    IConfiguration configuration,
-    ILogger<ApplicationLogService> logger) : IApplicationLogService
+    IConfiguration configuration) : IApplicationLogService
 {
-    private readonly ILogger<ApplicationLogService> _logger = logger;
-
     private readonly string _logDbConnectionString = configuration.GetConnectionString("LogDb")
             ?? throw new InvalidOperationException("LogDb connection string not found.");
 
