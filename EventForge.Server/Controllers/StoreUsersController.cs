@@ -14,18 +14,8 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class StoreUsersController : BaseApiController
+public class StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext, ILogger<StoreUsersController> logger) : BaseApiController
 {
-    private readonly IStoreUserService _storeUserService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StoreUsersController> _logger;
-
-    public StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext, ILogger<StoreUsersController> logger)
-    {
-        _storeUserService = storeUserService ?? throw new ArgumentNullException(nameof(storeUserService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region StoreUser Endpoints
 
@@ -44,13 +34,11 @@ public class StoreUsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _storeUserService.GetStoreUsersAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await storeUserService.GetStoreUsersAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -74,9 +62,9 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUser = await _storeUserService.GetStoreUserByIdAsync(id, cancellationToken);
+            var storeUser = await storeUserService.GetStoreUserByIdAsync(id, cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
                 return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
@@ -104,9 +92,9 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUser = await _storeUserService.GetStoreUserByUsernameAsync(username, cancellationToken);
+            var storeUser = await storeUserService.GetStoreUserByUsernameAsync(username, cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
                 return CreateNotFoundProblem($"Store user with username {username} not found.");
             }
@@ -132,7 +120,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUsers = await _storeUserService.GetStoreUsersByGroupAsync(groupId, cancellationToken);
+            var storeUsers = await storeUserService.GetStoreUsersByGroupAsync(groupId, cancellationToken);
             return Ok(storeUsers);
         }
         catch (Exception ex)
@@ -154,7 +142,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUsers = await _storeUserService.GetStoreUsersWithBirthdayAsync(cancellationToken);
+            var storeUsers = await storeUserService.GetStoreUsersWithBirthdayAsync(cancellationToken);
             return Ok(storeUsers);
         }
         catch (Exception ex)
@@ -185,7 +173,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUser = await _storeUserService.CreateStoreUserAsync(createStoreUserDto, currentUser, cancellationToken);
+            var storeUser = await storeUserService.CreateStoreUserAsync(createStoreUserDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUser), new { id = storeUser.Id }, storeUser);
         }
@@ -220,9 +208,9 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUser = await _storeUserService.UpdateStoreUserAsync(id, updateStoreUserDto, currentUser, cancellationToken);
+            var storeUser = await storeUserService.UpdateStoreUserAsync(id, updateStoreUserDto, currentUser, cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
                 return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
@@ -252,7 +240,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _storeUserService.DeleteStoreUserAsync(id, currentUser, cancellationToken);
+            var deleted = await storeUserService.DeleteStoreUserAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -286,7 +274,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var result = await _storeUserService.GetStoreUserGroupsAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await storeUserService.GetStoreUserGroupsAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -310,9 +298,9 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUserGroup = await _storeUserService.GetStoreUserGroupByIdAsync(id, cancellationToken);
+            var storeUserGroup = await storeUserService.GetStoreUserGroupByIdAsync(id, cancellationToken);
 
-            if (storeUserGroup == null)
+            if (storeUserGroup is null)
             {
                 return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
@@ -347,7 +335,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUserGroup = await _storeUserService.CreateStoreUserGroupAsync(createStoreUserGroupDto, currentUser, cancellationToken);
+            var storeUserGroup = await storeUserService.CreateStoreUserGroupAsync(createStoreUserGroupDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUserGroup), new { id = storeUserGroup.Id }, storeUserGroup);
         }
@@ -382,9 +370,9 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUserGroup = await _storeUserService.UpdateStoreUserGroupAsync(id, updateStoreUserGroupDto, currentUser, cancellationToken);
+            var storeUserGroup = await storeUserService.UpdateStoreUserGroupAsync(id, updateStoreUserGroupDto, currentUser, cancellationToken);
 
-            if (storeUserGroup == null)
+            if (storeUserGroup is null)
             {
                 return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
@@ -414,7 +402,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _storeUserService.DeleteStoreUserGroupAsync(id, currentUser, cancellationToken);
+            var deleted = await storeUserService.DeleteStoreUserGroupAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -448,7 +436,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var result = await _storeUserService.GetStoreUserPrivilegesAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await storeUserService.GetStoreUserPrivilegesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -472,9 +460,9 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUserPrivilege = await _storeUserService.GetStoreUserPrivilegeByIdAsync(id, cancellationToken);
+            var storeUserPrivilege = await storeUserService.GetStoreUserPrivilegeByIdAsync(id, cancellationToken);
 
-            if (storeUserPrivilege == null)
+            if (storeUserPrivilege is null)
             {
                 return CreateNotFoundProblem($"Store user privilege with ID {id} not found.");
             }
@@ -500,7 +488,7 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storeUserPrivileges = await _storeUserService.GetStoreUserPrivilegesByGroupAsync(groupId, cancellationToken);
+            var storeUserPrivileges = await storeUserService.GetStoreUserPrivilegesByGroupAsync(groupId, cancellationToken);
             return Ok(storeUserPrivileges);
         }
         catch (Exception ex)
@@ -531,7 +519,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUserPrivilege = await _storeUserService.CreateStoreUserPrivilegeAsync(createStoreUserPrivilegeDto, currentUser, cancellationToken);
+            var storeUserPrivilege = await storeUserService.CreateStoreUserPrivilegeAsync(createStoreUserPrivilegeDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStoreUserPrivilege), new { id = storeUserPrivilege.Id }, storeUserPrivilege);
         }
@@ -566,9 +554,9 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storeUserPrivilege = await _storeUserService.UpdateStoreUserPrivilegeAsync(id, updateStoreUserPrivilegeDto, currentUser, cancellationToken);
+            var storeUserPrivilege = await storeUserService.UpdateStoreUserPrivilegeAsync(id, updateStoreUserPrivilegeDto, currentUser, cancellationToken);
 
-            if (storeUserPrivilege == null)
+            if (storeUserPrivilege is null)
             {
                 return CreateNotFoundProblem($"Store user privilege with ID {id} not found.");
             }
@@ -598,7 +586,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _storeUserService.DeleteStoreUserPrivilegeAsync(id, currentUser, cancellationToken);
+            var deleted = await storeUserService.DeleteStoreUserPrivilegeAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -639,9 +627,7 @@ public class StoreUsersController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (file == null || file.Length == 0)
         {
@@ -664,8 +650,8 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var updatedStoreUser = await _storeUserService.UploadStoreUserPhotoAsync(id, file, cancellationToken);
-            if (updatedStoreUser == null)
+            var updatedStoreUser = await storeUserService.UploadStoreUserPhotoAsync(id, file, cancellationToken);
+            if (updatedStoreUser is null)
             {
                 return CreateNotFoundProblem($"Store user with ID {id} not found.");
             }
@@ -699,14 +685,12 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var photoDocument = await _storeUserService.GetStoreUserPhotoDocumentAsync(id, cancellationToken);
-            if (photoDocument == null)
+            var photoDocument = await storeUserService.GetStoreUserPhotoDocumentAsync(id, cancellationToken);
+            if (photoDocument is null)
             {
                 return CreateNotFoundProblem($"Store user with ID {id} not found or has no photo.");
             }
@@ -737,13 +721,11 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _storeUserService.DeleteStoreUserPhotoAsync(id, cancellationToken);
+            var deleted = await storeUserService.DeleteStoreUserPhotoAsync(id, cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Store user with ID {id} not found or has no photo.");
@@ -783,9 +765,7 @@ public class StoreUsersController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (file == null || file.Length == 0)
         {
@@ -808,8 +788,8 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var updatedGroup = await _storeUserService.UploadStoreUserGroupLogoAsync(id, file, cancellationToken);
-            if (updatedGroup == null)
+            var updatedGroup = await storeUserService.UploadStoreUserGroupLogoAsync(id, file, cancellationToken);
+            if (updatedGroup is null)
             {
                 return CreateNotFoundProblem($"Store user group with ID {id} not found.");
             }
@@ -839,14 +819,12 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var logoDocument = await _storeUserService.GetStoreUserGroupLogoDocumentAsync(id, cancellationToken);
-            if (logoDocument == null)
+            var logoDocument = await storeUserService.GetStoreUserGroupLogoDocumentAsync(id, cancellationToken);
+            if (logoDocument is null)
             {
                 return CreateNotFoundProblem($"Store user group with ID {id} not found or has no logo.");
             }
@@ -877,13 +855,11 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _storeUserService.DeleteStoreUserGroupLogoAsync(id, cancellationToken);
+            var deleted = await storeUserService.DeleteStoreUserGroupLogoAsync(id, cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Store user group with ID {id} not found or has no logo.");
@@ -916,13 +892,11 @@ public class StoreUsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _storeUserService.GetStorePosesAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await storeUserService.GetStorePosesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -946,9 +920,9 @@ public class StoreUsersController : BaseApiController
     {
         try
         {
-            var storePos = await _storeUserService.GetStorePosByIdAsync(id, cancellationToken);
+            var storePos = await storeUserService.GetStorePosByIdAsync(id, cancellationToken);
 
-            if (storePos == null)
+            if (storePos is null)
             {
                 return CreateNotFoundProblem($"Store POS with ID {id} not found.");
             }
@@ -983,7 +957,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storePos = await _storeUserService.CreateStorePosAsync(createStorePosDto, currentUser, cancellationToken);
+            var storePos = await storeUserService.CreateStorePosAsync(createStorePosDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStorePos), new { id = storePos.Id }, storePos);
         }
@@ -1018,9 +992,9 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var storePos = await _storeUserService.UpdateStorePosAsync(id, updateStorePosDto, currentUser, cancellationToken);
+            var storePos = await storeUserService.UpdateStorePosAsync(id, updateStorePosDto, currentUser, cancellationToken);
 
-            if (storePos == null)
+            if (storePos is null)
             {
                 return CreateNotFoundProblem($"Store POS with ID {id} not found.");
             }
@@ -1050,7 +1024,7 @@ public class StoreUsersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _storeUserService.DeleteStorePosAsync(id, currentUser, cancellationToken);
+            var deleted = await storeUserService.DeleteStorePosAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -1091,9 +1065,7 @@ public class StoreUsersController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (file == null || file.Length == 0)
         {
@@ -1116,8 +1088,8 @@ public class StoreUsersController : BaseApiController
 
         try
         {
-            var updatedStorePos = await _storeUserService.UploadStorePosImageAsync(id, file, cancellationToken);
-            if (updatedStorePos == null)
+            var updatedStorePos = await storeUserService.UploadStorePosImageAsync(id, file, cancellationToken);
+            if (updatedStorePos is null)
             {
                 return CreateNotFoundProblem($"Store POS with ID {id} not found.");
             }
@@ -1147,14 +1119,12 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var imageDocument = await _storeUserService.GetStorePosImageDocumentAsync(id, cancellationToken);
-            if (imageDocument == null)
+            var imageDocument = await storeUserService.GetStorePosImageDocumentAsync(id, cancellationToken);
+            if (imageDocument is null)
             {
                 return CreateNotFoundProblem($"Store POS with ID {id} not found or has no image.");
             }
@@ -1185,13 +1155,11 @@ public class StoreUsersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _storeUserService.DeleteStorePosImageAsync(id, cancellationToken);
+            var deleted = await storeUserService.DeleteStorePosImageAsync(id, cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Store POS with ID {id} not found or has no image.");

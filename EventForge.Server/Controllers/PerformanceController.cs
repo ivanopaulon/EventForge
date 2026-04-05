@@ -8,19 +8,9 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class PerformanceController : BaseApiController
+public class PerformanceController(IPerformanceMonitoringService performanceService, ILogger<PerformanceController> logger,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IPerformanceMonitoringService _performanceService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<PerformanceController> _logger;
-
-    public PerformanceController(IPerformanceMonitoringService performanceService, ILogger<PerformanceController> logger,
-        ITenantContext tenantContext)
-    {
-        _performanceService = performanceService ?? throw new ArgumentNullException(nameof(performanceService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets performance statistics including query metrics and slow query information.
@@ -38,7 +28,7 @@ public class PerformanceController : BaseApiController
     {
         try
         {
-            var statistics = await _performanceService.GetStatisticsAsync();
+            var statistics = await performanceService.GetStatisticsAsync();
             return Ok(statistics);
         }
         catch (Exception ex)
@@ -69,7 +59,7 @@ public class PerformanceController : BaseApiController
             if (limit < 1) limit = 50;
             if (limit > 200) limit = 200;
 
-            var statistics = await _performanceService.GetStatisticsAsync();
+            var statistics = await performanceService.GetStatisticsAsync();
             var slowQueries = statistics.RecentSlowQueries
                 .OrderByDescending(q => q.Timestamp)
                 .Take(limit)
@@ -99,7 +89,7 @@ public class PerformanceController : BaseApiController
     {
         try
         {
-            var statistics = await _performanceService.GetStatisticsAsync();
+            var statistics = await performanceService.GetStatisticsAsync();
 
             var summary = new PerformanceSummaryDto
             {

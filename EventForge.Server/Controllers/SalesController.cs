@@ -15,21 +15,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/sales")]
 [Authorize]
 [RequireLicenseFeature("SalesManagement")]
-public class SalesController : BaseApiController
+public class SalesController(
+    ISaleSessionService saleSessionService,
+    ITenantContext tenantContext,
+    ILogger<SalesController> logger) : BaseApiController
 {
-    private readonly ISaleSessionService _saleSessionService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SalesController> _logger;
-
-    public SalesController(
-        ISaleSessionService saleSessionService,
-        ITenantContext tenantContext,
-        ILogger<SalesController> logger)
-    {
-        _saleSessionService = saleSessionService ?? throw new ArgumentNullException(nameof(saleSessionService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Creates a new sale session.
@@ -51,13 +41,12 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.CreateSessionAsync(createDto, currentUser, cancellationToken);
+            var session = await saleSessionService.CreateSessionAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetSession),
@@ -87,14 +76,13 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var session = await _saleSessionService.GetSessionAsync(sessionId, cancellationToken);
+            var session = await saleSessionService.GetSessionAsync(sessionId, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -129,15 +117,14 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.UpdateSessionAsync(sessionId, updateDto, currentUser, cancellationToken);
+            var session = await saleSessionService.UpdateSessionAsync(sessionId, updateDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -165,13 +152,12 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var deleted = await _saleSessionService.DeleteSessionAsync(sessionId, currentUser, cancellationToken);
+            var deleted = await saleSessionService.DeleteSessionAsync(sessionId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
@@ -198,13 +184,12 @@ public class SalesController : BaseApiController
     public async Task<ActionResult<List<SaleSessionDto>>> GetActiveSessions(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var sessions = await _saleSessionService.GetActiveSessionsAsync(cancellationToken);
+            var sessions = await saleSessionService.GetActiveSessionsAsync(cancellationToken);
 #pragma warning restore CS0618 // Type or member is obsolete
             return Ok(sessions);
         }
@@ -230,13 +215,12 @@ public class SalesController : BaseApiController
         Guid operatorId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var sessions = await _saleSessionService.GetOperatorSessionsAsync(operatorId, cancellationToken);
+            var sessions = await saleSessionService.GetOperatorSessionsAsync(operatorId, cancellationToken);
 #pragma warning restore CS0618 // Type or member is obsolete
             return Ok(sessions);
         }
@@ -261,12 +245,11 @@ public class SalesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _saleSessionService.GetPOSSessionsAsync(pagination, cancellationToken);
+            var result = await saleSessionService.GetPOSSessionsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -289,12 +272,11 @@ public class SalesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _saleSessionService.GetSessionsByOperatorAsync(operatorId, pagination, cancellationToken);
+            var result = await saleSessionService.GetSessionsByOperatorAsync(operatorId, pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -319,12 +301,11 @@ public class SalesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _saleSessionService.GetSessionsByDateAsync(startDate, endDate, pagination, cancellationToken);
+            var result = await saleSessionService.GetSessionsByDateAsync(startDate, endDate, pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -347,12 +328,11 @@ public class SalesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _saleSessionService.GetOpenSessionsAsync(pagination, cancellationToken);
+            var result = await saleSessionService.GetOpenSessionsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -386,22 +366,21 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.AddItemAsync(sessionId, addItemDto, currentUser, cancellationToken);
+            var session = await saleSessionService.AddItemAsync(sessionId, addItemDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}. ProductId: {ProductId}",
+            logger.LogWarning(ex, "Invalid operation while adding item to session {SessionId}. ProductId: {ProductId}",
                 sessionId, addItemDto.ProductId);
             return CreateValidationProblemDetails(ex.Message);
         }
@@ -437,22 +416,21 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.UpdateItemAsync(sessionId, itemId, updateItemDto, currentUser, cancellationToken);
+            var session = await saleSessionService.UpdateItemAsync(sessionId, itemId, updateItemDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while updating item {ItemId} in session {SessionId}.", itemId, sessionId);
+            logger.LogWarning(ex, "Invalid operation while updating item {ItemId} in session {SessionId}.", itemId, sessionId);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -480,22 +458,21 @@ public class SalesController : BaseApiController
         Guid itemId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.RemoveItemAsync(sessionId, itemId, currentUser, cancellationToken);
+            var session = await saleSessionService.RemoveItemAsync(sessionId, itemId, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while removing item {ItemId} from session {SessionId}.", itemId, sessionId);
+            logger.LogWarning(ex, "Invalid operation while removing item {ItemId} from session {SessionId}.", itemId, sessionId);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -528,15 +505,14 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.AddPaymentAsync(sessionId, addPaymentDto, currentUser, cancellationToken);
+            var session = await saleSessionService.AddPaymentAsync(sessionId, addPaymentDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -566,22 +542,21 @@ public class SalesController : BaseApiController
         Guid paymentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.RemovePaymentAsync(sessionId, paymentId, currentUser, cancellationToken);
+            var session = await saleSessionService.RemovePaymentAsync(sessionId, paymentId, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while removing payment {PaymentId} from session {SessionId}.", paymentId, sessionId);
+            logger.LogWarning(ex, "Invalid operation while removing payment {PaymentId} from session {SessionId}.", paymentId, sessionId);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -614,15 +589,14 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.AddNoteAsync(sessionId, addNoteDto, currentUser, cancellationToken);
+            var session = await saleSessionService.AddNoteAsync(sessionId, addNoteDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -657,15 +631,14 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.ApplyGlobalDiscountAsync(sessionId, discountDto, currentUser, cancellationToken);
+            var session = await saleSessionService.ApplyGlobalDiscountAsync(sessionId, discountDto, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -701,14 +674,13 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var session = await _saleSessionService.CalculateTotalsAsync(sessionId, cancellationToken);
+            var session = await saleSessionService.CalculateTotalsAsync(sessionId, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
@@ -738,22 +710,21 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var session = await _saleSessionService.CloseSessionAsync(sessionId, currentUser, cancellationToken);
+            var session = await saleSessionService.CloseSessionAsync(sessionId, currentUser, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
             return Ok(session);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot close sale session {SessionId}: {Message}", sessionId, ex.Message);
+            logger.LogWarning(ex, "Cannot close sale session {SessionId}: {Message}", sessionId, ex.Message);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -780,25 +751,24 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
 
-            var voidedSession = await _saleSessionService.VoidSessionAsync(sessionId, currentUser, cancellationToken);
+            var voidedSession = await saleSessionService.VoidSessionAsync(sessionId, currentUser, cancellationToken);
 
-            if (voidedSession == null)
+            if (voidedSession is null)
                 return CreateNotFoundProblem($"Sale session {sessionId} not found.");
 
-            _logger.LogInformation("Voided sale session {SessionId} by {User}", sessionId, currentUser);
+            logger.LogInformation("Voided sale session {SessionId} by {User}", sessionId, currentUser);
 
             return Ok(voidedSession);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot void sale session {SessionId}: {Message}", sessionId, ex.Message);
+            logger.LogWarning(ex, "Cannot void sale session {SessionId}: {Message}", sessionId, ex.Message);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -828,24 +798,23 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var result = await _saleSessionService.SplitSessionAsync(splitDto, currentUser, cancellationToken);
+            var result = await saleSessionService.SplitSessionAsync(splitDto, currentUser, cancellationToken);
 
-            if (result == null)
+            if (result is null)
                 return CreateNotFoundProblem("Sessione non trovata");
 
-            _logger.LogInformation("Split session {SessionId} into {Count} child sessions", splitDto.SessionId, result.ChildSessions.Count);
+            logger.LogInformation("Split session {SessionId} into {Count} child sessions", splitDto.SessionId, result.ChildSessions.Count);
 
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot split session {SessionId}: {Message}", splitDto.SessionId, ex.Message);
+            logger.LogWarning(ex, "Cannot split session {SessionId}: {Message}", splitDto.SessionId, ex.Message);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -875,24 +844,23 @@ public class SalesController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var result = await _saleSessionService.MergeSessionsAsync(mergeDto, currentUser, cancellationToken);
+            var result = await saleSessionService.MergeSessionsAsync(mergeDto, currentUser, cancellationToken);
 
-            if (result == null)
+            if (result is null)
                 return CreateNotFoundProblem("Una o più sessioni non trovate");
 
-            _logger.LogInformation("Merged {Count} sessions into session {SessionId}", mergeDto.SessionIds.Count, result.Id);
+            logger.LogInformation("Merged {Count} sessions into session {SessionId}", mergeDto.SessionIds.Count, result.Id);
 
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Cannot merge sessions: {Message}", ex.Message);
+            logger.LogWarning(ex, "Cannot merge sessions: {Message}", ex.Message);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -916,12 +884,11 @@ public class SalesController : BaseApiController
         Guid parentSessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var children = await _saleSessionService.GetChildSessionsAsync(parentSessionId, cancellationToken);
+            var children = await saleSessionService.GetChildSessionsAsync(parentSessionId, cancellationToken);
             return Ok(children);
         }
         catch (Exception ex)
@@ -945,12 +912,11 @@ public class SalesController : BaseApiController
         Guid sessionId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var canSplit = await _saleSessionService.CanSplitSessionAsync(sessionId, cancellationToken);
+            var canSplit = await saleSessionService.CanSplitSessionAsync(sessionId, cancellationToken);
             return Ok(new { canSplit });
         }
         catch (Exception ex)
@@ -974,12 +940,11 @@ public class SalesController : BaseApiController
         [FromQuery] List<Guid> sessionIds,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var canMerge = await _saleSessionService.CanMergeSessionsAsync(sessionIds, cancellationToken);
+            var canMerge = await saleSessionService.CanMergeSessionsAsync(sessionIds, cancellationToken);
             return Ok(new { canMerge });
         }
         catch (Exception ex)
