@@ -205,7 +205,7 @@ public class PriceListsController : BaseApiController
         // Validazione: id deve corrispondere a dto.PriceListId
         if (id != dto.PriceListId)
         {
-            return BadRequest("PriceListId mismatch");
+            return CreateValidationProblemDetails("PriceListId in the route does not match the body.");
         }
 
         if (!ModelState.IsValid)
@@ -276,7 +276,7 @@ public class PriceListsController : BaseApiController
     {
         if (productId == Guid.Empty)
         {
-            return BadRequest("Product ID is required");
+            return CreateValidationProblemDetails("Product ID is required.");
         }
 
         try

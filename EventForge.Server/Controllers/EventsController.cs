@@ -18,11 +18,13 @@ public class EventsController : BaseApiController
 {
     private readonly IEventService _eventService;
     private readonly ITenantContext _tenantContext;
+    private readonly ILogger<EventsController> _logger;
 
-    public EventsController(IEventService eventService, ITenantContext tenantContext)
+    public EventsController(IEventService eventService, ITenantContext tenantContext, ILogger<EventsController> logger)
     {
         _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
         _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     #region Event CRUD Operations
@@ -55,6 +57,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving events.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving events.", ex);
         }
     }
@@ -89,6 +92,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving events by date.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving events by date.", ex);
         }
     }
@@ -119,6 +123,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving upcoming events.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving upcoming events.", ex);
         }
     }
@@ -151,6 +156,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the event.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the event.", ex);
         }
     }
@@ -183,6 +189,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while retrieving the event details.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the event details.", ex);
         }
     }
@@ -227,6 +234,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while creating the event.");
             return CreateInternalServerErrorProblem("An error occurred while creating the event.", ex);
         }
     }
@@ -252,7 +260,7 @@ public class EventsController : BaseApiController
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         try
@@ -277,6 +285,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while updating the event.");
             return CreateInternalServerErrorProblem("An error occurred while updating the event.", ex);
         }
     }
@@ -310,6 +319,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred while deleting the event.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the event.", ex);
         }
     }

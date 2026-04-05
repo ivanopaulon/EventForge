@@ -39,35 +39,56 @@ public class VatLookupController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(vatNumber))
         {
-            return BadRequest(new { error = "VAT number is required" });
+            return CreateValidationProblemDetails("VAT number is required.");
         }
 
         _logger.LogInformation("VAT lookup requested for: {VatNumber}", vatNumber);
 
-        var result = await _vatLookupService.LookupAsync(vatNumber, cancellationToken);
-
-        if (result == null)
+        try
         {
-            return StatusCode(
-                StatusCodes.Status503ServiceUnavailable,
-                new { error = "VAT lookup service is temporarily unavailable" });
+            var result = await _vatLookupService.LookupAsync(vatNumber, cancellationToken);
+
+            if (result == null)
+            {
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.6.4",
+                    Title = "Service Unavailable",
+                    Status = StatusCodes.Status503ServiceUnavailable,
+                    Detail = "VAT lookup service is temporarily unavailable.",
+                    Instance = HttpContext.Request.Path
+                };
+
+                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+                {
+                    problemDetails.Extensions["correlationId"] = correlationId;
+                }
+
+                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, problemDetails);
+            }
+
+            var dto = new VatLookupResultDto
+            {
+                IsValid = result.IsValid,
+                CountryCode = result.CountryCode,
+                VatNumber = result.VatNumber,
+                Name = result.Name,
+                Address = result.Address,
+                Street = result.ParsedAddress?.Street,
+                City = result.ParsedAddress?.City,
+                PostalCode = result.ParsedAddress?.PostalCode,
+                Province = result.ParsedAddress?.Province,
+                ErrorMessage = result.ErrorMessage
+            };
+
+            return Ok(dto);
         }
-
-        // Map to DTO
-        var dto = new VatLookupResultDto
+        catch (Exception ex)
         {
-            IsValid = result.IsValid,
-            CountryCode = result.CountryCode,
-            VatNumber = result.VatNumber,
-            Name = result.Name,
-            Address = result.Address,
-            Street = result.ParsedAddress?.Street,
-            City = result.ParsedAddress?.City,
-            PostalCode = result.ParsedAddress?.PostalCode,
-            Province = result.ParsedAddress?.Province,
-            ErrorMessage = result.ErrorMessage
-        };
-
-        return Ok(dto);
+            _logger.LogError(ex, "Error in Lookup for VAT number {VatNumber}", vatNumber);
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
+        }
     }
 }

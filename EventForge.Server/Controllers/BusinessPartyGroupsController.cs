@@ -81,12 +81,7 @@ public class BusinessPartyGroupsController : BaseApiController
 
             if (group == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Business Party Group not found",
-                    Detail = $"No business party group found with ID {id}"
-                });
+                return CreateNotFoundProblem($"No business party group found with ID {id}");
             }
 
             return Ok(group);
@@ -113,12 +108,7 @@ public class BusinessPartyGroupsController : BaseApiController
     {
         if (createDto == null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -132,12 +122,7 @@ public class BusinessPartyGroupsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -164,12 +149,7 @@ public class BusinessPartyGroupsController : BaseApiController
     {
         if (updateDto == null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -183,12 +163,7 @@ public class BusinessPartyGroupsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Business Party Group not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
@@ -218,12 +193,7 @@ public class BusinessPartyGroupsController : BaseApiController
 
             if (!deleted)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Business Party Group not found",
-                    Detail = $"No business party group found with ID {id}"
-                });
+                return CreateNotFoundProblem($"No business party group found with ID {id}");
             }
 
             return NoContent();
@@ -287,12 +257,7 @@ public class BusinessPartyGroupsController : BaseApiController
     {
         if (addDto == null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -306,12 +271,7 @@ public class BusinessPartyGroupsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -335,12 +295,7 @@ public class BusinessPartyGroupsController : BaseApiController
     {
         if (bulkDto == null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -384,12 +339,7 @@ public class BusinessPartyGroupsController : BaseApiController
 
             if (!removed)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Member not found",
-                    Detail = $"Business Party {businessPartyId} is not a member of group {groupId}"
-                });
+                return CreateNotFoundProblem($"Business Party {businessPartyId} is not a member of group {groupId}");
             }
 
             return NoContent();
@@ -419,12 +369,7 @@ public class BusinessPartyGroupsController : BaseApiController
     {
         if (updateDto == null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
@@ -438,12 +383,7 @@ public class BusinessPartyGroupsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Membership not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {

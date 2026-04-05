@@ -32,23 +32,6 @@ public class SalesController : BaseApiController
     }
 
     /// <summary>
-    /// Adds pagination headers to the response.
-    /// </summary>
-    private void AddPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
-    {
-        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-        Response.Headers.Append("X-Page", result.Page.ToString());
-        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-        if (pagination.WasCapped)
-        {
-            Response.Headers.Append("X-Pagination-Capped", "true");
-            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-        }
-    }
-
-    /// <summary>
     /// Creates a new sale session.
     /// </summary>
     /// <param name="createDto">Sale session creation data</param>
@@ -284,7 +267,7 @@ public class SalesController : BaseApiController
         try
         {
             var result = await _saleSessionService.GetPOSSessionsAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -312,7 +295,7 @@ public class SalesController : BaseApiController
         try
         {
             var result = await _saleSessionService.GetSessionsByOperatorAsync(operatorId, pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -342,7 +325,7 @@ public class SalesController : BaseApiController
         try
         {
             var result = await _saleSessionService.GetSessionsByDateAsync(startDate, endDate, pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -370,7 +353,7 @@ public class SalesController : BaseApiController
         try
         {
             var result = await _saleSessionService.GetOpenSessionsAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)

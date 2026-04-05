@@ -60,16 +60,7 @@ public class NoteFlagsController : BaseApiController
         {
             var result = await _noteFlagService.GetNoteFlagsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -131,7 +122,7 @@ public class NoteFlagsController : BaseApiController
             var noteFlag = await _noteFlagService.GetByIdAsync(id, cancellationToken);
 
             if (noteFlag == null)
-                return NotFound(new { message = $"Note flag {id} not found." });
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
             return Ok(noteFlag);
         }
@@ -159,7 +150,7 @@ public class NoteFlagsController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -177,7 +168,7 @@ public class NoteFlagsController : BaseApiController
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation while creating note flag.");
-            return BadRequest(new { message = ex.Message });
+            return CreateValidationProblemDetails("Operazione non valida.");
         }
         catch (Exception ex)
         {
@@ -207,7 +198,7 @@ public class NoteFlagsController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
         var tenantError = await ValidateTenantAccessAsync(_tenantContext);
         if (tenantError != null) return tenantError;
@@ -218,7 +209,7 @@ public class NoteFlagsController : BaseApiController
             var noteFlag = await _noteFlagService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
 
             if (noteFlag == null)
-                return NotFound(new { message = $"Note flag {id} not found." });
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
             await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(noteFlag);
@@ -255,7 +246,7 @@ public class NoteFlagsController : BaseApiController
             var deleted = await _noteFlagService.DeleteAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
-                return NotFound(new { message = $"Note flag {id} not found." });
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
             await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();

@@ -29,23 +29,6 @@ public class TableManagementController : BaseApiController
     }
 
     /// <summary>
-    /// Adds pagination headers to the response.
-    /// </summary>
-    private void AddPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
-    {
-        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-        Response.Headers.Append("X-Page", result.Page.ToString());
-        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-        if (pagination.WasCapped)
-        {
-            Response.Headers.Append("X-Pagination-Capped", "true");
-            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-        }
-    }
-
-    /// <summary>
     /// Gets all tables.
     /// </summary>
     [HttpGet]
@@ -87,7 +70,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetTablesAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -164,7 +147,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetAvailableTablesAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -191,7 +174,7 @@ public class TableManagementController : BaseApiController
         try
         {
             var result = await _tableService.GetTablesByZoneAsync(zone, pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
