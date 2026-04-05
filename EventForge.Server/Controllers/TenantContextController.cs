@@ -9,16 +9,8 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class TenantContextController : BaseApiController
+public class TenantContextController(ITenantContext tenantContext, ITenantService tenantService) : BaseApiController
 {
-    private readonly ITenantContext _tenantContext;
-    private readonly ITenantService _tenantService;
-
-    public TenantContextController(ITenantContext tenantContext, ITenantService tenantService)
-    {
-        _tenantContext = tenantContext;
-        _tenantService = tenantService;
-    }
 
     /// <summary>
     /// Gets the current tenant context information.
@@ -31,15 +23,15 @@ public class TenantContextController : BaseApiController
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<object>> GetCurrentContext()
+    public async Task<ActionResult<object>> GetCurrentContext(CancellationToken cancellationToken = default)
     {
         var result = new
         {
-            CurrentTenantId = _tenantContext.CurrentTenantId,
-            CurrentUserId = _tenantContext.CurrentUserId,
-            IsSuperAdmin = _tenantContext.IsSuperAdmin,
-            IsImpersonating = _tenantContext.IsImpersonating,
-            ManageableTenants = _tenantContext.IsSuperAdmin ? await _tenantContext.GetManageableTenantsAsync() : null
+            CurrentTenantId = tenantContext.CurrentTenantId,
+            CurrentUserId = tenantContext.CurrentUserId,
+            IsSuperAdmin = tenantContext.IsSuperAdmin,
+            IsImpersonating = tenantContext.IsImpersonating,
+            ManageableTenants = tenantContext.IsSuperAdmin ? await tenantContext.GetManageableTenantsAsync(cancellationToken) : null
         };
 
         return Ok(result);
@@ -59,11 +51,11 @@ public class TenantContextController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> SwitchTenant([FromBody] SwitchTenantRequest request)
+    public async Task<IActionResult> SwitchTenant([FromBody] SwitchTenantRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantContext.SetTenantContextAsync(request.TenantId, request.Reason);
+            await tenantContext.SetTenantContextAsync(request.TenantId, request.Reason, cancellationToken);
             return Ok(new { Message = "Tenant context switched successfully", TenantId = request.TenantId });
         }
         catch (UnauthorizedAccessException ex)
@@ -81,24 +73,29 @@ public class TenantContextController : BaseApiController
     /// </summary>
     /// <param name="request">Impersonation request</param>
     [HttpPost("start-impersonation")]
-    public async Task<IActionResult> StartImpersonation([FromBody] StartImpersonationRequest request)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> StartImpersonation([FromBody] StartImpersonationRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantContext.StartImpersonationAsync(request.UserId, request.Reason);
+            await tenantContext.StartImpersonationAsync(request.UserId, request.Reason, cancellationToken);
             return Ok(new { Message = "User impersonation started successfully", UserId = request.UserId });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateForbiddenProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (ArgumentException ex)
         {
-            return NotFound(ex.Message);
+            return CreateNotFoundProblem(ex.Message);
         }
     }
 
@@ -107,16 +104,19 @@ public class TenantContextController : BaseApiController
     /// </summary>
     /// <param name="request">End impersonation request</param>
     [HttpPost("end-impersonation")]
-    public async Task<IActionResult> EndImpersonation([FromBody] EndImpersonationRequest request)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> EndImpersonation([FromBody] EndImpersonationRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantContext.EndImpersonationAsync(request.Reason);
+            await tenantContext.EndImpersonationAsync(request.Reason, cancellationToken);
             return Ok(new { Message = "User impersonation ended successfully" });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -129,20 +129,24 @@ public class TenantContextController : BaseApiController
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
     [HttpGet("audit-trail")]
+    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditTrail(
         [FromQuery] Guid? tenantId = null,
         [FromQuery] AuditOperationType? operationType = null,
         [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _tenantService.GetAuditTrailAsync(tenantId, operationType, pageNumber, pageSize);
+            var result = await tenantService.GetAuditTrailAsync(tenantId, operationType, pageNumber, pageSize);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return CreateForbiddenProblem(ex.Message);
         }
     }
 
@@ -151,9 +155,11 @@ public class TenantContextController : BaseApiController
     /// </summary>
     /// <param name="tenantId">Tenant ID to validate</param>
     [HttpGet("validate-access/{tenantId}")]
-    public async Task<ActionResult<object>> ValidateAccess(Guid tenantId)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<object>> ValidateAccess(Guid tenantId, CancellationToken cancellationToken = default)
     {
-        var canAccess = await _tenantContext.CanAccessTenantAsync(tenantId);
+        var canAccess = await tenantContext.CanAccessTenantAsync(tenantId, cancellationToken);
         return Ok(new { TenantId = tenantId, CanAccess = canAccess });
     }
 }
