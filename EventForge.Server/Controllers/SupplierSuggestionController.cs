@@ -12,21 +12,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/supplier-suggestions")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class SupplierSuggestionController : BaseApiController
+public class SupplierSuggestionController(
+    ISupplierSuggestionService suggestionService,
+    ITenantContext tenantContext,
+    ILogger<SupplierSuggestionController> logger) : BaseApiController
 {
-    private readonly ISupplierSuggestionService _suggestionService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SupplierSuggestionController> _logger;
-
-    public SupplierSuggestionController(
-        ISupplierSuggestionService suggestionService,
-        ITenantContext tenantContext,
-        ILogger<SupplierSuggestionController> logger)
-    {
-        _suggestionService = suggestionService ?? throw new ArgumentNullException(nameof(suggestionService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets ranked supplier suggestions for a product.
@@ -52,22 +42,21 @@ public class SupplierSuggestionController : BaseApiController
             return CreateValidationProblemDetails("Product ID cannot be empty.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var suggestions = await _suggestionService.GetSupplierSuggestionsAsync(productId, cancellationToken);
+            var suggestions = await suggestionService.GetSupplierSuggestionsAsync(productId, cancellationToken);
             return Ok(suggestions);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
-            _logger.LogWarning(ex, "Product {ProductId} not found for supplier suggestions", productId);
+            logger.LogWarning(ex, "Product {ProductId} not found for supplier suggestions", productId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
+            logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
             return CreateInternalServerErrorProblem("An error occurred while getting supplier suggestions.", ex);
         }
     }
@@ -109,12 +98,11 @@ public class SupplierSuggestionController : BaseApiController
             return CreateValidationProblemDetails("Product ID in route must match product ID in request body.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _suggestionService.ApplySuggestedSupplierAsync(
+            var success = await suggestionService.ApplySuggestedSupplierAsync(
                 productId, request.SupplierId, request.Reason, cancellationToken);
 
             if (!success)
@@ -131,7 +119,7 @@ public class SupplierSuggestionController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
+            logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
                 request.SupplierId, productId);
             return CreateInternalServerErrorProblem("An error occurred while applying the suggested supplier.", ex);
         }
@@ -161,22 +149,21 @@ public class SupplierSuggestionController : BaseApiController
             return CreateValidationProblemDetails("Supplier ID cannot be empty.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var reliability = await _suggestionService.GetSupplierReliabilityAsync(supplierId, cancellationToken);
+            var reliability = await suggestionService.GetSupplierReliabilityAsync(supplierId, cancellationToken);
             return Ok(reliability);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
-            _logger.LogWarning(ex, "Supplier {SupplierId} not found for reliability metrics", supplierId);
+            logger.LogWarning(ex, "Supplier {SupplierId} not found for reliability metrics", supplierId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
             return CreateInternalServerErrorProblem("An error occurred while getting supplier reliability.", ex);
         }
     }
