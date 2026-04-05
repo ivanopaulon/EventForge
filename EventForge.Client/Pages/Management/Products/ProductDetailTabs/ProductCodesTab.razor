@@ -116,7 +116,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadCodesAsync();
             await NotifyPersisted();
@@ -146,7 +146,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadCodesAsync();
             await NotifyPersisted();

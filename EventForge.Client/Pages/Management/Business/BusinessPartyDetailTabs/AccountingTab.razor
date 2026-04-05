@@ -100,7 +100,7 @@
 
     private async Task LoadAccountingDataAsync()
     {
-        if (Party?.Id == Guid.Empty) 
+        if (Party == null || Party.Id == Guid.Empty) 
         {
             _accountingData = null;
             _isLoading = false;

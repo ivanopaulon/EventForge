@@ -204,7 +204,7 @@
         {
             Logger.LogInformation("Pre-selected product detected, triggering form validation for product {ProductId}", _selectedProduct.Id);
             await Task.Delay(FormRenderDelayMs);
-            await _form.Validate();
+            await _form.ValidateAsync();
             Logger.LogInformation("Form validation result for pre-selected product: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
                 _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
             StateHasChanged();
@@ -230,7 +230,7 @@
                 if (_form != null)
                 {
                     Logger.LogInformation("Triggering form validation for product {ProductId}", product.Id);
-                    await _form.Validate();
+                    await _form.ValidateAsync();
                     
                     Logger.LogInformation("Form validation result: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
                         _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
@@ -343,7 +343,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is ProductDto createdProduct)
+        if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
         {
             // Return the created product to the caller
             MudDialog.Close(DialogResult.Ok(createdProduct));

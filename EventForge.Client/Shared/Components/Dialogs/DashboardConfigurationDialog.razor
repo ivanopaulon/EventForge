@@ -252,7 +252,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is DashboardMetricConfigDto createdMetric)
+        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto createdMetric)
         {
             createdMetric.Order = _metrics.Count;
             _metrics.Add(createdMetric);
@@ -283,7 +283,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is DashboardMetricConfigDto editedMetric)
+        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto editedMetric)
         {
             _metrics[index] = editedMetric;
             _metrics[index].Order = index; // Preserve order

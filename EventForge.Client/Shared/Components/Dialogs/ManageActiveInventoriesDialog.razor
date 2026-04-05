@@ -488,7 +488,7 @@
 
         var result = await dialog.Result;
         
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             // Rimuovi inventari accorpati dalla lista
             foreach (var inv in _selectedInventories.ToList())

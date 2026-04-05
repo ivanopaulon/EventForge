@@ -164,7 +164,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadBundleItemsAsync();
             await NotifyPersisted();
@@ -192,7 +192,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadBundleItemsAsync();
             await NotifyPersisted();

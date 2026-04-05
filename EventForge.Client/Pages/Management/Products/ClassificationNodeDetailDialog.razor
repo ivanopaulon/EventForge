@@ -524,7 +524,7 @@
     private async Task SaveAsync()
     {
         if (_isSaving) return;
-        if (_form != null) await _form.Validate();
+        if (_form != null) await _form.ValidateAsync();
 
         if (_form != null && _form.IsValid == false)
         {

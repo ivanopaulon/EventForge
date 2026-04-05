@@ -215,7 +215,7 @@
 
     private async Task HandleLogin()
     {
-        await form.Validate();
+        await form.ValidateAsync();
         if (!_isFormValid) return;
 
         if (string.IsNullOrWhiteSpace(_selectedTenantId))

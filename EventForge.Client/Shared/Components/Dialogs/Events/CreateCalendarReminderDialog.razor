@@ -310,7 +310,7 @@
 
     private async Task SaveAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_isFormValid || !_dueDateOnly.HasValue) return;
 
         try

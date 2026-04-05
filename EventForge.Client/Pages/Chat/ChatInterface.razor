@@ -68,7 +68,7 @@
             </div>
         </MudDrawerHeader>
         
-        <MudDrawerContent>
+        <div class="d-flex flex-column" style="height:100%; overflow-y:auto;">
             <!-- Search and filters -->
             <div class="pa-3">
                 <MudTextField T="string" 
@@ -183,7 +183,7 @@
                     @TranslationService.GetTranslation("chat.newChat", "Nuova Chat")
                 </MudButton>
             </div>
-        </MudDrawerContent>
+        </div>
     </MudDrawer>
 
     <!-- Main chat content -->

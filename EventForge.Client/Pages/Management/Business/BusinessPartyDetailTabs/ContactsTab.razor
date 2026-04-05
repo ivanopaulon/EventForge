@@ -92,7 +92,7 @@
 
     private async Task LoadContactsAsync()
     {
-        if (Party?.Id == Guid.Empty) 
+        if (Party == null || Party.Id == Guid.Empty) 
         {
             _contacts = new List<ContactDto>();
             _isLoading = false;
@@ -158,7 +158,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadContactsAsync();
             await OnPartyUpdated.InvokeAsync();
@@ -186,7 +186,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadContactsAsync();
             await OnPartyUpdated.InvokeAsync();

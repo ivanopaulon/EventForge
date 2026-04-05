@@ -218,7 +218,7 @@
     private async Task HandleLogin()
     {
         // Ensure form validation runs
-        await form.Validate();
+        await form.ValidateAsync();
         if (!_isFormValid) return;
 
         // Ensure tenant selected

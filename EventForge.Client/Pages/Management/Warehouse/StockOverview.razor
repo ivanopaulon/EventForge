@@ -1023,7 +1023,7 @@
         
         var result = await dialog.Result;
         
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await OnFilterChangedAsync();
         }
@@ -1055,7 +1055,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is RebuildMovementsResultDto applyResult
+        if (result is { Canceled: false } && result.Data is RebuildMovementsResultDto applyResult
             && (applyResult.MovementsCreated > 0 || applyResult.MovementsUpdated > 0))
         {
             var msg = applyResult.MovementsCreated > 0 && applyResult.MovementsUpdated > 0

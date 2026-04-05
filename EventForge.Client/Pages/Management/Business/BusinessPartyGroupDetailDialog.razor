@@ -461,7 +461,7 @@
             "Gestione Membri Gruppo", parameters, options);
 
         var result = await dialog.Result;
-        if (!result.Canceled && result.Data is int count && count > 0)
+        if (result is { Canceled: false } && result.Data is int count && count > 0)
             await LoadMembersAsync();
     }
 
@@ -486,7 +486,7 @@
             "Modifica Membro Gruppo", parameters, options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
             await LoadMembersAsync();
     }
 

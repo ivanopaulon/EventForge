@@ -236,7 +236,7 @@
                 return;
             }
 
-            await _form.Validate();
+            await _form.ValidateAsync();
             if (!_form.IsValid)
             {
                 Snackbar.Add(TranslationService.GetTranslation("common.validationErrors", "Correggere gli errori di validazione"), Severity.Warning);

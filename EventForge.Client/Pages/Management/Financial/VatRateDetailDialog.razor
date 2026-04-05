@@ -211,7 +211,7 @@
     private async Task SaveVatRateAsync()
     {
         if (_vatRate == null || _form == null) return;
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         _isSaving = true;

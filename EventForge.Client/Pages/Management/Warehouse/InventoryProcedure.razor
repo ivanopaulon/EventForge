@@ -1451,7 +1451,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult entryResult)
+        if (result is { Canceled: false } && result.Data is UnifiedInventoryDialog.InventoryRowResult entryResult)
         {
             // Set the values and add the row
             _selectedLocationId = entryResult.LocationId;
@@ -1496,7 +1496,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult entryResult)
+        if (result is { Canceled: false } && result.Data is InventoryRowDialog.InventoryRowResult entryResult)
         {
             // Set the values and add the row
             _selectedLocationId = entryResult.LocationId;
@@ -1546,7 +1546,7 @@
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
             {
                 // Update the current product to reflect changes
                 _currentProduct = updatedProduct;
@@ -1961,7 +1961,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data != null)
+        if (result is { Canceled: false } && result.Data != null)
         {
             // Handle string actions (create, skip)
             if (result.Data is string action)
@@ -2036,7 +2036,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is ProductDto createdProduct)
+        if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
         {
             // Product created successfully with codes and units
             // Set the current product and show the inventory entry dialog directly
@@ -2130,7 +2130,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult editResult)
+        if (result is { Canceled: false } && result.Data is UnifiedInventoryDialog.InventoryRowResult editResult)
         {
             _isLoading = true;
             try
@@ -2212,7 +2212,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult editResult)
+        if (result is { Canceled: false } && result.Data is InventoryRowDialog.InventoryRowResult editResult)
         {
             _isLoading = true;
             try

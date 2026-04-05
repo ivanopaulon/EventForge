@@ -882,7 +882,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data != null)
+        if (result is { Canceled: false } && result.Data != null)
         {
             await HandleProductNotFoundResult(result.Data);
         }
@@ -2083,7 +2083,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is ProductDto updatedProduct)
+        if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
         {
             Logger.LogInformation("Product updated: {ProductId} - {ProductName}",
                 updatedProduct.Id, updatedProduct.Name);

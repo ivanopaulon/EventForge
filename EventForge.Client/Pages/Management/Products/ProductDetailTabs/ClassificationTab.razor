@@ -389,7 +389,7 @@
             var result = await dialog.Result;
 
             // MudBlazor's DialogResult exposes 'Canceled' (US spelling). Cast Data safely to avoid pattern-scope issues.
-            if (!result.Canceled)
+            if (result is { Canceled: false })
             {
                 var selected = result.Data as ClassificationNodeDto;
                 if (selected != null)

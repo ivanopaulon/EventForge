@@ -133,7 +133,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadUnitsAsync();
             await NotifyPersisted();
@@ -166,7 +166,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadUnitsAsync();
             await NotifyPersisted();

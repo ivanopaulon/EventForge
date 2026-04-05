@@ -247,7 +247,7 @@
     {
         if (_quantityRangeError) return;
 
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_isFormValid) return;
 
         if (Entry is null) return;

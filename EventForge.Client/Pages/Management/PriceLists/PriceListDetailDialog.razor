@@ -1133,7 +1133,7 @@
 
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadEntriesAsync();
             Snackbar.Add(
@@ -1156,7 +1156,7 @@
 
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadEntriesAsync();
             Snackbar.Add(
@@ -1207,7 +1207,7 @@
 
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data is DuplicatePriceListResultDto duplicateResult)
+        if (result is { Canceled: false } && result.Data is DuplicatePriceListResultDto duplicateResult)
         {
             var confirm = await DialogService.ShowMessageBoxAsync(
                 TranslationService.GetTranslation("pricelist.duplicateSuccess", "Listino Duplicato"),
@@ -1300,7 +1300,7 @@
 
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data is AssignBusinessPartyToPriceListDto dto)
+        if (result is { Canceled: false } && result.Data is AssignBusinessPartyToPriceListDto dto)
         {
             await AssignBusinessPartyAsync(dto);
         }

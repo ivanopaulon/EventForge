@@ -282,7 +282,7 @@
         var dialog = await DialogService.ShowAsync<ShipTransferOrderDialog>(
             TranslationService.GetTranslation("transferOrder.shipDialog", "Ship Transfer Order"), parameters, _dialogOptions);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
             Snackbar.Add(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"), Severity.Success);
@@ -298,7 +298,7 @@
         var dialog = await DialogService.ShowAsync<ReceiveTransferOrderDialog>(
             TranslationService.GetTranslation("transferOrder.receiveDialog", "Receive Transfer Order"), parameters, _dialogOptions);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
             Snackbar.Add(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"), Severity.Success);
@@ -316,7 +316,7 @@
     {        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
             TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
             Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"), Severity.Success);

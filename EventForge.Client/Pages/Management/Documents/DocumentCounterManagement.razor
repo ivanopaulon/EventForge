@@ -251,7 +251,7 @@
             _dialogOptions);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
         }
@@ -271,7 +271,7 @@
             _dialogOptions);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
         }

@@ -676,7 +676,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is EFTableColumnConfigurationResult configResult)
+        if (result is { Canceled: false } && result.Data is EFTableColumnConfigurationResult configResult)
         {
             _columnConfigurations = configResult.Columns;
             _groupByProperties = new List<string>(configResult.GroupByProperties);
@@ -937,7 +937,7 @@
         
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is Export.ExportDialogResult exportResult)
+        if (result is { Canceled: false } && result.Data is Export.ExportDialogResult exportResult)
         {
             await PerformExport(exportResult);
         }

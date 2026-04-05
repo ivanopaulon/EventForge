@@ -323,7 +323,7 @@
     {
         if (_brand == null || _form == null) return;
 
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         _isSaving = true;
@@ -426,7 +426,7 @@
         );
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadModelsAsync();
         }
@@ -447,7 +447,7 @@
         );
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadModelsAsync();
         }

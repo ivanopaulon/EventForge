@@ -256,7 +256,7 @@
         
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is FidelityCardViewModel newCard)
+        if (result is { Canceled: false } && result.Data is FidelityCardViewModel newCard)
         {
             try
             {
@@ -293,7 +293,7 @@
         
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is FidelityCardViewModel updatedCard)
+        if (result is { Canceled: false } && result.Data is FidelityCardViewModel updatedCard)
         {
             try
             {
@@ -361,7 +361,7 @@
         
         var result = await dialog.Result;
         
-        if (!result.Canceled && result.Data is ManageFidelityPointsDialog.PointsOperationResult operation)
+        if (result is { Canceled: false } && result.Data is ManageFidelityPointsDialog.PointsOperationResult operation)
         {
             try
             {

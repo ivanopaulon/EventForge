@@ -194,7 +194,7 @@
         var options = EFDialogDefaults.Options;
         var dialog = await DialogService.ShowAsync<DocumentTypeDetailDialog>(string.Empty, parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
             await _entityPage!.RefreshAsync();
     }
 }

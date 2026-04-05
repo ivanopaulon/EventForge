@@ -388,7 +388,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryAutoRepairOptionsDto options)
+        if (result is { Canceled: false } && result.Data is InventoryAutoRepairOptionsDto options)
         {
             await ExecuteAutoRepair(options);
         }

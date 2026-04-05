@@ -110,7 +110,7 @@
     {
         try
         {
-            await _form.Validate();
+            await _form.ValidateAsync();
             if (!_isValid) return;
 
             if (_isEditMode && Model != null)

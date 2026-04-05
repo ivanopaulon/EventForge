@@ -388,7 +388,7 @@ namespace EventForge.Client.Shared.Components.Business
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is BusinessPartyDto createdParty)
+            if (result is { Canceled: false } && result.Data is BusinessPartyDto createdParty)
             {
                 SelectedBusinessParty = createdParty;
                 await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
@@ -421,7 +421,7 @@ namespace EventForge.Client.Shared.Components.Business
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is BusinessPartyDto updatedParty)
+            if (result is { Canceled: false } && result.Data is BusinessPartyDto updatedParty)
             {
                 SelectedBusinessParty = updatedParty;
                 await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);

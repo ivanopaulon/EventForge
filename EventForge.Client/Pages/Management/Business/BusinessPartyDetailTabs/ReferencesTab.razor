@@ -85,7 +85,7 @@
 
     private async Task LoadReferencesAsync()
     {
-        if (Party?.Id == Guid.Empty) 
+        if (Party == null || Party.Id == Guid.Empty) 
         {
             _references = new List<ReferenceDto>();
             _isLoading = false;
@@ -131,7 +131,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadReferencesAsync();
             await OnPartyUpdated.InvokeAsync();
@@ -159,7 +159,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadReferencesAsync();
             await OnPartyUpdated.InvokeAsync();

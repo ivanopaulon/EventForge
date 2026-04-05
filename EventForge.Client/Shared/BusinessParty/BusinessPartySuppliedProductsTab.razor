@@ -273,7 +273,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && _table != null)
+        if (result is { Canceled: false } && _table != null)
         {
             _selectedProducts.Clear();
             _selectAll = false;
@@ -307,7 +307,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && _table != null)
+        if (result is { Canceled: false } && _table != null)
         {
             await _table.ReloadServerData();
             Snackbar.Add(
@@ -337,7 +337,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && _table != null)
+        if (result is { Canceled: false } && _table != null)
         {
             await _table.ReloadServerData();
             Snackbar.Add(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"), Severity.Success);
@@ -365,7 +365,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && _table != null)
+        if (result is { Canceled: false } && _table != null)
         {
             await _table.ReloadServerData();
         }
@@ -392,7 +392,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && _table != null)
+        if (result is { Canceled: false } && _table != null)
         {
             await _table.ReloadServerData();
             Snackbar.Add(
