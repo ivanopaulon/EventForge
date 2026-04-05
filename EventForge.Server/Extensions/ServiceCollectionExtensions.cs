@@ -465,7 +465,7 @@ public static class ServiceCollectionExtensions
             options.IdleTimeout = TimeSpan.FromHours(4); // Aligned with JWT 240 minutes
             options.Cookie.HttpOnly = true;
             options.Cookie.IsEssential = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             options.Cookie.Name = "EventForge.Session";
         });
 

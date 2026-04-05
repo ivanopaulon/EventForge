@@ -25,7 +25,7 @@ public class SetupWizardMiddleware
             path.StartsWith("/api/setup", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/server", StringComparison.OrdinalIgnoreCase) || // Server info endpoints
             path.StartsWith("/api/v1/auth", StringComparison.OrdinalIgnoreCase) || // Auth endpoints
-            path.StartsWith("/server/login", StringComparison.OrdinalIgnoreCase) || // Login page
+            path.StartsWith("/ServerAuth", StringComparison.OrdinalIgnoreCase) || // Login and auth pages
             path.Equals("/", StringComparison.OrdinalIgnoreCase) || // Landing page
             path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) || // Swagger UI during first run
             path.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase) ||
