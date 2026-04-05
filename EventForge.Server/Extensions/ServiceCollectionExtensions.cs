@@ -21,7 +21,6 @@ using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.PriceLists.Strategies;
-using EventForge.Server.Services.Printing;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.RetailCart;
@@ -427,14 +426,6 @@ public static class ServiceCollectionExtensions
 
         // Register licensing services
         _ = services.AddScoped<ILicenseService, LicenseService>();
-
-        // Register printing services
-        _ = services.AddScoped<EventForge.Server.Services.Interfaces.IQzPrintingService, QzPrintingService>();
-        _ = services.AddScoped<QzDigitalSignatureService>();
-
-        // Register new QZ Tray services with environment variable support
-        _ = services.AddScoped<EventForge.Server.Services.QzSigner>();
-        _ = services.AddScoped<EventForge.Server.Services.QzWebSocketClient>();
 
         // Register barcode services
         _ = services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();

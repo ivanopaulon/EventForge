@@ -107,6 +107,10 @@ builder.Services.AddMemoryCache(options =>
 // Add centralized HTTP client service
 builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 
+// Add server configuration services
+builder.Services.AddScoped<IServerConfigService, ServerConfigService>();
+builder.Services.AddSingleton<IServerConfigOverlayService, ServerConfigOverlayService>();
+
 // Add custom services
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -131,7 +135,6 @@ builder.Services.AddScoped<IClientLogService, ClientLogService>();
 builder.Services.AddScoped<IAppNotificationService, AppNotificationService>();
 builder.Services.AddScoped<IHelpService, HelpService>();
 builder.Services.AddScoped<ILoadingDialogService, LoadingDialogService>();
-builder.Services.AddScoped<IPrintingService, PrintingService>();
 builder.Services.AddScoped<ITablePreferencesService, TablePreferencesService>();
 
 // Add warehouse management services
