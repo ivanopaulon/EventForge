@@ -5,17 +5,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Service implementation for consuming the analytics API endpoints.
 /// </summary>
-public class AnalyticsService : IAnalyticsService
+public class AnalyticsService(
+    IHttpClientService httpClientService,
+    ILogger<AnalyticsService> logger) : IAnalyticsService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<AnalyticsService> _logger;
     private const string BaseUrl = "api/v1/analytics";
-
-    public AnalyticsService(IHttpClientService httpClientService, ILogger<AnalyticsService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public async Task<PromotionAnalyticsDashboardDto?> GetPromotionAnalyticsAsync(AnalyticsFilterDto? filter = null, CancellationToken ct = default)
@@ -23,11 +17,11 @@ public class AnalyticsService : IAnalyticsService
         try
         {
             var url = BuildUrl($"{BaseUrl}/promotions", filter);
-            return await _httpClientService.GetAsync<PromotionAnalyticsDashboardDto>(url, ct);
+            return await httpClientService.GetAsync<PromotionAnalyticsDashboardDto>(url, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotion analytics");
+            logger.LogError(ex, "Error retrieving promotion analytics");
             return null;
         }
     }
@@ -38,11 +32,11 @@ public class AnalyticsService : IAnalyticsService
         try
         {
             var url = BuildUrl($"{BaseUrl}/pricing", filter);
-            return await _httpClientService.GetAsync<PricingAnalyticsDashboardDto>(url, ct);
+            return await httpClientService.GetAsync<PricingAnalyticsDashboardDto>(url, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving pricing analytics");
+            logger.LogError(ex, "Error retrieving pricing analytics");
             return null;
         }
     }
@@ -53,11 +47,11 @@ public class AnalyticsService : IAnalyticsService
         try
         {
             var url = BuildUrl($"{BaseUrl}/sales", filter);
-            return await _httpClientService.GetAsync<SalesAnalyticsDashboardDto>(url, ct);
+            return await httpClientService.GetAsync<SalesAnalyticsDashboardDto>(url, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sales analytics");
+            logger.LogError(ex, "Error retrieving sales analytics");
             return null;
         }
     }
@@ -67,7 +61,7 @@ public class AnalyticsService : IAnalyticsService
         if (filter is null)
             return baseEndpoint;
 
-        var queryParams = new List<string>();
+        List<string> queryParams = [];
 
         if (filter.DateFrom.HasValue)
             queryParams.Add($"dateFrom={filter.DateFrom.Value:yyyy-MM-dd}");

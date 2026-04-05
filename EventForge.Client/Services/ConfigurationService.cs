@@ -18,28 +18,21 @@ public interface IConfigurationService
     Task ReloadConfigurationAsync();
 }
 
-public class ConfigurationService : IConfigurationService
+public class ConfigurationService(
+    IHttpClientService httpClientService,
+    ILogger<ConfigurationService> logger) : IConfigurationService
 {
-    private const string BaseUrl = "api/v1/configuration";
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<ConfigurationService> _logger;
-
-    public ConfigurationService(IHttpClientService httpClientService, ILogger<ConfigurationService> logger)
-    {
-        _httpClientService = httpClientService;
-        _logger = logger;
-    }
 
     public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync()
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/v1/super-admin/configuration");
+            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/v1/super-admin/configuration");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configurations");
+            logger.LogError(ex, "Error retrieving configurations");
             throw;
         }
     }
@@ -48,12 +41,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/v1/super-admin/configuration/category/{category}");
+            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/v1/super-admin/configuration/category/{category}");
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configurations for category {Category}", category);
+            logger.LogError(ex, "Error retrieving configurations for category {Category}", category);
             throw;
         }
     }
@@ -62,12 +55,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<string>>("api/v1/super-admin/configuration/categories");
+            var response = await httpClientService.GetAsync<IEnumerable<string>>("api/v1/super-admin/configuration/categories");
             return response ?? Enumerable.Empty<string>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configuration categories");
+            logger.LogError(ex, "Error retrieving configuration categories");
             throw;
         }
     }
@@ -76,7 +69,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            return await _httpClientService.GetAsync<ConfigurationDto>($"api/v1/super-admin/configuration/{key}");
+            return await httpClientService.GetAsync<ConfigurationDto>($"api/v1/super-admin/configuration/{key}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -84,7 +77,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving configuration {Key}", key);
+            logger.LogError(ex, "Error retrieving configuration {Key}", key);
             throw;
         }
     }
@@ -93,12 +86,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/v1/super-admin/configuration", createDto);
+            var result = await httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/v1/super-admin/configuration", createDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating configuration");
+            logger.LogError(ex, "Error creating configuration");
             throw;
         }
     }
@@ -107,12 +100,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/v1/super-admin/configuration/{key}", updateDto);
+            var result = await httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/v1/super-admin/configuration/{key}", updateDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating configuration {Key}", key);
+            logger.LogError(ex, "Error updating configuration {Key}", key);
             throw;
         }
     }
@@ -121,11 +114,11 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/super-admin/configuration/{key}");
+            await httpClientService.DeleteAsync($"api/v1/super-admin/configuration/{key}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting configuration {Key}", key);
+            logger.LogError(ex, "Error deleting configuration {Key}", key);
             throw;
         }
     }
@@ -134,12 +127,12 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/v1/super-admin/configuration/test-smtp", testDto);
+            var result = await httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/v1/super-admin/configuration/test-smtp", testDto);
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing SMTP");
+            logger.LogError(ex, "Error testing SMTP");
             throw;
         }
     }
@@ -148,11 +141,11 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            await _httpClientService.PostAsync<object?>("api/v1/super-admin/configuration/reload", null);
+            await httpClientService.PostAsync<object?>("api/v1/super-admin/configuration/reload", null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reloading configuration");
+            logger.LogError(ex, "Error reloading configuration");
             throw;
         }
     }

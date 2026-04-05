@@ -15,44 +15,37 @@ public interface IBackupService
     Task DeleteBackupAsync(Guid backupId);
 }
 
-public class BackupService : IBackupService
+public class BackupService(
+    IHttpClientService httpClientService,
+    ILogger<BackupService> logger,
+    ILoadingDialogService loadingDialogService) : IBackupService
 {
     private const string BaseUrl = "api/v1/backup";
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<BackupService> _logger;
-    private readonly ILoadingDialogService _loadingDialogService;
-
-    public BackupService(IHttpClientService httpClientService, ILogger<BackupService> logger, ILoadingDialogService loadingDialogService)
-    {
-        _httpClientService = httpClientService;
-        _logger = logger;
-        _loadingDialogService = loadingDialogService;
-    }
 
     public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request)
     {
         try
         {
-            await _loadingDialogService.ShowAsync("Avvio Backup", "Inizializzazione backup...", true);
-            await _loadingDialogService.UpdateProgressAsync(20);
+            await loadingDialogService.ShowAsync("Avvio Backup", "Inizializzazione backup...", true);
+            await loadingDialogService.UpdateProgressAsync(20);
 
-            await _loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
-            await _loadingDialogService.UpdateProgressAsync(50);
+            await loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
+            await loadingDialogService.UpdateProgressAsync(50);
 
-            var result = await _httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request);
+            var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request);
 
-            await _loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
-            await _loadingDialogService.UpdateProgressAsync(100);
+            await loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
+            await loadingDialogService.UpdateProgressAsync(100);
 
             await Task.Delay(1000);
-            await _loadingDialogService.HideAsync();
+            await loadingDialogService.HideAsync();
 
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
         {
-            await _loadingDialogService.HideAsync();
-            _logger.LogError(ex, "Error starting backup");
+            await loadingDialogService.HideAsync();
+            logger.LogError(ex, "Error starting backup");
             throw;
         }
     }
@@ -61,7 +54,7 @@ public class BackupService : IBackupService
     {
         try
         {
-            return await _httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}");
+            return await httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}");
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -69,7 +62,7 @@ public class BackupService : IBackupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving backup status {BackupId}", backupId);
+            logger.LogError(ex, "Error retrieving backup status {BackupId}", backupId);
             throw;
         }
     }
@@ -78,12 +71,12 @@ public class BackupService : IBackupService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}");
+            var response = await httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}");
             return response ?? Enumerable.Empty<BackupStatusDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving backups");
+            logger.LogError(ex, "Error retrieving backups");
             throw;
         }
     }
@@ -92,11 +85,11 @@ public class BackupService : IBackupService
     {
         try
         {
-            await _httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null);
+            await httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling backup {BackupId}", backupId);
+            logger.LogError(ex, "Error cancelling backup {BackupId}", backupId);
             throw;
         }
     }
@@ -113,11 +106,11 @@ public class BackupService : IBackupService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/super-admin/backup/{backupId}");
+            await httpClientService.DeleteAsync($"api/v1/super-admin/backup/{backupId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting backup {BackupId}", backupId);
+            logger.LogError(ex, "Error deleting backup {BackupId}", backupId);
             throw;
         }
     }
