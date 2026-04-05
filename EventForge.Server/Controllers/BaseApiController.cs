@@ -113,9 +113,29 @@ public abstract class BaseApiController : ControllerBase
             StatusCodes.Status422UnprocessableEntity,
             message));
 
-    /// <summary>500 – unexpected server-side error. Includes exception details in development.</summary>
+    /// <summary>
+    /// 500 – unexpected server-side error.
+    /// Always logs the full exception details (message, stack trace, inner exceptions) through the
+    /// controller's own <see cref="ILogger"/> so that every unhandled controller exception is
+    /// traceable in the application log. Exception details are also included in the response body
+    /// when running in the Development environment.
+    /// </summary>
     protected ActionResult CreateInternalServerErrorProblem(string message, Exception ex)
     {
+        // Resolve a logger scoped to the concrete controller type so that log categories are meaningful.
+        var logger = HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger(GetType().FullName!);
+
+        logger.LogError(
+            ex,
+            "Unhandled exception in {Controller} [{Method} {Path}] — {UserMessage}. CorrelationId: {CorrelationId}",
+            GetType().Name,
+            HttpContext.Request.Method,
+            HttpContext.Request.Path,
+            message,
+            HttpContext.Items.TryGetValue("CorrelationId", out var cid) ? cid : "n/a");
+
         var problem = BuildProblemDetails(
             "https://tools.ietf.org/html/rfc7231#section-6.6.1",
             "Internal Server Error",
@@ -126,6 +146,7 @@ public abstract class BaseApiController : ControllerBase
         {
             problem.Extensions["exception"]  = ex.Message;
             problem.Extensions["stackTrace"] = ex.StackTrace;
+            problem.Extensions["innerException"] = ex.InnerException?.Message;
         }
 
         return StatusCode(StatusCodes.Status500InternalServerError, problem);
