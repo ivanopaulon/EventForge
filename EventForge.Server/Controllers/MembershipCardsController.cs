@@ -11,21 +11,11 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class MembershipCardsController : BaseApiController
+public class MembershipCardsController(
+    ITeamService teamService,
+    ITenantContext tenantContext,
+    ILogger<MembershipCardsController> logger) : BaseApiController
 {
-    private readonly ITeamService _teamService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<MembershipCardsController> _logger;
-
-    public MembershipCardsController(
-        ITeamService teamService,
-        ITenantContext tenantContext,
-        ILogger<MembershipCardsController> logger)
-    {
-        _teamService = teamService ?? throw new ArgumentNullException(nameof(teamService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets all membership cards for a specific team member.
@@ -46,12 +36,9 @@ public class MembershipCardsController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var cards = await _teamService.GetMembershipCardsByMemberAsync(teamMemberId, cancellationToken);
+            var cards = await teamService.GetMembershipCardsByMemberAsync(teamMemberId, cancellationToken);
             return Ok(cards);
         }
         catch (Exception ex)
@@ -81,14 +68,11 @@ public class MembershipCardsController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var card = await _teamService.GetMembershipCardByIdAsync(id, cancellationToken);
+            var card = await teamService.GetMembershipCardByIdAsync(id, cancellationToken);
 
-            if (card == null)
+            if (card is null)
             {
                 return CreateNotFoundProblem($"Membership card {id} not found");
             }
@@ -122,10 +106,7 @@ public class MembershipCardsController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             // Validate model
             if (!ModelState.IsValid)
@@ -133,8 +114,8 @@ public class MembershipCardsController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var card = await _teamService.CreateMembershipCardAsync(createCardDto, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var card = await teamService.CreateMembershipCardAsync(createCardDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetMembershipCard),
@@ -172,10 +153,7 @@ public class MembershipCardsController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             // Validate model
             if (!ModelState.IsValid)
@@ -183,10 +161,10 @@ public class MembershipCardsController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var card = await _teamService.UpdateMembershipCardAsync(id, updateCardDto, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var card = await teamService.UpdateMembershipCardAsync(id, updateCardDto, currentUser, cancellationToken);
 
-            if (card == null)
+            if (card is null)
             {
                 return CreateNotFoundProblem($"Membership card {id} not found");
             }
@@ -220,13 +198,10 @@ public class MembershipCardsController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var deleted = await _teamService.DeleteMembershipCardAsync(id, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var deleted = await teamService.DeleteMembershipCardAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {

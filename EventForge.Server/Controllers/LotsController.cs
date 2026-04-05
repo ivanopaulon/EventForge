@@ -13,21 +13,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("InventoryManagement")]
-public class LotsController : BaseApiController
+public class LotsController(
+    ILotService service,
+    ITenantContext tenantContext,
+    ILogger<LotsController> logger) : BaseApiController
 {
-    private readonly ILotService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<LotsController> _logger;
-
-    public LotsController(
-        ILotService service,
-        ITenantContext tenantContext,
-        ILogger<LotsController> logger)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Retrieves all lots with pagination
@@ -44,12 +34,11 @@ public class LotsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetLotsAsync(pagination, cancellationToken: cancellationToken);
+            var result = await service.GetLotsAsync(pagination, cancellationToken: cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -87,12 +76,11 @@ public class LotsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetLotsByProductAsync(productId, pagination, cancellationToken);
+            var result = await service.GetLotsByProductAsync(productId, pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -130,12 +118,11 @@ public class LotsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetLotsByWarehouseAsync(warehouseId, pagination, cancellationToken);
+            var result = await service.GetLotsByWarehouseAsync(warehouseId, pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -173,12 +160,11 @@ public class LotsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetExpiredLotsAsync(threshold, pagination, cancellationToken);
+            var result = await service.GetExpiredLotsAsync(threshold, pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());

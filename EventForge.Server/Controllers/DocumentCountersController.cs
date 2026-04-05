@@ -11,27 +11,11 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class DocumentCountersController : BaseApiController
+public class DocumentCountersController(
+    IDocumentCounterService documentCounterService,
+    ITenantContext tenantContext,
+    ILogger<DocumentCountersController> logger) : BaseApiController
 {
-    private readonly IDocumentCounterService _documentCounterService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentCountersController> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the DocumentCountersController
-    /// </summary>
-    /// <param name="documentCounterService">Document counter service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    /// <param name="logger">Logger instance</param>
-    public DocumentCountersController(
-        IDocumentCounterService documentCounterService,
-        ITenantContext tenantContext,
-        ILogger<DocumentCountersController> logger)
-    {
-        _documentCounterService = documentCounterService ?? throw new ArgumentNullException(nameof(documentCounterService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets all document counters
@@ -47,14 +31,11 @@ public class DocumentCountersController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentCounterDto>>> GetDocumentCounters(CancellationToken cancellationToken = default)
     {
-        // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var counters = await _documentCounterService.GetAllAsync(cancellationToken);
+            var counters = await documentCounterService.GetAllAsync(cancellationToken);
             return Ok(counters);
         }
         catch (Exception ex)
@@ -78,14 +59,11 @@ public class DocumentCountersController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentCounterDto>>> GetDocumentCountersByType(Guid documentTypeId, CancellationToken cancellationToken = default)
     {
-        // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var counters = await _documentCounterService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
+            var counters = await documentCounterService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
             return Ok(counters);
         }
         catch (Exception ex)
@@ -111,9 +89,9 @@ public class DocumentCountersController : BaseApiController
     {
         try
         {
-            var counter = await _documentCounterService.GetByIdAsync(id, cancellationToken);
+            var counter = await documentCounterService.GetByIdAsync(id, cancellationToken);
 
-            if (counter == null)
+            if (counter is null)
             {
                 return CreateNotFoundProblem($"Document counter with ID {id} not found.");
             }
@@ -145,20 +123,17 @@ public class DocumentCountersController : BaseApiController
         [FromBody] CreateDocumentCounterDto createDto,
         CancellationToken cancellationToken = default)
     {
-        // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var counter = await _documentCounterService.CreateAsync(createDto, currentUser, cancellationToken);
+            var counter = await documentCounterService.CreateAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetDocumentCounter), new { id = counter.Id }, counter);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while creating document counter.");
+            logger.LogWarning(ex, "Invalid operation while creating document counter.");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -191,9 +166,9 @@ public class DocumentCountersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var counter = await _documentCounterService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
+            var counter = await documentCounterService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (counter == null)
+            if (counter is null)
             {
                 return CreateNotFoundProblem($"Document counter with ID {id} not found.");
             }
@@ -224,7 +199,7 @@ public class DocumentCountersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentCounterService.DeleteAsync(id, currentUser, cancellationToken);
+            var deleted = await documentCounterService.DeleteAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {

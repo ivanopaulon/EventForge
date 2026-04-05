@@ -13,16 +13,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [Produces("application/json")]
-public class LicenseController : BaseApiController
+public class LicenseController(
+    EventForgeDbContext context,
+    ILogger<LicenseController> logger) : BaseApiController
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<LicenseController> _logger;
-
-    public LicenseController(EventForgeDbContext context, ILogger<LicenseController> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Get all available licenses.
@@ -37,7 +31,7 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var licenses = await _context.Licenses
+            var licenses = await context.Licenses
                 .Include(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
@@ -107,14 +101,14 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var license = await _context.Licenses
+            var license = await context.Licenses
                 .Include(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
                 .Include(l => l.TenantLicenses)
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
 
-            if (license == null)
+            if (license is null)
             {
                 return CreateNotFoundProblem($"License with ID {id} not found");
             }
@@ -180,10 +174,10 @@ public class LicenseController : BaseApiController
             }
 
             // Check if license name already exists
-            var existingLicense = await _context.Licenses
+            var existingLicense = await context.Licenses
                 .FirstOrDefaultAsync(l => l.Name == createLicenseDto.Name && !l.IsDeleted);
 
-            if (existingLicense != null)
+            if (existingLicense is not null)
             {
                 return CreateConflictProblem($"License with name '{createLicenseDto.Name}' already exists");
             }
@@ -199,8 +193,8 @@ public class LicenseController : BaseApiController
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _ = _context.Licenses.Add(license);
-            _ = await _context.SaveChangesAsync();
+            _ = context.Licenses.Add(license);
+            _ = await context.SaveChangesAsync();
 
             var licenseDto = new LicenseDto
             {
@@ -245,19 +239,19 @@ public class LicenseController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var license = await _context.Licenses
+            var license = await context.Licenses
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
 
-            if (license == null)
+            if (license is null)
             {
                 return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             // Check if the new name conflicts with another license
-            var existingLicense = await _context.Licenses
+            var existingLicense = await context.Licenses
                 .FirstOrDefaultAsync(l => l.Name == updateLicenseDto.Name && l.Id != id && !l.IsDeleted);
 
-            if (existingLicense != null)
+            if (existingLicense is not null)
             {
                 return CreateConflictProblem($"License with name '{updateLicenseDto.Name}' already exists");
             }
@@ -269,7 +263,7 @@ public class LicenseController : BaseApiController
             license.MaxApiCallsPerMonth = updateLicenseDto.MaxApiCallsPerMonth;
             license.TierLevel = updateLicenseDto.TierLevel;
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             var licenseDto = new LicenseDto
             {
@@ -285,7 +279,7 @@ public class LicenseController : BaseApiController
                 CreatedBy = license.CreatedBy ?? "system",
                 ModifiedAt = license.ModifiedAt,
                 ModifiedBy = license.ModifiedBy,
-                TenantCount = await _context.TenantLicenses.CountAsync(tl => tl.LicenseId == id && tl.IsAssignmentActive),
+                TenantCount = await context.TenantLicenses.CountAsync(tl => tl.LicenseId == id && tl.IsAssignmentActive),
                 Features = new List<LicenseFeatureDto>()
             };
 
@@ -308,11 +302,11 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var license = await _context.Licenses
+            var license = await context.Licenses
                 .Include(l => l.TenantLicenses)
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
 
-            if (license == null)
+            if (license is null)
             {
                 return CreateNotFoundProblem($"License with ID {id} not found");
             }
@@ -328,7 +322,7 @@ public class LicenseController : BaseApiController
             license.IsDeleted = true;
             license.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -347,17 +341,17 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Retrieving all tenant licenses with user counts");
+            logger.LogInformation("Retrieving all tenant licenses with user counts");
 
             // Pre-aggregate user counts for ALL tenants in ONE query to avoid N+1 problem
-            var userCountsByTenant = await _context.Users
+            var userCountsByTenant = await context.Users
                 .Where(u => !u.IsDeleted)
                 .GroupBy(u => u.TenantId)
                 .Select(g => new { TenantId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.TenantId, x => x.Count);
 
             // Load all tenant licenses with full relationships
-            var tenantLicenses = await _context.TenantLicenses
+            var tenantLicenses = await context.TenantLicenses
                 .Include(tl => tl.Tenant)
                 .Include(tl => tl.License)
                     .ThenInclude(l => l.LicenseFeatures)
@@ -411,7 +405,7 @@ public class LicenseController : BaseApiController
                 }).ToList()
             }).ToList();
 
-            _logger.LogInformation("Successfully retrieved {Count} tenant licenses", tenantLicenseDtos.Count);
+            logger.LogInformation("Successfully retrieved {Count} tenant licenses", tenantLicenseDtos.Count);
             return Ok(tenantLicenseDtos);
         }
         catch (Exception ex)
@@ -437,32 +431,32 @@ public class LicenseController : BaseApiController
             }
 
             // Verify tenant exists
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == assignLicenseDto.TenantId && !t.IsDeleted);
 
-            if (tenant == null)
+            if (tenant is null)
             {
                 return CreateNotFoundProblem($"Tenant with ID {assignLicenseDto.TenantId} not found");
             }
 
             // Verify license exists
-            var license = await _context.Licenses
+            var license = await context.Licenses
                 .Include(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
                 .FirstOrDefaultAsync(l => l.Id == assignLicenseDto.LicenseId && !l.IsDeleted);
 
-            if (license == null)
+            if (license is null)
             {
                 return CreateNotFoundProblem($"License with ID {assignLicenseDto.LicenseId} not found");
             }
 
             // Check if tenant already has an active license
-            var existingActiveLicense = await _context.TenantLicenses
+            var existingActiveLicense = await context.TenantLicenses
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == assignLicenseDto.TenantId &&
                                           tl.IsAssignmentActive && !tl.IsDeleted);
 
-            if (existingActiveLicense != null)
+            if (existingActiveLicense is not null)
             {
                 // Deactivate the existing license
                 existingActiveLicense.IsAssignmentActive = false;
@@ -480,8 +474,8 @@ public class LicenseController : BaseApiController
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _ = _context.TenantLicenses.Add(tenantLicense);
-            _ = await _context.SaveChangesAsync();
+            _ = context.TenantLicenses.Add(tenantLicense);
+            _ = await context.SaveChangesAsync();
 
             var tenantLicenseDto = new TenantLicenseDto
             {
@@ -504,7 +498,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = tenantLicense.ModifiedBy,
                 TierLevel = license.TierLevel,
                 MaxUsers = license.MaxUsers,
-                CurrentUserCount = await _context.Users.CountAsync(u => u.TenantId == assignLicenseDto.TenantId && !u.IsDeleted),
+                CurrentUserCount = await context.Users.CountAsync(u => u.TenantId == assignLicenseDto.TenantId && !u.IsDeleted),
                 AvailableFeatures = license.LicenseFeatures.Select(lf => new LicenseFeatureDto
                 {
                     Id = lf.Id,
@@ -544,7 +538,7 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var tenantLicense = await _context.TenantLicenses
+            var tenantLicense = await context.TenantLicenses
                 .Include(tl => tl.Tenant)
                 .Include(tl => tl.License)
                     .ThenInclude(l => l.LicenseFeatures)
@@ -553,7 +547,7 @@ public class LicenseController : BaseApiController
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId &&
                                           tl.IsAssignmentActive && !tl.IsDeleted);
 
-            if (tenantLicense == null)
+            if (tenantLicense is null)
             {
                 return CreateNotFoundProblem($"No active license found for tenant {tenantId}");
             }
@@ -579,7 +573,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = tenantLicense.ModifiedBy,
                 TierLevel = tenantLicense.License.TierLevel,
                 MaxUsers = tenantLicense.License.MaxUsers,
-                CurrentUserCount = await _context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted),
+                CurrentUserCount = await context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted),
                 AvailableFeatures = tenantLicense.License.LicenseFeatures.Select(lf => new LicenseFeatureDto
                 {
                     Id = lf.Id,
@@ -631,19 +625,19 @@ public class LicenseController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var license = await _context.Licenses
+            var license = await context.Licenses
                 .Include(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                 .Include(l => l.TenantLicenses)
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted);
 
-            if (license == null)
+            if (license is null)
             {
                 return CreateNotFoundProblem($"License with ID {id} not found");
             }
 
             // Get all existing features with the requested names
-            var existingFeatures = await _context.LicenseFeatures
+            var existingFeatures = await context.LicenseFeatures
                 .Where(lf => updateDto.FeatureNames.Contains(lf.Name) && lf.IsActive)
                 .GroupBy(lf => lf.Name)
                 .Select(g => g.OrderByDescending(f => f.CreatedAt).First())
@@ -651,15 +645,15 @@ public class LicenseController : BaseApiController
 
             // Remove all current license features
             var currentFeatures = license.LicenseFeatures.ToList();
-            _context.LicenseFeatures.RemoveRange(currentFeatures);
+            context.LicenseFeatures.RemoveRange(currentFeatures);
 
             // Create new license features based on the selected names
             foreach (var featureName in updateDto.FeatureNames)
             {
                 var templateFeature = existingFeatures.FirstOrDefault(f => f.Name == featureName);
-                if (templateFeature == null)
+                if (templateFeature is null)
                 {
-                    _logger.LogWarning("Feature {FeatureName} not found in system, skipping", featureName);
+                    logger.LogWarning("Feature {FeatureName} not found in system, skipping", featureName);
                     continue;
                 }
 
@@ -676,13 +670,13 @@ public class LicenseController : BaseApiController
                     TenantId = Guid.Empty // System-level entity
                 };
 
-                _context.LicenseFeatures.Add(newFeature);
+                context.LicenseFeatures.Add(newFeature);
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             // Reload the license with updated features
-            var updatedLicense = await _context.Licenses
+            var updatedLicense = await context.Licenses
                 .Include(l => l.LicenseFeatures)
                     .ThenInclude(lf => lf.LicenseFeaturePermissions)
                         .ThenInclude(lfp => lfp.Permission)
@@ -747,7 +741,7 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var templates = await _context.FeatureTemplates
+            var templates = await context.FeatureTemplates
                 .Where(ft => ft.IsAvailable)
                 .OrderBy(ft => ft.Category)
                 .ThenBy(ft => ft.SortOrder)
@@ -782,7 +776,7 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var templates = await _context.FeatureTemplates
+            var templates = await context.FeatureTemplates
                 .Where(ft => !ft.IsDeleted)
                 .OrderBy(ft => ft.Category)
                 .ThenBy(ft => ft.SortOrder)
@@ -829,10 +823,10 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var template = await _context.FeatureTemplates
+            var template = await context.FeatureTemplates
                 .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
-            if (template == null)
+            if (template is null)
             {
                 return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
@@ -879,7 +873,7 @@ public class LicenseController : BaseApiController
         try
         {
             // Check if feature with same name already exists (excluding soft-deleted)
-            var exists = await _context.FeatureTemplates
+            var exists = await context.FeatureTemplates
                 .AnyAsync(ft => ft.Name == dto.Name && !ft.IsDeleted);
 
             if (exists)
@@ -902,8 +896,8 @@ public class LicenseController : BaseApiController
                 TenantId = Guid.Empty
             };
 
-            _context.FeatureTemplates.Add(template);
-            await _context.SaveChangesAsync();
+            context.FeatureTemplates.Add(template);
+            await context.SaveChangesAsync();
 
             var responseDto = new FeatureTemplateDto
             {
@@ -921,7 +915,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Created feature template {FeatureName} ({FeatureId})",
+            logger.LogInformation("Created feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return CreatedAtAction(nameof(GetFeatureTemplate), new { id = template.Id }, responseDto);
@@ -950,10 +944,10 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var template = await _context.FeatureTemplates
+            var template = await context.FeatureTemplates
                 .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
-            if (template == null)
+            if (template is null)
             {
                 return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
@@ -968,7 +962,7 @@ public class LicenseController : BaseApiController
             template.ModifiedAt = DateTime.UtcNow;
             template.ModifiedBy = User.Identity?.Name ?? "system";
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             var responseDto = new FeatureTemplateDto
             {
@@ -986,7 +980,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Updated feature template {FeatureName} ({FeatureId})",
+            logger.LogInformation("Updated feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return Ok(responseDto);
@@ -1014,10 +1008,10 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var template = await _context.FeatureTemplates
+            var template = await context.FeatureTemplates
                 .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
-            if (template == null)
+            if (template is null)
             {
                 return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
@@ -1029,9 +1023,9 @@ public class LicenseController : BaseApiController
             template.ModifiedAt = DateTime.UtcNow;
             template.ModifiedBy = User.Identity?.Name ?? "system";
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Deleted feature template {FeatureName} ({FeatureId})",
+            logger.LogInformation("Deleted feature template {FeatureName} ({FeatureId})",
                 template.Name, template.Id);
 
             return NoContent();
@@ -1059,10 +1053,10 @@ public class LicenseController : BaseApiController
     {
         try
         {
-            var template = await _context.FeatureTemplates
+            var template = await context.FeatureTemplates
                 .FirstOrDefaultAsync(ft => ft.Id == id && !ft.IsDeleted);
 
-            if (template == null)
+            if (template is null)
             {
                 return CreateNotFoundProblem($"Feature template with ID {id} not found");
             }
@@ -1072,7 +1066,7 @@ public class LicenseController : BaseApiController
             template.ModifiedAt = DateTime.UtcNow;
             template.ModifiedBy = User.Identity?.Name ?? "system";
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
             var responseDto = new FeatureTemplateDto
             {
@@ -1090,7 +1084,7 @@ public class LicenseController : BaseApiController
                 ModifiedBy = template.ModifiedBy
             };
 
-            _logger.LogInformation("Toggled feature template availability {FeatureName} ({FeatureId}) to {IsAvailable}",
+            logger.LogInformation("Toggled feature template availability {FeatureName} ({FeatureId}) to {IsAvailable}",
                 template.Name, template.Id, template.IsAvailable);
 
             return Ok(responseDto);

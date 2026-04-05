@@ -11,21 +11,10 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class DocumentRecurrencesController : BaseApiController
+public class DocumentRecurrencesController(
+    IDocumentRecurrenceService documentRecurrenceService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IDocumentRecurrenceService _documentRecurrenceService;
-    private readonly ITenantContext _tenantContext;
-
-    /// <summary>
-    /// Initializes a new instance of the DocumentRecurrencesController
-    /// </summary>
-    /// <param name="documentRecurrenceService">Document recurrence service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    public DocumentRecurrencesController(IDocumentRecurrenceService documentRecurrenceService, ITenantContext tenantContext)
-    {
-        _documentRecurrenceService = documentRecurrenceService ?? throw new ArgumentNullException(nameof(documentRecurrenceService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     /// <summary>
     /// Gets all document recurrences
@@ -41,13 +30,11 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentRecurrenceDto>>> GetDocumentRecurrences(CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var recurrences = await _documentRecurrenceService.GetAllAsync(cancellationToken);
+            var recurrences = await documentRecurrenceService.GetAllAsync(cancellationToken);
             return Ok(recurrences);
         }
         catch (Exception ex)
@@ -70,13 +57,11 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentRecurrenceDto>>> GetActiveDocumentRecurrences(CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var recurrences = await _documentRecurrenceService.GetActiveSchedulesAsync(cancellationToken);
+            var recurrences = await documentRecurrenceService.GetActiveSchedulesAsync(cancellationToken);
             return Ok(recurrences);
         }
         catch (Exception ex)
@@ -102,14 +87,12 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentRecurrenceDto>> GetDocumentRecurrence(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var recurrence = await _documentRecurrenceService.GetByIdAsync(id, cancellationToken);
-            if (recurrence == null)
+            var recurrence = await documentRecurrenceService.GetByIdAsync(id, cancellationToken);
+            if (recurrence is null)
                 return CreateNotFoundProblem($"Document recurrence with ID {id} was not found.");
 
             return Ok(recurrence);
@@ -137,9 +120,7 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentRecurrenceDto>> CreateDocumentRecurrence([FromBody] CreateDocumentRecurrenceDto createDto, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
@@ -147,7 +128,7 @@ public class DocumentRecurrencesController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var recurrence = await _documentRecurrenceService.CreateAsync(createDto, currentUser, cancellationToken);
+            var recurrence = await documentRecurrenceService.CreateAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetDocumentRecurrence),
@@ -180,9 +161,7 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentRecurrenceDto>> UpdateDocumentRecurrence(Guid id, [FromBody] UpdateDocumentRecurrenceDto updateDto, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
@@ -190,9 +169,9 @@ public class DocumentRecurrencesController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var recurrence = await _documentRecurrenceService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
+            var recurrence = await documentRecurrenceService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (recurrence == null)
+            if (recurrence is null)
                 return CreateNotFoundProblem($"Document recurrence with ID {id} was not found.");
 
             return Ok(recurrence);
@@ -220,14 +199,12 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteDocumentRecurrence(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentRecurrenceService.DeleteAsync(id, currentUser, cancellationToken);
+            var deleted = await documentRecurrenceService.DeleteAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document recurrence with ID {id} was not found.");
@@ -258,14 +235,12 @@ public class DocumentRecurrencesController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> SetRecurrenceEnabledStatus(Guid id, [FromQuery] bool enabled, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
-            return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var updated = await _documentRecurrenceService.SetEnabledStatusAsync(id, enabled, currentUser, cancellationToken);
+            var updated = await documentRecurrenceService.SetEnabledStatusAsync(id, enabled, currentUser, cancellationToken);
 
             if (!updated)
                 return CreateNotFoundProblem($"Document recurrence with ID {id} was not found.");

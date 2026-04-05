@@ -16,33 +16,15 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/entities")]
 [Authorize]
-public class EntityManagementController : BaseApiController
+public class EntityManagementController(
+    IAddressService addressService,
+    IContactService contactService,
+    IReferenceService referenceService,
+    IClassificationNodeService classificationNodeService,
+    ITenantContext tenantContext,
+    ILogger<EntityManagementController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IAddressService _addressService;
-    private readonly IContactService _contactService;
-    private readonly IReferenceService _referenceService;
-    private readonly IClassificationNodeService _classificationNodeService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<EntityManagementController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public EntityManagementController(
-        IAddressService addressService,
-        IContactService contactService,
-        IReferenceService referenceService,
-        IClassificationNodeService classificationNodeService,
-        ITenantContext tenantContext,
-        ILogger<EntityManagementController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _addressService = addressService ?? throw new ArgumentNullException(nameof(addressService));
-        _contactService = contactService ?? throw new ArgumentNullException(nameof(contactService));
-        _referenceService = referenceService ?? throw new ArgumentNullException(nameof(referenceService));
-        _classificationNodeService = classificationNodeService ?? throw new ArgumentNullException(nameof(classificationNodeService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     #region Address Management
 
@@ -63,12 +45,11 @@ public class EntityManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _addressService.GetAddressesAsync(pagination, cancellationToken);
+            var result = await addressService.GetAddressesAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -104,12 +85,11 @@ public class EntityManagementController : BaseApiController
         Guid ownerId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var addresses = await _addressService.GetAddressesByOwnerAsync(ownerId, cancellationToken);
+            var addresses = await addressService.GetAddressesByOwnerAsync(ownerId, cancellationToken);
             return Ok(addresses);
         }
         catch (Exception ex)
@@ -135,13 +115,12 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var address = await _addressService.GetAddressByIdAsync(id, cancellationToken);
-            if (address == null)
+            var address = await addressService.GetAddressByIdAsync(id, cancellationToken);
+            if (address is null)
             {
                 return CreateNotFoundProblem($"Address with ID {id} not found.");
             }
@@ -176,12 +155,11 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _addressService.CreateAddressAsync(createAddressDto, GetCurrentUser(), cancellationToken);
+            var result = await addressService.CreateAddressAsync(createAddressDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetAddress), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -216,13 +194,12 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _addressService.UpdateAddressAsync(id, updateAddressDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await addressService.UpdateAddressAsync(id, updateAddressDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Address with ID {id} not found.");
             }
@@ -252,12 +229,11 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _addressService.DeleteAddressAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await addressService.DeleteAddressAsync(id, GetCurrentUser(), cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Address with ID {id} not found.");
@@ -292,12 +268,11 @@ public class EntityManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _contactService.GetContactsAsync(pagination, cancellationToken);
+            var result = await contactService.GetContactsAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -333,12 +308,11 @@ public class EntityManagementController : BaseApiController
         Guid ownerId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var contacts = await _contactService.GetContactsByOwnerAsync(ownerId, cancellationToken);
+            var contacts = await contactService.GetContactsByOwnerAsync(ownerId, cancellationToken);
             return Ok(contacts);
         }
         catch (Exception ex)
@@ -364,13 +338,12 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var contact = await _contactService.GetContactByIdAsync(id, cancellationToken);
-            if (contact == null)
+            var contact = await contactService.GetContactByIdAsync(id, cancellationToken);
+            if (contact is null)
             {
                 return CreateNotFoundProblem($"Contact with ID {id} not found.");
             }
@@ -405,12 +378,11 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _contactService.CreateContactAsync(createContactDto, GetCurrentUser(), cancellationToken);
+            var result = await contactService.CreateContactAsync(createContactDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetContact), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -445,13 +417,12 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _contactService.UpdateContactAsync(id, updateContactDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await contactService.UpdateContactAsync(id, updateContactDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Contact with ID {id} not found.");
             }
@@ -481,12 +452,11 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _contactService.DeleteContactAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await contactService.DeleteContactAsync(id, GetCurrentUser(), cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Contact with ID {id} not found.");
@@ -524,14 +494,13 @@ public class EntityManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
+        if (paginationError is not null) return paginationError;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _referenceService.GetReferencesAsync(page, pageSize, cancellationToken);
+            var result = await referenceService.GetReferencesAsync(page, pageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -555,12 +524,11 @@ public class EntityManagementController : BaseApiController
         Guid ownerId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var references = await _referenceService.GetReferencesByOwnerAsync(ownerId, cancellationToken);
+            var references = await referenceService.GetReferencesByOwnerAsync(ownerId, cancellationToken);
             return Ok(references);
         }
         catch (Exception ex)
@@ -586,13 +554,12 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var reference = await _referenceService.GetReferenceByIdAsync(id, cancellationToken);
-            if (reference == null)
+            var reference = await referenceService.GetReferenceByIdAsync(id, cancellationToken);
+            if (reference is null)
             {
                 return CreateNotFoundProblem($"Reference with ID {id} not found.");
             }
@@ -627,12 +594,11 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _referenceService.CreateReferenceAsync(createReferenceDto, GetCurrentUser(), cancellationToken);
+            var result = await referenceService.CreateReferenceAsync(createReferenceDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetReference), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -667,13 +633,12 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _referenceService.UpdateReferenceAsync(id, updateReferenceDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await referenceService.UpdateReferenceAsync(id, updateReferenceDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Reference with ID {id} not found.");
             }
@@ -703,12 +668,11 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _referenceService.DeleteReferenceAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await referenceService.DeleteReferenceAsync(id, GetCurrentUser(), cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Reference with ID {id} not found.");
@@ -754,12 +718,11 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _classificationNodeService.GetClassificationNodesAsync(pagination, parentId, cancellationToken);
+            var result = await classificationNodeService.GetClassificationNodesAsync(pagination, parentId, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -793,12 +756,11 @@ public class EntityManagementController : BaseApiController
     public async Task<ActionResult<IEnumerable<ClassificationNodeDto>>> GetRootClassificationNodes(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var nodes = await _classificationNodeService.GetRootClassificationNodesAsync(cancellationToken);
+            var nodes = await classificationNodeService.GetRootClassificationNodesAsync(cancellationToken);
             return Ok(nodes);
         }
         catch (Exception ex)
@@ -822,12 +784,11 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var children = await _classificationNodeService.GetChildrenAsync(id, cancellationToken);
+            var children = await classificationNodeService.GetChildrenAsync(id, cancellationToken);
             return Ok(children);
         }
         catch (Exception ex)
@@ -853,13 +814,12 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var node = await _classificationNodeService.GetClassificationNodeByIdAsync(id, cancellationToken);
-            if (node == null)
+            var node = await classificationNodeService.GetClassificationNodeByIdAsync(id, cancellationToken);
+            if (node is null)
             {
                 return CreateNotFoundProblem($"Classification node with ID {id} not found.");
             }
@@ -894,12 +854,11 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _classificationNodeService.CreateClassificationNodeAsync(createClassificationNodeDto, GetCurrentUser(), cancellationToken);
+            var result = await classificationNodeService.CreateClassificationNodeAsync(createClassificationNodeDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetClassificationNode), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -934,18 +893,17 @@ public class EntityManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _classificationNodeService.UpdateClassificationNodeAsync(id, updateClassificationNodeDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await classificationNodeService.UpdateClassificationNodeAsync(id, updateClassificationNodeDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Classification node with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -971,18 +929,17 @@ public class EntityManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var deleted = await _classificationNodeService.DeleteClassificationNodeAsync(id, GetCurrentUser(), Array.Empty<byte>(), cancellationToken);
+            var deleted = await classificationNodeService.DeleteClassificationNodeAsync(id, GetCurrentUser(), Array.Empty<byte>(), cancellationToken);
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Classification node with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)

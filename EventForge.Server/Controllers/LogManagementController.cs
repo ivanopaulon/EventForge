@@ -13,21 +13,11 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin,Admin")]
-public class LogManagementController : BaseApiController
+public class LogManagementController(
+    ILogManagementService logManagementService,
+    ILogger<LogManagementController> logger,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly ILogManagementService _logManagementService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<LogManagementController> _logger;
-
-    public LogManagementController(
-        ILogManagementService logManagementService,
-        ILogger<LogManagementController> logger,
-        ITenantContext tenantContext)
-    {
-        _logManagementService = logManagementService ?? throw new ArgumentNullException(nameof(logManagementService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Application Logs
 
@@ -58,7 +48,7 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var result = await _logManagementService.GetApplicationLogsAsync(queryParameters, cancellationToken);
+            var result = await logManagementService.GetApplicationLogsAsync(queryParameters, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -89,9 +79,9 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var log = await _logManagementService.GetApplicationLogByIdAsync(id, cancellationToken);
+            var log = await logManagementService.GetApplicationLogByIdAsync(id, cancellationToken);
 
-            if (log == null)
+            if (log is null)
             {
                 return CreateNotFoundProblem($"Log entry with ID {id} not found");
             }
@@ -122,7 +112,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var logs = await _logManagementService.GetRecentErrorLogsAsync(cancellationToken);
+            var logs = await logManagementService.GetRecentErrorLogsAsync(cancellationToken);
             return Ok(logs);
         }
         catch (Exception ex)
@@ -168,7 +158,7 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var statistics = await _logManagementService.GetLogStatisticsAsync(from, to, cancellationToken);
+            var statistics = await logManagementService.GetLogStatisticsAsync(from, to, cancellationToken);
             return Ok(statistics);
         }
         catch (Exception ex)
@@ -195,7 +185,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var levels = await _logManagementService.GetAvailableLogLevelsAsync(cancellationToken);
+            var levels = await logManagementService.GetAvailableLogLevelsAsync(cancellationToken);
             return Ok(levels);
         }
         catch (Exception ex)
@@ -232,7 +222,7 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var result = await _logManagementService.GetPublicApplicationLogsAsync(queryParameters, cancellationToken);
+            var result = await logManagementService.GetPublicApplicationLogsAsync(queryParameters, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -273,7 +263,7 @@ public class LogManagementController : BaseApiController
         try
         {
             var userContext = GetUserContext();
-            await _logManagementService.ProcessClientLogAsync(clientLog, userContext, cancellationToken);
+            await logManagementService.ProcessClientLogAsync(clientLog, userContext, cancellationToken);
 
             return Ok(new
             {
@@ -320,7 +310,7 @@ public class LogManagementController : BaseApiController
         try
         {
             var userContext = GetUserContext();
-            var result = await _logManagementService.ProcessClientLogBatchAsync(
+            var result = await logManagementService.ProcessClientLogBatchAsync(
                 batchRequest.Logs, userContext, cancellationToken);
 
             return Ok(result);
@@ -363,7 +353,7 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var result = await _logManagementService.GetAuditLogsAsync(searchDto, cancellationToken);
+            var result = await logManagementService.GetAuditLogsAsync(searchDto, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -391,7 +381,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var statistics = await _logManagementService.GetAuditStatisticsAsync(cancellationToken);
+            var statistics = await logManagementService.GetAuditStatisticsAsync(cancellationToken);
             return Ok(statistics);
         }
         catch (Exception ex)
@@ -432,12 +422,12 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var result = await _logManagementService.ExportLogsAsync(exportRequest, cancellationToken);
+            var result = await logManagementService.ExportLogsAsync(exportRequest, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid export request parameters: {@ExportRequest}", exportRequest);
+            logger.LogWarning(ex, "Invalid export request parameters: {@ExportRequest}", exportRequest);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -464,7 +454,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var config = await _logManagementService.GetMonitoringConfigurationAsync(cancellationToken);
+            var config = await logManagementService.GetMonitoringConfigurationAsync(cancellationToken);
             return Ok(config);
         }
         catch (Exception ex)
@@ -501,7 +491,7 @@ public class LogManagementController : BaseApiController
 
         try
         {
-            var updatedConfig = await _logManagementService.UpdateMonitoringConfigurationAsync(config, cancellationToken);
+            var updatedConfig = await logManagementService.UpdateMonitoringConfigurationAsync(config, cancellationToken);
             return Ok(updatedConfig);
         }
         catch (Exception ex)
@@ -532,7 +522,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            var health = await _logManagementService.GetSystemHealthAsync(cancellationToken);
+            var health = await logManagementService.GetSystemHealthAsync(cancellationToken);
             return Ok(health);
         }
         catch (Exception ex)
@@ -558,7 +548,7 @@ public class LogManagementController : BaseApiController
     {
         try
         {
-            await _logManagementService.ClearCacheAsync();
+            await logManagementService.ClearCacheAsync();
 
             return Ok(new
             {

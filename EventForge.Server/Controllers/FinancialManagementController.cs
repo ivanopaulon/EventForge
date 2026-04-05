@@ -20,33 +20,15 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/financial")]
 [Authorize]
-public class FinancialManagementController : BaseApiController
+public class FinancialManagementController(
+    IBankService bankService,
+    IPaymentTermService paymentTermService,
+    IVatRateService vatRateService,
+    IVatNatureService vatNatureService,
+    ITenantContext tenantContext,
+    ILogger<FinancialManagementController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IBankService _bankService;
-    private readonly IPaymentTermService _paymentTermService;
-    private readonly IVatRateService _vatRateService;
-    private readonly IVatNatureService _vatNatureService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<FinancialManagementController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public FinancialManagementController(
-        IBankService bankService,
-        IPaymentTermService paymentTermService,
-        IVatRateService vatRateService,
-        IVatNatureService vatNatureService,
-        ITenantContext tenantContext,
-        ILogger<FinancialManagementController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
-        _paymentTermService = paymentTermService ?? throw new ArgumentNullException(nameof(paymentTermService));
-        _vatRateService = vatRateService ?? throw new ArgumentNullException(nameof(vatRateService));
-        _vatNatureService = vatNatureService ?? throw new ArgumentNullException(nameof(vatNatureService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     #region Bank Management
 
@@ -68,12 +50,11 @@ public class FinancialManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _bankService.GetBanksAsync(pagination, cancellationToken);
+            var result = await bankService.GetBanksAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -111,13 +92,12 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var bank = await _bankService.GetBankByIdAsync(id, cancellationToken);
-            if (bank == null)
+            var bank = await bankService.GetBankByIdAsync(id, cancellationToken);
+            if (bank is null)
             {
                 return CreateNotFoundProblem($"Bank with ID {id} not found.");
             }
@@ -152,12 +132,11 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _bankService.CreateBankAsync(createBankDto, GetCurrentUser(), cancellationToken);
+            var result = await bankService.CreateBankAsync(createBankDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetBank), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -192,18 +171,17 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _bankService.UpdateBankAsync(id, updateBankDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await bankService.UpdateBankAsync(id, updateBankDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Bank with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -229,18 +207,17 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _bankService.DeleteBankAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await bankService.DeleteBankAsync(id, GetCurrentUser(), cancellationToken);
             if (!result)
             {
                 return CreateNotFoundProblem($"Bank with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -271,12 +248,11 @@ public class FinancialManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _paymentTermService.GetPaymentTermsAsync(pagination, cancellationToken);
+            var result = await paymentTermService.GetPaymentTermsAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -314,13 +290,12 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var paymentTerm = await _paymentTermService.GetPaymentTermByIdAsync(id, cancellationToken);
-            if (paymentTerm == null)
+            var paymentTerm = await paymentTermService.GetPaymentTermByIdAsync(id, cancellationToken);
+            if (paymentTerm is null)
             {
                 return CreateNotFoundProblem($"Payment term with ID {id} not found.");
             }
@@ -355,12 +330,11 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _paymentTermService.CreatePaymentTermAsync(createPaymentTermDto, GetCurrentUser(), cancellationToken);
+            var result = await paymentTermService.CreatePaymentTermAsync(createPaymentTermDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetPaymentTerm), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -395,18 +369,17 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _paymentTermService.UpdatePaymentTermAsync(id, updatePaymentTermDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await paymentTermService.UpdatePaymentTermAsync(id, updatePaymentTermDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Payment term with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -432,18 +405,17 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _paymentTermService.DeletePaymentTermAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await paymentTermService.DeletePaymentTermAsync(id, GetCurrentUser(), cancellationToken);
             if (!result)
             {
                 return CreateNotFoundProblem($"Payment term with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -474,12 +446,11 @@ public class FinancialManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatRateService.GetVatRatesAsync(pagination, cancellationToken);
+            var result = await vatRateService.GetVatRatesAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -517,13 +488,12 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var vatRate = await _vatRateService.GetVatRateByIdAsync(id, cancellationToken);
-            if (vatRate == null)
+            var vatRate = await vatRateService.GetVatRateByIdAsync(id, cancellationToken);
+            if (vatRate is null)
             {
                 return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
             }
@@ -558,12 +528,11 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatRateService.CreateVatRateAsync(createVatRateDto, GetCurrentUser(), cancellationToken);
+            var result = await vatRateService.CreateVatRateAsync(createVatRateDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetVatRate), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -598,18 +567,17 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatRateService.UpdateVatRateAsync(id, updateVatRateDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await vatRateService.UpdateVatRateAsync(id, updateVatRateDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -635,18 +603,17 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatRateService.DeleteVatRateAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await vatRateService.DeleteVatRateAsync(id, GetCurrentUser(), cancellationToken);
             if (!result)
             {
                 return CreateNotFoundProblem($"VAT rate with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -674,12 +641,11 @@ public class FinancialManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatNatureService.GetVatNaturesAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await vatNatureService.GetVatNaturesAsync(pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -705,13 +671,12 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var vatNature = await _vatNatureService.GetVatNatureByIdAsync(id, cancellationToken);
-            if (vatNature == null)
+            var vatNature = await vatNatureService.GetVatNatureByIdAsync(id, cancellationToken);
+            if (vatNature is null)
             {
                 return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
             }
@@ -746,12 +711,11 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatNatureService.CreateVatNatureAsync(createVatNatureDto, GetCurrentUser(), cancellationToken);
+            var result = await vatNatureService.CreateVatNatureAsync(createVatNatureDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetVatNature), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -786,13 +750,12 @@ public class FinancialManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatNatureService.UpdateVatNatureAsync(id, updateVatNatureDto, GetCurrentUser(), cancellationToken);
-            if (result == null)
+            var result = await vatNatureService.UpdateVatNatureAsync(id, updateVatNatureDto, GetCurrentUser(), cancellationToken);
+            if (result is null)
             {
                 return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
             }
@@ -822,12 +785,11 @@ public class FinancialManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _vatNatureService.DeleteVatNatureAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await vatNatureService.DeleteVatNatureAsync(id, GetCurrentUser(), cancellationToken);
             if (!result)
             {
                 return CreateNotFoundProblem($"VAT nature with ID {id} not found.");
