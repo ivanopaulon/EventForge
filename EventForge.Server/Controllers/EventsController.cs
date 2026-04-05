@@ -14,18 +14,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicEventManagement")]
-public class EventsController : BaseApiController
+public class EventsController(
+    IEventService eventService,
+    ITenantContext tenantContext,
+    ILogger<EventsController> logger) : BaseApiController
 {
-    private readonly IEventService _eventService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<EventsController> _logger;
-
-    public EventsController(IEventService eventService, ITenantContext tenantContext, ILogger<EventsController> logger)
-    {
-        _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Event CRUD Operations
 
@@ -46,18 +39,17 @@ public class EventsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
 
         try
         {
-            var result = await _eventService.GetEventsAsync(pagination, cancellationToken);
+            var result = await eventService.GetEventsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving events.");
+            logger.LogError(ex, "An error occurred while retrieving events.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving events.", ex);
         }
     }
@@ -81,18 +73,17 @@ public class EventsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
 
         try
         {
-            var result = await _eventService.GetEventsByDateAsync(startDate, endDate, pagination, cancellationToken);
+            var result = await eventService.GetEventsByDateAsync(startDate, endDate, pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving events by date.");
+            logger.LogError(ex, "An error occurred while retrieving events by date.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving events by date.", ex);
         }
     }
@@ -112,18 +103,17 @@ public class EventsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError2) return tenantError2;
 
         try
         {
-            var result = await _eventService.GetUpcomingEventsAsync(pagination, cancellationToken);
+            var result = await eventService.GetUpcomingEventsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving upcoming events.");
+            logger.LogError(ex, "An error occurred while retrieving upcoming events.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving upcoming events.", ex);
         }
     }
@@ -145,18 +135,16 @@ public class EventsController : BaseApiController
     {
         try
         {
-            var eventEntity = await _eventService.GetEventByIdAsync(id, cancellationToken);
+            var eventEntity = await eventService.GetEventByIdAsync(id, cancellationToken);
 
-            if (eventEntity == null)
-            {
+            if (eventEntity is null)
                 return CreateNotFoundProblem($"Event with ID {id} not found.");
-            }
 
             return Ok(eventEntity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the event.");
+            logger.LogError(ex, "An error occurred while retrieving the event.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the event.", ex);
         }
     }
@@ -178,18 +166,16 @@ public class EventsController : BaseApiController
     {
         try
         {
-            var eventDetail = await _eventService.GetEventDetailAsync(id, cancellationToken);
+            var eventDetail = await eventService.GetEventDetailAsync(id, cancellationToken);
 
-            if (eventDetail == null)
-            {
+            if (eventDetail is null)
                 return CreateNotFoundProblem($"Event with ID {id} not found.");
-            }
 
             return Ok(eventDetail);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving the event details.");
+            logger.LogError(ex, "An error occurred while retrieving the event details.");
             return CreateInternalServerErrorProblem("An error occurred while retrieving the event details.", ex);
         }
     }
@@ -217,7 +203,7 @@ public class EventsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var eventEntity = await _eventService.CreateEventAsync(createEventDto, currentUser, cancellationToken);
+            var eventEntity = await eventService.CreateEventAsync(createEventDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetEvent),
@@ -234,7 +220,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while creating the event.");
+            logger.LogError(ex, "An error occurred while creating the event.");
             return CreateInternalServerErrorProblem("An error occurred while creating the event.", ex);
         }
     }
@@ -266,12 +252,10 @@ public class EventsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var eventEntity = await _eventService.UpdateEventAsync(id, updateEventDto, currentUser, cancellationToken);
+            var eventEntity = await eventService.UpdateEventAsync(id, updateEventDto, currentUser, cancellationToken);
 
-            if (eventEntity == null)
-            {
+            if (eventEntity is null)
                 return CreateNotFoundProblem($"Event with ID {id} not found.");
-            }
 
             return Ok(eventEntity);
         }
@@ -285,7 +269,7 @@ public class EventsController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while updating the event.");
+            logger.LogError(ex, "An error occurred while updating the event.");
             return CreateInternalServerErrorProblem("An error occurred while updating the event.", ex);
         }
     }
@@ -308,18 +292,16 @@ public class EventsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _eventService.DeleteEventAsync(id, currentUser, Array.Empty<byte>(), cancellationToken);
+            var result = await eventService.DeleteEventAsync(id, currentUser, [], cancellationToken);
 
             if (!result)
-            {
                 return CreateNotFoundProblem($"Event with ID {id} not found.");
-            }
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while deleting the event.");
+            logger.LogError(ex, "An error occurred while deleting the event.");
             return CreateInternalServerErrorProblem("An error occurred while deleting the event.", ex);
         }
     }

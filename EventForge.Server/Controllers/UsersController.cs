@@ -10,21 +10,11 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "Admin,SuperAdmin")]
-public class UsersController : BaseApiController
+public class UsersController(
+    IUserService service,
+    ITenantContext tenantContext,
+    ILogger<UsersController> logger) : BaseApiController
 {
-    private readonly IUserService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<UsersController> _logger;
-
-    public UsersController(
-        IUserService service,
-        ITenantContext tenantContext,
-        ILogger<UsersController> logger)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Retrieves all users with pagination (Admin/SuperAdmin only)
@@ -43,12 +33,11 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
 
         try
         {
-            var result = await _service.GetUsersAsync(pagination, cancellationToken);
+            var result = await service.GetUsersAsync(pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -79,12 +68,11 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
 
         try
         {
-            var result = await _service.GetUsersByRoleAsync(role, pagination, cancellationToken);
+            var result = await service.GetUsersByRoleAsync(role, pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -113,12 +101,11 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError2) return tenantError2;
 
         try
         {
-            var result = await _service.GetActiveUsersAsync(pagination, cancellationToken);
+            var result = await service.GetActiveUsersAsync(pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 

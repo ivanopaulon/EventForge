@@ -15,24 +15,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("ProductManagement")]
-public class BrandsController : BaseApiController
+public class BrandsController(
+    IBrandService service,
+    ITenantContext tenantContext,
+    ILogger<BrandsController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IBrandService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<BrandsController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public BrandsController(
-        IBrandService service,
-        ITenantContext tenantContext,
-        ILogger<BrandsController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     /// <summary>
     /// Retrieves all brands with pagination
@@ -50,12 +38,11 @@ public class BrandsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
 
         try
         {
-            var result = await _service.GetBrandsAsync(pagination, cancellationToken);
+            var result = await service.GetBrandsAsync(pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -83,12 +70,11 @@ public class BrandsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
 
         try
         {
-            var result = await _service.GetActiveBrandsAsync(pagination, cancellationToken);
+            var result = await service.GetActiveBrandsAsync(pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 

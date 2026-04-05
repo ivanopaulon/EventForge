@@ -8,16 +8,10 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for authentication operations.
 /// </summary>
 [Route("api/v1/[controller]")]
-public class AuthController : BaseApiController
+public class AuthController(
+    IAuthenticationService authenticationService,
+    ILogger<AuthController> logger) : BaseApiController
 {
-    private readonly IAuthenticationService _authenticationService;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(IAuthenticationService authenticationService, ILogger<AuthController> logger)
-    {
-        _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Authenticates a user with username and password.
@@ -47,34 +41,16 @@ public class AuthController : BaseApiController
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
             var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
 
-            var result = await _authenticationService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
+            var result = await authenticationService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
 
-            if (result == null)
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                    Title = "Authentication Failed",
-                    Status = StatusCodes.Status401Unauthorized,
-                    Detail = "Invalid username or password, or account is locked.",
-                    Instance = HttpContext.Request.Path
-                };
-
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId;
-                }
-
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return Unauthorized(problemDetails);
-            }
+            if (result is null)
+                return CreateUnauthorizedProblem("Invalid username or password, or account is locked.");
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Login");
+            logger.LogError(ex, "Error in Login");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
@@ -106,54 +82,18 @@ public class AuthController : BaseApiController
 
             var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                    Title = "Invalid User Context",
-                    Status = StatusCodes.Status401Unauthorized,
-                    Detail = "Unable to identify current user.",
-                    Instance = HttpContext.Request.Path
-                };
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId;
-                }
-
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return Unauthorized(problemDetails);
-            }
-
-            var success = await _authenticationService.ChangePasswordAsync(userId, request, cancellationToken);
+            var success = await authenticationService.ChangePasswordAsync(userId, request, cancellationToken);
 
             if (!success)
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-                    Title = "Password Change Failed",
-                    Status = StatusCodes.Status403Forbidden,
-                    Detail = "Unable to change password. Please verify your current password and ensure the new password meets security requirements.",
-                    Instance = HttpContext.Request.Path
-                };
-
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId2;
-                }
-
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
-            }
+                return CreateForbiddenProblem("Unable to change password. Please verify your current password and ensure the new password meets security requirements.");
 
             return Ok(new { message = "Password changed successfully." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in ChangePassword");
+            logger.LogError(ex, "Error in ChangePassword");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
@@ -177,38 +117,18 @@ public class AuthController : BaseApiController
         {
             var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                    Title = "Invalid User Context",
-                    Status = StatusCodes.Status401Unauthorized,
-                    Detail = "Unable to identify current user.",
-                    Instance = HttpContext.Request.Path
-                };
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId;
-                }
+            var user = await authenticationService.GetUserAsync(userId, cancellationToken);
 
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return Unauthorized(problemDetails);
-            }
-
-            var user = await _authenticationService.GetUserAsync(userId, cancellationToken);
-
-            if (user == null)
-            {
+            if (user is null)
                 return CreateNotFoundProblem("Current user information could not be retrieved.");
-            }
 
             return Ok(user);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in GetCurrentUser");
+            logger.LogError(ex, "Error in GetCurrentUser");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
@@ -245,7 +165,7 @@ public class AuthController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in ValidateToken");
+            logger.LogError(ex, "Error in ValidateToken");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
@@ -269,54 +189,18 @@ public class AuthController : BaseApiController
         {
             var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                    Title = "Invalid User Context",
-                    Status = StatusCodes.Status401Unauthorized,
-                    Detail = "Unable to identify current user.",
-                    Instance = HttpContext.Request.Path
-                };
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId;
-                }
+            var result = await authenticationService.RefreshTokenAsync(userId, cancellationToken);
 
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return Unauthorized(problemDetails);
-            }
-
-            var result = await _authenticationService.RefreshTokenAsync(userId, cancellationToken);
-
-            if (result == null)
-            {
-                var problemDetails = new ProblemDetails
-                {
-                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-                    Title = "Token Refresh Failed",
-                    Status = StatusCodes.Status403Forbidden,
-                    Detail = "Unable to refresh token. User may be inactive or account locked.",
-                    Instance = HttpContext.Request.Path
-                };
-
-                if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
-                {
-                    problemDetails.Extensions["correlationId"] = correlationId2;
-                }
-
-                problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
-            }
+            if (result is null)
+                return CreateForbiddenProblem("Unable to refresh token. User may be inactive or account locked.");
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in RefreshToken");
+            logger.LogError(ex, "Error in RefreshToken");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
@@ -336,13 +220,13 @@ public class AuthController : BaseApiController
         try
         {
             var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            _logger.LogInformation("User {Username} logged out", username);
+            logger.LogInformation("User {Username} logged out", username);
 
             return Ok(new { message = "Logged out successfully." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Logout");
+            logger.LogError(ex, "Error in Logout");
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }
