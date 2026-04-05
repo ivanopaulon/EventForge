@@ -116,7 +116,7 @@
                     <ScheduleView Option="View.Agenda" />
                 </ScheduleViews>
                 <ScheduleEventSettings DataSource="@_filteredItems"></ScheduleEventSettings>
-                <ScheduleEvents TValue="SchedulerItem" PopupOpen="OnSchedulerPopupOpen" EventRendered="OnEventRendered" />
+                <ScheduleEvents TValue="SchedulerItem" OnPopupOpen="OnSchedulerPopupOpen" EventRendered="OnEventRendered" />
             </SfSchedule>
             </MudPaper>
 
@@ -575,13 +575,13 @@
             && Guid.TryParse(itemId[3..], out var eventId)
             && _eventsMap.TryGetValue(eventId, out var ev))
         {
-            await InvokeAsync(async () => await OpenEditEventDialog(ev));
+            await OpenEditEventDialog(ev);
         }
         else if (itemId.StartsWith("rem_", StringComparison.Ordinal)
             && Guid.TryParse(itemId[4..], out var remId)
             && _remindersMap.TryGetValue(remId, out var rem))
         {
-            await InvokeAsync(async () => await OpenEditReminderDialog(rem));
+            await OpenEditReminderDialog(rem);
         }
         else if (!itemId.StartsWith("pl_", StringComparison.Ordinal)
               && !itemId.StartsWith("promo_", StringComparison.Ordinal)
@@ -590,7 +590,7 @@
         {
             var s = args.Data?.StartTime;
             var e = args.Data?.EndTime;
-            await InvokeAsync(async () => await OpenCreateEventDialog(s, e));
+            await OpenCreateEventDialog(s, e);
         }
     }
 
@@ -660,7 +660,7 @@
         if (!string.IsNullOrEmpty(args.Data.Color))
             args.Attributes = new Dictionary<string, object>
             {
-                ["style"] = $"background:{args.Data.Color};border-color:{args.Data.Color};"
+                ["style"] = $"background:{args.Data.Color}!important;border-color:{args.Data.Color}!important;"
             };
     }
 
