@@ -11,24 +11,12 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class ProfileController : BaseApiController
+public class ProfileController(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IPasswordService passwordService,
+    ILogger<ProfileController> logger) : BaseApiController
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IPasswordService _passwordService;
-    private readonly ILogger<ProfileController> _logger;
-
-    public ProfileController(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IPasswordService passwordService,
-        ILogger<ProfileController> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets current user's profile information.
@@ -46,20 +34,20 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .Include(u => u.AvatarDocument)
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
@@ -101,20 +89,20 @@ public class ProfileController : BaseApiController
 
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .Include(u => u.AvatarDocument)
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
@@ -130,7 +118,7 @@ public class ProfileController : BaseApiController
             user.ModifiedBy = user.Username;
 
             // Salva DisplayPreferences in MetadataJson
-            if (updateDto.DisplayPreferences != null)
+            if (updateDto.DisplayPreferences is not null)
             {
                 Dictionary<string, object> metadata;
 
@@ -154,12 +142,12 @@ public class ProfileController : BaseApiController
                 metadata["DisplayPreferences"] = updateDto.DisplayPreferences;
                 user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
 
-                _logger.LogInformation("Updated DisplayPreferences for user {UserId}", userId);
+                logger.LogInformation("Updated DisplayPreferences for user {UserId}", userId);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} updated their profile", userId.Value);
+            logger.LogInformation("User {UserId} updated their profile", userId.Value);
 
             var profileDto = MapToProfileDto(user);
 
@@ -191,7 +179,7 @@ public class ProfileController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
         {
             ModelState.AddModelError("file", "File is required.");
             return CreateValidationProblemDetails();
@@ -215,22 +203,22 @@ public class ProfileController : BaseApiController
 
         try
         {
-            var userId = _tenantContext.CurrentUserId;
-            var tenantId = _tenantContext.CurrentTenantId;
+            var userId = tenantContext.CurrentUserId;
+            var tenantId = tenantContext.CurrentTenantId;
 
             if (!userId.HasValue || !tenantId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .Include(u => u.AvatarDocument)
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
@@ -279,10 +267,10 @@ public class ProfileController : BaseApiController
             // If user already has an avatar, delete the old one first
             if (user.AvatarDocumentId.HasValue)
             {
-                var oldDocument = await _context.DocumentReferences
+                var oldDocument = await context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == user.AvatarDocumentId.Value, cancellationToken);
 
-                if (oldDocument != null)
+                if (oldDocument is not null)
                 {
                     // Delete old physical file with path validation
                     var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -295,21 +283,21 @@ public class ProfileController : BaseApiController
                         System.IO.File.Delete(oldFilePath);
                     }
 
-                    _context.DocumentReferences.Remove(oldDocument);
+                    context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _context.DocumentReferences.Add(documentReference);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.DocumentReferences.Add(documentReference);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Update user with new DocumentReference ID
             user.AvatarDocumentId = documentReference.Id;
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} uploaded avatar successfully as DocumentReference {DocumentId}", userId.Value, documentReference.Id);
+            logger.LogInformation("User {UserId} uploaded avatar successfully as DocumentReference {DocumentId}", userId.Value, documentReference.Id);
 
             // Reload to get the document reference
             user.AvatarDocument = documentReference;
@@ -338,22 +326,22 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.AvatarDocument)
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
 
-            if (!user.AvatarDocumentId.HasValue || user.AvatarDocument == null)
+            if (!user.AvatarDocumentId.HasValue || user.AvatarDocument is null)
             {
                 return CreateNotFoundProblem("Avatar not found.");
             }
@@ -370,16 +358,16 @@ public class ProfileController : BaseApiController
             }
 
             // Remove DocumentReference
-            _context.DocumentReferences.Remove(user.AvatarDocument);
+            context.DocumentReferences.Remove(user.AvatarDocument);
 
             // Update user
             user.AvatarDocumentId = null;
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} deleted their avatar", userId.Value);
+            logger.LogInformation("User {UserId} deleted their avatar", userId.Value);
 
             return NoContent();
         }
@@ -413,29 +401,29 @@ public class ProfileController : BaseApiController
 
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
 
             // Verify current password
-            if (!_passwordService.VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            if (!passwordService.VerifyPassword(changePasswordDto.CurrentPassword, user.PasswordHash, user.PasswordSalt))
             {
                 ModelState.AddModelError("CurrentPassword", "Current password is incorrect.");
                 return CreateValidationProblemDetails();
             }
 
             // Validate new password
-            var validationResult = _passwordService.ValidatePassword(changePasswordDto.NewPassword);
+            var validationResult = passwordService.ValidatePassword(changePasswordDto.NewPassword);
             if (!validationResult.IsValid)
             {
                 foreach (var error in validationResult.Errors)
@@ -446,7 +434,7 @@ public class ProfileController : BaseApiController
             }
 
             // Hash new password
-            var (hash, salt) = _passwordService.HashPassword(changePasswordDto.NewPassword);
+            var (hash, salt) = passwordService.HashPassword(changePasswordDto.NewPassword);
 
             // Update user
             user.PasswordHash = hash;
@@ -456,9 +444,9 @@ public class ProfileController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} changed their password", userId.Value);
+            logger.LogInformation("User {UserId} changed their password", userId.Value);
 
             return NoContent();
         }
@@ -485,20 +473,20 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .Include(u => u.AvatarDocument)
                 .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("User profile not found.");
             }
@@ -510,9 +498,9 @@ public class ProfileController : BaseApiController
             user.ModifiedAt = DateTime.UtcNow;
             user.ModifiedBy = user.Username;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} updated notification preferences", userId.Value);
+            logger.LogInformation("User {UserId} updated notification preferences", userId.Value);
 
             var profileDto = MapToProfileDto(user);
             return Ok(profileDto);
@@ -537,14 +525,14 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
             // Get sessions from LoginAudit where EventType = "Success" and no logout event
-            var sessions = await _context.LoginAudits
+            var sessions = await context.LoginAudits
                 .Where(la => la.UserId == userId.Value &&
                             la.EventType == "Success" &&
                             la.Success &&
@@ -591,16 +579,16 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
-            var session = await _context.LoginAudits
+            var session = await context.LoginAudits
                 .FirstOrDefaultAsync(la => la.Id == sessionId && la.UserId == userId.Value, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return CreateNotFoundProblem("Session not found.");
             }
@@ -622,10 +610,10 @@ public class ProfileController : BaseApiController
                 CreatedBy = session.Username
             };
 
-            _context.LoginAudits.Add(logoutAudit);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.LoginAudits.Add(logoutAudit);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} terminated session {SessionId}", userId.Value, sessionId);
+            logger.LogInformation("User {UserId} terminated session {SessionId}", userId.Value, sessionId);
 
             return NoContent();
         }
@@ -649,14 +637,14 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
             }
 
             // Get all active sessions except current
-            var sessions = await _context.LoginAudits
+            var sessions = await context.LoginAudits
                 .Where(la => la.UserId == userId.Value &&
                             la.EventType == "Success" &&
                             la.Success &&
@@ -684,12 +672,12 @@ public class ProfileController : BaseApiController
                     CreatedBy = username
                 };
 
-                _context.LoginAudits.Add(logoutAudit);
+                context.LoginAudits.Add(logoutAudit);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("User {UserId} terminated all other sessions ({Count} sessions)", userId.Value, sessions.Count);
+            logger.LogInformation("User {UserId} terminated all other sessions ({Count} sessions)", userId.Value, sessions.Count);
 
             return NoContent();
         }
@@ -716,7 +704,7 @@ public class ProfileController : BaseApiController
     {
         try
         {
-            var userId = _tenantContext.CurrentUserId;
+            var userId = tenantContext.CurrentUserId;
             if (!userId.HasValue)
             {
                 return Unauthorized();
@@ -724,7 +712,7 @@ public class ProfileController : BaseApiController
 
             var cutoffDate = DateTime.UtcNow.AddDays(-Math.Abs(days));
 
-            var history = await _context.LoginAudits
+            var history = await context.LoginAudits
                 .Where(la => la.UserId == userId.Value &&
                             la.EventTime >= cutoffDate &&
                             (la.EventType == "Success" || la.EventType == "Failed"))
@@ -773,7 +761,7 @@ public class ProfileController : BaseApiController
                 var displayPrefs = System.Text.Json.JsonSerializer.Deserialize<UserDisplayPreferencesDto>(
                     metadata["DisplayPreferences"].GetRawText());
 
-                if (displayPrefs != null)
+                if (displayPrefs is not null)
                 {
                     // Backward compatibility: ensure defaults for new fields
                     if (string.IsNullOrEmpty(displayPrefs.HeadingsFont))
@@ -807,7 +795,7 @@ public class ProfileController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse DisplayPreferences from user metadata for user {UserId}", user.Id);
+            logger.LogWarning(ex, "Failed to parse DisplayPreferences from user metadata for user {UserId}", user.Id);
         }
 
         return null;

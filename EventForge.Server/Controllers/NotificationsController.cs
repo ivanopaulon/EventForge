@@ -25,21 +25,11 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public class NotificationsController : BaseApiController
+public class NotificationsController(
+    INotificationService notificationService,
+    ITenantContext tenantContext,
+    ILogger<NotificationsController> logger) : BaseApiController
 {
-    private readonly INotificationService _notificationService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<NotificationsController> _logger;
-
-    public NotificationsController(
-        INotificationService notificationService,
-        ITenantContext tenantContext,
-        ILogger<NotificationsController> logger)
-    {
-        _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Notification Management
 
@@ -62,11 +52,11 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Sending notification of type {Type} with priority {Priority} to {RecipientCount} recipients",
                 createDto.Type, createDto.Priority, createDto.RecipientIds.Count);
 
-            var result = await _notificationService.SendNotificationAsync(createDto, cancellationToken);
+            var result = await notificationService.SendNotificationAsync(createDto, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetNotificationByIdAsync),
@@ -101,7 +91,7 @@ public class NotificationsController : BaseApiController
         [FromQuery][Range(1, 500)] int batchSize = 100,
         CancellationToken cancellationToken = default)
     {
-        if (notifications == null || !notifications.Any())
+        if (notifications is null || !notifications.Any())
         {
             return CreateValidationProblemDetails("Notifications list cannot be empty"
             );
@@ -115,9 +105,9 @@ public class NotificationsController : BaseApiController
 
         try
         {
-            _logger.LogInformation("Processing bulk notification batch with {Count} notifications", notifications.Count);
+            logger.LogInformation("Processing bulk notification batch with {Count} notifications", notifications.Count);
 
-            var result = await _notificationService.SendBulkNotificationsAsync(notifications, batchSize, cancellationToken);
+            var result = await notificationService.SendBulkNotificationsAsync(notifications, batchSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -144,7 +134,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            var result = await _notificationService.GetNotificationsAsync(pagination, cancellationToken);
+            var result = await notificationService.GetNotificationsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -171,7 +161,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            var result = await _notificationService.GetUnreadNotificationsAsync(pagination, cancellationToken);
+            var result = await notificationService.GetUnreadNotificationsAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -200,13 +190,13 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            var result = await _notificationService.GetNotificationsByTypeAsync(type, pagination, cancellationToken);
+            var result = await notificationService.GetNotificationsByTypeAsync(type, pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid notification type: {Type}", type);
+            logger.LogWarning(ex, "Invalid notification type: {Type}", type);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -237,9 +227,9 @@ public class NotificationsController : BaseApiController
             var userId = Guid.Empty; // GetCurrentUserId();
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
-            var notification = await _notificationService.GetNotificationByIdAsync(id, userId, tenantId, cancellationToken);
+            var notification = await notificationService.GetNotificationByIdAsync(id, userId, tenantId, cancellationToken);
 
-            if (notification == null)
+            if (notification is null)
             {
                 return CreateNotFoundProblem($"Notification with ID {id} was not found or is not accessible");
             }
@@ -280,7 +270,7 @@ public class NotificationsController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _notificationService.AcknowledgeNotificationAsync(id, userId, reason, cancellationToken);
+            var result = await notificationService.AcknowledgeNotificationAsync(id, userId, reason, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -318,7 +308,7 @@ public class NotificationsController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _notificationService.SilenceNotificationAsync(
+            var result = await notificationService.SilenceNotificationAsync(
                 id, userId, silenceDto.Reason, silenceDto.ExpiresAt, cancellationToken);
             return Ok(result);
         }
@@ -357,7 +347,7 @@ public class NotificationsController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _notificationService.ArchiveNotificationAsync(id, userId, reason, cancellationToken);
+            var result = await notificationService.ArchiveNotificationAsync(id, userId, reason, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -387,7 +377,7 @@ public class NotificationsController : BaseApiController
         [FromBody] BulkNotificationActionDto bulkAction,
         CancellationToken cancellationToken = default)
     {
-        if (bulkAction.NotificationIds == null || !bulkAction.NotificationIds.Any())
+        if (bulkAction.NotificationIds is null || !bulkAction.NotificationIds.Any())
         {
             return CreateValidationProblemDetails("Notification IDs list cannot be empty"
             );
@@ -404,7 +394,7 @@ public class NotificationsController : BaseApiController
             // TODO: Extract user ID from claims
             bulkAction.UserId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _notificationService.ProcessBulkActionAsync(bulkAction, cancellationToken);
+            var result = await notificationService.ProcessBulkActionAsync(bulkAction, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -442,7 +432,7 @@ public class NotificationsController : BaseApiController
                 ? new DateRange { StartDate = fromDate.Value, EndDate = toDate.Value }
                 : null;
 
-            var result = await _notificationService.GetNotificationStatisticsAsync(tenantId, dateRange, cancellationToken);
+            var result = await notificationService.GetNotificationStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -482,7 +472,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting notification export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
                 exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
 
@@ -529,7 +519,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            _logger.LogDebug("Retrieving export status for {ExportId}", exportId);
+            logger.LogDebug("Retrieving export status for {ExportId}", exportId);
 
             // STUB: Mock export status - actual export status retrieval not yet implemented
             await Task.Delay(10, cancellationToken);
@@ -576,7 +566,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Downloading export file for {ExportId}", exportId);
+            logger.LogInformation("Downloading export file for {ExportId}", exportId);
 
             // TODO: Implement actual file download logic
             await Task.Delay(10, cancellationToken);
@@ -636,7 +626,7 @@ public class NotificationsController : BaseApiController
     {
         try
         {
-            var result = await _notificationService.GetSystemHealthAsync(cancellationToken);
+            var result = await notificationService.GetSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)

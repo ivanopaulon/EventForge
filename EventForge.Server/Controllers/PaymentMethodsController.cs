@@ -16,24 +16,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/payment-methods")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("SalesManagement")]
-public class PaymentMethodsController : BaseApiController
+public class PaymentMethodsController(
+    IPaymentMethodService paymentMethodService,
+    ITenantContext tenantContext,
+    ILogger<PaymentMethodsController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IPaymentMethodService _paymentMethodService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<PaymentMethodsController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public PaymentMethodsController(
-        IPaymentMethodService paymentMethodService,
-        ITenantContext tenantContext,
-        ILogger<PaymentMethodsController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _paymentMethodService = paymentMethodService ?? throw new ArgumentNullException(nameof(paymentMethodService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     /// <summary>
     /// Gets all payment methods with pagination.
@@ -53,23 +41,14 @@ public class PaymentMethodsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _paymentMethodService.GetPaymentMethodsAsync(pagination, cancellationToken);
+            var result = await paymentMethodService.GetPaymentMethodsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -97,23 +76,14 @@ public class PaymentMethodsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _paymentMethodService.GetActivePaymentMethodsAsync(pagination, cancellationToken);
+            var result = await paymentMethodService.GetActivePaymentMethodsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -140,13 +110,13 @@ public class PaymentMethodsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var paymentMethod = await _paymentMethodService.GetPaymentMethodByIdAsync(id, cancellationToken);
-            if (paymentMethod == null)
+            var paymentMethod = await paymentMethodService.GetPaymentMethodByIdAsync(id, cancellationToken);
+            if (paymentMethod is null)
             {
                 return CreateNotFoundProblem($"Payment method with ID {id} not found.");
             }
@@ -176,13 +146,13 @@ public class PaymentMethodsController : BaseApiController
         string code,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var paymentMethod = await _paymentMethodService.GetPaymentMethodByCodeAsync(code, cancellationToken);
-            if (paymentMethod == null)
+            var paymentMethod = await paymentMethodService.GetPaymentMethodByCodeAsync(code, cancellationToken);
+            if (paymentMethod is null)
             {
                 return CreateNotFoundProblem($"Payment method with code '{code}' not found.");
             }
@@ -219,13 +189,13 @@ public class PaymentMethodsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var paymentMethod = await _paymentMethodService.CreatePaymentMethodAsync(createDto, currentUser, cancellationToken);
+            var paymentMethod = await paymentMethodService.CreatePaymentMethodAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetPaymentMethodById),
@@ -234,7 +204,7 @@ public class PaymentMethodsController : BaseApiController
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
         {
-            _logger.LogWarning(ex, "Attempt to create duplicate payment method code.");
+            logger.LogWarning(ex, "Attempt to create duplicate payment method code.");
             return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
@@ -269,20 +239,20 @@ public class PaymentMethodsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var paymentMethod = await _paymentMethodService.UpdatePaymentMethodAsync(id, updateDto, currentUser, cancellationToken);
+            var paymentMethod = await paymentMethodService.UpdatePaymentMethodAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (paymentMethod == null)
+            if (paymentMethod is null)
             {
                 return CreateNotFoundProblem($"Payment method with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(paymentMethod);
         }
         catch (Exception ex)
@@ -308,20 +278,20 @@ public class PaymentMethodsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _paymentMethodService.DeletePaymentMethodAsync(id, currentUser, cancellationToken);
+            var deleted = await paymentMethodService.DeletePaymentMethodAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Payment method with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)
@@ -347,12 +317,12 @@ public class PaymentMethodsController : BaseApiController
         [FromQuery] Guid? excludeId = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var exists = await _paymentMethodService.CodeExistsAsync(code, excludeId, cancellationToken);
+            var exists = await paymentMethodService.CodeExistsAsync(code, excludeId, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -361,44 +331,4 @@ public class PaymentMethodsController : BaseApiController
         }
     }
 
-    /// <summary>
-    /// Creates a ProblemDetails response for conflict errors.
-    /// </summary>
-    /// <param name="message">The error message</param>
-    /// <returns>Conflict result with ProblemDetails</returns>
-    private new ActionResult CreateConflictProblem(string message)
-    {
-        var problemDetails = new ProblemDetails
-        {
-            Type = "https://tools.ietf.org/html/rfc7231#section-6.5.8",
-            Title = "Conflict",
-            Status = StatusCodes.Status409Conflict,
-            Detail = message,
-            Instance = HttpContext.Request.Path
-        };
-
-        if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-        {
-            problemDetails.Extensions["correlationId"] = correlationId;
-        }
-
-        problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-        return Conflict(problemDetails);
-    }
-
-    /// <summary>
-    /// Validates tenant access for the current request.
-    /// </summary>
-    private new async Task<ActionResult?> ValidateTenantAccessAsync(ITenantContext tenantContext)
-    {
-        if (!tenantContext.CurrentTenantId.HasValue)
-        {
-            return Forbid();
-        }
-
-        // Additional tenant access validation could be added here
-        await Task.CompletedTask;
-        return null;
-    }
 }

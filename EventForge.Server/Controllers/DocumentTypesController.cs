@@ -13,32 +13,12 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class DocumentTypesController : BaseApiController
+public class DocumentTypesController(
+    IDocumentTypeService documentTypeService,
+    ITenantContext tenantContext,
+    ILogger<DocumentTypesController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IDocumentTypeService _documentTypeService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentTypesController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    /// <summary>
-    /// Initializes a new instance of the DocumentTypesController
-    /// </summary>
-    /// <param name="documentTypeService">Document type service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    /// <param name="logger">Logger instance</param>
-    /// <param name="cacheInvalidation">Cache invalidation service</param>
-    public DocumentTypesController(
-        IDocumentTypeService documentTypeService,
-        ITenantContext tenantContext,
-        ILogger<DocumentTypesController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
-
     /// <summary>
     /// Gets all document types
     /// </summary>
@@ -55,13 +35,13 @@ public class DocumentTypesController : BaseApiController
     public async Task<ActionResult<IEnumerable<DocumentTypeDto>>> GetDocumentTypes(CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var documentTypes = await _documentTypeService.GetAllAsync(cancellationToken);
+            var documentTypes = await documentTypeService.GetAllAsync(cancellationToken);
             return Ok(documentTypes);
         }
         catch (Exception ex)
@@ -87,9 +67,9 @@ public class DocumentTypesController : BaseApiController
     {
         try
         {
-            var documentType = await _documentTypeService.GetByIdAsync(id, cancellationToken);
+            var documentType = await documentTypeService.GetByIdAsync(id, cancellationToken);
 
-            if (documentType == null)
+            if (documentType is null)
             {
                 return CreateNotFoundProblem($"Document type with ID {id} not found.");
             }
@@ -126,7 +106,7 @@ public class DocumentTypesController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.CreateAsync(createDto, GetCurrentUser(), cancellationToken);
+            var documentType = await documentTypeService.CreateAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetDocumentType), new { id = documentType.Id }, documentType);
         }
         catch (Exception ex)
@@ -163,14 +143,14 @@ public class DocumentTypesController : BaseApiController
 
         try
         {
-            var documentType = await _documentTypeService.UpdateAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+            var documentType = await documentTypeService.UpdateAsync(id, updateDto, GetCurrentUser(), cancellationToken);
 
-            if (documentType == null)
+            if (documentType is null)
             {
                 return CreateNotFoundProblem($"Document type with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return Ok(documentType);
         }
         catch (Exception ex)
@@ -196,14 +176,14 @@ public class DocumentTypesController : BaseApiController
     {
         try
         {
-            var deleted = await _documentTypeService.DeleteAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await documentTypeService.DeleteAsync(id, GetCurrentUser(), cancellationToken);
 
             if (!deleted)
             {
                 return CreateNotFoundProblem($"Document type with ID {id} not found.");
             }
 
-            await _cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)

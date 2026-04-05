@@ -15,24 +15,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("ProductManagement")]
-public class ModelsController : BaseApiController
+public class ModelsController(
+    IModelService service,
+    ITenantContext tenantContext,
+    ILogger<ModelsController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly IModelService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ModelsController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public ModelsController(
-        IModelService service,
-        ITenantContext tenantContext,
-        ILogger<ModelsController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     /// <summary>
     /// Retrieves all models with pagination
@@ -50,23 +38,14 @@ public class ModelsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _service.GetModelsAsync(pagination, cancellationToken);
+            var result = await service.GetModelsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -94,23 +73,14 @@ public class ModelsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _service.GetModelsByBrandIdAsync(brandId, pagination, cancellationToken);
+            var result = await service.GetModelsByBrandIdAsync(brandId, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
