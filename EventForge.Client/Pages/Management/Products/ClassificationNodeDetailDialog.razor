@@ -602,7 +602,7 @@
             [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)_node.Id
         };
         var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        if (!(await d.Result).Canceled) await LoadChildrenAsync();
+        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
     }
 
     private async Task OpenChildDetailDialogAsync(Guid childId)
@@ -612,7 +612,7 @@
             [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)childId
         };
         var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        if (!(await d.Result).Canceled) await LoadChildrenAsync();
+        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
     }
 
     private async Task OpenAuditDialog()

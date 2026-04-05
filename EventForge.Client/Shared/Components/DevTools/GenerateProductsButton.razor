@@ -92,7 +92,7 @@
         {
             <MudAlert Severity="Severity.Error" Class="mb-4">
                 @TranslationService.GetTranslation("devtools.generateProducts.failed",
-                    "Generazione fallita: {0}", _errorMessage)
+                    "Generazione fallita: {0}", _errorMessage ?? string.Empty)
             </MudAlert>
         }
     </DialogContent>
@@ -272,7 +272,7 @@
 
                 Snackbar.Add(
                     TranslationService.GetTranslation("devtools.generateProducts.failedNotification",
-                        "Generazione fallita: {0}", status.ErrorMessage),
+                        "Generazione fallita: {0}", status.ErrorMessage ?? string.Empty),
                     Severity.Error);
             }
             else if (status.Status == ProductGenerationJobStatus.Cancelled)

@@ -9,7 +9,7 @@
              Size="@Size" 
              Style="@GetChipStyle()"
              Icon="@(Group.Icon ?? Icons.Material.Filled.Group)"
-             OnClose="@(OnRemove.HasDelegate ? () => OnRemove.InvokeAsync(Group.Id) : null)">
+             OnClose="@(OnRemove.HasDelegate ? (Func<MudChip<string>, Task>)(_ => OnRemove.InvokeAsync(Group.Id)) : null)">
         @Group.Name
         @if (ShowPriority && Group.Priority > 80)
         {

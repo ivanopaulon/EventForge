@@ -309,7 +309,7 @@
         var dialog = await DialogService.ShowAsync<PriceListDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
         if (result is { Canceled: false })
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
     }
 
     private async Task OpenCreateDialog()
@@ -320,9 +320,9 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
         }
     }
 
@@ -334,9 +334,9 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
         }
     }
 
@@ -349,7 +349,7 @@
         var result = await dialog.Result;
         if (!result.Canceled && result.Data != null)
         {
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
             Snackbar.Add(
                 TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"),
                 Severity.Success);
