@@ -5,27 +5,21 @@ namespace EventForge.Client.Services.Sales;
 /// <summary>
 /// Client service implementation for sale sessions.
 /// </summary>
-public class SalesService : ISalesService
+public class SalesService(
+    IHttpClientService httpClientService,
+    ILogger<SalesService> logger) : ISalesService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<SalesService> _logger;
     private const string BaseUrl = "api/v1/sales/sessions";
-
-    public SalesService(IHttpClientService httpClientService, ILogger<SalesService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<SaleSessionDto?> CreateSessionAsync(CreateSaleSessionDto createDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateSaleSessionDto, SaleSessionDto>(BaseUrl, createDto, cancellationToken);
+            return await httpClientService.PostAsync<CreateSaleSessionDto, SaleSessionDto>(BaseUrl, createDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating sale session");
+            logger.LogError(ex, "Error creating sale session");
             return null;
         }
     }
@@ -34,11 +28,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
+            return await httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving session {SessionId}", sessionId);
+            logger.LogError(ex, "Error retrieving session {SessionId}", sessionId);
             return null;
         }
     }
@@ -47,11 +41,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateSaleSessionDto, SaleSessionDto>($"{BaseUrl}/{sessionId}", updateDto, cancellationToken);
+            return await httpClientService.PutAsync<UpdateSaleSessionDto, SaleSessionDto>($"{BaseUrl}/{sessionId}", updateDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating session {SessionId}", sessionId);
+            logger.LogError(ex, "Error updating session {SessionId}", sessionId);
             return null;
         }
     }
@@ -60,12 +54,12 @@ public class SalesService : ISalesService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}", cancellationToken);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}", cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting session {SessionId}", sessionId);
+            logger.LogError(ex, "Error deleting session {SessionId}", sessionId);
             return false;
         }
     }
@@ -74,11 +68,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<SaleSessionDto>>(BaseUrl, cancellationToken);
+            return await httpClientService.GetAsync<List<SaleSessionDto>>(BaseUrl, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active sessions");
+            logger.LogError(ex, "Error retrieving active sessions");
             return null;
         }
     }
@@ -87,11 +81,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<SaleSessionDto>>($"{BaseUrl}/operator/{operatorId}", cancellationToken);
+            return await httpClientService.GetAsync<List<SaleSessionDto>>($"{BaseUrl}/operator/{operatorId}", cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving operator sessions for {OperatorId}", operatorId);
+            logger.LogError(ex, "Error retrieving operator sessions for {OperatorId}", operatorId);
             return null;
         }
     }
@@ -100,11 +94,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items", itemDto, cancellationToken);
+            return await httpClientService.PostAsync<AddSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items", itemDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding item to session {SessionId}", sessionId);
+            logger.LogError(ex, "Error adding item to session {SessionId}", sessionId);
             return null;
         }
     }
@@ -113,11 +107,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items/{itemId}", updateDto, cancellationToken);
+            return await httpClientService.PutAsync<UpdateSaleItemDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/items/{itemId}", updateDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating item {ItemId} in session {SessionId}", itemId, sessionId);
+            logger.LogError(ex, "Error updating item {ItemId} in session {SessionId}", itemId, sessionId);
             return null;
         }
     }
@@ -128,13 +122,13 @@ public class SalesService : ISalesService
         {
             // Optimized: DELETE + GET (2 calls instead of 3)
             // Future optimization: Modify server DELETE endpoint to return updated session (1 call)
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/items/{itemId}", cancellationToken);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/items/{itemId}", cancellationToken);
             // Fetch updated session
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
+            return await httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing item {ItemId} from session {SessionId}", itemId, sessionId);
+            logger.LogError(ex, "Error removing item {ItemId} from session {SessionId}", itemId, sessionId);
             return null;
         }
     }
@@ -143,11 +137,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSalePaymentDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/payments", paymentDto, cancellationToken);
+            return await httpClientService.PostAsync<AddSalePaymentDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/payments", paymentDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding payment to session {SessionId}", sessionId);
+            logger.LogError(ex, "Error adding payment to session {SessionId}", sessionId);
             return null;
         }
     }
@@ -156,13 +150,13 @@ public class SalesService : ISalesService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/payments/{paymentId}", cancellationToken);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{sessionId}/payments/{paymentId}", cancellationToken);
             // Fetch updated session
-            return await _httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
+            return await httpClientService.GetAsync<SaleSessionDto>($"{BaseUrl}/{sessionId}", cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing payment {PaymentId} from session {SessionId}", paymentId, sessionId);
+            logger.LogError(ex, "Error removing payment {PaymentId} from session {SessionId}", paymentId, sessionId);
             return null;
         }
     }
@@ -171,11 +165,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<AddSessionNoteDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/notes", noteDto, cancellationToken);
+            return await httpClientService.PostAsync<AddSessionNoteDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/notes", noteDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding note to session {SessionId}", sessionId);
+            logger.LogError(ex, "Error adding note to session {SessionId}", sessionId);
             return null;
         }
     }
@@ -184,11 +178,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<ApplyGlobalDiscountDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/discount", discountDto, cancellationToken);
+            return await httpClientService.PostAsync<ApplyGlobalDiscountDto, SaleSessionDto>($"{BaseUrl}/{sessionId}/discount", discountDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying global discount to session {SessionId}", sessionId);
+            logger.LogError(ex, "Error applying global discount to session {SessionId}", sessionId);
             return null;
         }
     }
@@ -197,11 +191,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/totals", new { }, cancellationToken);
+            return await httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/totals", new { }, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating totals for session {SessionId}", sessionId);
+            logger.LogError(ex, "Error calculating totals for session {SessionId}", sessionId);
             return null;
         }
     }
@@ -210,11 +204,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/close", new { }, cancellationToken);
+            return await httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/close", new { }, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error closing session {SessionId}", sessionId);
+            logger.LogError(ex, "Error closing session {SessionId}", sessionId);
             return null;
         }
     }
@@ -223,11 +217,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<SplitSessionDto, SplitResultDto>($"{BaseUrl}/split", splitDto, cancellationToken);
+            return await httpClientService.PostAsync<SplitSessionDto, SplitResultDto>($"{BaseUrl}/split", splitDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error splitting session {SessionId}", splitDto.SessionId);
+            logger.LogError(ex, "Error splitting session {SessionId}", splitDto.SessionId);
             return null;
         }
     }
@@ -236,11 +230,11 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.PostAsync<MergeSessionsDto, SaleSessionDto>($"{BaseUrl}/merge", mergeDto, cancellationToken);
+            return await httpClientService.PostAsync<MergeSessionsDto, SaleSessionDto>($"{BaseUrl}/merge", mergeDto, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error merging sessions");
+            logger.LogError(ex, "Error merging sessions");
             return null;
         }
     }
@@ -249,12 +243,12 @@ public class SalesService : ISalesService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<SaleSessionDto>>(
+            return await httpClientService.GetAsync<List<SaleSessionDto>>(
                 $"{BaseUrl}/{parentSessionId}/children", cancellationToken) ?? new();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving child sessions for {ParentSessionId}", parentSessionId);
+            logger.LogError(ex, "Error retrieving child sessions for {ParentSessionId}", parentSessionId);
             return new();
         }
     }
@@ -263,13 +257,13 @@ public class SalesService : ISalesService
     {
         try
         {
-            var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
+            var response = await httpClientService.GetAsync<Dictionary<string, bool>>(
                 $"{BaseUrl}/{sessionId}/can-split", cancellationToken);
             return response?.TryGetValue("canSplit", out var canSplit) == true && canSplit;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
+            logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
             return false;
         }
     }
@@ -279,13 +273,13 @@ public class SalesService : ISalesService
         try
         {
             var query = string.Join("&", sessionIds.Select(id => $"sessionIds={id}"));
-            var response = await _httpClientService.GetAsync<Dictionary<string, bool>>(
+            var response = await httpClientService.GetAsync<Dictionary<string, bool>>(
                 $"{BaseUrl}/can-merge?{query}", cancellationToken);
             return response?.TryGetValue("canMerge", out var canMerge) == true && canMerge;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if sessions can be merged");
+            logger.LogError(ex, "Error checking if sessions can be merged");
             return false;
         }
     }

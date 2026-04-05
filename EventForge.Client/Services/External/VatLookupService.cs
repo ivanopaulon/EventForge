@@ -5,31 +5,22 @@ namespace EventForge.Client.Services.External;
 /// <summary>
 /// Implementation of VAT lookup client service.
 /// </summary>
-public class VatLookupService : IVatLookupService
+public class VatLookupService(
+    IHttpClientService httpClientService,
+    ILogger<VatLookupService> logger) : IVatLookupService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<VatLookupService> _logger;
-
-    public VatLookupService(
-        IHttpClientService httpClientService,
-        ILogger<VatLookupService> logger)
-    {
-        _httpClientService = httpClientService;
-        _logger = logger;
-    }
-
     public async Task<VatLookupResultDto?> LookupAsync(string vatNumber)
     {
         try
         {
-            _logger.LogInformation("Looking up VAT number: {VatNumber}", vatNumber);
+            logger.LogInformation("Looking up VAT number: {VatNumber}", vatNumber);
 
-            var result = await _httpClientService.GetAsync<VatLookupResultDto>(
+            var result = await httpClientService.GetAsync<VatLookupResultDto>(
                 $"api/v1/vat-lookup/{Uri.EscapeDataString(vatNumber)}");
 
-            if (result != null)
+            if (result is not null)
             {
-                _logger.LogInformation(
+                logger.LogInformation(
                     "VAT lookup completed: {VatNumber} - Valid: {IsValid}",
                     vatNumber, result.IsValid);
             }
@@ -38,7 +29,7 @@ public class VatLookupService : IVatLookupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error looking up VAT number {VatNumber}", vatNumber);
+            logger.LogError(ex, "Error looking up VAT number {VatNumber}", vatNumber);
             return null;
         }
     }

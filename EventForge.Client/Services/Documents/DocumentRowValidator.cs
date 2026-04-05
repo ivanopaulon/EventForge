@@ -12,7 +12,7 @@ public class DocumentRowValidator : IDocumentRowValidator
     /// </summary>
     public ValidationResult Validate(CreateDocumentRowDto model)
     {
-        var errors = new List<string>();
+        List<string> errors = [];
 
         // Required field validations
         if (string.IsNullOrWhiteSpace(model.Description))
@@ -88,7 +88,7 @@ public class DocumentRowValidator : IDocumentRowValidator
     /// </summary>
     public ValidationResult Validate(UpdateDocumentRowDto model)
     {
-        var errors = new List<string>();
+        List<string> errors = [];
 
         // Reuse same validation logic as create
         // Convert to CreateDocumentRowDto for validation

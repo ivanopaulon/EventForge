@@ -9,14 +9,12 @@ namespace EventForge.Client.Services.Documents;
 /// Implementation of caching service for document dialog data.
 /// Caches units of measure, VAT rates, and price lists with a 5-minute TTL.
 /// </summary>
-public class DocumentDialogCacheService : IDocumentDialogCacheService
+public class DocumentDialogCacheService(
+    IFinancialService financialService,
+    IProductService productService,
+    IPriceListService priceListService,
+    ILogger<DocumentDialogCacheService> logger) : IDocumentDialogCacheService
 {
-    private readonly IFinancialService _financialService;
-    private readonly IProductService _productService;
-    private readonly IPriceListService _priceListService;
-    private readonly ILogger<DocumentDialogCacheService> _logger;
-
-    // Cache fields for UOM and VAT
     private List<UMDto>? _cachedUnits;
     private List<VatRateDto>? _cachedVatRates;
     private DateTime? _cacheTime;
@@ -35,50 +33,38 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     private const int CacheMinutes = 5;
     private static readonly TimeSpan PriceListsCacheDuration = TimeSpan.FromMinutes(5);
 
-    public DocumentDialogCacheService(
-        IFinancialService financialService,
-        IProductService productService,
-        IPriceListService priceListService,
-        ILogger<DocumentDialogCacheService> logger)
-    {
-        _financialService = financialService ?? throw new ArgumentNullException(nameof(financialService));
-        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<List<UMDto>> GetUnitsOfMeasureAsync()
     {
         // Return cached data if valid
-        if (_cachedUnits != null && IsCacheValid())
+        if (_cachedUnits is not null && IsCacheValid())
         {
-            _logger.LogDebug("Returning cached units of measure ({Count} items)", _cachedUnits.Count);
+            logger.LogDebug("Returning cached units of measure ({Count} items)", _cachedUnits.Count);
             return _cachedUnits;
         }
 
         // Load from service
-        _logger.LogInformation("Loading units of measure from service (cache expired or empty)");
+        logger.LogInformation("Loading units of measure from service (cache expired or empty)");
 
         try
         {
-            var units = await _productService.GetUnitsOfMeasureAsync();
-            _cachedUnits = units?.ToList() ?? new List<UMDto>();
+            var units = await productService.GetUnitsOfMeasureAsync();
+            _cachedUnits = units?.ToList() ?? [];
 
             // Update cache timestamp
             _cacheTime = DateTime.UtcNow;
 
-            _logger.LogInformation("Cached {Count} units of measure", _cachedUnits.Count);
+            logger.LogInformation("Cached {Count} units of measure", _cachedUnits.Count);
             return _cachedUnits;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading units of measure");
+            logger.LogError(ex, "Error loading units of measure");
 
             // Return cached data if available, even if expired, as fallback
-            if (_cachedUnits != null)
+            if (_cachedUnits is not null)
             {
-                _logger.LogWarning("Returning stale cached units of measure as fallback");
+                logger.LogWarning("Returning stale cached units of measure as fallback");
                 return _cachedUnits;
             }
 
@@ -90,35 +76,35 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     public async Task<List<VatRateDto>> GetVatRatesAsync()
     {
         // Return cached data if valid
-        if (_cachedVatRates != null && IsCacheValid())
+        if (_cachedVatRates is not null && IsCacheValid())
         {
-            _logger.LogDebug("Returning cached VAT rates ({Count} items)", _cachedVatRates.Count);
+            logger.LogDebug("Returning cached VAT rates ({Count} items)", _cachedVatRates.Count);
             return _cachedVatRates;
         }
 
         // Load from service
-        _logger.LogInformation("Loading VAT rates from service (cache expired or empty)");
+        logger.LogInformation("Loading VAT rates from service (cache expired or empty)");
 
         try
         {
-            var vatRatesResult = await _financialService.GetVatRatesAsync(1, 100);
+            var vatRatesResult = await financialService.GetVatRatesAsync(1, 100);
             _cachedVatRates = vatRatesResult?.Items?.Where(v => v.IsActive).ToList()
-                ?? new List<VatRateDto>();
+                ?? [];
 
             // Update cache timestamp
             _cacheTime = DateTime.UtcNow;
 
-            _logger.LogInformation("Cached {Count} active VAT rates", _cachedVatRates.Count);
+            logger.LogInformation("Cached {Count} active VAT rates", _cachedVatRates.Count);
             return _cachedVatRates;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading VAT rates");
+            logger.LogError(ex, "Error loading VAT rates");
 
             // Return cached data if available, even if expired, as fallback
-            if (_cachedVatRates != null)
+            if (_cachedVatRates is not null)
             {
-                _logger.LogWarning("Returning stale cached VAT rates as fallback");
+                logger.LogWarning("Returning stale cached VAT rates as fallback");
                 return _cachedVatRates;
             }
 
@@ -129,7 +115,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     /// <inheritdoc />
     public void InvalidateCache()
     {
-        _logger.LogInformation("Invalidating document dialog cache");
+        logger.LogInformation("Invalidating document dialog cache");
 
         // Existing cache invalidation
         _cachedUnits = null;
@@ -146,30 +132,30 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         _priceListCacheHits = 0;
         _priceListCacheMisses = 0;
 
-        _logger.LogInformation("All caches invalidated (including price lists)");
+        logger.LogInformation("All caches invalidated (including price lists)");
     }
 
     /// <inheritdoc />
     public async Task<List<PriceListDto>> GetActiveSalesPriceListsAsync()
     {
-        if (_activeSalesPriceLists == null || IsPriceListsCacheExpired())
+        if (_activeSalesPriceLists is null || IsPriceListsCacheExpired())
         {
             try
             {
-                _logger.LogDebug("Cache MISS: Loading active sales price lists from API");
+                logger.LogDebug("Cache MISS: Loading active sales price lists from API");
                 _priceListCacheMisses++;
 
-                _activeSalesPriceLists = await _priceListService.GetActivePriceListsAsync(
+                _activeSalesPriceLists = await priceListService.GetActivePriceListsAsync(
                     PriceListDirection.Output
                 );
 
                 // Only update timestamp if not already set or expired
-                if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
+                if (_priceListsCacheTimestamp is null || IsPriceListsCacheExpired())
                 {
                     _priceListsCacheTimestamp = DateTime.UtcNow;
                 }
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Loaded {Count} active sales price lists into cache (expires at {ExpiryTime})",
                     _activeSalesPriceLists.Count,
                     _priceListsCacheTimestamp.Value.Add(PriceListsCacheDuration)
@@ -177,14 +163,14 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading active sales price lists");
-                _activeSalesPriceLists = new List<PriceListDto>();
+                logger.LogError(ex, "Error loading active sales price lists");
+                _activeSalesPriceLists = [];
             }
         }
         else
         {
             _priceListCacheHits++;
-            _logger.LogDebug("Cache HIT: Returning {Count} sales price lists from cache",
+            logger.LogDebug("Cache HIT: Returning {Count} sales price lists from cache",
                 _activeSalesPriceLists.Count);
         }
 
@@ -194,24 +180,24 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     /// <inheritdoc />
     public async Task<List<PriceListDto>> GetActivePurchasePriceListsAsync()
     {
-        if (_activePurchasePriceLists == null || IsPriceListsCacheExpired())
+        if (_activePurchasePriceLists is null || IsPriceListsCacheExpired())
         {
             try
             {
-                _logger.LogDebug("Cache MISS: Loading active purchase price lists from API");
+                logger.LogDebug("Cache MISS: Loading active purchase price lists from API");
                 _priceListCacheMisses++;
 
-                _activePurchasePriceLists = await _priceListService.GetActivePriceListsAsync(
+                _activePurchasePriceLists = await priceListService.GetActivePriceListsAsync(
                     PriceListDirection.Input
                 );
 
                 // Only update timestamp if not already set or expired
-                if (_priceListsCacheTimestamp == null || IsPriceListsCacheExpired())
+                if (_priceListsCacheTimestamp is null || IsPriceListsCacheExpired())
                 {
                     _priceListsCacheTimestamp = DateTime.UtcNow;
                 }
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Loaded {Count} active purchase price lists into cache (expires at {ExpiryTime})",
                     _activePurchasePriceLists.Count,
                     _priceListsCacheTimestamp.Value.Add(PriceListsCacheDuration)
@@ -219,14 +205,14 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading active purchase price lists");
-                _activePurchasePriceLists = new List<PriceListDto>();
+                logger.LogError(ex, "Error loading active purchase price lists");
+                _activePurchasePriceLists = [];
             }
         }
         else
         {
             _priceListCacheHits++;
-            _logger.LogDebug("Cache HIT: Returning {Count} purchase price lists from cache",
+            logger.LogDebug("Cache HIT: Returning {Count} purchase price lists from cache",
                 _activePurchasePriceLists.Count);
         }
 
@@ -253,7 +239,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
     public async Task<string?> GetPriceListNameAsync(Guid priceListId)
     {
         // Lazy-load cache dictionary se non esiste o scaduto
-        if (_priceListNamesCache == null || IsPriceListsCacheExpired())
+        if (_priceListNamesCache is null || IsPriceListsCacheExpired())
         {
             await BuildPriceListNamesCacheAsync();
         }
@@ -268,7 +254,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         else
         {
             _priceListCacheMisses++;
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Price list {PriceListId} not found in cache. Cache contains {Count} entries",
                 priceListId,
                 _priceListNamesCache?.Count ?? 0
@@ -283,7 +269,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
     private async Task BuildPriceListNamesCacheAsync()
     {
-        _logger.LogDebug("Building price list names cache dictionary");
+        logger.LogDebug("Building price list names cache dictionary");
 
         var allLists = await GetAllActivePriceListsAsync();
 
@@ -292,7 +278,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
             pl => pl.Name
         );
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Built price list names cache with {Count} entries",
             _priceListNamesCache.Count
         );
@@ -300,7 +286,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
     private bool IsPriceListsCacheExpired()
     {
-        if (_priceListsCacheTimestamp == null)
+        if (_priceListsCacheTimestamp is null)
         {
             return true;
         }
@@ -310,7 +296,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
         if (expired)
         {
-            _logger.LogDebug(
+            logger.LogDebug(
                 "Price lists cache expired (age: {Age}, max: {MaxAge})",
                 age,
                 PriceListsCacheDuration
@@ -329,7 +315,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
         {
             var hitRate = _priceListCacheHits / (double)totalRequests;
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price list cache metrics: {Hits} hits, {Misses} misses, {HitRate:P1} hit rate",
                 _priceListCacheHits,
                 _priceListCacheMisses,
@@ -354,7 +340,7 @@ public class DocumentDialogCacheService : IDocumentDialogCacheService
 
         if (!isValid)
         {
-            _logger.LogDebug("Cache expired (age: {Age:F1} minutes, TTL: {TTL} minutes)",
+            logger.LogDebug("Cache expired (age: {Age:F1} minutes, TTL: {TTL} minutes)",
                 cacheAge.TotalMinutes, CacheMinutes);
         }
 
