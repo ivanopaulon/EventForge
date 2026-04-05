@@ -52,7 +52,7 @@
     "thisMonth": "This month",
     "thisWeek": "This week",
     "timeRange": "Time range",
-    "title": "Activity Feed - EventForge",
+    "title": "Activity Feed - PRYM",
     "today": "Today",
     "viewDetails": "View details"
   },
@@ -243,7 +243,7 @@
     "title": "Chat",
     "typeMessage": "Type a message...",
     "viewReplies": "View replies",
-    "welcomeMessage": "Welcome to EventForge chat",
+    "welcomeMessage": "Welcome to PRYM chat",
     "welcomeTitle": "Welcome"
   },
   "common": {
@@ -870,13 +870,13 @@
     "eventTypeName": "Unique name of the event type",
     "files": {
       "management": "Organize files in folders, rename items, and manage permissions. Use search to quickly find specific files.",
-      "overview": "File management allows you to upload, organize, and share files securely within EventForge.",
+      "overview": "File management allows you to upload, organize, and share files securely within PRYM.",
       "sharing": "Control who can access your files. Set permissions for viewing, downloading, or editing shared content.",
       "upload": "Drag and drop files or click to browse. Supported formats include documents, images, and archives up to 50MB."
     },
     "general": {
       "gettingStarted": "Get started by exploring the available options and tools.",
-      "overview": "Welcome to EventForge! This section provides helpful information about using this feature.",
+      "overview": "Welcome to PRYM! This section provides helpful information about using this feature.",
       "tips": "Helpful tips and tricks for using this feature effectively."
     },
     "iconAriaLabel": "Get help for this feature",
@@ -884,7 +884,7 @@
     "notifications": {
       "actions": "Select one or more notifications to perform bulk actions like marking as read or deleting. You can also click on individual notifications to view more details.",
       "filtering": "Use the filter options to find specific notifications. You can filter by type (info, warning, error), status (read/unread), or date range.",
-      "overview": "The notification center helps you stay informed about important events and updates in EventForge. Here you can view, filter, and manage all your notifications efficiently.",
+      "overview": "The notification center helps you stay informed about important events and updates in PRYM. Here you can view, filter, and manage all your notifications efficiently.",
       "preferences": "Customize which types of notifications you want to receive and how you want to be notified (email, in-app, etc.)."
     },
     "quickStart": "Quick start",
@@ -939,7 +939,7 @@
     "servicesOperational": "Services",
     "subtitle": "Event Management and Monitoring System",
     "systemStatus": "System Status",
-    "title": "EventForge - Home",
+    "title": "PRYM - Home",
     "welcomeBack": "Welcome back"
   },
   "language": {
@@ -1043,7 +1043,7 @@
     "chat": "Chat",
     "configuration": "Configuration",
     "dashboard": "Dashboard",
-    "eventforge": "EventForge",
+    "eventforge": "PRYM",
     "events": "Events",
     "help": "Help & Support",
     "helpCenter": "Help Center",
@@ -1283,8 +1283,8 @@
         "title": "Rich notifications"
       },
       "welcome": {
-        "content": "Learn how to manage your notifications effectively. This center displays all important updates and alerts from EventForge.",
-        "description": "Discover how EventForge's notification system works",
+        "content": "Learn how to manage your notifications effectively. This center displays all important updates and alerts from PRYM.",
+        "description": "Discover how PRYM's notification system works",
         "imageAlt": "Notification center welcome screen",
         "title": "Welcome to Notifications"
       }
@@ -1325,7 +1325,7 @@
         "title": "Manage Users"
       },
       "welcome": {
-        "content": "Access powerful administrative tools to manage the entire EventForge system. Monitor, configure, and maintain system health.",
+        "content": "Access powerful administrative tools to manage the entire PRYM system. Monitor, configure, and maintain system health.",
         "imageAlt": "SuperAdmin dashboard",
         "title": "SuperAdmin Overview"
       }
@@ -1753,8 +1753,8 @@
     "firstName": "First Name",
     "firstNameRequired": "First name is required",
     "forcePasswordChange": "Force password change",
-    "generalHelpContent": "Welcome to EventForge Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.",
-    "generalHelpTitle": "EventForge Help Center",
+    "generalHelpContent": "Welcome to PRYM Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.",
+    "generalHelpTitle": "PRYM Help Center",
     "help": "Help",
     "helpCenter": "Help Center",
     "impersonation": "Impersonation",
@@ -1871,7 +1871,7 @@
     "operationType": "Operation Type",
     "optional": "Optional",
     "optionalDescriptionHelper": "Optional tenant description",
-    "pageTitle": "{0} - EventForge Super Admin",
+    "pageTitle": "{0} - PRYM Super Admin",
     "passwordPolicy": "Password Policy",
     "passwordResetError": "Password reset error",
     "passwordResetSuccess": "Password reset completed successfully",
@@ -2046,7 +2046,7 @@
       "name": "High Contrast"
     },
     "light": {
-      "description": "Modern bright theme with EventForge colors",
+      "description": "Modern bright theme with PRYM colors",
       "name": "Light"
     },
     "lightMode": "Light Mode",

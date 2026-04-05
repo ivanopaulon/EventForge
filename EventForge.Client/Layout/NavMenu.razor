@@ -416,8 +416,8 @@
 
             var parameters = new DialogParameters
             {
-                ["Title"] = TranslationService.GetTranslation("help.generalHelpTitle", "EventForge Help Center"),
-                ["Content"] = TranslationService.GetTranslation("help.generalHelpContent", "Welcome to EventForge Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.")
+                ["Title"] = TranslationService.GetTranslation("help.generalHelpTitle", "PRYM Help Center"),
+                ["Content"] = TranslationService.GetTranslation("help.generalHelpContent", "Welcome to PRYM Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.")
             };
 
             await DialogService.ShowAsync<MudMessageBox>(TranslationService.GetTranslation("help.helpCenter", "Help Center"), parameters, options);

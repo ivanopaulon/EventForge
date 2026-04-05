@@ -9,7 +9,7 @@
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
 
-<PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - EventForge</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - PRYM</PageTitle>
 
 <MudContainer Fixed>
     <!-- Page-level loading overlay -->
@@ -26,7 +26,7 @@
             <MudImage Src="/trace.svg" Width="48" Height="48"></MudImage>
             <MudText Typo="Typo.h5"
                      Align="Align.Center">
-                @TranslationService.GetTranslation("auth.login", "EventForge Login")
+                @TranslationService.GetTranslation("auth.login", "PRYM Login")
             </MudText>
             <MudSpacer/>
         </MudStack>
@@ -162,7 +162,7 @@
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
 
-    // Style per nascondere il MudPaper quando _isLoading è true.
+    // Style per nascondere il MudPaper quando _isLoading ï¿½ true.
     // Uso visibility:hidden invece di display:none per mantenere layout e ridurre flicker.
     private string PaperStyle => _isLoading ? "visibility:hidden;pointer-events:none;" : string.Empty;
 

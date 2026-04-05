@@ -31,15 +31,15 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-        <MudTooltip Text="@($"{(_branding?.ApplicationName ?? "EventForge")} - Torna alla Home")">
+        <MudTooltip Text="@($"{(_branding?.ApplicationName ?? "PRYM")} - Torna alla Home")">
             <MudIconButton Color="Color.Inherit"
                           OnClick="@(() => NavigationManager.NavigateTo("/"))"
                           Size="Size.Large"
                           Class="pa-0"
-                          aria-label="@($"{(_branding?.ApplicationName ?? "EventForge")} - Torna alla Home")"
+                          aria-label="@($"{(_branding?.ApplicationName ?? "PRYM")} - Torna alla Home")"
                           Style="width: auto; height: auto;">
                 <MudImage Src="@(_branding?.LogoUrl ?? "/eventforgetitle.svg")" 
-                          Alt="@($"{(_branding?.ApplicationName ?? "EventForge")} Logo")"
+                          Alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
                           Height="@(_branding?.LogoHeight ?? 40)"
                           ObjectFit="ObjectFit.Contain"
                           Class="mx-2"
@@ -182,7 +182,7 @@
             "/superadmin" => TranslationService.GetTranslation("navigation.superadmin", "Super Admin"),
             var path when path.StartsWith("/superadmin/") => TranslationService.GetTranslation("navigation.superadmin", "Super Admin"),
             var path when path.StartsWith("/admin/") => TranslationService.GetTranslation("navigation.admin", "Administration"),
-            _ => TranslationService.GetTranslation("navigation.eventforge", "EventForge")
+            _ => TranslationService.GetTranslation("navigation.eventforge", "PRYM")
         };
     }
 

@@ -202,7 +202,7 @@ public class BrandingService : IBrandingService
         {
             LogoUrl = "/eventforgetitle.svg",
             LogoHeight = 40,
-            ApplicationName = "EventForge",
+            ApplicationName = "PRYM",
             FaviconUrl = "/trace.svg",
             IsTenantOverride = false,
             TenantId = tenantId

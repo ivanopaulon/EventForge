@@ -159,12 +159,12 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "EventForge API",
+        Title = "PRYM API",
         Version = "v1.0.0",
-        Description = "REST API for EventForge - Event management system with teams, audit logs and comprehensive business management features",
+        Description = "REST API for PRYM - Event management system with teams, audit logs and comprehensive business management features",
         Contact = new OpenApiContact
         {
-            Name = "EventForge API Support",
+            Name = "PRYM API Support",
             Email = "support@eventforge.com"
         },
         License = new OpenApiLicense
@@ -388,9 +388,9 @@ app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
 _ = app.UseSwagger();
 _ = app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "EventForge API v1.0.0");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PRYM API v1.0.0");
     c.RoutePrefix = "swagger"; // Swagger available at /swagger
-    c.DocumentTitle = "EventForge API Documentation";
+    c.DocumentTitle = "PRYM API Documentation";
     c.DisplayRequestDuration();
 });
 

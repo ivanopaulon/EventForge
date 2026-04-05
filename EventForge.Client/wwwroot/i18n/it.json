@@ -52,7 +52,7 @@
     "thisMonth": "Questo mese",
     "thisWeek": "Questa settimana",
     "timeRange": "Intervallo temporale",
-    "title": "Feed Attività - EventForge",
+    "title": "Feed Attività - PRYM",
     "today": "Oggi",
     "viewDetails": "Visualizza dettagli"
   },
@@ -243,7 +243,7 @@
     "title": "Chat",
     "typeMessage": "Scrivi un messaggio...",
     "viewReplies": "Visualizza risposte",
-    "welcomeMessage": "Benvenuto nella chat di EventForge",
+    "welcomeMessage": "Benvenuto nella chat di PRYM",
     "welcomeTitle": "Benvenuto"
   },
   "entity": {
@@ -873,13 +873,13 @@
     "eventTypeName": "Nome univoco del tipo evento",
     "files": {
       "management": "Organizza file in cartelle, rinomina elementi e gestisci permessi. Usa la ricerca per trovare rapidamente file specifici.",
-      "overview": "La gestione file ti permette di caricare, organizzare e condividere file in modo sicuro all'interno di EventForge.",
+      "overview": "La gestione file ti permette di caricare, organizzare e condividere file in modo sicuro all'interno di PRYM.",
       "sharing": "Controlla chi può accedere ai tuoi file. Imposta permessi per visualizzazione, download o modifica del contenuto condiviso.",
       "upload": "Trascina e rilascia file o clicca per sfogliare. I formati supportati includono documenti, immagini e archivi fino a 50MB."
     },
     "general": {
       "gettingStarted": "Inizia esplorando le opzioni e gli strumenti disponibili.",
-      "overview": "Benvenuto in EventForge! Questa sezione fornisce informazioni utili sull'utilizzo di questa funzionalità.",
+      "overview": "Benvenuto in PRYM! Questa sezione fornisce informazioni utili sull'utilizzo di questa funzionalità.",
       "tips": "Suggerimenti utili per utilizzare efficacemente questa funzionalità."
     },
     "iconAriaLabel": "Ottieni aiuto per questa funzionalità",
@@ -887,7 +887,7 @@
     "notifications": {
       "actions": "Seleziona una o più notifiche per eseguire azioni di massa come segnare come lette o eliminare. Puoi anche cliccare su singole notifiche per vedere più dettagli.",
       "filtering": "Usa le opzioni di filtro per trovare notifiche specifiche. Puoi filtrare per tipo (info, avviso, errore), stato (letto/non letto) o intervallo di date.",
-      "overview": "Il centro notifiche ti aiuta a rimanere informato su eventi e aggiornamenti importanti in EventForge. Qui puoi visualizzare, filtrare e gestire tutte le tue notifiche in modo efficiente.",
+      "overview": "Il centro notifiche ti aiuta a rimanere informato su eventi e aggiornamenti importanti in PRYM. Qui puoi visualizzare, filtrare e gestire tutte le tue notifiche in modo efficiente.",
       "preferences": "Personalizza quali tipi di notifiche vuoi ricevere e come vuoi essere notificato (email, in-app, ecc.)."
     },
     "quickStart": "Avvio rapido",
@@ -942,7 +942,7 @@
     "servicesOperational": "Servizi",
     "subtitle": "Sistema di gestione eventi e monitoraggio",
     "systemStatus": "Stato del Sistema",
-    "title": "EventForge - Home",
+    "title": "PRYM - Home",
     "welcomeBack": "Bentornato"
   },
   "language": {
@@ -1046,7 +1046,7 @@
     "chat": "Chat",
     "configuration": "Configurazione",
     "dashboard": "Dashboard",
-    "eventforge": "EventForge",
+    "eventforge": "PRYM",
     "events": "Eventi",
     "help": "Aiuto e Supporto",
     "helpCenter": "Centro Aiuto",
@@ -1286,8 +1286,8 @@
         "title": "Notifiche ricche"
       },
       "welcome": {
-        "content": "Impara come gestire le tue notifiche efficacemente. Questo centro mostra tutti gli aggiornamenti e avvisi importanti da EventForge.",
-        "description": "Scopri come funziona il sistema di notifiche di EventForge",
+        "content": "Impara come gestire le tue notifiche efficacemente. Questo centro mostra tutti gli aggiornamenti e avvisi importanti da PRYM.",
+        "description": "Scopri come funziona il sistema di notifiche di PRYM",
         "imageAlt": "Schermata di benvenuto centro notifiche",
         "title": "Benvenuto nelle Notifiche"
       }
@@ -1328,7 +1328,7 @@
         "title": "Gestisci Utenti"
       },
       "welcome": {
-        "content": "Accedi a potenti strumenti amministrativi per gestire l'intero sistema EventForge. Monitora, configura e mantieni la salute del sistema.",
+        "content": "Accedi a potenti strumenti amministrativi per gestire l'intero sistema PRYM. Monitora, configura e mantieni la salute del sistema.",
         "imageAlt": "Dashboard SuperAdmin",
         "title": "Panoramica SuperAdmin"
       }
@@ -1756,8 +1756,8 @@
     "firstName": "Nome",
     "firstNameRequired": "Il nome è obbligatorio",
     "forcePasswordChange": "Forza cambio password",
-    "generalHelpContent": "Benvenuto nell'Aiuto di EventForge! Usa questa applicazione per gestire eventi, notifiche, chat e altro. Ogni sezione ha il proprio sistema di aiuto con tutorial dettagliati e guide interattive.",
-    "generalHelpTitle": "Centro Aiuto EventForge",
+    "generalHelpContent": "Benvenuto nell'Aiuto di PRYM! Usa questa applicazione per gestire eventi, notifiche, chat e altro. Ogni sezione ha il proprio sistema di aiuto con tutorial dettagliati e guide interattive.",
+    "generalHelpTitle": "Centro Aiuto PRYM",
     "help": "Aiuto",
     "helpCenter": "Centro Aiuto",
     "impersonation": "Impersonificazione",
@@ -1874,7 +1874,7 @@
     "operationType": "Tipo Operazione",
     "optional": "Opzionale",
     "optionalDescriptionHelper": "Descrizione opzionale del tenant",
-    "pageTitle": "{0} - EventForge Super Admin",
+    "pageTitle": "{0} - PRYM Super Admin",
     "passwordPolicy": "Policy Password",
     "passwordResetError": "Errore nel reset password",
     "passwordResetSuccess": "Reset password completato con successo",
@@ -2049,7 +2049,7 @@
       "name": "Alto Contrasto"
     },
     "light": {
-      "description": "Tema moderno e luminoso con i colori di EventForge",
+      "description": "Tema moderno e luminoso con i colori di PRYM",
       "name": "Chiaro"
     },
     "lightMode": "Modalità Chiara",
