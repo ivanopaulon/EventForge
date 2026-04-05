@@ -361,6 +361,29 @@ Write-OK "rapidFailProtection = False"
 # ==============================================================================
 Write-Step "STEP 10 - Sito IIS: $SITE_NAME (porta $SITE_PORT)"
 
+$appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
+
+# ── Binding conflict check ──────────────────────────────────────────────────
+# Se un altro sito ha un binding specifico sulla stessa porta (es. *:7242:localhost),
+# quel binding ha PRIORITA' sul wildcard *:7242: di EventForge e IIS restituisce
+# "Bad Request - Invalid Hostname 400" per qualsiasi richiesta con Host header.
+# Soluzione: rimuovere i binding conflittuali dagli altri siti prima di creare EventForge.
+Write-INFO "Scansione binding conflittuali su porta $SITE_PORT in tutti i siti IIS..."
+$allSites = @(Get-Website -ErrorAction SilentlyContinue)
+$conflictFound = $false
+foreach ($other in ($allSites | Where-Object { $_.Name -ne $SITE_NAME })) {
+    $conflicts = @(Get-WebBinding -Name $other.Name -ErrorAction SilentlyContinue |
+                   Where-Object { $_.bindingInformation -match ":${SITE_PORT}:" })
+    foreach ($cb in $conflicts) {
+        $conflictFound = $true
+        Write-WARN "CONFLITTO: sito '$($other.Name)' usa porta $SITE_PORT con '$($cb.bindingInformation)'"
+        $appcmdResult = & $appcmd set site "$($other.Name)" "/-bindings.[protocol='http',bindingInformation='$($cb.bindingInformation)']" 2>&1
+        Write-OK "Binding rimosso da '$($other.Name)': $appcmdResult"
+    }
+}
+if (-not $conflictFound) { Write-OK "Nessun conflitto trovato su porta $SITE_PORT" }
+
+# ── Rimozione sito esistente ────────────────────────────────────────────────
 if (Test-Path "IIS:\Sites\$SITE_NAME") {
     Write-INFO "Sito '$SITE_NAME' gia esistente. Rimozione e ricreazione..."
     Remove-WebSite -Name $SITE_NAME
@@ -374,6 +397,7 @@ if (!(Test-Path $DEPLOY_PATH)) {
     exit 1
 }
 
+# ── Creazione sito ──────────────────────────────────────────────────────────
 try {
     New-WebSite -Name $SITE_NAME -PhysicalPath $DEPLOY_PATH -ApplicationPool $POOL_NAME -Port $SITE_PORT -IPAddress "*" -Force | Out-Null
     Write-OK "Sito '$SITE_NAME' creato su porta $SITE_PORT"
@@ -383,23 +407,18 @@ try {
     exit 1
 }
 
-# Fix binding: assicura che sia *:PORT: (wildcard hostname) per accettare localhost e qualsiasi hostname
-try {
-    $existingBindings = @(Get-WebBinding -Name $SITE_NAME -Protocol "http")
-    $correctBinding   = "*:${SITE_PORT}:"
-    $hasCorrect       = $existingBindings | Where-Object { $_.bindingInformation -eq $correctBinding }
-    if (-not $hasCorrect) {
-        Write-INFO "Binding attuale: '$($existingBindings.bindingInformation)' - correzione a '$correctBinding'..."
-        foreach ($b in $existingBindings) { Remove-WebBinding -Name $SITE_NAME -Protocol "http" -IPAddress $b.IPAddress -Port $SITE_PORT -HostHeader $b.HostHeader -ErrorAction SilentlyContinue }
-        New-WebBinding -Name $SITE_NAME -Protocol "http" -IPAddress "*" -Port $SITE_PORT -HostHeader "" | Out-Null
-        Write-OK "Binding corretto a: $correctBinding"
-    } else {
-        Write-OK "Binding corretto: $correctBinding"
-    }
-} catch {
-    Write-WARN "Impossibile verificare/correggere il binding: $_"
-}
+# ── Fix binding via appcmd ──────────────────────────────────────────────────
+# New-WebSite puo creare binding con proprieta null internamente (visualizzati come *:7242:
+# ma non abbinati da IIS). appcmd scrive direttamente in applicationHost.config.
+Write-INFO "Fix binding via appcmd..."
+& $appcmd set site "$SITE_NAME" "/-bindings.[protocol='http',bindingInformation='*:${SITE_PORT}:']" 2>&1 | Out-Null
+$addResult = & $appcmd set site "$SITE_NAME" "/+bindings.[protocol='http',bindingInformation='*:${SITE_PORT}:']" 2>&1
+Write-OK "appcmd binding: $addResult"
 
+$finalBinding = (Get-WebBinding -Name $SITE_NAME -Protocol "http" -ErrorAction SilentlyContinue).bindingInformation
+Write-OK "Binding finale: '$finalBinding'"
+
+# ── Avvio sito ─────────────────────────────────────────────────────────────
 try {
     Start-WebSite -Name $SITE_NAME
     Write-OK "Sito avviato"
@@ -523,6 +542,16 @@ if (!$deployOk) {
 $totalFiles = (Get-ChildItem $DEPLOY_PATH -Recurse -File -ErrorAction SilentlyContinue).Count
 Write-INFO "File totali nella cartella deploy: $totalFiles"
 
+# Rimuove wwwroot\web.config generato dal publish: contiene un handler aspNetCore duplicato
+# che punta a un DLL non presente in wwwroot\ e interferisce con IIS inprocess hosting.
+$wwwrootWebConfig = Join-Path $DEPLOY_PATH "wwwroot\web.config"
+if (Test-Path $wwwrootWebConfig) {
+    Remove-Item $wwwrootWebConfig -Force -ErrorAction SilentlyContinue
+    Write-OK "wwwroot\web.config rimosso (non necessario con inprocess hosting)"
+} else {
+    Write-OK "wwwroot\web.config assente (corretto)"
+}
+
 # ==============================================================================
 # STEP 15 - Verifica SQL Server
 # ==============================================================================
@@ -609,14 +638,15 @@ try {
     } catch { }
 }
 
-if ($httpStatus -and $httpStatus -lt 500) {
-    if ($httpStatus -ge 200 -and $httpStatus -lt 300) {
-        Write-OK "HTTP $httpStatus - Sito raggiungibile su $testUrl"
-    } elseif ($httpStatus -ge 300 -and $httpStatus -lt 400) {
-        Write-OK "HTTP $httpStatus - Sito ATTIVO (redirect, es. HTTP->HTTPS - normale)"
-    } else {
-        Write-OK "HTTP $httpStatus - Sito ATTIVO"
-    }
+if ($httpStatus -ge 200 -and $httpStatus -lt 300) {
+    Write-OK "HTTP $httpStatus - Sito raggiungibile su $testUrl"
+} elseif ($httpStatus -ge 300 -and $httpStatus -lt 400) {
+    Write-OK "HTTP $httpStatus - Sito ATTIVO (redirect a /Dashboard/Index - normale)"
+} elseif ($httpStatus -eq 400) {
+    Write-FAIL "HTTP 400 - Bad Request / Invalid Hostname"
+    Write-FAIL "Il binding IIS non risponde a 'localhost:$SITE_PORT'. Rilancia lo script."
+} elseif ($httpStatus -eq 401 -or $httpStatus -eq 403) {
+    Write-OK "HTTP $httpStatus - Sito ATTIVO (autenticazione richiesta - normale)"
 } elseif ($httpStatus -eq 500) {
     Write-FAIL "HTTP 500 - L'app va in errore. Controlla: $DEPLOY_PATH\logs\"
     Write-FAIL "Per debug: imposta stdoutLogEnabled='true' in web.config"
