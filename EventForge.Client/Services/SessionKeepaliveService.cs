@@ -51,15 +51,15 @@ namespace EventForge.Client.Services
         bool IsRunning { get; }
     }
 
-    public class SessionKeepaliveService : ISessionKeepaliveService
+    public class SessionKeepaliveService(
+        IAuthService authService,
+        ILogger<SessionKeepaliveService> logger) : ISessionKeepaliveService
     {
-        private const int KEEPALIVE_INTERVAL_MINUTES = 3; // Refresh interval is much shorter than token lifetime to ensure sliding expiration
-        private const int WARNING_THRESHOLD_MINUTES = 15; // Trigger urgent refresh below 15 minutes (UI shows warning only at <= 10 min)
+        private const int KEEPALIVE_INTERVAL_MINUTES = 3;
+        private const int WARNING_THRESHOLD_MINUTES = 15;
         private const int MAX_RETRIES = 3;
-        private const int INITIAL_RETRY_DELAY_MS = 1000; // 1 second
+        private const int INITIAL_RETRY_DELAY_MS = 1000;
 
-        private readonly IAuthService _authService;
-        private readonly ILogger<SessionKeepaliveService> _logger;
         private Timer? _keepaliveTimer;
         private CancellationTokenSource? _cts;
         private bool _isRunning;
@@ -67,26 +67,19 @@ namespace EventForge.Client.Services
 
         public event Action? OnRefreshSuccess;
         public event Action<string>? OnRefreshFailure;
-        public event Action<int>? OnSessionWarning; // Parameter: minutes remaining
+        public event Action<int>? OnSessionWarning;
 
         public bool IsRunning => _isRunning;
-
-        public SessionKeepaliveService(IAuthService authService, ILogger<SessionKeepaliveService> logger)
-        {
-            _authService = authService;
-            _logger = logger;
-            _consecutiveFailures = 0;
-        }
 
         public void Start()
         {
             if (_isRunning)
             {
-                _logger.LogWarning("SessionKeepaliveService is already running");
+                logger.LogWarning("SessionKeepaliveService is already running");
                 return;
             }
 
-            _logger.LogInformation("Starting SessionKeepaliveService with {IntervalMinutes} minute interval", KEEPALIVE_INTERVAL_MINUTES);
+            logger.LogInformation("Starting SessionKeepaliveService with {IntervalMinutes} minute interval", KEEPALIVE_INTERVAL_MINUTES);
 
             _cts = new CancellationTokenSource();
             _isRunning = true;
@@ -100,18 +93,18 @@ namespace EventForge.Client.Services
                 TimeSpan.FromMinutes(KEEPALIVE_INTERVAL_MINUTES)
             );
 
-            _logger.LogInformation("SessionKeepaliveService started successfully");
+            logger.LogInformation("SessionKeepaliveService started successfully");
         }
 
         public void Stop()
         {
             if (!_isRunning)
             {
-                _logger.LogDebug("SessionKeepaliveService is not running, nothing to stop");
+                logger.LogDebug("SessionKeepaliveService is not running, nothing to stop");
                 return;
             }
 
-            _logger.LogInformation("Stopping SessionKeepaliveService");
+            logger.LogInformation("Stopping SessionKeepaliveService");
 
             _isRunning = false;
             _consecutiveFailures = 0;
@@ -125,7 +118,7 @@ namespace EventForge.Client.Services
             _keepaliveTimer?.Dispose();
             _keepaliveTimer = null;
 
-            _logger.LogInformation("SessionKeepaliveService stopped successfully");
+            logger.LogInformation("SessionKeepaliveService stopped successfully");
         }
 
         private void OnTimerCallback(object? state)
@@ -143,7 +136,7 @@ namespace EventForge.Client.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception in SessionKeepaliveService timer callback");
+                logger.LogError(ex, "Unhandled exception in SessionKeepaliveService timer callback");
             }
         }
 
@@ -157,28 +150,28 @@ namespace EventForge.Client.Services
             try
             {
                 // Check if user is authenticated before attempting refresh
-                var isAuthenticated = await _authService.IsAuthenticatedAsync();
+                var isAuthenticated = await authService.IsAuthenticatedAsync();
                 if (!isAuthenticated)
                 {
-                    _logger.LogDebug("User not authenticated, skipping token refresh");
+                    logger.LogDebug("User not authenticated, skipping token refresh");
                     return;
                 }
 
                 // SLIDING EXPIRATION: Always refresh when authenticated, regardless of time remaining
                 // This ensures the session never expires as long as the user is active
-                var timeToExpiry = await _authService.GetTokenTimeToExpiryAsync();
+                var timeToExpiry = await authService.GetTokenTimeToExpiryAsync();
 
-                _logger.LogInformation("🔄 Starting token refresh cycle. Time to expiry: {TimeToExpiry:F1} minutes",
+                logger.LogInformation("🔄 Starting token refresh cycle. Time to expiry: {TimeToExpiry:F1} minutes",
                     timeToExpiry?.TotalMinutes ?? -1);
 
                 if (timeToExpiry.HasValue)
                 {
-                    _logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.",
+                    logger.LogDebug("Token expires in {Minutes:F1} minutes. Performing sliding expiration refresh.",
                         timeToExpiry.Value.TotalMinutes);
                 }
                 else
                 {
-                    _logger.LogDebug("Token expiry unknown. Attempting refresh.");
+                    logger.LogDebug("Token expiry unknown. Attempting refresh.");
                 }
 
                 // Attempt refresh with retry logic
@@ -192,40 +185,40 @@ namespace EventForge.Client.Services
 
                     if (attempt > 1)
                     {
-                        _logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
+                        logger.LogInformation("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
                             attempt, MAX_RETRIES);
                     }
                     else
                     {
-                        _logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
+                        logger.LogDebug("Token refresh attempt {Attempt}/{MaxRetries} (sliding expiration mode)",
                             attempt, MAX_RETRIES);
                     }
 
                     try
                     {
-                        success = await _authService.RefreshTokenAsync();
+                        success = await authService.RefreshTokenAsync();
 
                         if (success)
                         {
-                            _logger.LogInformation("✅ Token refreshed successfully on attempt {Attempt}. New expiration extended.", attempt);
+                            logger.LogInformation("✅ Token refreshed successfully on attempt {Attempt}. New expiration extended.", attempt);
                             _consecutiveFailures = 0;
                             OnRefreshSuccess?.Invoke();
                             return;
                         }
                         else
                         {
-                            _logger.LogWarning("⚠️ Token refresh returned false on attempt {Attempt}/{MaxRetries}. Check server endpoint availability.",
+                            logger.LogWarning("⚠️ Token refresh returned false on attempt {Attempt}/{MaxRetries}. Check server endpoint availability.",
                                 attempt, MAX_RETRIES);
                         }
                     }
                     catch (HttpRequestException httpEx)
                     {
-                        _logger.LogError(httpEx, "🌐 Network error during token refresh attempt {Attempt}: {Message}",
+                        logger.LogError(httpEx, "🌐 Network error during token refresh attempt {Attempt}: {Message}",
                             attempt, httpEx.Message);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "💥 Unexpected exception during token refresh attempt {Attempt}: {ExceptionType}",
+                        logger.LogError(ex, "💥 Unexpected exception during token refresh attempt {Attempt}: {ExceptionType}",
                             attempt, ex.GetType().Name);
                     }
 
@@ -233,7 +226,7 @@ namespace EventForge.Client.Services
                     if (attempt < MAX_RETRIES)
                     {
                         var delayMs = INITIAL_RETRY_DELAY_MS * (int)Math.Pow(2, attempt - 1);
-                        _logger.LogDebug("Waiting {DelayMs}ms before retry {NextAttempt}", delayMs, attempt + 1);
+                        logger.LogDebug("Waiting {DelayMs}ms before retry {NextAttempt}", delayMs, attempt + 1);
                         await Task.Delay(delayMs, cancellationToken);
                     }
                 }
@@ -241,13 +234,13 @@ namespace EventForge.Client.Services
                 // All retries exhausted
                 _consecutiveFailures++;
                 var errorMessage = $"Token refresh failed after {MAX_RETRIES} attempts (consecutive failures: {_consecutiveFailures})";
-                _logger.LogError(errorMessage);
+                logger.LogError(errorMessage);
                 OnRefreshFailure?.Invoke(errorMessage);
 
                 // If we have too many consecutive failures, log critically but keep the service running
                 if (_consecutiveFailures >= 5)
                 {
-                    _logger.LogCritical("Too many consecutive failures ({Count}), but SessionKeepaliveService will keep retrying",
+                    logger.LogCritical("Too many consecutive failures ({Count}), but SessionKeepaliveService will keep retrying",
                         _consecutiveFailures);
                 }
 
@@ -259,20 +252,20 @@ namespace EventForge.Client.Services
             }
             catch (OperationCanceledException)
             {
-                _logger.LogDebug("Token refresh cancelled");
+                logger.LogDebug("Token refresh cancelled");
             }
             catch (Exception ex)
             {
                 _consecutiveFailures++;
                 var errorMessage = $"Critical error during token refresh: {ex.Message}";
-                _logger.LogError(ex, errorMessage);
+                logger.LogError(ex, errorMessage);
                 OnRefreshFailure?.Invoke(errorMessage);
             }
         }
 
         public void Dispose()
         {
-            _logger.LogDebug("Disposing SessionKeepaliveService");
+            logger.LogDebug("Disposing SessionKeepaliveService");
             Stop();
         }
     }

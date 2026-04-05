@@ -6,28 +6,22 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Client-side service implementation for managing promotions via HTTP calls.
 /// </summary>
-public class PromotionClientService : IPromotionClientService
+public class PromotionClientService(
+    IHttpClientService httpClientService,
+    ILogger<PromotionClientService> logger) : IPromotionClientService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<PromotionClientService> _logger;
     private const string BaseUrl = "api/v1/product-management/promotions";
-
-    public PromotionClientService(IHttpClientService httpClientService, ILogger<PromotionClientService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<PromotionDto>> GetPagedAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<PromotionDto>>(
+            var result = await httpClientService.GetAsync<PagedResult<PromotionDto>>(
                 $"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
 
             return result ?? new PagedResult<PromotionDto>
             {
-                Items = new List<PromotionDto>(),
+                Items = [],
                 TotalCount = 0,
                 Page = page,
                 PageSize = pageSize
@@ -35,7 +29,7 @@ public class PromotionClientService : IPromotionClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotions (page={Page}, pageSize={PageSize})", page, pageSize);
+            logger.LogError(ex, "Error retrieving promotions (page={Page}, pageSize={PageSize})", page, pageSize);
             throw;
         }
     }
@@ -44,11 +38,11 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            return await _httpClientService.GetAsync<PromotionDto>($"{BaseUrl}/{id}", ct);
+            return await httpClientService.GetAsync<PromotionDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotion with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving promotion with ID {Id}", id);
             throw;
         }
     }
@@ -57,12 +51,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<IEnumerable<PromotionDto>>($"{BaseUrl}/active", ct);
+            var result = await httpClientService.GetAsync<IEnumerable<PromotionDto>>($"{BaseUrl}/active", ct);
             return result ?? Enumerable.Empty<PromotionDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active promotions");
+            logger.LogError(ex, "Error retrieving active promotions");
             throw;
         }
     }
@@ -71,12 +65,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreatePromotionDto, PromotionDto>(BaseUrl, dto, ct);
+            var result = await httpClientService.PostAsync<CreatePromotionDto, PromotionDto>(BaseUrl, dto, ct);
             return result ?? throw new InvalidOperationException("Failed to create promotion");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating promotion");
+            logger.LogError(ex, "Error creating promotion");
             throw;
         }
     }
@@ -85,11 +79,11 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdatePromotionDto, PromotionDto>($"{BaseUrl}/{id}", dto, ct);
+            return await httpClientService.PutAsync<UpdatePromotionDto, PromotionDto>($"{BaseUrl}/{id}", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating promotion with ID {Id}", id);
+            logger.LogError(ex, "Error updating promotion with ID {Id}", id);
             throw;
         }
     }
@@ -98,7 +92,7 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -107,7 +101,7 @@ public class PromotionClientService : IPromotionClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting promotion with ID {Id}", id);
+            logger.LogError(ex, "Error deleting promotion with ID {Id}", id);
             throw;
         }
     }
@@ -116,12 +110,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<IEnumerable<PromotionRuleDto>>($"{BaseUrl}/{promotionId}/rules", ct);
+            var result = await httpClientService.GetAsync<IEnumerable<PromotionRuleDto>>($"{BaseUrl}/{promotionId}/rules", ct);
             return result ?? Enumerable.Empty<PromotionRuleDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}", promotionId);
+            logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}", promotionId);
             throw;
         }
     }
@@ -130,12 +124,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules", dto, ct);
+            var result = await httpClientService.PostAsync<CreatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to create promotion rule");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding rule to promotion {PromotionId}", promotionId);
+            logger.LogError(ex, "Error adding rule to promotion {PromotionId}", promotionId);
             throw;
         }
     }
@@ -144,11 +138,11 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}", dto, ct);
+            return await httpClientService.PutAsync<UpdatePromotionRuleDto, PromotionRuleDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
+            logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
             throw;
         }
     }
@@ -157,7 +151,7 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}", ct);
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -166,7 +160,7 @@ public class PromotionClientService : IPromotionClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
+            logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}", ruleId, promotionId);
             throw;
         }
     }
@@ -175,12 +169,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<IEnumerable<PromotionRuleProductDto>>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", ct);
+            var result = await httpClientService.GetAsync<IEnumerable<PromotionRuleProductDto>>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", ct);
             return result ?? Enumerable.Empty<PromotionRuleProductDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products for rule {RuleId}", ruleId);
+            logger.LogError(ex, "Error retrieving products for rule {RuleId}", ruleId);
             throw;
         }
     }
@@ -189,12 +183,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreatePromotionRuleProductDto, PromotionRuleProductDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", dto, ct);
+            var result = await httpClientService.PostAsync<CreatePromotionRuleProductDto, PromotionRuleProductDto>($"{BaseUrl}/{promotionId}/rules/{ruleId}/products", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to add product to rule");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding product to rule {RuleId}", ruleId);
+            logger.LogError(ex, "Error adding product to rule {RuleId}", ruleId);
             throw;
         }
     }
@@ -203,7 +197,7 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}/products/{productId}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{promotionId}/rules/{ruleId}/products/{productId}", ct);
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -212,7 +206,7 @@ public class PromotionClientService : IPromotionClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing product from rule {RuleId}", ruleId);
+            logger.LogError(ex, "Error removing product from rule {RuleId}", ruleId);
             throw;
         }
     }
@@ -222,7 +216,7 @@ public class PromotionClientService : IPromotionClientService
         try
         {
             var dto = new ValidateCouponRequestDto { CouponCode = couponCode };
-            return await _httpClientService.PostAsync<ValidateCouponRequestDto, PromotionDto>($"{BaseUrl}/validate-coupon", dto, ct);
+            return await httpClientService.PostAsync<ValidateCouponRequestDto, PromotionDto>($"{BaseUrl}/validate-coupon", dto, ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound || ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
         {
@@ -230,7 +224,7 @@ public class PromotionClientService : IPromotionClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating coupon code");
+            logger.LogError(ex, "Error validating coupon code");
             throw;
         }
     }
@@ -239,12 +233,12 @@ public class PromotionClientService : IPromotionClientService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<ApplyPromotionRulesDto, PromotionApplicationResultDto>($"{BaseUrl}/apply", dto, ct);
+            var result = await httpClientService.PostAsync<ApplyPromotionRulesDto, PromotionApplicationResultDto>($"{BaseUrl}/apply", dto, ct);
             return result ?? new PromotionApplicationResultDto { Success = false };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying promotions");
+            logger.LogError(ex, "Error applying promotions");
             throw;
         }
     }

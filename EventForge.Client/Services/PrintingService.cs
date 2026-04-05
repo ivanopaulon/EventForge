@@ -48,24 +48,18 @@ namespace EventForge.Client.Services
     /// <summary>
     /// Client-side service for printing operations
     /// </summary>
-    public class PrintingService : IPrintingService
+    public class PrintingService(
+        IHttpClientFactory httpClientFactory,
+        ILogger<PrintingService> logger) : IPrintingService
     {
         private const string BaseUrl = "api/v1/printing";
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<PrintingService> _logger;
-
-        public PrintingService(IHttpClientFactory httpClientFactory, ILogger<PrintingService> logger)
-        {
-            _httpClientFactory = httpClientFactory;
-            _logger = logger;
-        }
 
         /// <inheritdoc />
         public async Task<PrinterDiscoveryResponseDto?> DiscoverPrintersAsync(PrinterDiscoveryRequestDto request)
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/discover", request);
 
                 if (response.IsSuccessStatusCode)
@@ -77,12 +71,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to discover printers. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to discover printers. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error discovering printers");
+                logger.LogError(ex, "Error discovering printers");
                 return null;
             }
         }
@@ -92,7 +86,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/status", request);
 
                 if (response.IsSuccessStatusCode)
@@ -104,12 +98,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to check printer status. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to check printer status. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking printer status");
+                logger.LogError(ex, "Error checking printer status");
                 return null;
             }
         }
@@ -119,7 +113,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/print", request);
 
                 if (response.IsSuccessStatusCode)
@@ -131,12 +125,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to submit print job. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to submit print job. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error submitting print job");
+                logger.LogError(ex, "Error submitting print job");
                 return null;
             }
         }
@@ -146,7 +140,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.GetAsync($"api/printing/jobs/{jobId}");
 
                 if (response.IsSuccessStatusCode)
@@ -163,12 +157,12 @@ namespace EventForge.Client.Services
                     return null;
                 }
 
-                _logger.LogWarning("Failed to get print job status. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to get print job status. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting print job status for job: {JobId}", jobId);
+                logger.LogError(ex, "Error getting print job status for job: {JobId}", jobId);
                 return null;
             }
         }
@@ -178,7 +172,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsync($"api/printing/jobs/{jobId}/cancel", null);
 
                 if (response.IsSuccessStatusCode)
@@ -190,12 +184,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to cancel print job. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to cancel print job. Status: {StatusCode}", response.StatusCode);
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error cancelling print job: {JobId}", jobId);
+                logger.LogError(ex, "Error cancelling print job: {JobId}", jobId);
                 return false;
             }
         }
@@ -205,7 +199,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/test-connection", qzUrl);
 
                 if (response.IsSuccessStatusCode)
@@ -217,12 +211,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to test QZ connection. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to test QZ connection. Status: {StatusCode}", response.StatusCode);
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error testing QZ connection for URL: {QzUrl}", qzUrl);
+                logger.LogError(ex, "Error testing QZ connection for URL: {QzUrl}", qzUrl);
                 return false;
             }
         }
@@ -232,7 +226,7 @@ namespace EventForge.Client.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
                 var response = await httpClient.PostAsJsonAsync("api/printing/version", qzUrl);
 
                 if (response.IsSuccessStatusCode)
@@ -244,12 +238,12 @@ namespace EventForge.Client.Services
                     });
                 }
 
-                _logger.LogWarning("Failed to get QZ version. Status: {StatusCode}", response.StatusCode);
+                logger.LogWarning("Failed to get QZ version. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting QZ version for URL: {QzUrl}", qzUrl);
+                logger.LogError(ex, "Error getting QZ version for URL: {QzUrl}", qzUrl);
                 return null;
             }
         }

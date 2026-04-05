@@ -10,7 +10,7 @@ namespace EventForge.Client.Services
     {
         public static Task<ProductDto?> DebugUpdateProductAsync(this IProductService service, Guid id, UpdateProductDto updateDto)
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            if (service is null) throw new ArgumentNullException(nameof(service));
 
             // If the concrete implementation provides the debug method, call it.
             if (service is ProductService concrete)

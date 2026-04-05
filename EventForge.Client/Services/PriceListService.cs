@@ -6,17 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Service implementation for managing price lists.
 /// </summary>
-public class PriceListService : IPriceListService
+public class PriceListService(
+    IHttpClientService httpClientService,
+    ILogger<PriceListService> logger) : IPriceListService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<PriceListService> _logger;
     private const string BaseUrl = "api/v1/product-management/price-lists";
-
-    public PriceListService(IHttpClientService httpClientService, ILogger<PriceListService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
@@ -27,11 +21,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var queryParams = new List<string>
-            {
+            List<string> queryParams =
+            [
                 $"page={page}",
                 $"pageSize={pageSize}"
-            };
+            ];
 
             if (direction.HasValue)
                 queryParams.Add($"direction={direction.Value}");
@@ -41,12 +35,12 @@ public class PriceListService : IPriceListService
 
             var queryString = string.Join("&", queryParams);
 
-            var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
+            var result = await httpClientService.GetAsync<PagedResult<PriceListDto>>(
                 $"{BaseUrl}?{queryString}", ct);
 
             return result ?? new PagedResult<PriceListDto>
             {
-                Items = new List<PriceListDto>(),
+                Items = [],
                 TotalCount = 0,
                 Page = page,
                 PageSize = pageSize
@@ -54,7 +48,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists with filters");
+            logger.LogError(ex, "Error retrieving price lists with filters");
             throw;
         }
     }
@@ -63,11 +57,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _httpClientService.GetAsync<PriceListDto>($"{BaseUrl}/{id}", ct);
+            return await httpClientService.GetAsync<PriceListDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving price list with ID {Id}", id);
             throw;
         }
     }
@@ -76,11 +70,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _httpClientService.GetAsync<PriceListDetailDto>($"{BaseUrl}/{id}/detail", ct);
+            return await httpClientService.GetAsync<PriceListDetailDto>($"{BaseUrl}/{id}/detail", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list detail with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving price list detail with ID {Id}", id);
             throw;
         }
     }
@@ -89,12 +83,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreatePriceListDto, PriceListDto>(BaseUrl, dto, ct);
+            var result = await httpClientService.PostAsync<CreatePriceListDto, PriceListDto>(BaseUrl, dto, ct);
             return result ?? throw new InvalidOperationException("Failed to create price list");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating price list");
+            logger.LogError(ex, "Error creating price list");
             throw;
         }
     }
@@ -103,11 +97,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdatePriceListDto, PriceListDto>($"{BaseUrl}/{id}", dto, ct);
+            return await httpClientService.PutAsync<UpdatePriceListDto, PriceListDto>($"{BaseUrl}/{id}", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating price list with ID {Id}", id);
+            logger.LogError(ex, "Error updating price list with ID {Id}", id);
             throw;
         }
     }
@@ -116,7 +110,7 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -125,7 +119,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting price list with ID {Id}", id);
+            logger.LogError(ex, "Error deleting price list with ID {Id}", id);
             throw;
         }
     }
@@ -134,12 +128,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<IEnumerable<PriceListDto>>($"{BaseUrl}/event/{eventId}", ct);
-            return result ?? new List<PriceListDto>();
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListDto>>($"{BaseUrl}/event/{eventId}", ct);
+            return result ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists for event {EventId}", eventId);
+            logger.LogError(ex, "Error retrieving price lists for event {EventId}", eventId);
             throw;
         }
     }
@@ -148,12 +142,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-purchases/preview", dto, ct);
+            var result = await httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-purchases/preview", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to preview price list generation");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing price list generation from purchases");
+            logger.LogError(ex, "Error previewing price list generation from purchases");
             throw;
         }
     }
@@ -162,12 +156,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, Guid>($"{BaseUrl}/generate-from-purchases", dto, ct);
+            var result = await httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, Guid>($"{BaseUrl}/generate-from-purchases", dto, ct);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating price list from purchases");
+            logger.LogError(ex, "Error generating price list from purchases");
             throw;
         }
     }
@@ -176,12 +170,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-defaults/preview", dto, ct);
+            var result = await httpClientService.PostAsync<GenerateFromDefaultPricesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-defaults/preview", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to preview price list generation from default prices");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing price list generation from default prices");
+            logger.LogError(ex, "Error previewing price list generation from default prices");
             throw;
         }
     }
@@ -190,12 +184,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<GenerateFromDefaultPricesDto, Guid>($"{BaseUrl}/generate-from-defaults", dto, ct);
+            var result = await httpClientService.PostAsync<GenerateFromDefaultPricesDto, Guid>($"{BaseUrl}/generate-from-defaults", dto, ct);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating price list from default prices");
+            logger.LogError(ex, "Error generating price list from default prices");
             throw;
         }
     }
@@ -204,12 +198,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/{dto.PriceListId}/entries", dto, ct);
+            var result = await httpClientService.PostAsync<CreatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/{dto.PriceListId}/entries", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to add entry to price list");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding entry to price list");
+            logger.LogError(ex, "Error adding entry to price list");
             throw;
         }
     }
@@ -218,12 +212,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/entries/{id}", dto, ct);
+            var result = await httpClientService.PutAsync<UpdatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/entries/{id}", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to update price list entry");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating price list entry with ID {Id}", id);
+            logger.LogError(ex, "Error updating price list entry with ID {Id}", id);
             throw;
         }
     }
@@ -232,7 +226,7 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/entries/{id}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/entries/{id}", ct);
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -241,7 +235,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting price list entry with ID {Id}", id);
+            logger.LogError(ex, "Error deleting price list entry with ID {Id}", id);
             throw;
         }
     }
@@ -259,12 +253,12 @@ public class PriceListService : IPriceListService
                 return 0;
 
             var priceListId = firstEntry.PriceListId;
-            var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
+            var result = await httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error bulk adding entries to price list");
+            logger.LogError(ex, "Error bulk adding entries to price list");
             throw;
         }
     }
@@ -273,11 +267,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            await _httpClientService.PostAsync($"{BaseUrl}/{priceListId}/business-parties", dto, ct);
+            await httpClientService.PostAsync($"{BaseUrl}/{priceListId}/business-parties", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error assigning business party to price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error assigning business party to price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -286,11 +280,11 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unassigning business party {BusinessPartyId} from price list {PriceListId}", businessPartyId, priceListId);
+            logger.LogError(ex, "Error unassigning business party {BusinessPartyId} from price list {PriceListId}", businessPartyId, priceListId);
             throw;
         }
     }
@@ -299,12 +293,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<IEnumerable<PriceListBusinessPartyDto>>($"{BaseUrl}/{priceListId}/business-parties", ct);
-            return result ?? new List<PriceListBusinessPartyDto>();
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListBusinessPartyDto>>($"{BaseUrl}/{priceListId}/business-parties", ct);
+            return result ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting assigned business parties for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error getting assigned business parties for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -313,12 +307,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyAssignmentDto, PriceListBusinessPartyDto>($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", dto, ct);
+            var result = await httpClientService.PutAsync<UpdateBusinessPartyAssignmentDto, PriceListBusinessPartyDto>($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", dto, ct);
             return result ?? throw new InvalidOperationException("Failed to update business party assignment");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating business party assignment for price list {PriceListId}, business party {BusinessPartyId}", priceListId, businessPartyId);
+            logger.LogError(ex, "Error updating business party assignment for price list {PriceListId}, business party {BusinessPartyId}", priceListId, businessPartyId);
             throw;
         }
     }
@@ -327,13 +321,13 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdatePreviewDto>(
+            var result = await httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdatePreviewDto>(
                 $"{BaseUrl}/{priceListId}/bulk-update-preview", dto, ct);
             return result ?? throw new InvalidOperationException("Preview failed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing bulk update for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error previewing bulk update for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -342,13 +336,13 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdateResultDto>(
+            var result = await httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdateResultDto>(
                 $"{BaseUrl}/{priceListId}/bulk-update", dto, ct);
             return result ?? throw new InvalidOperationException("Bulk update failed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying bulk update for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error applying bulk update for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -357,13 +351,13 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<List<CreatePriceListEntryDto>, BulkImportResultDto>(
+            var result = await httpClientService.PostAsync<List<CreatePriceListEntryDto>, BulkImportResultDto>(
                 $"{BaseUrl}/{priceListId}/entries/bulk?replaceExisting={replaceExisting}", entries, ct);
             return result ?? throw new InvalidOperationException("Import failed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error bulk importing entries for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error bulk importing entries for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -372,13 +366,13 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<List<ExportablePriceListEntryDto>>(
+            var result = await httpClientService.GetAsync<List<ExportablePriceListEntryDto>>(
                 $"{BaseUrl}/{priceListId}/export?includeInactive={includeInactive}", ct);
-            return result ?? new List<ExportablePriceListEntryDto>();
+            return result ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting entries for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error exporting entries for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -387,13 +381,13 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<DuplicatePriceListDto, DuplicatePriceListResultDto>(
+            var result = await httpClientService.PostAsync<DuplicatePriceListDto, DuplicatePriceListResultDto>(
                 $"{BaseUrl}/{priceListId}/duplicate", dto, ct);
             return result ?? throw new InvalidOperationException("Duplication failed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error duplicating price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error duplicating price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -404,26 +398,26 @@ public class PriceListService : IPriceListService
         {
             var queryString = $"direction={direction}&status=Active&pageSize=1000";
 
-            _logger.LogDebug("Fetching active price lists: {QueryString}", queryString);
+            logger.LogDebug("Fetching active price lists: {QueryString}", queryString);
 
-            var result = await _httpClientService.GetAsync<PagedResult<PriceListDto>>(
+            var result = await httpClientService.GetAsync<PagedResult<PriceListDto>>(
                 $"{BaseUrl}?{queryString}", ct
             );
 
             if (result == null || result.Items == null)
             {
-                _logger.LogWarning("GetActivePriceListsAsync returned null for direction {Direction}", direction);
-                return new List<PriceListDto>();
+                logger.LogWarning("GetActivePriceListsAsync returned null for direction {Direction}", direction);
+                return [];
             }
 
-            _logger.LogInformation("Fetched active price lists for direction: " + direction);
+            logger.LogInformation("Fetched active price lists for direction: " + direction);
 
             return result.Items.ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching active price lists for direction {Direction}", direction);
-            return new List<PriceListDto>();
+            logger.LogError(ex, "Error fetching active price lists for direction {Direction}", direction);
+            return [];
         }
     }
 
@@ -434,7 +428,7 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var queryParams = new List<string>();
+            List<string> queryParams = [];
             if (type.HasValue)
                 queryParams.Add($"type={type.Value}");
 
@@ -444,12 +438,12 @@ public class PriceListService : IPriceListService
 
             var url = $"api/v1/product-management/business-parties/{businessPartyId}/price-lists{queryString}";
 
-            var result = await _httpClientService.GetAsync<IEnumerable<PriceListDto>>(url, ct);
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListDto>>(url, ct);
             return result ?? Enumerable.Empty<PriceListDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            logger.LogError(ex,
                 "Error fetching price lists for business party {BusinessPartyId}",
                 businessPartyId);
             return Enumerable.Empty<PriceListDto>();
