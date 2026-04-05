@@ -50,11 +50,11 @@
                 if ((s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected) && _dialogRef is null)
                 {
                     _dialogRef = await DialogService.ShowAsync<ConnectionLostSystemDialog>(string.Empty, _options);
-                    _ = _dialogRef.Result.ContinueWith(_ =>
+                    _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() =>
                     {
                         _dialogRef = null;
                         _problemDetectedAt = null;
-                    });
+                    }));
                 }
             });
         }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);

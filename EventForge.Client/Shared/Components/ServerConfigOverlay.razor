@@ -37,7 +37,7 @@
     {
         if (_dialogRef is not null) return;
         _dialogRef = await DialogService.ShowAsync<ServerConfigSystemDialog>(string.Empty, _options);
-        _ = _dialogRef.Result.ContinueWith(_ => _dialogRef = null);
+        _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => _dialogRef = null));
     }
 
     private async Task CloseDialogAsync()
