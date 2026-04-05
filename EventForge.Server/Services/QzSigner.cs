@@ -9,6 +9,7 @@ namespace EventForge.Server.Services;
 /// </summary>
 public class QzSigner(ILogger<QzSigner> logger, IConfiguration configuration)
 {
+    private readonly IConfiguration _configuration = configuration;
 
     private readonly string _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH")
             ?? Path.Combine(AppContext.BaseDirectory, "private-key.pem");

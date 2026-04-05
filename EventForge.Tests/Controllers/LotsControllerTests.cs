@@ -40,8 +40,7 @@ public class LotsControllerTests
 
         _controller = new LotsController(
             _mockService.Object,
-            _mockTenantContext.Object,
-            _mockLogger.Object)
+            _mockTenantContext.Object)
         {
             ControllerContext = new ControllerContext
             {

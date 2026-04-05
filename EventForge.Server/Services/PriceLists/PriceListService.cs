@@ -17,6 +17,7 @@ public class PriceListService(
     IPriceListBusinessPartyService businessPartyService,
     IPriceListBulkOperationsService bulkOperationsService) : IPriceListService
 {
+    private readonly IUnitConversionService _unitConversionService = unitConversionService;
 
     public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {

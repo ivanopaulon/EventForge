@@ -13,7 +13,6 @@ public class TenantUserManagementService(
     ITenantContext tenantContext,
     IPasswordService passwordService,
     IAuditLogService auditLogService,
-    IHubContext<AuditLogHub> hubContext,
     ILogger<TenantUserManagementService> logger) : ITenantUserManagementService
 {
 

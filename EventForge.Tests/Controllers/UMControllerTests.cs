@@ -80,7 +80,6 @@ public class ProductManagementControllerUMTests
             _mockPriceListGenerationService.Object,
             _mockPriceCalculationService.Object,
             _mockPriceListBusinessPartyService.Object,
-            _mockPriceListBulkOperationsService.Object,
             _mockPromotionService.Object,
             _mockBarcodeService.Object,
             _mockDocumentHeaderService.Object,

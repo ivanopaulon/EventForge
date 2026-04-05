@@ -52,7 +52,6 @@ public class EntityManagementControllerTests
             _mockReferenceService.Object,
             _mockClassificationNodeService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object,
             _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext

@@ -12,7 +12,6 @@ namespace EventForge.Server.Services.Warehouse;
 public class InventoryBulkSeedService(
     EventForgeDbContext context,
     IDocumentHeaderService documentHeaderService,
-    IStorageLocationService storageLocationService,
     ITenantContext tenantContext,
     ILogger<InventoryBulkSeedService> logger) : IInventoryBulkSeedService
 {

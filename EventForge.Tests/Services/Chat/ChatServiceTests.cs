@@ -351,8 +351,8 @@ public class ChatServiceTests : IDisposable
         Assert.Equal("Updated content", result.Content);
         Assert.True(result.IsEdited);
         Assert.NotNull(result.EditedAt);
-        Assert.True(result.Metadata.ContainsKey("EditReason"));
-        Assert.Equal("Test edit", result.Metadata["EditReason"].ToString());
+        Assert.True(result.Metadata!.ContainsKey("EditReason"));
+        Assert.Equal("Test edit", result.Metadata["EditReason"]?.ToString());
     }
 
     [Fact]
@@ -445,8 +445,8 @@ public class ChatServiceTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("it-IT", result.Locale);
-        Assert.Contains("LocalizedTo", result.Metadata.Keys);
+        Assert.Equal("it-IT", result!.Locale);
+        Assert.Contains("LocalizedTo", result!.Metadata!.Keys);
     }
 
     [Fact]

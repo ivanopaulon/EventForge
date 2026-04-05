@@ -13,12 +13,6 @@ public class DocumentTemplateService(
     ILogger<DocumentTemplateService> logger) : IDocumentTemplateService
 {
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentTemplateService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="logger">Logger</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {

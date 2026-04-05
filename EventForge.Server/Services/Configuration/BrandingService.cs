@@ -9,7 +9,6 @@ namespace EventForge.Server.Services.Configuration;
 /// </summary>
 public class BrandingService(
     EventForgeDbContext context,
-    ITenantContext tenantContext,
     IConfigurationService configurationService,
     IMemoryCache cache,
     ILogger<BrandingService> logger,

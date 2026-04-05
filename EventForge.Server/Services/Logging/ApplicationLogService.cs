@@ -6,8 +6,7 @@ namespace EventForge.Server.Services.Logging;
 /// Service implementation for managing application logs.
 /// </summary>
 public class ApplicationLogService(
-    EventForgeDbContext context,
-    ILogger<ApplicationLogService> logger) : IApplicationLogService
+    EventForgeDbContext context) : IApplicationLogService
 {
 
     /// <summary>

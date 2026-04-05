@@ -20,21 +20,6 @@ public class DocumentFacade(
     ITenantContext tenantContext,
     ILogger<DocumentFacade> logger) : IDocumentFacade
 {
-
-    /// <summary>
-    /// Initializes a new instance of the DocumentFacade
-    /// </summary>
-    /// <param name="attachmentService">Document attachment service</param>
-    /// <param name="commentService">Document comment service</param>
-    /// <param name="templateService">Document template service</param>
-    /// <param name="workflowService">Document workflow service</param>
-    /// <param name="analyticsService">Document analytics service</param>
-    /// <param name="documentHeaderService">Document header service</param>
-    /// <param name="documentTypeService">Document type service</param>
-    /// <param name="documentStatusService">Document status service</param>
-    /// <param name="context">Database context</param>
-    /// <param name="tenantContext">Tenant context</param>
-    /// <param name="logger">Logger instance</param>
     // Attachment operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentAttachmentDto>> GetAttachmentsAsync(

@@ -13,12 +13,6 @@ public class DocumentWorkflowService(
     ILogger<DocumentWorkflowService> logger) : IDocumentWorkflowService
 {
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentWorkflowService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="logger">Logger</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentWorkflowDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {

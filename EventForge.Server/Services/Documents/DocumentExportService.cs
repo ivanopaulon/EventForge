@@ -18,7 +18,6 @@ namespace EventForge.Server.Services.Documents;
 /// </summary>
 public class DocumentExportService(
     EventForgeDbContext context,
-    IDocumentHeaderService documentHeaderService,
     IDocumentAccessLogService accessLogService,
     ILogger<DocumentExportService> logger,
     ITenantContext tenantContext) : IDocumentExportService

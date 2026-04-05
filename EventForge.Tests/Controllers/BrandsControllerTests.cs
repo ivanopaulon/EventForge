@@ -43,9 +43,7 @@ public class BrandsControllerTests
 
         _controller = new BrandsController(
             _mockService.Object,
-            _mockTenantContext.Object,
-            _mockLogger.Object,
-            _mockCacheInvalidation.Object)
+            _mockTenantContext.Object)
         {
             ControllerContext = new ControllerContext
             {

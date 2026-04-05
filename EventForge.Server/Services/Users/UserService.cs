@@ -7,8 +7,7 @@ namespace EventForge.Server.Services.Users;
 /// </summary>
 public class UserService(
     EventForgeDbContext context,
-    ITenantContext tenantContext,
-    ILogger<UserService> logger) : IUserService
+    ITenantContext tenantContext) : IUserService
 {
 
     /// <summary>

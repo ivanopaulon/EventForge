@@ -13,13 +13,6 @@ public class DocumentCommentService(
     ILogger<DocumentCommentService> logger) : IDocumentCommentService
 {
 
-    /// <summary>
-    /// Initializes a new instance of the DocumentCommentService
-    /// </summary>
-    /// <param name="context">Database context</param>
-    /// <param name="auditLogService">Audit log service</param>
-    /// <param name="tenantContext">Tenant context service</param>
-    /// <param name="logger">Logger instance</param>
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentCommentDto>> GetDocumentHeaderCommentsAsync(
         Guid documentHeaderId,

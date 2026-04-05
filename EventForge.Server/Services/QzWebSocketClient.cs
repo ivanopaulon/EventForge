@@ -12,6 +12,7 @@ public class QzWebSocketClient(
     QzSigner signer,
     IConfiguration configuration) : IDisposable
 {
+    private readonly IConfiguration _configuration = configuration;
 
     private readonly string _wsUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181";
     private readonly string _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH")

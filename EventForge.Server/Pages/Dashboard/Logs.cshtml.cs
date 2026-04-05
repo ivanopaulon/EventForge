@@ -15,7 +15,7 @@ namespace EventForge.Server.Pages.Dashboard;
 public class LogsModel(ILogManagementService logManagementService, ILogger<LogsModel> logger) : PageModel
 {
     public List<SystemLogDto> Logs { get; set; } = [];
-    public int TotalCount { get; set; }
+    public long TotalCount { get; set; }
     public int TotalPages { get; set; }
     public int PageSize { get; set; } = 50;
 

@@ -9,7 +9,6 @@ namespace EventForge.Server.Services.Warehouse;
 /// </summary>
 public class StockAlertService(
     EventForgeDbContext context,
-    IAuditLogService auditLogService,
     ITenantContext tenantContext,
     ILogger<StockAlertService> logger) : IStockAlertService
 {

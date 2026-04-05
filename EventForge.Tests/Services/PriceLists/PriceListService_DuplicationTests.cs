@@ -588,7 +588,7 @@ public class PriceListService_DuplicationTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.NewPriceList.Code);
-        Assert.True(result.NewPriceList.Code!.StartsWith("TEST-LISTINO"));
+        Assert.StartsWith("TEST-LISTINO", result.NewPriceList.Code);
     }
 
     #endregion

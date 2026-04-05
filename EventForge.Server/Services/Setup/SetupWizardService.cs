@@ -10,7 +10,6 @@ namespace EventForge.Server.Services.Setup;
 /// Implementation of setup wizard service.
 /// </summary>
 public class SetupWizardService(
-    IConfiguration configuration,
     IWebHostEnvironment environment,
     IServiceProvider serviceProvider,
     ILogger<SetupWizardService> logger) : ISetupWizardService

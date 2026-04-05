@@ -57,7 +57,6 @@ public class FinancialManagementControllerTests
             _mockVatRateService.Object,
             _mockVatNatureService.Object,
             _mockTenantContext.Object,
-            _mockLogger.Object,
             _mockCacheInvalidation.Object)
         {
             ControllerContext = new ControllerContext

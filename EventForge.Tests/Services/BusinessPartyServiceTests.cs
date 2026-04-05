@@ -22,7 +22,7 @@ public class BusinessPartyServiceTests
         _mockHttpClient = new Mock<IHttpClientService>();
         _mockLogger = new Mock<ILogger<BusinessPartyService>>();
         _mockLoadingDialog = new Mock<ILoadingDialogService>();
-        _service = new BusinessPartyService(_mockHttpClient.Object, _mockLogger.Object, _mockLoadingDialog.Object);
+        _service = new BusinessPartyService(_mockHttpClient.Object, _mockLogger.Object);
     }
 
     [Fact]
