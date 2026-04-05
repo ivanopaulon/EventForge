@@ -23,7 +23,7 @@ public class BrandingService : IBrandingService
     // Default values
     private const string DEFAULT_LOGO_URL = "/eventforgetitle.svg";
     private const int DEFAULT_LOGO_HEIGHT = 40;
-    private const string DEFAULT_APPLICATION_NAME = "EventForge";
+    private const string DEFAULT_APPLICATION_NAME = "PRYM";
     private const string DEFAULT_FAVICON_URL = "/trace.svg";
 
     // File upload constants

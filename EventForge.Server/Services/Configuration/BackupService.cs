@@ -140,7 +140,7 @@ public class BackupService : IBackupService
         }
 
         var fileStream = new FileStream(backup.FilePath, FileMode.Open, FileAccess.Read);
-        var fileName = $"EventForge_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
+        var fileName = $"PRYM_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
 
         return (fileStream, fileName);
     }
@@ -190,7 +190,7 @@ public class BackupService : IBackupService
             var backupDir = Path.Combine(_environment.ContentRootPath, "Backups");
             _ = Directory.CreateDirectory(backupDir);
 
-            var fileName = $"EventForge_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
+            var fileName = $"PRYM_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
             var filePath = Path.Combine(backupDir, fileName);
 
             using (var fileStream = new FileStream(filePath, FileMode.Create))

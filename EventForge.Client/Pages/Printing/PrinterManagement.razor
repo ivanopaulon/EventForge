@@ -361,13 +361,13 @@ Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
 Status: {printer.Status}
 Type: {printer.Type}
 
-EventForge Print Test";
+PRYM Print Test";
 
             var printJob = new PrintJobDto
             {
                 PrinterId = printer.Id,
                 PrinterName = printer.Name,
-                Title = "EventForge Test Page",
+                Title = "PRYM Test Page",
                 ContentType = PrintContentType.Raw,
                 Content = testContent,
                 Priority = PrintJobPriority.Normal

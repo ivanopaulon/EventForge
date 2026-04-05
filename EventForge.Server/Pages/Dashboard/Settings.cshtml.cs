@@ -87,8 +87,8 @@ public class SettingsModel : PageModel
             var testDto = new SmtpTestDto
             {
                 ToEmail = testEmail,
-                Subject = "EventForge SMTP Test",
-                Body = "Questo è un messaggio di test inviato da EventForge Server Dashboard."
+                Subject = "PRYM SMTP Test",
+                Body = "Questo è un messaggio di test inviato da PRYM Server Dashboard."
             };
             SmtpTestResult = await _configService.TestSmtpAsync(testDto, HttpContext.RequestAborted);
         }
@@ -171,7 +171,7 @@ public class SettingsModel : PageModel
             SmtpUseSsl = (await _configService.GetValueAsync("SMTP_EnableSSL", "true", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
             SmtpUsername = await _configService.GetValueAsync("SMTP_Username", "", ct);
             SmtpFromEmail = await _configService.GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", ct);
-            SmtpFromName = await _configService.GetValueAsync("SMTP_FromName", "EventForge", ct);
+            SmtpFromName = await _configService.GetValueAsync("SMTP_FromName", "PRYM", ct);
             // Password not loaded on GET for security
 
             LogLevel = await _configService.GetValueAsync("Logging_Level", "Information", ct);

@@ -160,7 +160,7 @@ public class BrandingModel : PageModel
     {
         [Required]
         [StringLength(100)]
-        public string ApplicationName { get; set; } = "EventForge";
+        public string ApplicationName { get; set; } = "PRYM";
 
         [Range(20, 200)]
         public int LogoHeight { get; set; } = 40;

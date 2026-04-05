@@ -295,7 +295,7 @@ public class ConfigurationService : IConfigurationService
             var smtpPassword = await GetValueAsync("SMTP_Password", "", ct);
             var smtpEnableSsl = bool.Parse(await GetValueAsync("SMTP_EnableSSL", "true", ct));
             var smtpFromEmail = await GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", ct);
-            var smtpFromName = await GetValueAsync("SMTP_FromName", "EventForge System", ct);
+            var smtpFromName = await GetValueAsync("SMTP_FromName", "PRYM System", ct);
 
             using var client = new SmtpClient(smtpServer, smtpPort);
             client.EnableSsl = smtpEnableSsl;
