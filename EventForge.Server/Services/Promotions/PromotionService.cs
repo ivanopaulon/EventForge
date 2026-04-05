@@ -654,7 +654,9 @@ public class PromotionService : IPromotionService
     private bool IsRuleApplicable(PromotionRule rule, ApplyPromotionRulesDto applyDto)
     {
         // Check Business Party Groups (support both new and deprecated field)
+#pragma warning disable CS0618
         var groupIdsToCheck = rule.BusinessPartyGroupIds ?? rule.CustomerGroupIds;
+#pragma warning restore CS0618
 
         if (groupIdsToCheck != null && groupIdsToCheck.Any())
         {

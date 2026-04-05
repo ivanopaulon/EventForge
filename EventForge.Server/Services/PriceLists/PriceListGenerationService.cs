@@ -1103,7 +1103,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             // 4. Copia le voci di prezzo (se richiesto)
             if (dto.CopyPrices)
             {
-                var pricesToCopy = sourcePriceList.ProductPrices
+                var pricesToCopy = (sourcePriceList.ProductPrices ?? [])
                     .Where(pp => !pp.IsDeleted && pp.Status == PriceListEntryStatus.Active);
 
                 // Applica filtri
@@ -1121,6 +1121,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                 if (dto.FilterByCategoryIds?.Any() == true)
                 {
                     pricesToCopy = pricesToCopy.Where(pp =>
+                        pp.Product != null &&
                         pp.Product.CategoryNodeId.HasValue &&
                         dto.FilterByCategoryIds.Contains(pp.Product.CategoryNodeId.Value));
                 }

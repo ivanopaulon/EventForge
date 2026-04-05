@@ -203,7 +203,9 @@ public class ProductGeneratorService : IProductGeneratorService
             .RuleFor(p => p.ShortDescription, f => f.Commerce.ProductAdjective())
             .RuleFor(p => p.Description, f => f.Lorem.Sentence(10))
             .RuleFor(p => p.Code, f => $"TEST-{f.Random.AlphaNumeric(8).ToUpper()}")
+#pragma warning disable CS0618
             .RuleFor(p => p.ImageUrl, f => f.Image.PicsumUrl(400, 400))
+#pragma warning restore CS0618
             .RuleFor(p => p.Status, f => f.PickRandom<EventForge.Server.Data.Entities.Products.ProductStatus>())
             .RuleFor(p => p.IsVatIncluded, f => f.Random.Bool())
             .RuleFor(p => p.DefaultPrice, f => f.Random.Decimal(1, 1000))

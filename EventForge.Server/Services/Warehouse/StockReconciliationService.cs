@@ -867,7 +867,7 @@ public class StockReconciliationService : IStockReconciliationService
                 {
                     await _stockMovementService.CreateMovementsBatchAsync(
                         movementsToCreate.Select(m => m.Dto),
-                        currentUser,
+                        currentUser!,
                         cancellationToken);
 
                     result.MovementsCreated += movementsToCreate.Count;
@@ -1001,9 +1001,8 @@ public class StockReconciliationService : IStockReconciliationService
     ///    creates a new record capped at 0 to avoid persisting negative balances when the
     ///    document history is incomplete.
     /// NOTE: The quantity of any <em>existing</em> Stock row is intentionally NOT overridden
-    /// here — Phase 2 (<see cref="UpdateStockLevelsForMovementAsync"/>) already applied the
-    /// correct delta.  Overriding with an all-time movement net would erase any initial
-    /// inventory that was set outside the document system.
+    /// here — Phase 2 already applied the correct delta.  Overriding with an all-time movement
+    /// net would erase any initial inventory that was set outside the document system.
     /// </summary>
     private async Task RecalculateStockForAffectedPairsAsync(
         HashSet<(Guid ProductId, Guid LocationId)> pairs,

@@ -190,7 +190,7 @@ public class LicenseDetailModel : PageModel
 
             return RedirectToPage("/Dashboard/Licenses");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
             throw;

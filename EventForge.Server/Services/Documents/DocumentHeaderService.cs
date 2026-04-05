@@ -972,7 +972,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 if (docType?.IsStockIncrease == true)
                 {
                     await EnsureProductSupplierAsync(
-                        row.ProductId.Value,
+                        row.ProductId!.Value,
                         documentHeader.BusinessPartyId,
                         row.UnitPrice,
                         currentUser,
@@ -1021,7 +1021,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                             if (documentHeader.DocumentType.IsStockIncrease)
                             {
                                 await _stockMovementService.ProcessInboundMovementAsync(
-                                    productId: row.ProductId.Value,
+                                    productId: row.ProductId!.Value,
                                     toLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
                                     unitCost: row.UnitPrice,
@@ -1037,7 +1037,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                             else
                             {
                                 await _stockMovementService.ProcessOutboundMovementAsync(
-                                    productId: row.ProductId.Value,
+                                    productId: row.ProductId!.Value,
                                     fromLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
                                     documentHeaderId: documentHeader.Id,
@@ -1179,7 +1179,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     if (row.DocumentHeader.DocumentType.IsStockIncrease)
                                     {
                                         await _stockMovementService.ProcessInboundMovementAsync(
-                                            productId: row.ProductId.Value,
+                                            productId: row.ProductId!.Value,
                                             toLocationId: storageLocation.Id,
                                             quantity: delta,
                                             unitCost: row.UnitPrice,
@@ -1193,7 +1193,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     else
                                     {
                                         await _stockMovementService.ProcessOutboundMovementAsync(
-                                            productId: row.ProductId.Value,
+                                            productId: row.ProductId!.Value,
                                             fromLocationId: storageLocation.Id,
                                             quantity: delta,
                                             documentHeaderId: row.DocumentHeader.Id,
@@ -1211,7 +1211,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     if (row.DocumentHeader.DocumentType.IsStockIncrease)
                                     {
                                         await _stockMovementService.ProcessOutboundMovementAsync(
-                                            productId: row.ProductId.Value,
+                                            productId: row.ProductId!.Value,
                                             fromLocationId: storageLocation.Id,
                                             quantity: absDelta,
                                             documentHeaderId: row.DocumentHeader.Id,
@@ -1224,7 +1224,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     else
                                     {
                                         await _stockMovementService.ProcessInboundMovementAsync(
-                                            productId: row.ProductId.Value,
+                                            productId: row.ProductId!.Value,
                                             toLocationId: storageLocation.Id,
                                             quantity: absDelta,
                                             unitCost: row.UnitPrice,
@@ -1438,7 +1438,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     // Create inbound movement
                     await _stockMovementService.ProcessInboundMovementAsync(
-                        productId: row.ProductId.Value,
+                        productId: row.ProductId!.Value,
                         toLocationId: storageLocation.Id,
                         quantity: row.Quantity,
                         unitCost: row.UnitPrice,
@@ -1452,7 +1452,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
-                        row.ProductId.Value, row.Quantity, documentHeader.Id);
+                        row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
                 // For stock decrease documents (sales, deliveries)
                 else
@@ -1483,7 +1483,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     // Check if sufficient stock is available
                     var availableStock = await _context.Stocks
-                        .Where(s => s.ProductId == row.ProductId.Value
+                        .Where(s => s.ProductId == row.ProductId!.Value
                                  && s.StorageLocationId == storageLocation.Id
                                  && !s.IsDeleted)
                         .SumAsync(s => s.Quantity - s.ReservedQuantity, cancellationToken);
@@ -1491,13 +1491,13 @@ public class DocumentHeaderService : IDocumentHeaderService
                     if (availableStock < row.Quantity)
                     {
                         _logger.LogWarning("Insufficient stock for product {ProductId} at location {LocationId}. Available: {Available}, Required: {Required}.",
-                            row.ProductId.Value, storageLocation.Id, availableStock, row.Quantity);
+                            row.ProductId!.Value, storageLocation.Id, availableStock, row.Quantity);
                         // Continue processing but log the warning
                     }
 
                     // Create outbound movement
                     await _stockMovementService.ProcessOutboundMovementAsync(
-                        productId: row.ProductId.Value,
+                        productId: row.ProductId!.Value,
                         fromLocationId: storageLocation.Id,
                         quantity: row.Quantity,
                         lotId: null,
@@ -1510,7 +1510,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         cancellationToken: cancellationToken);
 
                     _logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
-                        row.ProductId.Value, row.Quantity, documentHeader.Id);
+                        row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
             }
 
@@ -1622,7 +1622,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
             else
             {
-                var tenantId = _tenantContext.CurrentTenantId.Value;
+                var tenantId = _tenantContext.CurrentTenantId!.Value;
                 _context.Set<ProductSupplier>().Add(new ProductSupplier
                 {
                     Id = Guid.NewGuid(),

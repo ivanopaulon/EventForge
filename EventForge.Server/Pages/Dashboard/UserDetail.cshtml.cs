@@ -175,7 +175,7 @@ public class UserDetailModel : PageModel
 
             return RedirectToPage("/Dashboard/Users");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
             throw;

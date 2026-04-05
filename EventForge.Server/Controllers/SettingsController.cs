@@ -191,7 +191,7 @@ public class SettingsController(
             EntityType = l.EntityType,
             EntityId = l.EntityId,
             Action = l.Action,
-            Description = l.Description,
+            Description = l.Description ?? string.Empty,
             OldValue = l.OldValue,
             NewValue = l.NewValue,
             Details = l.Details,
@@ -413,7 +413,7 @@ public class SettingsController(
                 else
                 {
                     // Preserve all other sections unchanged
-                    updatedConfig[property.Name] = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                    updatedConfig[property.Name] = JsonSerializer.Deserialize<object>(property.Value.GetRawText())!;
                 }
             }
 

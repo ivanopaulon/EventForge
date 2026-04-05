@@ -3260,6 +3260,7 @@ public class WarehouseManagementController : BaseApiController
 
     /// <summary>
     /// Export all warehouses to Excel or CSV (Admin/SuperAdmin only)
+    /// </summary>
     /// <param name="format">Export format: excel or csv (default: excel)</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>File download (Excel or CSV)</returns>

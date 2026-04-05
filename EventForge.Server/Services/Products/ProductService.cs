@@ -724,13 +724,13 @@ public class ProductService : IProductService
             var productCode = await _context.ProductCodes
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.VatRate)       // ✅ Include VatRate for continuous scan
+                    .ThenInclude(p => p!.VatRate)       // ✅ Include VatRate for continuous scan
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.UnitOfMeasure) // ✅ Include UnitOfMeasure for continuous scan
+                    .ThenInclude(p => p!.UnitOfMeasure) // ✅ Include UnitOfMeasure for continuous scan
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.Brand)         // Existing include
+                    .ThenInclude(p => p!.Brand)         // Existing include
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.ImageDocument) // Include image document for thumbnails
+                    .ThenInclude(p => p!.ImageDocument) // Include image document for thumbnails
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productCode?.Product == null || productCode.Product.IsDeleted)
@@ -2415,9 +2415,9 @@ public class ProductService : IProductService
             var productCode = await _context.ProductCodes
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.Brand)
+                    .ThenInclude(p => p!.Brand)
                 .Include(pc => pc.Product)
-                    .ThenInclude(p => p.VatRate)
+                    .ThenInclude(p => p!.VatRate)
                 .Include(pc => pc.ProductUnit)
                     .ThenInclude(pu => pu!.UnitOfMeasure)
                 .FirstOrDefaultAsync(pc => pc.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);

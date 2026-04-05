@@ -95,7 +95,7 @@ public static class MappingExtensions
             Id = Guid.NewGuid(),
             DocumentTypeId = dto.DocumentTypeId,
             Series = dto.Series,
-            Number = dto.Number,
+            Number = dto.Number ?? string.Empty,
             Date = dto.Date,
             BusinessPartyId = dto.BusinessPartyId,
             CustomerName = dto.CustomerName,

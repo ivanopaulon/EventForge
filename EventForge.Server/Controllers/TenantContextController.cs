@@ -41,6 +41,7 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// Switches to a different tenant context (super admin only).
     /// </summary>
     /// <param name="request">Tenant switch request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success message with new tenant ID</returns>
     /// <response code="200">Tenant context switched successfully</response>
     /// <response code="400">If the request is invalid</response>
@@ -72,6 +73,7 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// Starts impersonating a user (super admin only).
     /// </summary>
     /// <param name="request">Impersonation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     [HttpPost("start-impersonation")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
