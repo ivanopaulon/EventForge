@@ -18,7 +18,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/warehouse")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class WarehouseManagementController : BaseApiController
+public class WarehouseManagementController(
+    IWarehouseFacade warehouseFacade,
+    ITenantContext tenantContext,
+    ILogger<WarehouseManagementController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
     // PERFORMANCE PROTECTION: Maximum page size for bulk operations to prevent performance issues
     // Large page sizes can cause:
@@ -29,23 +33,6 @@ public class WarehouseManagementController : BaseApiController
     // COMPLIANCE: This limit aligns with database performance best practices
     // and prevents accidental DoS-style resource consumption.
     private const int MaxBulkOperationPageSize = 1000;
-
-    private readonly IWarehouseFacade _warehouseFacade;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<WarehouseManagementController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public WarehouseManagementController(
-        IWarehouseFacade warehouseFacade,
-        ITenantContext tenantContext,
-        ILogger<WarehouseManagementController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _warehouseFacade = warehouseFacade ?? throw new ArgumentNullException(nameof(warehouseFacade));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     #region Helper Methods
 
@@ -83,12 +70,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetStorageFacilitiesAsync(pagination, cancellationToken);
+            var result = await warehouseFacade.GetStorageFacilitiesAsync(pagination, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -117,13 +103,12 @@ public class WarehouseManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var facility = await _warehouseFacade.GetStorageFacilityByIdAsync(id, cancellationToken);
-            if (facility == null)
+            var facility = await warehouseFacade.GetStorageFacilityByIdAsync(id, cancellationToken);
+            if (facility is null)
             {
                 return CreateNotFoundProblem($"Storage facility with ID {id} not found.");
             }
@@ -158,12 +143,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateStorageFacilityAsync(createStorageFacilityDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateStorageFacilityAsync(createStorageFacilityDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetStorageFacility), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -203,12 +187,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
+            var result = await warehouseFacade.GetStorageLocationsAsync(pagination, facilityId, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -237,13 +220,12 @@ public class WarehouseManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var location = await _warehouseFacade.GetStorageLocationByIdAsync(id, cancellationToken);
-            if (location == null)
+            var location = await warehouseFacade.GetStorageLocationByIdAsync(id, cancellationToken);
+            if (location is null)
             {
                 return CreateNotFoundProblem($"Storage location with ID {id} not found.");
             }
@@ -278,12 +260,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateStorageLocationAsync(createStorageLocationDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateStorageLocationAsync(createStorageLocationDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetStorageLocation), new { id = result.Id }, result);
         }
         catch (Exception ex)
@@ -319,12 +300,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? expiringSoon = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+            var result = await warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -351,13 +331,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<LotDto>> GetLot(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetLotByIdAsync(id, cancellationToken);
-            return result != null ? Ok(result) : NotFound();
+            var result = await warehouseFacade.GetLotByIdAsync(id, cancellationToken);
+            return result is not null ? Ok(result) : NotFound();
         }
         catch (Exception ex)
         {
@@ -380,13 +359,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<LotDto>> GetLotByCode(string code, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetLotByCodeAsync(code, cancellationToken);
-            return result != null ? Ok(result) : NotFound();
+            var result = await warehouseFacade.GetLotByCodeAsync(code, cancellationToken);
+            return result is not null ? Ok(result) : NotFound();
         }
         catch (Exception ex)
         {
@@ -409,12 +387,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] int daysAhead = 30,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetExpiringLotsAsync(daysAhead, cancellationToken);
+            var result = await warehouseFacade.GetExpiringLotsAsync(daysAhead, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -447,12 +424,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateLotAsync(createLotDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateLotAsync(createLotDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetLot), new { id = result.Id }, result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
@@ -493,13 +469,12 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.UpdateLotAsync(id, updateLotDto, GetCurrentUser(), cancellationToken);
-            return result != null ? Ok(result) : NotFound();
+            var result = await warehouseFacade.UpdateLotAsync(id, updateLotDto, GetCurrentUser(), cancellationToken);
+            return result is not null ? Ok(result) : NotFound();
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
         {
@@ -528,12 +503,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeleteLot(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.DeleteLotAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.DeleteLotAsync(id, GetCurrentUser(), cancellationToken);
             return result ? NoContent() : NotFound();
         }
         catch (InvalidOperationException ex)
@@ -574,17 +548,16 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.UpdateQualityStatusAsync(id, qualityStatus, GetCurrentUser(), notes, cancellationToken);
+            var result = await warehouseFacade.UpdateQualityStatusAsync(id, qualityStatus, GetCurrentUser(), notes, cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -619,12 +592,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails("Reason is required for blocking a lot.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.BlockLotAsync(id, reason, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.BlockLotAsync(id, reason, GetCurrentUser(), cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (Exception ex)
@@ -648,12 +620,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UnblockLot(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.UnblockLotAsync(id, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.UnblockLotAsync(id, GetCurrentUser(), cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (Exception ex)
@@ -691,12 +662,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool? lowStock = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
+            var result = await warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, productId, locationId, lotId, lowStock, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -723,13 +693,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetStockById(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var stock = await _warehouseFacade.GetStockByIdAsync(id, cancellationToken);
-            return stock != null ? Ok(stock) : NotFound();
+            var stock = await warehouseFacade.GetStockByIdAsync(id, cancellationToken);
+            return stock is not null ? Ok(stock) : NotFound();
         }
         catch (Exception ex)
         {
@@ -757,12 +726,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateOrUpdateStockAsync(createDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateOrUpdateStockAsync(createDto, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -793,22 +761,21 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateOrUpdateStockAsync(dto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateOrUpdateStockAsync(dto, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation when creating/updating stock - StockId: {StockId}", dto.StockId);
+            logger.LogWarning(ex, "Invalid operation when creating/updating stock - StockId: {StockId}", dto.StockId);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid argument when creating/updating stock - StockId: {StockId}", dto.StockId);
+            logger.LogWarning(ex, "Invalid argument when creating/updating stock - StockId: {StockId}", dto.StockId);
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -842,12 +809,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails("Quantity must be greater than zero.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.ReserveStockAsync(productId, locationId, quantity, lotId, GetCurrentUser(), cancellationToken);
             return result ? Ok() : CreateValidationProblemDetails("Insufficient stock available for reservation.");
         }
         catch (Exception ex)
@@ -867,12 +833,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetStockByProductId(Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var stocks = await _warehouseFacade.GetStockByProductIdAsync(productId, cancellationToken);
+            var stocks = await warehouseFacade.GetStockByProductIdAsync(productId, cancellationToken);
             return Ok(stocks);
         }
         catch (Exception ex)
@@ -918,12 +883,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetStockOverviewAsync(
+            var result = await warehouseFacade.GetStockOverviewAsync(
                 pagination.Page, pagination.PageSize, search, warehouseId, locationId, lotId,
                 lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView,
                 cancellationToken);
@@ -960,13 +924,12 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
-            return result != null ? Ok(result) : CreateNotFoundProblem("Stock entry not found.");
+            var result = await warehouseFacade.AdjustStockAsync(dto, GetCurrentUser(), cancellationToken);
+            return result is not null ? Ok(result) : CreateNotFoundProblem("Stock entry not found.");
         }
         catch (Exception ex)
         {
@@ -1002,12 +965,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+            var result = await warehouseFacade.GetSerialsAsync(pagination.Page, pagination.PageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -1034,13 +996,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetSerialById(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var serial = await _warehouseFacade.GetSerialByIdAsync(id, cancellationToken);
-            return serial != null ? Ok(serial) : NotFound();
+            var serial = await warehouseFacade.GetSerialByIdAsync(id, cancellationToken);
+            return serial is not null ? Ok(serial) : NotFound();
         }
         catch (Exception ex)
         {
@@ -1065,12 +1026,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.CreateSerialAsync(createDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.CreateSerialAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetSerialById), new { id = result.Id }, result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
@@ -1107,17 +1067,16 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails("Status is required.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.UpdateSerialStatusAsync(id, status, GetCurrentUser(), notes, cancellationToken);
+            var result = await warehouseFacade.UpdateSerialStatusAsync(id, status, GetCurrentUser(), notes, cancellationToken);
             return result ? Ok() : NotFound();
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1147,12 +1106,11 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var stockResult = await _warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, null, null, null, null, cancellationToken);
+            var stockResult = await warehouseFacade.GetStockAsync(pagination.Page, pagination.PageSize, null, null, null, null, cancellationToken);
 
             // Convert StockDto to InventoryEntryDto
             var inventoryEntries = stockResult.Items.Select(stock => new InventoryEntryDto
@@ -1220,13 +1178,12 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get current stock level to calculate adjustment
-            var existingStocks = await _warehouseFacade.GetStockAsync(
+            var existingStocks = await warehouseFacade.GetStockAsync(
                 page: 1,
                 pageSize: 1,
                 productId: createDto.ProductId,
@@ -1247,7 +1204,7 @@ public class WarehouseManagementController : BaseApiController
                     ? "Inventory Count - Found Additional Stock"
                     : "Inventory Count - Stock Shortage Detected";
 
-                _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
+                _ = await warehouseFacade.ProcessAdjustmentMovementAsync(
                     productId: createDto.ProductId,
                     locationId: createDto.LocationId,
                     adjustmentQuantity: adjustmentQuantity,
@@ -1268,13 +1225,13 @@ public class WarehouseManagementController : BaseApiController
                 Notes = createDto.Notes
             };
 
-            var stock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+            var stock = await warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
 
             // Update LastInventoryDate to track when physical count was performed
-            await _warehouseFacade.UpdateLastInventoryDateAsync(stock.Id, DateTime.UtcNow, cancellationToken);
+            await warehouseFacade.UpdateLastInventoryDateAsync(stock.Id, DateTime.UtcNow, cancellationToken);
 
             // Get location information for response
-            var location = await _warehouseFacade.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
+            var location = await warehouseFacade.GetStorageLocationByIdAsync(createDto.LocationId, cancellationToken);
 
             // Build response
             var result = new InventoryEntryDto
@@ -1330,14 +1287,13 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] bool includeRows = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get or create the inventory document type
-            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
+            var inventoryDocType = await warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
+                tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             // Build query parameters to filter inventory documents
@@ -1368,7 +1324,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get documents
-            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             // Convert to InventoryDocumentDto with enriched rows (only if requested)
             var inventoryDocuments = new List<InventoryDocumentDto>();
@@ -1376,8 +1332,8 @@ public class WarehouseManagementController : BaseApiController
             {
                 // Enrich rows with complete product and location data using optimized batch method
                 // Only enrich if rows were requested and are present
-                var enrichedRows = includeRows && doc.Rows != null && doc.Rows.Any()
-                    ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                var enrichedRows = includeRows && doc.Rows is not null && doc.Rows.Any()
+                    ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
                     : new List<InventoryDocumentRowDto>();
 
                 inventoryDocuments.Add(new InventoryDocumentDto
@@ -1431,20 +1387,19 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Enrich rows with complete product and location data
-            var enrichedRows = documentHeader.Rows != null && documentHeader.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(documentHeader.Rows, cancellationToken)
+            var enrichedRows = documentHeader.Rows is not null && documentHeader.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(documentHeader.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -1492,22 +1447,21 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 return Problem("Tenant not found or invalid.", statusCode: StatusCodes.Status403Forbidden);
             }
 
             // Get or create an "Inventory" document type
-            var inventoryDocumentType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+            var inventoryDocumentType = await warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(currentTenantId.Value, cancellationToken);
 
             // Get or create system business party for internal operations
-            var systemBusinessPartyId = await _warehouseFacade.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+            var systemBusinessPartyId = await warehouseFacade.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
 
             // Generate document number if not provided
             var documentNumber = createDto.Number ?? $"INV-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
@@ -1526,7 +1480,7 @@ public class WarehouseManagementController : BaseApiController
                 IsProforma = true
             };
 
-            var documentHeader = await _warehouseFacade.CreateDocumentHeaderAsync(createHeaderDto, GetCurrentUser(), cancellationToken);
+            var documentHeader = await warehouseFacade.CreateDocumentHeaderAsync(createHeaderDto, GetCurrentUser(), cancellationToken);
 
             // Map to inventory document DTO
             var result = new InventoryDocumentDto
@@ -1575,20 +1529,19 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get the document header
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // Get current stock level to calculate adjustment
-            var existingStocks = await _warehouseFacade.GetStockAsync(
+            var existingStocks = await warehouseFacade.GetStockAsync(
                 page: 1,
                 pageSize: 1,
                 productId: rowDto.ProductId,
@@ -1601,15 +1554,15 @@ public class WarehouseManagementController : BaseApiController
             var adjustmentQuantity = rowDto.Quantity - currentQuantity;
 
             // Get product and location info for the row - fetch from ProductService to ensure complete data
-            var product = await _warehouseFacade.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
-            var location = await _warehouseFacade.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
+            var product = await warehouseFacade.GetProductByIdAsync(rowDto.ProductId, cancellationToken);
+            var location = await warehouseFacade.GetStorageLocationByIdAsync(rowDto.LocationId, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
                 return CreateNotFoundProblem($"Product with ID {rowDto.ProductId} was not found.");
             }
 
-            if (location == null)
+            if (location is null)
             {
                 return CreateNotFoundProblem($"Location with ID {rowDto.LocationId} was not found.");
             }
@@ -1620,7 +1573,7 @@ public class WarehouseManagementController : BaseApiController
             {
                 try
                 {
-                    unitOfMeasure = await _warehouseFacade.GetUnitOfMeasureSymbolAsync(product.UnitOfMeasureId.Value, cancellationToken);
+                    unitOfMeasure = await warehouseFacade.GetUnitOfMeasureSymbolAsync(product.UnitOfMeasureId.Value, cancellationToken);
                 }
                 catch
                 {
@@ -1635,7 +1588,7 @@ public class WarehouseManagementController : BaseApiController
             {
                 try
                 {
-                    var vatDetails = await _warehouseFacade.GetVatRateDetailsAsync(product.VatRateId.Value, cancellationToken);
+                    var vatDetails = await warehouseFacade.GetVatRateDetailsAsync(product.VatRateId.Value, cancellationToken);
                     if (vatDetails.HasValue)
                     {
                         vatRate = vatDetails.Value.Percentage;
@@ -1657,17 +1610,17 @@ public class WarehouseManagementController : BaseApiController
 
             DocumentRowDto documentRow;
 
-            if (existingRow != null)
+            if (existingRow is not null)
             {
                 // Row exists - merge by adding quantities together
                 var newQuantity = existingRow.Quantity + rowDto.Quantity;
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Merging inventory row for product {ProductId} at location {LocationId}: existing quantity {ExistingQty} + new quantity {NewQty} = {TotalQty}",
                     rowDto.ProductId, rowDto.LocationId, existingRow.Quantity, rowDto.Quantity, newQuantity);
 
                 // Update the existing row via facade
-                documentRow = await _warehouseFacade.UpdateOrMergeInventoryRowAsync(
+                documentRow = await warehouseFacade.UpdateOrMergeInventoryRowAsync(
                     documentId,
                     existingRow.Id,
                     newQuantity,
@@ -1695,7 +1648,7 @@ public class WarehouseManagementController : BaseApiController
                     Notes = rowDto.Notes
                 };
 
-                documentRow = await _warehouseFacade.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
+                documentRow = await warehouseFacade.AddDocumentRowAsync(createRowDto, GetCurrentUser(), cancellationToken);
             }
 
             // Build response with the new row
@@ -1718,11 +1671,11 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // Get updated document
-            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data using the helper method
-            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+            var enrichedRows = updatedDocument?.Rows is not null && updatedDocument.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -1772,15 +1725,14 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get the document header to check status
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
@@ -1792,7 +1744,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Update the document header fields via facade
-            await _warehouseFacade.UpdateDocumentHeaderFieldsAsync(
+            await warehouseFacade.UpdateDocumentHeaderFieldsAsync(
                 documentId,
                 updateDto.InventoryDate,
                 updateDto.WarehouseId,
@@ -1800,15 +1752,15 @@ public class WarehouseManagementController : BaseApiController
                 GetCurrentUser(),
                 cancellationToken);
 
-            _logger.LogInformation("Updated inventory document {DocumentId} - Date: {Date}, Warehouse: {WarehouseId}",
+            logger.LogInformation("Updated inventory document {DocumentId} - Date: {Date}, Warehouse: {WarehouseId}",
                 documentId, updateDto.InventoryDate, updateDto.WarehouseId);
 
             // Get the updated document with full details
-            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich rows with product and location data
-            var enrichedRows = updatedDocument!.Rows != null && updatedDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+            var enrichedRows = updatedDocument!.Rows is not null && updatedDocument.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -1858,14 +1810,13 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get the document header
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
@@ -1877,7 +1828,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Update the row via facade
-            var updated = await _warehouseFacade.UpdateInventoryRowAsync(
+            var updated = await warehouseFacade.UpdateInventoryRowAsync(
                 rowId,
                 rowDto.ProductId,
                 rowDto.Quantity,
@@ -1892,11 +1843,11 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get updated document
-            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data
-            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+            var enrichedRows = updatedDocument?.Rows is not null && updatedDocument.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -1938,14 +1889,13 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteInventoryDocumentRow(Guid documentId, Guid rowId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get the document header
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
@@ -1957,7 +1907,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Soft delete the row via facade
-            var deleted = await _warehouseFacade.DeleteInventoryRowAsync(rowId, GetCurrentUser(), cancellationToken);
+            var deleted = await warehouseFacade.DeleteInventoryRowAsync(rowId, GetCurrentUser(), cancellationToken);
 
             if (!deleted)
             {
@@ -1965,11 +1915,11 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Get updated document
-            var updatedDocument = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            var updatedDocument = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
 
             // Enrich all rows with product and location data
-            var enrichedRows = updatedDocument?.Rows != null && updatedDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
+            var enrichedRows = updatedDocument?.Rows is not null && updatedDocument.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(updatedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2010,14 +1960,13 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> FinalizeInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get the document header with rows
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: true, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
@@ -2025,7 +1974,7 @@ public class WarehouseManagementController : BaseApiController
             // Validate document is in Open status
             if (documentHeader.Status != EventForge.DTOs.Common.DocumentStatus.Open)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
                     documentId, documentHeader.Status);
 
@@ -2033,9 +1982,9 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Validate document has rows
-            if (documentHeader.Rows == null || !documentHeader.Rows.Any())
+            if (documentHeader.Rows is null || !documentHeader.Rows.Any())
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Inventory document {DocumentId} has no rows to process",
                     documentId);
 
@@ -2048,7 +1997,7 @@ public class WarehouseManagementController : BaseApiController
             var processedRows = 0;
             var skippedRows = 0;
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting finalization of inventory document {DocumentId} ({DocumentNumber}). Total rows: {TotalRows}",
                 documentId, documentHeader.Number, totalRows);
 
@@ -2056,23 +2005,23 @@ public class WarehouseManagementController : BaseApiController
             var productIds = documentHeader.Rows.Where(r => r.ProductId.HasValue).Select(r => r.ProductId!.Value).Distinct().ToList();
             var locationIds = documentHeader.Rows.Where(r => r.LocationId.HasValue).Select(r => r.LocationId!.Value).Distinct().ToList();
 
-            var missingProducts = await _warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
+            var missingProducts = await warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
             if (missingProducts.Any())
             {
                 return CreateValidationProblemDetails($"Document contains {missingProducts.Count} non-existent product(s). Cannot finalize.");
             }
 
             // Validate locations
-            var missingLocations = await _warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
+            var missingLocations = await warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
             if (missingLocations.Any())
             {
                 return CreateValidationProblemDetails($"Document contains {missingLocations.Count} non-existent location(s). Cannot finalize.");
             }
 
             // Process each row and apply stock adjustments
-            if (documentHeader.Rows != null && documentHeader.Rows.Any())
+            if (documentHeader.Rows is not null && documentHeader.Rows.Any())
             {
-                _logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}",
+                logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}",
                     documentHeader.Rows.Count, documentId);
 
                 foreach (var row in documentHeader.Rows)
@@ -2091,7 +2040,7 @@ public class WarehouseManagementController : BaseApiController
                         // Validate we have both IDs
                         if (productId == Guid.Empty || locationId == Guid.Empty)
                         {
-                            _logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
+                            logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
                             skippedRows++;
                             continue;
                         }
@@ -2099,7 +2048,7 @@ public class WarehouseManagementController : BaseApiController
                         var newQuantity = row.Quantity;
 
                         // Get current stock level
-                        var existingStocks = await _warehouseFacade.GetStockAsync(
+                        var existingStocks = await warehouseFacade.GetStockAsync(
                             page: 1,
                             pageSize: 1,
                             productId: productId,
@@ -2115,7 +2064,7 @@ public class WarehouseManagementController : BaseApiController
                         {
                             // 1) Create stock adjustment movement (keeps audit trail)
                             // Use the document's InventoryDate for the movement date
-                            _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
+                            _ = await warehouseFacade.ProcessAdjustmentMovementAsync(
                                 productId: productId,
                                 locationId: locationId,
                                 adjustmentQuantity: adjustmentQuantity,
@@ -2126,7 +2075,7 @@ public class WarehouseManagementController : BaseApiController
                                 movementDate: documentHeader.Date,
                                 cancellationToken: cancellationToken);
 
-                            _logger.LogInformation(
+                            logger.LogInformation(
                                 "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
                                 productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
 
@@ -2144,12 +2093,12 @@ public class WarehouseManagementController : BaseApiController
                             };
 
                             // This call will create or update a Stock record
-                            var updatedStock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                            var updatedStock = await warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
 
                             // Verify stock was successfully created/updated
-                            if (updatedStock != null)
+                            if (updatedStock is not null)
                             {
-                                await _warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                await warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
                             }
                             else
                             {
@@ -2159,7 +2108,7 @@ public class WarehouseManagementController : BaseApiController
                         }
                         else
                         {
-                            _logger.LogInformation(
+                            logger.LogInformation(
                                 "No adjustment needed for product {ProductId} at location {LocationId}: quantity unchanged at {Quantity}",
                                 productId, locationId, currentQuantity);
                             processedRows++;
@@ -2167,7 +2116,7 @@ public class WarehouseManagementController : BaseApiController
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}",
+                        logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}",
                             row.Id, documentId);
                         // Continue processing other rows even if one fails
                     }
@@ -2175,11 +2124,11 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // Now close the document
-            var closedDocument = await _warehouseFacade.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
+            var closedDocument = await warehouseFacade.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
             // Enrich rows with product and location data
-            var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
-                ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
+            var enrichedRows = closedDocument!.Rows is not null && closedDocument.Rows.Any()
+                ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
                 : new List<InventoryDocumentRowDto>();
 
             var result = new InventoryDocumentDto
@@ -2200,7 +2149,7 @@ public class WarehouseManagementController : BaseApiController
             };
 
             stopwatch.Stop();
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Completed finalization of inventory document {DocumentId} ({DocumentNumber}) in {ElapsedMs}ms. " +
                 "Rows processed: {ProcessedRows}, Rows skipped: {SkippedRows}, Total: {TotalRows}",
                 documentId, documentHeader.Number, stopwatch.ElapsedMilliseconds,
@@ -2238,12 +2187,11 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.SeedInventoryAsync(
+            var result = await warehouseFacade.SeedInventoryAsync(
                 request,
                 GetCurrentUser(),
                 cancellationToken);
@@ -2252,12 +2200,12 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error during inventory seed");
+            logger.LogWarning(ex, "Validation error during inventory seed");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Operation error during inventory seed");
+            logger.LogWarning(ex, "Operation error during inventory seed");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2282,13 +2230,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ValidateInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            _logger.LogInformation("Starting validation for inventory document {DocumentId}", documentId);
+            logger.LogInformation("Starting validation for inventory document {DocumentId}", documentId);
 
             var result = new InventoryValidationResultDto
             {
@@ -2300,14 +2247,14 @@ public class WarehouseManagementController : BaseApiController
             };
 
             // 1. Verify document exists
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // 2. Count total rows without loading them
-            var totalRows = await _warehouseFacade.CountDocumentRowsAsync(documentId, cancellationToken);
+            var totalRows = await warehouseFacade.CountDocumentRowsAsync(documentId, cancellationToken);
 
             result.TotalRows = totalRows;
 
@@ -2323,13 +2270,13 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 3. Identify rows with null ProductId or LocationId
-            var rowsWithNullData = await _warehouseFacade.GetRowsWithNullDataAsync(documentId, cancellationToken);
+            var rowsWithNullData = await warehouseFacade.GetRowsWithNullDataAsync(documentId, cancellationToken);
 
             foreach (var row in rowsWithNullData)
             {
                 var missingFields = new List<string>();
-                if (row.ProductId == null) missingFields.Add("ProductId");
-                if (row.LocationId == null) missingFields.Add("LocationId");
+                if (row.ProductId is null) missingFields.Add("ProductId");
+                if (row.LocationId is null) missingFields.Add("LocationId");
 
                 result.Issues.Add(new InventoryValidationIssue
                 {
@@ -2343,7 +2290,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             // 4. Get unique product and location IDs
-            var (productIds, locationIds) = await _warehouseFacade.GetUniqueProductAndLocationIdsAsync(documentId, cancellationToken);
+            var (productIds, locationIds) = await warehouseFacade.GetUniqueProductAndLocationIdsAsync(documentId, cancellationToken);
 
             result.Stats.UniqueProducts = productIds.Count;
             result.Stats.UniqueLocations = locationIds.Count;
@@ -2351,7 +2298,7 @@ public class WarehouseManagementController : BaseApiController
             // 5. Verify referenced products exist
             if (productIds.Any())
             {
-                var missingProductIds = await _warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
+                var missingProductIds = await warehouseFacade.ValidateProductsExistAsync(productIds, cancellationToken);
                 if (missingProductIds.Any())
                 {
                     result.Issues.Add(new InventoryValidationIssue
@@ -2369,7 +2316,7 @@ public class WarehouseManagementController : BaseApiController
             // 6. Verify referenced locations exist
             if (locationIds.Any())
             {
-                var missingLocationIds = await _warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
+                var missingLocationIds = await warehouseFacade.ValidateLocationsExistAsync(locationIds, cancellationToken);
                 if (missingLocationIds.Any())
                 {
                     result.Issues.Add(new InventoryValidationIssue
@@ -2401,7 +2348,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             stopwatch.Stop();
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Completed validation for document {DocumentId} in {ElapsedMs}ms. " +
                 "Total rows: {TotalRows}, Issues: {IssueCount}, Valid: {IsValid}",
                 documentId, stopwatch.ElapsedMilliseconds, totalRows, result.Issues.Count, result.IsValid);
@@ -2427,14 +2374,13 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<List<InventoryDocumentDto>>> GetOpenInventoryDocuments(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get or create the inventory document type
-            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
+            var inventoryDocType = await warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
+                tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             // Query for Open status documents
@@ -2447,17 +2393,17 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = true
             };
 
-            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             var inventoryDocuments = new List<InventoryDocumentDto>();
 
-            if (documentsResult?.Items != null)
+            if (documentsResult?.Items is not null)
             {
                 foreach (var doc in documentsResult.Items.OrderByDescending(d => d.CreatedAt))
                 {
                     // Enrich rows with product and location data
-                    var enrichedRows = doc.Rows != null && doc.Rows.Any()
-                        ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
+                    var enrichedRows = doc.Rows is not null && doc.Rows.Any()
+                        ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(doc.Rows, cancellationToken)
                         : new List<InventoryDocumentRowDto>();
 
                     inventoryDocuments.Add(new InventoryDocumentDto
@@ -2500,13 +2446,12 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<List<InventoryDocumentHeaderDto>>> GetOpenInventoryDocumentHeaders(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var headers = await _warehouseFacade.GetOpenInventoryDocumentHeadersAsync(
-                _tenantContext.CurrentTenantId!.Value,
+            var headers = await warehouseFacade.GetOpenInventoryDocumentHeadersAsync(
+                tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             return Ok(headers);
@@ -2533,20 +2478,19 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CancelInventoryDocument(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Cancel the document via facade
-            var cancelled = await _warehouseFacade.CancelInventoryDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
+            var cancelled = await warehouseFacade.CancelInventoryDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
             if (!cancelled)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
-            _logger.LogInformation("Cancelled inventory document {DocumentId} without applying adjustments", documentId);
+            logger.LogInformation("Cancelled inventory document {DocumentId} without applying adjustments", documentId);
 
             return Ok();
         }
@@ -2569,16 +2513,15 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<List<InventoryDocumentDto>>> FinalizeAllOpenInventories(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        using var transaction = await _warehouseFacade.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
+        using var transaction = await warehouseFacade.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
 
         try
         {
             // Get all open inventory documents
-            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
+            var inventoryDocType = await warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
+                tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             var queryParams = new DocumentHeaderQueryParameters
@@ -2590,25 +2533,25 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = false
             };
 
-            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             var finalizedDocuments = new List<InventoryDocumentDto>();
 
-            if (documentsResult?.Items != null && documentsResult.Items.Any())
+            if (documentsResult?.Items is not null && documentsResult.Items.Any())
             {
                 var itemsList = documentsResult.Items.ToList();
-                _logger.LogInformation("Finalizing {Count} open inventory documents", itemsList.Count);
+                logger.LogInformation("Finalizing {Count} open inventory documents", itemsList.Count);
 
                 foreach (var doc in itemsList)
                 {
                     // Call the existing finalize logic for each document
                     // We need to get the result as InventoryDocumentDto
-                    var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
+                    var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(doc.Id, includeRows: true, cancellationToken);
 
-                    if (documentHeader != null)
+                    if (documentHeader is not null)
                     {
                         // Process each row and apply stock adjustments (reuse logic from FinalizeInventoryDocument)
-                        if (documentHeader.Rows != null && documentHeader.Rows.Any())
+                        if (documentHeader.Rows is not null && documentHeader.Rows.Any())
                         {
                             foreach (var row in documentHeader.Rows)
                             {
@@ -2620,12 +2563,12 @@ public class WarehouseManagementController : BaseApiController
 
                                     if (productId == Guid.Empty || locationId == Guid.Empty)
                                     {
-                                        _logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
+                                        logger.LogWarning("Row {RowId} missing ProductId or LocationId, skipping", row.Id);
                                         continue;
                                     }
 
                                     var newQuantity = row.Quantity;
-                                    var existingStocks = await _warehouseFacade.GetStockAsync(
+                                    var existingStocks = await warehouseFacade.GetStockAsync(
                                         page: 1,
                                         pageSize: 1,
                                         productId: productId,
@@ -2638,7 +2581,7 @@ public class WarehouseManagementController : BaseApiController
 
                                     if (adjustmentQuantity != 0)
                                     {
-                                        _ = await _warehouseFacade.ProcessAdjustmentMovementAsync(
+                                        _ = await warehouseFacade.ProcessAdjustmentMovementAsync(
                                             productId: productId,
                                             locationId: locationId,
                                             adjustmentQuantity: adjustmentQuantity,
@@ -2658,27 +2601,27 @@ public class WarehouseManagementController : BaseApiController
                                             Notes = $"Adjusted by inventory document {documentHeader.Number}"
                                         };
 
-                                        var updatedStock = await _warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
-                                        if (updatedStock != null)
+                                        var updatedStock = await warehouseFacade.CreateOrUpdateStockAsync(createStockDto, GetCurrentUser(), cancellationToken);
+                                        if (updatedStock is not null)
                                         {
-                                            await _warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
+                                            await warehouseFacade.UpdateLastInventoryDateAsync(updatedStock.Id, DateTime.UtcNow, cancellationToken);
                                         }
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}", row.Id, doc.Id);
+                                    logger.LogError(ex, "Error processing inventory row {RowId} in document {DocumentId}", row.Id, doc.Id);
                                     throw; // Re-throw to trigger transaction rollback
                                 }
                             }
                         }
 
                         // Close the document
-                        var closedDocument = await _warehouseFacade.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
+                        var closedDocument = await warehouseFacade.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
 
                         // Enrich rows with product and location data
-                        var enrichedRows = closedDocument!.Rows != null && closedDocument.Rows.Any()
-                            ? await _warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
+                        var enrichedRows = closedDocument!.Rows is not null && closedDocument.Rows.Any()
+                            ? await warehouseFacade.EnrichInventoryDocumentRowsAsync(closedDocument.Rows, cancellationToken)
                             : new List<InventoryDocumentRowDto>();
 
                         finalizedDocuments.Add(new InventoryDocumentDto
@@ -2702,7 +2645,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             await transaction.CommitAsync(cancellationToken);
-            _logger.LogInformation("Successfully finalized {Count} inventory documents", finalizedDocuments.Count);
+            logger.LogInformation("Successfully finalized {Count} inventory documents", finalizedDocuments.Count);
 
             return Ok(finalizedDocuments);
         }
@@ -2735,29 +2678,28 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            _logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", pagination.Page, documentId);
+            logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", pagination.Page, documentId);
 
             // 1. Verify document exists
-            var documentHeader = await _warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
-            if (documentHeader == null)
+            var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
+            if (documentHeader is null)
             {
                 return CreateNotFoundProblem($"Inventory document with ID {documentId} was not found.");
             }
 
             // 2-3. Get paginated rows via facade
-            var (documentRows, totalRows) = await _warehouseFacade.GetDocumentRowsPagedAsync(
+            var (documentRows, totalRows) = await warehouseFacade.GetDocumentRowsPagedAsync(
                 documentId,
                 pagination.Page,
                 pagination.PageSize,
                 cancellationToken);
 
             // 4. Enrich using optimized batch method
-            var enrichedRows = await _warehouseFacade.EnrichInventoryDocumentRowsAsync(documentRows, cancellationToken);
+            var enrichedRows = await warehouseFacade.EnrichInventoryDocumentRowsAsync(documentRows, cancellationToken);
 
             var result = new PagedResult<InventoryDocumentRowDto>
             {
@@ -2767,7 +2709,7 @@ public class WarehouseManagementController : BaseApiController
                 PageSize = pagination.PageSize
             };
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Returned page {Page} with {Count} rows for document {DocumentId} (total: {TotalRows})",
                 pagination.Page, enrichedRows.Count, documentId, totalRows);
 
@@ -2794,14 +2736,13 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<int>> CancelAllOpenInventories(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Get all open inventory documents
-            var inventoryDocType = await _warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
-                _tenantContext.CurrentTenantId!.Value,
+            var inventoryDocType = await warehouseFacade.GetOrCreateInventoryDocumentTypeAsync(
+                tenantContext.CurrentTenantId!.Value,
                 cancellationToken);
 
             var queryParams = new DocumentHeaderQueryParameters
@@ -2813,20 +2754,20 @@ public class WarehouseManagementController : BaseApiController
                 IncludeRows = false
             };
 
-            var documentsResult = await _warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
+            var documentsResult = await warehouseFacade.GetPagedDocumentHeadersAsync(queryParams, cancellationToken);
 
             int cancelledCount = 0;
 
-            if (documentsResult?.Items != null && documentsResult.Items.Any())
+            if (documentsResult?.Items is not null && documentsResult.Items.Any())
             {
                 var itemsList = documentsResult.Items.ToList();
-                _logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
+                logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
 
                 // Cancel all documents in batch via facade
                 var documentIds = itemsList.Select(d => d.Id).ToList();
-                cancelledCount = await _warehouseFacade.CancelInventoryDocumentsBatchAsync(documentIds, GetCurrentUser(), cancellationToken);
+                cancelledCount = await warehouseFacade.CancelInventoryDocumentsBatchAsync(documentIds, GetCurrentUser(), cancellationToken);
 
-                _logger.LogInformation("Successfully cancelled {Count} inventory documents without applying adjustments", cancelledCount);
+                logger.LogInformation("Successfully cancelled {Count} inventory documents without applying adjustments", cancelledCount);
             }
 
             return Ok(cancelledCount);
@@ -2852,12 +2793,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DiagnoseInventoryDocument(Guid documentId, CancellationToken cancellationToken)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var report = await _warehouseFacade.DiagnoseDocumentAsync(documentId, cancellationToken);
+            var report = await warehouseFacade.DiagnoseDocumentAsync(documentId, cancellationToken);
             return Ok(report);
         }
         catch (Exception ex)
@@ -2882,12 +2822,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AutoRepairInventoryDocument(Guid documentId, [FromBody] InventoryAutoRepairOptionsDto options, CancellationToken cancellationToken)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _warehouseFacade.AutoRepairDocumentAsync(documentId, options, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.AutoRepairDocumentAsync(documentId, options, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -2913,12 +2852,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> RepairInventoryRow(Guid documentId, Guid rowId, [FromBody] InventoryRowRepairDto repairData, CancellationToken cancellationToken)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _warehouseFacade.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
+            var success = await warehouseFacade.RepairRowAsync(documentId, rowId, repairData, GetCurrentUser(), cancellationToken);
             if (!success)
             {
                 return CreateNotFoundProblem($"Row with ID {rowId} was not found in document {documentId}.");
@@ -2947,12 +2885,11 @@ public class WarehouseManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> RemoveProblematicRows(Guid documentId, [FromBody] List<Guid> rowIds, CancellationToken cancellationToken)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var removedCount = await _warehouseFacade.RemoveProblematicRowsAsync(documentId, rowIds, GetCurrentUser(), cancellationToken);
+            var removedCount = await warehouseFacade.RemoveProblematicRowsAsync(documentId, rowIds, GetCurrentUser(), cancellationToken);
             return Ok(removedCount);
         }
         catch (Exception ex)
@@ -2980,20 +2917,19 @@ public class WarehouseManagementController : BaseApiController
         [FromBody] List<Guid> documentIds,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            if (documentIds == null || documentIds.Count < 2)
+            if (documentIds is null || documentIds.Count < 2)
             {
                 ModelState.AddModelError("documentIds", "At least 2 documents are required to preview a merge.");
                 return CreateValidationProblemDetails();
             }
 
-            _logger.LogInformation("Previewing merge for {Count} inventory documents.", documentIds.Count);
+            logger.LogInformation("Previewing merge for {Count} inventory documents.", documentIds.Count);
 
-            var preview = await _warehouseFacade.PreviewMergeInventoryDocumentsAsync(documentIds, cancellationToken);
+            var preview = await warehouseFacade.PreviewMergeInventoryDocumentsAsync(documentIds, cancellationToken);
 
             if (preview.SourceDocuments.Count != documentIds.Count)
             {
@@ -3028,8 +2964,7 @@ public class WarehouseManagementController : BaseApiController
         [FromBody] MergeInventoryDocumentsDto mergeDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
@@ -3048,14 +2983,14 @@ public class WarehouseManagementController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Merging {Count} inventory documents. Target: {TargetId}.",
                 mergeDto.SourceDocumentIds.Count,
                 mergeDto.TargetDocumentId?.ToString() ?? "(first in list)");
 
-            var result = await _warehouseFacade.MergeInventoryDocumentsAsync(mergeDto, GetCurrentUser(), cancellationToken);
+            var result = await warehouseFacade.MergeInventoryDocumentsAsync(mergeDto, GetCurrentUser(), cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Merged inventory documents into {MergedNumber}. TotalRows: {TotalRows}, MergedRows: {MergedRows}, CopiedRows: {CopiedRows}, SoftDeleted: {SoftDeleted}.",
                 result.MergedDocumentNumber, result.TotalRows, result.MergedRows, result.CopiedRows, result.SoftDeletedDocumentIds.Count);
 
@@ -3090,14 +3025,14 @@ public class WarehouseManagementController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Calculating stock reconciliation preview");
+            logger.LogInformation("Calculating stock reconciliation preview");
 
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var result = await _warehouseFacade.CalculateReconciledStockAsync(request, cancellationToken);
+            var result = await warehouseFacade.CalculateReconciledStockAsync(request, cancellationToken);
 
             return Ok(result);
         }
@@ -3126,7 +3061,7 @@ public class WarehouseManagementController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Applying stock reconciliation for {Count} items", request.ItemsToApply.Count);
+            logger.LogInformation("Applying stock reconciliation for {Count} items", request.ItemsToApply.Count);
 
             if (!ModelState.IsValid)
             {
@@ -3134,7 +3069,7 @@ public class WarehouseManagementController : BaseApiController
             }
 
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var result = await _warehouseFacade.ApplyReconciliationAsync(request, currentUser, cancellationToken);
+            var result = await warehouseFacade.ApplyReconciliationAsync(request, currentUser, cancellationToken);
 
             if (!result.Success)
             {
@@ -3166,13 +3101,13 @@ public class WarehouseManagementController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Exporting stock reconciliation report");
+            logger.LogInformation("Exporting stock reconciliation report");
 
-            var fileBytes = await _warehouseFacade.ExportReconciliationReportAsync(request, cancellationToken);
+            var fileBytes = await warehouseFacade.ExportReconciliationReportAsync(request, cancellationToken);
 
-            if (fileBytes == null || fileBytes.Length == 0)
+            if (fileBytes is null || fileBytes.Length == 0)
             {
-                _logger.LogWarning("Export generated no data or feature not yet implemented");
+                logger.LogWarning("Export generated no data or feature not yet implemented");
                 return StatusCode(501, new { message = "Excel export feature not yet implemented" });
             }
 
@@ -3204,7 +3139,7 @@ public class WarehouseManagementController : BaseApiController
         try
         {
             request.DryRun = true; // force dry-run for preview
-            var result = await _warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
+            var result = await warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
                 request, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
@@ -3240,7 +3175,7 @@ public class WarehouseManagementController : BaseApiController
             // Use CancellationToken.None for write operations: once the rebuild begins
             // committing movements we must not abort mid-flight if the client disconnects
             // or times out, as that would leave stock data in an inconsistent state.
-            var result = await _warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
+            var result = await warehouseFacade.RebuildMissingMovementsFromDocumentsAsync(
                 request, GetCurrentUser(), CancellationToken.None);
             return Ok(result);
         }
@@ -3274,7 +3209,7 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export operation started by {User} for Warehouses (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
 
@@ -3284,7 +3219,7 @@ public class WarehouseManagementController : BaseApiController
             PageSize = 50000
         };
 
-        var data = await _warehouseFacade.GetWarehousesForExportAsync(pagination, ct);
+        var data = await warehouseFacade.GetWarehousesForExportAsync(pagination, ct);
 
         byte[] fileBytes;
         string contentType;
@@ -3293,20 +3228,20 @@ public class WarehouseManagementController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _warehouseFacade.ExportToCsvAsync(data, ct);
+                fileBytes = await warehouseFacade.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
 
             case "excel":
             default:
-                fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Warehouses", ct);
+                fileBytes = await warehouseFacade.ExportToExcelAsync(data, "Warehouses", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Warehouses_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
 
@@ -3329,7 +3264,7 @@ public class WarehouseManagementController : BaseApiController
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export operation started by {User} for Inventory (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
 
@@ -3339,7 +3274,7 @@ public class WarehouseManagementController : BaseApiController
             PageSize = 50000
         };
 
-        var data = await _warehouseFacade.GetInventoryForExportAsync(pagination, ct);
+        var data = await warehouseFacade.GetInventoryForExportAsync(pagination, ct);
 
         byte[] fileBytes;
         string contentType;
@@ -3348,20 +3283,20 @@ public class WarehouseManagementController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _warehouseFacade.ExportToCsvAsync(data, ct);
+                fileBytes = await warehouseFacade.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
 
             case "excel":
             default:
-                fileBytes = await _warehouseFacade.ExportToExcelAsync(data, "Inventory", ct);
+                fileBytes = await warehouseFacade.ExportToExcelAsync(data, "Inventory", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Inventory_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
 
@@ -3395,15 +3330,14 @@ public class WarehouseManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "System";
-            var result = await _warehouseFacade.BulkTransferAsync(bulkTransferDto, currentUser, cancellationToken);
+            var result = await warehouseFacade.BulkTransferAsync(bulkTransferDto, currentUser, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk transfer: {SuccessCount} successful, {FailedCount} failed",
                 result.SuccessCount, result.FailedCount);
 
@@ -3411,7 +3345,7 @@ public class WarehouseManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid bulk transfer request");
+            logger.LogWarning(ex, "Invalid bulk transfer request");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
