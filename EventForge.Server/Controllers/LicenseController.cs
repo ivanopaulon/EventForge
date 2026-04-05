@@ -18,8 +18,7 @@ public class LicenseController : BaseApiController
     private readonly EventForgeDbContext _context;
     private readonly ILogger<LicenseController> _logger;
 
-    public LicenseController(EventForgeDbContext context, ILogger<LicenseController> logger,
-        ITenantContext tenantContext)
+    public LicenseController(EventForgeDbContext context, ILogger<LicenseController> logger)
     {
         _context = context;
         _logger = logger;
