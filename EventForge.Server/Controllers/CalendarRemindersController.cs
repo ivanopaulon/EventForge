@@ -35,7 +35,7 @@ public class CalendarRemindersController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
@@ -68,7 +68,7 @@ public class CalendarRemindersController(
         [FromQuery] DateTime endDate,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (endDate < startDate)
             return CreateValidationProblemDetails("End date must be greater than or equal to start date.");
@@ -97,7 +97,7 @@ public class CalendarRemindersController(
     public async Task<ActionResult<IEnumerable<CalendarReminderDto>>> GetActiveReminders(
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError2) return tenantError2;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {

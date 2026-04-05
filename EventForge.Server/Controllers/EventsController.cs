@@ -39,7 +39,7 @@ public class EventsController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
@@ -73,7 +73,7 @@ public class EventsController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
@@ -103,7 +103,7 @@ public class EventsController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError2) return tenantError2;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {

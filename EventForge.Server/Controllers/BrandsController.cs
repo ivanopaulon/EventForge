@@ -38,7 +38,7 @@ public class BrandsController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError0) return tenantError0;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
@@ -70,7 +70,7 @@ public class BrandsController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError1) return tenantError1;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
