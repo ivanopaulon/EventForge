@@ -11,18 +11,10 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/vat-lookup")]
 [Authorize]
-public class VatLookupController : BaseApiController
+public class VatLookupController(
+    IVatLookupService vatLookupService,
+    ILogger<VatLookupController> logger) : BaseApiController
 {
-    private readonly IVatLookupService _vatLookupService;
-    private readonly ILogger<VatLookupController> _logger;
-
-    public VatLookupController(
-        IVatLookupService vatLookupService,
-        ILogger<VatLookupController> logger)
-    {
-        _vatLookupService = vatLookupService;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Looks up a VAT number and returns validation result with company information.
@@ -42,13 +34,13 @@ public class VatLookupController : BaseApiController
             return CreateValidationProblemDetails("VAT number is required.");
         }
 
-        _logger.LogInformation("VAT lookup requested for: {VatNumber}", vatNumber);
+        logger.LogInformation("VAT lookup requested for: {VatNumber}", vatNumber);
 
         try
         {
-            var result = await _vatLookupService.LookupAsync(vatNumber, cancellationToken);
+            var result = await vatLookupService.LookupAsync(vatNumber, cancellationToken);
 
-            if (result == null)
+            if (result is null)
             {
                 var problemDetails = new ProblemDetails
                 {
@@ -87,7 +79,7 @@ public class VatLookupController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Lookup for VAT number {VatNumber}", vatNumber);
+            logger.LogError(ex, "Error in Lookup for VAT number {VatNumber}", vatNumber);
             return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
     }

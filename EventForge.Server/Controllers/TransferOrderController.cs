@@ -14,18 +14,10 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class TransferOrderController : BaseApiController
+public class TransferOrderController(
+    ITransferOrderService transferOrderService,
+    ILogger<TransferOrderController> logger) : BaseApiController
 {
-    private readonly ITransferOrderService _transferOrderService;
-    private readonly ILogger<TransferOrderController> _logger;
-
-    public TransferOrderController(
-        ITransferOrderService transferOrderService,
-        ILogger<TransferOrderController> logger)
-    {
-        _transferOrderService = transferOrderService ?? throw new ArgumentNullException(nameof(transferOrderService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets a paginated list of transfer orders with optional filters.
@@ -50,13 +42,13 @@ public class TransferOrderController : BaseApiController
     {
         try
         {
-            var result = await _transferOrderService.GetTransferOrdersAsync(
+            var result = await transferOrderService.GetTransferOrdersAsync(
                 page, pageSize, sourceWarehouseId, destinationWarehouseId, status, searchTerm, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer orders.");
+            logger.LogError(ex, "Error retrieving transfer orders.");
             return StatusCode(500, new { message = "An error occurred while retrieving transfer orders." });
         }
     }
@@ -72,8 +64,8 @@ public class TransferOrderController : BaseApiController
     {
         try
         {
-            var transferOrder = await _transferOrderService.GetTransferOrderByIdAsync(id, cancellationToken);
-            if (transferOrder == null)
+            var transferOrder = await transferOrderService.GetTransferOrderByIdAsync(id, cancellationToken);
+            if (transferOrder is null)
             {
                 return NotFound(new { message = $"Transfer order with ID {id} not found." });
             }
@@ -82,7 +74,7 @@ public class TransferOrderController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}.", id);
             return StatusCode(500, new { message = "An error occurred while retrieving the transfer order." });
         }
     }
@@ -101,17 +93,17 @@ public class TransferOrderController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var transferOrder = await _transferOrderService.CreateTransferOrderAsync(createDto, currentUser, cancellationToken);
+            var transferOrder = await transferOrderService.CreateTransferOrderAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetTransferOrderById), new { id = transferOrder.Id }, transferOrder);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while creating transfer order.");
+            logger.LogWarning(ex, "Invalid operation while creating transfer order.");
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating transfer order.");
+            logger.LogError(ex, "Error creating transfer order.");
             return StatusCode(500, new { message = "An error occurred while creating the transfer order." });
         }
     }
@@ -132,17 +124,17 @@ public class TransferOrderController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var transferOrder = await _transferOrderService.ShipTransferOrderAsync(id, shipDto, currentUser, cancellationToken);
+            var transferOrder = await transferOrderService.ShipTransferOrderAsync(id, shipDto, currentUser, cancellationToken);
             return Ok(transferOrder);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while shipping transfer order {TransferOrderId}.", id);
+            logger.LogWarning(ex, "Invalid operation while shipping transfer order {TransferOrderId}.", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error shipping transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error shipping transfer order {TransferOrderId}.", id);
             return StatusCode(500, new { message = "An error occurred while shipping the transfer order." });
         }
     }
@@ -163,17 +155,17 @@ public class TransferOrderController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var transferOrder = await _transferOrderService.ReceiveTransferOrderAsync(id, receiveDto, currentUser, cancellationToken);
+            var transferOrder = await transferOrderService.ReceiveTransferOrderAsync(id, receiveDto, currentUser, cancellationToken);
             return Ok(transferOrder);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while receiving transfer order {TransferOrderId}.", id);
+            logger.LogWarning(ex, "Invalid operation while receiving transfer order {TransferOrderId}.", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error receiving transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error receiving transfer order {TransferOrderId}.", id);
             return StatusCode(500, new { message = "An error occurred while receiving the transfer order." });
         }
     }
@@ -190,7 +182,7 @@ public class TransferOrderController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _transferOrderService.CancelTransferOrderAsync(id, currentUser, cancellationToken);
+            var success = await transferOrderService.CancelTransferOrderAsync(id, currentUser, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = $"Transfer order with ID {id} not found." });
@@ -200,12 +192,12 @@ public class TransferOrderController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while cancelling transfer order {TransferOrderId}.", id);
+            logger.LogWarning(ex, "Invalid operation while cancelling transfer order {TransferOrderId}.", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}.", id);
             return StatusCode(500, new { message = "An error occurred while cancelling the transfer order." });
         }
     }
