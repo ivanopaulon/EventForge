@@ -9,14 +9,14 @@
 <EFDialog Icon="@(_isChangePasswordMode ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Login)"
           Title="@(_isChangePasswordMode
               ? TranslationService.GetTranslation("auth.changePassword", "Change Password")
-              : "PRYM")"
+              : "")"
           IsProcessing="@(_isLoading || _isLoadingTenants)"
           OnClose="Cancel">
     <ChildContent>
         @if (!_isChangePasswordMode)
         {
             <div class="d-flex justify-center mb-3">
-                <MudImage Src="/eventforgetitle.svg" Alt="PRYM Logo" Style="max-height:48px;"></MudImage>
+                <img src="logoWhite.svg" alt="PRYM Logo" style="max-height:48px; background:transparent;" />
             </div>
         }
         <!-- Overlay during login submission -->
