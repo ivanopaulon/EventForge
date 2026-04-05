@@ -13,24 +13,12 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [AllowAnonymous]
-public class HealthController : BaseApiController
+public class HealthController(
+    EventForgeDbContext dbContext,
+    ILogger<HealthController> logger,
+    IFirstRunDetectionService firstRunService,
+    IPerformanceMonitoringService? performanceService = null) : BaseApiController
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly ILogger<HealthController> _logger;
-    private readonly IPerformanceMonitoringService? _performanceService;
-    private readonly IFirstRunDetectionService _firstRunService;
-
-    public HealthController(
-        EventForgeDbContext dbContext,
-        ILogger<HealthController> logger,
-        IFirstRunDetectionService firstRunService,
-        IPerformanceMonitoringService? performanceService = null)
-    {
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _firstRunService = firstRunService ?? throw new ArgumentNullException(nameof(firstRunService));
-        _performanceService = performanceService;
-    }
 
     /// <summary>
     /// Gets the health status of the API and its dependencies.
@@ -72,7 +60,7 @@ public class HealthController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred during health check");
+            logger.LogError(ex, "Error occurred during health check");
 
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
@@ -119,11 +107,11 @@ public class HealthController : BaseApiController
             healthStatus.AuthenticationDetails = GetAuthenticationDetails();
 
             // Add performance information if available
-            if (_performanceService != null)
+            if (performanceService is not null)
             {
                 try
                 {
-                    var perfStats = await _performanceService.GetStatisticsAsync();
+                    var perfStats = await performanceService.GetStatisticsAsync();
                     healthStatus.AuthenticationDetails["PerformanceMonitoring"] = "Enabled";
                     healthStatus.AuthenticationDetails["TotalQueries"] = perfStats.TotalQueries;
                     healthStatus.AuthenticationDetails["SlowQueryPercentage"] = Math.Round(perfStats.SlowQueryPercentage, 2);
@@ -144,23 +132,23 @@ public class HealthController : BaseApiController
             {
                 ["Database"] = healthStatus.DatabaseStatus ?? "Unknown",
                 ["Authentication"] = healthStatus.AuthenticationStatus ?? "Unknown",
-                ["PerformanceMonitoring"] = _performanceService != null ? "Healthy" : "Disabled"
+                ["PerformanceMonitoring"] = performanceService is not null ? "Healthy" : "Disabled"
             };
 
             return Ok(healthStatus);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred during detailed health check");
+            logger.LogError(ex, "Error occurred during detailed health check");
 
             healthStatus.ApiStatus = "Unhealthy";
             healthStatus.DatabaseStatus = "Error";
             healthStatus.ErrorMessage = ex.Message;
 
             // Ensure AppliedMigrations is always populated, even in error cases
-            if (healthStatus.AppliedMigrations == null || !healthStatus.AppliedMigrations.Any())
+            if (healthStatus.AppliedMigrations is null || !healthStatus.AppliedMigrations.Any())
             {
-                healthStatus.AppliedMigrations = new List<string>();
+                healthStatus.AppliedMigrations = [];
             }
 
             return Ok(healthStatus); // Return 200 even for errors in detailed view
@@ -171,14 +159,14 @@ public class HealthController : BaseApiController
     {
         try
         {
-            var appliedMigrations = await _dbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
-            _logger.LogDebug("Retrieved {Count} applied migrations", appliedMigrations.Count());
+            var appliedMigrations = await dbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
+            logger.LogDebug("Retrieved {Count} applied migrations", appliedMigrations.Count());
             return appliedMigrations;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to retrieve applied migrations");
-            return new List<string>();
+            logger.LogWarning(ex, "Failed to retrieve applied migrations");
+            return [];
         }
     }
 
@@ -186,12 +174,12 @@ public class HealthController : BaseApiController
     {
         try
         {
-            var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
+            var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
             return canConnect ? "Healthy" : "Unreachable";
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Database health check failed");
+            logger.LogWarning(ex, "Database health check failed");
             return "Error";
         }
     }
@@ -203,20 +191,20 @@ public class HealthController : BaseApiController
         try
         {
             var startTime = DateTime.UtcNow;
-            var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
+            var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
             var responseTime = DateTime.UtcNow - startTime;
 
             details["CanConnect"] = canConnect;
             details["ResponseTimeMs"] = responseTime.TotalMilliseconds;
-            details["ConnectionString"] = _dbContext.Database.GetConnectionString()?.Replace(";Password=", ";Password=***") ?? "Unknown";
-            details["ProviderName"] = _dbContext.Database.ProviderName ?? "Unknown";
+            details["ConnectionString"] = dbContext.Database.GetConnectionString()?.Replace(";Password=", ";Password=***") ?? "Unknown";
+            details["ProviderName"] = dbContext.Database.ProviderName ?? "Unknown";
 
             if (canConnect)
             {
                 try
                 {
                     // Test a simple query to verify database functionality
-                    var documentTypeCount = await _dbContext.DocumentTypes.CountAsync(cancellationToken);
+                    var documentTypeCount = await dbContext.DocumentTypes.CountAsync(cancellationToken);
                     details["TableAccessible"] = true;
                     details["SampleTableCount"] = documentTypeCount;
                 }
@@ -274,7 +262,7 @@ public class HealthController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Authentication health check failed");
+            logger.LogWarning(ex, "Authentication health check failed");
             return "Error";
         }
     }
@@ -311,7 +299,7 @@ public class HealthController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error getting authentication details");
+            logger.LogWarning(ex, "Error getting authentication details");
             details["Error"] = ex.Message;
             details["ConfigurationValid"] = false;
         }
@@ -346,9 +334,9 @@ public class HealthController : BaseApiController
     /// <response code="200">Returns first run status</response>
     [HttpGet("first-run")]
     [ProducesResponseType(typeof(FirstRunDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<FirstRunDto>> CheckFirstRun()
+    public async Task<ActionResult<FirstRunDto>> CheckFirstRun(CancellationToken cancellationToken = default)
     {
-        var isSetupComplete = await _firstRunService.IsSetupCompleteAsync();
+        var isSetupComplete = await firstRunService.IsSetupCompleteAsync(cancellationToken);
 
         return Ok(new FirstRunDto
         {

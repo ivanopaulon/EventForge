@@ -12,28 +12,18 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of product management service using HTTP client.
 /// </summary>
-public class ProductService : IProductService
+public class ProductService(
+    IHttpClientService httpClientService,
+    IHttpClientFactory httpClientFactory,
+    IAuthService authService,
+    ILogger<ProductService> logger) : IProductService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly IHttpClientFactory _httpClientFactory; // Keep for image upload only
-    private readonly IAuthService _authService;
-    private readonly ILogger<ProductService> _logger;
     private const string BaseUrl = "api/v1/product-management/products";
-
-    public ProductService(IHttpClientService httpClientService, IHttpClientFactory httpClientFactory, IAuthService authService, ILogger<ProductService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _authService = authService ?? throw new ArgumentNullException(nameof(authService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<ProductDto?> GetProductByCodeAsync(string code, CancellationToken ct = default)
     {
         try
         {
-            // Legacy endpoint for backward compatibility - returns only product
-            // New code should use GetProductWithCodeByCodeAsync
             var result = await GetProductWithCodeByCodeAsync(code, ct);
             return result?.Product;
         }
@@ -47,7 +37,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductWithCodeDto>($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}", ct);
+            return await httpClientService.GetAsync<ProductWithCodeDto>($"{BaseUrl}/by-code/{Uri.EscapeDataString(code)}", ct);
         }
         catch (HttpRequestException)
         {
@@ -59,7 +49,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}", ct);
+            return await httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}", ct);
         }
         catch (HttpRequestException)
         {
@@ -67,13 +57,11 @@ public class ProductService : IProductService
         }
     }
 
-    // NEW: request detailed product payload (server-side exposes a detailed DTO)
     public async Task<ProductDto?> GetProductDetailAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            // Endpoint path: assume server exposes /{id}/detail
-            return await _httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}/detail", ct);
+            return await httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}/detail", ct);
         }
         catch (HttpRequestException)
         {
@@ -90,7 +78,7 @@ public class ProductService : IProductService
             {
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
             }
-            return await _httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
+            return await httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
         }
         catch (HttpRequestException)
         {
@@ -100,12 +88,12 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
-        var result = await _httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto, ct);
+        logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
+        var result = await httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
+            logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
         }
 
         return result;
@@ -113,15 +101,15 @@ public class ProductService : IProductService
 
     public async Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating product with codes and units: {Name}", createDto.Name);
-        var result = await _httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
+        logger.LogInformation("Creating product with codes and units: {Name}", createDto.Name);
+        var result = await httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
             $"{BaseUrl}/create-with-codes-units",
             createDto,
             ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
+            logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
         }
 
         return result;
@@ -129,13 +117,13 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}",
+        logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}",
             id, updateDto.Name, updateDto.IsVatIncluded);
-        var result = await _httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto, ct);
+        var result = await httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product {ProductId} updated successfully", id);
+            logger.LogInformation("Product {ProductId} updated successfully", id);
         }
 
         return result;
@@ -143,9 +131,9 @@ public class ProductService : IProductService
 
     public async Task<bool> DeleteProductAsync(Guid id, CancellationToken ct = default)
     {
-        _logger.LogInformation("Deleting product {ProductId}", id);
-        await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
-        _logger.LogInformation("Product {ProductId} deleted successfully", id);
+        logger.LogInformation("Deleting product {ProductId}", id);
+        await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+        logger.LogInformation("Product {ProductId} deleted successfully", id);
         return true;
     }
 
@@ -153,12 +141,12 @@ public class ProductService : IProductService
     {
         try
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<UMDto>>("api/v1/product-management/units?page=1&pageSize=100", ct);
-            return pagedResult?.Items ?? new List<UMDto>();
+            var pagedResult = await httpClientService.GetAsync<PagedResult<UMDto>>("api/v1/product-management/units?page=1&pageSize=100", ct);
+            return pagedResult?.Items ?? [];
         }
         catch (HttpRequestException)
         {
-            return new List<UMDto>();
+            return [];
         }
     }
 
@@ -166,18 +154,18 @@ public class ProductService : IProductService
     {
         try
         {
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<StationDto>>("api/v1/stations?page=1&pageSize=100", ct);
-            return pagedResult?.Items ?? new List<StationDto>();
+            var pagedResult = await httpClientService.GetAsync<PagedResult<StationDto>>("api/v1/stations?page=1&pageSize=100", ct);
+            return pagedResult?.Items ?? [];
         }
         catch (HttpRequestException)
         {
-            return new List<StationDto>();
+            return [];
         }
     }
 
     public async Task<string?> UploadProductImageAsync(IBrowserFile file, CancellationToken ct = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        var httpClient = httpClientFactory.CreateClient("ApiClient");
         try
         {
             const long maxFileSize = 5 * 1024 * 1024; // 5MB
@@ -192,7 +180,7 @@ public class ProductService : IProductService
                 Content = content
             };
 
-            var token = await _authService.GetAccessTokenAsync();
+            var token = await authService.GetAccessTokenAsync();
             if (!string.IsNullOrWhiteSpace(token))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -210,19 +198,19 @@ public class ProductService : IProductService
                 return result?.ImageUrl;
             }
 
-            _logger.LogError("Failed to upload product image. Status: {StatusCode}", response.StatusCode);
+            logger.LogError("Failed to upload product image. Status: {StatusCode}", response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading product image");
+            logger.LogError(ex, "Error uploading product image");
             return null;
         }
     }
 
     public async Task<ProductDto?> UploadProductImageDocumentAsync(Guid productId, IBrowserFile file, CancellationToken ct = default)
     {
-        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        var httpClient = httpClientFactory.CreateClient("ApiClient");
         try
         {
             const long maxFileSize = 5 * 1024 * 1024; // 5MB
@@ -237,7 +225,7 @@ public class ProductService : IProductService
                 Content = content
             };
 
-            var token = await _authService.GetAccessTokenAsync();
+            var token = await authService.GetAccessTokenAsync();
             if (!string.IsNullOrWhiteSpace(token))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -255,12 +243,12 @@ public class ProductService : IProductService
                 return result;
             }
 
-            _logger.LogError("Failed to upload product image document. Status: {StatusCode}", response.StatusCode);
+            logger.LogError("Failed to upload product image document. Status: {StatusCode}", response.StatusCode);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading product image document for product {ProductId}", productId);
+            logger.LogError(ex, "Error uploading product image document for product {ProductId}", productId);
             return null;
         }
     }
@@ -271,7 +259,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<ProductSupplierDto>>($"{BaseUrl}/{productId}/suppliers", ct);
+            return await httpClientService.GetAsync<IEnumerable<ProductSupplierDto>>($"{BaseUrl}/{productId}/suppliers", ct);
         }
         catch (HttpRequestException)
         {
@@ -283,7 +271,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", ct);
+            return await httpClientService.GetAsync<ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", ct);
         }
         catch (HttpRequestException)
         {
@@ -293,12 +281,12 @@ public class ProductService : IProductService
 
     public async Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
-        var result = await _httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto, ct);
+        logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
+        var result = await httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
+            logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
         }
 
         return result;
@@ -306,12 +294,12 @@ public class ProductService : IProductService
 
     public async Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
-        var result = await _httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto, ct);
+        logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
+        var result = await httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
+            logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
         }
 
         return result;
@@ -319,9 +307,9 @@ public class ProductService : IProductService
 
     public async Task<bool> DeleteProductSupplierAsync(Guid id, CancellationToken ct = default)
     {
-        _logger.LogInformation("Deleting product supplier {ProductSupplierId}", id);
-        await _httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}", ct);
-        _logger.LogInformation("Product supplier {ProductSupplierId} deleted successfully", id);
+        logger.LogInformation("Deleting product supplier {ProductSupplierId}", id);
+        await httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}", ct);
+        logger.LogInformation("Product supplier {ProductSupplierId} deleted successfully", id);
         return true;
     }
 
@@ -334,7 +322,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<ProductWithAssociationDto>>($"api/v1/product-management/suppliers/{supplierId}/products", ct);
+            return await httpClientService.GetAsync<IEnumerable<ProductWithAssociationDto>>($"api/v1/product-management/suppliers/{supplierId}/products", ct);
         }
         catch (HttpRequestException)
         {
@@ -346,7 +334,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<ProductSupplierDto>>($"api/v1/product-management/suppliers/{supplierId}/supplied-products?page={page}&pageSize={pageSize}", ct);
+            return await httpClientService.GetAsync<PagedResult<ProductSupplierDto>>($"api/v1/product-management/suppliers/{supplierId}/supplied-products?page={page}&pageSize={pageSize}", ct);
         }
         catch (HttpRequestException)
         {
@@ -358,7 +346,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<IEnumerable<Guid>, int>($"api/v1/product-management/suppliers/{supplierId}/products/bulk-update", productIds, ct);
+            var result = await httpClientService.PostAsync<IEnumerable<Guid>, int>($"api/v1/product-management/suppliers/{supplierId}/products/bulk-update", productIds, ct);
             return result;
         }
         catch (HttpRequestException)
@@ -373,7 +361,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<ProductCodeDto>>($"{BaseUrl}/{productId}/codes", ct);
+            return await httpClientService.GetAsync<IEnumerable<ProductCodeDto>>($"{BaseUrl}/{productId}/codes", ct);
         }
         catch (HttpRequestException)
         {
@@ -385,7 +373,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductCodeDto>($"api/v1/product-management/product-codes/{id}", ct);
+            return await httpClientService.GetAsync<ProductCodeDto>($"api/v1/product-management/product-codes/{id}", ct);
         }
         catch (HttpRequestException)
         {
@@ -395,12 +383,12 @@ public class ProductService : IProductService
 
     public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
-        var result = await _httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto, ct);
+        logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
+        var result = await httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
+            logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
         }
 
         return result;
@@ -408,12 +396,12 @@ public class ProductService : IProductService
 
     public async Task<ProductCodeDto?> UpdateProductCodeAsync(Guid id, UpdateProductCodeDto updateDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Updating product code {ProductCodeId}", id);
-        var result = await _httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto, ct);
+        logger.LogInformation("Updating product code {ProductCodeId}", id);
+        var result = await httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
+            logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
         }
 
         return result;
@@ -421,9 +409,9 @@ public class ProductService : IProductService
 
     public async Task<bool> DeleteProductCodeAsync(Guid id, CancellationToken ct = default)
     {
-        _logger.LogInformation("Deleting product code {ProductCodeId}", id);
-        await _httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}", ct);
-        _logger.LogInformation("Product code {ProductCodeId} deleted successfully", id);
+        logger.LogInformation("Deleting product code {ProductCodeId}", id);
+        await httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}", ct);
+        logger.LogInformation("Product code {ProductCodeId} deleted successfully", id);
         return true;
     }
 
@@ -433,7 +421,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<ProductUnitDto>>($"{BaseUrl}/{productId}/units", ct);
+            return await httpClientService.GetAsync<IEnumerable<ProductUnitDto>>($"{BaseUrl}/{productId}/units", ct);
         }
         catch (HttpRequestException)
         {
@@ -446,7 +434,7 @@ public class ProductService : IProductService
         try
         {
             // Endpoint corretto (coerente con Update/Delete che usano "products/units/{id}")
-            return await _httpClientService.GetAsync<ProductUnitDto>($"api/v1/product-management/products/units/{id}", ct);
+            return await httpClientService.GetAsync<ProductUnitDto>($"api/v1/product-management/products/units/{id}", ct);
         }
         catch (HttpRequestException)
         {
@@ -456,12 +444,12 @@ public class ProductService : IProductService
 
     public async Task<ProductUnitDto?> CreateProductUnitAsync(CreateProductUnitDto createDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
-        var result = await _httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto, ct);
+        logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
+        var result = await httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
+            logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
         }
 
         return result;
@@ -469,12 +457,12 @@ public class ProductService : IProductService
 
     public async Task<ProductUnitDto?> UpdateProductUnitAsync(Guid id, UpdateProductUnitDto updateDto, CancellationToken ct = default)
     {
-        _logger.LogInformation("Updating product unit {ProductUnitId}", id);
-        var result = await _httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto, ct);
+        logger.LogInformation("Updating product unit {ProductUnitId}", id);
+        var result = await httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto, ct);
 
         if (result != null)
         {
-            _logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
+            logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
         }
 
         return result;
@@ -482,9 +470,9 @@ public class ProductService : IProductService
 
     public async Task<bool> DeleteProductUnitAsync(Guid id, CancellationToken ct = default)
     {
-        _logger.LogInformation("Deleting product unit {ProductUnitId}", id);
-        await _httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}", ct);
-        _logger.LogInformation("Product unit {ProductUnitId} deleted successfully", id);
+        logger.LogInformation("Deleting product unit {ProductUnitId}", id);
+        await httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}", ct);
+        logger.LogInformation("Product unit {ProductUnitId} deleted successfully", id);
         return true;
     }
 
@@ -494,7 +482,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<ProductBundleItemDto>>($"{BaseUrl}/{bundleProductId}/bundle-items", ct);
+            return await httpClientService.GetAsync<IEnumerable<ProductBundleItemDto>>($"{BaseUrl}/{bundleProductId}/bundle-items", ct);
         }
         catch (HttpRequestException)
         {
@@ -506,7 +494,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.GetAsync<ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}", ct);
+            return await httpClientService.GetAsync<ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}", ct);
         }
         catch (HttpRequestException)
         {
@@ -518,7 +506,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateProductBundleItemDto, ProductBundleItemDto>("api/v1/product-management/product-bundle-items", createDto, ct);
+            return await httpClientService.PostAsync<CreateProductBundleItemDto, ProductBundleItemDto>("api/v1/product-management/product-bundle-items", createDto, ct);
         }
         catch (HttpRequestException)
         {
@@ -530,7 +518,7 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateProductBundleItemDto, ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}", updateDto, ct);
+            return await httpClientService.PutAsync<UpdateProductBundleItemDto, ProductBundleItemDto>($"api/v1/product-management/product-bundle-items/{id}", updateDto, ct);
         }
         catch (HttpRequestException)
         {
@@ -542,7 +530,7 @@ public class ProductService : IProductService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/product-management/product-bundle-items/{id}", ct);
+            await httpClientService.DeleteAsync($"api/v1/product-management/product-bundle-items/{id}", ct);
             return true;
         }
         catch (HttpRequestException)
@@ -562,11 +550,11 @@ public class ProductService : IProductService
     {
         try
         {
-            var queryParams = new List<string>
-            {
+            List<string> queryParams =
+            [
                 $"page={page}",
                 $"pageSize={pageSize}"
-            };
+            ];
 
             if (fromDate.HasValue)
                 queryParams.Add($"fromDate={fromDate.Value:yyyy-MM-dd}");
@@ -576,7 +564,7 @@ public class ProductService : IProductService
                 queryParams.Add($"businessPartyName={Uri.EscapeDataString(businessPartyName)}");
 
             var queryString = string.Join("&", queryParams);
-            return await _httpClientService.GetAsync<PagedResult<ProductDocumentMovementDto>>(
+            return await httpClientService.GetAsync<PagedResult<ProductDocumentMovementDto>>(
                 $"{BaseUrl}/{productId}/document-movements?{queryString}", ct);
         }
         catch (HttpRequestException)
@@ -593,7 +581,7 @@ public class ProductService : IProductService
             if (year.HasValue)
                 url += $"?year={year.Value}";
 
-            return await _httpClientService.GetAsync<StockTrendDto>(url, ct);
+            return await httpClientService.GetAsync<StockTrendDto>(url, ct);
         }
         catch (HttpRequestException)
         {
@@ -609,7 +597,7 @@ public class ProductService : IProductService
             if (year.HasValue)
                 url += $"?year={year.Value}";
 
-            return await _httpClientService.GetAsync<PriceTrendDto>(url, ct);
+            return await httpClientService.GetAsync<PriceTrendDto>(url, ct);
         }
         catch (HttpRequestException)
         {
@@ -630,7 +618,7 @@ public class ProductService : IProductService
             if (partyId.HasValue)
                 url += $"&partyId={partyId.Value}";
 
-            return await _httpClientService.GetAsync<IEnumerable<RecentProductTransactionDto>>(url, ct);
+            return await httpClientService.GetAsync<IEnumerable<RecentProductTransactionDto>>(url, ct);
         }
         catch (HttpRequestException)
         {
@@ -646,7 +634,7 @@ public class ProductService : IProductService
                 return null;
 
             var url = $"{BaseUrl}/search?q={Uri.EscapeDataString(query)}&maxResults={maxResults}";
-            return await _httpClientService.GetAsync<ProductSearchResultDto>(url, ct);
+            return await httpClientService.GetAsync<ProductSearchResultDto>(url, ct);
         }
         catch (HttpRequestException)
         {
@@ -658,15 +646,15 @@ public class ProductService : IProductService
     {
         try
         {
-            _logger.LogInformation("Starting bulk price update for {Count} products", bulkUpdateDto.ProductIds.Count);
-            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkUpdatePricesDto, EventForge.DTOs.Bulk.BulkUpdateResultDto>(
+            logger.LogInformation("Starting bulk price update for {Count} products", bulkUpdateDto.ProductIds.Count);
+            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkUpdatePricesDto, EventForge.DTOs.Bulk.BulkUpdateResultDto>(
                 "api/v1/product-management/bulk-update-prices",
                 bulkUpdateDto,
                 ct);
 
             if (result != null)
             {
-                _logger.LogInformation("Bulk price update completed. Success: {SuccessCount}, Failed: {FailedCount}",
+                logger.LogInformation("Bulk price update completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 
@@ -674,7 +662,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk price update");
+            logger.LogError(ex, "Error performing bulk price update");
             return null;
         }
     }

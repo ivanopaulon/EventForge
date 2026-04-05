@@ -7,24 +7,12 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing stock levels and inventory operations.
 /// </summary>
-public class StockService : IStockService
+public class StockService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<StockService> logger) : IStockService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StockService> _logger;
-
-    public StockService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<StockService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StockDto>> GetStockAsync(
         int page = 1,
@@ -37,13 +25,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Stocks
+            var query = context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -92,7 +80,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock with filters - ProductId: {ProductId}, LocationId: {LocationId}, LotId: {LotId}",
+            logger.LogError(ex, "Error getting stock with filters - ProductId: {ProductId}, LocationId: {LocationId}, LotId: {LotId}",
                 productId, locationId, lotId);
             throw;
         }
@@ -102,13 +90,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -119,7 +107,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock by ID: {StockId}", id);
+            logger.LogError(ex, "Error getting stock by ID: {StockId}", id);
             throw;
         }
     }
@@ -128,13 +116,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -147,7 +135,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock by product ID: {ProductId}", productId);
+            logger.LogError(ex, "Error getting stock by product ID: {ProductId}", productId);
             throw;
         }
     }
@@ -156,13 +144,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -175,7 +163,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock by location ID: {LocationId}", locationId);
+            logger.LogError(ex, "Error getting stock by location ID: {LocationId}", locationId);
             throw;
         }
     }
@@ -184,13 +172,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Stocks
+            var query = context.Stocks
                 .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value);
 
             if (lotId.HasValue)
@@ -202,7 +190,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available quantity for product: {ProductId}, lot: {LotId}", productId, lotId);
+            logger.LogError(ex, "Error getting available quantity for product: {ProductId}, lot: {LotId}", productId, lotId);
             throw;
         }
     }
@@ -211,13 +199,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Stocks
+            var query = context.Stocks
                 .Where(s => s.ProductId == productId &&
                            s.StorageLocationId == locationId &&
                            s.TenantId == currentTenantId.Value);
@@ -232,7 +220,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available quantity at location - Product: {ProductId}, Location: {LocationId}, Lot: {LotId}",
+            logger.LogError(ex, "Error getting available quantity at location - Product: {ProductId}, Location: {LocationId}, Lot: {LotId}",
                 productId, locationId, lotId);
             throw;
         }
@@ -242,7 +230,7 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -251,18 +239,18 @@ public class StockService : IStockService
             // Validate GUID is not empty BEFORE database query
             if (createDto.ProductId == Guid.Empty)
             {
-                _logger.LogWarning("CreateOrUpdateStock called with empty ProductId");
+                logger.LogWarning("CreateOrUpdateStock called with empty ProductId");
                 throw new ArgumentException("ProductId non valido. Seleziona un prodotto valido.");
             }
 
             if (createDto.StorageLocationId == Guid.Empty)
             {
-                _logger.LogWarning("CreateOrUpdateStock called with empty StorageLocationId");
+                logger.LogWarning("CreateOrUpdateStock called with empty StorageLocationId");
                 throw new ArgumentException("Storage Location non valida. Seleziona una posizione di magazzino valida.");
             }
 
             // Validate Product exists
-            var productExists = await _context.Products
+            var productExists = await context.Products
                 .AnyAsync(p => p.Id == createDto.ProductId &&
                               p.TenantId == currentTenantId.Value &&
                               !p.IsDeleted,
@@ -270,13 +258,13 @@ public class StockService : IStockService
 
             if (!productExists)
             {
-                _logger.LogWarning("Product with ID {ProductId} not found for tenant {TenantId}.",
+                logger.LogWarning("Product with ID {ProductId} not found for tenant {TenantId}.",
                     createDto.ProductId, currentTenantId.Value);
                 throw new ArgumentException($"Product with ID {createDto.ProductId} not found.");
             }
 
             // Validate StorageLocation exists
-            var locationExists = await _context.StorageLocations
+            var locationExists = await context.StorageLocations
                 .AnyAsync(sl => sl.Id == createDto.StorageLocationId &&
                                sl.TenantId == currentTenantId.Value &&
                                !sl.IsDeleted,
@@ -284,7 +272,7 @@ public class StockService : IStockService
 
             if (!locationExists)
             {
-                _logger.LogWarning("Storage location with ID {StorageLocationId} not found for tenant {TenantId}.",
+                logger.LogWarning("Storage location with ID {StorageLocationId} not found for tenant {TenantId}.",
                     createDto.StorageLocationId, currentTenantId.Value);
                 throw new ArgumentException($"Storage location with ID {createDto.StorageLocationId} not found.");
             }
@@ -294,11 +282,11 @@ public class StockService : IStockService
             {
                 if (createDto.LotId.Value == Guid.Empty)
                 {
-                    _logger.LogWarning("CreateOrUpdateStock called with empty LotId");
+                    logger.LogWarning("CreateOrUpdateStock called with empty LotId");
                     throw new ArgumentException("Lot ID non valido.");
                 }
 
-                var lotExists = await _context.Lots
+                var lotExists = await context.Lots
                     .AnyAsync(l => l.Id == createDto.LotId.Value &&
                                   l.TenantId == currentTenantId.Value &&
                                   !l.IsDeleted,
@@ -306,20 +294,20 @@ public class StockService : IStockService
 
                 if (!lotExists)
                 {
-                    _logger.LogWarning("Lot with ID {LotId} not found for tenant {TenantId}.",
+                    logger.LogWarning("Lot with ID {LotId} not found for tenant {TenantId}.",
                         createDto.LotId.Value, currentTenantId.Value);
                     throw new ArgumentException($"Lot with ID {createDto.LotId.Value} not found.");
                 }
             }
 
             // Check if stock entry already exists
-            var existingStock = await _context.Stocks
+            var existingStock = await context.Stocks
                 .FirstOrDefaultAsync(s => s.ProductId == createDto.ProductId &&
                                          s.StorageLocationId == createDto.StorageLocationId &&
                                          s.LotId == createDto.LotId &&
                                          s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (existingStock != null)
+            if (existingStock is not null)
             {
                 // Update existing stock
                 existingStock.Quantity = createDto.Quantity;
@@ -333,7 +321,7 @@ public class StockService : IStockService
                 existingStock.ModifiedBy = currentUser;
                 existingStock.ModifiedAt = DateTime.UtcNow;
 
-                _ = await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
+                _ = await auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
                     $"Updated stock for product {createDto.ProductId} at location {createDto.StorageLocationId}", currentUser);
             }
             else
@@ -359,17 +347,17 @@ public class StockService : IStockService
                     IsActive = true
                 };
 
-                _ = _context.Stocks.Add(newStock);
+                _ = context.Stocks.Add(newStock);
                 existingStock = newStock;
 
-                _ = await _auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
+                _ = await auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
                     $"Created stock for product {createDto.ProductId} at location {createDto.StorageLocationId}", currentUser);
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Reload with includes for DTO mapping
-            var stockForDto = await _context.Stocks
+            var stockForDto = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -380,7 +368,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating stock for product: {ProductId} at location: {LocationId}",
+            logger.LogError(ex, "Error creating/updating stock for product: {ProductId} at location: {LocationId}",
                 createDto.ProductId, createDto.StorageLocationId);
             throw;
         }
@@ -395,14 +383,14 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
             // Case 1: New stock (insertion)
-            if (dto.StockId == null || dto.StockId == Guid.Empty)
+            if (dto.StockId is null || dto.StockId == Guid.Empty)
             {
                 // Validate required fields for new stock
                 if (!dto.WarehouseId.HasValue || dto.WarehouseId == Guid.Empty)
@@ -412,7 +400,7 @@ public class StockService : IStockService
                     throw new ArgumentException("Storage location is required for new stock");
 
                 // Verify warehouse exists
-                var warehouseExists = await _context.StorageFacilities
+                var warehouseExists = await context.StorageFacilities
                     .AnyAsync(w => w.Id == dto.WarehouseId.Value &&
                                   w.TenantId == currentTenantId.Value &&
                                   !w.IsDeleted,
@@ -421,19 +409,19 @@ public class StockService : IStockService
                     throw new ArgumentException($"Warehouse {dto.WarehouseId.Value} not found");
 
                 // Verify location exists and belongs to the warehouse
-                var location = await _context.StorageLocations
+                var location = await context.StorageLocations
                     .FirstOrDefaultAsync(l => l.Id == dto.StorageLocationId &&
                                              l.TenantId == currentTenantId.Value &&
                                              !l.IsDeleted,
                                         cancellationToken);
-                if (location == null)
+                if (location is null)
                     throw new ArgumentException($"Storage location {dto.StorageLocationId} not found");
 
                 if (location.WarehouseId != dto.WarehouseId.Value)
                     throw new ArgumentException("Storage location does not belong to the selected warehouse");
 
                 // Verify product exists
-                var productExists = await _context.Products
+                var productExists = await context.Products
                     .AnyAsync(p => p.Id == dto.ProductId &&
                                   p.TenantId == currentTenantId.Value &&
                                   !p.IsDeleted,
@@ -462,14 +450,14 @@ public class StockService : IStockService
                     IsActive = true
                 };
 
-                _ = _context.Stocks.Add(newStock);
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = context.Stocks.Add(newStock);
+                _ = await context.SaveChangesAsync(cancellationToken);
 
-                _ = await _auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
+                _ = await auditLogService.LogEntityChangeAsync("Stock", newStock.Id, "Created", "Create", null,
                     $"Created stock for product {dto.ProductId} at location {dto.StorageLocationId}", currentUser);
 
                 // Reload with includes for DTO mapping
-                var stockForDto = await _context.Stocks
+                var stockForDto = await context.Stocks
                     .Include(s => s.Product)
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)
@@ -482,7 +470,7 @@ public class StockService : IStockService
             // Case 2: Update existing stock
             else
             {
-                var existingStock = await _context.Stocks
+                var existingStock = await context.Stocks
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)
                     .Include(s => s.Product)
@@ -491,13 +479,13 @@ public class StockService : IStockService
                                              s.TenantId == currentTenantId.Value,
                                         cancellationToken);
 
-                if (existingStock == null)
+                if (existingStock is null)
                     throw new ArgumentException($"Stock {dto.StockId} not found");
 
                 // ❌ BLOCK: Attempt to change warehouse
                 if (dto.WarehouseId.HasValue &&
                     dto.WarehouseId != Guid.Empty &&
-                    existingStock.StorageLocation?.WarehouseId != null &&
+                    existingStock.StorageLocation?.WarehouseId is not null &&
                     dto.WarehouseId.Value != existingStock.StorageLocation.WarehouseId)
                 {
                     throw new InvalidOperationException(
@@ -526,9 +514,9 @@ public class StockService : IStockService
                 existingStock.ModifiedBy = currentUser;
                 existingStock.ModifiedAt = DateTime.UtcNow;
 
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
 
-                _ = await _auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
+                _ = await auditLogService.LogEntityChangeAsync("Stock", existingStock.Id, "Updated", "Update", null,
                     $"Updated stock quantity to {dto.NewQuantity}", currentUser);
 
                 return existingStock.ToStockDto();
@@ -536,7 +524,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}, LocationId: {LocationId}",
+            logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}, LocationId: {LocationId}",
                 dto.StockId, dto.ProductId, dto.StorageLocationId);
             throw;
         }
@@ -546,20 +534,20 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
                 .Include(s => s.Lot)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock == null)
+            if (stock is null)
             {
                 return null;
             }
@@ -585,15 +573,15 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
+            _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Stock {StockId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Stock {StockId}.", id);
                 throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
@@ -605,7 +593,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating stock levels for ID: {StockId}", id);
+            logger.LogError(ex, "Error updating stock levels for ID: {StockId}", id);
             throw;
         }
     }
@@ -614,19 +602,19 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .FirstOrDefaultAsync(s => s.ProductId == productId &&
                                          s.StorageLocationId == locationId &&
                                          s.LotId == lotId &&
                                          s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock == null || stock.AvailableQuantity < quantity)
+            if (stock is null || stock.AvailableQuantity < quantity)
             {
                 return false; // Insufficient stock available
             }
@@ -635,15 +623,15 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Reserved", "Reserve", null,
+            _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Reserved", "Reserve", null,
                 $"Reserved {quantity} units", currentUser ?? "System");
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reserving stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
+            logger.LogError(ex, "Error reserving stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
                 productId, locationId, quantity);
             throw;
         }
@@ -653,19 +641,19 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .FirstOrDefaultAsync(s => s.ProductId == productId &&
                                          s.StorageLocationId == locationId &&
                                          s.LotId == lotId &&
                                          s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock == null || stock.ReservedQuantity < quantity)
+            if (stock is null || stock.ReservedQuantity < quantity)
             {
                 return false; // Not enough reserved quantity
             }
@@ -674,15 +662,15 @@ public class StockService : IStockService
             stock.ModifiedBy = currentUser;
             stock.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Released", "Release", null,
+            _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Released", "Release", null,
                 $"Released {quantity} reserved units", currentUser ?? "System");
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error releasing reserved stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
+            logger.LogError(ex, "Error releasing reserved stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
                 productId, locationId, quantity);
             throw;
         }
@@ -692,13 +680,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -713,7 +701,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting low stock entries");
+            logger.LogError(ex, "Error getting low stock entries");
             throw;
         }
     }
@@ -722,13 +710,13 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -743,7 +731,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting overstock entries");
+            logger.LogError(ex, "Error getting overstock entries");
             throw;
         }
     }
@@ -752,25 +740,25 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .FirstOrDefaultAsync(s => s.Id == stockId && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock != null)
+            if (stock is not null)
             {
                 stock.LastInventoryDate = inventoryDate;
                 stock.ModifiedAt = DateTime.UtcNow;
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating last inventory date for stock: {StockId}", stockId);
+            logger.LogError(ex, "Error updating last inventory date for stock: {StockId}", stockId);
             throw;
         }
     }
@@ -779,30 +767,30 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock == null)
+            if (stock is null)
             {
                 return false;
             }
 
-            _ = _context.Stocks.Remove(stock);
-            _ = await _auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Deleted", "Delete", null, "Deleted stock entry", currentUser);
+            _ = context.Stocks.Remove(stock);
+            _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "Deleted", "Delete", null, "Deleted stock entry", currentUser);
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Stock {StockId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Stock {StockId}.", id);
                 throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
@@ -814,7 +802,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting stock: {StockId}", id);
+            logger.LogError(ex, "Error deleting stock: {StockId}", id);
             throw;
         }
     }
@@ -836,7 +824,7 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -848,9 +836,9 @@ public class StockService : IStockService
             {
                 // LEFT JOIN: Show all products + stock (if present)
                 // We use a different approach: query products and optionally include their stock data
-                query = from p in _context.Products
+                query = from p in context.Products
                             .Where(p => p.TenantId == currentTenantId.Value && p.IsActive)
-                        from s in _context.Stocks
+                        from s in context.Stocks
                             .Include(s => s.StorageLocation)
                                 .ThenInclude(sl => sl!.Warehouse)
                             .Include(s => s.Lot)
@@ -881,7 +869,7 @@ public class StockService : IStockService
             else
             {
                 // EXISTING QUERY: Only products with stock
-                var stockQuery = _context.Stocks
+                var stockQuery = context.Stocks
                     .Include(s => s.Product)
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)
@@ -910,7 +898,6 @@ public class StockService : IStockService
                     SafetyStock = s.MinimumLevel
                 });
             }
-
 
             // Apply search filter
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -1026,7 +1013,7 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock overview");
+            logger.LogError(ex, "Error getting stock overview");
             throw;
         }
     }
@@ -1035,21 +1022,21 @@ public class StockService : IStockService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var stock = await _context.Stocks
+            var stock = await context.Stocks
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
                 .FirstOrDefaultAsync(s => s.Id == dto.StockId && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (stock == null)
+            if (stock is null)
             {
-                _logger.LogWarning("Stock entry not found: {StockId}", dto.StockId);
+                logger.LogWarning("Stock entry not found: {StockId}", dto.StockId);
                 return null;
             }
 
@@ -1081,12 +1068,12 @@ public class StockService : IStockService
                 IsActive = true
             };
 
-            _context.StockMovements.Add(movement);
+            context.StockMovements.Add(movement);
 
             // Create audit log entry if required
             if (dto.RequiresAudit)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "Stock",
                     stock.Id,
                     "Quantity",
@@ -1097,9 +1084,9 @@ public class StockService : IStockService
                     dto.Notes);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Stock adjusted: Product {ProductId}, Location {LocationId}, {PreviousQty} → {NewQty}, Reason: {Reason}",
                 stock.ProductId, stock.StorageLocationId, previousQuantity, dto.NewQuantity, dto.Reason);
 
@@ -1107,8 +1094,9 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adjusting stock: {StockId}", dto.StockId);
+            logger.LogError(ex, "Error adjusting stock: {StockId}", dto.StockId);
             throw;
         }
     }
+
 }

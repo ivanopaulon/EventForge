@@ -6,28 +6,22 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of document header service using HTTP client.
 /// </summary>
-public class DocumentHeaderService : IDocumentHeaderService
+public class DocumentHeaderService(
+    IHttpClientService httpClientService,
+    ILogger<DocumentHeaderService> logger) : IDocumentHeaderService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<DocumentHeaderService> _logger;
-    private const string BaseUrl = "api/v1/DocumentHeaders";
-
-    public DocumentHeaderService(IHttpClientService httpClientService, ILogger<DocumentHeaderService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private const string BaseUrl = "api/v1/documentheaders";
 
     public async Task<PagedResult<DocumentHeaderDto>?> GetPagedDocumentHeadersAsync(DocumentHeaderQueryParameters queryParameters, CancellationToken ct = default)
     {
         try
         {
             var queryString = BuildQueryString(queryParameters);
-            return await _httpClientService.GetAsync<PagedResult<DocumentHeaderDto>>($"{BaseUrl}?{queryString}", ct);
+            return await httpClientService.GetAsync<PagedResult<DocumentHeaderDto>>($"{BaseUrl}?{queryString}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving paginated document headers");
+            logger.LogError(ex, "Error retrieving paginated document headers");
             return null;
         }
     }
@@ -36,11 +30,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.GetAsync<DocumentHeaderDto>($"{BaseUrl}/{id}?includeRows={includeRows}", ct);
+            return await httpClientService.GetAsync<DocumentHeaderDto>($"{BaseUrl}/{id}?includeRows={includeRows}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document header with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving document header with ID {Id}", id);
             return null;
         }
     }
@@ -49,11 +43,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateDocumentHeaderDto, DocumentHeaderDto>(BaseUrl, createDto, ct);
+            return await httpClientService.PostAsync<CreateDocumentHeaderDto, DocumentHeaderDto>(BaseUrl, createDto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document header");
+            logger.LogError(ex, "Error creating document header");
             return null;
         }
     }
@@ -62,11 +56,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateDocumentHeaderDto, DocumentHeaderDto>($"{BaseUrl}/{id}", updateDto, ct);
+            return await httpClientService.PutAsync<UpdateDocumentHeaderDto, DocumentHeaderDto>($"{BaseUrl}/{id}", updateDto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document header with ID {Id}", id);
+            logger.LogError(ex, "Error updating document header with ID {Id}", id);
             return null;
         }
     }
@@ -75,12 +69,12 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document header with ID {Id}", id);
+            logger.LogError(ex, "Error deleting document header with ID {Id}", id);
             return false;
         }
     }
@@ -89,11 +83,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { }, ct);
+            return await httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { }, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error approving document with ID {Id}", id);
+            logger.LogError(ex, "Error approving document with ID {Id}", id);
             return null;
         }
     }
@@ -102,11 +96,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { }, ct);
+            return await httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { }, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error closing document with ID {Id}", id);
+            logger.LogError(ex, "Error closing document with ID {Id}", id);
             return null;
         }
     }
@@ -117,11 +111,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         {
             // The AddDocumentRow is exposed via DocumentHeaderService on the server
             // We need to check the actual endpoint - it might be in a different controller
-            return await _httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto, ct);
+            return await httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding document row");
+            logger.LogError(ex, "Error adding document row");
             return null;
         }
     }
@@ -130,11 +124,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto, ct);
+            return await httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document row with ID {RowId}", rowId);
+            logger.LogError(ex, "Error updating document row with ID {RowId}", rowId);
             return null;
         }
     }
@@ -143,12 +137,12 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}", ct);
+            await httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}", ct);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document row with ID {RowId}", rowId);
+            logger.LogError(ex, "Error deleting document row with ID {RowId}", rowId);
             return false;
         }
     }
@@ -157,11 +151,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null, ct);
+            return await httpClientService.PostAsync<object?, DocumentHeaderDto>($"{BaseUrl}/{documentId}/calculate-totals", null, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating document totals for {DocumentId}", documentId);
+            logger.LogError(ex, "Error calculating document totals for {DocumentId}", documentId);
             return null;
         }
     }
@@ -170,15 +164,15 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            _logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
-            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkApprovalDto, EventForge.DTOs.Bulk.BulkApprovalResultDto>(
+            logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
+            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkApprovalDto, EventForge.DTOs.Bulk.BulkApprovalResultDto>(
                 "api/v1/documents/bulk-approve",
                 bulkApprovalDto,
                 ct);
 
-            if (result != null)
+            if (result is not null)
             {
-                _logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}",
+                logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 
@@ -186,7 +180,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk approval");
+            logger.LogError(ex, "Error performing bulk approval");
             return null;
         }
     }
@@ -195,16 +189,16 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            _logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'",
+            logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'",
                 bulkStatusChangeDto.DocumentIds.Count, bulkStatusChangeDto.NewStatus);
-            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkStatusChangeDto, EventForge.DTOs.Bulk.BulkStatusChangeResultDto>(
+            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkStatusChangeDto, EventForge.DTOs.Bulk.BulkStatusChangeResultDto>(
                 "api/v1/documents/bulk-status-change",
                 bulkStatusChangeDto,
                 ct);
 
-            if (result != null)
+            if (result is not null)
             {
-                _logger.LogInformation("Bulk status change completed. Success: {SuccessCount}, Failed: {FailedCount}",
+                logger.LogInformation("Bulk status change completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 
@@ -212,18 +206,18 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk status change");
+            logger.LogError(ex, "Error performing bulk status change");
             return null;
         }
     }
 
     private static string BuildQueryString(DocumentHeaderQueryParameters parameters)
     {
-        var queryParams = new List<string>
-        {
+        List<string> queryParams =
+        [
             $"page={parameters.Page}",
             $"pageSize={parameters.PageSize}"
-        };
+        ];
 
         if (parameters.DocumentTypeId.HasValue)
             queryParams.Add($"documentTypeId={parameters.DocumentTypeId.Value}");

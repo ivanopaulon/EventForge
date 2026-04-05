@@ -73,7 +73,7 @@ public static class DocumentStateMachine
     {
         return AllowedTransitions.TryGetValue(currentStatus, out var allowed)
             ? allowed
-            : new List<DocumentStatus>();
+            : [];
     }
 
     public static StateTransitionValidationResult ValidateTransition(
@@ -122,7 +122,7 @@ public static class DocumentStateMachine
 
     private static StateTransitionValidationResult ValidateTransitionToClosed(DocumentHeaderDto document)
     {
-        if (document.Rows == null || !document.Rows.Any())
+        if (document.Rows is null || !document.Rows.Any())
         {
             return StateTransitionValidationResult.Fail(
                 "Impossibile chiudere il documento: deve contenere almeno una riga",

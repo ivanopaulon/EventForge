@@ -12,44 +12,26 @@ namespace EventForge.Server.Services.Sales;
 /// <summary>
 /// Service implementation for managing sales sessions.
 /// </summary>
-public class SaleSessionService : ISaleSessionService
+public class SaleSessionService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<SaleSessionService> logger,
+    IDocumentHeaderService documentHeaderService,
+    IStockMovementService stockMovementService,
+    IPromotionService promotionService) : ISaleSessionService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SaleSessionService> _logger;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly IPromotionService _promotionService;
 
     /// <summary>
     /// Tolerance for percentage sum validation (allows for rounding errors).
     /// </summary>
     private const decimal PercentageSumTolerance = 0.01m;
 
-    public SaleSessionService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<SaleSessionService> logger,
-        IDocumentHeaderService documentHeaderService,
-        IStockMovementService stockMovementService,
-        IPromotionService promotionService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
-    }
-
     public async Task<SaleSessionDto> CreateSessionAsync(CreateSaleSessionDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
@@ -76,18 +58,18 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _ = _context.SaleSessions.Add(session);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.SaleSessions.Add(session);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Created sale session {SessionId} for operator {OperatorId} at POS {PosId}", session.Id, createDto.OperatorId, createDto.PosId);
+            logger.LogInformation("Created sale session {SessionId} for operator {OperatorId} at POS {PosId}", session.Id, createDto.OperatorId, createDto.PosId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating sale session.");
+            logger.LogError(ex, "Error creating sale session.");
             throw;
         }
     }
@@ -96,19 +78,19 @@ public class SaleSessionService : ISaleSessionService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -117,7 +99,7 @@ public class SaleSessionService : ISaleSessionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error retrieving sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -126,19 +108,19 @@ public class SaleSessionService : ISaleSessionService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -151,7 +133,7 @@ public class SaleSessionService : ISaleSessionService
                 session.Status = (SaleSessionStatus)updateDto.Status.Value;
             }
 
-            if (updateDto.CouponCodes != null)
+            if (updateDto.CouponCodes is not null)
             {
                 session.CouponCodes = updateDto.CouponCodes.Count > 0
                     ? string.Join(",", updateDto.CouponCodes.Select(c => c.Trim().ToUpperInvariant()))
@@ -161,17 +143,17 @@ public class SaleSessionService : ISaleSessionService
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Updated sale session {SessionId}", sessionId);
+            logger.LogInformation("Updated sale session {SessionId}", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error updating sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -180,16 +162,16 @@ public class SaleSessionService : ISaleSessionService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return false;
             }
@@ -198,17 +180,17 @@ public class SaleSessionService : ISaleSessionService
             session.DeletedAt = DateTime.UtcNow;
             session.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Deleted sale session {SessionId}", sessionId);
+            logger.LogInformation("Deleted sale session {SessionId}", sessionId);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error deleting sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -217,14 +199,14 @@ public class SaleSessionService : ISaleSessionService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
             // Validate session exists (no tracking to avoid modifying tracked SaleSession)
-            var sessionExists = await _context.SaleSessions
+            var sessionExists = await context.SaleSessions
                 .AsNoTracking()
                 .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
@@ -234,13 +216,13 @@ public class SaleSessionService : ISaleSessionService
             }
 
             // Load product (we need VAT and price info)
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Product not found - ProductId: {ProductId}, TenantId: {TenantId}, SessionId: {SessionId}",
                     addItemDto.ProductId,
                     currentTenantId.Value,
@@ -254,7 +236,7 @@ public class SaleSessionService : ISaleSessionService
             var totalAmount = subtotal - discountAmount;
 
             var taxRate = 0m;
-            if (product.VatRateId.HasValue && product.VatRate != null)
+            if (product.VatRateId.HasValue && product.VatRate is not null)
             {
                 taxRate = product.VatRate.Percentage;
             }
@@ -282,25 +264,25 @@ public class SaleSessionService : ISaleSessionService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Preparing to add SaleItem - Id: {ItemId}, ProductId: {ProductId}, Quantity: {Quantity}, UnitPrice: {UnitPrice}, TenantId: {TenantId}",
                 item.Id, item.ProductId, item.Quantity, item.UnitPrice, item.TenantId);
 
             // Use explicit transaction: INSERT item via EF (tracked only for the item), then update session totals via raw SQL.
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 // Insert the new sale item (tracked only as SaleItem)
-                _context.SaleItems.Add(item);
-                await _context.SaveChangesAsync(cancellationToken);
+                context.SaleItems.Add(item);
+                await context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Inserted SaleItem {ItemId} for Session {SessionId}", item.Id, sessionId);
+                logger.LogInformation("Inserted SaleItem {ItemId} for Session {SessionId}", item.Id, sessionId);
 
                 // Recalculate and update totals using a single SQL statement to avoid loading/modifying the SaleSession entity
                 var now = DateTime.UtcNow;
 
                 // This uses parameterization via EF Core interpolated SQL to avoid SQL injection.
-                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                await context.Database.ExecuteSqlInterpolatedAsync($@"
 UPDATE ss
 SET ss.OriginalTotal = COALESCE(s.OriginalTotal, 0),
     ss.DiscountAmount = COALESCE(s.DiscountAmount, 0),
@@ -326,21 +308,21 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 // Commit SQL transaction (item insert + totals update)
                 await transaction.CommitAsync(cancellationToken);
 
-                _logger.LogInformation("Updated totals for Session {SessionId} after adding Item {ItemId}", sessionId, item.Id);
+                logger.LogInformation("Updated totals for Session {SessionId} after adding Item {ItemId}", sessionId, item.Id);
 
                 // Audit log: record that an item was added to the session
-                _ = await _auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+                _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
 
                 // Reload full session (with includes) to map and return DTO
-                var reloadedSession = await _context.SaleSessions
+                var reloadedSession = await context.SaleSessions
                     .Include(s => s.Items)
                     .Include(s => s.Payments)
                     .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                     .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-                if (reloadedSession == null)
+                if (reloadedSession is null)
                 {
-                    _logger.LogWarning("Session {SessionId} not found after insert/update", sessionId);
+                    logger.LogWarning("Session {SessionId} not found after insert/update", sessionId);
                     return null;
                 }
 
@@ -358,7 +340,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding item to sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error adding item to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -367,25 +349,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
 
             var item = session.Items.FirstOrDefault(i => i.Id == itemId && !i.IsDeleted);
-            if (item == null)
+            if (item is null)
             {
                 throw new InvalidOperationException($"Item {itemId} not found in session {sessionId}.");
             }
@@ -411,11 +393,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedAt = DateTime.UtcNow;
 
             // Single SaveChanges call to save both item and updated totals atomically
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "UpdateItem", item.Quantity.ToString(), updateItemDto.Quantity.ToString(), currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Updated item {ItemId} in sale session {SessionId}", itemId, sessionId);
+            logger.LogInformation("Updated item {ItemId} in sale session {SessionId}", itemId, sessionId);
 
             // Apply promotions to all items in the session after a manual update
             await ApplyPromotionsToSessionItemsAsync(session, currentUser, cancellationToken);
@@ -424,19 +406,19 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogError(ex,
+            logger.LogError(ex,
                 "DbUpdateConcurrencyException in UpdateItemAsync - SessionId: {SessionId}, ItemId: {ItemId}. The session or item was modified by another user.",
                 sessionId,
                 itemId);
 
-            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
+            LogDetailedEntityStates(sessionId, tenantContext.CurrentTenantId ?? Guid.Empty);
 
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating item {ItemId} in sale session {SessionId}.", itemId, sessionId);
+            logger.LogError(ex, "Error updating item {ItemId} in sale session {SessionId}.", itemId, sessionId);
             throw;
         }
     }
@@ -445,25 +427,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
 
             var item = session.Items.FirstOrDefault(i => i.Id == itemId && !i.IsDeleted);
-            if (item == null)
+            if (item is null)
             {
                 throw new InvalidOperationException($"Item {itemId} not found in session {sessionId}.");
             }
@@ -480,29 +462,29 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedAt = DateTime.UtcNow;
 
             // Single SaveChanges call to save both item and updated totals atomically
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "RemoveItem", item.ProductName, "Removed", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Items", "RemoveItem", item.ProductName, "Removed", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Removed item {ItemId} from sale session {SessionId}", itemId, sessionId);
+            logger.LogInformation("Removed item {ItemId} from sale session {SessionId}", itemId, sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogError(ex,
+            logger.LogError(ex,
                 "DbUpdateConcurrencyException in RemoveItemAsync - SessionId: {SessionId}, ItemId: {ItemId}. The session or item was modified by another user.",
                 sessionId,
                 itemId);
 
-            LogDetailedEntityStates(sessionId, _tenantContext.CurrentTenantId ?? Guid.Empty);
+            LogDetailedEntityStates(sessionId, tenantContext.CurrentTenantId ?? Guid.Empty);
 
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing item {ItemId} from sale session {SessionId}.", itemId, sessionId);
+            logger.LogError(ex, "Error removing item {ItemId} from sale session {SessionId}.", itemId, sessionId);
             throw;
         }
     }
@@ -511,14 +493,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
             // Verify session exists (no tracking to avoid modifying SaleSession row)
-            var sessionExists = await _context.SaleSessions
+            var sessionExists = await context.SaleSessions
                 .AsNoTracking()
                 .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
@@ -543,23 +525,23 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             };
 
             // Insert payment only (avoid touching SaleSession entity)
-            _context.SalePayments.Add(payment);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.SalePayments.Add(payment);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Inserted payment {PaymentId} of {Amount} for sale session {SessionId}", payment.Id, payment.Amount, sessionId);
+            logger.LogInformation("Inserted payment {PaymentId} of {Amount} for sale session {SessionId}", payment.Id, payment.Amount, sessionId);
 
             // Reload full session with includes to return a consistent DTO
-            var reloadedSession = await _context.SaleSessions
+            var reloadedSession = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (reloadedSession == null)
+            if (reloadedSession is null)
             {
-                _logger.LogWarning("Session {SessionId} not found after inserting payment {PaymentId}", sessionId, payment.Id);
+                logger.LogWarning("Session {SessionId} not found after inserting payment {PaymentId}", sessionId, payment.Id);
                 return null;
             }
 
@@ -567,7 +549,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding payment to sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error adding payment to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -576,25 +558,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
 
             var payment = session.Payments.FirstOrDefault(p => p.Id == paymentId && !p.IsDeleted);
-            if (payment == null)
+            if (payment is null)
             {
                 throw new InvalidOperationException($"Payment {paymentId} not found in session {sessionId}.");
             }
@@ -606,17 +588,17 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Removed payment {PaymentId} from sale session {SessionId}", paymentId, sessionId);
+            logger.LogInformation("Removed payment {PaymentId} from sale session {SessionId}", paymentId, sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing payment {PaymentId} from sale session {SessionId}.", paymentId, sessionId);
+            logger.LogError(ex, "Error removing payment {PaymentId} from sale session {SessionId}.", paymentId, sessionId);
             throw;
         }
     }
@@ -625,7 +607,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
@@ -634,13 +616,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             // Get user ID from username BEFORE loading session to avoid DataReader conflicts
             var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -663,17 +645,17 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Added note to sale session {SessionId}", sessionId);
+            logger.LogInformation("Added note to sale session {SessionId}", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding note to sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error adding note to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -686,19 +668,19 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -734,10 +716,10 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "SaleSession",
                 session.Id,
                 "DiscountAmount",
@@ -748,7 +730,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 "Sale Session",
                 cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Applied {DiscountPercent}% global discount to session {SessionId} by {User}",
                 discountDto.DiscountPercent, sessionId, currentUser);
 
@@ -756,7 +738,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying global discount to session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error applying global discount to session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -765,32 +747,32 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
 
             await RecalculateTotalsAsync(session, cancellationToken);
 
-            _logger.LogInformation("Recalculated totals for sale session {SessionId}", sessionId);
+            logger.LogInformation("Recalculated totals for sale session {SessionId}", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating totals for sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error calculating totals for sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -799,19 +781,19 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -839,25 +821,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             // SaveChanges will handle transaction atomicity
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Log audit entry (best effort - don't fail session close if audit fails)
             try
             {
-                await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+                await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
             }
             catch (Exception auditEx)
             {
-                _logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
+                logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
             }
 
-            _logger.LogInformation("Closed sale session {SessionId}", sessionId);
+            logger.LogInformation("Closed sale session {SessionId}", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error closing sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error closing sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -866,13 +848,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var baseQuery = _context.SaleSessions
+            var baseQuery = context.SaleSessions
                 .AsNoTracking()
                 .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
 
@@ -893,13 +875,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
-            var operators = await _context.StoreUsers
+            var operators = await context.StoreUsers
                 .AsNoTracking()
                 .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
-            var poses = await _context.StorePoses
+            var poses = await context.StorePoses
                 .AsNoTracking()
                 .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
@@ -911,7 +893,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Distinct()
                 .ToList();
 
-            var allProducts = await _context.Products
+            var allProducts = await context.Products
                 .AsNoTracking()
                 .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
                 .Include(p => p.Brand)
@@ -938,7 +920,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving POS sessions.");
+            logger.LogError(ex, "Error retrieving POS sessions.");
             throw;
         }
     }
@@ -947,13 +929,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var baseQuery = _context.SaleSessions
+            var baseQuery = context.SaleSessions
                 .AsNoTracking()
                 .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.OperatorId == operatorId);
 
@@ -973,13 +955,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
-            var operatorName = await _context.StoreUsers
+            var operatorName = await context.StoreUsers
                 .AsNoTracking()
                 .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value)
                 .Select(u => u.Name)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var poses = await _context.StorePoses
+            var poses = await context.StorePoses
                 .AsNoTracking()
                 .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
@@ -991,7 +973,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Distinct()
                 .ToList();
 
-            var allProducts = await _context.Products
+            var allProducts = await context.Products
                 .AsNoTracking()
                 .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
                 .Include(p => p.Brand)
@@ -1018,7 +1000,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
+            logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
             throw;
         }
     }
@@ -1027,7 +1009,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
@@ -1035,7 +1017,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             var end = endDate ?? DateTime.UtcNow;
 
-            var baseQuery = _context.SaleSessions
+            var baseQuery = context.SaleSessions
                 .AsNoTracking()
                 .Where(s => s.TenantId == currentTenantId.Value
                     && !s.IsDeleted
@@ -1059,13 +1041,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
-            var operators = await _context.StoreUsers
+            var operators = await context.StoreUsers
                 .AsNoTracking()
                 .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
-            var poses = await _context.StorePoses
+            var poses = await context.StorePoses
                 .AsNoTracking()
                 .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
@@ -1077,7 +1059,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Distinct()
                 .ToList();
 
-            var allProducts = await _context.Products
+            var allProducts = await context.Products
                 .AsNoTracking()
                 .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
                 .Include(p => p.Brand)
@@ -1104,7 +1086,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sale sessions by date range.");
+            logger.LogError(ex, "Error retrieving sale sessions by date range.");
             throw;
         }
     }
@@ -1113,13 +1095,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var baseQuery = _context.SaleSessions
+            var baseQuery = context.SaleSessions
                 .AsNoTracking()
                 .Where(s => s.TenantId == currentTenantId.Value
                     && !s.IsDeleted
@@ -1142,13 +1124,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
             var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
 
-            var operators = await _context.StoreUsers
+            var operators = await context.StoreUsers
                 .AsNoTracking()
                 .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
                 .Select(u => new { u.Id, u.Name })
                 .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
 
-            var poses = await _context.StorePoses
+            var poses = await context.StorePoses
                 .AsNoTracking()
                 .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .Select(p => new { p.Id, p.Name })
@@ -1160,7 +1142,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Distinct()
                 .ToList();
 
-            var allProducts = await _context.Products
+            var allProducts = await context.Products
                 .AsNoTracking()
                 .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
                 .Include(p => p.Brand)
@@ -1187,7 +1169,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving open POS sessions.");
+            logger.LogError(ex, "Error retrieving open POS sessions.");
             throw;
         }
     }
@@ -1196,13 +1178,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var sessions = await _context.SaleSessions
+            var sessions = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -1222,7 +1204,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active sale sessions.");
+            logger.LogError(ex, "Error retrieving active sale sessions.");
             throw;
         }
     }
@@ -1231,13 +1213,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var sessions = await _context.SaleSessions
+            var sessions = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -1255,7 +1237,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
+            logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
             throw;
         }
     }
@@ -1273,7 +1255,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         CalculateTotals(session);
         session.ModifiedAt = DateTime.UtcNow;
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>
@@ -1296,7 +1278,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         var productIds = session.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId).Distinct().ToList();
 
         // Fetch product details including Brand, VatRate, ImageDocument for all items at once
-        var products = await _context.Products
+        var products = await context.Products
             .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
             .Include(p => p.Brand)
             .Include(p => p.VatRate)
@@ -1304,7 +1286,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
 
         // Get child session count
-        var childSessionCount = await _context.SaleSessions
+        var childSessionCount = await context.SaleSessions
             .CountAsync(s => s.ParentSessionId == session.Id && !s.IsDeleted, cancellationToken);
 
         return MapToDtoWithProducts(session, products, childSessionCount);
@@ -1370,7 +1352,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             dto.ProductImageUrl = product.ImageUrl;
 #pragma warning restore CS0618 // Type or member is obsolete
             // Use ImageDocument if available, fallback to deprecated ImageUrl
-            if (product.ImageDocument != null)
+            if (product.ImageDocument is not null)
             {
                 dto.ProductThumbnailUrl = product.ImageDocument.ThumbnailStorageKey ?? product.ImageDocument.StorageKey ?? string.Empty;
                 dto.ProductImageUrl = product.ImageDocument.Url ?? product.ImageDocument.StorageKey ?? string.Empty;
@@ -1418,19 +1400,19 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
             {
                 return null;
             }
@@ -1446,11 +1428,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Void", "Closed", "Cancelled", currentUser, "Sale Session", cancellationToken);
+            await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Void", "Closed", "Cancelled", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Voided sale session {SessionId}", sessionId);
+            logger.LogInformation("Voided sale session {SessionId}", sessionId);
 
             // Create inverse stock movements to restore inventory
             if (session.DocumentId.HasValue)
@@ -1471,13 +1453,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                             Reference = $"VOID-{session.Id.ToString("N")[..8]}"
                         };
 
-                        await _stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
-                        _logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}",
+                        await stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
+                        logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}",
                             item.ProductId, item.Quantity);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}",
+                        logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}",
                             item.ProductId, session.Id);
                         // Continue with other items even if one fails
                     }
@@ -1486,30 +1468,30 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 // Mark document as cancelled
                 try
                 {
-                    var document = await _context.DocumentHeaders
+                    var document = await context.DocumentHeaders
                         .AsNoTracking()
                         .FirstOrDefaultAsync(
                             d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted,
                             cancellationToken);
 
-                    if (document != null)
+                    if (document is not null)
                     {
                         // Re-attach to modify (only if not already tracked)
-                        var entry = _context.Entry(document);
+                        var entry = context.Entry(document);
                         if (entry.State == EntityState.Detached)
                         {
-                            _context.Attach(document);
+                            context.Attach(document);
                         }
                         document.Status = EventForge.DTOs.Common.DocumentStatus.Cancelled;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
-                        await _context.SaveChangesAsync(cancellationToken);
-                        _logger.LogInformation("Marked document {DocumentId} as cancelled", session.DocumentId.Value);
+                        await context.SaveChangesAsync(cancellationToken);
+                        logger.LogInformation("Marked document {DocumentId} as cancelled", session.DocumentId.Value);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error marking document {DocumentId} as cancelled", session.DocumentId.Value);
+                    logger.LogError(ex, "Error marking document {DocumentId} as cancelled", session.DocumentId.Value);
                 }
             }
 
@@ -1517,7 +1499,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error voiding sale session {SessionId}.", sessionId);
+            logger.LogError(ex, "Error voiding sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -1529,13 +1511,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 return Guid.Empty;
             }
 
-            var userId = await _context.Users
+            var userId = await context.Users
                 .Where(u => u.Username == username && u.TenantId == currentTenantId.Value && !u.IsDeleted)
                 .Select(u => u.Id)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -1544,7 +1526,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error getting user ID for username {Username}, using Empty GUID", username);
+            logger.LogWarning(ex, "Error getting user ID for username {Username}, using Empty GUID", username);
             return Guid.Empty;
         }
     }
@@ -1556,25 +1538,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
-                _logger.LogWarning("Cannot generate receipt: No tenant context");
+                logger.LogWarning("Cannot generate receipt: No tenant context");
                 return null;
             }
 
-            _logger.LogInformation("Starting receipt document generation for session {SessionId}", session.Id);
+            logger.LogInformation("Starting receipt document generation for session {SessionId}", session.Id);
 
             // Get or create RECEIPT document type
             DocumentTypeDto receiptDocumentType;
             try
             {
-                receiptDocumentType = await _documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
-                _logger.LogInformation("RECEIPT document type obtained: {DocumentTypeId}", receiptDocumentType.Id);
+                receiptDocumentType = await documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+                logger.LogInformation("RECEIPT document type obtained: {DocumentTypeId}", receiptDocumentType.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get or create RECEIPT document type for session {SessionId}", session.Id);
+                logger.LogError(ex, "Failed to get or create RECEIPT document type for session {SessionId}", session.Id);
                 throw;
             }
 
@@ -1584,12 +1566,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             {
                 try
                 {
-                    businessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
-                    _logger.LogInformation("Using System Internal business party: {BusinessPartyId}", businessPartyId);
+                    businessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+                    logger.LogInformation("Using System Internal business party: {BusinessPartyId}", businessPartyId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to get or create System Internal business party for session {SessionId}", session.Id);
+                    logger.LogError(ex, "Failed to get or create System Internal business party for session {SessionId}", session.Id);
                     throw;
                 }
             }
@@ -1602,11 +1584,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
             if (activeItems.Count == 0)
             {
-                _logger.LogWarning("No active items in session {SessionId}, skipping document generation", session.Id);
+                logger.LogWarning("No active items in session {SessionId}, skipping document generation", session.Id);
                 return null;
             }
 
-            _logger.LogInformation("Creating document with {ItemCount} items for session {SessionId}", activeItems.Count, session.Id);
+            logger.LogInformation("Creating document with {ItemCount} items for session {SessionId}", activeItems.Count, session.Id);
 
             // Create document header
             var createDocumentDto = new EventForge.DTOs.Documents.CreateDocumentHeaderDto
@@ -1633,17 +1615,17 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             DocumentHeaderDto? documentHeader;
             try
             {
-                documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
-                if (documentHeader == null)
+                documentHeader = await documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
+                if (documentHeader is null)
                 {
-                    _logger.LogError("CreateDocumentHeaderAsync returned null for session {SessionId}", session.Id);
+                    logger.LogError("CreateDocumentHeaderAsync returned null for session {SessionId}", session.Id);
                     return null;
                 }
-                _logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
+                logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create document header for session {SessionId}", session.Id);
+                logger.LogError(ex, "Failed to create document header for session {SessionId}", session.Id);
                 throw;
             }
 
@@ -1653,7 +1635,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             {
                 try
                 {
-                    _logger.LogInformation("Creating stock movement for product {ProductId}, quantity {Quantity}", item.ProductId, item.Quantity);
+                    logger.LogInformation("Creating stock movement for product {ProductId}, quantity {Quantity}", item.ProductId, item.Quantity);
 
                     var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
                     {
@@ -1667,14 +1649,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                         Reference = $"SESS-{session.Id.ToString("N")[..8]}"
                     };
 
-                    await _stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
-                    _logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
+                    await stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
+                    logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
                         item.ProductId, -item.Quantity, documentHeader.Id);
                 }
                 catch (Exception ex)
                 {
                     stockMovementErrors++;
-                    _logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
+                    logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
                         item.ProductId, session.Id);
                     // Continue with other items even if one fails
                 }
@@ -1682,12 +1664,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             if (stockMovementErrors > 0)
             {
-                _logger.LogWarning("Completed document {DocumentId} creation with {ErrorCount} stock movement errors for session {SessionId}",
+                logger.LogWarning("Completed document {DocumentId} creation with {ErrorCount} stock movement errors for session {SessionId}",
                     documentHeader.Id, stockMovementErrors, session.Id);
             }
             else
             {
-                _logger.LogInformation("Document {DocumentId} created successfully with all stock movements for session {SessionId}",
+                logger.LogInformation("Document {DocumentId} created successfully with all stock movements for session {SessionId}",
                     documentHeader.Id, session.Id);
             }
 
@@ -1695,7 +1677,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating receipt document for session {SessionId}", session.Id);
+            logger.LogError(ex, "Error generating receipt document for session {SessionId}", session.Id);
             throw;
         }
     }
@@ -1712,24 +1694,24 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         {
             // Calculate items count from ChangeTracker
             // Note: LINQ iteration is acceptable here as this is only called on errors
-            var itemsCount = _context.ChangeTracker.Entries()
+            var itemsCount = context.ChangeTracker.Entries()
                 .Count(e => e.Entity is SaleItem item && item.SaleSessionId == sessionId);
 
-            _logger.LogError(
+            logger.LogError(
                 "Diagnostic - SessionId: {SessionId}, TenantId: {TenantId}, ItemsCount: {ItemCount}, TrackedEntities: {TrackedCount}",
                 sessionId,
                 tenantId,
                 itemsCount,
-                _context.ChangeTracker.Entries().Count());
+                context.ChangeTracker.Entries().Count());
 
             // Log all tracked entities and their states
-            foreach (var entry in _context.ChangeTracker.Entries())
+            foreach (var entry in context.ChangeTracker.Entries())
             {
                 var entityType = entry.Entity.GetType().Name;
                 var entityId = entry.Entity is AuditableEntity ae ? ae.Id.ToString() : "N/A";
                 var entityState = entry.State.ToString();
 
-                _logger.LogError(
+                logger.LogError(
                     "Tracked entity: Type={EntityType}, Id={EntityId}, State={State}",
                     entityType,
                     entityId,
@@ -1738,7 +1720,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 // Log IsDeleted for AuditableEntity
                 if (entry.Entity is AuditableEntity auditableEntity)
                 {
-                    _logger.LogError(
+                    logger.LogError(
                         "  -> IsDeleted={IsDeleted}, TenantId={TenantId}",
                         auditableEntity.IsDeleted,
                         auditableEntity.TenantId);
@@ -1749,7 +1731,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 {
                     foreach (var property in entry.Properties.Where(p => p.IsModified))
                     {
-                        _logger.LogError(
+                        logger.LogError(
                             "  -> Modified property: {PropertyName}, OriginalValue={OriginalValue}, CurrentValue={CurrentValue}",
                             property.Metadata.Name,
                             property.OriginalValue,
@@ -1760,7 +1742,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error logging detailed entity states");
+            logger.LogError(ex, "Error logging detailed entity states");
         }
     }
 
@@ -1768,25 +1750,25 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
             // Validate and retrieve session
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .FirstOrDefaultAsync(s => s.Id == splitDto.SessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return null;
 
             // Validate session can be split
             if (session.Status != SaleSessionStatus.Open)
                 throw new InvalidOperationException("Solo le sessioni aperte possono essere splittate.");
 
-            if (session.ParentSessionId != null)
+            if (session.ParentSessionId is not null)
                 throw new InvalidOperationException("Una sessione già splitta non può essere nuovamente splitta.");
 
             if (!session.Items.Any(i => !i.IsDeleted))
@@ -1837,7 +1819,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
                 CalculateSessionTotals(childSession);
                 childSessions.Add(childSession);
-                _ = _context.SaleSessions.Add(childSession);
+                _ = context.SaleSessions.Add(childSession);
             }
 
             // Update parent session status
@@ -1845,12 +1827,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Split", "Open", "Splitting", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Split", "Open", "Splitting", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Split session {SessionId} into {Count} child sessions", session.Id, childSessions.Count);
+            logger.LogInformation("Split session {SessionId} into {Count} child sessions", session.Id, childSessions.Count);
 
             // Map to DTOs
             var childDtos = new List<SaleSessionDto>();
@@ -1869,7 +1851,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error splitting sale session {SessionId}", splitDto.SessionId);
+            logger.LogError(ex, "Error splitting sale session {SessionId}", splitDto.SessionId);
             throw;
         }
     }
@@ -1878,14 +1860,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
             // Validate and retrieve sessions
-            var sessions = await _context.SaleSessions
+            var sessions = await context.SaleSessions
                 .Include(s => s.Items)
                 .Where(s => mergeDto.SessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .ToListAsync(cancellationToken);
@@ -1958,7 +1940,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             CalculateSessionTotals(mergedSession);
 
             // Add merged session
-            _ = _context.SaleSessions.Add(mergedSession);
+            _ = context.SaleSessions.Add(mergedSession);
 
             // Cancel original sessions
             foreach (var session in sessions)
@@ -1968,18 +1950,18 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 session.ModifiedAt = DateTime.UtcNow;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            _ = await _auditLogService.LogEntityChangeAsync("SaleSession", mergedSession.Id, "Status", "Merge", null, "Open", currentUser, "Sale Session", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", mergedSession.Id, "Status", "Merge", null, "Open", currentUser, "Sale Session", cancellationToken);
 
-            _logger.LogInformation("Merged {Count} sessions into new session {SessionId}", sessions.Count, mergedSession.Id);
+            logger.LogInformation("Merged {Count} sessions into new session {SessionId}", sessions.Count, mergedSession.Id);
 
             return await MapToDtoAsync(mergedSession, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error merging sale sessions");
+            logger.LogError(ex, "Error merging sale sessions");
             throw;
         }
     }
@@ -1988,13 +1970,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for sale session operations.");
             }
 
-            var childSessions = await _context.SaleSessions
+            var childSessions = await context.SaleSessions
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -2011,7 +1993,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving child sessions for parent {ParentSessionId}", parentSessionId);
+            logger.LogError(ex, "Error retrieving child sessions for parent {ParentSessionId}", parentSessionId);
             throw;
         }
     }
@@ -2020,26 +2002,26 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 return false;
             }
 
-            var session = await _context.SaleSessions
+            var session = await context.SaleSessions
                 .Include(s => s.Items)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-            if (session == null)
+            if (session is null)
                 return false;
 
             return session.Status == SaleSessionStatus.Open &&
-                   session.ParentSessionId == null &&
+                   session.ParentSessionId is null &&
                    session.Items.Any(i => !i.IsDeleted);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
+            logger.LogError(ex, "Error checking if session {SessionId} can be split", sessionId);
             return false;
         }
     }
@@ -2051,13 +2033,13 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             if (sessionIds.Count < 2)
                 return false;
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 return false;
             }
 
-            var sessions = await _context.SaleSessions
+            var sessions = await context.SaleSessions
                 .Where(s => sessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -2069,7 +2051,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if sessions can be merged");
+            logger.LogError(ex, "Error checking if sessions can be merged");
             return false;
         }
     }
@@ -2079,7 +2061,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         switch (splitDto.SplitType)
         {
             case SplitTypeDto.ByItems:
-                if (splitDto.ItemAssignments == null || !splitDto.ItemAssignments.Any())
+                if (splitDto.ItemAssignments is null || !splitDto.ItemAssignments.Any())
                     throw new InvalidOperationException("Gli assegnamenti degli item sono richiesti per lo split BY_ITEMS.");
 
                 var itemIds = session.Items.Where(i => !i.IsDeleted).Select(i => i.Id).ToHashSet();
@@ -2093,7 +2075,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 break;
 
             case SplitTypeDto.Percentage:
-                if (splitDto.Percentages == null || splitDto.Percentages.Count != splitDto.NumberOfPeople)
+                if (splitDto.Percentages is null || splitDto.Percentages.Count != splitDto.NumberOfPeople)
                     throw new InvalidOperationException("Le percentuali devono essere fornite per ogni persona.");
 
                 var sum = splitDto.Percentages.Sum();
@@ -2209,7 +2191,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // Fetch product category info for all products in one query
             var productIds = activeItems.Select(i => i.ProductId).Distinct().ToList();
-            var productCategories = await _context.Products
+            var productCategories = await context.Products
                 .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
                 .Select(p => new { p.Id, p.CategoryNodeId })
                 .ToDictionaryAsync(p => p.Id, p => p.CategoryNodeId, cancellationToken);
@@ -2234,7 +2216,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 Currency = session.Currency ?? "EUR"
             };
 
-            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+            var result = await promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
 
             if (!result.Success || result.CartItems.Count == 0)
                 return;
@@ -2271,18 +2253,19 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 CalculateSessionTotals(session);
                 session.ModifiedAt = DateTime.UtcNow;
                 session.ModifiedBy = currentUser;
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Promotions applied to session {SessionId}: {PromotionCount} promotion(s), TotalDiscount={TotalDiscount:C2}",
                     session.Id, result.AppliedPromotions.Count, result.TotalDiscountAmount);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex,
+            logger.LogWarning(ex,
                 "Failed to apply promotions to session {SessionId}; items saved without promotion discount",
                 session.Id);
         }
     }
+
 }

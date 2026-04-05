@@ -11,16 +11,8 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class StationsController : BaseApiController
+public class StationsController(IStationService stationService, ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IStationService _stationService;
-    private readonly ITenantContext _tenantContext;
-
-    public StationsController(IStationService stationService, ITenantContext tenantContext)
-    {
-        _stationService = stationService ?? throw new ArgumentNullException(nameof(stationService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     #region Station Endpoints
 
@@ -45,17 +37,17 @@ public class StationsController : BaseApiController
     {
         // Validate pagination parameters
         var validationResult = ValidatePaginationParameters(page, pageSize);
-        if (validationResult != null)
+        if (validationResult is not null)
             return validationResult;
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var result = await _stationService.GetStationsAsync(page, pageSize, cancellationToken);
+            var result = await stationService.GetStationsAsync(page, pageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -80,15 +72,15 @@ public class StationsController : BaseApiController
     public async Task<ActionResult<StationDto>> GetStation(Guid id, CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var station = await _stationService.GetStationByIdAsync(id, cancellationToken);
+            var station = await stationService.GetStationByIdAsync(id, cancellationToken);
 
-            if (station == null)
+            if (station is null)
             {
                 return CreateNotFoundProblem($"Station with ID {id} not found.");
             }
@@ -122,14 +114,14 @@ public class StationsController : BaseApiController
         }
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var station = await _stationService.CreateStationAsync(createStationDto, currentUser, cancellationToken);
+            var station = await stationService.CreateStationAsync(createStationDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetStation), new { id = station.Id }, station);
         }
@@ -163,16 +155,16 @@ public class StationsController : BaseApiController
         }
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var station = await _stationService.UpdateStationAsync(id, updateStationDto, currentUser, cancellationToken);
+            var station = await stationService.UpdateStationAsync(id, updateStationDto, currentUser, cancellationToken);
 
-            if (station == null)
+            if (station is null)
             {
                 return CreateNotFoundProblem($"Station with ID {id} not found.");
             }
@@ -201,14 +193,14 @@ public class StationsController : BaseApiController
     public async Task<IActionResult> DeleteStation(Guid id, CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _stationService.DeleteStationAsync(id, currentUser, cancellationToken);
+            var deleted = await stationService.DeleteStationAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -248,17 +240,17 @@ public class StationsController : BaseApiController
     {
         // Validate pagination parameters
         var validationResult = ValidatePaginationParameters(page, pageSize);
-        if (validationResult != null)
+        if (validationResult is not null)
             return validationResult;
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var result = await _stationService.GetPrintersAsync(page, pageSize, cancellationToken);
+            var result = await stationService.GetPrintersAsync(page, pageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -283,15 +275,15 @@ public class StationsController : BaseApiController
     public async Task<ActionResult<PrinterDto>> GetPrinter(Guid id, CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var printer = await _stationService.GetPrinterByIdAsync(id, cancellationToken);
+            var printer = await stationService.GetPrinterByIdAsync(id, cancellationToken);
 
-            if (printer == null)
+            if (printer is null)
             {
                 return CreateNotFoundProblem($"Printer with ID {id} not found.");
             }
@@ -318,13 +310,13 @@ public class StationsController : BaseApiController
     public async Task<ActionResult<IEnumerable<PrinterDto>>> GetPrintersByStation(Guid stationId, CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var printers = await _stationService.GetPrintersByStationAsync(stationId, cancellationToken);
+            var printers = await stationService.GetPrintersByStationAsync(stationId, cancellationToken);
             return Ok(printers);
         }
         catch (Exception ex)
@@ -354,14 +346,14 @@ public class StationsController : BaseApiController
         }
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var printer = await _stationService.CreatePrinterAsync(createPrinterDto, currentUser, cancellationToken);
+            var printer = await stationService.CreatePrinterAsync(createPrinterDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetPrinter), new { id = printer.Id }, printer);
         }
@@ -395,16 +387,16 @@ public class StationsController : BaseApiController
         }
 
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var printer = await _stationService.UpdatePrinterAsync(id, updatePrinterDto, currentUser, cancellationToken);
+            var printer = await stationService.UpdatePrinterAsync(id, updatePrinterDto, currentUser, cancellationToken);
 
-            if (printer == null)
+            if (printer is null)
             {
                 return CreateNotFoundProblem($"Printer with ID {id} not found.");
             }
@@ -433,14 +425,14 @@ public class StationsController : BaseApiController
     public async Task<IActionResult> DeletePrinter(Guid id, CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _stationService.DeletePrinterAsync(id, currentUser, cancellationToken);
+            var deleted = await stationService.DeletePrinterAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {

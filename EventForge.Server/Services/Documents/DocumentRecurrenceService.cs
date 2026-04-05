@@ -7,11 +7,11 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for managing document recurrence
 /// </summary>
-public class DocumentRecurrenceService : IDocumentRecurrenceService
+public class DocumentRecurrenceService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<DocumentRecurrenceService> logger) : IDocumentRecurrenceService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<DocumentRecurrenceService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentRecurrenceService
@@ -19,22 +19,12 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     /// <param name="context">Database context</param>
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="logger">Logger</param>
-    public DocumentRecurrenceService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<DocumentRecurrenceService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var entities = await _context.DocumentRecurrences
+            var entities = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -44,7 +34,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document recurrences.");
+            logger.LogError(ex, "Error retrieving document recurrences.");
             throw;
         }
     }
@@ -54,15 +44,15 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            return entity == null ? null : DocumentRecurrenceMapper.ToDto(entity);
+            return entity is null ? null : DocumentRecurrenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document recurrence {RecurrenceId}.", id);
+            logger.LogError(ex, "Error retrieving document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -72,7 +62,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entities = await _context.DocumentRecurrences
+            var entities = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .Where(dr => dr.TemplateId == templateId && dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -82,7 +72,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document recurrences for template {TemplateId}.", templateId);
+            logger.LogError(ex, "Error retrieving document recurrences for template {TemplateId}.", templateId);
             throw;
         }
     }
@@ -92,7 +82,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entities = await _context.DocumentRecurrences
+            var entities = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsEnabled && dr.IsActive && dr.Status == RecurrenceStatus.Active)
                 .OrderBy(dr => dr.NextExecutionDate)
@@ -102,7 +92,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active document recurrence schedules.");
+            logger.LogError(ex, "Error retrieving active document recurrence schedules.");
             throw;
         }
     }
@@ -112,7 +102,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entities = await _context.DocumentRecurrences
+            var entities = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsEnabled &&
                            dr.IsActive &&
@@ -126,7 +116,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document recurrences due for execution up to {UpToDate}.", upToDate);
+            logger.LogError(ex, "Error retrieving document recurrences due for execution up to {UpToDate}.", upToDate);
             throw;
         }
     }
@@ -136,7 +126,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entities = await _context.DocumentRecurrences
+            var entities = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .Where(dr => dr.Status == status && dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -146,7 +136,7 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document recurrences with status {Status}.", status);
+            logger.LogError(ex, "Error retrieving document recurrences with status {Status}.", status);
             throw;
         }
     }
@@ -167,23 +157,23 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             // Calculate next execution date
             entity.NextExecutionDate = CalculateNextExecutionDate(entity);
 
-            _ = _context.DocumentRecurrences.Add(entity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentRecurrences.Add(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
-            await _context.Entry(entity)
+            await context.Entry(entity)
                 .Reference(dr => dr.Template)
                 .LoadAsync(cancellationToken);
 
-            _logger.LogInformation("Document recurrence {RecurrenceId} created by {User}.", entity.Id, currentUser);
+            logger.LogInformation("Document recurrence {RecurrenceId} created by {User}.", entity.Id, currentUser);
 
             return DocumentRecurrenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document recurrence for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating document recurrence for user {User}.", currentUser);
             throw;
         }
     }
@@ -196,13 +186,13 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document recurrence {RecurrenceId} not found for update.", id);
+                logger.LogWarning("Document recurrence {RecurrenceId} not found for update.", id);
                 return null;
             }
 
@@ -218,17 +208,17 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
                 entity.NextExecutionDate = CalculateNextExecutionDate(entity);
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document recurrence {RecurrenceId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Document recurrence {RecurrenceId} updated by {User}.", id, currentUser);
 
             return DocumentRecurrenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document recurrence {RecurrenceId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating document recurrence {RecurrenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -240,12 +230,12 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document recurrence {RecurrenceId} not found for deletion.", id);
+                logger.LogWarning("Document recurrence {RecurrenceId} not found for deletion.", id);
                 return false;
             }
 
@@ -254,17 +244,17 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document recurrence {RecurrenceId} soft deleted by {User}.", id, currentUser);
+            logger.LogInformation("Document recurrence {RecurrenceId} soft deleted by {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document recurrence {RecurrenceId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting document recurrence {RecurrenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -276,12 +266,12 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document recurrence {RecurrenceId} not found for status update.", id);
+                logger.LogWarning("Document recurrence {RecurrenceId} not found for status update.", id);
                 return false;
             }
 
@@ -289,17 +279,17 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document recurrence {RecurrenceId} enabled status updated to {Status} by {User}.", id, isEnabled, currentUser);
+            logger.LogInformation("Document recurrence {RecurrenceId} enabled status updated to {Status} by {User}.", id, isEnabled, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating enabled status for document recurrence {RecurrenceId}.", id);
+            logger.LogError(ex, "Error updating enabled status for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -309,12 +299,12 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document recurrence {RecurrenceId} not found for execution tracking.", id);
+                logger.LogWarning("Document recurrence {RecurrenceId} not found for execution tracking.", id);
                 return false;
             }
 
@@ -338,15 +328,15 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
                 entity.Status = RecurrenceStatus.Failed;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Document recurrence {RecurrenceId} execution tracking updated - Success: {Success}.", id, success);
+            logger.LogInformation("Document recurrence {RecurrenceId} execution tracking updated - Success: {Success}.", id, success);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating execution tracking for document recurrence {RecurrenceId}.", id);
+            logger.LogError(ex, "Error updating execution tracking for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -356,14 +346,14 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
     {
         try
         {
-            var entity = await _context.DocumentRecurrences
+            var entity = await context.DocumentRecurrences
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            return entity == null ? null : CalculateNextExecutionDate(entity);
+            return entity is null ? null : CalculateNextExecutionDate(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating next execution date for document recurrence {RecurrenceId}.", id);
+            logger.LogError(ex, "Error calculating next execution date for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -404,4 +394,5 @@ public class DocumentRecurrenceService : IDocumentRecurrenceService
 
         return nextDate;
     }
+
 }

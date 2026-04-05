@@ -7,19 +7,14 @@ namespace EventForge.Client.Services.Documents;
 /// Implementazione del servizio di calcolo fiscale per righe documento.
 /// Utilizza aritmetica decimale precisa per calcoli finanziari.
 /// </summary>
-public class DocumentRowCalculationService : IDocumentRowCalculationService
+public class DocumentRowCalculationService(
+    ILogger<DocumentRowCalculationService> logger) : IDocumentRowCalculationService
 {
-    private readonly ILogger<DocumentRowCalculationService> _logger;
-
-    public DocumentRowCalculationService(ILogger<DocumentRowCalculationService> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public DocumentRowCalculationResult CalculateRowTotals(DocumentRowCalculationInput input)
     {
-        if (input == null)
+        if (input is null)
             throw new ArgumentNullException(nameof(input));
 
         // Validazione input
@@ -54,7 +49,7 @@ public class DocumentRowCalculationService : IDocumentRowCalculationService
             // 6. Calcolo prezzo unitario lordo (per display)
             var unitPriceGross = ApplyVat(input.UnitPrice, input.VatRate);
 
-            _logger.LogDebug(
+            logger.LogDebug(
                 "Row calculation: Qty={Qty}, Price={Price}, Vat={Vat}% => Net={Net}, Total={Total}",
                 input.Quantity, input.UnitPrice, input.VatRate, netAmount, totalAmount);
 
@@ -70,7 +65,7 @@ public class DocumentRowCalculationService : IDocumentRowCalculationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating row totals");
+            logger.LogError(ex, "Error calculating row totals");
             throw;
         }
     }
@@ -78,7 +73,7 @@ public class DocumentRowCalculationService : IDocumentRowCalculationService
     /// <inheritdoc />
     public decimal ConvertPrice(VatConversionInput input)
     {
-        if (input == null)
+        if (input is null)
             throw new ArgumentNullException(nameof(input));
 
         if (input.Price < 0)

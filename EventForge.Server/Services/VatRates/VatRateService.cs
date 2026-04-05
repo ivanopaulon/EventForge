@@ -6,33 +6,25 @@ namespace EventForge.Server.Services.VatRates;
 /// <summary>
 /// Service implementation for managing VAT rates.
 /// </summary>
-public class VatRateService : IVatRateService
+public class VatRateService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<VatRateService> logger) : IVatRateService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<VatRateService> _logger;
-
-    public VatRateService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<VatRateService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
             }
 
-            var query = _context.VatRates
+            var query = context.VatRates
                 .AsNoTracking()
                 .Include(v => v.VatNature)
                 .WhereActiveTenant(currentTenantId.Value);
@@ -56,7 +48,7 @@ public class VatRateService : IVatRateService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving VAT rates.");
+            logger.LogError(ex, "Error retrieving VAT rates.");
             throw;
         }
     }
@@ -65,16 +57,16 @@ public class VatRateService : IVatRateService
     {
         try
         {
-            var vatRate = await _context.VatRates
+            var vatRate = await context.VatRates
                 .Include(v => v.VatNature)
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return vatRate != null ? MapToVatRateDto(vatRate) : null;
+            return vatRate is not null ? MapToVatRateDto(vatRate) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving VAT rate {VatRateId}.", id);
+            logger.LogError(ex, "Error retrieving VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -86,7 +78,7 @@ public class VatRateService : IVatRateService
             ArgumentNullException.ThrowIfNull(createVatRateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
@@ -107,18 +99,18 @@ public class VatRateService : IVatRateService
                 CreatedBy = currentUser
             };
 
-            _ = _context.VatRates.Add(vatRate);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.VatRates.Add(vatRate);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("VAT rate {VatRateId} created by {User}.", vatRate.Id, currentUser);
+            logger.LogInformation("VAT rate {VatRateId} created by {User}.", vatRate.Id, currentUser);
 
             return MapToVatRateDto(vatRate);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating VAT rate.");
+            logger.LogError(ex, "Error creating VAT rate.");
             throw;
         }
     }
@@ -130,14 +122,14 @@ public class VatRateService : IVatRateService
             ArgumentNullException.ThrowIfNull(updateVatRateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var vatRate = await _context.VatRates
+            var vatRate = await context.VatRates
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (vatRate == null) return null;
+            if (vatRate is null) return null;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(vatRate).CurrentValues.Clone();
+            var originalValues = context.Entry(vatRate).CurrentValues.Clone();
             var originalVatRate = (VatRate)originalValues.ToObject();
 
             vatRate.Name = updateVatRateDto.Name;
@@ -152,17 +144,17 @@ public class VatRateService : IVatRateService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating VatRate {VatRateId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating VatRate {VatRateId}.", id);
                 throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
 
-            _logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
+            logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
 
             return MapToVatRateDto(vatRate);
         }
@@ -172,7 +164,7 @@ public class VatRateService : IVatRateService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating VAT rate {VatRateId}.", id);
+            logger.LogError(ex, "Error updating VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -183,14 +175,14 @@ public class VatRateService : IVatRateService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var vatRate = await _context.VatRates
+            var vatRate = await context.VatRates
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (vatRate == null) return false;
+            if (vatRate is null) return false;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(vatRate).CurrentValues.Clone();
+            var originalValues = context.Entry(vatRate).CurrentValues.Clone();
             var originalVatRate = (VatRate)originalValues.ToObject();
 
             vatRate.IsDeleted = true;
@@ -199,17 +191,17 @@ public class VatRateService : IVatRateService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting VatRate {VatRateId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting VatRate {VatRateId}.", id);
                 throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
 
-            _logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
+            logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
 
             return true;
         }
@@ -219,7 +211,7 @@ public class VatRateService : IVatRateService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting VAT rate {VatRateId}.", id);
+            logger.LogError(ex, "Error deleting VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -228,12 +220,12 @@ public class VatRateService : IVatRateService
     {
         try
         {
-            return await _context.VatRates
+            return await context.VatRates
                 .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if VAT rate {VatRateId} exists.", vatRateId);
+            logger.LogError(ex, "Error checking if VAT rate {VatRateId} exists.", vatRateId);
             throw;
         }
     }
@@ -260,4 +252,5 @@ public class VatRateService : IVatRateService
             ModifiedBy = vatRate.ModifiedBy
         };
     }
+
 }

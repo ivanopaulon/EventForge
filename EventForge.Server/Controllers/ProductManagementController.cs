@@ -28,60 +28,23 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/product-management")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class ProductManagementController : BaseApiController
+public class ProductManagementController(
+    IProductService productService,
+    IBrandService brandService,
+    IModelService modelService,
+    IUMService umService,
+    IPriceListService priceListService,
+    IPriceListGenerationService priceListGenerationService,
+    IPriceCalculationService priceCalculationService,
+    IPriceListBusinessPartyService priceListBusinessPartyService,
+    IPromotionService promotionService,
+    IBarcodeService barcodeService,
+    IDocumentHeaderService documentHeaderService,
+    IStockMovementService stockMovementService,
+    ITenantContext tenantContext,
+    ILogger<ProductManagementController> logger,
+    IExportService exportService) : BaseApiController
 {
-    private readonly IProductService _productService;
-    private readonly IBrandService _brandService;
-    private readonly IModelService _modelService;
-    private readonly IUMService _umService;
-    private readonly IPriceListService _priceListService;
-    private readonly IPriceListGenerationService _priceListGenerationService;
-    private readonly IPriceCalculationService _priceCalculationService;
-    private readonly IPriceListBusinessPartyService _priceListBusinessPartyService;
-    private readonly IPriceListBulkOperationsService _priceListBulkOperationsService;
-    private readonly IPromotionService _promotionService;
-    private readonly IBarcodeService _barcodeService;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ProductManagementController> _logger;
-    private readonly IExportService _exportService;
-
-    public ProductManagementController(
-        IProductService productService,
-        IBrandService brandService,
-        IModelService modelService,
-        IUMService umService,
-        IPriceListService priceListService,
-        IPriceListGenerationService priceListGenerationService,
-        IPriceCalculationService priceCalculationService,
-        IPriceListBusinessPartyService priceListBusinessPartyService,
-        IPriceListBulkOperationsService priceListBulkOperationsService,
-        IPromotionService promotionService,
-        IBarcodeService barcodeService,
-        IDocumentHeaderService documentHeaderService,
-        IStockMovementService stockMovementService,
-        ITenantContext tenantContext,
-        ILogger<ProductManagementController> logger,
-        IExportService exportService)
-    {
-        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _brandService = brandService ?? throw new ArgumentNullException(nameof(brandService));
-        _modelService = modelService ?? throw new ArgumentNullException(nameof(modelService));
-        _umService = umService ?? throw new ArgumentNullException(nameof(umService));
-        _priceListService = priceListService ?? throw new ArgumentNullException(nameof(priceListService));
-        _priceListGenerationService = priceListGenerationService ?? throw new ArgumentNullException(nameof(priceListGenerationService));
-        _priceCalculationService = priceCalculationService ?? throw new ArgumentNullException(nameof(priceCalculationService));
-        _priceListBusinessPartyService = priceListBusinessPartyService ?? throw new ArgumentNullException(nameof(priceListBusinessPartyService));
-        _priceListBulkOperationsService = priceListBulkOperationsService ?? throw new ArgumentNullException(nameof(priceListBulkOperationsService));
-        _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
-        _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
-    }
 
     #region Product CRUD Operations
 
@@ -104,23 +67,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
+            var result = await productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -147,13 +100,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
-            if (product == null)
+            var product = await productService.GetProductByIdAsync(id, cancellationToken);
+            if (product is null)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             return Ok(product);
@@ -181,13 +133,12 @@ public class ProductManagementController : BaseApiController
         string code,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var productWithCode = await _productService.GetProductWithCodeByCodeAsync(code, cancellationToken);
-            if (productWithCode == null)
+            var productWithCode = await productService.GetProductWithCodeByCodeAsync(code, cancellationToken);
+            if (productWithCode is null)
                 return CreateNotFoundProblem($"Product with code '{code}' not found.");
 
             return Ok(productWithCode);
@@ -221,20 +172,19 @@ public class ProductManagementController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(q))
         {
-            return BadRequest(CreateValidationProblemDetails("Query parameter 'q' is required."));
+            return CreateValidationProblemDetails("Query parameter 'q' is required.");
         }
 
         if (maxResults < 1 || maxResults > 100)
         {
-            return BadRequest(CreateValidationProblemDetails("maxResults must be between 1 and 100."));
+            return CreateValidationProblemDetails("maxResults must be between 1 and 100.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _productService.SearchProductsAsync(q, maxResults, cancellationToken);
+            var result = await productService.SearchProductsAsync(q, maxResults, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -263,18 +213,17 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var product = await _productService.CreateProductAsync(createProductDto, currentUser, cancellationToken);
+            var product = await productService.CreateProductAsync(createProductDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -304,18 +253,17 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var product = await _productService.CreateProductWithCodesAndUnitsAsync(createDto, currentUser, cancellationToken);
+            var product = await productService.CreateProductWithCodesAndUnitsAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -348,21 +296,20 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var product = await _productService.UpdateProductAsync(id, updateProductDto, currentUser, cancellationToken);
-            if (product == null)
+            var product = await productService.UpdateProductAsync(id, updateProductDto, currentUser, cancellationToken);
+            if (product is null)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             return Ok(product);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -388,13 +335,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _productService.DeleteProductAsync(id, currentUser, cancellationToken);
+            var success = await productService.DeleteProductAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
@@ -423,10 +369,9 @@ public class ProductManagementController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
         {
             return CreateValidationProblemDetails("File cannot be empty");
         }
@@ -493,10 +438,9 @@ public class ProductManagementController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
         {
             return CreateValidationProblemDetails("File cannot be empty");
         }
@@ -517,8 +461,8 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            var updatedProduct = await _productService.UploadProductImageAsync(id, file, cancellationToken);
-            if (updatedProduct == null)
+            var updatedProduct = await productService.UploadProductImageAsync(id, file, cancellationToken);
+            if (updatedProduct is null)
             {
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
             }
@@ -548,13 +492,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var imageDocument = await _productService.GetProductImageDocumentAsync(id, cancellationToken);
-            if (imageDocument == null)
+            var imageDocument = await productService.GetProductImageDocumentAsync(id, cancellationToken);
+            if (imageDocument is null)
             {
                 return CreateNotFoundProblem($"Product with ID {id} not found or has no image.");
             }
@@ -584,12 +527,11 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _productService.DeleteProductImageAsync(id, cancellationToken);
+            var success = await productService.DeleteProductImageAsync(id, cancellationToken);
             if (!success)
             {
                 return CreateNotFoundProblem($"Product with ID {id} not found or has no image.");
@@ -622,12 +564,11 @@ public class ProductManagementController : BaseApiController
         Guid productId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var codes = await _productService.GetProductCodesAsync(productId, cancellationToken);
+            var codes = await productService.GetProductCodesAsync(productId, cancellationToken);
             return Ok(codes);
         }
         catch (Exception ex)
@@ -663,13 +604,12 @@ public class ProductManagementController : BaseApiController
         // Ensure the productId in the DTO matches the route parameter
         createProductCodeDto.ProductId = productId;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var productCode = await _productService.AddProductCodeAsync(createProductCodeDto, currentUser, cancellationToken);
+            var productCode = await productService.AddProductCodeAsync(createProductCodeDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetProductCodes),
@@ -701,12 +641,11 @@ public class ProductManagementController : BaseApiController
         Guid productId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var units = await _productService.GetProductUnitsAsync(productId, cancellationToken);
+            var units = await productService.GetProductUnitsAsync(productId, cancellationToken);
             return Ok(units);
         }
         catch (Exception ex)
@@ -742,13 +681,12 @@ public class ProductManagementController : BaseApiController
         // Ensure the productId in the DTO matches the route parameter
         createProductUnitDto.ProductId = productId;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var productUnit = await _productService.AddProductUnitAsync(createProductUnitDto, currentUser, cancellationToken);
+            var productUnit = await productService.AddProductUnitAsync(createProductUnitDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetProductUnits),
@@ -787,15 +725,14 @@ public class ProductManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var productUnit = await _productService.UpdateProductUnitAsync(id, updateProductUnitDto, currentUser, cancellationToken);
+            var productUnit = await productService.UpdateProductUnitAsync(id, updateProductUnitDto, currentUser, cancellationToken);
 
-            if (productUnit == null)
+            if (productUnit is null)
             {
                 return CreateNotFoundProblem($"Product unit with ID {id} was not found.");
             }
@@ -825,13 +762,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _productService.RemoveProductUnitAsync(id, currentUser, cancellationToken);
+            var deleted = await productService.RemoveProductUnitAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -867,23 +803,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _umService.GetUMsAsync(pagination, cancellationToken);
+            var result = await umService.GetUMsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -910,13 +836,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var unit = await _umService.GetUMByIdAsync(id, cancellationToken);
-            if (unit == null)
+            var unit = await umService.GetUMByIdAsync(id, cancellationToken);
+            if (unit is null)
                 return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
 
             return Ok(unit);
@@ -947,18 +872,17 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var unit = await _umService.CreateUMAsync(createUMDto, currentUser, cancellationToken);
+            var unit = await umService.CreateUMAsync(createUMDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetUnitOfMeasure), new { id = unit.Id }, unit);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -991,21 +915,20 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var unit = await _umService.UpdateUMAsync(id, updateUMDto, currentUser, cancellationToken);
-            if (unit == null)
+            var unit = await umService.UpdateUMAsync(id, updateUMDto, currentUser, cancellationToken);
+            if (unit is null)
                 return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
 
             return Ok(unit);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1031,13 +954,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _umService.DeleteUMAsync(id, currentUser, cancellationToken);
+            var success = await umService.DeleteUMAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Unit of measure with ID {id} not found.");
 
@@ -1074,24 +996,15 @@ public class ProductManagementController : BaseApiController
         [FromQuery] DTOs.Common.PriceListStatus? status = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var result = await _priceListService.GetPriceListsAsync(pagination, direction, status, cancellationToken);
+            var result = await priceListService.GetPriceListsAsync(pagination, direction, status, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1118,14 +1031,14 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var priceList = await _priceListService.GetPriceListByIdAsync(id, cancellationToken);
-            if (priceList == null)
+            var priceList = await priceListService.GetPriceListByIdAsync(id, cancellationToken);
+            if (priceList is null)
                 return CreateNotFoundProblem($"Price list with ID {id} not found.");
 
             return Ok(priceList);
@@ -1156,19 +1069,19 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var priceList = await _priceListService.CreatePriceListAsync(createPriceListDto, currentUser, cancellationToken);
+            var priceList = await priceListService.CreatePriceListAsync(createPriceListDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetPriceList), new { id = priceList.Id }, priceList);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1201,22 +1114,22 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var priceList = await _priceListService.UpdatePriceListAsync(id, updatePriceListDto, currentUser, cancellationToken);
-            if (priceList == null)
+            var priceList = await priceListService.UpdatePriceListAsync(id, updatePriceListDto, currentUser, cancellationToken);
+            if (priceList is null)
                 return CreateNotFoundProblem($"Price list with ID {id} not found.");
 
             return Ok(priceList);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1242,14 +1155,14 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _priceListService.DeletePriceListAsync(id, currentUser, cancellationToken);
+            var success = await priceListService.DeletePriceListAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Price list with ID {id} not found.");
 
@@ -1282,14 +1195,14 @@ public class ProductManagementController : BaseApiController
         [FromBody] DuplicatePriceListDto dto,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListGenerationService.DuplicatePriceListAsync(
+            var result = await priceListGenerationService.DuplicatePriceListAsync(
                 id, dto, currentUser, cancellationToken);
 
             return CreatedAtAction(
@@ -1299,12 +1212,12 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation during price list duplication");
+            logger.LogWarning(ex, "Invalid operation during price list duplication");
             return CreateNotFoundProblem(ex.Message);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error during price list duplication");
+            logger.LogWarning(ex, "Validation error during price list duplication");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1336,7 +1249,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _priceListBusinessPartyService.AssignBusinessPartyAsync(id, dto, currentUser, cancellationToken);
+            var result = await priceListBusinessPartyService.AssignBusinessPartyAsync(id, dto, currentUser, cancellationToken);
             return CreatedAtAction(
                 nameof(GetBusinessPartiesForPriceList),
                 new { id },
@@ -1363,7 +1276,7 @@ public class ProductManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var currentUser = GetCurrentUser();
-        var result = await _priceListBusinessPartyService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
+        var result = await priceListBusinessPartyService.RemoveBusinessPartyAsync(id, businessPartyId, currentUser, cancellationToken);
 
         if (!result)
             return NotFound(new { error = "Business party assignment not found" });
@@ -1382,7 +1295,7 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListBusinessPartyService.GetBusinessPartiesForPriceListAsync(id, cancellationToken);
+        var result = await priceListBusinessPartyService.GetBusinessPartiesForPriceListAsync(id, cancellationToken);
         return Ok(result);
     }
 
@@ -1401,7 +1314,7 @@ public class ProductManagementController : BaseApiController
         PriceListType type,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListService.GetPriceListsByTypeAsync(type, cancellationToken);
+        var result = await priceListService.GetPriceListsByTypeAsync(type, cancellationToken);
         return Ok(result);
     }
 
@@ -1418,7 +1331,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] PriceListType? type = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceListBusinessPartyService.GetPriceListsByBusinessPartyAsync(id, type, cancellationToken);
+        var result = await priceListBusinessPartyService.GetPriceListsByBusinessPartyAsync(id, type, cancellationToken);
         return Ok(result);
     }
 
@@ -1441,12 +1354,12 @@ public class ProductManagementController : BaseApiController
     {
         try
         {
-            var preview = await _priceListGenerationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+            var preview = await priceListGenerationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
             return Ok(preview);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1470,7 +1383,7 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = User.Identity?.Name ?? "system";
-            var priceListId = await _priceListGenerationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            var priceListId = await priceListGenerationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetPriceList),
@@ -1479,7 +1392,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1502,12 +1415,12 @@ public class ProductManagementController : BaseApiController
     {
         try
         {
-            var preview = await _priceListGenerationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+            var preview = await priceListGenerationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
             return Ok(preview);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1531,13 +1444,13 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = User.Identity?.Name ?? "system";
-            var result = await _priceListGenerationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+            var result = await priceListGenerationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
 
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1580,12 +1493,12 @@ public class ProductManagementController : BaseApiController
                 BusinessPartyIds = null
             };
 
-            var result = await _priceListService.PreviewGenerateFromProductPricesAsync(productsDto, cancellationToken);
+            var result = await priceListService.PreviewGenerateFromProductPricesAsync(productsDto, cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1630,7 +1543,7 @@ public class ProductManagementController : BaseApiController
                 BusinessPartyIds = null
             };
 
-            var priceListId = await _priceListService.GenerateFromProductPricesAsync(productsDto, currentUser, cancellationToken);
+            var priceListId = await priceListService.GenerateFromProductPricesAsync(productsDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetPriceList),
@@ -1639,7 +1552,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails { Detail = ex.Message });
+            return CreateValidationProblemDetails(ex.Message);
         }
     }
 
@@ -1664,24 +1577,15 @@ public class ProductManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var result = await _promotionService.GetPromotionsAsync(pagination, cancellationToken);
+            var result = await promotionService.GetPromotionsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -1708,14 +1612,14 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var promotion = await _promotionService.GetPromotionByIdAsync(id, cancellationToken);
-            if (promotion == null)
+            var promotion = await promotionService.GetPromotionByIdAsync(id, cancellationToken);
+            if (promotion is null)
                 return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
             return Ok(promotion);
@@ -1746,19 +1650,19 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var promotion = await _promotionService.CreatePromotionAsync(createPromotionDto, currentUser, cancellationToken);
+            var promotion = await promotionService.CreatePromotionAsync(createPromotionDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetPromotion), new { id = promotion.Id }, promotion);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1791,22 +1695,22 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var promotion = await _promotionService.UpdatePromotionAsync(id, updatePromotionDto, currentUser, cancellationToken);
-            if (promotion == null)
+            var promotion = await promotionService.UpdatePromotionAsync(id, updatePromotionDto, currentUser, cancellationToken);
+            if (promotion is null)
                 return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
             return Ok(promotion);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1832,14 +1736,14 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _promotionService.DeletePromotionAsync(id, currentUser, cancellationToken);
+            var success = await promotionService.DeletePromotionAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Promotion with ID {id} not found.");
 
@@ -1873,8 +1777,8 @@ public class ProductManagementController : BaseApiController
 
         try
         {
-            var promotion = await _promotionService.ValidateCouponAsync(request.CouponCode, request.CustomerId, cancellationToken);
-            if (promotion == null)
+            var promotion = await promotionService.ValidateCouponAsync(request.CouponCode, request.CustomerId, cancellationToken);
+            if (promotion is null)
                 return CreateNotFoundProblem($"Coupon code '{request.CouponCode}' is invalid, expired, or has reached its usage limit.");
 
             return Ok(promotion);
@@ -1903,11 +1807,11 @@ public class ProductManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid) return CreateValidationProblemDetails();
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null) return tenantValidation;
         try
         {
-            var result = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+            var result = await promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -1931,13 +1835,13 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
-            var rules = await _promotionService.GetPromotionRulesAsync(id, cancellationToken);
+            var rules = await promotionService.GetPromotionRulesAsync(id, cancellationToken);
             return Ok(rules);
         }
         catch (Exception ex)
@@ -1970,14 +1874,14 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var rule = await _promotionService.AddPromotionRuleAsync(id, createDto, currentUser, cancellationToken);
+            var rule = await promotionService.AddPromotionRuleAsync(id, createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetPromotionRules), new { id }, rule);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
@@ -1986,7 +1890,7 @@ public class ProductManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2021,22 +1925,22 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var rule = await _promotionService.UpdatePromotionRuleAsync(id, ruleId, updateDto, currentUser, cancellationToken);
-            if (rule == null)
+            var rule = await promotionService.UpdatePromotionRuleAsync(id, ruleId, updateDto, currentUser, cancellationToken);
+            if (rule is null)
                 return CreateNotFoundProblem($"Rule with ID {ruleId} not found for promotion {id}.");
 
             return Ok(rule);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2064,14 +1968,14 @@ public class ProductManagementController : BaseApiController
         Guid ruleId,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null)
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
             return tenantValidation;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _promotionService.DeletePromotionRuleAsync(id, ruleId, currentUser, cancellationToken);
+            var success = await promotionService.DeletePromotionRuleAsync(id, ruleId, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Rule with ID {ruleId} not found for promotion {id}.");
 
@@ -2093,11 +1997,11 @@ public class ProductManagementController : BaseApiController
     public async Task<ActionResult<IEnumerable<PromotionRuleProductDto>>> GetRuleProducts(
         Guid id, Guid ruleId, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null) return tenantValidation;
         try
         {
-            var products = await _promotionService.GetRuleProductsAsync(id, ruleId, cancellationToken);
+            var products = await promotionService.GetRuleProductsAsync(id, ruleId, cancellationToken);
             return Ok(products);
         }
         catch (Exception ex)
@@ -2119,12 +2023,12 @@ public class ProductManagementController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid) return CreateValidationProblemDetails();
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null) return tenantValidation;
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _promotionService.AddRuleProductAsync(id, ruleId, createDto, currentUser, cancellationToken);
+            var result = await promotionService.AddRuleProductAsync(id, ruleId, createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetRuleProducts), new { id, ruleId }, result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
@@ -2147,12 +2051,12 @@ public class ProductManagementController : BaseApiController
     public async Task<IActionResult> RemoveRuleProduct(
         Guid id, Guid ruleId, Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null) return tenantValidation;
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _promotionService.RemoveRuleProductAsync(id, ruleId, productId, currentUser, cancellationToken);
+            var success = await promotionService.RemoveRuleProductAsync(id, ruleId, productId, currentUser, cancellationToken);
             if (!success) return CreateNotFoundProblem($"Product {productId} not found in rule {ruleId}.");
             return NoContent();
         }
@@ -2186,17 +2090,16 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _barcodeService.GenerateBarcodeAsync(request);
+            var result = await barcodeService.GenerateBarcodeAsync(request);
             return Ok(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2226,23 +2129,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _brandService.GetBrandsAsync(pagination, cancellationToken);
+            var result = await brandService.GetBrandsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2269,13 +2162,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var brand = await _brandService.GetBrandByIdAsync(id, cancellationToken);
-            if (brand == null)
+            var brand = await brandService.GetBrandByIdAsync(id, cancellationToken);
+            if (brand is null)
                 return CreateNotFoundProblem($"Brand with ID {id} not found.");
 
             return Ok(brand);
@@ -2306,18 +2198,17 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var brand = await _brandService.CreateBrandAsync(createBrandDto, currentUser, cancellationToken);
+            var brand = await brandService.CreateBrandAsync(createBrandDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetBrand), new { id = brand.Id }, brand);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2350,21 +2241,20 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var brand = await _brandService.UpdateBrandAsync(id, updateBrandDto, currentUser, cancellationToken);
-            if (brand == null)
+            var brand = await brandService.UpdateBrandAsync(id, updateBrandDto, currentUser, cancellationToken);
+            if (brand is null)
                 return CreateNotFoundProblem($"Brand with ID {id} not found.");
 
             return Ok(brand);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2390,13 +2280,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _brandService.DeleteBrandAsync(id, currentUser, cancellationToken);
+            var success = await brandService.DeleteBrandAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Brand with ID {id} not found.");
 
@@ -2431,25 +2320,15 @@ public class ProductManagementController : BaseApiController
         [FromQuery] Guid? brandId = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var result = brandId.HasValue
-                ? await _modelService.GetModelsByBrandIdAsync(brandId.Value, pagination, cancellationToken)
-                : await _modelService.GetModelsAsync(pagination, cancellationToken);
+                ? await modelService.GetModelsByBrandIdAsync(brandId.Value, pagination, cancellationToken)
+                : await modelService.GetModelsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2476,13 +2355,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var model = await _modelService.GetModelByIdAsync(id, cancellationToken);
-            if (model == null)
+            var model = await modelService.GetModelByIdAsync(id, cancellationToken);
+            if (model is null)
                 return CreateNotFoundProblem($"Model with ID {id} not found.");
 
             return Ok(model);
@@ -2513,18 +2391,17 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var model = await _modelService.CreateModelAsync(createModelDto, currentUser, cancellationToken);
+            var model = await modelService.CreateModelAsync(createModelDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetModel), new { id = model.Id }, model);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2557,21 +2434,20 @@ public class ProductManagementController : BaseApiController
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var model = await _modelService.UpdateModelAsync(id, updateModelDto, currentUser, cancellationToken);
-            if (model == null)
+            var model = await modelService.UpdateModelAsync(id, updateModelDto, currentUser, cancellationToken);
+            if (model is null)
                 return CreateNotFoundProblem($"Model with ID {id} not found.");
 
             return Ok(model);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2597,13 +2473,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _modelService.DeleteModelAsync(id, currentUser, cancellationToken);
+            var success = await modelService.DeleteModelAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Model with ID {id} not found.");
 
@@ -2634,12 +2509,11 @@ public class ProductManagementController : BaseApiController
         Guid productId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var suppliers = await _productService.GetProductSuppliersAsync(productId, cancellationToken);
+            var suppliers = await productService.GetProductSuppliersAsync(productId, cancellationToken);
             return Ok(suppliers);
         }
         catch (Exception ex)
@@ -2665,13 +2539,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var supplier = await _productService.GetProductSupplierByIdAsync(id, cancellationToken);
-            if (supplier == null)
+            var supplier = await productService.GetProductSupplierByIdAsync(id, cancellationToken);
+            if (supplier is null)
                 return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
 
             return Ok(supplier);
@@ -2699,8 +2572,7 @@ public class ProductManagementController : BaseApiController
         [FromBody] CreateProductSupplierDto createProductSupplierDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -2708,12 +2580,12 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var productSupplier = await _productService.AddProductSupplierAsync(createProductSupplierDto, currentUser, cancellationToken);
+            var productSupplier = await productService.AddProductSupplierAsync(createProductSupplierDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetProductSupplier), new { id = productSupplier.Id }, productSupplier);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while adding product supplier.");
+            logger.LogWarning(ex, "Invalid operation while adding product supplier.");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2743,8 +2615,7 @@ public class ProductManagementController : BaseApiController
         [FromBody] UpdateProductSupplierDto updateProductSupplierDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -2752,15 +2623,15 @@ public class ProductManagementController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var productSupplier = await _productService.UpdateProductSupplierAsync(id, updateProductSupplierDto, currentUser, cancellationToken);
-            if (productSupplier == null)
+            var productSupplier = await productService.UpdateProductSupplierAsync(id, updateProductSupplierDto, currentUser, cancellationToken);
+            if (productSupplier is null)
                 return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
 
             return Ok(productSupplier);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while updating product supplier.");
+            logger.LogWarning(ex, "Invalid operation while updating product supplier.");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2786,13 +2657,12 @@ public class ProductManagementController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _productService.RemoveProductSupplierAsync(id, currentUser, cancellationToken);
+            var success = await productService.RemoveProductSupplierAsync(id, currentUser, cancellationToken);
             if (!success)
                 return CreateNotFoundProblem($"Product supplier with ID {id} not found.");
 
@@ -2823,12 +2693,11 @@ public class ProductManagementController : BaseApiController
         Guid supplierId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var products = await _productService.GetProductsWithSupplierAssociationAsync(supplierId, cancellationToken);
+            var products = await productService.GetProductsWithSupplierAssociationAsync(supplierId, cancellationToken);
             return Ok(products);
         }
         catch (Exception ex)
@@ -2858,13 +2727,12 @@ public class ProductManagementController : BaseApiController
         [FromBody] IEnumerable<Guid> productIds,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var count = await _productService.BulkUpdateProductSupplierAssociationsAsync(supplierId, productIds, currentUser, cancellationToken);
+            var count = await productService.BulkUpdateProductSupplierAssociationsAsync(supplierId, productIds, currentUser, cancellationToken);
             return Ok(count);
         }
         catch (Exception ex)
@@ -2894,23 +2762,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _productService.GetProductsBySupplierAsync(supplierId, pagination, cancellationToken);
+            var result = await productService.GetProductsBySupplierAsync(supplierId, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -2949,14 +2807,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = null!,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if product exists
-            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
-            if (product == null)
+            var product = await productService.GetProductByIdAsync(id, cancellationToken);
+            if (product is null)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             // Get document movements using DocumentHeaderService
@@ -2973,13 +2830,13 @@ public class ProductManagementController : BaseApiController
                 IncludeRows = true
             };
 
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            var documentsResult = await documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
 
             // Transform documents to ProductDocumentMovementDto
             var movements = new List<ProductDocumentMovementDto>();
             foreach (var doc in documentsResult.Items)
             {
-                if (doc.Rows == null) continue;
+                if (doc.Rows is null) continue;
 
                 // Find rows that contain this product
                 var productRows = doc.Rows.Where(r => r.ProductId == id);
@@ -3016,16 +2873,7 @@ public class ProductManagementController : BaseApiController
                 TotalCount = documentsResult.TotalCount
             };
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -3054,14 +2902,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int? year = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if product exists
-            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
-            if (product == null)
+            var product = await productService.GetProductByIdAsync(id, cancellationToken);
+            if (product is null)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             var targetYear = year ?? DateTime.UtcNow.Year;
@@ -3069,7 +2916,7 @@ public class ProductManagementController : BaseApiController
             var endDate = new DateTime(targetYear, 12, 31, 23, 59, 59);
 
             // Get stock movements for the year
-            var movementsResult = await _stockMovementService.GetMovementsAsync(
+            var movementsResult = await stockMovementService.GetMovementsAsync(
                 page: 1,
                 pageSize: 10000, // Get all movements for the year
                 productId: id,
@@ -3174,14 +3021,13 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int? year = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if product exists
-            var product = await _productService.GetProductByIdAsync(id, cancellationToken);
-            if (product == null)
+            var product = await productService.GetProductByIdAsync(id, cancellationToken);
+            if (product is null)
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             var targetYear = year ?? DateTime.UtcNow.Year;
@@ -3201,7 +3047,7 @@ public class ProductManagementController : BaseApiController
                 IncludeRows = true
             };
 
-            var documentsResult = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            var documentsResult = await documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
 
             var purchasePricesList = new List<PriceTrendDataPoint>();
             var salePricesList = new List<PriceTrendDataPoint>();
@@ -3209,7 +3055,7 @@ public class ProductManagementController : BaseApiController
             // Process document movements to extract price data
             foreach (var doc in documentsResult.Items)
             {
-                if (doc.Rows == null) continue;
+                if (doc.Rows is null) continue;
 
                 // Find rows that contain this product
                 var productRows = doc.Rows.Where(r => r.ProductId == id);
@@ -3373,37 +3219,27 @@ public class ProductManagementController : BaseApiController
         if (!type.Equals("purchase", StringComparison.OrdinalIgnoreCase) &&
             !type.Equals("sale", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Detail = "Type parameter must be either 'purchase' or 'sale'."
-            });
+            return CreateValidationProblemDetails("Type parameter must be either 'purchase' or 'sale'.");
         }
 
         // Validate top parameter
         if (top < 1 || top > 10)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Detail = "Top parameter must be between 1 and 10."
-            });
+            return CreateValidationProblemDetails("Top parameter must be between 1 and 10.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if product exists
-            var productExists = await _productService.ProductExistsAsync(productId, cancellationToken);
+            var productExists = await productService.ProductExistsAsync(productId, cancellationToken);
             if (!productExists)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Detail = $"Product with ID {productId} not found."
-                });
+                return CreateNotFoundProblem($"Product with ID {productId} not found.");
             }
 
-            var transactions = await _productService.GetRecentProductTransactionsAsync(
+            var transactions = await productService.GetRecentProductTransactionsAsync(
                 productId,
                 type,
                 partyId,
@@ -3440,7 +3276,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceCalculationService.GetAppliedPriceAsync(
+        var result = await priceCalculationService.GetAppliedPriceAsync(
             productId,
             eventId,
             businessPartyId,
@@ -3448,7 +3284,7 @@ public class ProductManagementController : BaseApiController
             quantity,
             cancellationToken);
 
-        if (result == null)
+        if (result is null)
             return NotFound(new { error = "No applicable price found for this product" });
 
         return Ok(result);
@@ -3467,7 +3303,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        var result = await _priceCalculationService.GetPurchasePriceComparisonAsync(
+        var result = await priceCalculationService.GetPurchasePriceComparisonAsync(
             productId,
             quantity,
             null,
@@ -3493,7 +3329,7 @@ public class ProductManagementController : BaseApiController
     {
         try
         {
-            var result = await _priceListService.GetProductPriceAsync(request, cancellationToken);
+            var result = await priceListService.GetProductPriceAsync(request, cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -3522,7 +3358,7 @@ public class ProductManagementController : BaseApiController
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export operation started by {User} for Products (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
 
@@ -3532,7 +3368,7 @@ public class ProductManagementController : BaseApiController
             PageSize = 50000
         };
 
-        var data = await _productService.GetProductsForExportAsync(pagination, ct);
+        var data = await productService.GetProductsForExportAsync(pagination, ct);
 
         byte[] fileBytes;
         string contentType;
@@ -3541,20 +3377,20 @@ public class ProductManagementController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                fileBytes = await exportService.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
 
             case "excel":
             default:
-                fileBytes = await _exportService.ExportToExcelAsync(data, "Products", ct);
+                fileBytes = await exportService.ExportToExcelAsync(data, "Products", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Products_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
 
@@ -3588,15 +3424,14 @@ public class ProductManagementController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "System";
-            var result = await _productService.BulkUpdatePricesAsync(bulkUpdateDto, currentUser, cancellationToken);
+            var result = await productService.BulkUpdatePricesAsync(bulkUpdateDto, currentUser, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk price update: {SuccessCount} successful, {FailedCount} failed",
                 result.SuccessCount, result.FailedCount);
 
@@ -3604,12 +3439,8 @@ public class ProductManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid bulk update request");
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid Request",
-                Detail = ex.Message
-            });
+            logger.LogWarning(ex, "Invalid bulk update request");
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

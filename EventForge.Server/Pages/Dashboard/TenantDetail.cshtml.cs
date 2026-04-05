@@ -191,7 +191,7 @@ public class TenantDetailModel : PageModel
 
             return RedirectToPage("/Dashboard/Tenants");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
             throw;

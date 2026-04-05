@@ -5,7 +5,7 @@
 @inject IProfileService ProfileService
 @inject IAuthService AuthService
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <PageTitle>@TranslationService.GetTranslation("profile.title", "Profilo") - PRYM</PageTitle>
@@ -443,7 +443,7 @@ else if (_profile != null)
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading profile: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Error loading profile: {ex.Message}");
         }
         finally
         {
@@ -563,7 +563,7 @@ else if (_profile != null)
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Error uploading avatar: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Error uploading avatar: {ex.Message}");
             }
         }
     }

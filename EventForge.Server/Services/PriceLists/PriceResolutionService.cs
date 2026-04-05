@@ -6,14 +6,8 @@ namespace EventForge.Server.Services.PriceLists
     /// <summary>
     /// Service for resolving product prices based on price lists and business rules
     /// </summary>
-    public class PriceResolutionService : IPriceResolutionService
+        public class PriceResolutionService(EventForgeDbContext context) : IPriceResolutionService
     {
-        private readonly EventForgeDbContext _context;
-
-        public PriceResolutionService(EventForgeDbContext context)
-        {
-            _context = context;
-        }
 
         /// <inheritdoc/>
         public async Task<PriceResolutionResult> ResolvePriceAsync(
@@ -30,7 +24,7 @@ namespace EventForge.Server.Services.PriceLists
             if (forcedPriceListId.HasValue)
             {
                 var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                if (forcedResult != null)
+                if (forcedResult is not null)
                 {
                     forcedResult.Source = "ParameterList";
                     return forcedResult;
@@ -40,7 +34,7 @@ namespace EventForge.Server.Services.PriceLists
             // Try priority 2: Document header price list
             if (documentHeaderId.HasValue)
             {
-                var documentHeader = await _context.DocumentHeaders
+                var documentHeader = await context.DocumentHeaders
                     .Include(d => d.PriceList)
                     .Include(d => d.DocumentType)
                     .FirstOrDefaultAsync(d => d.Id == documentHeaderId.Value, cancellationToken);
@@ -48,7 +42,7 @@ namespace EventForge.Server.Services.PriceLists
                 if (documentHeader?.PriceListId.HasValue == true)
                 {
                     var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                    if (docResult != null)
+                    if (docResult is not null)
                     {
                         docResult.Source = "DocumentList";
                         return docResult;
@@ -56,7 +50,7 @@ namespace EventForge.Server.Services.PriceLists
                 }
 
                 // If direction is not provided, try to infer from document type
-                if (direction == null && documentHeader?.DocumentType != null)
+                if (direction is null && documentHeader?.DocumentType is not null)
                 {
                     direction = documentHeader.DocumentType.IsStockIncrease
                         ? PriceListDirection.Input
@@ -67,12 +61,12 @@ namespace EventForge.Server.Services.PriceLists
             // Try priority 3: Business Party default price list
             if (businessPartyId.HasValue && direction.HasValue)
             {
-                var businessParty = await _context.BusinessParties
+                var businessParty = await context.BusinessParties
                     .Include(bp => bp.DefaultSalesPriceList)
                     .Include(bp => bp.DefaultPurchasePriceList)
                     .FirstOrDefaultAsync(bp => bp.Id == businessPartyId.Value, cancellationToken);
 
-                if (businessParty != null)
+                if (businessParty is not null)
                 {
                     Guid? partyPriceListId = direction.Value == PriceListDirection.Output
                         ? businessParty.DefaultSalesPriceListId
@@ -81,7 +75,7 @@ namespace EventForge.Server.Services.PriceLists
                     if (partyPriceListId.HasValue)
                     {
                         var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                        if (partyResult != null)
+                        if (partyResult is not null)
                         {
                             partyResult.Source = "PartyList";
                             return partyResult;
@@ -93,7 +87,7 @@ namespace EventForge.Server.Services.PriceLists
             // Try priority 4: General active price list for the direction
             if (direction.HasValue)
             {
-                var generalPriceList = await _context.PriceLists
+                var generalPriceList = await context.PriceLists
                     .Where(pl => pl.Direction == direction.Value
                         && pl.Status == Data.Entities.PriceList.PriceListStatus.Active
                         && (pl.ValidFrom == null || pl.ValidFrom <= DateTime.UtcNow)
@@ -101,10 +95,10 @@ namespace EventForge.Server.Services.PriceLists
                     .OrderBy(pl => pl.Priority)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (generalPriceList != null)
+                if (generalPriceList is not null)
                 {
                     var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, unitOfMeasureId, cancellationToken);
-                    if (generalResult != null)
+                    if (generalResult is not null)
                     {
                         generalResult.Source = "GeneralList";
                         return generalResult;
@@ -113,10 +107,10 @@ namespace EventForge.Server.Services.PriceLists
             }
 
             // Fallback: Product default price
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
-            if (product?.DefaultPrice != null)
+            if (product?.DefaultPrice is not null)
             {
                 return new PriceResolutionResult
                 {
@@ -182,11 +176,11 @@ namespace EventForge.Server.Services.PriceLists
 
             foreach (var (key, result, error) in results)
             {
-                if (error != null)
+                if (error is not null)
                 {
                     response.Errors.Add(error);
                 }
-                else if (result != null)
+                else if (result is not null)
                 {
                     response.Results[key] = result;
                 }
@@ -219,7 +213,7 @@ namespace EventForge.Server.Services.PriceLists
             CancellationToken cancellationToken)
         {
             // Build base query: match product, price list and quantity bracket
-            var baseQuery = _context.PriceListEntries
+            var baseQuery = context.PriceListEntries
                 .Include(ple => ple.PriceList)
                 .Where(ple => ple.PriceListId == priceListId && ple.ProductId == productId
                     && ple.MinQuantity <= quantity && (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity));
@@ -243,14 +237,14 @@ namespace EventForge.Server.Services.PriceLists
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Priority 3 (only when no UoM was requested): accept any UoM-specific entry
-            if (priceListEntry == null && !unitOfMeasureId.HasValue)
+            if (priceListEntry is null && !unitOfMeasureId.HasValue)
             {
                 priceListEntry = await baseQuery
                     .OrderByDescending(ple => ple.MinQuantity)
                     .FirstOrDefaultAsync(cancellationToken);
             }
 
-            if (priceListEntry != null)
+            if (priceListEntry is not null)
             {
                 return new PriceResolutionResult
                 {
@@ -268,5 +262,6 @@ namespace EventForge.Server.Services.PriceLists
 
             return null;
         }
+    
     }
 }

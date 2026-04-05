@@ -15,35 +15,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/tables")]
 [Authorize]
 [RequireLicenseFeature("SalesManagement")]
-public class TableManagementController : BaseApiController
+public class TableManagementController(
+    ITableManagementService tableService,
+    ILogger<TableManagementController> logger) : BaseApiController
 {
-    private readonly ITableManagementService _tableService;
-    private readonly ILogger<TableManagementController> _logger;
-
-    public TableManagementController(
-        ITableManagementService tableService,
-        ILogger<TableManagementController> logger)
-    {
-        _tableService = tableService;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Adds pagination headers to the response.
-    /// </summary>
-    private void AddPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
-    {
-        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-        Response.Headers.Append("X-Page", result.Page.ToString());
-        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-        if (pagination.WasCapped)
-        {
-            Response.Headers.Append("X-Pagination-Capped", "true");
-            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-        }
-    }
 
     /// <summary>
     /// Gets all tables.
@@ -53,18 +28,18 @@ public class TableManagementController : BaseApiController
     [Obsolete("Use GetTables with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAllTables(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting all tables");
+        logger.LogInformation("Getting all tables");
 
         try
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            var tables = await _tableService.GetAllTablesAsync(cancellationToken);
+            var tables = await tableService.GetAllTablesAsync(cancellationToken);
 #pragma warning restore CS0618 // Type or member is obsolete
             return Ok(tables);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting all tables");
+            logger.LogError(ex, "Error getting all tables");
             return StatusCode(500, new { error = "An error occurred while getting tables." });
         }
     }
@@ -82,12 +57,12 @@ public class TableManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting tables with pagination");
+        logger.LogInformation("Getting tables with pagination");
 
         try
         {
-            var result = await _tableService.GetTablesAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            var result = await tableService.GetTablesAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -104,12 +79,12 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableSessionDto>> GetTable(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting table {TableId}", id);
+        logger.LogInformation("Getting table {TableId}", id);
 
         try
         {
-            var table = await _tableService.GetTableAsync(id, cancellationToken);
-            if (table == null)
+            var table = await tableService.GetTableAsync(id, cancellationToken);
+            if (table is null)
             {
                 return NotFound(new { error = "Table not found." });
             }
@@ -118,7 +93,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting table {TableId}", id);
+            logger.LogError(ex, "Error getting table {TableId}", id);
             return StatusCode(500, new { error = "An error occurred while getting the table." });
         }
     }
@@ -131,17 +106,17 @@ public class TableManagementController : BaseApiController
     [Obsolete("Use GetAvailableTablesPaginated with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAvailableTables(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting available tables");
+        logger.LogInformation("Getting available tables");
 
         try
         {
             // Call the obsolete non-paginated version
-            var tables = await _tableService.GetAllAvailableTablesAsync(cancellationToken);
+            var tables = await tableService.GetAllAvailableTablesAsync(cancellationToken);
             return Ok(tables);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available tables");
+            logger.LogError(ex, "Error getting available tables");
             return StatusCode(500, new { error = "An error occurred while getting available tables." });
         }
     }
@@ -159,12 +134,12 @@ public class TableManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting available tables with pagination");
+        logger.LogInformation("Getting available tables with pagination");
 
         try
         {
-            var result = await _tableService.GetAvailableTablesAsync(pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            var result = await tableService.GetAvailableTablesAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -186,12 +161,12 @@ public class TableManagementController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting tables by zone {Zone} with pagination", zone);
+        logger.LogInformation("Getting tables by zone {Zone} with pagination", zone);
 
         try
         {
-            var result = await _tableService.GetTablesByZoneAsync(zone, pagination, cancellationToken);
-            AddPaginationHeaders(result, pagination);
+            var result = await tableService.GetTablesByZoneAsync(zone, pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
         catch (Exception ex)
@@ -208,7 +183,7 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> CreateTable([FromBody] CreateTableSessionDto dto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating table {TableNumber}", dto.TableNumber);
+        logger.LogInformation("Creating table {TableNumber}", dto.TableNumber);
 
         if (!ModelState.IsValid)
         {
@@ -217,17 +192,17 @@ public class TableManagementController : BaseApiController
 
         try
         {
-            var table = await _tableService.CreateTableAsync(dto, cancellationToken);
+            var table = await tableService.CreateTableAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetTable), new { id = table.Id }, table);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation creating table");
+            logger.LogWarning(ex, "Invalid operation creating table");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating table");
+            logger.LogError(ex, "Error creating table");
             return StatusCode(500, new { error = "An error occurred while creating the table." });
         }
     }
@@ -241,7 +216,7 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> UpdateTable(Guid id, [FromBody] UpdateTableSessionDto dto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Updating table {TableId}", id);
+        logger.LogInformation("Updating table {TableId}", id);
 
         if (!ModelState.IsValid)
         {
@@ -250,8 +225,8 @@ public class TableManagementController : BaseApiController
 
         try
         {
-            var table = await _tableService.UpdateTableAsync(id, dto, cancellationToken);
-            if (table == null)
+            var table = await tableService.UpdateTableAsync(id, dto, cancellationToken);
+            if (table is null)
             {
                 return NotFound(new { error = "Table not found." });
             }
@@ -260,12 +235,12 @@ public class TableManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation updating table");
+            logger.LogWarning(ex, "Invalid operation updating table");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating table {TableId}", id);
+            logger.LogError(ex, "Error updating table {TableId}", id);
             return StatusCode(500, new { error = "An error occurred while updating the table." });
         }
     }
@@ -279,7 +254,7 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> UpdateTableStatus(Guid id, [FromBody] UpdateTableStatusDto dto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Updating status for table {TableId} to {Status}", id, dto.Status);
+        logger.LogInformation("Updating status for table {TableId} to {Status}", id, dto.Status);
 
         if (!ModelState.IsValid)
         {
@@ -288,8 +263,8 @@ public class TableManagementController : BaseApiController
 
         try
         {
-            var table = await _tableService.UpdateTableStatusAsync(id, dto, cancellationToken);
-            if (table == null)
+            var table = await tableService.UpdateTableStatusAsync(id, dto, cancellationToken);
+            if (table is null)
             {
                 return NotFound(new { error = "Table not found." });
             }
@@ -298,12 +273,12 @@ public class TableManagementController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid status value");
+            logger.LogWarning(ex, "Invalid status value");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating table status {TableId}", id);
+            logger.LogError(ex, "Error updating table status {TableId}", id);
             return StatusCode(500, new { error = "An error occurred while updating the table status." });
         }
     }
@@ -316,11 +291,11 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTable(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Deleting table {TableId}", id);
+        logger.LogInformation("Deleting table {TableId}", id);
 
         try
         {
-            var success = await _tableService.DeleteTableAsync(id, cancellationToken);
+            var success = await tableService.DeleteTableAsync(id, cancellationToken);
             if (!success)
             {
                 return NotFound(new { error = "Table not found." });
@@ -330,7 +305,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting table {TableId}", id);
+            logger.LogError(ex, "Error deleting table {TableId}", id);
             return StatusCode(500, new { error = "An error occurred while deleting the table." });
         }
     }
@@ -344,16 +319,16 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(typeof(List<TableReservationDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TableReservationDto>>> GetReservations([FromQuery] DateTime date, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting reservations for date {Date}", date.Date);
+        logger.LogInformation("Getting reservations for date {Date}", date.Date);
 
         try
         {
-            var reservations = await _tableService.GetReservationsByDateAsync(date, cancellationToken);
+            var reservations = await tableService.GetReservationsByDateAsync(date, cancellationToken);
             return Ok(reservations);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reservations");
+            logger.LogError(ex, "Error getting reservations");
             return StatusCode(500, new { error = "An error occurred while getting reservations." });
         }
     }
@@ -366,12 +341,12 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> GetReservation(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting reservation {ReservationId}", id);
+        logger.LogInformation("Getting reservation {ReservationId}", id);
 
         try
         {
-            var reservation = await _tableService.GetReservationAsync(id, cancellationToken);
-            if (reservation == null)
+            var reservation = await tableService.GetReservationAsync(id, cancellationToken);
+            if (reservation is null)
             {
                 return NotFound(new { error = "Reservation not found." });
             }
@@ -380,7 +355,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reservation {ReservationId}", id);
+            logger.LogError(ex, "Error getting reservation {ReservationId}", id);
             return StatusCode(500, new { error = "An error occurred while getting the reservation." });
         }
     }
@@ -393,7 +368,7 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableReservationDto>> CreateReservation([FromBody] CreateTableReservationDto dto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
+        logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
 
         if (!ModelState.IsValid)
         {
@@ -402,17 +377,17 @@ public class TableManagementController : BaseApiController
 
         try
         {
-            var reservation = await _tableService.CreateReservationAsync(dto, cancellationToken);
+            var reservation = await tableService.CreateReservationAsync(dto, cancellationToken);
             return CreatedAtAction(nameof(GetReservation), new { id = reservation.Id }, reservation);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation creating reservation");
+            logger.LogWarning(ex, "Invalid operation creating reservation");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating reservation");
+            logger.LogError(ex, "Error creating reservation");
             return StatusCode(500, new { error = "An error occurred while creating the reservation." });
         }
     }
@@ -426,7 +401,7 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableReservationDto>> UpdateReservation(Guid id, [FromBody] UpdateTableReservationDto dto, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Updating reservation {ReservationId}", id);
+        logger.LogInformation("Updating reservation {ReservationId}", id);
 
         if (!ModelState.IsValid)
         {
@@ -435,8 +410,8 @@ public class TableManagementController : BaseApiController
 
         try
         {
-            var reservation = await _tableService.UpdateReservationAsync(id, dto, cancellationToken);
-            if (reservation == null)
+            var reservation = await tableService.UpdateReservationAsync(id, dto, cancellationToken);
+            if (reservation is null)
             {
                 return NotFound(new { error = "Reservation not found." });
             }
@@ -445,12 +420,12 @@ public class TableManagementController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation updating reservation");
+            logger.LogWarning(ex, "Invalid operation updating reservation");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating reservation {ReservationId}", id);
+            logger.LogError(ex, "Error updating reservation {ReservationId}", id);
             return StatusCode(500, new { error = "An error occurred while updating the reservation." });
         }
     }
@@ -463,12 +438,12 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> ConfirmReservation(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Confirming reservation {ReservationId}", id);
+        logger.LogInformation("Confirming reservation {ReservationId}", id);
 
         try
         {
-            var reservation = await _tableService.ConfirmReservationAsync(id, cancellationToken);
-            if (reservation == null)
+            var reservation = await tableService.ConfirmReservationAsync(id, cancellationToken);
+            if (reservation is null)
             {
                 return NotFound(new { error = "Reservation not found." });
             }
@@ -477,7 +452,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error confirming reservation {ReservationId}", id);
+            logger.LogError(ex, "Error confirming reservation {ReservationId}", id);
             return StatusCode(500, new { error = "An error occurred while confirming the reservation." });
         }
     }
@@ -490,12 +465,12 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> MarkArrived(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Marking reservation {ReservationId} as arrived", id);
+        logger.LogInformation("Marking reservation {ReservationId} as arrived", id);
 
         try
         {
-            var reservation = await _tableService.MarkArrivedAsync(id, cancellationToken);
-            if (reservation == null)
+            var reservation = await tableService.MarkArrivedAsync(id, cancellationToken);
+            if (reservation is null)
             {
                 return NotFound(new { error = "Reservation not found." });
             }
@@ -504,7 +479,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking reservation {ReservationId} as arrived", id);
+            logger.LogError(ex, "Error marking reservation {ReservationId} as arrived", id);
             return StatusCode(500, new { error = "An error occurred while marking the reservation as arrived." });
         }
     }
@@ -517,11 +492,11 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelReservation(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Cancelling reservation {ReservationId}", id);
+        logger.LogInformation("Cancelling reservation {ReservationId}", id);
 
         try
         {
-            var success = await _tableService.CancelReservationAsync(id, cancellationToken);
+            var success = await tableService.CancelReservationAsync(id, cancellationToken);
             if (!success)
             {
                 return NotFound(new { error = "Reservation not found." });
@@ -531,7 +506,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling reservation {ReservationId}", id);
+            logger.LogError(ex, "Error cancelling reservation {ReservationId}", id);
             return StatusCode(500, new { error = "An error occurred while cancelling the reservation." });
         }
     }
@@ -544,12 +519,12 @@ public class TableManagementController : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> MarkNoShow(Guid id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Marking reservation {ReservationId} as no-show", id);
+        logger.LogInformation("Marking reservation {ReservationId} as no-show", id);
 
         try
         {
-            var reservation = await _tableService.MarkNoShowAsync(id, cancellationToken);
-            if (reservation == null)
+            var reservation = await tableService.MarkNoShowAsync(id, cancellationToken);
+            if (reservation is null)
             {
                 return NotFound(new { error = "Reservation not found." });
             }
@@ -558,7 +533,7 @@ public class TableManagementController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking reservation {ReservationId} as no-show", id);
+            logger.LogError(ex, "Error marking reservation {ReservationId} as no-show", id);
             return StatusCode(500, new { error = "An error occurred while marking the reservation as no-show." });
         }
     }

@@ -6,37 +6,25 @@ namespace EventForge.Server.Services.Business;
 /// <summary>
 /// Service implementation for managing payment terms.
 /// </summary>
-public class PaymentTermService : IPaymentTermService
+public class PaymentTermService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<PaymentTermService> logger) : IPaymentTermService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<PaymentTermService> _logger;
-
-    public PaymentTermService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<PaymentTermService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment term operations.");
             }
 
-            var query = _context.PaymentTerms
+            var query = context.PaymentTerms
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
@@ -59,7 +47,7 @@ public class PaymentTermService : IPaymentTermService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment terms.");
+            logger.LogError(ex, "Error retrieving payment terms.");
             throw;
         }
     }
@@ -68,21 +56,21 @@ public class PaymentTermService : IPaymentTermService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment term operations.");
             }
 
-            var paymentTerm = await _context.PaymentTerms
+            var paymentTerm = await context.PaymentTerms
                 .Where(pt => pt.Id == id && pt.TenantId == currentTenantId.Value && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return paymentTerm != null ? MapToPaymentTermDto(paymentTerm) : null;
+            return paymentTerm is not null ? MapToPaymentTermDto(paymentTerm) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment term {PaymentTermId}.", id);
+            logger.LogError(ex, "Error retrieving payment term {PaymentTermId}.", id);
             throw;
         }
     }
@@ -94,7 +82,7 @@ public class PaymentTermService : IPaymentTermService
             ArgumentNullException.ThrowIfNull(createPaymentTermDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment term operations.");
@@ -111,19 +99,19 @@ public class PaymentTermService : IPaymentTermService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.PaymentTerms.Add(paymentTerm);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.PaymentTerms.Add(paymentTerm);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created payment term
-            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Payment term created with ID {PaymentTermId} by user {User}.", paymentTerm.Id, currentUser);
+            logger.LogInformation("Payment term created with ID {PaymentTermId} by user {User}.", paymentTerm.Id, currentUser);
 
             return MapToPaymentTermDto(paymentTerm);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating payment term for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating payment term for user {User}.", currentUser);
             throw;
         }
     }
@@ -135,24 +123,24 @@ public class PaymentTermService : IPaymentTermService
             ArgumentNullException.ThrowIfNull(updatePaymentTermDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPaymentTerm = await _context.PaymentTerms
+            var originalPaymentTerm = await context.PaymentTerms
                 .AsNoTracking()
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPaymentTerm == null)
+            if (originalPaymentTerm is null)
             {
-                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var paymentTerm = await _context.PaymentTerms
+            var paymentTerm = await context.PaymentTerms
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (paymentTerm == null)
+            if (paymentTerm is null)
             {
-                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -166,18 +154,18 @@ public class PaymentTermService : IPaymentTermService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating PaymentTerm {PaymentTermId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating PaymentTerm {PaymentTermId}.", id);
                 throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log for the updated payment term
-            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
 
-            _logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
 
             return MapToPaymentTermDto(paymentTerm);
         }
@@ -187,7 +175,7 @@ public class PaymentTermService : IPaymentTermService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating payment term {PaymentTermId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating payment term {PaymentTermId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -198,24 +186,24 @@ public class PaymentTermService : IPaymentTermService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPaymentTerm = await _context.PaymentTerms
+            var originalPaymentTerm = await context.PaymentTerms
                 .AsNoTracking()
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPaymentTerm == null)
+            if (originalPaymentTerm is null)
             {
-                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var paymentTerm = await _context.PaymentTerms
+            var paymentTerm = await context.PaymentTerms
                 .Where(pt => pt.Id == id && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (paymentTerm == null)
+            if (paymentTerm is null)
             {
-                _logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -226,18 +214,18 @@ public class PaymentTermService : IPaymentTermService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting PaymentTerm {PaymentTermId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting PaymentTerm {PaymentTermId}.", id);
                 throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log for the deleted payment term
-            _ = await _auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
 
-            _logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
@@ -247,7 +235,7 @@ public class PaymentTermService : IPaymentTermService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting payment term {PaymentTermId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting payment term {PaymentTermId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -256,12 +244,12 @@ public class PaymentTermService : IPaymentTermService
     {
         try
         {
-            return await _context.PaymentTerms
+            return await context.PaymentTerms
                 .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if payment term {PaymentTermId} exists.", paymentTermId);
+            logger.LogError(ex, "Error checking if payment term {PaymentTermId} exists.", paymentTermId);
             throw;
         }
     }
@@ -283,4 +271,5 @@ public class PaymentTermService : IPaymentTermService
             ModifiedBy = paymentTerm.ModifiedBy
         };
     }
+
 }

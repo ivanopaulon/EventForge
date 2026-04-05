@@ -13,16 +13,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/calendar-reminders")]
 [Authorize]
 [RequireLicenseFeature("BasicEventManagement")]
-public class CalendarRemindersController : BaseApiController
+public class CalendarRemindersController(
+    ICalendarReminderService calendarReminderService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly ICalendarReminderService _calendarReminderService;
-    private readonly ITenantContext _tenantContext;
-
-    public CalendarRemindersController(ICalendarReminderService calendarReminderService, ITenantContext tenantContext)
-    {
-        _calendarReminderService = calendarReminderService ?? throw new ArgumentNullException(nameof(calendarReminderService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     /// <summary>
     /// Gets all calendar reminders with pagination.
@@ -41,12 +35,11 @@ public class CalendarRemindersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _calendarReminderService.GetCalendarRemindersAsync(pagination, cancellationToken);
+            var result = await calendarReminderService.GetCalendarRemindersAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -75,15 +68,14 @@ public class CalendarRemindersController : BaseApiController
         [FromQuery] DateTime endDate,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         if (endDate < startDate)
             return CreateValidationProblemDetails("End date must be greater than or equal to start date.");
 
         try
         {
-            var result = await _calendarReminderService.GetCalendarRemindersByDateRangeAsync(startDate, endDate, cancellationToken);
+            var result = await calendarReminderService.GetCalendarRemindersByDateRangeAsync(startDate, endDate, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -105,12 +97,11 @@ public class CalendarRemindersController : BaseApiController
     public async Task<ActionResult<IEnumerable<CalendarReminderDto>>> GetActiveReminders(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _calendarReminderService.GetActiveRemindersAsync(cancellationToken);
+            var result = await calendarReminderService.GetActiveRemindersAsync(cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -136,9 +127,9 @@ public class CalendarRemindersController : BaseApiController
     {
         try
         {
-            var reminder = await _calendarReminderService.GetCalendarReminderByIdAsync(id, cancellationToken);
+            var reminder = await calendarReminderService.GetCalendarReminderByIdAsync(id, cancellationToken);
 
-            if (reminder == null)
+            if (reminder is null)
                 return CreateNotFoundProblem($"Calendar reminder with ID {id} not found.");
 
             return Ok(reminder);
@@ -170,7 +161,7 @@ public class CalendarRemindersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var reminder = await _calendarReminderService.CreateCalendarReminderAsync(createDto, currentUser, cancellationToken);
+            var reminder = await calendarReminderService.CreateCalendarReminderAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetCalendarReminderById),
@@ -212,9 +203,9 @@ public class CalendarRemindersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var reminder = await _calendarReminderService.UpdateCalendarReminderAsync(id, updateDto, currentUser, cancellationToken);
+            var reminder = await calendarReminderService.UpdateCalendarReminderAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (reminder == null)
+            if (reminder is null)
                 return CreateNotFoundProblem($"Calendar reminder with ID {id} not found.");
 
             return Ok(reminder);
@@ -253,9 +244,9 @@ public class CalendarRemindersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var reminder = await _calendarReminderService.CompleteCalendarReminderAsync(id, request?.CompletionNotes, currentUser, cancellationToken);
+            var reminder = await calendarReminderService.CompleteCalendarReminderAsync(id, request?.CompletionNotes, currentUser, cancellationToken);
 
-            if (reminder == null)
+            if (reminder is null)
                 return CreateNotFoundProblem($"Calendar reminder with ID {id} not found.");
 
             return Ok(reminder);
@@ -284,7 +275,7 @@ public class CalendarRemindersController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _calendarReminderService.DeleteCalendarReminderAsync(id, currentUser, cancellationToken);
+            var result = await calendarReminderService.DeleteCalendarReminderAsync(id, currentUser, cancellationToken);
 
             if (!result)
                 return CreateNotFoundProblem($"Calendar reminder with ID {id} not found.");

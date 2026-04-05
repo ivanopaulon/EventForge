@@ -6,17 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Service implementation for managing Business Party Groups.
 /// </summary>
-public class BusinessPartyGroupService : IBusinessPartyGroupService
+public class BusinessPartyGroupService(
+    IHttpClientService httpClientService,
+    ILogger<BusinessPartyGroupService> logger) : IBusinessPartyGroupService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<BusinessPartyGroupService> _logger;
     private const string BaseUrl = "api/v1/business-party-groups";
-
-    public BusinessPartyGroupService(IHttpClientService httpClientService, ILogger<BusinessPartyGroupService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 20, BusinessPartyGroupType? groupType = null)
     {
@@ -28,12 +22,12 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
                 url += $"&groupType={groupType.Value}";
             }
 
-            var result = await _httpClientService.GetAsync<PagedResult<BusinessPartyGroupDto>>(url);
-            return result ?? new PagedResult<BusinessPartyGroupDto> { Items = new List<BusinessPartyGroupDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            var result = await httpClientService.GetAsync<PagedResult<BusinessPartyGroupDto>>(url);
+            return result ?? new PagedResult<BusinessPartyGroupDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party groups");
+            logger.LogError(ex, "Error retrieving business party groups");
             throw;
         }
     }
@@ -42,11 +36,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            return await _httpClientService.GetAsync<BusinessPartyGroupDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<BusinessPartyGroupDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party group with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving business party group with ID {Id}", id);
             throw;
         }
     }
@@ -55,12 +49,12 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateBusinessPartyGroupDto, BusinessPartyGroupDto>(BaseUrl, createDto);
+            var result = await httpClientService.PostAsync<CreateBusinessPartyGroupDto, BusinessPartyGroupDto>(BaseUrl, createDto);
             return result ?? throw new InvalidOperationException("Failed to create business party group");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating business party group");
+            logger.LogError(ex, "Error creating business party group");
             throw;
         }
     }
@@ -69,11 +63,11 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateBusinessPartyGroupDto, BusinessPartyGroupDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating business party group with ID {Id}", id);
+            logger.LogError(ex, "Error updating business party group with ID {Id}", id);
             throw;
         }
     }
@@ -82,7 +76,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -91,7 +85,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting business party group with ID {Id}", id);
+            logger.LogError(ex, "Error deleting business party group with ID {Id}", id);
             throw;
         }
     }
@@ -103,12 +97,12 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         try
         {
             var url = $"{BaseUrl}/{groupId}/members?page={page}&pageSize={pageSize}";
-            var result = await _httpClientService.GetAsync<PagedResult<BusinessPartyGroupMemberDto>>(url);
-            return result ?? new PagedResult<BusinessPartyGroupMemberDto> { Items = new List<BusinessPartyGroupMemberDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            var result = await httpClientService.GetAsync<PagedResult<BusinessPartyGroupMemberDto>>(url);
+            return result ?? new PagedResult<BusinessPartyGroupMemberDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving members for business party group {GroupId}", groupId);
+            logger.LogError(ex, "Error retrieving members for business party group {GroupId}", groupId);
             throw;
         }
     }
@@ -117,14 +111,14 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>(
+            var result = await httpClientService.PostAsync<AddBusinessPartyToGroupDto, BusinessPartyGroupMemberDto>(
                 $"{BaseUrl}/{groupId}/members",
                 createDto);
             return result ?? throw new InvalidOperationException("Failed to add member to business party group");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding member to business party group {GroupId}", groupId);
+            logger.LogError(ex, "Error adding member to business party group {GroupId}", groupId);
             throw;
         }
     }
@@ -133,14 +127,14 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<BulkAddMembersDto, BulkOperationResultDto>(
+            var result = await httpClientService.PostAsync<BulkAddMembersDto, BulkOperationResultDto>(
                 $"{BaseUrl}/bulk-add-members",
                 bulkDto);
             return result ?? throw new InvalidOperationException("Failed to bulk add members to business party group");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error bulk adding members to business party group {GroupId}", bulkDto.BusinessPartyGroupId);
+            logger.LogError(ex, "Error bulk adding members to business party group {GroupId}", bulkDto.BusinessPartyGroupId);
             throw;
         }
     }
@@ -149,14 +143,14 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>(
+            var result = await httpClientService.PutAsync<UpdateBusinessPartyGroupMemberDto, BusinessPartyGroupMemberDto>(
                 $"{BaseUrl}/members/{membershipId}",
                 updateDto);
             return result ?? throw new InvalidOperationException("Failed to update member");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating membership {MembershipId}", membershipId);
+            logger.LogError(ex, "Error updating membership {MembershipId}", membershipId);
             throw;
         }
     }
@@ -165,7 +159,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{groupId}/members/{businessPartyId}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{groupId}/members/{businessPartyId}");
             return true;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -174,7 +168,7 @@ public class BusinessPartyGroupService : IBusinessPartyGroupService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing member {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
+            logger.LogError(ex, "Error removing member {BusinessPartyId} from group {GroupId}", businessPartyId, groupId);
             throw;
         }
     }

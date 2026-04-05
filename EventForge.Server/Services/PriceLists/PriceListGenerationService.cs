@@ -7,24 +7,12 @@ using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatu
 
 namespace EventForge.Server.Services.PriceLists;
 
-public class PriceListGenerationService : IPriceListGenerationService
+public class PriceListGenerationService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<PriceListGenerationService> logger,
+    ITenantContext tenantContext) : IPriceListGenerationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<PriceListGenerationService> _logger;
-    private readonly ITenantContext _tenantContext;
-
-    public PriceListGenerationService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<PriceListGenerationService> logger,
-        ITenantContext tenantContext)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     #region Price List Generation from Products
 
@@ -37,14 +25,14 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // 1. Recupero TenantId dal contesto multi-tenant
-        var tenantId = _tenantContext.CurrentTenantId;
+        var tenantId = tenantContext.CurrentTenantId;
         if (!tenantId.HasValue)
             throw new InvalidOperationException("Tenant context is required for price list generation.");
 
         // 2. Validazione EventId se specificato
         if (dto.EventId.HasValue)
         {
-            var eventExists = await _context.Events
+            var eventExists = await context.Events
                 .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
             if (!eventExists)
@@ -54,7 +42,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // 3. Query prodotti con filtri
-        var query = _context.Products
+        var query = context.Products
             .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
         // Filtro prodotti attivi
@@ -70,7 +58,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // Filtro per categorie
-        if (dto.FilterByCategoryIds != null && dto.FilterByCategoryIds.Any())
+        if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
         {
             query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
         }
@@ -109,7 +97,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             ModifiedAt = DateTime.UtcNow
         };
 
-        _context.PriceLists.Add(priceList);
+        context.PriceLists.Add(priceList);
 
         // 5. Crea PriceListEntries
         var entriesCount = 0;
@@ -149,22 +137,22 @@ public class PriceListGenerationService : IPriceListGenerationService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _context.PriceListEntries.Add(entry);
+            context.PriceListEntries.Add(entry);
             entriesCount++;
         }
 
         // 6. Associa BusinessParties se specificati
-        if (dto.BusinessPartyIds != null && dto.BusinessPartyIds.Any())
+        if (dto.BusinessPartyIds is not null && dto.BusinessPartyIds.Any())
         {
             foreach (var businessPartyId in dto.BusinessPartyIds)
             {
                 // Verifica che il BusinessParty esista
-                var businessPartyExists = await _context.BusinessParties
+                var businessPartyExists = await context.BusinessParties
                     .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId.Value && !bp.IsDeleted, cancellationToken);
 
                 if (!businessPartyExists)
                 {
-                    _logger.LogWarning("BusinessParty {BusinessPartyId} non trovato, skip associazione", businessPartyId);
+                    logger.LogWarning("BusinessParty {BusinessPartyId} non trovato, skip associazione", businessPartyId);
                     continue;
                 }
 
@@ -180,14 +168,14 @@ public class PriceListGenerationService : IPriceListGenerationService
                     ModifiedAt = DateTime.UtcNow
                 };
 
-                _context.PriceListBusinessParties.Add(priceListBusinessParty);
+                context.PriceListBusinessParties.Add(priceListBusinessParty);
             }
         }
 
         // 7. Salva e audit log
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceList",
             priceList.Id,
             "Create",
@@ -209,14 +197,14 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // Recupero TenantId dal contesto multi-tenant
-        var tenantId = _tenantContext.CurrentTenantId;
+        var tenantId = tenantContext.CurrentTenantId;
         if (!tenantId.HasValue)
             throw new InvalidOperationException("Tenant context is required for price list generation.");
 
         // Validazione EventId se specificato
         if (dto.EventId.HasValue)
         {
-            var eventExists = await _context.Events
+            var eventExists = await context.Events
                 .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
             if (!eventExists)
@@ -226,7 +214,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // Query prodotti con stessa logica di GenerateFromProductPricesAsync
-        var query = _context.Products
+        var query = context.Products
             .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
         if (dto.OnlyActiveProducts)
@@ -239,7 +227,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
         }
 
-        if (dto.FilterByCategoryIds != null && dto.FilterByCategoryIds.Any())
+        if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
         {
             query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
         }
@@ -332,10 +320,10 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // Validazione fornitore e recupero TenantId
-        var supplier = await _context.BusinessParties
+        var supplier = await context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
 
-        if (supplier == null)
+        if (supplier is null)
         {
             throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
         }
@@ -389,10 +377,10 @@ public class PriceListGenerationService : IPriceListGenerationService
             // Applica arrotondamento
             calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
-            if (product == null)
+            if (product is null)
                 continue;
 
             productPreviews.Add(new ProductPricePreview
@@ -413,7 +401,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // Conta documenti distinti
-        var documentCount = await _context.DocumentHeaders
+        var documentCount = await context.DocumentHeaders
             .Where(dh => dh.TenantId == tenantId &&
                         dh.BusinessPartyId == dto.SupplierId &&
                         dh.Date >= dto.FromDate &&
@@ -442,10 +430,10 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // Validazione fornitore e recupero TenantId
-        var supplier = await _context.BusinessParties
+        var supplier = await context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
 
-        if (supplier == null)
+        if (supplier is null)
         {
             throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
         }
@@ -502,7 +490,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         };
 
         // Conta documenti per metadati
-        var documentCount = await _context.DocumentHeaders
+        var documentCount = await context.DocumentHeaders
             .Where(dh => dh.TenantId == tenantId &&
                         dh.BusinessPartyId == dto.SupplierId &&
                         dh.Date >= dto.FromDate &&
@@ -526,7 +514,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         priceList.GenerationMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
 
-        _context.PriceLists.Add(priceList);
+        context.PriceLists.Add(priceList);
 
         // Crea PriceListBusinessParty
         var priceListBusinessParty = new PriceListBusinessParty
@@ -541,7 +529,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             ModifiedAt = DateTime.UtcNow
         };
 
-        _context.PriceListBusinessParties.Add(priceListBusinessParty);
+        context.PriceListBusinessParties.Add(priceListBusinessParty);
 
         // Crea PriceListEntries
         foreach (var kvp in productPricesDict)
@@ -577,13 +565,13 @@ public class PriceListGenerationService : IPriceListGenerationService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _context.PriceListEntries.Add(entry);
+            context.PriceListEntries.Add(entry);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Audit log
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceList",
             priceList.Id,
             "Create",
@@ -605,11 +593,11 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // Carica listino esistente
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .Include(pl => pl.BusinessParties)
             .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
 
-        if (priceList == null)
+        if (priceList is null)
         {
             throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
         }
@@ -618,7 +606,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         // Ottieni fornitore
         var supplierRelation = priceList.BusinessParties.FirstOrDefault();
-        if (supplierRelation == null)
+        if (supplierRelation is null)
         {
             throw new InvalidOperationException("Listino non ha un fornitore assegnato");
         }
@@ -669,10 +657,10 @@ public class PriceListGenerationService : IPriceListGenerationService
             // Applica arrotondamento
             calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
-            if (product == null)
+            if (product is null)
                 continue;
 
             productPreviews.Add(new ProductPricePreview
@@ -693,7 +681,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // Conta documenti distinti
-        var documentCount = await _context.DocumentHeaders
+        var documentCount = await context.DocumentHeaders
             .Where(dh => dh.TenantId == tenantId &&
                         dh.BusinessPartyId == supplierId &&
                         dh.Date >= fromDate &&
@@ -722,12 +710,12 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken = default)
     {
         // Carica listino esistente
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .Include(pl => pl.BusinessParties)
             .Include(pl => pl.ProductPrices)
             .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
 
-        if (priceList == null)
+        if (priceList is null)
         {
             throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
         }
@@ -736,7 +724,7 @@ public class PriceListGenerationService : IPriceListGenerationService
 
         // Ottieni fornitore
         var supplierRelation = priceList.BusinessParties.FirstOrDefault();
-        if (supplierRelation == null)
+        if (supplierRelation is null)
         {
             throw new InvalidOperationException("Listino non ha un fornitore assegnato");
         }
@@ -815,7 +803,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             }
             else if (dto.RemoveObsoleteProducts)
             {
-                _context.PriceListEntries.Remove(entry);
+                context.PriceListEntries.Remove(entry);
                 pricesRemoved++;
             }
             else
@@ -843,7 +831,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                     ModifiedAt = DateTime.UtcNow
                 };
 
-                _context.PriceListEntries.Add(entry);
+                context.PriceListEntries.Add(entry);
                 pricesAdded++;
             }
         }
@@ -853,7 +841,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
 
         // Conta documenti per metadati
-        var documentCount = await _context.DocumentHeaders
+        var documentCount = await context.DocumentHeaders
             .Where(dh => dh.TenantId == tenantId &&
                         dh.BusinessPartyId == supplierId &&
                         dh.Date >= fromDate &&
@@ -882,10 +870,10 @@ public class PriceListGenerationService : IPriceListGenerationService
         priceList.ModifiedBy = currentUser;
         priceList.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Audit log
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceList",
             priceList.Id,
             "Update",
@@ -924,7 +912,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         CancellationToken cancellationToken)
     {
         // Query documenti di carico (IsStockIncrease = true)
-        var query = _context.DocumentRows
+        var query = context.DocumentRows
             .Include(dr => dr.DocumentHeader)
                 .ThenInclude(dh => dh!.DocumentType)
             .Include(dr => dr.Product)
@@ -942,7 +930,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             query = query.Where(dr => dr.Product!.Status == Data.Entities.Products.ProductStatus.Active);
         }
 
-        if (filterByCategoryIds != null && filterByCategoryIds.Any())
+        if (filterByCategoryIds is not null && filterByCategoryIds.Any())
         {
             query = query.Where(dr => dr.Product!.CategoryNodeId != null &&
                                     filterByCategoryIds.Contains(dr.Product.CategoryNodeId.Value));
@@ -983,7 +971,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         List<PriceOccurrence> occurrences,
         PriceCalculationStrategy strategy)
     {
-        if (occurrences == null || !occurrences.Any())
+        if (occurrences is null || !occurrences.Any())
             throw new InvalidOperationException("Nessun prezzo disponibile per il calcolo");
 
         return strategy switch
@@ -1015,7 +1003,7 @@ public class PriceListGenerationService : IPriceListGenerationService
     /// </summary>
     private static decimal CalculateMedian(List<decimal> values)
     {
-        if (values == null || !values.Any())
+        if (values is null || !values.Any())
             throw new ArgumentException("Lista valori vuota");
 
         var sorted = values.OrderBy(x => x).ToList();
@@ -1042,16 +1030,16 @@ public class PriceListGenerationService : IPriceListGenerationService
         try
         {
             // 1. Recupera il listino sorgente
-            var sourcePriceList = await _context.PriceLists
+            var sourcePriceList = await context.PriceLists
                 .Include(pl => pl.ProductPrices)
                     .ThenInclude(pp => pp.Product)
                 .Include(pl => pl.BusinessParties)
                     .ThenInclude(plbp => plbp.BusinessParty)
                 .FirstOrDefaultAsync(pl => pl.Id == sourcePriceListId && !pl.IsDeleted, cancellationToken);
 
-            if (sourcePriceList == null)
+            if (sourcePriceList is null)
             {
-                _logger.LogWarning("Source price list {PriceListId} not found for duplication", sourcePriceListId);
+                logger.LogWarning("Source price list {PriceListId} not found for duplication", sourcePriceListId);
                 throw new InvalidOperationException($"Price list {sourcePriceListId} not found");
             }
 
@@ -1061,7 +1049,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             // If the navigation property is empty, do a direct query (can happen with in-memory DB in tests)
             if (sourceEntriesCount == 0)
             {
-                sourceEntriesCount = await _context.PriceListEntries
+                sourceEntriesCount = await context.PriceListEntries
                     .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
                     .CountAsync(cancellationToken);
             }
@@ -1090,7 +1078,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                 CreatedBy = currentUser
             };
 
-            _context.PriceLists.Add(newPriceList);
+            context.PriceLists.Add(newPriceList);
 
             var stats = new
             {
@@ -1103,7 +1091,7 @@ public class PriceListGenerationService : IPriceListGenerationService
             // 4. Copia le voci di prezzo (se richiesto)
             if (dto.CopyPrices)
             {
-                var pricesToCopy = sourcePriceList.ProductPrices
+                var pricesToCopy = (sourcePriceList.ProductPrices ?? [])
                     .Where(pp => !pp.IsDeleted && pp.Status == PriceListEntryStatus.Active);
 
                 // Applica filtri
@@ -1121,6 +1109,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                 if (dto.FilterByCategoryIds?.Any() == true)
                 {
                     pricesToCopy = pricesToCopy.Where(pp =>
+                        pp.Product != null &&
                         pp.Product.CategoryNodeId.HasValue &&
                         dto.FilterByCategoryIds.Contains(pp.Product.CategoryNodeId.Value));
                 }
@@ -1164,7 +1153,7 @@ public class PriceListGenerationService : IPriceListGenerationService
                         CreatedBy = currentUser
                     };
 
-                    _context.PriceListEntries.Add(newEntry);
+                    context.PriceListEntries.Add(newEntry);
                     stats = stats with { CopiedPriceCount = stats.CopiedPriceCount + 1 };
                 }
 
@@ -1195,15 +1184,15 @@ public class PriceListGenerationService : IPriceListGenerationService
                         CreatedBy = currentUser
                     };
 
-                    _context.PriceListBusinessParties.Add(newBP);
+                    context.PriceListBusinessParties.Add(newBP);
                     stats = stats with { CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount + 1 };
                 }
             }
 
             // 6. Salva tutto
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price list duplicated: {SourceId} -> {NewId} ({CopiedPrices} prices, {CopiedBP} business parties)",
                 sourcePriceListId, newPriceList.Id, stats.CopiedPriceCount, stats.CopiedBusinessPartyCount);
 
@@ -1244,7 +1233,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error duplicating price list {PriceListId}", sourcePriceListId);
+            logger.LogError(ex, "Error duplicating price list {PriceListId}", sourcePriceListId);
             throw;
         }
     }
@@ -1262,7 +1251,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         var code = baseCode;
         var counter = 1;
 
-        while (await _context.PriceLists.AnyAsync(pl => pl.TenantId == tenantId && pl.Code == code, cancellationToken))
+        while (await context.PriceLists.AnyAsync(pl => pl.TenantId == tenantId && pl.Code == code, cancellationToken))
         {
             code = $"{baseCode}-{counter:D3}";
             counter++;
@@ -1299,7 +1288,7 @@ public class PriceListGenerationService : IPriceListGenerationService
         var code = baseCode;
         var counter = 1;
 
-        while (await _context.PriceLists.AnyAsync(
+        while (await context.PriceLists.AnyAsync(
             pl => pl.Code == code && !pl.IsDeleted,
             cancellationToken))
         {
@@ -1337,4 +1326,5 @@ public class PriceListGenerationService : IPriceListGenerationService
     }
 
     #endregion
+
 }

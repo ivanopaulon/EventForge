@@ -7,18 +7,10 @@ namespace EventForge.Server.Services.Audit;
 /// <summary>
 /// Service implementation for managing audit logs and entity change tracking.
 /// </summary>
-public class AuditLogService : IAuditLogService
+public class AuditLogService(
+    EventForgeDbContext context,
+    ILogger<AuditLogService> logger) : IAuditLogService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<AuditLogService> _logger;
-
-    public AuditLogService(
-        EventForgeDbContext context,
-        ILogger<AuditLogService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Creates an audit log entry for an entity change.
@@ -54,10 +46,10 @@ public class AuditLogService : IAuditLogService
                 ChangedAt = DateTime.UtcNow
             };
 
-            _ = _context.EntityChangeLogs.Add(changeLog);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.EntityChangeLogs.Add(changeLog);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
                 operationType, entityName, entityId, propertyName, changedBy);
 
@@ -65,7 +57,7 @@ public class AuditLogService : IAuditLogService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            logger.LogError(ex,
                 "Error creating audit log for {OperationType} on {EntityName} [{EntityId}] property {PropertyName}",
                 operationType, entityName, entityId, propertyName);
             throw;
@@ -79,7 +71,7 @@ public class AuditLogService : IAuditLogService
         Guid entityId,
         CancellationToken cancellationToken = default)
     {
-        return await _context.EntityChangeLogs
+        return await context.EntityChangeLogs
             .Where(log => log.EntityId == entityId)
             .OrderByDescending(log => log.ChangedAt)
             .ToListAsync(cancellationToken);
@@ -94,7 +86,7 @@ public class AuditLogService : IAuditLogService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityName);
 
-        return await _context.EntityChangeLogs
+        return await context.EntityChangeLogs
             .Where(log => log.EntityName == entityName)
             .OrderByDescending(log => log.ChangedAt)
             .ToListAsync(cancellationToken);
@@ -108,7 +100,7 @@ public class AuditLogService : IAuditLogService
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        return await _context.EntityChangeLogs
+        return await context.EntityChangeLogs
             .Where(log => log.ChangedAt >= fromDate && log.ChangedAt <= toDate)
             .OrderByDescending(log => log.ChangedAt)
             .ToListAsync(cancellationToken);
@@ -123,7 +115,7 @@ public class AuditLogService : IAuditLogService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
 
-        return await _context.EntityChangeLogs
+        return await context.EntityChangeLogs
             .Where(log => log.ChangedBy == username)
             .OrderByDescending(log => log.ChangedAt)
             .ToListAsync(cancellationToken);
@@ -139,12 +131,12 @@ public class AuditLogService : IAuditLogService
         int take = 100,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.EntityChangeLogs.AsQueryable();
+        var query = context.EntityChangeLogs.AsQueryable();
 
-        if (filter != null)
+        if (filter is not null)
             query = query.Where(filter);
 
-        if (orderBy != null)
+        if (orderBy is not null)
             query = query.OrderBy(orderBy);
         else
             query = query.OrderByDescending(log => log.ChangedAt);
@@ -229,8 +221,8 @@ public class AuditLogService : IAuditLogService
 
         if (changeLogs.Count > 0)
         {
-            _context.EntityChangeLogs.AddRange(changeLogs);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            context.EntityChangeLogs.AddRange(changeLogs);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
 
         return changeLogs;
@@ -245,7 +237,7 @@ public class AuditLogService : IAuditLogService
     {
         ArgumentNullException.ThrowIfNull(queryParameters);
 
-        var query = _context.EntityChangeLogs.AsNoTracking().AsQueryable();
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(queryParameters.EntityName))
@@ -311,7 +303,7 @@ public class AuditLogService : IAuditLogService
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        return await _context.EntityChangeLogs
+        return await context.EntityChangeLogs
             .FirstOrDefaultAsync(log => log.Id == id, cancellationToken);
     }
 
@@ -380,7 +372,7 @@ public class AuditLogService : IAuditLogService
         EventForge.DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.EntityChangeLogs.AsQueryable();
+        var query = context.EntityChangeLogs.AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(searchDto.EntityName))
@@ -466,11 +458,11 @@ public class AuditLogService : IAuditLogService
         var today = now.Date;
         var weekStart = now.AddDays(-(int)now.DayOfWeek);
 
-        var totalEntries = await _context.EntityChangeLogs.CountAsync(cancellationToken);
-        var todayEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= today, cancellationToken);
-        var thisWeekEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
-        var superAdminEntries = await _context.EntityChangeLogs.CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
-        var deletedEntries = await _context.EntityChangeLogs.CountAsync(log => log.OperationType == "Delete", cancellationToken);
+        var totalEntries = await context.EntityChangeLogs.CountAsync(cancellationToken);
+        var todayEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= today, cancellationToken);
+        var thisWeekEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
+        var superAdminEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
+        var deletedEntries = await context.EntityChangeLogs.CountAsync(log => log.OperationType == "Delete", cancellationToken);
 
         return new EventForge.DTOs.Audit.AuditTrailStatisticsDto
         {
@@ -554,7 +546,7 @@ public class AuditLogService : IAuditLogService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.EntityChangeLogs.AsNoTracking().AsQueryable();
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
         var totalCount = await query.CountAsync(ct);
 
@@ -594,7 +586,7 @@ public class AuditLogService : IAuditLogService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.EntityChangeLogs
+        var query = context.EntityChangeLogs
             .AsNoTracking()
             .Where(log => log.EntityName == entityType);
 
@@ -638,8 +630,8 @@ public class AuditLogService : IAuditLogService
     {
         // Note: EntityChangeLog stores ChangedBy as string (username), not Guid
         // We need to join with Users table to filter by userId
-        var query = from log in _context.EntityChangeLogs.AsNoTracking()
-                    join user in _context.Users on log.ChangedBy equals user.Username
+        var query = from log in context.EntityChangeLogs.AsNoTracking()
+                    join user in context.Users on log.ChangedBy equals user.Username
                     where user.Id == userId
                     select log;
 
@@ -684,7 +676,7 @@ public class AuditLogService : IAuditLogService
     {
         var end = endDate ?? DateTime.UtcNow;
 
-        var query = _context.EntityChangeLogs
+        var query = context.EntityChangeLogs
             .AsNoTracking()
             .Where(log => log.ChangedAt >= startDate && log.ChangedAt <= end);
 
@@ -717,4 +709,5 @@ public class AuditLogService : IAuditLogService
             PageSize = pagination.PageSize
         };
     }
+
 }

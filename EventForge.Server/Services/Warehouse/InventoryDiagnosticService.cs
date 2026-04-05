@@ -6,22 +6,14 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service for diagnosing and repairing inventory document issues.
 /// </summary>
-public class InventoryDiagnosticService : IInventoryDiagnosticService
+public class InventoryDiagnosticService(
+    EventForgeDbContext context,
+    ILogger<InventoryDiagnosticService> logger) : IInventoryDiagnosticService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<InventoryDiagnosticService> _logger;
-
-    public InventoryDiagnosticService(
-        EventForgeDbContext context,
-        ILogger<InventoryDiagnosticService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<InventoryDiagnosticReportDto> DiagnoseDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting diagnostic for inventory document {DocumentId}", documentId);
+        logger.LogInformation("Starting diagnostic for inventory document {DocumentId}", documentId);
 
         var report = new InventoryDiagnosticReportDto
         {
@@ -31,7 +23,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         };
 
         // 1. Get all document rows
-        var rows = await _context.DocumentRows
+        var rows = await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -51,8 +43,8 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         foreach (var row in rowsWithMissingData)
         {
             var missingFields = new List<string>();
-            if (row.ProductId == null) missingFields.Add("ProductId");
-            if (row.LocationId == null) missingFields.Add("LocationId");
+            if (row.ProductId is null) missingFields.Add("ProductId");
+            if (row.LocationId is null) missingFields.Add("LocationId");
 
             report.Issues.Add(new InventoryDiagnosticIssue
             {
@@ -69,13 +61,13 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
         var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
 
-        var existingProductIds = await _context.Products
+        var existingProductIds = await context.Products
             .AsNoTracking()
             .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
 
-        var existingLocationIds = await _context.StorageLocations
+        var existingLocationIds = await context.StorageLocations
             .AsNoTracking()
             .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
             .Select(l => l.Id)
@@ -159,7 +151,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
 
         report.TotalIssues = report.Issues.Count;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Diagnostic completed for document {DocumentId}. Total rows: {TotalRows}, Issues: {TotalIssues}, Healthy: {IsHealthy}",
             documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
 
@@ -172,7 +164,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting auto-repair for inventory document {DocumentId}", documentId);
+        logger.LogInformation("Starting auto-repair for inventory document {DocumentId}", documentId);
 
         var result = new InventoryRepairResultDto
         {
@@ -180,12 +172,12 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
             RepairedAt = DateTime.UtcNow
         };
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
             // Get all rows
-            var rows = await _context.DocumentRows
+            var rows = await context.DocumentRows
                 .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -197,13 +189,13 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
                 var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
                 var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
 
-                var existingProductIds = (await _context.Products
+                var existingProductIds = (await context.Products
                     .AsNoTracking()
                     .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
                     .Select(p => p.Id)
                     .ToListAsync(cancellationToken)).ToHashSet();
 
-                var existingLocationIds = (await _context.StorageLocations
+                var existingLocationIds = (await context.StorageLocations
                     .AsNoTracking()
                     .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
                     .Select(l => l.Id)
@@ -301,10 +293,10 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Auto-repair completed for document {DocumentId}. Analyzed: {RowsAnalyzed}, Corrected: {RowsCorrected}, Removed: {RowsRemoved}",
                 documentId, result.RowsAnalyzed, result.RowsCorrected, result.RowsRemoved);
 
@@ -313,7 +305,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Error during auto-repair for document {DocumentId}", documentId);
+            logger.LogError(ex, "Error during auto-repair for document {DocumentId}", documentId);
             throw;
         }
     }
@@ -325,15 +317,15 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Repairing row {RowId} in document {DocumentId}", rowId, documentId);
+        logger.LogInformation("Repairing row {RowId} in document {DocumentId}", rowId, documentId);
 
-        var row = await _context.DocumentRows
+        var row = await context.DocumentRows
             .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && !r.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (row == null)
+        if (row is null)
         {
-            _logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
+            logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
             return false;
         }
 
@@ -357,7 +349,7 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
             modified = true;
         }
 
-        if (repairData.NewNotes != null && repairData.NewNotes != row.Notes)
+        if (repairData.NewNotes is not null && repairData.NewNotes != row.Notes)
         {
             row.Notes = repairData.NewNotes;
             modified = true;
@@ -367,8 +359,8 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         {
             row.ModifiedBy = currentUser;
             row.ModifiedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Row {RowId} repaired successfully", rowId);
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Row {RowId} repaired successfully", rowId);
         }
 
         return modified;
@@ -380,9 +372,9 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Removing {Count} problematic rows from document {DocumentId}", rowIds.Count, documentId);
+        logger.LogInformation("Removing {Count} problematic rows from document {DocumentId}", rowIds.Count, documentId);
 
-        var rows = await _context.DocumentRows
+        var rows = await context.DocumentRows
             .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && !r.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -393,10 +385,11 @@ public class InventoryDiagnosticService : IInventoryDiagnosticService
             row.ModifiedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Removed {Count} rows from document {DocumentId}", rows.Count, documentId);
+        logger.LogInformation("Removed {Count} rows from document {DocumentId}", rows.Count, documentId);
 
         return rows.Count;
     }
+
 }

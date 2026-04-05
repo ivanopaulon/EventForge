@@ -5,7 +5,7 @@
 @inject IAuthService AuthService
 @inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
 
@@ -322,7 +322,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle preferenze: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle preferenze: {ex.Message}");
         }
     }
 
@@ -369,7 +369,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento: {ex.Message}");
         }
         return Task.CompletedTask;
     }
@@ -419,11 +419,11 @@
             
             await Task.Delay(1000); // Simulate API call
             
-            Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.saved", "Preferenze salvate con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("notificationPreferences.saved", "Preferenze salvate con successo"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel salvataggio: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel salvataggio: {ex.Message}");
         }
         finally
         {
@@ -464,12 +464,12 @@
                 DataRetentionDays = 90
             };
 
-            Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.resetToDefaults", "Preferenze ripristinate ai valori predefiniti"), Severity.Info);
+            AppNotification.ShowInfo(TranslationService.GetTranslation("notificationPreferences.resetToDefaults", "Preferenze ripristinate ai valori predefiniti"));
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel ripristino: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel ripristino: {ex.Message}");
         }
         return Task.CompletedTask;
     }
@@ -477,7 +477,7 @@
     private Task PreviewSettings()
     {
         // TODO: Show preview modal with sample notifications
-        Snackbar.Add(TranslationService.GetTranslation("notificationPreferences.previewFeatureComingSoon", "Funzione anteprima in arrivo"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("notificationPreferences.previewFeatureComingSoon", "Funzione anteprima in arrivo"));
         return Task.CompletedTask;
     }
 

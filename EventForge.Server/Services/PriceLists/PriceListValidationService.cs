@@ -9,21 +9,13 @@ namespace EventForge.Server.Services.PriceLists;
 /// <summary>
 /// Implementazione validazioni business rules per listini prezzi
 /// </summary>
-public class PriceListValidationService : IPriceListValidationService
+public class PriceListValidationService(
+    EventForgeDbContext context,
+    ILogger<PriceListValidationService> logger) : IPriceListValidationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<PriceListValidationService> _logger;
 
     // Valute supportate
     private static readonly string[] SupportedCurrencies = { "EUR", "USD", "GBP", "CHF" };
-
-    public PriceListValidationService(
-        EventForgeDbContext context,
-        ILogger<PriceListValidationService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     // ==================== VALIDAZIONI TEMPORALI ====================
 
@@ -33,12 +25,12 @@ public class PriceListValidationService : IPriceListValidationService
         DateTime evaluationDate,
         CancellationToken ct = default)
     {
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
             .Select(pl => new { pl.ValidFrom, pl.ValidTo, pl.Name })
             .FirstOrDefaultAsync(ct);
 
-        if (priceList == null)
+        if (priceList is null)
         {
             return ValidationResult.NotFound("Listino non trovato");
         }
@@ -46,7 +38,7 @@ public class PriceListValidationService : IPriceListValidationService
         // Check data inizio validità
         if (priceList.ValidFrom.HasValue && priceList.ValidFrom.Value > evaluationDate)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Price list {PriceListId} not yet valid. Valid from: {ValidFrom}, Evaluation date: {Date}",
                 priceListId, priceList.ValidFrom.Value, evaluationDate);
 
@@ -59,7 +51,7 @@ public class PriceListValidationService : IPriceListValidationService
         // Check data fine validità
         if (priceList.ValidTo.HasValue && priceList.ValidTo.Value < evaluationDate)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Price list {PriceListId} expired. Valid until: {ValidTo}, Evaluation date: {Date}",
                 priceListId, priceList.ValidTo.Value, evaluationDate);
 
@@ -69,7 +61,7 @@ public class PriceListValidationService : IPriceListValidationService
             );
         }
 
-        _logger.LogDebug(
+        logger.LogDebug(
             "Price list {PriceListId} is valid for date {Date}",
             priceListId, evaluationDate);
 
@@ -85,7 +77,7 @@ public class PriceListValidationService : IPriceListValidationService
         Guid? excludePriceListId = null,
         CancellationToken ct = default)
     {
-        var overlappingLists = await _context.PriceListBusinessParties
+        var overlappingLists = await context.PriceListBusinessParties
             .Where(plbp => plbp.BusinessPartyId == businessPartyId
                         && !plbp.IsDeleted
                         && plbp.PriceList.Direction == direction
@@ -111,7 +103,7 @@ public class PriceListValidationService : IPriceListValidationService
             // Check sovrapposizione
             if (newFrom <= existingTo && newTo >= existingFrom)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Price list overlap detected for BusinessParty {BusinessPartyId}. " +
                     "Overlapping with price list {PriceListId}",
                     businessPartyId, existing.PriceListId);
@@ -135,19 +127,19 @@ public class PriceListValidationService : IPriceListValidationService
         PriceListStatus requiredStatus,
         CancellationToken ct = default)
     {
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
             .Select(pl => new { pl.Status, pl.Name })
             .FirstOrDefaultAsync(ct);
 
-        if (priceList == null)
+        if (priceList is null)
         {
             return ValidationResult.NotFound("Listino non trovato");
         }
 
         if (priceList.Status != requiredStatus)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Price list {PriceListId} has invalid status. Current: {Current}, Required: {Required}",
                 priceListId, priceList.Status, requiredStatus);
 
@@ -176,7 +168,7 @@ public class PriceListValidationService : IPriceListValidationService
         if (!allowedTransitions.ContainsKey(currentStatus) ||
             !allowedTransitions[currentStatus].Contains(newStatus))
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Invalid status transition: {Current} → {New}",
                 currentStatus, newStatus);
 
@@ -198,7 +190,7 @@ public class PriceListValidationService : IPriceListValidationService
         Guid? excludeEntryId = null,
         CancellationToken ct = default)
     {
-        var exists = await _context.PriceListEntries
+        var exists = await context.PriceListEntries
             .AnyAsync(ple => ple.PriceListId == priceListId
                           && ple.ProductId == productId
                           && !ple.IsDeleted
@@ -206,12 +198,12 @@ public class PriceListValidationService : IPriceListValidationService
 
         if (exists)
         {
-            var product = await _context.Products
+            var product = await context.Products
                 .Where(p => p.Id == productId)
                 .Select(p => new { p.Name, p.Code })
                 .FirstOrDefaultAsync(ct);
 
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Duplicate product {ProductId} in price list {PriceListId}",
                 productId, priceListId);
 
@@ -230,19 +222,19 @@ public class PriceListValidationService : IPriceListValidationService
         Guid businessPartyId,
         CancellationToken ct = default)
     {
-        var exists = await _context.PriceListBusinessParties
+        var exists = await context.PriceListBusinessParties
             .AnyAsync(plbp => plbp.PriceListId == priceListId
                            && plbp.BusinessPartyId == businessPartyId
                            && !plbp.IsDeleted, ct);
 
         if (exists)
         {
-            var bp = await _context.BusinessParties
+            var bp = await context.BusinessParties
                 .Where(b => b.Id == businessPartyId)
                 .Select(b => b.Name)
                 .FirstOrDefaultAsync(ct);
 
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Duplicate business party {BusinessPartyId} in price list {PriceListId}",
                 businessPartyId, priceListId);
 
@@ -279,7 +271,7 @@ public class PriceListValidationService : IPriceListValidationService
         // Check range realistico
         if (price > 1_000_000m)
         {
-            _logger.LogWarning("Price {Price} exceeds realistic threshold of 1,000,000", price);
+            logger.LogWarning("Price {Price} exceeds realistic threshold of 1,000,000", price);
             errors.Add($"{fieldName} supera il limite di 1.000.000");
         }
 
@@ -332,7 +324,7 @@ public class PriceListValidationService : IPriceListValidationService
 
         if (!SupportedCurrencies.Contains(normalizedCurrency))
         {
-            _logger.LogWarning("Unsupported currency: {Currency}", currency);
+            logger.LogWarning("Unsupported currency: {Currency}", currency);
 
             return ValidationResult.Invalid(
                 $"Valuta '{currency}' non supportata. Valute valide: {string.Join(", ", SupportedCurrencies)}",
@@ -350,19 +342,19 @@ public class PriceListValidationService : IPriceListValidationService
         Guid productId,
         CancellationToken ct = default)
     {
-        var product = await _context.Products
+        var product = await context.Products
             .Where(p => p.Id == productId && !p.IsDeleted)
             .Select(p => new { p.Status, p.Name, p.Code })
             .FirstOrDefaultAsync(ct);
 
-        if (product == null)
+        if (product is null)
         {
             return ValidationResult.NotFound("Prodotto non trovato");
         }
 
         if (product.Status != ProductStatus.Active)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Product {ProductId} is not active. Status: {Status}",
                 productId, product.Status);
 
@@ -381,12 +373,12 @@ public class PriceListValidationService : IPriceListValidationService
         PriceListDirection direction,
         CancellationToken ct = default)
     {
-        var businessParty = await _context.BusinessParties
+        var businessParty = await context.BusinessParties
             .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
             .Select(bp => new { bp.PartyType, bp.Name })
             .FirstOrDefaultAsync(ct);
 
-        if (businessParty == null)
+        if (businessParty is null)
         {
             return ValidationResult.NotFound("Business Party non trovato");
         }
@@ -403,7 +395,7 @@ public class PriceListValidationService : IPriceListValidationService
 
         if (!isCompatible)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Business party {BusinessPartyId} (type: {Type}) incompatible with price list direction {Direction}",
                 businessPartyId, businessParty.PartyType, direction);
 
@@ -416,4 +408,5 @@ public class PriceListValidationService : IPriceListValidationService
 
         return ValidationResult.Success();
     }
+
 }

@@ -11,21 +11,10 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class DocumentReferencesController : BaseApiController
+public class DocumentReferencesController(
+    ITeamService teamService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly ITeamService _teamService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentReferencesController> _logger;
-
-    public DocumentReferencesController(
-        ITeamService teamService,
-        ITenantContext tenantContext,
-        ILogger<DocumentReferencesController> logger)
-    {
-        _teamService = teamService ?? throw new ArgumentNullException(nameof(teamService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets all documents for a specific owner (Team or TeamMember).
@@ -50,10 +39,7 @@ public class DocumentReferencesController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             // Validate parameters
             if (string.IsNullOrWhiteSpace(ownerType))
@@ -66,7 +52,7 @@ public class DocumentReferencesController : BaseApiController
                 return CreateValidationProblemDetails("Owner type must be 'Team' or 'TeamMember'.");
             }
 
-            var documents = await _teamService.GetDocumentsByOwnerAsync(ownerId, ownerType, cancellationToken);
+            var documents = await teamService.GetDocumentsByOwnerAsync(ownerId, ownerType, cancellationToken);
             return Ok(documents);
         }
         catch (Exception ex)
@@ -96,14 +82,11 @@ public class DocumentReferencesController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var document = await _teamService.GetDocumentReferenceByIdAsync(id, cancellationToken);
+            var document = await teamService.GetDocumentReferenceByIdAsync(id, cancellationToken);
 
-            if (document == null)
+            if (document is null)
             {
                 return CreateNotFoundProblem($"Document reference {id} not found");
             }
@@ -137,10 +120,7 @@ public class DocumentReferencesController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             // Validate model
             if (!ModelState.IsValid)
@@ -148,8 +128,8 @@ public class DocumentReferencesController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var document = await _teamService.CreateDocumentReferenceAsync(createDocumentDto, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var document = await teamService.CreateDocumentReferenceAsync(createDocumentDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetDocumentReference),
@@ -187,10 +167,7 @@ public class DocumentReferencesController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             // Validate model
             if (!ModelState.IsValid)
@@ -198,10 +175,10 @@ public class DocumentReferencesController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var document = await _teamService.UpdateDocumentReferenceAsync(id, updateDocumentDto, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var document = await teamService.UpdateDocumentReferenceAsync(id, updateDocumentDto, currentUser, cancellationToken);
 
-            if (document == null)
+            if (document is null)
             {
                 return CreateNotFoundProblem($"Document reference {id} not found");
             }
@@ -235,13 +212,10 @@ public class DocumentReferencesController : BaseApiController
     {
         try
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var currentUser = _tenantContext.CurrentUserId?.ToString() ?? "System";
-            var deleted = await _teamService.DeleteDocumentReferenceAsync(id, currentUser, cancellationToken);
+            var currentUser = tenantContext.CurrentUserId?.ToString() ?? "System";
+            var deleted = await teamService.DeleteDocumentReferenceAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {

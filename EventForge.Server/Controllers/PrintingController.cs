@@ -32,35 +32,12 @@ public class QzSigningDemoRequest
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 [Authorize(Policy = "RequireManager")]
-public class PrintingController : BaseApiController
+public class PrintingController(
+    IQzPrintingService qzPrintingService,
+    QzDigitalSignatureService signatureService,
+    QzSigner qzSigner,
+    ILogger<PrintingController> logger) : BaseApiController
 {
-    private readonly IQzPrintingService _qzPrintingService;
-    private readonly QzDigitalSignatureService _signatureService;
-    private readonly QzSigner _qzSigner;
-    private readonly QzWebSocketClient _qzWebSocketClient;
-    private readonly ILogger<PrintingController> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the PrintingController.
-    /// </summary>
-    /// <param name="qzPrintingService">QZ printing service</param>
-    /// <param name="signatureService">QZ digital signature service</param>
-    /// <param name="qzSigner">QZ SHA512 signer service</param>
-    /// <param name="qzWebSocketClient">QZ WebSocket client service</param>
-    /// <param name="logger">Logger instance</param>
-    public PrintingController(
-        IQzPrintingService qzPrintingService,
-        QzDigitalSignatureService signatureService,
-        QzSigner qzSigner,
-        QzWebSocketClient qzWebSocketClient,
-        ILogger<PrintingController> logger)
-    {
-        _qzPrintingService = qzPrintingService;
-        _signatureService = signatureService;
-        _qzSigner = qzSigner;
-        _qzWebSocketClient = qzWebSocketClient;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Discovers available printers through QZ Tray.
@@ -86,13 +63,13 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            _logger.LogInformation("Printer discovery requested by user: {User}", GetCurrentUser());
+            logger.LogInformation("Printer discovery requested by user: {User}", GetCurrentUser());
 
-            var response = await _qzPrintingService.DiscoverPrintersAsync(request, cancellationToken);
+            var response = await qzPrintingService.DiscoverPrintersAsync(request, cancellationToken);
 
             if (!response.Success)
             {
-                _logger.LogWarning("Printer discovery failed: {Error}", response.ErrorMessage);
+                logger.LogWarning("Printer discovery failed: {Error}", response.ErrorMessage);
             }
 
             return Ok(response);
@@ -134,14 +111,14 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Printer ID is required");
             }
 
-            _logger.LogInformation("Printer status check requested for: {PrinterId} by user: {User}",
+            logger.LogInformation("Printer status check requested for: {PrinterId} by user: {User}",
                 request.PrinterId, GetCurrentUser());
 
-            var response = await _qzPrintingService.CheckPrinterStatusAsync(request, cancellationToken);
+            var response = await qzPrintingService.CheckPrinterStatusAsync(request, cancellationToken);
 
             if (!response.Success)
             {
-                _logger.LogWarning("Printer status check failed for {PrinterId}: {Error}",
+                logger.LogWarning("Printer status check failed for {PrinterId}: {Error}",
                     request.PrinterId, response.ErrorMessage);
             }
 
@@ -177,7 +154,7 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails();
             }
 
-            if (request.PrintJob == null)
+            if (request.PrintJob is null)
             {
                 return CreateValidationProblemDetails("Print job is required");
             }
@@ -195,14 +172,14 @@ public class PrintingController : BaseApiController
             // Set user information
             request.PrintJob.Username = GetCurrentUser();
 
-            _logger.LogInformation("Print job submission requested: {JobTitle} to printer: {PrinterId} by user: {User}",
+            logger.LogInformation("Print job submission requested: {JobTitle} to printer: {PrinterId} by user: {User}",
                 request.PrintJob.Title, request.PrintJob.PrinterId, GetCurrentUser());
 
-            var response = await _qzPrintingService.SubmitPrintJobAsync(request, cancellationToken);
+            var response = await qzPrintingService.SubmitPrintJobAsync(request, cancellationToken);
 
             if (!response.Success)
             {
-                _logger.LogWarning("Print job submission failed for {JobTitle}: {Error}",
+                logger.LogWarning("Print job submission failed for {JobTitle}: {Error}",
                     request.PrintJob.Title, response.ErrorMessage);
             }
 
@@ -233,12 +210,12 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Print job status requested for: {JobId} by user: {User}",
+            logger.LogInformation("Print job status requested for: {JobId} by user: {User}",
                 jobId, GetCurrentUser());
 
-            var printJob = await _qzPrintingService.GetPrintJobStatusAsync(jobId, cancellationToken);
+            var printJob = await qzPrintingService.GetPrintJobStatusAsync(jobId, cancellationToken);
 
-            if (printJob == null)
+            if (printJob is null)
             {
                 return CreateNotFoundProblem($"Print job with ID {jobId} not found");
             }
@@ -270,10 +247,10 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Print job cancellation requested for: {JobId} by user: {User}",
+            logger.LogInformation("Print job cancellation requested for: {JobId} by user: {User}",
                 jobId, GetCurrentUser());
 
-            var result = await _qzPrintingService.CancelPrintJobAsync(jobId, cancellationToken);
+            var result = await qzPrintingService.CancelPrintJobAsync(jobId, cancellationToken);
 
             if (!result)
             {
@@ -317,10 +294,10 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Invalid QZ URL format");
             }
 
-            _logger.LogInformation("QZ connection test requested for: {QzUrl} by user: {User}",
+            logger.LogInformation("QZ connection test requested for: {QzUrl} by user: {User}",
                 qzUrl, GetCurrentUser());
 
-            var result = await _qzPrintingService.TestQzConnectionAsync(qzUrl, cancellationToken);
+            var result = await qzPrintingService.TestQzConnectionAsync(qzUrl, cancellationToken);
 
             return Ok(result);
         }
@@ -361,12 +338,12 @@ public class PrintingController : BaseApiController
                 return CreateValidationProblemDetails("Invalid QZ URL format");
             }
 
-            _logger.LogInformation("QZ version request for: {QzUrl} by user: {User}",
+            logger.LogInformation("QZ version request for: {QzUrl} by user: {User}",
                 qzUrl, GetCurrentUser());
 
-            var version = await _qzPrintingService.GetQzVersionAsync(qzUrl, cancellationToken);
+            var version = await qzPrintingService.GetQzVersionAsync(qzUrl, cancellationToken);
 
-            if (version == null)
+            if (version is null)
             {
                 return CreateNotFoundProblem("Could not retrieve QZ version information");
             }
@@ -393,10 +370,10 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Enhanced signature test requested by user: {User}", GetCurrentUser());
+            logger.LogInformation("Enhanced signature test requested by user: {User}", GetCurrentUser());
 
             // Test configuration validation
-            var isValidConfig = await _qzPrintingService.ValidateSignatureConfigurationAsync();
+            var isValidConfig = await qzPrintingService.ValidateSignatureConfigurationAsync();
 
             if (!isValidConfig)
             {
@@ -427,7 +404,7 @@ public class PrintingController : BaseApiController
             };
 
             // This will internally use the enhanced signature service
-            var result = await _qzPrintingService.SubmitPrintJobAsync(submitRequest, cancellationToken);
+            var result = await qzPrintingService.SubmitPrintJobAsync(submitRequest, cancellationToken);
 
             var testResult = new
             {
@@ -481,15 +458,15 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("QZ certificate requested by user: {User}", GetCurrentUser());
+            logger.LogInformation("QZ certificate requested by user: {User}", GetCurrentUser());
 
-            var certificateChain = await _signatureService.GetCertificateChainAsync();
+            var certificateChain = await signatureService.GetCertificateChainAsync();
 
             return Content(certificateChain, "text/plain");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting QZ certificate chain");
+            logger.LogError(ex, "Error getting QZ certificate chain");
             Response.StatusCode = StatusCodes.Status500InternalServerError;
             return Content("Internal server error occurred while retrieving certificate", "text/plain");
         }
@@ -516,7 +493,7 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("QZ challenge signing requested by user: {User}", GetCurrentUser());
+            logger.LogInformation("QZ challenge signing requested by user: {User}", GetCurrentUser());
 
             // Read challenge from request body
             using var reader = new StreamReader(Request.Body);
@@ -524,25 +501,25 @@ public class PrintingController : BaseApiController
 
             if (string.IsNullOrWhiteSpace(challenge))
             {
-                _logger.LogWarning("Empty challenge received for QZ signing");
+                logger.LogWarning("Empty challenge received for QZ signing");
                 Response.StatusCode = StatusCodes.Status400BadRequest;
                 return Content("Challenge cannot be empty", "text/plain");
             }
 
-            var signature = await _signatureService.SignChallengeAsync(challenge);
+            var signature = await signatureService.SignChallengeAsync(challenge);
 
-            _logger.LogDebug("QZ challenge signed successfully for user: {User}", GetCurrentUser());
+            logger.LogDebug("QZ challenge signed successfully for user: {User}", GetCurrentUser());
             return Content(signature, "text/plain");
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid challenge for QZ signing");
+            logger.LogWarning(ex, "Invalid challenge for QZ signing");
             Response.StatusCode = StatusCodes.Status400BadRequest;
             return Content($"Invalid challenge: {ex.Message}", "text/plain");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing QZ challenge");
+            logger.LogError(ex, "Error signing QZ challenge");
             Response.StatusCode = StatusCodes.Status500InternalServerError;
             return Content("Internal server error occurred while signing challenge", "text/plain");
         }
@@ -563,7 +540,7 @@ public class PrintingController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("QZ Tray SHA512withRSA signing demonstration requested by user: {User}", GetCurrentUser());
+            logger.LogInformation("QZ Tray SHA512withRSA signing demonstration requested by user: {User}", GetCurrentUser());
 
             // Use provided request or create a default one
             var callName = request?.CallName ?? "qz.printers.find";
@@ -571,7 +548,7 @@ public class PrintingController : BaseApiController
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             // Demonstrate the new QzSigner service
-            var signature = await _qzSigner.Sign(callName, parameters, timestamp);
+            var signature = await qzSigner.Sign(callName, parameters, timestamp);
 
             var result = new
             {
@@ -599,7 +576,7 @@ public class PrintingController : BaseApiController
                 Documentation = "See /docs/QZ_TRAY_INTEGRATION.md for usage examples and configuration"
             };
 
-            _logger.LogInformation("QZ Tray SHA512withRSA signing demonstration completed successfully");
+            logger.LogInformation("QZ Tray SHA512withRSA signing demonstration completed successfully");
             return Ok(result);
         }
         catch (Exception ex)

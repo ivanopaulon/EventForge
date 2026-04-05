@@ -7,30 +7,18 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service for managing document counters and generating document numbers.
 /// </summary>
-public class DocumentCounterService : IDocumentCounterService
+public class DocumentCounterService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<DocumentCounterService> logger) : IDocumentCounterService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentCounterService> _logger;
-
-    public DocumentCounterService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<DocumentCounterService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<IEnumerable<DocumentCounterDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var counters = await _context.DocumentCounters
+            var counters = await context.DocumentCounters
                 .Include(dc => dc.DocumentType)
                 .Where(dc => !dc.IsDeleted)
                 .OrderBy(dc => dc.DocumentType!.Name)
@@ -41,7 +29,7 @@ public class DocumentCounterService : IDocumentCounterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving all document counters.");
+            logger.LogError(ex, "Error retrieving all document counters.");
             throw;
         }
     }
@@ -50,7 +38,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var counters = await _context.DocumentCounters
+            var counters = await context.DocumentCounters
                 .Include(dc => dc.DocumentType)
                 .Where(dc => dc.DocumentTypeId == documentTypeId && !dc.IsDeleted)
                 .OrderBy(dc => dc.Series)
@@ -60,7 +48,7 @@ public class DocumentCounterService : IDocumentCounterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document counters for document type {DocumentTypeId}.", documentTypeId);
+            logger.LogError(ex, "Error retrieving document counters for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -69,7 +57,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var counter = await _context.DocumentCounters
+            var counter = await context.DocumentCounters
                 .Include(dc => dc.DocumentType)
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
@@ -77,7 +65,7 @@ public class DocumentCounterService : IDocumentCounterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document counter {Id}.", id);
+            logger.LogError(ex, "Error retrieving document counter {Id}.", id);
             throw;
         }
     }
@@ -90,7 +78,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var counter = await _context.DocumentCounters
+            var counter = await context.DocumentCounters
                 .Include(dc => dc.DocumentType)
                 .FirstOrDefaultAsync(dc =>
                     dc.DocumentTypeId == documentTypeId &&
@@ -103,7 +91,7 @@ public class DocumentCounterService : IDocumentCounterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document counter for type {DocumentTypeId}, series {Series}, year {Year}.",
+            logger.LogError(ex, "Error retrieving document counter for type {DocumentTypeId}, series {Series}, year {Year}.",
                 documentTypeId, series, year);
             throw;
         }
@@ -113,15 +101,15 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot create document counter without a tenant context.");
+                logger.LogWarning("Cannot create document counter without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
             // Check if counter already exists
-            var existingCounter = await _context.DocumentCounters
+            var existingCounter = await context.DocumentCounters
                 .FirstOrDefaultAsync(dc =>
                     dc.DocumentTypeId == createDto.DocumentTypeId &&
                     dc.Series == createDto.Series &&
@@ -129,7 +117,7 @@ public class DocumentCounterService : IDocumentCounterService
                     !dc.IsDeleted,
                     cancellationToken);
 
-            if (existingCounter != null)
+            if (existingCounter is not null)
             {
                 throw new InvalidOperationException($"A counter already exists for document type {createDto.DocumentTypeId}, series '{createDto.Series}', year {createDto.Year}.");
             }
@@ -139,18 +127,18 @@ public class DocumentCounterService : IDocumentCounterService
             counter.CreatedBy = currentUser;
             counter.CreatedAt = DateTime.UtcNow;
 
-            _ = _context.DocumentCounters.Add(counter);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentCounters.Add(counter);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(counter, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(counter, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document counter {CounterId} created by {User}.", counter.Id, currentUser);
+            logger.LogInformation("Document counter {CounterId} created by {User}.", counter.Id, currentUser);
 
             return counter.ToDto();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document counter.");
+            logger.LogError(ex, "Error creating document counter.");
             throw;
         }
     }
@@ -159,22 +147,22 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var originalCounter = await _context.DocumentCounters
+            var originalCounter = await context.DocumentCounters
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
-            if (originalCounter == null)
+            if (originalCounter is null)
             {
-                _logger.LogWarning("Document counter with ID {Id} not found for update.", id);
+                logger.LogWarning("Document counter with ID {Id} not found for update.", id);
                 return null;
             }
 
-            var counter = await _context.DocumentCounters
+            var counter = await context.DocumentCounters
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
-            if (counter == null)
+            if (counter is null)
             {
-                _logger.LogWarning("Document counter with ID {Id} not found for update.", id);
+                logger.LogWarning("Document counter with ID {Id} not found for update.", id);
                 return null;
             }
 
@@ -182,17 +170,17 @@ public class DocumentCounterService : IDocumentCounterService
             counter.ModifiedBy = currentUser;
             counter.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(counter, "Update", currentUser, originalCounter, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(counter, "Update", currentUser, originalCounter, cancellationToken);
 
-            _logger.LogInformation("Document counter {CounterId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Document counter {CounterId} updated by {User}.", id, currentUser);
 
             return counter.ToDto();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document counter {Id}.", id);
+            logger.LogError(ex, "Error updating document counter {Id}.", id);
             throw;
         }
     }
@@ -201,22 +189,22 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var originalCounter = await _context.DocumentCounters
+            var originalCounter = await context.DocumentCounters
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
-            if (originalCounter == null)
+            if (originalCounter is null)
             {
-                _logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
                 return false;
             }
 
-            var counter = await _context.DocumentCounters
+            var counter = await context.DocumentCounters
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
-            if (counter == null)
+            if (counter is null)
             {
-                _logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
                 return false;
             }
 
@@ -224,17 +212,17 @@ public class DocumentCounterService : IDocumentCounterService
             counter.DeletedBy = currentUser;
             counter.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(counter, "Delete", currentUser, originalCounter, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(counter, "Delete", currentUser, originalCounter, cancellationToken);
 
-            _logger.LogInformation("Document counter {CounterId} deleted by {User}.", id, currentUser);
+            logger.LogInformation("Document counter {CounterId} deleted by {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document counter {Id}.", id);
+            logger.LogError(ex, "Error deleting document counter {Id}.", id);
             throw;
         }
     }
@@ -247,7 +235,7 @@ public class DocumentCounterService : IDocumentCounterService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required.");
@@ -256,12 +244,12 @@ public class DocumentCounterService : IDocumentCounterService
             var currentYear = DateTime.UtcNow.Year;
 
             // Check if we're using in-memory database (for testing)
-            var isInMemoryDatabase = _context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+            var isInMemoryDatabase = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
 
             // Use a transaction only for non-in-memory databases
             if (!isInMemoryDatabase)
             {
-                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
                 try
                 {
@@ -286,7 +274,7 @@ public class DocumentCounterService : IDocumentCounterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating document number for type {DocumentTypeId}, series '{Series}'.",
+            logger.LogError(ex, "Error generating document number for type {DocumentTypeId}, series '{Series}'.",
                 documentTypeId, series);
             throw;
         }
@@ -303,7 +291,7 @@ public class DocumentCounterService : IDocumentCounterService
         // Find counter for this document type and series
         // If ResetOnYearChange is true, we need to find it regardless of year (we'll reset it if needed)
         // If ResetOnYearChange is false, we need one that matches the year or has no year
-        var counter = await _context.DocumentCounters
+        var counter = await context.DocumentCounters
             .FirstOrDefaultAsync(dc =>
                 dc.DocumentTypeId == documentTypeId &&
                 dc.Series == series &&
@@ -311,7 +299,7 @@ public class DocumentCounterService : IDocumentCounterService
                 !dc.IsDeleted,
                 cancellationToken);
 
-        if (counter == null)
+        if (counter is null)
         {
             // Create a new counter if it doesn't exist
             counter = new DocumentCounter
@@ -327,8 +315,8 @@ public class DocumentCounterService : IDocumentCounterService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.DocumentCounters.Add(counter);
-            _logger.LogInformation("Created new document counter for type {DocumentTypeId}, series '{Series}', year {Year}.",
+            _ = context.DocumentCounters.Add(counter);
+            logger.LogInformation("Created new document counter for type {DocumentTypeId}, series '{Series}', year {Year}.",
                 documentTypeId, series, currentYear);
         }
         else if (counter.ResetOnYearChange && counter.Year != currentYear)
@@ -338,19 +326,19 @@ public class DocumentCounterService : IDocumentCounterService
             counter.CurrentValue = 0;
             counter.ModifiedBy = currentUser;
             counter.ModifiedAt = DateTime.UtcNow;
-            _logger.LogInformation("Reset document counter {CounterId} for new year {Year}.", counter.Id, currentYear);
+            logger.LogInformation("Reset document counter {CounterId} for new year {Year}.", counter.Id, currentYear);
         }
 
         // Increment counter
         counter.CurrentValue++;
 
         // Save changes to get the new counter value
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
         // Generate document number using format pattern or default format
         var documentNumber = FormatDocumentNumber(counter);
 
-        _logger.LogInformation("Generated document number '{DocumentNumber}' for type {DocumentTypeId}, series '{Series}'.",
+        logger.LogInformation("Generated document number '{DocumentNumber}' for type {DocumentTypeId}, series '{Series}'.",
             documentNumber, documentTypeId, series);
 
         return documentNumber;
@@ -394,4 +382,5 @@ public class DocumentCounterService : IDocumentCounterService
 
         return string.Join("/", parts);
     }
+
 }

@@ -6,7 +6,7 @@
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 @inject IMonitoringClientService MonitoringService
 @inject IAuthService AuthService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<MonitoringDashboard> Logger
 
@@ -312,17 +312,13 @@
             _dashboard = await MonitoringService.GetDashboardAsync(topN: 10, recentErrorCount: 20);
             if (_dashboard is null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."),
-                    Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading monitoring dashboard");
-            Snackbar.Add(
-                TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."));
         }
         finally
         {

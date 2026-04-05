@@ -7,24 +7,12 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing transfer orders.
 /// </summary>
-public class TransferOrderService : ITransferOrderService
+public class TransferOrderService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<TransferOrderService> logger) : ITransferOrderService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<TransferOrderService> _logger;
-
-    public TransferOrderService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<TransferOrderService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<TransferOrderDto>> GetTransferOrdersAsync(
         int page = 1,
@@ -37,13 +25,13 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.TransferOrders
+            var query = context.TransferOrders
                 .Include(t => t.SourceWarehouse)
                 .Include(t => t.DestinationWarehouse)
                 .Include(t => t.Rows)
@@ -90,7 +78,7 @@ public class TransferOrderService : ITransferOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer orders.");
+            logger.LogError(ex, "Error retrieving transfer orders.");
             throw;
         }
     }
@@ -99,13 +87,13 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var transferOrder = await _context.TransferOrders
+            var transferOrder = await context.TransferOrders
                 .Include(t => t.SourceWarehouse)
                 .Include(t => t.DestinationWarehouse)
                 .Include(t => t.Rows)
@@ -122,7 +110,7 @@ public class TransferOrderService : ITransferOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -131,7 +119,7 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -143,24 +131,24 @@ public class TransferOrderService : ITransferOrderService
                 throw new InvalidOperationException("Source and destination warehouses must be different.");
             }
 
-            var sourceWarehouse = await _context.StorageFacilities
+            var sourceWarehouse = await context.StorageFacilities
                 .FirstOrDefaultAsync(w => w.Id == createDto.SourceWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
 
-            if (sourceWarehouse == null)
+            if (sourceWarehouse is null)
             {
                 throw new InvalidOperationException("Source warehouse not found.");
             }
 
-            var destinationWarehouse = await _context.StorageFacilities
+            var destinationWarehouse = await context.StorageFacilities
                 .FirstOrDefaultAsync(w => w.Id == createDto.DestinationWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
 
-            if (destinationWarehouse == null)
+            if (destinationWarehouse is null)
             {
                 throw new InvalidOperationException("Destination warehouse not found.");
             }
 
             // Validate rows
-            if (createDto.Rows == null || !createDto.Rows.Any())
+            if (createDto.Rows is null || !createDto.Rows.Any())
             {
                 throw new InvalidOperationException("Transfer order must have at least one row.");
             }
@@ -174,38 +162,38 @@ public class TransferOrderService : ITransferOrderService
 
             // Create transfer order
             var transferOrder = createDto.ToEntity(currentTenantId.Value, currentUser, number);
-            _context.TransferOrders.Add(transferOrder);
+            context.TransferOrders.Add(transferOrder);
 
             // Create transfer order rows
             foreach (var rowDto in createDto.Rows)
             {
                 // Validate product exists
-                var product = await _context.Products
+                var product = await context.Products
                     .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
-                if (product == null)
+                if (product is null)
                 {
                     throw new InvalidOperationException($"Product with ID {rowDto.ProductId} not found.");
                 }
 
                 // Validate source location exists and belongs to source warehouse
-                var sourceLocation = await _context.StorageLocations
+                var sourceLocation = await context.StorageLocations
                     .FirstOrDefaultAsync(l => l.Id == rowDto.SourceLocationId && l.WarehouseId == createDto.SourceWarehouseId && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-                if (sourceLocation == null)
+                if (sourceLocation is null)
                 {
                     throw new InvalidOperationException($"Source location with ID {rowDto.SourceLocationId} not found in source warehouse.");
                 }
 
                 // Create row
                 var row = rowDto.ToEntity(currentTenantId.Value, transferOrder.Id, currentUser);
-                _context.TransferOrderRows.Add(row);
+                context.TransferOrderRows.Add(row);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "TransferOrder",
                 transferOrder.Id,
                 "Status",
@@ -216,14 +204,14 @@ public class TransferOrderService : ITransferOrderService
                 $"Transfer order {number} created from {sourceWarehouse.Name} to {destinationWarehouse.Name}",
                 cancellationToken);
 
-            _logger.LogInformation("Transfer order {TransferOrderNumber} created successfully by {User}.", number, currentUser);
+            logger.LogInformation("Transfer order {TransferOrderNumber} created successfully by {User}.", number, currentUser);
 
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve created transfer order.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating transfer order.");
+            logger.LogError(ex, "Error creating transfer order.");
             throw;
         }
     }
@@ -232,18 +220,18 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var transferOrder = await _context.TransferOrders
+            var transferOrder = await context.TransferOrders
                 .Include(t => t.Rows)
                     .ThenInclude(r => r.Product)
                 .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
 
-            if (transferOrder == null)
+            if (transferOrder is null)
             {
                 throw new InvalidOperationException("Transfer order not found.");
             }
@@ -256,13 +244,13 @@ public class TransferOrderService : ITransferOrderService
             // Validate stock availability and create stock movements OUT
             foreach (var row in transferOrder.Rows)
             {
-                var stock = await _context.Stocks
+                var stock = await context.Stocks
                     .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
                                             s.StorageLocationId == row.SourceLocationId &&
                                             s.LotId == row.LotId &&
                                             s.TenantId == currentTenantId.Value, cancellationToken);
 
-                if (stock == null || stock.AvailableQuantity < row.QuantityOrdered)
+                if (stock is null || stock.AvailableQuantity < row.QuantityOrdered)
                 {
                     throw new InvalidOperationException($"Insufficient stock for product {row.Product?.Name ?? row.ProductId.ToString()} in source location.");
                 }
@@ -295,7 +283,7 @@ public class TransferOrderService : ITransferOrderService
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
-                _context.StockMovements.Add(stockMovement);
+                context.StockMovements.Add(stockMovement);
 
                 // Update row quantities
                 row.QuantityShipped = row.QuantityOrdered;
@@ -313,16 +301,16 @@ public class TransferOrderService : ITransferOrderService
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict shipping TransferOrder {TransferOrderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict shipping TransferOrder {TransferOrderId}.", id);
                 throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "TransferOrder",
                 transferOrder.Id,
                 "Status",
@@ -333,7 +321,7 @@ public class TransferOrderService : ITransferOrderService
                 $"Transfer order {transferOrder.Number} shipped",
                 cancellationToken);
 
-            _logger.LogInformation("Transfer order {TransferOrderNumber} shipped successfully by {User}.", transferOrder.Number, currentUser);
+            logger.LogInformation("Transfer order {TransferOrderNumber} shipped successfully by {User}.", transferOrder.Number, currentUser);
 
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve shipped transfer order.");
@@ -344,7 +332,7 @@ public class TransferOrderService : ITransferOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error shipping transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error shipping transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -353,18 +341,18 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var transferOrder = await _context.TransferOrders
+            var transferOrder = await context.TransferOrders
                 .Include(t => t.Rows)
                     .ThenInclude(r => r.Product)
                 .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
 
-            if (transferOrder == null)
+            if (transferOrder is null)
             {
                 throw new InvalidOperationException("Transfer order not found.");
             }
@@ -381,30 +369,30 @@ public class TransferOrderService : ITransferOrderService
             foreach (var receiveRow in receiveDto.Rows)
             {
                 var row = transferOrder.Rows.FirstOrDefault(r => r.Id == receiveRow.RowId);
-                if (row == null)
+                if (row is null)
                 {
                     throw new InvalidOperationException($"Transfer order row {receiveRow.RowId} not found.");
                 }
 
                 // Validate destination location belongs to destination warehouse
-                var destinationLocation = await _context.StorageLocations
+                var destinationLocation = await context.StorageLocations
                     .FirstOrDefaultAsync(l => l.Id == receiveRow.DestinationLocationId &&
                                             l.WarehouseId == transferOrder.DestinationWarehouseId &&
                                             l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-                if (destinationLocation == null)
+                if (destinationLocation is null)
                 {
                     throw new InvalidOperationException($"Destination location {receiveRow.DestinationLocationId} not found in destination warehouse.");
                 }
 
                 // Find or create stock entry at destination
-                var stock = await _context.Stocks
+                var stock = await context.Stocks
                     .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
                                             s.StorageLocationId == receiveRow.DestinationLocationId &&
                                             s.LotId == row.LotId &&
                                             s.TenantId == currentTenantId.Value, cancellationToken);
 
-                if (stock == null)
+                if (stock is null)
                 {
                     // Create new stock entry
                     stock = new Stock
@@ -421,7 +409,7 @@ public class TransferOrderService : ITransferOrderService
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     };
-                    _context.Stocks.Add(stock);
+                    context.Stocks.Add(stock);
                 }
                 else
                 {
@@ -454,7 +442,7 @@ public class TransferOrderService : ITransferOrderService
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
-                _context.StockMovements.Add(stockMovement);
+                context.StockMovements.Add(stockMovement);
 
                 // Update row
                 row.DestinationLocationId = receiveRow.DestinationLocationId;
@@ -471,16 +459,16 @@ public class TransferOrderService : ITransferOrderService
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict receiving TransferOrder {TransferOrderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict receiving TransferOrder {TransferOrderId}.", id);
                 throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "TransferOrder",
                 transferOrder.Id,
                 "Status",
@@ -491,7 +479,7 @@ public class TransferOrderService : ITransferOrderService
                 $"Transfer order {transferOrder.Number} received",
                 cancellationToken);
 
-            _logger.LogInformation("Transfer order {TransferOrderNumber} received successfully by {User}.", transferOrder.Number, currentUser);
+            logger.LogInformation("Transfer order {TransferOrderNumber} received successfully by {User}.", transferOrder.Number, currentUser);
 
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve received transfer order.");
@@ -502,7 +490,7 @@ public class TransferOrderService : ITransferOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error receiving transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error receiving transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -511,16 +499,16 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var transferOrder = await _context.TransferOrders
+            var transferOrder = await context.TransferOrders
                 .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
 
-            if (transferOrder == null)
+            if (transferOrder is null)
             {
                 return false;
             }
@@ -541,16 +529,16 @@ public class TransferOrderService : ITransferOrderService
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict cancelling TransferOrder {TransferOrderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict cancelling TransferOrder {TransferOrderId}.", id);
                 throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "TransferOrder",
                 transferOrder.Id,
                 "Status",
@@ -561,7 +549,7 @@ public class TransferOrderService : ITransferOrderService
                 $"Transfer order {transferOrder.Number} cancelled",
                 cancellationToken);
 
-            _logger.LogInformation("Transfer order {TransferOrderNumber} cancelled by {User}.", transferOrder.Number, currentUser);
+            logger.LogInformation("Transfer order {TransferOrderNumber} cancelled by {User}.", transferOrder.Number, currentUser);
 
             return true;
         }
@@ -571,7 +559,7 @@ public class TransferOrderService : ITransferOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}.", id);
+            logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -583,7 +571,7 @@ public class TransferOrderService : ITransferOrderService
         var datePrefix = today.ToString("yyyyMMdd");
 
         // Get the last transfer order number for today
-        var lastNumber = await _context.TransferOrders
+        var lastNumber = await context.TransferOrders
             .Where(t => t.TenantId == tenantId && t.Number.StartsWith($"{prefix}-{datePrefix}"))
             .OrderByDescending(t => t.Number)
             .Select(t => t.Number)
@@ -601,4 +589,5 @@ public class TransferOrderService : ITransferOrderService
 
         return $"{prefix}-{datePrefix}-{sequence:D4}";
     }
+
 }

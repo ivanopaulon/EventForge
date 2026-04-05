@@ -6,27 +6,21 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of storage location management service using HTTP client.
 /// </summary>
-public class StorageLocationService : IStorageLocationService
+public class StorageLocationService(
+    IHttpClientService httpClientService,
+    ILogger<StorageLocationService> logger) : IStorageLocationService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<StorageLocationService> _logger;
     private const string BaseUrl = "api/v1/warehouse/locations";
-
-    public StorageLocationService(IHttpClientService httpClientService, ILogger<StorageLocationService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100)
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations");
+            logger.LogError(ex, "Error retrieving storage locations");
             return null;
         }
     }
@@ -35,11 +29,11 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?facilityId={warehouseId}&page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?facilityId={warehouseId}&page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}", warehouseId);
+            logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}", warehouseId);
             return null;
         }
     }
@@ -48,11 +42,11 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            return await _httpClientService.GetAsync<StorageLocationDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StorageLocationDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage location {LocationId}", id);
+            logger.LogError(ex, "Error retrieving storage location {LocationId}", id);
             return null;
         }
     }
@@ -61,11 +55,11 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateStorageLocationDto, StorageLocationDto>(BaseUrl, dto);
+            return await httpClientService.PostAsync<CreateStorageLocationDto, StorageLocationDto>(BaseUrl, dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating storage location");
+            logger.LogError(ex, "Error creating storage location");
             return null;
         }
     }
@@ -74,11 +68,11 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateStorageLocationDto, StorageLocationDto>($"{BaseUrl}/{id}", dto);
+            return await httpClientService.PutAsync<UpdateStorageLocationDto, StorageLocationDto>($"{BaseUrl}/{id}", dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating storage location {LocationId}", id);
+            logger.LogError(ex, "Error updating storage location {LocationId}", id);
             return null;
         }
     }
@@ -87,12 +81,12 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting storage location {LocationId}", id);
+            logger.LogError(ex, "Error deleting storage location {LocationId}", id);
             return false;
         }
     }

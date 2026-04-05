@@ -4,7 +4,7 @@
 @using PrinterOperationalStatus = EventForge.DTOs.Printing.PrinterOperationalStatus
 @inject IPrintingService PrintingService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<PrinterManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("printing.printerManagement", "Printer Management")</PageTitle>
@@ -244,17 +244,17 @@
             if (response?.Success == true)
             {
                 _discoveredPrinters = response.Printers;
-                Snackbar.Add(TranslationService.GetTranslation("printing.printersDiscovered", "Found {0} printers", _discoveredPrinters.Count), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("printing.printersDiscovered", "Found {0} printers", _discoveredPrinters.Count));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.discoveryFailed", "Failed to discover printers: {0}", response?.ErrorMessage ?? "Unknown error"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("printing.discoveryFailed", "Failed to discover printers: {0}", response?.ErrorMessage ?? "Unknown error"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error discovering printers");
-            Snackbar.Add(TranslationService.GetTranslation("printing.discoveryError", "Error discovering printers"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("printing.discoveryError", "Error discovering printers"));
         }
         finally
         {
@@ -270,17 +270,17 @@
             var isConnected = await PrintingService.TestQzConnectionAsync(_qzUrl);
             if (isConnected)
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.connectionSuccess", "QZ Tray connection successful"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("printing.connectionSuccess", "QZ Tray connection successful"));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.connectionFailed", "Failed to connect to QZ Tray"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("printing.connectionFailed", "Failed to connect to QZ Tray"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error testing QZ connection");
-            Snackbar.Add(TranslationService.GetTranslation("printing.connectionError", "Error testing QZ connection"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("printing.connectionError", "Error testing QZ connection"));
         }
         finally
         {
@@ -296,17 +296,17 @@
             _qzVersion = await PrintingService.GetQzVersionAsync(_qzUrl);
             if (!string.IsNullOrEmpty(_qzVersion))
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.versionRetrieved", "QZ version retrieved successfully"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("printing.versionRetrieved", "QZ version retrieved successfully"));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.versionFailed", "Failed to get QZ version"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("printing.versionFailed", "Failed to get QZ version"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error getting QZ version");
-            Snackbar.Add(TranslationService.GetTranslation("printing.versionError", "Error getting QZ version"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("printing.versionError", "Error getting QZ version"));
         }
         finally
         {
@@ -329,18 +329,18 @@
             {
                 // Update printer status
                 printer.Status = response.Status;
-                Snackbar.Add(TranslationService.GetTranslation("printing.statusUpdated", "Printer status updated"), Severity.Info);
+                AppNotification.ShowInfo(TranslationService.GetTranslation("printing.statusUpdated", "Printer status updated"));
                 StateHasChanged();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.statusFailed", "Failed to check printer status"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("printing.statusFailed", "Failed to check printer status"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error checking printer status");
-            Snackbar.Add(TranslationService.GetTranslation("printing.statusError", "Error checking printer status"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("printing.statusError", "Error checking printer status"));
         }
     }
 
@@ -382,17 +382,17 @@ PRYM Print Test";
             var response = await PrintingService.SubmitPrintJobAsync(request);
             if (response?.Success == true)
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.testPageSent", "Test page sent to printer"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("printing.testPageSent", "Test page sent to printer"));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("printing.testPageFailed", "Failed to send test page: {0}", response?.ErrorMessage ?? "Unknown error"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("printing.testPageFailed", "Failed to send test page: {0}", response?.ErrorMessage ?? "Unknown error"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error printing test page");
-            Snackbar.Add(TranslationService.GetTranslation("printing.testPageError", "Error printing test page"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("printing.testPageError", "Error printing test page"));
         }
     }
 

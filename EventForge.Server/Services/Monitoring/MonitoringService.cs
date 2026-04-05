@@ -4,27 +4,13 @@ using Microsoft.EntityFrameworkCore;
 namespace EventForge.Server.Services.Monitoring;
 
 /// <inheritdoc />
-public class MonitoringService : IMonitoringService
+public class MonitoringService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IMonitoringMetricsService metricsService,
+    IPerformanceMonitoringService performanceMonitoringService,
+    ILogger<MonitoringService> logger) : IMonitoringService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IMonitoringMetricsService _metricsService;
-    private readonly IPerformanceMonitoringService _performanceMonitoringService;
-    private readonly ILogger<MonitoringService> _logger;
-
-    public MonitoringService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IMonitoringMetricsService metricsService,
-        IPerformanceMonitoringService performanceMonitoringService,
-        ILogger<MonitoringService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _metricsService = metricsService ?? throw new ArgumentNullException(nameof(metricsService));
-        _performanceMonitoringService = performanceMonitoringService ?? throw new ArgumentNullException(nameof(performanceMonitoringService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public async Task<MonitoringDashboardDto> GetDashboardAsync(
@@ -32,14 +18,14 @@ public class MonitoringService : IMonitoringService
         int recentErrorCount = 20,
         CancellationToken ct = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId;
+        var tenantId = tenantContext.CurrentTenantId;
         if (!tenantId.HasValue)
             throw new InvalidOperationException("Tenant context is required for monitoring operations.");
 
         try
         {
-            var metricsSnapshot = _metricsService.GetSnapshot();
-            var perfStats = await _performanceMonitoringService.GetStatisticsAsync();
+            var metricsSnapshot = metricsService.GetSnapshot();
+            var perfStats = await performanceMonitoringService.GetStatisticsAsync();
 
             var pricingMetrics = new PricingMetricsDto
             {
@@ -55,7 +41,7 @@ public class MonitoringService : IMonitoringService
             };
 
             // Top N promotions by CurrentUses
-            var topPromotions = await _context.Promotions
+            var topPromotions = await context.Promotions
                 .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderByDescending(p => p.CurrentUses)
                 .Take(topN)
@@ -72,7 +58,7 @@ public class MonitoringService : IMonitoringService
                 .ToListAsync(ct);
 
             // Promotions near limit (MaxUses set and CurrentUses > 80% of MaxUses)
-            var nearLimitPromotions = await _context.Promotions
+            var nearLimitPromotions = await context.Promotions
                 .Where(p => !p.IsDeleted
                     && p.TenantId == tenantId.Value
                     && p.MaxUses.HasValue
@@ -93,7 +79,7 @@ public class MonitoringService : IMonitoringService
                 .ToListAsync(ct);
 
             // Recent error/warning system operation logs
-            var recentErrors = await _context.SystemOperationLogs
+            var recentErrors = await context.SystemOperationLogs
                 .Where(l => l.Severity == "Error" || l.Severity == "Warning" || l.Severity == "Critical")
                 .OrderByDescending(l => l.ExecutedAt)
                 .Take(recentErrorCount)
@@ -119,8 +105,9 @@ public class MonitoringService : IMonitoringService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error assembling monitoring dashboard for tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Error assembling monitoring dashboard for tenant {TenantId}.", tenantId);
             throw;
         }
     }
+
 }

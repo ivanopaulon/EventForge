@@ -2,7 +2,7 @@
 @using EventForge.Client.Services
 @inject IBusinessPartyService BusinessPartyService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<AccountingTab> Logger
 
 <MudPaper Elevation="1" Class="pa-4">
@@ -100,7 +100,7 @@
 
     private async Task LoadAccountingDataAsync()
     {
-        if (Party?.Id == Guid.Empty) 
+        if (Party == null || Party.Id == Guid.Empty) 
         {
             _accountingData = null;
             _isLoading = false;
@@ -115,7 +115,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading accounting data for business party {PartyId}", Party.Id);
-            Snackbar.Add(TranslationService.GetTranslation("businessParty.accountingLoadError", "Errore nel caricamento dei dati contabili"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("businessParty.accountingLoadError", "Errore nel caricamento dei dati contabili"));
         }
         finally
         {

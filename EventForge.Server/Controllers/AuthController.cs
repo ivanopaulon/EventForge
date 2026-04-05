@@ -8,16 +8,10 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for authentication operations.
 /// </summary>
 [Route("api/v1/[controller]")]
-public class AuthController : BaseApiController
+public class AuthController(
+    IAuthenticationService authenticationService,
+    ILogger<AuthController> logger) : BaseApiController
 {
-    private readonly IAuthenticationService _authenticationService;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(IAuthenticationService authenticationService, ILogger<AuthController> logger)
-    {
-        _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Authenticates a user with username and password.
@@ -37,39 +31,28 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status423Locked)]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken = default)
     {
-        if (!ModelState.IsValid)
+        try
         {
-            return CreateValidationProblemDetails();
-        }
-
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
-
-        var result = await _authenticationService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
-
-        if (result == null)
-        {
-            var problemDetails = new ProblemDetails
+            if (!ModelState.IsValid)
             {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Authentication Failed",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Invalid username or password, or account is locked.",
-                Instance = HttpContext.Request.Path
-            };
-
-            // Add correlation ID if available
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId;
+                return CreateValidationProblemDetails();
             }
 
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = HttpContext.Request.Headers.UserAgent.ToString();
 
-            return Unauthorized(problemDetails);
+            var result = await authenticationService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
+
+            if (result is null)
+                return CreateUnauthorizedProblem("Invalid username or password, or account is locked.");
+
+            return Ok(result);
         }
-
-        return Ok(result);
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Login");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
+        }
     }
 
     /// <summary>
@@ -90,59 +73,29 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request, CancellationToken cancellationToken = default)
     {
-        if (!ModelState.IsValid)
+        try
         {
-            return CreateValidationProblemDetails();
-        }
-
-        var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            var problemDetails = new ProblemDetails
+            if (!ModelState.IsValid)
             {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Invalid User Context",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Unable to identify current user.",
-                Instance = HttpContext.Request.Path
-            };
-
-            // Add correlation ID if available
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId;
+                return CreateValidationProblemDetails();
             }
 
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-            return Unauthorized(problemDetails);
+            var success = await authenticationService.ChangePasswordAsync(userId, request, cancellationToken);
+
+            if (!success)
+                return CreateForbiddenProblem("Unable to change password. Please verify your current password and ensure the new password meets security requirements.");
+
+            return Ok(new { message = "Password changed successfully." });
         }
-
-        var success = await _authenticationService.ChangePasswordAsync(userId, request, cancellationToken);
-
-        if (!success)
+        catch (Exception ex)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-                Title = "Password Change Failed",
-                Status = StatusCodes.Status403Forbidden,
-                Detail = "Unable to change password. Please verify your current password and ensure the new password meets security requirements.",
-                Instance = HttpContext.Request.Path
-            };
-
-            // Add correlation ID if available
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId2;
-            }
-
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-            return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
+            logger.LogError(ex, "Error in ChangePassword");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
-
-        return Ok(new { message = "Password changed successfully." });
     }
 
     /// <summary>
@@ -160,37 +113,24 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserDto>> GetCurrentUser(CancellationToken cancellationToken = default)
     {
-        var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
+        try
         {
-            var problemDetails = new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Invalid User Context",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Unable to identify current user.",
-                Instance = HttpContext.Request.Path
-            };
+            var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-            // Add correlation ID if available
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId;
-            }
+            var user = await authenticationService.GetUserAsync(userId, cancellationToken);
 
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            if (user is null)
+                return CreateNotFoundProblem("Current user information could not be retrieved.");
 
-            return Unauthorized(problemDetails);
+            return Ok(user);
         }
-
-        var user = await _authenticationService.GetUserAsync(userId, cancellationToken);
-
-        if (user == null)
+        catch (Exception ex)
         {
-            return CreateNotFoundProblem("Current user information could not be retrieved.");
+            logger.LogError(ex, "Error in GetCurrentUser");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
-
-        return Ok(user);
     }
 
     /// <summary>
@@ -205,21 +145,29 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public IActionResult ValidateToken()
     {
-        // If we reach here, the token is valid (passed authorization)
-        var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-        var userId = HttpContext.User.FindFirst("user_id")?.Value;
-        var roles = HttpContext.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
-        var permissions = HttpContext.User.FindAll("permission").Select(c => c.Value).ToArray();
-
-        return Ok(new
+        try
         {
-            valid = true,
-            username,
-            userId,
-            roles,
-            permissions,
-            message = "Token is valid."
-        });
+            // If we reach here, the token is valid (passed authorization)
+            var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            var userId = HttpContext.User.FindFirst("user_id")?.Value;
+            var roles = HttpContext.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
+            var permissions = HttpContext.User.FindAll("permission").Select(c => c.Value).ToArray();
+
+            return Ok(new
+            {
+                valid = true,
+                username,
+                userId,
+                roles,
+                permissions,
+                message = "Token is valid."
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ValidateToken");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
+        }
     }
 
     /// <summary>
@@ -237,52 +185,24 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RefreshTokenResponseDto>> RefreshToken(CancellationToken cancellationToken = default)
     {
-        var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
+        try
         {
-            var problemDetails = new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Invalid User Context",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Unable to identify current user.",
-                Instance = HttpContext.Request.Path
-            };
+            var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return CreateUnauthorizedProblem("Unable to identify current user.");
 
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId;
-            }
+            var result = await authenticationService.RefreshTokenAsync(userId, cancellationToken);
 
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            if (result is null)
+                return CreateForbiddenProblem("Unable to refresh token. User may be inactive or account locked.");
 
-            return Unauthorized(problemDetails);
+            return Ok(result);
         }
-
-        var result = await _authenticationService.RefreshTokenAsync(userId, cancellationToken);
-
-        if (result == null)
+        catch (Exception ex)
         {
-            var problemDetails = new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7231#section-6.5.3",
-                Title = "Token Refresh Failed",
-                Status = StatusCodes.Status403Forbidden,
-                Detail = "Unable to refresh token. User may be inactive or account locked.",
-                Instance = HttpContext.Request.Path
-            };
-
-            if (HttpContext.Items.TryGetValue("CorrelationId", out var correlationId2))
-            {
-                problemDetails.Extensions["correlationId"] = correlationId2;
-            }
-
-            problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-            return StatusCode(StatusCodes.Status403Forbidden, problemDetails);
+            logger.LogError(ex, "Error in RefreshToken");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
         }
-
-        return Ok(result);
     }
 
     /// <summary>
@@ -297,13 +217,17 @@ public class AuthController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public IActionResult Logout()
     {
-        // For JWT, logout is primarily client-side (removing token)
-        // Here we could add token to a blacklist if needed
-        // For now, just return success
+        try
+        {
+            var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            logger.LogInformation("User {Username} logged out", username);
 
-        var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-        _logger.LogInformation("User {Username} logged out", username);
-
-        return Ok(new { message = "Logged out successfully." });
+            return Ok(new { message = "Logged out successfully." });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Logout");
+            return CreateInternalServerErrorProblem("Errore interno del server.", ex);
+        }
     }
 }

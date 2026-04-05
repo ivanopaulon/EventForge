@@ -1,6 +1,6 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <!--
     Consolidated ActionButtonGroup Component
@@ -219,7 +219,7 @@
         }
         catch (Exception)
         {
-            Snackbar.Add(TranslationService.GetTranslation("error.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.deleteFailed", "Errore durante l'eliminazione"));
         }
     }
 
@@ -246,7 +246,7 @@
         }
         catch (Exception)
         {
-            Snackbar.Add(TranslationService.GetTranslation(errorKey, fallbackError), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation(errorKey, fallbackError));
         }
     }
 

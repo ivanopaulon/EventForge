@@ -6,30 +6,18 @@ namespace EventForge.Server.Services.Configuration;
 /// <summary>
 /// Service for managing system configuration settings.
 /// </summary>
-public class ConfigurationService : IConfigurationService
+public class ConfigurationService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IAuditLogService auditLogService,
+    ILogger<ConfigurationService> logger) : IConfigurationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<ConfigurationService> _logger;
-
-    public ConfigurationService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IAuditLogService auditLogService,
-        ILogger<ConfigurationService> logger)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _auditLogService = auditLogService;
-        _logger = logger;
-    }
 
     public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync(CancellationToken ct = default)
     {
         try
         {
-            var configurations = await _context.SystemConfigurations
+            var configurations = await context.SystemConfigurations
                 .AsNoTracking()
                 .OrderBy(c => c.Category)
                 .ThenBy(c => c.Key)
@@ -39,7 +27,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetAllConfigurationsAsync operation was cancelled");
+            logger.LogInformation("GetAllConfigurationsAsync operation was cancelled");
             throw;
         }
     }
@@ -48,7 +36,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configurations = await _context.SystemConfigurations
+            var configurations = await context.SystemConfigurations
                 .AsNoTracking()
                 .Where(c => c.Category == category)
                 .OrderBy(c => c.Key)
@@ -58,7 +46,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetConfigurationsByCategoryAsync operation was cancelled for category {Category}", category);
+            logger.LogInformation("GetConfigurationsByCategoryAsync operation was cancelled for category {Category}", category);
             throw;
         }
     }
@@ -67,7 +55,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configuration = await _context.SystemConfigurations
+            var configuration = await context.SystemConfigurations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Key == key, ct);
 
@@ -75,7 +63,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetConfigurationAsync operation was cancelled for key {Key}", key);
+            logger.LogInformation("GetConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
     }
@@ -85,11 +73,11 @@ public class ConfigurationService : IConfigurationService
         try
         {
             // Check if configuration with the same key already exists
-            var existing = await _context.SystemConfigurations
+            var existing = await context.SystemConfigurations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Key == createDto.Key, ct);
 
-            if (existing != null)
+            if (existing is not null)
             {
                 throw new InvalidOperationException($"Configuration with key '{createDto.Key}' already exists.");
             }
@@ -104,14 +92,14 @@ public class ConfigurationService : IConfigurationService
                 RequiresRestart = createDto.RequiresRestart,
                 DefaultValue = createDto.Value,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+                CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            _ = _context.SystemConfigurations.Add(configuration);
-            _ = await _context.SaveChangesAsync(ct);
+            _ = context.SystemConfigurations.Add(configuration);
+            _ = await context.SaveChangesAsync(ct);
 
             // Log the creation
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(SystemConfiguration),
                 configuration.Id,
                 "Configuration",
@@ -127,7 +115,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("CreateConfigurationAsync operation was cancelled for key {Key}", createDto.Key);
+            logger.LogInformation("CreateConfigurationAsync operation was cancelled for key {Key}", createDto.Key);
             throw;
         }
     }
@@ -136,10 +124,10 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configuration = await _context.SystemConfigurations
+            var configuration = await context.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == key, ct);
 
-            if (configuration == null)
+            if (configuration is null)
             {
                 throw new InvalidOperationException($"Configuration with key '{key}' not found.");
             }
@@ -156,12 +144,12 @@ public class ConfigurationService : IConfigurationService
             configuration.Description = updateDto.Description ?? configuration.Description;
             configuration.RequiresRestart = updateDto.RequiresRestart;
             configuration.ModifiedAt = DateTime.UtcNow;
-            configuration.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            configuration.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync(ct);
+            _ = await context.SaveChangesAsync(ct);
 
             // Log the update
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(SystemConfiguration),
                 configuration.Id,
                 "Value",
@@ -177,7 +165,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("UpdateConfigurationAsync operation was cancelled for key {Key}", key);
+            logger.LogInformation("UpdateConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
     }
@@ -186,10 +174,10 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configuration = await _context.SystemConfigurations
+            var configuration = await context.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == key, ct);
 
-            if (configuration == null)
+            if (configuration is null)
             {
                 throw new InvalidOperationException($"Configuration with key '{key}' not found.");
             }
@@ -199,25 +187,25 @@ public class ConfigurationService : IConfigurationService
                 throw new InvalidOperationException($"Configuration '{key}' is read-only and cannot be deleted.");
             }
 
-            _ = _context.SystemConfigurations.Remove(configuration);
-            _ = await _context.SaveChangesAsync(ct);
+            _ = context.SystemConfigurations.Remove(configuration);
+            _ = await context.SaveChangesAsync(ct);
 
             // Log the deletion
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(SystemConfiguration),
                 configuration.Id,
                 "Configuration",
                 "Delete",
                 $"Key: {configuration.Key}, Category: {configuration.Category}",
                 null,
-                _tenantContext.CurrentUserId?.ToString() ?? "System",
+                tenantContext.CurrentUserId?.ToString() ?? "System",
                 $"Configuration '{configuration.Key}'",
                 ct
             );
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("DeleteConfigurationAsync operation was cancelled for key {Key}", key);
+            logger.LogInformation("DeleteConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
     }
@@ -226,11 +214,11 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configuration = await _context.SystemConfigurations
+            var configuration = await context.SystemConfigurations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Key == key, ct);
 
-            if (configuration == null)
+            if (configuration is null)
             {
                 return defaultValue;
             }
@@ -239,7 +227,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetValueAsync operation was cancelled for key {Key}", key);
+            logger.LogInformation("GetValueAsync operation was cancelled for key {Key}", key);
             throw;
         }
     }
@@ -248,10 +236,10 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var configuration = await _context.SystemConfigurations
+            var configuration = await context.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == key, ct);
 
-            if (configuration == null)
+            if (configuration is null)
             {
                 // Create new configuration
                 var createDto = new CreateConfigurationDto
@@ -276,7 +264,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("SetValueAsync operation was cancelled for key {Key}", key);
+            logger.LogInformation("SetValueAsync operation was cancelled for key {Key}", key);
             throw;
         }
     }
@@ -320,7 +308,7 @@ public class ConfigurationService : IConfigurationService
             stopwatch.Stop();
             result.DurationMs = stopwatch.ElapsedMilliseconds;
 
-            _logger.LogInformation("SMTP test successful. Email sent to {Email} in {Duration}ms",
+            logger.LogInformation("SMTP test successful. Email sent to {Email} in {Duration}ms",
                 testDto.ToEmail, result.DurationMs);
         }
         catch (OperationCanceledException)
@@ -330,7 +318,7 @@ public class ConfigurationService : IConfigurationService
             stopwatch.Stop();
             result.DurationMs = stopwatch.ElapsedMilliseconds;
 
-            _logger.LogInformation("SMTP test was cancelled for {Email}", testDto.ToEmail);
+            logger.LogInformation("SMTP test was cancelled for {Email}", testDto.ToEmail);
             throw;
         }
         catch (Exception ex)
@@ -340,7 +328,7 @@ public class ConfigurationService : IConfigurationService
             stopwatch.Stop();
             result.DurationMs = stopwatch.ElapsedMilliseconds;
 
-            _logger.LogError(ex, "SMTP test failed for {Email}", testDto.ToEmail);
+            logger.LogError(ex, "SMTP test failed for {Email}", testDto.ToEmail);
         }
 
         return result;
@@ -351,7 +339,7 @@ public class ConfigurationService : IConfigurationService
         // This would trigger a configuration reload in the application
         // Implementation depends on how configuration is managed in the app
         // NOTE: CancellationToken will be used when actual implementation is added
-        _logger.LogInformation("Configuration reload requested");
+        logger.LogInformation("Configuration reload requested");
 
         // Here you could implement logic to:
         // 1. Clear configuration cache
@@ -365,7 +353,7 @@ public class ConfigurationService : IConfigurationService
     {
         try
         {
-            var categories = await _context.SystemConfigurations
+            var categories = await context.SystemConfigurations
                 .AsNoTracking()
                 .Select(c => c.Category)
                 .Distinct()
@@ -376,7 +364,7 @@ public class ConfigurationService : IConfigurationService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetCategoriesAsync operation was cancelled");
+            logger.LogInformation("GetCategoriesAsync operation was cancelled");
             throw;
         }
     }
@@ -403,4 +391,5 @@ public class ConfigurationService : IConfigurationService
             return encryptedValue; // Return as-is if decryption fails
         }
     }
+
 }

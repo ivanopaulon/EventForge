@@ -10,7 +10,7 @@
 @inject IPriceListService PriceListService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EntityManagementPage @ref="_entityPage"
                       TEntity="PriceListDto"
@@ -309,7 +309,7 @@
         var dialog = await DialogService.ShowAsync<PriceListDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
         if (result is { Canceled: false })
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
     }
 
     private async Task OpenCreateDialog()
@@ -320,9 +320,9 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
         }
     }
 
@@ -334,9 +334,9 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
         }
     }
 
@@ -347,26 +347,24 @@
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
 
         var result = await dialog.Result;
-        if (!result.Canceled && result.Data != null)
+        if (result is { Canceled: false } && result.Data != null)
         {
-            await _entityPage.RefreshAsync();
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"),
-                Severity.Success);
+            await _entityPage!.RefreshAsync();
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"));
         }
     }
 
     private async Task BulkActivate()
     {
         // TODO: Implement bulk activate functionality
-        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"));
         await Task.CompletedTask;
     }
 
     private async Task BulkSuspend()
     {
         // TODO: Implement bulk suspend functionality
-        Snackbar.Add(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"));
         await Task.CompletedTask;
     }
 }

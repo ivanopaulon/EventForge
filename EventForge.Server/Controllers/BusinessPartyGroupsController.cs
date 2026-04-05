@@ -14,26 +14,17 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/business-party-groups")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
-public class BusinessPartyGroupsController : BaseApiController
+public class BusinessPartyGroupsController(
+    IBusinessPartyGroupService businessPartyGroupService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IBusinessPartyGroupService _businessPartyGroupService;
-    private readonly ITenantContext _tenantContext;
-
-    public BusinessPartyGroupsController(
-        IBusinessPartyGroupService businessPartyGroupService,
-        ITenantContext tenantContext)
-    {
-        _businessPartyGroupService = businessPartyGroupService ?? throw new ArgumentNullException(nameof(businessPartyGroupService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     #region Group Endpoints
 
     /// <summary>
     /// Gets all business party groups with optional pagination and filtering.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page number and page size).</param>
     /// <param name="groupType">Optional group type filter</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of business party groups</returns>
@@ -46,12 +37,11 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromQuery] BusinessPartyGroupType? groupType = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _businessPartyGroupService.GetGroupsAsync(pagination.Page, pagination.PageSize, groupType, cancellationToken);
+            var result = await businessPartyGroupService.GetGroupsAsync(pagination.Page, pagination.PageSize, groupType, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -72,21 +62,15 @@ public class BusinessPartyGroupsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyGroupDto>> GetGroup(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var group = await _businessPartyGroupService.GetGroupByIdAsync(id, cancellationToken);
+            var group = await businessPartyGroupService.GetGroupByIdAsync(id, cancellationToken);
 
-            if (group == null)
+            if (group is null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Business Party Group not found",
-                    Detail = $"No business party group found with ID {id}"
-                });
+                return CreateNotFoundProblem($"No business party group found with ID {id}");
             }
 
             return Ok(group);
@@ -111,33 +95,22 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromBody] CreateBusinessPartyGroupDto createDto,
         CancellationToken cancellationToken = default)
     {
-        if (createDto == null)
+        if (createDto is null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var group = await _businessPartyGroupService.CreateGroupAsync(createDto, currentUser, cancellationToken);
+            var group = await businessPartyGroupService.CreateGroupAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, group);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -162,33 +135,22 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromBody] UpdateBusinessPartyGroupDto updateDto,
         CancellationToken cancellationToken = default)
     {
-        if (updateDto == null)
+        if (updateDto is null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var group = await _businessPartyGroupService.UpdateGroupAsync(id, updateDto, currentUser, cancellationToken);
+            var group = await businessPartyGroupService.UpdateGroupAsync(id, updateDto, currentUser, cancellationToken);
             return Ok(group);
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Business Party Group not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
@@ -208,22 +170,16 @@ public class BusinessPartyGroupsController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteGroup(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _businessPartyGroupService.DeleteGroupAsync(id, currentUser, cancellationToken);
+            var deleted = await businessPartyGroupService.DeleteGroupAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Business Party Group not found",
-                    Detail = $"No business party group found with ID {id}"
-                });
+                return CreateNotFoundProblem($"No business party group found with ID {id}");
             }
 
             return NoContent();
@@ -242,8 +198,7 @@ public class BusinessPartyGroupsController : BaseApiController
     /// Gets all members of a specific business party group.
     /// </summary>
     /// <param name="groupId">Group ID</param>
-    /// <param name="page">Page number (1-based)</param>
-    /// <param name="pageSize">Number of items per page</param>
+    /// <param name="pagination">Pagination parameters (page number and page size).</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of group members</returns>
     [HttpGet("{groupId:guid}/members")]
@@ -255,12 +210,11 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _businessPartyGroupService.GetGroupMembersAsync(groupId, pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await businessPartyGroupService.GetGroupMembersAsync(groupId, pagination.Page, pagination.PageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -285,33 +239,22 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromBody] AddBusinessPartyToGroupDto addDto,
         CancellationToken cancellationToken = default)
     {
-        if (addDto == null)
+        if (addDto is null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var member = await _businessPartyGroupService.AddMemberToGroupAsync(groupId, addDto, currentUser, cancellationToken);
+            var member = await businessPartyGroupService.AddMemberToGroupAsync(groupId, addDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetGroupMembers), new { groupId }, member);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -333,23 +276,17 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromBody] BulkAddMembersDto bulkDto,
         CancellationToken cancellationToken = default)
     {
-        if (bulkDto == null)
+        if (bulkDto is null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _businessPartyGroupService.BulkAddMembersAsync(bulkDto, currentUser, cancellationToken);
+            var result = await businessPartyGroupService.BulkAddMembersAsync(bulkDto, currentUser, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -374,22 +311,16 @@ public class BusinessPartyGroupsController : BaseApiController
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var removed = await _businessPartyGroupService.RemoveMemberFromGroupAsync(groupId, businessPartyId, currentUser, cancellationToken);
+            var removed = await businessPartyGroupService.RemoveMemberFromGroupAsync(groupId, businessPartyId, currentUser, cancellationToken);
 
             if (!removed)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Member not found",
-                    Detail = $"Business Party {businessPartyId} is not a member of group {groupId}"
-                });
+                return CreateNotFoundProblem($"Business Party {businessPartyId} is not a member of group {groupId}");
             }
 
             return NoContent();
@@ -417,33 +348,22 @@ public class BusinessPartyGroupsController : BaseApiController
         [FromBody] UpdateBusinessPartyGroupMemberDto updateDto,
         CancellationToken cancellationToken = default)
     {
-        if (updateDto == null)
+        if (updateDto is null)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid request",
-                Detail = "Request body cannot be null"
-            });
+            return CreateValidationProblemDetails("Request body cannot be null.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var member = await _businessPartyGroupService.UpdateMembershipAsync(membershipId, updateDto, currentUser, cancellationToken);
+            var member = await businessPartyGroupService.UpdateMembershipAsync(membershipId, updateDto, currentUser, cancellationToken);
             return Ok(member);
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Membership not found",
-                Detail = ex.Message
-            });
+            return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
         {
@@ -468,12 +388,11 @@ public class BusinessPartyGroupsController : BaseApiController
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var groups = await _businessPartyGroupService.GetGroupsForBusinessPartyAsync(businessPartyId, cancellationToken);
+            var groups = await businessPartyGroupService.GetGroupsForBusinessPartyAsync(businessPartyId, cancellationToken);
             return Ok(groups);
         }
         catch (Exception ex)

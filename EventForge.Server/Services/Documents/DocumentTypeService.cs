@@ -8,13 +8,13 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for managing document types
 /// </summary>
-public class DocumentTypeService : IDocumentTypeService
+public class DocumentTypeService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<DocumentTypeService> logger,
+    ICacheService cacheService) : IDocumentTypeService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentTypeService> _logger;
-    private readonly ICacheService _cacheService;
 
     private const string CACHE_KEY_ALL = "DocumentTypes_All";
 
@@ -26,39 +26,25 @@ public class DocumentTypeService : IDocumentTypeService
     /// <param name="tenantContext">Tenant context</param>
     /// <param name="logger">Logger</param>
     /// <param name="cacheService">Cache service</param>
-    public DocumentTypeService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<DocumentTypeService> logger,
-        ICacheService cacheService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
-
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTypeDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot retrieve document types without a tenant context.");
+                logger.LogWarning("Cannot retrieve document types without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
             // Cache all DocumentTypes for 30 minutes
-            var allDocumentTypes = await _cacheService.GetOrCreateAsync(
+            var allDocumentTypes = await cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 tenantId.Value,
                 async (ct) =>
                 {
-                    var entities = await _context.DocumentTypes
+                    var entities = await context.DocumentTypes
                         .Include(dt => dt.DefaultWarehouse)
                         .Where(dt => dt.TenantId == tenantId.Value)
                         .OrderBy(dt => dt.Name)
@@ -74,7 +60,7 @@ public class DocumentTypeService : IDocumentTypeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document types.");
+            logger.LogError(ex, "Error retrieving document types.");
             throw;
         }
     }
@@ -84,22 +70,22 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot retrieve document type without a tenant context.");
+                logger.LogWarning("Cannot retrieve document type without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
-            var entity = await _context.DocumentTypes
+            var entity = await context.DocumentTypes
                 .Include(dt => dt.DefaultWarehouse)
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
-            return entity == null ? null : DocumentTypeMapper.ToDto(entity);
+            return entity is null ? null : DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document type {DocumentTypeId}.", id);
+            logger.LogError(ex, "Error retrieving document type {DocumentTypeId}.", id);
             throw;
         }
     }
@@ -112,10 +98,10 @@ public class DocumentTypeService : IDocumentTypeService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot create document type without a tenant context.");
+                logger.LogWarning("Cannot create document type without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
@@ -125,26 +111,26 @@ public class DocumentTypeService : IDocumentTypeService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _ = _context.DocumentTypes.Add(entity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentTypes.Add(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
-            await _context.Entry(entity)
+            await context.Entry(entity)
                 .Reference(dt => dt.DefaultWarehouse)
                 .LoadAsync(cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
 
-            _logger.LogInformation("Document type {DocumentTypeId} created by {User}.", entity.Id, currentUser);
+            logger.LogInformation("Document type {DocumentTypeId} created by {User}.", entity.Id, currentUser);
 
             return DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document type for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating document type for user {User}.", currentUser);
             throw;
         }
     }
@@ -157,30 +143,30 @@ public class DocumentTypeService : IDocumentTypeService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot update document type without a tenant context.");
+                logger.LogWarning("Cannot update document type without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
-            var originalEntity = await _context.DocumentTypes
+            var originalEntity = await context.DocumentTypes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
-            if (originalEntity == null)
+            if (originalEntity is null)
             {
-                _logger.LogWarning("Document type with ID {DocumentTypeId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Document type with ID {DocumentTypeId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var entity = await _context.DocumentTypes
+            var entity = await context.DocumentTypes
                 .Include(dt => dt.DefaultWarehouse)
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document type with ID {DocumentTypeId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Document type with ID {DocumentTypeId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -188,20 +174,20 @@ public class DocumentTypeService : IDocumentTypeService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
 
-            _logger.LogInformation("Document type {DocumentTypeId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Document type {DocumentTypeId} updated by {User}.", id, currentUser);
 
             return DocumentTypeMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document type {DocumentTypeId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating document type {DocumentTypeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -213,29 +199,29 @@ public class DocumentTypeService : IDocumentTypeService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot delete document type without a tenant context.");
+                logger.LogWarning("Cannot delete document type without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
-            var originalEntity = await _context.DocumentTypes
+            var originalEntity = await context.DocumentTypes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
-            if (originalEntity == null)
+            if (originalEntity is null)
             {
-                _logger.LogWarning("Document type with ID {DocumentTypeId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Document type with ID {DocumentTypeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var entity = await _context.DocumentTypes
+            var entity = await context.DocumentTypes
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document type with ID {DocumentTypeId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Document type with ID {DocumentTypeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -243,21 +229,22 @@ public class DocumentTypeService : IDocumentTypeService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, tenantId.Value);
 
-            _logger.LogInformation("Document type {DocumentTypeId} deleted by {User}.", id, currentUser);
+            logger.LogInformation("Document type {DocumentTypeId} deleted by {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document type {DocumentTypeId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting document type {DocumentTypeId} for user {User}.", id, currentUser);
             throw;
         }
     }
+
 }

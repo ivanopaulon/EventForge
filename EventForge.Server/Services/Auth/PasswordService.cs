@@ -103,16 +103,10 @@ public class PasswordPolicy
 /// <summary>
 /// Implementation of password service using Argon2.
 /// </summary>
-public class PasswordService : IPasswordService
+public class PasswordService(IConfiguration configuration, ILogger<PasswordService> logger) : IPasswordService
 {
-    private readonly PasswordPolicy _passwordPolicy;
-    private readonly ILogger<PasswordService> _logger;
 
-    public PasswordService(IConfiguration configuration, ILogger<PasswordService> logger)
-    {
-        _logger = logger;
-        _passwordPolicy = configuration.GetSection("Authentication:PasswordPolicy").Get<PasswordPolicy>() ?? new PasswordPolicy();
-    }
+    private readonly PasswordPolicy _passwordPolicy = configuration.GetSection("Authentication:PasswordPolicy").Get<PasswordPolicy>() ?? new PasswordPolicy();
 
     public (string Hash, string Salt) HashPassword(string password)
     {
@@ -133,7 +127,7 @@ public class PasswordService : IPasswordService
 
         var hash = Convert.ToBase64String(argon2.GetBytes(64)); // 64 byte hash
 
-        _logger.LogDebug("Password hashed successfully");
+        logger.LogDebug("Password hashed successfully");
 
         return (hash, salt);
     }
@@ -161,7 +155,7 @@ public class PasswordService : IPasswordService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error verifying password");
+            logger.LogError(ex, "Error verifying password");
             return false;
         }
     }
@@ -220,4 +214,5 @@ public class PasswordService : IPasswordService
         rng.GetBytes(salt);
         return Convert.ToBase64String(salt);
     }
+
 }

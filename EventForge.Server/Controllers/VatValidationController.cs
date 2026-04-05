@@ -11,19 +11,10 @@ namespace EventForge.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/vat")]
-public class VatValidationController : BaseApiController
+public class VatValidationController(
+    IViesValidationService viesService,
+    ILogger<VatValidationController> logger) : BaseApiController
 {
-    private readonly IViesValidationService _viesService;
-    private readonly ILogger<VatValidationController> _logger;
-
-    public VatValidationController(
-        IViesValidationService viesService,
-        ILogger<VatValidationController> logger)
-    {
-        _viesService = viesService;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Validates a VAT number using the VIES REST API.
     /// </summary>
@@ -31,27 +22,31 @@ public class VatValidationController : BaseApiController
     /// <param name="vatNumber">VAT number without country code</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>VIES validation response</returns>
+    /// <response code="200">Returns VIES validation result</response>
+    /// <response code="400">Unable to validate VAT number</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("validate/{countryCode}/{vatNumber}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ValidateVat(
         [RegularExpression(@"^[A-Z]{2}$", ErrorMessage = "Country code must be 2 uppercase letters")] string countryCode,
         [RegularExpression(@"^[A-Z0-9]{1,20}$", ErrorMessage = "VAT number must contain only alphanumeric characters")] string vatNumber,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _viesService.ValidateVatAsync(countryCode, vatNumber, cancellationToken);
+            var result = await viesService.ValidateVatAsync(countryCode, vatNumber, cancellationToken);
 
-            if (result == null)
-            {
-                return BadRequest(new { error = "Unable to validate VAT number" });
-            }
+            if (result is null)
+                return CreateValidationProblemDetails("Unable to validate VAT number");
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}", countryCode, vatNumber);
-            return StatusCode(500, new { error = "Internal server error" });
+            logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}", countryCode, vatNumber);
+            return CreateInternalServerErrorProblem("Internal server error", ex);
         }
     }
 }

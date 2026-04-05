@@ -6,28 +6,20 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing storage locations within warehouses.
 /// </summary>
-public class StorageLocationService : IStorageLocationService
+public class StorageLocationService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<StorageLocationService> logger) : IStorageLocationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StorageLocationService> _logger;
-
-    public StorageLocationService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<StorageLocationService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(PaginationParameters pagination, Guid? warehouseId = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", pagination.Page, pagination.PageSize, warehouseId);
+            logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", pagination.Page, pagination.PageSize, warehouseId);
 
-            var query = _context.StorageLocations
+            var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted)
@@ -81,7 +73,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations.");
+            logger.LogError(ex, "Error retrieving storage locations.");
             throw;
         }
     }
@@ -90,9 +82,9 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage location by ID: {Id}", id);
+            logger.LogDebug("Getting storage location by ID: {Id}", id);
 
-            var location = await _context.StorageLocations
+            var location = await context.StorageLocations
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.Id == id)
                 .Select(sl => new StorageLocationDto
@@ -124,7 +116,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage location {Id}.", id);
+            logger.LogError(ex, "Error retrieving storage location {Id}.", id);
             throw;
         }
     }
@@ -133,9 +125,9 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage locations for warehouse: {WarehouseId}", warehouseId);
+            logger.LogDebug("Getting storage locations for warehouse: {WarehouseId}", warehouseId);
 
-            var locations = await _context.StorageLocations
+            var locations = await context.StorageLocations
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.WarehouseId == warehouseId)
                 .OrderBy(sl => sl.Zone)
@@ -171,7 +163,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
+            logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
             throw;
         }
     }
@@ -180,9 +172,9 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting available storage locations for warehouse: {WarehouseId}", warehouseId);
+            logger.LogDebug("Getting available storage locations for warehouse: {WarehouseId}", warehouseId);
 
-            var query = _context.StorageLocations
+            var query = context.StorageLocations
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.IsActive &&
                             (sl.Capacity == null || sl.Occupancy == null || sl.Occupancy < sl.Capacity));
@@ -226,7 +218,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available storage locations.");
+            logger.LogError(ex, "Error retrieving available storage locations.");
             throw;
         }
     }
@@ -235,35 +227,35 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Creating storage location: {Code}", createDto.Code);
+            logger.LogDebug("Creating storage location: {Code}", createDto.Code);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for storage location operations.");
             }
 
-            var warehouseExists = await _context.StorageFacilities
+            var warehouseExists = await context.StorageFacilities
                 .AnyAsync(sf => sf.Id == createDto.WarehouseId && sf.TenantId == currentTenantId.Value, cancellationToken);
 
             if (!warehouseExists)
             {
-                _logger.LogWarning("Warehouse with ID {WarehouseId} not found.", createDto.WarehouseId);
+                logger.LogWarning("Warehouse with ID {WarehouseId} not found.", createDto.WarehouseId);
                 throw new ArgumentException($"Warehouse with ID {createDto.WarehouseId} not found.");
             }
 
-            var codeExists = await _context.StorageLocations
+            var codeExists = await context.StorageLocations
                 .AnyAsync(sl => sl.Code == createDto.Code && sl.WarehouseId == createDto.WarehouseId && sl.TenantId == currentTenantId.Value, cancellationToken);
 
             if (codeExists)
             {
-                _logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", createDto.Code, createDto.WarehouseId);
+                logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", createDto.Code, createDto.WarehouseId);
                 throw new ArgumentException($"Storage location with code '{createDto.Code}' already exists in this warehouse.");
             }
 
             if (createDto.Capacity.HasValue && createDto.Occupancy.HasValue && createDto.Occupancy > createDto.Capacity)
             {
-                _logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", createDto.Occupancy, createDto.Capacity);
+                logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", createDto.Occupancy, createDto.Capacity);
                 throw new ArgumentException("Occupancy cannot exceed capacity.");
             }
 
@@ -288,19 +280,19 @@ public class StorageLocationService : IStorageLocationService
                 CreatedBy = currentUser
             };
 
-            _ = _context.StorageLocations.Add(location);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.StorageLocations.Add(location);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(location, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(location, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Created storage location: {Id} - {Code}", location.Id, location.Code);
+            logger.LogInformation("Created storage location: {Id} - {Code}", location.Id, location.Code);
 
             return await GetStorageLocationByIdAsync(location.Id, cancellationToken)
                    ?? throw new InvalidOperationException("Failed to retrieve created storage location.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating storage location.");
+            logger.LogError(ex, "Error creating storage location.");
             throw;
         }
     }
@@ -309,27 +301,27 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Updating storage location: {Id}", id);
+            logger.LogDebug("Updating storage location: {Id}", id);
 
-            var originalLocation = await _context.StorageLocations
+            var originalLocation = await context.StorageLocations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
 
-            var location = await _context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
-            if (location == null)
+            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            if (location is null)
             {
-                _logger.LogWarning("Storage location {Id} not found for update.", id);
+                logger.LogWarning("Storage location {Id} not found for update.", id);
                 return null;
             }
 
             if (updateDto.WarehouseId.HasValue && updateDto.WarehouseId != location.WarehouseId)
             {
-                var warehouseExists = await _context.StorageFacilities
+                var warehouseExists = await context.StorageFacilities
                     .AnyAsync(sf => sf.Id == updateDto.WarehouseId.Value, cancellationToken);
 
                 if (!warehouseExists)
                 {
-                    _logger.LogWarning("Warehouse with ID {WarehouseId} not found.", updateDto.WarehouseId);
+                    logger.LogWarning("Warehouse with ID {WarehouseId} not found.", updateDto.WarehouseId);
                     throw new ArgumentException($"Warehouse with ID {updateDto.WarehouseId} not found.");
                 }
             }
@@ -337,12 +329,12 @@ public class StorageLocationService : IStorageLocationService
             if (!string.IsNullOrEmpty(updateDto.Code) && updateDto.Code != location.Code)
             {
                 var warehouseIdToCheck = updateDto.WarehouseId ?? location.WarehouseId;
-                var codeExists = await _context.StorageLocations
+                var codeExists = await context.StorageLocations
                     .AnyAsync(sl => sl.Code == updateDto.Code && sl.WarehouseId == warehouseIdToCheck && sl.Id != id, cancellationToken);
 
                 if (codeExists)
                 {
-                    _logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", updateDto.Code, warehouseIdToCheck);
+                    logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", updateDto.Code, warehouseIdToCheck);
                     throw new ArgumentException($"Storage location with code '{updateDto.Code}' already exists in this warehouse.");
                 }
             }
@@ -352,13 +344,13 @@ public class StorageLocationService : IStorageLocationService
 
             if (newCapacity.HasValue && newOccupancy.HasValue && newOccupancy > newCapacity)
             {
-                _logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", newOccupancy, newCapacity);
+                logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", newOccupancy, newCapacity);
                 throw new ArgumentException("Occupancy cannot exceed capacity.");
             }
 
             if (!string.IsNullOrEmpty(updateDto.Code))
                 location.Code = updateDto.Code;
-            if (updateDto.Description != null)
+            if (updateDto.Description is not null)
                 location.Description = updateDto.Description;
             if (updateDto.WarehouseId.HasValue)
                 location.WarehouseId = updateDto.WarehouseId.Value;
@@ -368,17 +360,17 @@ public class StorageLocationService : IStorageLocationService
                 location.Occupancy = updateDto.Occupancy;
             if (updateDto.IsRefrigerated.HasValue)
                 location.IsRefrigerated = updateDto.IsRefrigerated.Value;
-            if (updateDto.Notes != null)
+            if (updateDto.Notes is not null)
                 location.Notes = updateDto.Notes;
-            if (updateDto.Zone != null)
+            if (updateDto.Zone is not null)
                 location.Zone = updateDto.Zone;
-            if (updateDto.Floor != null)
+            if (updateDto.Floor is not null)
                 location.Floor = updateDto.Floor;
-            if (updateDto.Row != null)
+            if (updateDto.Row is not null)
                 location.Row = updateDto.Row;
-            if (updateDto.Column != null)
+            if (updateDto.Column is not null)
                 location.Column = updateDto.Column;
-            if (updateDto.Level != null)
+            if (updateDto.Level is not null)
                 location.Level = updateDto.Level;
             if (updateDto.IsActive.HasValue)
                 location.IsActive = updateDto.IsActive.Value;
@@ -388,17 +380,17 @@ public class StorageLocationService : IStorageLocationService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating StorageLocation {StorageLocationId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating StorageLocation {StorageLocationId}.", id);
                 throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
 
-            _logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
+            logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
 
             return await GetStorageLocationByIdAsync(id, cancellationToken);
         }
@@ -408,7 +400,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating storage location {Id}.", id);
+            logger.LogError(ex, "Error updating storage location {Id}.", id);
             throw;
         }
     }
@@ -417,22 +409,22 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Deleting storage location: {Id}", id);
+            logger.LogDebug("Deleting storage location: {Id}", id);
 
-            var originalLocation = await _context.StorageLocations
+            var originalLocation = await context.StorageLocations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
 
-            var location = await _context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
-            if (location == null)
+            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            if (location is null)
             {
-                _logger.LogWarning("Storage location {Id} not found for delete.", id);
+                logger.LogWarning("Storage location {Id} not found for delete.", id);
                 return false;
             }
 
             if (location.Occupancy > 0)
             {
-                _logger.LogWarning("Cannot delete storage location {Id} because it contains inventory.", id);
+                logger.LogWarning("Cannot delete storage location {Id} because it contains inventory.", id);
                 throw new InvalidOperationException("Cannot delete storage location that contains inventory. Move inventory first.");
             }
 
@@ -446,17 +438,17 @@ public class StorageLocationService : IStorageLocationService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting StorageLocation {StorageLocationId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting StorageLocation {StorageLocationId}.", id);
                 throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
 
-            _logger.LogInformation("Deleted storage location: {Id}", id);
+            logger.LogInformation("Deleted storage location: {Id}", id);
             return true;
         }
         catch (DbUpdateConcurrencyException)
@@ -465,7 +457,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting storage location {Id}.", id);
+            logger.LogError(ex, "Error deleting storage location {Id}.", id);
             throw;
         }
     }
@@ -474,28 +466,28 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Updating occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
+            logger.LogDebug("Updating occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
 
-            var originalLocation = await _context.StorageLocations
+            var originalLocation = await context.StorageLocations
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
 
-            var location = await _context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
-            if (location == null)
+            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            if (location is null)
             {
-                _logger.LogWarning("Storage location {Id} not found for occupancy update.", id);
+                logger.LogWarning("Storage location {Id} not found for occupancy update.", id);
                 return null;
             }
 
             if (newOccupancy < 0)
             {
-                _logger.LogWarning("Occupancy cannot be negative for storage location {Id}.", id);
+                logger.LogWarning("Occupancy cannot be negative for storage location {Id}.", id);
                 throw new ArgumentException("Occupancy cannot be negative.");
             }
 
             if (location.Capacity.HasValue && newOccupancy > location.Capacity)
             {
-                _logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity} for storage location {Id}.", newOccupancy, location.Capacity, id);
+                logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity} for storage location {Id}.", newOccupancy, location.Capacity, id);
                 throw new ArgumentException($"Occupancy ({newOccupancy}) cannot exceed capacity ({location.Capacity}).");
             }
 
@@ -503,17 +495,17 @@ public class StorageLocationService : IStorageLocationService
             location.ModifiedAt = DateTime.UtcNow;
             location.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(location, "UpdateOccupancy", currentUser, originalLocation, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(location, "UpdateOccupancy", currentUser, originalLocation, cancellationToken);
 
-            _logger.LogInformation("Updated occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
+            logger.LogInformation("Updated occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
 
             return await GetStorageLocationByIdAsync(id, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating occupancy for storage location {Id}.", id);
+            logger.LogError(ex, "Error updating occupancy for storage location {Id}.", id);
             throw;
         }
     }
@@ -525,10 +517,10 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}",
+            logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}",
                 warehouseId, pagination.Page, pagination.PageSize);
 
-            var query = _context.StorageLocations
+            var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted && sl.WarehouseId == warehouseId);
@@ -575,7 +567,7 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
+            logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
             throw;
         }
     }
@@ -587,10 +579,10 @@ public class StorageLocationService : IStorageLocationService
     {
         try
         {
-            _logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}",
+            logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}",
                 zone, pagination.Page, pagination.PageSize);
 
-            var query = _context.StorageLocations
+            var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => !sl.IsDeleted && sl.Zone == zone);
@@ -637,8 +629,9 @@ public class StorageLocationService : IStorageLocationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage locations for zone {Zone}.", zone);
+            logger.LogError(ex, "Error retrieving storage locations for zone {Zone}.", zone);
             throw;
         }
     }
+
 }

@@ -6,19 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Client-side implementation for resolving product prices based on price lists.
 /// </summary>
-public class PriceResolutionService : IPriceResolutionService
+public class PriceResolutionService(
+    IHttpClientService httpClientService,
+    ILogger<PriceResolutionService> logger) : IPriceResolutionService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<PriceResolutionService> _logger;
-    private const string BaseUrl = "api/v1/PriceLists/resolve-price";
-
-    public PriceResolutionService(
-        IHttpClientService httpClientService,
-        ILogger<PriceResolutionService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private const string BaseUrl = "api/v1/pricelists/resolve-price";
 
     public async Task<PriceResolutionResult> ResolvePriceAsync(
         Guid productId,
@@ -32,7 +24,7 @@ public class PriceResolutionService : IPriceResolutionService
         try
         {
             var queryString = BuildQueryString(productId, documentHeaderId, businessPartyId, forcedPriceListId, direction, quantity, unitOfMeasureId);
-            var result = await _httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}");
+            var result = await httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}");
 
             return result ?? new PriceResolutionResult
             {
@@ -43,7 +35,7 @@ public class PriceResolutionService : IPriceResolutionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resolving price for product {ProductId}", productId);
+            logger.LogError(ex, "Error resolving price for product {ProductId}", productId);
 
             // Return fallback result instead of throwing to prevent UI disruption
             return new PriceResolutionResult
@@ -91,12 +83,12 @@ public class PriceResolutionService : IPriceResolutionService
     {
         try
         {
-            return await _httpClientService.PostAsync<BatchPriceResolutionRequest, BatchPriceResolutionResponse>(
-                "api/v1/PriceLists/resolve-prices", request);
+            return await httpClientService.PostAsync<BatchPriceResolutionRequest, BatchPriceResolutionResponse>(
+                "api/v1/pricelists/resolve-prices", request);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resolving batch prices for {Count} items", request.Items.Count);
+            logger.LogError(ex, "Error resolving batch prices for {Count} items", request.Items.Count);
             return null;
         }
     }

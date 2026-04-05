@@ -5,33 +5,25 @@ namespace EventForge.Server.Services.Common;
 /// <summary>
 /// Service implementation for managing addresses.
 /// </summary>
-public class AddressService : IAddressService
+public class AddressService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<AddressService> logger) : IAddressService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<AddressService> _logger;
-
-    public AddressService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<AddressService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<AddressDto>> GetAddressesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for address operations.");
             }
 
-            var query = _context.Addresses
+            var query = context.Addresses
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
@@ -55,7 +47,7 @@ public class AddressService : IAddressService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving addresses.");
+            logger.LogError(ex, "Error retrieving addresses.");
             throw;
         }
     }
@@ -64,13 +56,13 @@ public class AddressService : IAddressService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for address operations.");
             }
 
-            var addresses = await _context.Addresses
+            var addresses = await context.Addresses
                 .Where(a => a.OwnerId == ownerId && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                 .OrderBy(a => a.AddressType)
                 .ToListAsync(cancellationToken);
@@ -79,7 +71,7 @@ public class AddressService : IAddressService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving addresses for owner {OwnerId}.", ownerId);
+            logger.LogError(ex, "Error retrieving addresses for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -88,15 +80,15 @@ public class AddressService : IAddressService
     {
         try
         {
-            var address = await _context.Addresses
+            var address = await context.Addresses
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return address == null ? null : MapToAddressDto(address);
+            return address is null ? null : MapToAddressDto(address);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving address {AddressId}.", id);
+            logger.LogError(ex, "Error retrieving address {AddressId}.", id);
             throw;
         }
     }
@@ -108,7 +100,7 @@ public class AddressService : IAddressService
             ArgumentNullException.ThrowIfNull(createAddressDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for address operations.");
@@ -132,18 +124,18 @@ public class AddressService : IAddressService
                 IsActive = true
             };
 
-            _ = _context.Addresses.Add(address);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Addresses.Add(address);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Address {AddressId} created by {User}.", address.Id, currentUser);
+            logger.LogInformation("Address {AddressId} created by {User}.", address.Id, currentUser);
 
             return MapToAddressDto(address);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating address.");
+            logger.LogError(ex, "Error creating address.");
             throw;
         }
     }
@@ -155,14 +147,14 @@ public class AddressService : IAddressService
             ArgumentNullException.ThrowIfNull(updateAddressDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var address = await _context.Addresses
+            var address = await context.Addresses
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (address == null) return null;
+            if (address is null) return null;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(address).CurrentValues.Clone();
+            var originalValues = context.Entry(address).CurrentValues.Clone();
             var originalAddress = (Address)originalValues.ToObject();
 
             address.AddressType = updateAddressDto.AddressType.ToEntity();
@@ -177,17 +169,17 @@ public class AddressService : IAddressService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Address {AddressId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Address {AddressId}.", id);
                 throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
 
-            _logger.LogInformation("Address {AddressId} updated by {User}.", address.Id, currentUser);
+            logger.LogInformation("Address {AddressId} updated by {User}.", address.Id, currentUser);
 
             return MapToAddressDto(address);
         }
@@ -197,7 +189,7 @@ public class AddressService : IAddressService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating address {AddressId}.", id);
+            logger.LogError(ex, "Error updating address {AddressId}.", id);
             throw;
         }
     }
@@ -208,14 +200,14 @@ public class AddressService : IAddressService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var address = await _context.Addresses
+            var address = await context.Addresses
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (address == null) return false;
+            if (address is null) return false;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(address).CurrentValues.Clone();
+            var originalValues = context.Entry(address).CurrentValues.Clone();
             var originalAddress = (Address)originalValues.ToObject();
 
             address.IsDeleted = true;
@@ -226,17 +218,17 @@ public class AddressService : IAddressService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Address {AddressId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Address {AddressId}.", id);
                 throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
 
-            _logger.LogInformation("Address {AddressId} deleted by {User}.", address.Id, currentUser);
+            logger.LogInformation("Address {AddressId} deleted by {User}.", address.Id, currentUser);
 
             return true;
         }
@@ -246,7 +238,7 @@ public class AddressService : IAddressService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting address {AddressId}.", id);
+            logger.LogError(ex, "Error deleting address {AddressId}.", id);
             throw;
         }
     }
@@ -255,12 +247,12 @@ public class AddressService : IAddressService
     {
         try
         {
-            return await _context.Addresses
+            return await context.Addresses
                 .AnyAsync(a => a.Id == addressId && !a.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if address {AddressId} exists.", addressId);
+            logger.LogError(ex, "Error checking if address {AddressId} exists.", addressId);
             throw;
         }
     }
@@ -285,4 +277,5 @@ public class AddressService : IAddressService
             ModifiedBy = address.ModifiedBy
         };
     }
+
 }

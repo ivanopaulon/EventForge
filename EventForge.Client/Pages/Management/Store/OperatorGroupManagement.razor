@@ -200,7 +200,7 @@
         var options = EFDialogDefaults.Options;
         var dialog = await DialogService.ShowAsync<OperatorGroupDetailDialog>(string.Empty, parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled && _entityPage != null)
+        if (result is { Canceled: false } && _entityPage != null)
             await _entityPage.RefreshAsync();
     }
 }

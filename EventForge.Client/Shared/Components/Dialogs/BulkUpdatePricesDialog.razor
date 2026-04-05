@@ -5,7 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IPriceListService PriceListService
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<BulkUpdatePricesDialog> Logger
 @inject IDialogService DialogService
 
@@ -304,16 +304,12 @@
 
             _previewResult = await PriceListService.PreviewBulkUpdateAsync(PriceListId, dto);
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.previewGenerated", "Anteprima generata con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.previewGenerated", "Anteprima generata con successo"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error generating preview for bulk update");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.previewFailed", $"Errore generazione anteprima: {ex.Message}"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.previewFailed", $"Errore generazione anteprima: {ex.Message}"));
         }
         finally
         {
@@ -350,18 +346,14 @@
 
             var result = await PriceListService.BulkUpdatePricesAsync(PriceListId, dto);
             
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("pricelist.updateSuccess", "Aggiornati")} {result.UpdatedCount} {TranslationService.GetTranslation("pricelist.products", "prodotti")}",
-                Severity.Success);
+            AppNotification.ShowSuccess($"{TranslationService.GetTranslation("pricelist.updateSuccess", "Aggiornati")} {result.UpdatedCount} {TranslationService.GetTranslation("pricelist.products", "prodotti")}");
             
             MudDialog.Close(DialogResult.Ok(result));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying bulk update");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.updateFailed", $"Errore aggiornamento: {ex.Message}"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.updateFailed", $"Errore aggiornamento: {ex.Message}"));
         }
         finally
         {

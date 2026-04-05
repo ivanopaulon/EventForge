@@ -6,20 +6,12 @@ namespace EventForge.Server.Services.Business;
 /// <summary>
 /// Service implementation for managing business parties and their accounting data.
 /// </summary>
-public class BusinessPartyService : IBusinessPartyService
+public class BusinessPartyService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<BusinessPartyService> logger) : IBusinessPartyService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<BusinessPartyService> _logger;
-
-    public BusinessPartyService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<BusinessPartyService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region BusinessParty Operations
 
@@ -28,13 +20,13 @@ public class BusinessPartyService : IBusinessPartyService
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var query = _context.BusinessParties
+            var query = context.BusinessParties
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -50,23 +42,23 @@ public class BusinessPartyService : IBusinessPartyService
             var businessPartyDtos = new List<BusinessPartyDto>();
             foreach (var businessParty in businessParties)
             {
-                var addressCount = await _context.Addresses
+                var addressCount = await context.Addresses
                     .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await _context.Contacts
+                var contactCount = await context.Contacts
                     .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await _context.References
+                var referenceCount = await context.References
                     .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await _context.BusinessPartyAccountings
+                var hasAccountingData = await context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
                 // Get primary address for location info
-                var primaryAddress = await _context.Addresses
+                var primaryAddress = await context.Addresses
                     .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                     .OrderBy(a => a.CreatedAt)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // Get contacts for tooltip
-                var contacts = await _context.Contacts
+                var contacts = await context.Contacts
                     .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                     .OrderByDescending(c => c.IsPrimary)
                     .ThenBy(c => c.ContactType)
@@ -85,7 +77,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business parties");
+            logger.LogError(ex, "Error retrieving business parties");
             throw;
         }
     }
@@ -94,39 +86,39 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var businessParty = await _context.BusinessParties
+            var businessParty = await context.BusinessParties
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
                 return null;
 
-            var addressCount = await _context.Addresses
+            var addressCount = await context.Addresses
                 .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-            var contactCount = await _context.Contacts
+            var contactCount = await context.Contacts
                 .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-            var referenceCount = await _context.References
+            var referenceCount = await context.References
                 .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-            var hasAccountingData = await _context.BusinessPartyAccountings
+            var hasAccountingData = await context.BusinessPartyAccountings
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
             // Get primary address for location info
-            var primaryAddress = await _context.Addresses
+            var primaryAddress = await context.Addresses
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                 .OrderBy(a => a.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Get contacts for tooltip
-            var contacts = await _context.Contacts
+            var contacts = await context.Contacts
                 .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                 .OrderByDescending(c => c.IsPrimary)
                 .ThenBy(c => c.ContactType)
@@ -136,7 +128,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party with ID {BusinessPartyId}", id);
+            logger.LogError(ex, "Error retrieving business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -145,13 +137,13 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var businessParties = await _context.BusinessParties
+            var businessParties = await context.BusinessParties
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
@@ -163,23 +155,23 @@ public class BusinessPartyService : IBusinessPartyService
             var businessPartyDtos = new List<BusinessPartyDto>();
             foreach (var businessParty in businessParties)
             {
-                var addressCount = await _context.Addresses
+                var addressCount = await context.Addresses
                     .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await _context.Contacts
+                var contactCount = await context.Contacts
                     .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await _context.References
+                var referenceCount = await context.References
                     .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await _context.BusinessPartyAccountings
+                var hasAccountingData = await context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
                 // Get primary address for location info
-                var primaryAddress = await _context.Addresses
+                var primaryAddress = await context.Addresses
                     .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                     .OrderBy(a => a.CreatedAt)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // Get contacts for tooltip
-                var contacts = await _context.Contacts
+                var contacts = await context.Contacts
                     .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                     .OrderByDescending(c => c.IsPrimary)
                     .ThenBy(c => c.ContactType)
@@ -192,7 +184,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business parties by type {BusinessPartyType}", partyType);
+            logger.LogError(ex, "Error retrieving business parties by type {BusinessPartyType}", partyType);
             throw;
         }
     }
@@ -201,7 +193,7 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
@@ -209,10 +201,10 @@ public class BusinessPartyService : IBusinessPartyService
 
             if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                return new List<BusinessPartyDto>();
+                return [];
             }
 
-            var query = _context.BusinessParties
+            var query = context.BusinessParties
                 .WhereActiveTenant(currentTenantId.Value);
 
             // Filter by party type if specified
@@ -248,23 +240,23 @@ public class BusinessPartyService : IBusinessPartyService
             var businessPartyDtos = new List<BusinessPartyDto>();
             foreach (var businessParty in businessParties)
             {
-                var addressCount = await _context.Addresses
+                var addressCount = await context.Addresses
                     .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await _context.Contacts
+                var contactCount = await context.Contacts
                     .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await _context.References
+                var referenceCount = await context.References
                     .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await _context.BusinessPartyAccountings
+                var hasAccountingData = await context.BusinessPartyAccountings
                     .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
                 // Get primary address for location info
-                var primaryAddress = await _context.Addresses
+                var primaryAddress = await context.Addresses
                     .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                     .OrderBy(a => a.CreatedAt)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 // Get contacts for tooltip
-                var contacts = await _context.Contacts
+                var contacts = await context.Contacts
                     .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                     .OrderByDescending(c => c.IsPrimary)
                     .ThenBy(c => c.ContactType)
@@ -277,7 +269,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching business parties with term {SearchTerm}", searchTerm);
+            logger.LogError(ex, "Error searching business parties with term {SearchTerm}", searchTerm);
             throw;
         }
     }
@@ -286,7 +278,7 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
@@ -311,19 +303,19 @@ public class BusinessPartyService : IBusinessPartyService
                 ModifiedBy = currentUser
             };
 
-            _ = _context.BusinessParties.Add(businessParty);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.BusinessParties.Add(businessParty);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessParty, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}",
+            logger.LogInformation("Business party {BusinessPartyName} created with ID {BusinessPartyId} by {User}",
                 businessParty.Name, businessParty.Id, currentUser);
 
-            return MapToBusinessPartyDto(businessParty, 0, 0, 0, false, null, new List<Data.Entities.Common.Contact>());
+            return MapToBusinessPartyDto(businessParty, 0, 0, 0, false, null, []);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating business party");
+            logger.LogError(ex, "Error creating business party");
             throw;
         }
     }
@@ -332,28 +324,28 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var originalBusinessParty = await _context.BusinessParties
+            var originalBusinessParty = await context.BusinessParties
                 .AsNoTracking()
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBusinessParty == null)
+            if (originalBusinessParty is null)
                 return null;
 
-            var businessParty = await _context.BusinessParties
+            var businessParty = await context.BusinessParties
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
                 return null;
 
             businessParty.PartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)updateBusinessPartyDto.PartyType;
@@ -373,40 +365,40 @@ public class BusinessPartyService : IBusinessPartyService
 
             // Apply optimistic concurrency: if client provided a RowVersion, use it as the
             // expected original value so EF Core detects concurrent modifications.
-            if (updateBusinessPartyDto.RowVersion != null && updateBusinessPartyDto.RowVersion.Length > 0)
-                _context.Entry(businessParty).Property(bp => bp.RowVersion).OriginalValue = updateBusinessPartyDto.RowVersion;
+            if (updateBusinessPartyDto.RowVersion is not null && updateBusinessPartyDto.RowVersion.Length > 0)
+                context.Entry(businessParty).Property(bp => bp.RowVersion).OriginalValue = updateBusinessPartyDto.RowVersion;
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating business party {BusinessPartyId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating business party {BusinessPartyId}.", id);
                 throw new InvalidOperationException("Il record è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Update", currentUser, originalBusinessParty, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessParty, "Update", currentUser, originalBusinessParty, cancellationToken);
 
-            _logger.LogInformation("Business party {BusinessPartyId} updated by {User}", id, currentUser);
+            logger.LogInformation("Business party {BusinessPartyId} updated by {User}", id, currentUser);
 
-            var addressCount = await _context.Addresses
+            var addressCount = await context.Addresses
                 .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted, cancellationToken);
-            var contactCount = await _context.Contacts
+            var contactCount = await context.Contacts
                 .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted, cancellationToken);
-            var referenceCount = await _context.References
+            var referenceCount = await context.References
                 .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == id && !r.IsDeleted, cancellationToken);
-            var hasAccountingData = await _context.BusinessPartyAccountings
+            var hasAccountingData = await context.BusinessPartyAccountings
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted, cancellationToken);
 
             // Get primary address for location info
-            var primaryAddress = await _context.Addresses
+            var primaryAddress = await context.Addresses
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted)
                 .OrderBy(a => a.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Get contacts for tooltip
-            var contacts = await _context.Contacts
+            var contacts = await context.Contacts
                 .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted)
                 .OrderByDescending(c => c.IsPrimary)
                 .ThenBy(c => c.ContactType)
@@ -416,7 +408,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating business party with ID {BusinessPartyId}", id);
+            logger.LogError(ex, "Error updating business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -425,25 +417,25 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var originalBusinessParty = await _context.BusinessParties
+            var originalBusinessParty = await context.BusinessParties
                 .AsNoTracking()
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBusinessParty == null)
+            if (originalBusinessParty is null)
                 return false;
 
-            var businessParty = await _context.BusinessParties
+            var businessParty = await context.BusinessParties
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
                 return false;
 
             businessParty.IsDeleted = true;
@@ -454,17 +446,17 @@ public class BusinessPartyService : IBusinessPartyService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
                 throw new InvalidOperationException("L'anagrafica è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
 
-            _logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
+            logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
 
             return true;
         }
@@ -474,7 +466,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting business party with ID {BusinessPartyId}", id);
+            logger.LogError(ex, "Error deleting business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -487,7 +479,7 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var query = _context.BusinessPartyAccountings
+            var query = context.BusinessPartyAccountings
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => !bpa.IsDeleted);
@@ -502,7 +494,7 @@ public class BusinessPartyService : IBusinessPartyService
             var businessPartyAccountingDtos = new List<BusinessPartyAccountingDto>();
             foreach (var bpa in businessPartyAccountings)
             {
-                var businessPartyName = await _context.BusinessParties
+                var businessPartyName = await context.BusinessParties
                     .Where(bp => bp.Id == bpa.BusinessPartyId && !bp.IsDeleted)
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -520,7 +512,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party accounting records");
+            logger.LogError(ex, "Error retrieving business party accounting records");
             throw;
         }
     }
@@ -529,16 +521,16 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var businessPartyAccounting = await _context.BusinessPartyAccountings
+            var businessPartyAccounting = await context.BusinessPartyAccountings
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
                 return null;
 
-            var businessPartyName = await _context.BusinessParties
+            var businessPartyName = await context.BusinessParties
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -547,7 +539,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party accounting with ID {BusinessPartyAccountingId}", id);
+            logger.LogError(ex, "Error retrieving business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -556,16 +548,16 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var businessPartyAccounting = await _context.BusinessPartyAccountings
+            var businessPartyAccounting = await context.BusinessPartyAccountings
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => bpa.BusinessPartyId == businessPartyId && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
                 return null;
 
-            var businessPartyName = await _context.BusinessParties
+            var businessPartyName = await context.BusinessParties
                 .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -574,7 +566,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving business party accounting for business party {BusinessPartyId}", businessPartyId);
+            logger.LogError(ex, "Error retrieving business party accounting for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -583,7 +575,7 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
@@ -602,21 +594,21 @@ public class BusinessPartyService : IBusinessPartyService
                 ModifiedBy = currentUser
             };
 
-            _ = _context.BusinessPartyAccountings.Add(businessPartyAccounting);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.BusinessPartyAccountings.Add(businessPartyAccounting);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Business party accounting created with ID {BusinessPartyAccountingId} by {User}",
+            logger.LogInformation("Business party accounting created with ID {BusinessPartyAccountingId} by {User}",
                 businessPartyAccounting.Id, currentUser);
 
             // Reload with includes
-            var createdBusinessPartyAccounting = await _context.BusinessPartyAccountings
+            var createdBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .FirstAsync(bpa => bpa.Id == businessPartyAccounting.Id, cancellationToken);
 
-            var businessPartyName = await _context.BusinessParties
+            var businessPartyName = await context.BusinessParties
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -625,7 +617,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating business party accounting");
+            logger.LogError(ex, "Error creating business party accounting");
             throw;
         }
     }
@@ -634,19 +626,19 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var originalBusinessPartyAccounting = await _context.BusinessPartyAccountings
+            var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBusinessPartyAccounting == null)
+            if (originalBusinessPartyAccounting is null)
                 return null;
 
-            var businessPartyAccounting = await _context.BusinessPartyAccountings
+            var businessPartyAccounting = await context.BusinessPartyAccountings
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
                 return null;
 
             businessPartyAccounting.BusinessPartyId = updateBusinessPartyAccountingDto.BusinessPartyId;
@@ -660,25 +652,25 @@ public class BusinessPartyService : IBusinessPartyService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
                 throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
-            _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} updated by {User}", id, currentUser);
+            logger.LogInformation("Business party accounting {BusinessPartyAccountingId} updated by {User}", id, currentUser);
 
             // Reload with includes
-            var updatedBusinessPartyAccounting = await _context.BusinessPartyAccountings
+            var updatedBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .FirstAsync(bpa => bpa.Id == id, cancellationToken);
 
-            var businessPartyName = await _context.BusinessParties
+            var businessPartyName = await context.BusinessParties
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -691,7 +683,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating business party accounting with ID {BusinessPartyAccountingId}", id);
+            logger.LogError(ex, "Error updating business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -700,19 +692,19 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var originalBusinessPartyAccounting = await _context.BusinessPartyAccountings
+            var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBusinessPartyAccounting == null)
+            if (originalBusinessPartyAccounting is null)
                 return false;
 
-            var businessPartyAccounting = await _context.BusinessPartyAccountings
+            var businessPartyAccounting = await context.BusinessPartyAccountings
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
                 return false;
 
             businessPartyAccounting.IsDeleted = true;
@@ -723,17 +715,17 @@ public class BusinessPartyService : IBusinessPartyService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
                 throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
 
-            _logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
+            logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
 
             return true;
         }
@@ -743,7 +735,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting business party accounting with ID {BusinessPartyAccountingId}", id);
+            logger.LogError(ex, "Error deleting business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -754,16 +746,16 @@ public class BusinessPartyService : IBusinessPartyService
 
     public async Task<bool> BusinessPartyExistsAsync(Guid businessPartyId, CancellationToken cancellationToken = default)
     {
-        return await _context.BusinessParties
+        return await context.BusinessParties
             .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue) return Enumerable.Empty<BusinessPartyDto>();
 
-        var parties = await _context.BusinessParties
+        var parties = await context.BusinessParties
             .Where(bp => !bp.IsDeleted && bp.DateOfBirth.HasValue && bp.TenantId == currentTenantId.Value)
             .OrderBy(bp => bp.Name)
             .ToListAsync(cancellationToken);
@@ -869,13 +861,13 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
-            var query = _context.DocumentHeaders
+            var query = context.DocumentHeaders
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.BusinessParty)
                 .Where(dh => !dh.IsDeleted && dh.TenantId == currentTenantId.Value && dh.BusinessPartyId == businessPartyId);
@@ -946,7 +938,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving documents for business party {BusinessPartyId}", businessPartyId);
+            logger.LogError(ex, "Error retrieving documents for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -968,14 +960,14 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
             // Build base query with all document rows for this business party
-            var rowsQuery = _context.DocumentRows
+            var rowsQuery = context.DocumentRows
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(h => h!.DocumentType)
                 .Include(r => r.Product)
@@ -1098,7 +1090,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
+            logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -1150,25 +1142,25 @@ public class BusinessPartyService : IBusinessPartyService
     {
         try
         {
-            _logger.LogInformation("Fetching full detail for BusinessParty {Id} (includeInactive: {IncludeInactive})", id, includeInactive);
+            logger.LogInformation("Fetching full detail for BusinessParty {Id} (includeInactive: {IncludeInactive})", id, includeInactive);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for business party operations.");
             }
 
             // ⚡ Single query con eager loading ottimizzato
-            var businessParty = await _context.BusinessParties
+            var businessParty = await context.BusinessParties
                 .Where(bp => bp.Id == id && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
                 .Include(bp => bp.Contacts)
                 .Include(bp => bp.Addresses)
                 .AsSplitQuery() // ⭐ CRITICO: evita cartesian explosion con multiple includes
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
             {
-                _logger.LogWarning("BusinessParty {Id} not found", id);
+                logger.LogWarning("BusinessParty {Id} not found", id);
                 return null;
             }
 
@@ -1182,7 +1174,7 @@ public class BusinessPartyService : IBusinessPartyService
                 : businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value && !a.IsDeleted).ToList();
 
             // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
-            var priceListsQuery = await _context.PriceListBusinessParties
+            var priceListsQuery = await context.PriceListBusinessParties
                 .Where(plbp => plbp.BusinessPartyId == id
                             && !plbp.IsDeleted
                             && plbp.TenantId == currentTenantId.Value
@@ -1219,7 +1211,7 @@ public class BusinessPartyService : IBusinessPartyService
                 Statistics = await CalculateStatisticsAsync(id, currentTenantId.Value, cancellationToken)
             };
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Full detail loaded for BusinessParty {Id}: {ContactCount} contacts, {AddressCount} addresses, {PriceListCount} price lists",
                 id, result.Contacts.Count, result.Addresses.Count, result.AssignedPriceLists.Count);
 
@@ -1227,7 +1219,7 @@ public class BusinessPartyService : IBusinessPartyService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
+            logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
             throw;
         }
     }
@@ -1243,25 +1235,25 @@ public class BusinessPartyService : IBusinessPartyService
         var currentYear = DateTime.UtcNow.Year;
 
         // ⚡ Query parallele per performance ottimali
-        var contactsTask = _context.Contacts
+        var contactsTask = context.Contacts
             .CountAsync(c => c.OwnerId == businessPartyId && c.OwnerType == "BusinessParty" && !c.IsDeleted && c.TenantId == tenantId, cancellationToken);
 
-        var addressesTask = _context.Addresses
+        var addressesTask = context.Addresses
             .CountAsync(a => a.OwnerId == businessPartyId && a.OwnerType == "BusinessParty" && !a.IsDeleted && a.TenantId == tenantId, cancellationToken);
 
-        var priceListsTask = _context.PriceListBusinessParties
+        var priceListsTask = context.PriceListBusinessParties
             .CountAsync(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted && !plbp.PriceList.IsDeleted && plbp.TenantId == tenantId, cancellationToken);
 
-        var documentsTask = _context.DocumentHeaders
+        var documentsTask = context.DocumentHeaders
             .CountAsync(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId, cancellationToken);
 
-        var lastOrderTask = _context.DocumentHeaders
+        var lastOrderTask = context.DocumentHeaders
             .Where(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId)
             .OrderByDescending(d => d.Date)
             .Select(d => (DateTime?)d.Date)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var revenueTask = _context.DocumentHeaders
+        var revenueTask = context.DocumentHeaders
             .Where(d => d.BusinessPartyId == businessPartyId
                      && !d.IsDeleted
                      && d.TenantId == tenantId
@@ -1404,13 +1396,13 @@ public class BusinessPartyService : IBusinessPartyService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for business party operations.");
         }
 
-        var query = _context.BusinessParties
+        var query = context.BusinessParties
             .Include(bp => bp.Addresses)
             .Include(bp => bp.Contacts)
             .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
@@ -1418,12 +1410,12 @@ public class BusinessPartyService : IBusinessPartyService
 
         var totalCount = await query.CountAsync(ct);
 
-        _logger.LogInformation("Export requested for {Count} business parties", totalCount);
+        logger.LogInformation("Export requested for {Count} business parties", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
-            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetBusinessPartiesInBatchesAsync(query, ct);
         }
 
@@ -1490,7 +1482,7 @@ public class BusinessPartyService : IBusinessPartyService
 
             skip += batchSize;
 
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
+            logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
 
@@ -1498,4 +1490,5 @@ public class BusinessPartyService : IBusinessPartyService
     }
 
     #endregion
+
 }

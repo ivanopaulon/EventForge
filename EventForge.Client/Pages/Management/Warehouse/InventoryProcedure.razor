@@ -12,7 +12,7 @@
 @inject IInventoryService InventoryService
 @inject IStorageLocationService StorageLocationService
 @inject IWarehouseService WarehouseService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<InventoryProcedure> Logger
@@ -597,27 +597,18 @@
                             if (document.Rows == null)
                             {
                                 Logger.LogWarning("Document.Rows is null! Expected {TotalItems} items", document.TotalItems);
-                                Snackbar.Add(
-                                    TranslationService.GetTranslation("warehouse.sessionRowsNotLoaded", "Avviso: Le righe del documento non sono state caricate correttamente"),
-                                    Severity.Warning
-                                );
+                                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.sessionRowsNotLoaded", "Avviso: Le righe del documento non sono state caricate correttamente"));
                             }
                             else if (document.Rows.Count == 0 && document.TotalItems > 0)
                             {
                                 Logger.LogWarning("Document.Rows is empty but TotalItems is {TotalItems}! Possible data loading issue", document.TotalItems);
-                                Snackbar.Add(
-                                    TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, 0),
-                                    Severity.Warning
-                                );
+                                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, 0));
                             }
                             else if (document.Rows.Count != document.TotalItems)
                             {
                                 Logger.LogWarning("Row count mismatch: Rows.Count={RowCount}, TotalItems={TotalItems}",
                                     document.Rows.Count, document.TotalItems);
-                                Snackbar.Add(
-                                    TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, document.Rows.Count),
-                                    Severity.Warning
-                                );
+                                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.sessionRowsMismatch", "Avviso: Il conteggio delle righe non corrisponde ({0} attese, {1} caricate)", document.TotalItems, document.Rows.Count));
                             }
                             else
                             {
@@ -636,10 +627,7 @@
                             await InventorySessionService.ClearSessionAsync();
                             document = null;
                             
-                            Snackbar.Add(
-                                TranslationService.GetTranslation("warehouse.sessionAlreadyFinalized", "La sessione precedente è stata finalizzata"),
-                                Severity.Info
-                            );
+                            AppNotification.ShowInfo(TranslationService.GetTranslation("warehouse.sessionAlreadyFinalized", "La sessione precedente è stata finalizzata"));
                         }
                     }
                     else
@@ -649,10 +637,7 @@
                         // Document not found, clear the invalid session
                         await InventorySessionService.ClearSessionAsync();
                         
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("warehouse.sessionDocumentNotFound", "Il documento della sessione precedente non è stato trovato"),
-                            Severity.Warning
-                        );
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.sessionDocumentNotFound", "Il documento della sessione precedente non è stato trovato"));
                     }
                 }
                 catch (Exception docEx)
@@ -660,10 +645,7 @@
                     Logger.LogError(docEx, "Error loading document {DocumentId} from server", sessionState.DocumentId);
                     document = null;
                     
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.sessionLoadError", "Errore nel caricamento della sessione precedente: {0}", docEx.Message),
-                        Severity.Error
-                    );
+                    AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionLoadError", "Errore nel caricamento della sessione precedente: {0}", docEx.Message));
                 }
             }
 
@@ -703,10 +685,7 @@
                                 else
                                 {
                                     Logger.LogError("Retry failed - Still no rows loaded");
-                                    Snackbar.Add(
-                                        TranslationService.GetTranslation("warehouse.sessionRowsLoadFailed", "Impossibile caricare le righe del documento. Contatta l'amministratore."),
-                                        Severity.Error
-                                    );
+                                    AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionRowsLoadFailed", "Impossibile caricare le righe del documento. Contatta l'amministratore."));
                                 }
                             }
                             catch (Exception retryEx)
@@ -745,10 +724,7 @@
                 {
                     Logger.LogError(serverEx, "Error loading most recent open document from server");
                     
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.sessionRestoreServerError", "Errore nel recupero della sessione dal server: {0}", serverEx.Message),
-                        Severity.Error
-                    );
+                    AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionRestoreServerError", "Errore nel recupero della sessione dal server: {0}", serverEx.Message));
                 }
             }
 
@@ -773,10 +749,7 @@
                     "Success"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata: {0} articoli", rowCount), 
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.sessionRestored", "Sessione di inventario ripristinata: {0} articoli", rowCount));
                 
                 Logger.LogInformation("=== SESSION RESTORATION SUCCESSFUL === Source: {Source}, DocumentId: {DocumentId}, Rows: {RowCount}",
                     restorationSource, document.Id, rowCount);
@@ -793,10 +766,7 @@
         {
             Logger.LogError(ex, "=== CRITICAL ERROR IN SESSION RESTORATION === {Message}", ex.Message);
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.sessionRestoreCriticalError", "Errore critico nel ripristino della sessione: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionRestoreCriticalError", "Errore critico nel ripristino della sessione: {0}", ex.Message));
             
             // Clear invalid session only if it exists in localStorage
             try
@@ -882,7 +852,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading storage facilities");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadFacilitiesError", "Errore nel caricamento dei magazzini"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.loadFacilitiesError", "Errore nel caricamento dei magazzini"));
         }
     }
 
@@ -899,7 +869,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading storage locations");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.loadLocationsError", "Errore nel caricamento ubicazioni"));
         }
     }
 
@@ -949,29 +919,20 @@
                     "Info"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionResumedSuccess", "Sessione di inventario ripresa con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.sessionResumedSuccess", "Sessione di inventario ripresa con successo"));
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.sessionCannotResume", "Impossibile riprendere la sessione. Il documento potrebbe essere già stato finalizzato."),
-                    Severity.Warning
-                );
+                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.sessionCannotResume", "Impossibile riprendere la sessione. Il documento potrebbe essere già stato finalizzato."));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error resuming inventory session");
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.sessionResumeError", "Errore durante il ripristino della sessione: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionResumeError", "Errore durante il ripristino della sessione: {0}", ex.Message));
         }
         finally
         {
@@ -1006,10 +967,7 @@
                     "Success"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess", "Inventario {0} finalizzato con successo", result.Number),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.inventoryFinalizedSuccess", "Inventario {0} finalizzato con successo", result.Number));
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
@@ -1024,19 +982,13 @@
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione dell'inventario"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione dell'inventario"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error finalizing inventory {DocumentId}", inventory.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message));
         }
         finally
         {
@@ -1071,29 +1023,20 @@
                     "Warning"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryCancelledSuccess", "Inventario {0} chiuso senza salvare", inventory.Number),
-                    Severity.Warning
-                );
+                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.inventoryCancelledSuccess", "Inventario {0} chiuso senza salvare", inventory.Number));
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura dell'inventario"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura dell'inventario"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error cancelling inventory {DocumentId}", inventory.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.inventoryCancelError", "Errore durante la chiusura: {0}", ex.Message));
         }
         finally
         {
@@ -1128,29 +1071,20 @@
                     "Success"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.allInventoriesFinalizedSuccess", "Finalizzati con successo {0} inventari", results.Count),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.allInventoriesFinalizedSuccess", "Finalizzati con successo {0} inventari", results.Count));
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione degli inventari"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione degli inventari"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error finalizing all inventories");
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.allInventoriesFinalizeError", "Errore durante la finalizzazione: {0}", ex.Message));
         }
         finally
         {
@@ -1185,29 +1119,20 @@
                     "Warning"
                 );
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.allInventoriesCancelledSuccess", "Chiusi senza salvare {0} inventari", cancelledCount),
-                    Severity.Warning
-                );
+                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.allInventoriesCancelledSuccess", "Chiusi senza salvare {0} inventari", cancelledCount));
                 
                 // Reload open inventories to update the list
                 await LoadOpenInventoriesAsync();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura degli inventari"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura degli inventari"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error cancelling all inventories");
-            Snackbar.Add(
-                TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura: {0}", ex.Message),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.allInventoriesCancelError", "Errore durante la chiusura: {0}", ex.Message));
         }
         finally
         {
@@ -1254,7 +1179,7 @@
                     "Success"
                 );
 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.sessionStarted", "Sessione di inventario avviata"));
                 
                 // Focus on barcode input after session start - ensure DOM is updated
                 StateHasChanged();
@@ -1266,7 +1191,7 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"),
                     "",
@@ -1277,7 +1202,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error starting inventory session");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"));
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.sessionStartError", "Errore nell'avvio della sessione"),
                 ex.Message,
@@ -1296,7 +1221,7 @@
         // to avoid synchronization issues between KeyDown event and data binding
         if (e.Key == "Enter")
         {
-            var currentValue = _barcodeInput?.Value;
+            var currentValue = _scannedBarcode;
             if (!string.IsNullOrWhiteSpace(currentValue))
             {
                 // Update the bound variable to stay in sync before calling search
@@ -1344,7 +1269,7 @@
                     );
                 }
 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato: {0}", _currentProduct.Name));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.productFound", "Prodotto trovato"),
                     $"{_currentProduct.Name} ({_currentProduct.Code})",
@@ -1369,10 +1294,7 @@
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             Logger.LogError(ex, "Unauthorized error searching product by barcode {Barcode} - session expired", _scannedBarcode);
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."));
             AddOperationLog(
                 TranslationService.GetTranslation("auth.sessionExpired", "Sessione scaduta"),
                 "Token JWT scaduto - è necessario rieffettuare il login",
@@ -1382,7 +1304,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching product by barcode {Barcode}", _scannedBarcode);
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"));
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.searchError", "Errore nella ricerca"),
                 ex.Message,
@@ -1403,10 +1325,6 @@
         if (UseUnifiedInventoryDialog)
         {
             await ShowUnifiedInventoryEntryDialog();
-        }
-        else
-        {
-            await ShowLegacyInventoryEntryDialog();
         }
     }
 
@@ -1451,7 +1369,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult entryResult)
+        if (result is { Canceled: false } && result.Data is UnifiedInventoryDialog.InventoryRowResult entryResult)
         {
             // Set the values and add the row
             _selectedLocationId = entryResult.LocationId;
@@ -1496,7 +1414,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult entryResult)
+        if (result is { Canceled: false } && result.Data is InventoryRowDialog.InventoryRowResult entryResult)
         {
             // Set the values and add the row
             _selectedLocationId = entryResult.LocationId;
@@ -1520,7 +1438,7 @@
             var product = await ProductService.GetProductByIdAsync(productId);
             if (product == null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
                 return;
             }
 
@@ -1546,7 +1464,7 @@
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
             {
                 // Update the current product to reflect changes
                 _currentProduct = updatedProduct;
@@ -1568,13 +1486,13 @@
                     "Success"
                 );
                 
-                Snackbar.Add(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening quick edit product dialog for product {ProductId}", productId);
-            Snackbar.Add(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"));
             AddOperationLog(
                 TranslationService.GetTranslation("products.loadError", "Errore nel caricamento del prodotto"),
                 ex.Message,
@@ -1621,7 +1539,7 @@
                     "Success"
                 );
 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.itemAdded", "Articolo aggiunto al documento"));
                 
                 // Clear form and refocus on barcode
                 await ClearProductForm();
@@ -1631,7 +1549,7 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"),
                     $"Prodotto: {_currentProduct.Name}",
@@ -1642,10 +1560,7 @@
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             Logger.LogError(ex, "Unauthorized error adding inventory row - session expired");
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."));
             AddOperationLog(
                 TranslationService.GetTranslation("auth.sessionExpired", "Sessione scaduta"),
                 "Token JWT scaduto durante l'aggiunta dell'articolo",
@@ -1655,7 +1570,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error adding inventory row");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"));
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.addItemError", "Errore nell'aggiunta dell'articolo"),
                 ex.Message,
@@ -1727,7 +1642,7 @@
                     "Success"
                 );
 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.inventoryFinalized", "Inventario finalizzato con successo"));
                 
                 // Clear session state from localStorage
                 await InventorySessionService.ClearSessionAsync();
@@ -1738,7 +1653,7 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"),
                     "",
@@ -1749,7 +1664,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error finalizing inventory");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"));
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.finalizeError", "Errore nella finalizzazione"),
                 ex.Message,
@@ -1791,7 +1706,7 @@
         // Simply reset the document without finalizing
         _currentDocument = null;
         await ClearProductForm();
-        Snackbar.Add(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("warehouse.sessionCanceled", "Sessione annullata"));
     }
 
     private async Task SimulateInventory()
@@ -1842,7 +1757,7 @@
 
             if (_simulationTotal == 0)
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.noProductsFound", "Nessun prodotto attivo trovato"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.noProductsFound", "Nessun prodotto attivo trovato"));
                 return;
             }
 
@@ -1850,7 +1765,7 @@
             var locationId = _locations.FirstOrDefault()?.Id ?? Guid.Empty;
             if (locationId == Guid.Empty)
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.noLocationFound", "Nessuna ubicazione disponibile"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.noLocationFound", "Nessuna ubicazione disponibile"));
                 return;
             }
 
@@ -1904,17 +1819,13 @@
             // Messaggio finale
             if (errorCount == 0)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.simulationComplete", 
-                        "Simulazione completata! Aggiunte {0} righe al documento.", successCount),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.simulationComplete", 
+                        "Simulazione completata! Aggiunte {0} righe al documento.", successCount));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.simulationPartial", 
-                        "Simulazione completata con errori. Aggiunte {0} righe, {1} errori.", successCount, errorCount),
-                    Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.simulationPartial", 
+                        "Simulazione completata con errori. Aggiunte {0} righe, {1} errori.", successCount, errorCount));
             }
 
             AddOperationLog(
@@ -1926,7 +1837,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during inventory simulation");
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.simulationError", "Errore durante la simulazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.simulationError", "Errore durante la simulazione"));
         }
         finally
         {
@@ -1961,7 +1872,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data != null)
+        if (result is { Canceled: false } && result.Data != null)
         {
             // Handle string actions (create, skip)
             if (result.Data is string action)
@@ -1973,10 +1884,7 @@
                 else if (action == "skip")
                 {
                     // Skip this product and continue with inventory
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode), 
-                        Severity.Info
-                    );
+                    AppNotification.ShowInfo(TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato: {0}", _scannedBarcode));
                     AddOperationLog(
                         TranslationService.GetTranslation("warehouse.productSkipped", "Prodotto saltato"),
                         $"Codice: {_scannedBarcode}",
@@ -2036,7 +1944,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is ProductDto createdProduct)
+        if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
         {
             // Product created successfully with codes and units
             // Set the current product and show the inventory entry dialog directly
@@ -2045,10 +1953,7 @@
             // Track the barcode assignment for the new product
             TrackBarcodeAssignment(_scannedBarcode, createdProduct, "EAN", null, 1m);
             
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.productCreatedWithCodesUnits", "Prodotto creato con codici e UoM: {0}", createdProduct.Name),
-                Severity.Success
-            );
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("products.productCreatedWithCodesUnits", "Prodotto creato con codici e UoM: {0}", createdProduct.Name));
             
             AddOperationLog(
                 TranslationService.GetTranslation("products.productCreated", "Prodotto creato"),
@@ -2076,17 +1981,13 @@
         var product = await ProductService.GetProductByIdAsync(row.ProductId);
         if (product == null)
         {
-            Snackbar.Add(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
             return;
         }
 
         if (UseUnifiedInventoryDialog)
         {
             await EditInventoryRowUnified(row, product);
-        }
-        else
-        {
-            await EditInventoryRowLegacy(row, product);
         }
     }
 
@@ -2130,7 +2031,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is UnifiedInventoryDialog.InventoryRowResult editResult)
+        if (result is { Canceled: false } && result.Data is UnifiedInventoryDialog.InventoryRowResult editResult)
         {
             _isLoading = true;
             try
@@ -2141,7 +2042,7 @@
                     Notes = editResult.Notes
                 };
 
-                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument!.Id, row.Id, updateDto);
 
                 if (updatedDocument != null)
                 {
@@ -2153,13 +2054,13 @@
                         "Success"
                     );
 
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"));
                     
                     StateHasChanged();
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"));
                     AddOperationLog(
                         TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
                         "",
@@ -2170,7 +2071,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
                     ex.Message,
@@ -2212,7 +2113,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryRowDialog.InventoryRowResult editResult)
+        if (result is { Canceled: false } && result.Data is InventoryRowDialog.InventoryRowResult editResult)
         {
             _isLoading = true;
             try
@@ -2223,7 +2124,7 @@
                     Notes = editResult.Notes
                 };
 
-                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument.Id, row.Id, updateDto);
+                var updatedDocument = await InventoryService.UpdateInventoryDocumentRowAsync(_currentDocument!.Id, row.Id, updateDto);
 
                 if (updatedDocument != null)
                 {
@@ -2235,13 +2136,13 @@
                         "Success"
                     );
 
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.rowUpdated", "Riga aggiornata con successo"));
                     
                     StateHasChanged();
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"));
                     AddOperationLog(
                         TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
                         "",
@@ -2252,7 +2153,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error updating inventory row {RowId}", row.Id);
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.updateError", "Errore nell'aggiornamento della riga"),
                     ex.Message,
@@ -2296,13 +2197,13 @@
                     "Success"
                 );
 
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.rowDeleted", "Riga eliminata con successo"));
                 
                 StateHasChanged();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"));
                 AddOperationLog(
                     TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"),
                     "",
@@ -2313,7 +2214,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error deleting inventory row {RowId}", row.Id);
-            Snackbar.Add(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"));
             AddOperationLog(
                 TranslationService.GetTranslation("warehouse.deleteError", "Errore nell'eliminazione della riga"),
                 ex.Message,

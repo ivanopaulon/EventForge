@@ -108,7 +108,7 @@ public class MockFidelityService : IMockFidelityService
 
     private string GenerateCardNumber()
     {
-        var parts = new List<string>();
+        List<string> parts = [];
         for (int i = 0; i < 4; i++)
         {
             parts.Add(_random.Next(1000, 9999).ToString());

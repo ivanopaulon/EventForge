@@ -5,27 +5,21 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of document type service using HTTP client.
 /// </summary>
-public class DocumentTypeService : IDocumentTypeService
+public class DocumentTypeService(
+    IHttpClientService httpClientService,
+    ILogger<DocumentTypeService> logger) : IDocumentTypeService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<DocumentTypeService> _logger;
     private const string BaseUrl = "api/v1/documents/types";
-
-    public DocumentTypeService(IHttpClientService httpClientService, ILogger<DocumentTypeService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync()
     {
         try
         {
-            return await _httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl);
+            return await httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document types");
+            logger.LogError(ex, "Error retrieving document types");
             return null;
         }
     }
@@ -34,11 +28,11 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
-            return await _httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document type with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving document type with ID {Id}", id);
             return null;
         }
     }
@@ -47,11 +41,11 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document type");
+            logger.LogError(ex, "Error creating document type");
             return null;
         }
     }
@@ -60,11 +54,11 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document type with ID {Id}", id);
+            logger.LogError(ex, "Error updating document type with ID {Id}", id);
             return null;
         }
     }
@@ -73,12 +67,12 @@ public class DocumentTypeService : IDocumentTypeService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document type with ID {Id}", id);
+            logger.LogError(ex, "Error deleting document type with ID {Id}", id);
             return false;
         }
     }

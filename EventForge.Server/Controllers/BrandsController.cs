@@ -15,24 +15,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("ProductManagement")]
-public class BrandsController : BaseApiController
+public class BrandsController(
+    IBrandService service,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IBrandService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<BrandsController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public BrandsController(
-        IBrandService service,
-        ITenantContext tenantContext,
-        ILogger<BrandsController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     /// <summary>
     /// Retrieves all brands with pagination
@@ -50,23 +36,13 @@ public class BrandsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetBrandsAsync(pagination, cancellationToken);
+            var result = await service.GetBrandsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -92,23 +68,13 @@ public class BrandsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetActiveBrandsAsync(pagination, cancellationToken);
+            var result = await service.GetActiveBrandsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }

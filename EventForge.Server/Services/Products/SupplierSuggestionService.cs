@@ -9,72 +9,42 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service for intelligent supplier recommendations with multi-factor scoring.
 /// </summary>
-public class SupplierSuggestionService : ISupplierSuggestionService
+public class SupplierSuggestionService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    ISupplierProductPriceHistoryService priceHistoryService,
+    IMemoryCache cache,
+    IConfiguration configuration,
+    ILogger<SupplierSuggestionService> logger,
+    Lazy<ISupplierPriceAlertService>? alertService = null) : ISupplierSuggestionService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ISupplierProductPriceHistoryService _priceHistoryService;
-    private readonly IMemoryCache _cache;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<SupplierSuggestionService> _logger;
-    private readonly Lazy<ISupplierPriceAlertService>? _alertService;
 
     // Configuration values
-    private readonly decimal _priceWeight;
-    private readonly decimal _leadTimeWeight;
-    private readonly decimal _reliabilityWeight;
-    private readonly decimal _trendWeight;
-    private readonly int _minDataPointsForTrend;
-    private readonly int _trendAnalysisPeriodDays;
-    private readonly int _cacheScoresDurationMinutes;
-    private readonly int _lowConfidenceThreshold;
-    private readonly int _highConfidenceThreshold;
-    private readonly decimal _alertScoreDifferenceThreshold;
-
-    public SupplierSuggestionService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        ISupplierProductPriceHistoryService priceHistoryService,
-        IMemoryCache cache,
-        IConfiguration configuration,
-        ILogger<SupplierSuggestionService> logger,
-        Lazy<ISupplierPriceAlertService>? alertService = null)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _priceHistoryService = priceHistoryService ?? throw new ArgumentNullException(nameof(priceHistoryService));
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _alertService = alertService;
-
-        // Load configuration
-        _priceWeight = _configuration.GetValue<decimal>("SupplierSuggestion:Weights:Price", 0.4m);
-        _leadTimeWeight = _configuration.GetValue<decimal>("SupplierSuggestion:Weights:LeadTime", 0.25m);
-        _reliabilityWeight = _configuration.GetValue<decimal>("SupplierSuggestion:Weights:Reliability", 0.2m);
-        _trendWeight = _configuration.GetValue<decimal>("SupplierSuggestion:Weights:Trend", 0.15m);
-        _minDataPointsForTrend = _configuration.GetValue<int>("SupplierSuggestion:MinDataPointsForTrend", 3);
-        _trendAnalysisPeriodDays = _configuration.GetValue<int>("SupplierSuggestion:TrendAnalysisPeriodDays", 180);
-        _cacheScoresDurationMinutes = _configuration.GetValue<int>("SupplierSuggestion:CacheScoresDurationMinutes", 5);
-        _lowConfidenceThreshold = _configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:Low", 60);
-        _highConfidenceThreshold = _configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:High", 80);
-        _alertScoreDifferenceThreshold = _configuration.GetValue<decimal>("SupplierSuggestion:AlertScoreDifferenceThreshold", 10m);
-    }
+    private readonly decimal _priceWeight = configuration.GetValue<decimal>("SupplierSuggestion:Weights:Price", 0.4m);
+    private readonly decimal _leadTimeWeight = configuration.GetValue<decimal>("SupplierSuggestion:Weights:LeadTime", 0.25m);
+    private readonly decimal _reliabilityWeight = configuration.GetValue<decimal>("SupplierSuggestion:Weights:Reliability", 0.2m);
+    private readonly decimal _trendWeight = configuration.GetValue<decimal>("SupplierSuggestion:Weights:Trend", 0.15m);
+    private readonly int _minDataPointsForTrend = configuration.GetValue<int>("SupplierSuggestion:MinDataPointsForTrend", 3);
+    private readonly int _trendAnalysisPeriodDays = configuration.GetValue<int>("SupplierSuggestion:TrendAnalysisPeriodDays", 180);
+    private readonly int _cacheScoresDurationMinutes = configuration.GetValue<int>("SupplierSuggestion:CacheScoresDurationMinutes", 5);
+    private readonly int _lowConfidenceThreshold = configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:Low", 60);
+    private readonly int _highConfidenceThreshold = configuration.GetValue<int>("SupplierSuggestion:ConfidenceThresholds:High", 80);
+    private readonly decimal _alertScoreDifferenceThreshold = configuration.GetValue<decimal>("SupplierSuggestion:AlertScoreDifferenceThreshold", 10m);
 
     public async Task<SupplierSuggestionResponse> GetSupplierSuggestionsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? Guid.Empty;
+        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
         if (tenantId == Guid.Empty)
         {
             throw new InvalidOperationException("Tenant context is not available.");
         }
 
         // Get product details
-        var product = await _context.Products
+        var product = await context.Products
             .Where(p => p.Id == productId && p.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (product == null)
+        if (product is null)
         {
             throw new InvalidOperationException($"Product with ID {productId} not found.");
         }
@@ -102,7 +72,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         // Calculate potential savings compared to current preferred
         var currentPreferred = suggestions.FirstOrDefault(s => s.IsCurrentPreferred);
         var potentialSavings = 0m;
-        if (currentPreferred != null && currentPreferred.UnitCost.HasValue && recommended.UnitCost.HasValue)
+        if (currentPreferred is not null && currentPreferred.UnitCost.HasValue && recommended.UnitCost.HasValue)
         {
             potentialSavings = currentPreferred.UnitCost.Value - recommended.UnitCost.Value;
         }
@@ -111,13 +81,13 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         var explanation = await GenerateRecommendationExplanationAsync(recommended, product);
 
         // Generate alert if there's a significantly better supplier (FASE 5 integration)
-        if (_alertService != null && currentPreferred != null && recommended != null &&
+        if (alertService is not null && currentPreferred is not null && recommended is not null &&
             recommended.SupplierId != currentPreferred.SupplierId &&
             recommended.TotalScore > currentPreferred.TotalScore + _alertScoreDifferenceThreshold)
         {
             try
             {
-                await _alertService.Value.GenerateAlertsForBetterSupplierAsync(
+                await alertService.Value.GenerateAlertsForBetterSupplierAsync(
                     productId,
                     currentPreferred.SupplierId,
                     recommended.SupplierId,
@@ -125,7 +95,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
             }
             catch (Exception alertEx)
             {
-                _logger.LogWarning(alertEx, "Failed to generate better supplier alert for product {ProductId}", productId);
+                logger.LogWarning(alertEx, "Failed to generate better supplier alert for product {ProductId}", productId);
                 // Don't throw - alerts are not critical to suggestions
             }
         }
@@ -144,11 +114,11 @@ public class SupplierSuggestionService : ISupplierSuggestionService
 
     public async Task<List<SupplierSuggestion>> CalculateSuggestionsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? Guid.Empty;
+        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
         var cacheKey = $"SupplierSuggestions_{productId}_{tenantId}";
 
         // Try to get from cache
-        if (_cache.TryGetValue<List<SupplierSuggestion>>(cacheKey, out var cachedSuggestions) && cachedSuggestions != null)
+        if (cache.TryGetValue<List<SupplierSuggestion>>(cacheKey, out var cachedSuggestions) && cachedSuggestions is not null)
         {
             return cachedSuggestions;
         }
@@ -159,7 +129,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         }
 
         // Get all suppliers for this product
-        var productSuppliers = await _context.ProductSuppliers
+        var productSuppliers = await context.ProductSuppliers
             .Include(ps => ps.Supplier)
             .Where(ps => ps.ProductId == productId && ps.TenantId == tenantId)
             .ToListAsync(cancellationToken);
@@ -167,14 +137,14 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         if (productSuppliers.Count < 2)
         {
             // Need at least 2 suppliers for comparison
-            return new List<SupplierSuggestion>();
+            return [];
         }
 
         var suggestions = new List<SupplierSuggestion>();
 
         foreach (var ps in productSuppliers)
         {
-            if (ps.Supplier == null) continue;
+            if (ps.Supplier is null) continue;
 
             var suggestion = new SupplierSuggestion
             {
@@ -220,14 +190,14 @@ public class SupplierSuggestionService : ISupplierSuggestionService
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheScoresDurationMinutes),
             Size = 1
         };
-        _cache.Set(cacheKey, suggestions, cacheOptions);
+        cache.Set(cacheKey, suggestions, cacheOptions);
 
         return suggestions;
     }
 
     public async Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? Guid.Empty;
+        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
         if (tenantId == Guid.Empty)
         {
             throw new InvalidOperationException("Tenant context is not available.");
@@ -236,7 +206,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         try
         {
             // Get all suppliers for this product
-            var productSuppliers = await _context.ProductSuppliers
+            var productSuppliers = await context.ProductSuppliers
                 .Where(ps => ps.ProductId == productId && ps.TenantId == tenantId)
                 .ToListAsync(cancellationToken);
 
@@ -248,7 +218,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
 
             // Set new preferred
             var targetSupplier = productSuppliers.FirstOrDefault(ps => ps.SupplierId == supplierId);
-            if (targetSupplier == null)
+            if (targetSupplier is null)
             {
                 return false;
             }
@@ -261,20 +231,20 @@ public class SupplierSuggestionService : ISupplierSuggestionService
                 targetSupplier.Notes = $"Applied suggestion: {reason}. Previous notes: {targetSupplier.Notes}";
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache
             var cacheKey = $"SupplierSuggestions_{productId}_{tenantId}";
-            _cache.Remove(cacheKey);
+            cache.Remove(cacheKey);
 
-            _logger.LogInformation("Applied suggested supplier {SupplierId} for product {ProductId}. Reason: {Reason}",
+            logger.LogInformation("Applied suggested supplier {SupplierId} for product {ProductId}. Reason: {Reason}",
                 supplierId, productId, reason);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
+            logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
                 supplierId, productId);
             return false;
         }
@@ -282,17 +252,17 @@ public class SupplierSuggestionService : ISupplierSuggestionService
 
     public async Task<SupplierReliabilityResponse> GetSupplierReliabilityAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? Guid.Empty;
+        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
         if (tenantId == Guid.Empty)
         {
             throw new InvalidOperationException("Tenant context is not available.");
         }
 
-        var supplier = await _context.BusinessParties
+        var supplier = await context.BusinessParties
             .Where(bp => bp.Id == supplierId && bp.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (supplier == null)
+        if (supplier is null)
         {
             throw new InvalidOperationException($"Supplier with ID {supplierId} not found.");
         }
@@ -428,20 +398,20 @@ public class SupplierSuggestionService : ISupplierSuggestionService
 
     private async Task<ReliabilityMetrics> CalculateReliabilityMetricsAsync(Guid supplierId, CancellationToken cancellationToken)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? Guid.Empty;
+        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
 
         // Simplified reliability based on available data
         // In future: integrate with actual order/delivery data
 
-        var productCount = await _context.ProductSuppliers
+        var productCount = await context.ProductSuppliers
             .Where(ps => ps.SupplierId == supplierId && ps.TenantId == tenantId)
             .CountAsync(cancellationToken);
 
-        var priceHistoryCount = await _context.SupplierProductPriceHistories
+        var priceHistoryCount = await context.SupplierProductPriceHistories
             .Where(ph => ph.SupplierId == supplierId && ph.TenantId == tenantId)
             .CountAsync(cancellationToken);
 
-        var supplierAge = await _context.ProductSuppliers
+        var supplierAge = await context.ProductSuppliers
             .Where(ps => ps.SupplierId == supplierId && ps.TenantId == tenantId)
             .MinAsync(ps => (DateTime?)ps.CreatedAt, cancellationToken);
 
@@ -481,10 +451,10 @@ public class SupplierSuggestionService : ISupplierSuggestionService
             var toDate = DateTime.UtcNow;
             var fromDate = toDate.AddDays(-_trendAnalysisPeriodDays);
 
-            var trendData = await _priceHistoryService.GetPriceTrendDataAsync(
+            var trendData = await priceHistoryService.GetPriceTrendDataAsync(
                 supplierId, productId, fromDate, toDate, cancellationToken);
 
-            if (trendData == null || trendData.Count < _minDataPointsForTrend)
+            if (trendData is null || trendData.Count < _minDataPointsForTrend)
             {
                 return 50m; // Neutral score if insufficient data
             }
@@ -523,7 +493,7 @@ public class SupplierSuggestionService : ISupplierSuggestionService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error calculating trend score for supplier {SupplierId} and product {ProductId}",
+            logger.LogWarning(ex, "Error calculating trend score for supplier {SupplierId} and product {ProductId}",
                 supplierId, productId);
             return 50m; // Neutral score on error
         }
@@ -657,4 +627,5 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     }
 
     #endregion
+
 }

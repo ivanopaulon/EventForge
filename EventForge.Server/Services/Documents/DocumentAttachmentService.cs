@@ -6,12 +6,12 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for managing document attachments
 /// </summary>
-public class DocumentAttachmentService : IDocumentAttachmentService
+public class DocumentAttachmentService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<DocumentAttachmentService> logger) : IDocumentAttachmentService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentAttachmentService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentAttachmentService
@@ -20,18 +20,6 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
-    public DocumentAttachmentService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<DocumentAttachmentService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentAttachmentDto>> GetDocumentHeaderAttachmentsAsync(
         Guid documentHeaderId,
@@ -40,7 +28,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var query = _context.DocumentAttachments
+            var query = context.DocumentAttachments
                 .Where(a => a.DocumentHeaderId == documentHeaderId && !a.IsDeleted);
 
             if (!includeHistory)
@@ -56,7 +44,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving attachments for document header {DocumentHeaderId}", documentHeaderId);
+            logger.LogError(ex, "Error retrieving attachments for document header {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -69,7 +57,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var query = _context.DocumentAttachments
+            var query = context.DocumentAttachments
                 .Where(a => a.DocumentRowId == documentRowId && !a.IsDeleted);
 
             if (!includeHistory)
@@ -85,7 +73,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving attachments for document row {DocumentRowId}", documentRowId);
+            logger.LogError(ex, "Error retrieving attachments for document row {DocumentRowId}", documentRowId);
             throw;
         }
     }
@@ -97,14 +85,14 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var attachment = await _context.DocumentAttachments
+            var attachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            return attachment != null ? MapToDto(attachment) : null;
+            return attachment is not null ? MapToDto(attachment) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving attachment {AttachmentId}", id);
+            logger.LogError(ex, "Error retrieving attachment {AttachmentId}", id);
             throw;
         }
     }
@@ -142,13 +130,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 IsCurrentVersion = true,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
-                TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
+                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _ = _context.DocumentAttachments.Add(attachment);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentAttachments.Add(attachment);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "CREATE",
@@ -157,13 +145,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Created attachment '{attachment.FileName}' for document",
                 currentUser);
 
-            _logger.LogInformation("Created attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+            logger.LogInformation("Created attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
             return MapToDto(attachment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating attachment for user {User}", currentUser);
+            logger.LogError(ex, "Error creating attachment for user {User}", currentUser);
             throw;
         }
     }
@@ -177,18 +165,18 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var attachment = await _context.DocumentAttachments
+            var attachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (attachment == null)
+            if (attachment is null)
                 return null;
 
             var originalValues = new { attachment.Title, attachment.Notes, attachment.Category, attachment.AccessLevel };
 
             // Update fields
-            if (updateDto.Title != null)
+            if (updateDto.Title is not null)
                 attachment.Title = updateDto.Title;
-            if (updateDto.Notes != null)
+            if (updateDto.Notes is not null)
                 attachment.Notes = updateDto.Notes;
             if (!string.IsNullOrEmpty(updateDto.Category))
                 attachment.Category = Enum.Parse<DocumentAttachmentCategory>(updateDto.Category, true);
@@ -198,9 +186,9 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             attachment.ModifiedAt = DateTime.UtcNow;
             attachment.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "UPDATE",
@@ -209,13 +197,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Updated attachment '{attachment.FileName}' metadata",
                 currentUser);
 
-            _logger.LogInformation("Updated attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+            logger.LogInformation("Updated attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
             return MapToDto(attachment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating attachment {AttachmentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error updating attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -229,10 +217,10 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var originalAttachment = await _context.DocumentAttachments
+            var originalAttachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (originalAttachment == null)
+            if (originalAttachment is null)
                 return null;
 
             // Mark current version as not current
@@ -259,13 +247,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 IsCurrentVersion = true,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
-                TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
+                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _ = _context.DocumentAttachments.Add(newVersion);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentAttachments.Add(newVersion);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 newVersion.Id,
                 "CREATE_VERSION",
@@ -274,14 +262,14 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Created version {newVersion.Version} of attachment '{newVersion.FileName}'",
                 currentUser);
 
-            _logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}",
+            logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}",
                 newVersion.Version, id, currentUser);
 
             return MapToDto(newVersion);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating version of attachment {AttachmentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error creating version of attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -294,19 +282,19 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var attachment = await _context.DocumentAttachments
+            var attachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (attachment == null)
+            if (attachment is null)
                 return false;
 
             attachment.IsDeleted = true;
             attachment.DeletedAt = DateTime.UtcNow;
             attachment.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "DELETE",
@@ -315,13 +303,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Deleted attachment '{attachment.FileName}'",
                 currentUser);
 
-            _logger.LogInformation("Deleted attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+            logger.LogInformation("Deleted attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting attachment {AttachmentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error deleting attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -334,26 +322,26 @@ public class DocumentAttachmentService : IDocumentAttachmentService
         try
         {
             // Find the original attachment or any version to get the base
-            var attachment = await _context.DocumentAttachments
+            var attachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (attachment == null)
+            if (attachment is null)
                 return Enumerable.Empty<DocumentAttachmentDto>();
 
             // Find the root attachment (version 1)
             var rootAttachment = attachment;
             while (rootAttachment.PreviousVersionId.HasValue)
             {
-                var previous = await _context.DocumentAttachments
+                var previous = await context.DocumentAttachments
                     .FirstOrDefaultAsync(a => a.Id == rootAttachment.PreviousVersionId.Value && !a.IsDeleted, cancellationToken);
-                if (previous != null)
+                if (previous is not null)
                     rootAttachment = previous;
                 else
                     break;
             }
 
             // Get all versions starting from root
-            var versions = await _context.DocumentAttachments
+            var versions = await context.DocumentAttachments
                 .Where(a => a.Id == rootAttachment.Id || (a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted))
                 .OrderBy(a => a.Version)
                 .ToListAsync(cancellationToken);
@@ -362,7 +350,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving versions for attachment {AttachmentId}", id);
+            logger.LogError(ex, "Error retrieving versions for attachment {AttachmentId}", id);
             throw;
         }
     }
@@ -376,10 +364,10 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            var attachment = await _context.DocumentAttachments
+            var attachment = await context.DocumentAttachments
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (attachment == null)
+            if (attachment is null)
                 return null;
 
             attachment.IsSigned = true;
@@ -389,9 +377,9 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             attachment.ModifiedAt = DateTime.UtcNow;
             attachment.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAttachment",
                 attachment.Id,
                 "SIGN",
@@ -400,13 +388,13 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 $"Digitally signed attachment '{attachment.FileName}'",
                 currentUser);
 
-            _logger.LogInformation("Signed attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+            logger.LogInformation("Signed attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
             return MapToDto(attachment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing attachment {AttachmentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error signing attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -423,7 +411,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
                 return Enumerable.Empty<DocumentAttachmentDto>();
             }
 
-            var attachments = await _context.DocumentAttachments
+            var attachments = await context.DocumentAttachments
                 .Where(a => a.Category == categoryEnum && a.IsCurrentVersion && !a.IsDeleted)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -432,7 +420,7 @@ public class DocumentAttachmentService : IDocumentAttachmentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving attachments by category {Category}", category);
+            logger.LogError(ex, "Error retrieving attachments by category {Category}", category);
             throw;
         }
     }
@@ -444,12 +432,12 @@ public class DocumentAttachmentService : IDocumentAttachmentService
     {
         try
         {
-            return await _context.DocumentAttachments
+            return await context.DocumentAttachments
                 .AnyAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if attachment {AttachmentId} exists", id);
+            logger.LogError(ex, "Error checking if attachment {AttachmentId} exists", id);
             throw;
         }
     }
@@ -487,4 +475,5 @@ public class DocumentAttachmentService : IDocumentAttachmentService
             UpdatedBy = attachment.ModifiedBy
         };
     }
+
 }

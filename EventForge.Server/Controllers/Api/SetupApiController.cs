@@ -11,24 +11,12 @@ namespace EventForge.Server.Controllers.Api;
 [ApiController]
 [Route("api/v1/setup")]
 [AllowAnonymous]
-public class SetupApiController : ControllerBase
+public class SetupApiController(
+    IFirstRunDetectionService firstRunDetection,
+    ISqlServerDiscoveryService sqlServerDiscovery,
+    ISetupWizardService setupWizard,
+    ILogger<SetupApiController> logger) : ControllerBase
 {
-    private readonly IFirstRunDetectionService _firstRunDetection;
-    private readonly ISqlServerDiscoveryService _sqlServerDiscovery;
-    private readonly ISetupWizardService _setupWizard;
-    private readonly ILogger<SetupApiController> _logger;
-
-    public SetupApiController(
-        IFirstRunDetectionService firstRunDetection,
-        ISqlServerDiscoveryService sqlServerDiscovery,
-        ISetupWizardService setupWizard,
-        ILogger<SetupApiController> logger)
-    {
-        _firstRunDetection = firstRunDetection;
-        _sqlServerDiscovery = sqlServerDiscovery;
-        _setupWizard = setupWizard;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Detects if this is the first run (setup not completed).
@@ -42,11 +30,11 @@ public class SetupApiController : ControllerBase
     {
         try
         {
-            var isSetupComplete = await _firstRunDetection.IsSetupCompleteAsync(cancellationToken);
+            var isSetupComplete = await firstRunDetection.IsSetupCompleteAsync(cancellationToken);
 
             if (isSetupComplete)
             {
-                _logger.LogWarning("Attempt to access setup endpoints after setup completion");
+                logger.LogWarning("Attempt to access setup endpoints after setup completion");
                 return Forbid();
             }
 
@@ -54,7 +42,7 @@ public class SetupApiController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error detecting first run");
+            logger.LogError(ex, "Error detecting first run");
             return StatusCode(StatusCodes.Status500InternalServerError, "Error checking setup status");
         }
     }
@@ -71,19 +59,19 @@ public class SetupApiController : ControllerBase
     {
         try
         {
-            var isSetupComplete = await _firstRunDetection.IsSetupCompleteAsync(cancellationToken);
+            var isSetupComplete = await firstRunDetection.IsSetupCompleteAsync(cancellationToken);
             if (isSetupComplete)
             {
-                _logger.LogWarning("Attempt to access setup endpoints after setup completion");
+                logger.LogWarning("Attempt to access setup endpoints after setup completion");
                 return Forbid();
             }
 
-            var instances = await _sqlServerDiscovery.DiscoverLocalInstancesAsync(cancellationToken);
+            var instances = await sqlServerDiscovery.DiscoverLocalInstancesAsync(cancellationToken);
             return Ok(instances);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error discovering SQL Server instances");
+            logger.LogError(ex, "Error discovering SQL Server instances");
             return StatusCode(StatusCodes.Status500InternalServerError, "Error discovering SQL Server instances");
         }
     }
@@ -108,7 +96,7 @@ public class SetupApiController : ControllerBase
                 return BadRequest("Server address is required");
             }
 
-            var success = await _sqlServerDiscovery.TestConnectionAsync(
+            var success = await sqlServerDiscovery.TestConnectionAsync(
                 request.ServerAddress,
                 request.Credentials,
                 cancellationToken);
@@ -117,7 +105,7 @@ public class SetupApiController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error testing SQL Server connection");
+            logger.LogError(ex, "Error testing SQL Server connection");
             return Ok(false);
         }
     }
@@ -142,7 +130,7 @@ public class SetupApiController : ControllerBase
                 return BadRequest("Server address is required");
             }
 
-            var databases = await _sqlServerDiscovery.ListDatabasesAsync(
+            var databases = await sqlServerDiscovery.ListDatabasesAsync(
                 request.ServerAddress,
                 request.Credentials,
                 cancellationToken);
@@ -151,7 +139,7 @@ public class SetupApiController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing databases");
+            logger.LogError(ex, "Error listing databases");
             return StatusCode(StatusCodes.Status500InternalServerError, "Error listing databases");
         }
     }
@@ -171,10 +159,10 @@ public class SetupApiController : ControllerBase
     {
         try
         {
-            var isSetupComplete = await _firstRunDetection.IsSetupCompleteAsync(cancellationToken);
+            var isSetupComplete = await firstRunDetection.IsSetupCompleteAsync(cancellationToken);
             if (isSetupComplete)
             {
-                _logger.LogWarning("Attempt to run setup after it's already complete");
+                logger.LogWarning("Attempt to run setup after it's already complete");
                 return Ok(new SetupResult
                 {
                     Success = false,
@@ -182,24 +170,24 @@ public class SetupApiController : ControllerBase
                 });
             }
 
-            _logger.LogInformation("Starting setup wizard completion...");
+            logger.LogInformation("Starting setup wizard completion...");
 
-            var result = await _setupWizard.CompleteSetupAsync(config, cancellationToken);
+            var result = await setupWizard.CompleteSetupAsync(config, cancellationToken);
 
             if (result.Success)
             {
-                _logger.LogInformation("Setup wizard completed successfully");
+                logger.LogInformation("Setup wizard completed successfully");
             }
             else
             {
-                _logger.LogWarning("Setup wizard completed with errors: {Errors}", string.Join(", ", result.Errors));
+                logger.LogWarning("Setup wizard completed with errors: {Errors}", string.Join(", ", result.Errors));
             }
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error completing setup wizard");
+            logger.LogError(ex, "Error completing setup wizard");
             return Ok(new SetupResult
             {
                 Success = false,

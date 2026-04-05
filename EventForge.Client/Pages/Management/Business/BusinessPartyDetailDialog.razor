@@ -7,7 +7,7 @@
 @using EventForge.Client.Shared.BusinessParty
 @attribute [Authorize]
 @inject IBusinessPartyService BusinessPartyService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyDetailDialog> Logger
@@ -162,7 +162,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading business party {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("businessParty.loadError", "Errore nel caricamento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("businessParty.loadError", "Errore nel caricamento"));
         }
         finally
         {
@@ -191,7 +191,7 @@
                     Notes = _party.Notes
                 };
                 await BusinessPartyService.CreateBusinessPartyAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("businessParty.createSuccess", "Business party creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("businessParty.createSuccess", "Business party creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -212,7 +212,7 @@
                     RowVersion = _party.RowVersion
                 };
                 await BusinessPartyService.UpdateBusinessPartyAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("businessParty.updateSuccess", "Business party aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("businessParty.updateSuccess", "Business party aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -221,7 +221,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving business party");
-            Snackbar.Add(TranslationService.GetTranslation("businessParty.saveError", "Errore nel salvataggio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("businessParty.saveError", "Errore nel salvataggio"));
         }
         finally
         {
@@ -267,7 +267,7 @@
 
     private void OnManageGroupsClicked()
     {
-        Snackbar.Add("Gestione gruppi: implementazione in fase successiva", Severity.Info);
+        AppNotification.ShowInfo("Gestione gruppi: implementazione in fase successiva");
     }
 
     private void OnRemoveGroup(Guid groupId)
@@ -279,7 +279,7 @@
             {
                 _party.Groups.Remove(group);
                 StateHasChanged();
-                Snackbar.Add($"Gruppo '{group.Name}' rimosso (solo UI - backend non implementato)", Severity.Warning);
+                AppNotification.ShowWarning($"Gruppo '{group.Name}' rimosso (solo UI - backend non implementato)");
             }
         }
     }

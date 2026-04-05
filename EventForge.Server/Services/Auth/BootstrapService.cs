@@ -53,91 +53,73 @@ public class BootstrapOptions
 /// Orchestrates the bootstrap process using specialized seeder services.
 /// Coordinates tenant, user, license, and entity seeding operations.
 /// </summary>
-public class BootstrapService : IBootstrapService
+public class BootstrapService(
+    EventForgeDbContext dbContext,
+    IUserSeeder userSeeder,
+    ITenantSeeder tenantSeeder,
+    ILicenseSeeder licenseSeeder,
+    IEntitySeeder entitySeeder,
+    IStoreSeeder storeSeeder,
+    ILogger<BootstrapService> logger) : IBootstrapService
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly IUserSeeder _userSeeder;
-    private readonly ITenantSeeder _tenantSeeder;
-    private readonly ILicenseSeeder _licenseSeeder;
-    private readonly IEntitySeeder _entitySeeder;
-    private readonly IStoreSeeder _storeSeeder;
-    private readonly ILogger<BootstrapService> _logger;
-
-    public BootstrapService(
-        EventForgeDbContext dbContext,
-        IUserSeeder userSeeder,
-        ITenantSeeder tenantSeeder,
-        ILicenseSeeder licenseSeeder,
-        IEntitySeeder entitySeeder,
-        IStoreSeeder storeSeeder,
-        ILogger<BootstrapService> logger)
-    {
-        _dbContext = dbContext;
-        _userSeeder = userSeeder;
-        _tenantSeeder = tenantSeeder;
-        _licenseSeeder = licenseSeeder;
-        _entitySeeder = entitySeeder;
-        _storeSeeder = storeSeeder;
-        _logger = logger;
-    }
 
     public async Task<bool> EnsureAdminBootstrappedAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             // Ensure system tenant exists first (required for system-level entities)
-            var systemTenant = await _tenantSeeder.EnsureSystemTenantAsync(cancellationToken);
-            if (systemTenant == null)
+            var systemTenant = await tenantSeeder.EnsureSystemTenantAsync(cancellationToken);
+            if (systemTenant is null)
             {
-                _logger.LogError("Failed to ensure system tenant");
+                logger.LogError("Failed to ensure system tenant");
                 return false;
             }
 
             // Seed/update default roles and permissions using dedicated seeder
-            if (!await RolePermissionSeeder.SeedAsync(_dbContext, _logger, cancellationToken))
+            if (!await RolePermissionSeeder.SeedAsync(dbContext, logger, cancellationToken))
             {
-                _logger.LogError("Failed to seed default roles and permissions");
+                logger.LogError("Failed to seed default roles and permissions");
                 return false;
             }
 
             // Always ensure SuperAdmin license is up to date
-            var superAdminLicense = await _licenseSeeder.EnsureSuperAdminLicenseAsync(cancellationToken);
-            if (superAdminLicense == null)
+            var superAdminLicense = await licenseSeeder.EnsureSuperAdminLicenseAsync(cancellationToken);
+            if (superAdminLicense is null)
             {
-                _logger.LogError("Failed to ensure SuperAdmin license");
+                logger.LogError("Failed to ensure SuperAdmin license");
                 return false;
             }
 
             // Ensure FeatureTemplates are seeded
             if (!await EnsureFeatureTemplatesSeededAsync(cancellationToken))
             {
-                _logger.LogError("Failed to seed feature templates");
+                logger.LogError("Failed to seed feature templates");
                 return false;
             }
 
             // Check if SuperAdmin user already exists
-            var superAdminUser = await _dbContext.Users
+            var superAdminUser = await dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == "superadmin" || u.Email == "superadmin@localhost", cancellationToken);
 
             // Get existing non-system tenants
-            var existingTenants = await _dbContext.Tenants
+            var existingTenants = await dbContext.Tenants
                 .Where(t => t.Id != Guid.Empty) // Skip system-level tenant
                 .ToListAsync(cancellationToken);
 
             // Determine if we need to create default tenant and users
             Tenant? defaultTenant = null;
 
-            if (superAdminUser == null)
+            if (superAdminUser is null)
             {
                 // Check if a default tenant already exists
                 defaultTenant = existingTenants.FirstOrDefault(t => t.Code == "default");
 
-                if (defaultTenant == null)
+                if (defaultTenant is null)
                 {
-                    defaultTenant = await _tenantSeeder.CreateDefaultTenantAsync(cancellationToken);
-                    if (defaultTenant == null)
+                    defaultTenant = await tenantSeeder.CreateDefaultTenantAsync(cancellationToken);
+                    if (defaultTenant is null)
                     {
-                        _logger.LogError("Failed to create default tenant");
+                        logger.LogError("Failed to create default tenant");
                         return false;
                     }
 
@@ -150,36 +132,36 @@ public class BootstrapService : IBootstrapService
                 }
 
                 // Assign SuperAdmin license to default tenant
-                if (!await _licenseSeeder.AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancellationToken))
+                if (!await licenseSeeder.AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancellationToken))
                 {
-                    _logger.LogError("Failed to assign SuperAdmin license to default tenant");
+                    logger.LogError("Failed to assign SuperAdmin license to default tenant");
                     return false;
                 }
 
                 // Create SuperAdmin user
-                superAdminUser = await _userSeeder.CreateSuperAdminUserAsync(defaultTenant.Id, cancellationToken);
-                if (superAdminUser == null)
+                superAdminUser = await userSeeder.CreateSuperAdminUserAsync(defaultTenant.Id, cancellationToken);
+                if (superAdminUser is null)
                 {
-                    _logger.LogError("Failed to create SuperAdmin user");
+                    logger.LogError("Failed to create SuperAdmin user");
                     return false;
                 }
 
                 // Create default Manager user
-                var managerUser = await _userSeeder.CreateDefaultManagerUserAsync(defaultTenant.Id, cancellationToken);
-                if (managerUser == null)
+                var managerUser = await userSeeder.CreateDefaultManagerUserAsync(defaultTenant.Id, cancellationToken);
+                if (managerUser is null)
                 {
-                    _logger.LogWarning("Failed to create default Manager user");
+                    logger.LogWarning("Failed to create default Manager user");
                     // Not fatal
                 }
 
                 // Create AdminTenant record
-                if (!await _tenantSeeder.CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
+                if (!await tenantSeeder.CreateAdminTenantRecordAsync(superAdminUser.Id, defaultTenant.Id, cancellationToken))
                 {
-                    _logger.LogError("Failed to create AdminTenant record");
+                    logger.LogError("Failed to create AdminTenant record");
                     return false;
                 }
 
-                _logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
+                logger.LogWarning("SECURITY: Please change the SuperAdmin and Manager passwords immediately after first login!");
             }
             else
             {
@@ -194,31 +176,31 @@ public class BootstrapService : IBootstrapService
                 var tenantIds = existingTenants.Select(t => t.Id).ToList();
 
                 // Batch query to check which tenants have base entities (more efficient than individual queries)
-                var tenantsWithVatNatures = await _dbContext.VatNatures
+                var tenantsWithVatNatures = await dbContext.VatNatures
                     .Where(v => tenantIds.Contains(v.TenantId))
                     .Select(v => v.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                var tenantsWithVatRates = await _dbContext.VatRates
+                var tenantsWithVatRates = await dbContext.VatRates
                     .Where(v => tenantIds.Contains(v.TenantId))
                     .Select(v => v.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                var tenantsWithUnitsMeasure = await _dbContext.UMs
+                var tenantsWithUnitsMeasure = await dbContext.UMs
                     .Where(u => tenantIds.Contains(u.TenantId))
                     .Select(u => u.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                var tenantsWithWarehouses = await _dbContext.StorageFacilities
+                var tenantsWithWarehouses = await dbContext.StorageFacilities
                     .Where(w => tenantIds.Contains(w.TenantId))
                     .Select(w => w.TenantId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                var tenantsWithPaymentMethods = await _dbContext.PaymentMethods
+                var tenantsWithPaymentMethods = await dbContext.PaymentMethods
                     .Where(p => tenantIds.Contains(p.TenantId))
                     .Select(p => p.TenantId)
                     .Distinct()
@@ -236,36 +218,36 @@ public class BootstrapService : IBootstrapService
                     // If any base entities are missing, seed them
                     if (!hasVatNatures || !hasVatRates || !hasUnitsMeasure || !hasWarehouses)
                     {
-                        _logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities (VatNatures:{HasVat}, VatRates:{HasRates}, UMs:{HasUM}, Warehouses:{HasWH}). Seeding now...",
+                        logger.LogWarning("Tenant {TenantId} ({TenantName}) is missing base entities (VatNatures:{HasVat}, VatRates:{HasRates}, UMs:{HasUM}, Warehouses:{HasWH}). Seeding now...",
                             tenant.Id, tenant.Name, hasVatNatures, hasVatRates, hasUnitsMeasure, hasWarehouses);
 
-                        if (!await _entitySeeder.SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
+                        if (!await entitySeeder.SeedTenantBaseEntitiesAsync(tenant.Id, cancellationToken))
                         {
-                            _logger.LogError("Failed to seed base entities for tenant {TenantId}", tenant.Id);
+                            logger.LogError("Failed to seed base entities for tenant {TenantId}", tenant.Id);
                         }
                         else
                         {
-                            var (validationResult, validationIssues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(tenant.Id, cancellationToken);
+                            var (validationResult, validationIssues) = await entitySeeder.ValidateTenantBaseEntitiesAsync(tenant.Id, cancellationToken);
                             if (!validationResult)
-                                _logger.LogWarning("Validation issues for tenant {TenantId}: {Issues}", tenant.Id, string.Join("; ", validationIssues));
+                                logger.LogWarning("Validation issues for tenant {TenantId}: {Issues}", tenant.Id, string.Join("; ", validationIssues));
                         }
                     }
 
                     if (!tenantsWithPaymentMethods.Contains(tenant.Id))
                     {
-                        if (!await _storeSeeder.SeedStoreBaseEntitiesAsync(tenant.Id, cancellationToken))
-                            _logger.LogWarning("Failed to seed store base entities for tenant {TenantId}", tenant.Id);
+                        if (!await storeSeeder.SeedStoreBaseEntitiesAsync(tenant.Id, cancellationToken))
+                            logger.LogWarning("Failed to seed store base entities for tenant {TenantId}", tenant.Id);
                     }
                 }
             }
 
             // Final validation for default tenant if it was just created
-            if (defaultTenant != null)
+            if (defaultTenant is not null)
             {
-                var (isValid, issues) = await _entitySeeder.ValidateTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken);
+                var (isValid, issues) = await entitySeeder.ValidateTenantBaseEntitiesAsync(defaultTenant.Id, cancellationToken);
                 if (!isValid)
                 {
-                    _logger.LogWarning("Base entities validation found issues for default tenant: {Issues}", string.Join("; ", issues));
+                    logger.LogWarning("Base entities validation found issues for default tenant: {Issues}", string.Join("; ", issues));
                 }
             }
 
@@ -273,14 +255,14 @@ public class BootstrapService : IBootstrapService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during bootstrap process");
+            logger.LogError(ex, "Error during bootstrap process");
             return false;
         }
     }
 
     public async Task<bool> SeedDefaultRolesAndPermissionsAsync(CancellationToken cancellationToken = default)
     {
-        return await RolePermissionSeeder.SeedAsync(_dbContext, _logger, cancellationToken);
+        return await RolePermissionSeeder.SeedAsync(dbContext, logger, cancellationToken);
     }
 
     /// <summary>
@@ -519,7 +501,7 @@ public class BootstrapService : IBootstrapService
             };
 
             // Add only missing features by name so new templates propagate to existing installs
-            var existingNames = await _dbContext.FeatureTemplates
+            var existingNames = await dbContext.FeatureTemplates
                 .Select(ft => ft.Name)
                 .ToListAsync(cancellationToken);
             var existingNamesSet = existingNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -527,17 +509,18 @@ public class BootstrapService : IBootstrapService
 
             if (templatesToAdd.Count > 0)
             {
-                _logger.LogWarning("Seeding {Count} missing FeatureTemplates", templatesToAdd.Count);
-                await _dbContext.FeatureTemplates.AddRangeAsync(templatesToAdd, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogWarning("Seeding {Count} missing FeatureTemplates", templatesToAdd.Count);
+                await dbContext.FeatureTemplates.AddRangeAsync(templatesToAdd, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding FeatureTemplates");
+            logger.LogError(ex, "Error seeding FeatureTemplates");
             return false;
         }
     }
+
 }

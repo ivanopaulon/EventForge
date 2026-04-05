@@ -146,7 +146,7 @@ New implementations should use QuickFilters instead.
 
             var result = await dialog.Result;
 
-            if (!result.Canceled)
+            if (result is { Canceled: false })
             {
                 // Reload metrics after configuration change
                 await CalculateMetricsAsync();

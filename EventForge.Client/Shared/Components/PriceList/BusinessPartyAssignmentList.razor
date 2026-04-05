@@ -4,7 +4,7 @@
 @using EventForge.Client.Shared.Components
 @inject IPriceListService PriceListService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyAssignmentList> Logger
 
@@ -244,9 +244,7 @@
 
             if (updated != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"), 
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"));
                 
                 _editingBusinessPartyId = null;
                 _editingDiscount = null;
@@ -257,9 +255,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating business party discount");
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"), 
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"));
         }
     }
 
@@ -289,9 +285,7 @@
 
                 if (updated != null)
                 {
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"),
-                        Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.businessPartyUpdatedSuccess", "Configurazione partner aggiornata"));
                     
                     await OnBusinessPartyUpdated.InvokeAsync(updated);
                 }
@@ -299,9 +293,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error updating business party assignment");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("pricelist.businessPartyUpdateFailed", "Errore aggiornamento configurazione"));
             }
         }
     }
@@ -320,18 +312,14 @@
             {
                 await PriceListService.UnassignBusinessPartyAsync(PriceListId, businessParty.BusinessPartyId, default);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("pricelist.businessPartyRemovedSuccess", "Partner rimosso con successo"),
-                    Severity.Info);
+                AppNotification.ShowInfo(TranslationService.GetTranslation("pricelist.businessPartyRemovedSuccess", "Partner rimosso con successo"));
                 
                 await OnBusinessPartyRemoved.InvokeAsync(businessParty.BusinessPartyId);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error removing business party from price list");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("pricelist.businessPartyRemoveFailed", "Errore rimozione partner"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("pricelist.businessPartyRemoveFailed", "Errore rimozione partner"));
             }
         }
     }

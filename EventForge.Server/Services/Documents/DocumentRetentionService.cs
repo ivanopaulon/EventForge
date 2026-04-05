@@ -8,23 +8,15 @@ namespace EventForge.Server.Services.Documents;
 /// Implementation of document retention policy service.
 /// Manages document lifecycle for GDPR compliance.
 /// </summary>
-public class DocumentRetentionService : IDocumentRetentionService
+public class DocumentRetentionService(
+    EventForgeDbContext context,
+    ILogger<DocumentRetentionService> logger) : IDocumentRetentionService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<DocumentRetentionService> _logger;
-
-    public DocumentRetentionService(
-        EventForgeDbContext context,
-        ILogger<DocumentRetentionService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<IEnumerable<DocumentRetentionPolicyDto>> GetAllPoliciesAsync(
         CancellationToken cancellationToken = default)
     {
-        var policies = await _context.Set<DocumentRetentionPolicy>()
+        var policies = await context.Set<DocumentRetentionPolicy>()
             .Include(p => p.DocumentType)
             .OrderBy(p => p.DocumentType!.Name)
             .ToListAsync(cancellationToken);
@@ -36,22 +28,22 @@ public class DocumentRetentionService : IDocumentRetentionService
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var policy = await _context.Set<DocumentRetentionPolicy>()
+        var policy = await context.Set<DocumentRetentionPolicy>()
             .Include(p => p.DocumentType)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-        return policy != null ? MapToDto(policy) : null;
+        return policy is not null ? MapToDto(policy) : null;
     }
 
     public async Task<DocumentRetentionPolicyDto?> GetPolicyByDocumentTypeAsync(
         Guid documentTypeId,
         CancellationToken cancellationToken = default)
     {
-        var policy = await _context.Set<DocumentRetentionPolicy>()
+        var policy = await context.Set<DocumentRetentionPolicy>()
             .Include(p => p.DocumentType)
             .FirstOrDefaultAsync(p => p.DocumentTypeId == documentTypeId && p.IsActive, cancellationToken);
 
-        return policy != null ? MapToDto(policy) : null;
+        return policy is not null ? MapToDto(policy) : null;
     }
 
     public async Task<DocumentRetentionPolicyDto> CreatePolicyAsync(
@@ -60,10 +52,10 @@ public class DocumentRetentionService : IDocumentRetentionService
         CancellationToken cancellationToken = default)
     {
         // Check if policy already exists for this document type
-        var existingPolicy = await _context.Set<DocumentRetentionPolicy>()
+        var existingPolicy = await context.Set<DocumentRetentionPolicy>()
             .FirstOrDefaultAsync(p => p.DocumentTypeId == dto.DocumentTypeId, cancellationToken);
 
-        if (existingPolicy != null)
+        if (existingPolicy is not null)
         {
             throw new InvalidOperationException(
                 $"A retention policy already exists for document type {dto.DocumentTypeId}");
@@ -85,15 +77,15 @@ public class DocumentRetentionService : IDocumentRetentionService
             ModifiedAt = DateTime.UtcNow
         };
 
-        _ = _context.Set<DocumentRetentionPolicy>().Add(policy);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = context.Set<DocumentRetentionPolicy>().Add(policy);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Created retention policy {PolicyId} for document type {DocumentTypeId} by {User}",
             policy.Id, dto.DocumentTypeId, currentUser);
 
         // Reload with navigation properties
-        await _context.Entry(policy).Reference(p => p.DocumentType).LoadAsync(cancellationToken);
+        await context.Entry(policy).Reference(p => p.DocumentType).LoadAsync(cancellationToken);
 
         return MapToDto(policy);
     }
@@ -104,11 +96,11 @@ public class DocumentRetentionService : IDocumentRetentionService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var policy = await _context.Set<DocumentRetentionPolicy>()
+        var policy = await context.Set<DocumentRetentionPolicy>()
             .Include(p => p.DocumentType)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-        if (policy == null)
+        if (policy is null)
         {
             return null;
         }
@@ -129,15 +121,15 @@ public class DocumentRetentionService : IDocumentRetentionService
         if (dto.IsActive.HasValue)
             policy.IsActive = dto.IsActive.Value;
 
-        if (dto.Notes != null)
+        if (dto.Notes is not null)
             policy.Notes = dto.Notes;
 
         policy.ModifiedBy = currentUser;
         policy.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Updated retention policy {PolicyId} by {User}",
             id, currentUser);
 
@@ -149,18 +141,18 @@ public class DocumentRetentionService : IDocumentRetentionService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var policy = await _context.Set<DocumentRetentionPolicy>()
+        var policy = await context.Set<DocumentRetentionPolicy>()
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-        if (policy == null)
+        if (policy is null)
         {
             return false;
         }
 
-        _ = _context.Set<DocumentRetentionPolicy>().Remove(policy);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = context.Set<DocumentRetentionPolicy>().Remove(policy);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Deleted retention policy {PolicyId} by {User}",
             id, currentUser);
 
@@ -181,16 +173,16 @@ public class DocumentRetentionService : IDocumentRetentionService
 
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting retention policy application (DryRun: {DryRun})",
                 dryRun);
 
             // Get all active policies
-            var policies = await _context.Set<DocumentRetentionPolicy>()
+            var policies = await context.Set<DocumentRetentionPolicy>()
                 .Where(p => p.IsActive && p.AutoDeleteEnabled && p.RetentionDays.HasValue)
                 .ToListAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Found {Count} active retention policies",
                 policies.Count);
 
@@ -212,7 +204,7 @@ public class DocumentRetentionService : IDocumentRetentionService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex,
+                    logger.LogError(ex,
                         "Error applying retention policy {PolicyId}",
                         policy.Id);
                     result.Errors.Add($"Policy {policy.Id}: {ex.Message}");
@@ -221,19 +213,19 @@ public class DocumentRetentionService : IDocumentRetentionService
 
             if (!dryRun && result.PoliciesApplied > 0)
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
 
             stopwatch.Stop();
             result.Duration = stopwatch.Elapsed;
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Completed retention policy application: {Deleted} deleted, {Archived} archived, {Duration}ms",
                 result.DocumentsDeleted, result.DocumentsArchived, result.Duration.TotalMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in retention policy application");
+            logger.LogError(ex, "Error in retention policy application");
             result.Errors.Add($"Global error: {ex.Message}");
         }
 
@@ -244,7 +236,7 @@ public class DocumentRetentionService : IDocumentRetentionService
         Guid? policyId = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<DocumentRetentionPolicy>()
+        var query = context.Set<DocumentRetentionPolicy>()
             .Where(p => p.IsActive && p.RetentionDays.HasValue);
 
         if (policyId.HasValue)
@@ -259,7 +251,7 @@ public class DocumentRetentionService : IDocumentRetentionService
         {
             var cutoffDate = DateTime.UtcNow.AddDays(-(policy.RetentionDays!.Value + policy.GracePeriodDays));
 
-            var documents = await _context.DocumentHeaders
+            var documents = await context.DocumentHeaders
                 .Where(d => d.DocumentTypeId == policy.DocumentTypeId)
                 .Where(d => d.CreatedAt <= cutoffDate)
                 .Where(d => !d.IsDeleted)
@@ -279,13 +271,13 @@ public class DocumentRetentionService : IDocumentRetentionService
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-(policy.RetentionDays!.Value + policy.GracePeriodDays));
 
-        var documents = await _context.DocumentHeaders
+        var documents = await context.DocumentHeaders
             .Where(d => d.DocumentTypeId == policy.DocumentTypeId)
             .Where(d => d.CreatedAt <= cutoffDate)
             .Where(d => !d.IsDeleted)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Policy {PolicyId}: Found {Count} documents eligible for {Action}",
             policy.Id, documents.Count,
             policy.ArchiveInsteadOfDelete ? "archiving" : "deletion");
@@ -343,4 +335,5 @@ public class DocumentRetentionService : IDocumentRetentionService
             UpdatedAt = policy.ModifiedAt
         };
     }
+
 }

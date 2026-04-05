@@ -5,7 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IBusinessPartyService BusinessPartyService
 @inject IVatLookupService VatLookupService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<QuickCreateBusinessPartyDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.PersonAdd"
@@ -226,10 +226,7 @@
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error loading business partner for edit");
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("business.loadError", "Errore nel caricamento del partner"),
-                        Severity.Error
-                    );
+                    AppNotification.ShowError(TranslationService.GetTranslation("business.loadError", "Errore nel caricamento del partner"));
                 }
             }
         }
@@ -243,7 +240,7 @@
     {
         if (_form == null || !_isFormValid) return;
         
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
         
         _isLoading = true;
@@ -269,10 +266,7 @@
                 var id = BusinessPartyId ?? ExistingBusinessParty!.Id;
                 result = await BusinessPartyService.UpdateBusinessPartyAsync(id, updateDto);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("business.updateSuccess", "Partner aggiornato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.updateSuccess", "Partner aggiornato con successo"));
             }
             else
             {
@@ -288,10 +282,7 @@
                 
                 result = await BusinessPartyService.CreateBusinessPartyAsync(dto);
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("business.createSuccess", "Partner creato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.createSuccess", "Partner creato con successo"));
             }
             
             if (result != null)
@@ -302,10 +293,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving business partner");
-            Snackbar.Add(
-                TranslationService.GetTranslation("business.saveError", "Errore nel salvataggio del partner"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("business.saveError", "Errore nel salvataggio del partner"));
         }
         finally
         {
@@ -332,10 +320,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error looking up VAT number");
-            Snackbar.Add(
-                TranslationService.GetTranslation("vat.lookupError", "Errore durante la verifica della Partita IVA"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("vat.lookupError", "Errore durante la verifica della Partita IVA"));
         }
         finally
         {
@@ -350,9 +335,6 @@
         _model.Name = _lookupResult.Name ?? _model.Name;
         // Keep the VAT number as entered (already validated)
         
-        Snackbar.Add(
-            TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"),
-            Severity.Success
-        );
+        AppNotification.ShowSuccess(TranslationService.GetTranslation("vat.dataApplied", "Dati applicati con successo"));
     }
 }

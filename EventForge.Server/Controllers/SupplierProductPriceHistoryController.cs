@@ -13,21 +13,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/price-history")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class SupplierProductPriceHistoryController : BaseApiController
+public class SupplierProductPriceHistoryController(
+    ISupplierProductPriceHistoryService priceHistoryService,
+    ITenantContext tenantContext,
+    ILogger<SupplierProductPriceHistoryController> logger) : BaseApiController
 {
-    private readonly ISupplierProductPriceHistoryService _priceHistoryService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SupplierProductPriceHistoryController> _logger;
-
-    public SupplierProductPriceHistoryController(
-        ISupplierProductPriceHistoryService priceHistoryService,
-        ITenantContext tenantContext,
-        ILogger<SupplierProductPriceHistoryController> logger)
-    {
-        _priceHistoryService = priceHistoryService ?? throw new ArgumentNullException(nameof(priceHistoryService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets price history for a specific supplier product.
@@ -53,14 +43,13 @@ public class SupplierProductPriceHistoryController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var paginationError = ValidatePaginationParameters(request.Page, request.PageSize);
-        if (paginationError != null) return paginationError;
+        if (paginationError is not null) return paginationError;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _priceHistoryService.GetProductPriceHistoryAsync(
+            var result = await priceHistoryService.GetProductPriceHistoryAsync(
                 supplierId,
                 productId,
                 request,
@@ -70,7 +59,7 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Price history not found for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
+            logger.LogWarning(ex, "Price history not found for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             return CreateNotFoundProblem($"Price history not found for the specified supplier and product.");
         }
         catch (Exception ex)
@@ -101,14 +90,13 @@ public class SupplierProductPriceHistoryController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var paginationError = ValidatePaginationParameters(request.Page, request.PageSize);
-        if (paginationError != null) return paginationError;
+        if (paginationError is not null) return paginationError;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _priceHistoryService.GetSupplierPriceHistoryAsync(
+            var result = await priceHistoryService.GetSupplierPriceHistoryAsync(
                 supplierId,
                 request,
                 cancellationToken);
@@ -117,7 +105,7 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Price history not found for Supplier {SupplierId}", supplierId);
+            logger.LogWarning(ex, "Price history not found for Supplier {SupplierId}", supplierId);
             return CreateNotFoundProblem($"Price history not found for the specified supplier.");
         }
         catch (Exception ex)
@@ -148,14 +136,13 @@ public class SupplierProductPriceHistoryController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var paginationError = ValidatePaginationParameters(request.Page, request.PageSize);
-        if (paginationError != null) return paginationError;
+        if (paginationError is not null) return paginationError;
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _priceHistoryService.GetProductAllSuppliersPriceHistoryAsync(
+            var result = await priceHistoryService.GetProductAllSuppliersPriceHistoryAsync(
                 productId,
                 request,
                 cancellationToken);
@@ -164,7 +151,7 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Price history not found for Product {ProductId}", productId);
+            logger.LogWarning(ex, "Price history not found for Product {ProductId}", productId);
             return CreateNotFoundProblem($"Price history not found for the specified product.");
         }
         catch (Exception ex)
@@ -192,12 +179,11 @@ public class SupplierProductPriceHistoryController : BaseApiController
         [FromQuery] Guid? productId = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _priceHistoryService.GetPriceHistoryStatisticsAsync(
+            var result = await priceHistoryService.GetPriceHistoryStatisticsAsync(
                 supplierId,
                 productId,
                 cancellationToken);
@@ -206,7 +192,7 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Statistics not found for Supplier {SupplierId}", supplierId);
+            logger.LogWarning(ex, "Statistics not found for Supplier {SupplierId}", supplierId);
             return CreateNotFoundProblem($"Statistics not found for the specified supplier.");
         }
         catch (Exception ex)
@@ -245,12 +231,11 @@ public class SupplierProductPriceHistoryController : BaseApiController
             return CreateValidationProblemDetails("Start date must be before end date.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _priceHistoryService.GetPriceTrendDataAsync(
+            var result = await priceHistoryService.GetPriceTrendDataAsync(
                 supplierId,
                 productId,
                 fromDate,
@@ -261,7 +246,7 @@ public class SupplierProductPriceHistoryController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Trend data not found for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
+            logger.LogWarning(ex, "Trend data not found for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             return CreateNotFoundProblem($"Trend data not found for the specified supplier and product.");
         }
         catch (Exception ex)

@@ -6,34 +6,22 @@ namespace EventForge.Server.Services.Calendar;
 /// <summary>
 /// Service for managing calendar reminders and tasks with multi-tenant support.
 /// </summary>
-public class CalendarReminderService : ICalendarReminderService
+public class CalendarReminderService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<CalendarReminderService> logger) : ICalendarReminderService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<CalendarReminderService> _logger;
-
-    public CalendarReminderService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<CalendarReminderService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<CalendarReminderDto>> GetCalendarRemindersAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var query = _context.CalendarReminders
+            var query = context.CalendarReminders
                 .AsNoTracking()
                 .Where(r => r.TenantId == currentTenantId.Value);
 
@@ -55,7 +43,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving paginated calendar reminders.");
+            logger.LogError(ex, "Error retrieving paginated calendar reminders.");
             throw;
         }
     }
@@ -64,11 +52,11 @@ public class CalendarReminderService : ICalendarReminderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var items = await _context.CalendarReminders
+            var items = await context.CalendarReminders
                 .AsNoTracking()
                 .Where(r => r.TenantId == currentTenantId.Value
                             && r.DueDate >= startDate && r.DueDate <= endDate)
@@ -80,7 +68,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving calendar reminders by date range {StartDate} - {EndDate}.", startDate, endDate);
+            logger.LogError(ex, "Error retrieving calendar reminders by date range {StartDate} - {EndDate}.", startDate, endDate);
             throw;
         }
     }
@@ -89,11 +77,11 @@ public class CalendarReminderService : ICalendarReminderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var items = await _context.CalendarReminders
+            var items = await context.CalendarReminders
                 .AsNoTracking()
                 .Where(r => r.TenantId == currentTenantId.Value
                             && r.Status == DTOs.Common.ReminderStatus.Active
@@ -106,7 +94,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active calendar reminders.");
+            logger.LogError(ex, "Error retrieving active calendar reminders.");
             throw;
         }
     }
@@ -115,18 +103,18 @@ public class CalendarReminderService : ICalendarReminderService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var entity = await _context.CalendarReminders
+            var entity = await context.CalendarReminders
                 .AsNoTracking()
                 .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Calendar reminder with ID {ReminderId} not found.", id);
+                logger.LogWarning("Calendar reminder with ID {ReminderId} not found.", id);
                 return null;
             }
 
@@ -134,7 +122,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving calendar reminder {ReminderId}.", id);
+            logger.LogError(ex, "Error retrieving calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -146,7 +134,7 @@ public class CalendarReminderService : ICalendarReminderService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
@@ -172,18 +160,18 @@ public class CalendarReminderService : ICalendarReminderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.CalendarReminders.Add(entity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.CalendarReminders.Add(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Calendar reminder {ReminderId} created by {User}.", entity.Id, currentUser);
+            logger.LogInformation("Calendar reminder {ReminderId} created by {User}.", entity.Id, currentUser);
 
             return MapToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating calendar reminder.");
+            logger.LogError(ex, "Error creating calendar reminder.");
             throw;
         }
     }
@@ -195,21 +183,21 @@ public class CalendarReminderService : ICalendarReminderService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var entity = await _context.CalendarReminders
+            var entity = await context.CalendarReminders
                 .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Calendar reminder with ID {ReminderId} not found for update.", id);
+                logger.LogWarning("Calendar reminder with ID {ReminderId} not found for update.", id);
                 return null;
             }
 
-            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalValues = context.Entry(entity).CurrentValues.Clone();
             var originalEntity = (CalendarReminder)originalValues.ToObject();
 
             entity.Title = updateDto.Title;
@@ -231,28 +219,28 @@ public class CalendarReminderService : ICalendarReminderService
             entity.ModifiedBy = currentUser;
             entity.ModifiedAt = DateTime.UtcNow;
 
-            if (updateDto.RowVersion != null)
-                _context.Entry(entity).Property(e => e.RowVersion).OriginalValue = updateDto.RowVersion;
+            if (updateDto.RowVersion is not null)
+                context.Entry(entity).Property(e => e.RowVersion).OriginalValue = updateDto.RowVersion;
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating calendar reminder {ReminderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating calendar reminder {ReminderId}.", id);
                 throw new InvalidOperationException("The calendar reminder was modified by another user. Reload the record and try again.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
-            _logger.LogInformation("Calendar reminder {ReminderId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Calendar reminder {ReminderId} updated by {User}.", id, currentUser);
 
             return MapToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating calendar reminder {ReminderId}.", id);
+            logger.LogError(ex, "Error updating calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -263,21 +251,21 @@ public class CalendarReminderService : ICalendarReminderService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var entity = await _context.CalendarReminders
+            var entity = await context.CalendarReminders
                 .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Calendar reminder with ID {ReminderId} not found for completion.", id);
+                logger.LogWarning("Calendar reminder with ID {ReminderId} not found for completion.", id);
                 return null;
             }
 
-            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalValues = context.Entry(entity).CurrentValues.Clone();
             var originalEntity = (CalendarReminder)originalValues.ToObject();
 
             entity.IsCompleted = true;
@@ -290,17 +278,17 @@ public class CalendarReminderService : ICalendarReminderService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
                 throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
-            _logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
+            logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
 
             return MapToDto(entity);
         }
@@ -310,7 +298,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error completing calendar reminder {ReminderId}.", id);
+            logger.LogError(ex, "Error completing calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -321,21 +309,21 @@ public class CalendarReminderService : ICalendarReminderService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
 
-            var entity = await _context.CalendarReminders
+            var entity = await context.CalendarReminders
                 .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Calendar reminder with ID {ReminderId} not found for deletion.", id);
+                logger.LogWarning("Calendar reminder with ID {ReminderId} not found for deletion.", id);
                 return false;
             }
 
-            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalValues = context.Entry(entity).CurrentValues.Clone();
             var originalEntity = (CalendarReminder)originalValues.ToObject();
 
             entity.IsDeleted = true;
@@ -344,17 +332,17 @@ public class CalendarReminderService : ICalendarReminderService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
                 throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
-            _logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
+            logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
 
             return true;
         }
@@ -364,7 +352,7 @@ public class CalendarReminderService : ICalendarReminderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting calendar reminder {ReminderId}.", id);
+            logger.LogError(ex, "Error deleting calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -399,4 +387,5 @@ public class CalendarReminderService : ICalendarReminderService
             ModifiedBy = entity.ModifiedBy
         };
     }
+
 }

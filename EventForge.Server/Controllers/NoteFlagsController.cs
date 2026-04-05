@@ -16,24 +16,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/note-flags")]
 [Authorize]
 [RequireLicenseFeature("SalesManagement")]
-public class NoteFlagsController : BaseApiController
+public class NoteFlagsController(
+    INoteFlagService noteFlagService,
+    ITenantContext tenantContext,
+    ILogger<NoteFlagsController> logger,
+    ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
-    private readonly INoteFlagService _noteFlagService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<NoteFlagsController> _logger;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-
-    public NoteFlagsController(
-        INoteFlagService noteFlagService,
-        ITenantContext tenantContext,
-        ILogger<NoteFlagsController> logger,
-        ICacheInvalidationService cacheInvalidation)
-    {
-        _noteFlagService = noteFlagService ?? throw new ArgumentNullException(nameof(noteFlagService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-    }
 
     /// <summary>
     /// Gets all note flags with pagination.
@@ -53,23 +41,13 @@ public class NoteFlagsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _noteFlagService.GetNoteFlagsAsync(pagination, cancellationToken);
+            var result = await noteFlagService.GetNoteFlagsAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -92,12 +70,11 @@ public class NoteFlagsController : BaseApiController
     public async Task<ActionResult<List<NoteFlagDto>>> GetActive(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var noteFlags = await _noteFlagService.GetActiveAsync(cancellationToken);
+            var noteFlags = await noteFlagService.GetActiveAsync(cancellationToken);
             return Ok(noteFlags);
         }
         catch (Exception ex)
@@ -123,15 +100,14 @@ public class NoteFlagsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var noteFlag = await _noteFlagService.GetByIdAsync(id, cancellationToken);
+            var noteFlag = await noteFlagService.GetByIdAsync(id, cancellationToken);
 
-            if (noteFlag == null)
-                return NotFound(new { message = $"Note flag {id} not found." });
+            if (noteFlag is null)
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
             return Ok(noteFlag);
         }
@@ -159,15 +135,14 @@ public class NoteFlagsController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var noteFlag = await _noteFlagService.CreateAsync(createDto, currentUser, cancellationToken);
+            var noteFlag = await noteFlagService.CreateAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -176,8 +151,8 @@ public class NoteFlagsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid operation while creating note flag.");
-            return BadRequest(new { message = ex.Message });
+            logger.LogWarning(ex, "Invalid operation while creating note flag.");
+            return CreateValidationProblemDetails("Operazione non valida.");
         }
         catch (Exception ex)
         {
@@ -207,20 +182,19 @@ public class NoteFlagsController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var noteFlag = await _noteFlagService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
+            var noteFlag = await noteFlagService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (noteFlag == null)
-                return NotFound(new { message = $"Note flag {id} not found." });
+            if (noteFlag is null)
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return Ok(noteFlag);
         }
         catch (Exception ex)
@@ -246,18 +220,17 @@ public class NoteFlagsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "Unknown";
-            var deleted = await _noteFlagService.DeleteAsync(id, currentUser, cancellationToken);
+            var deleted = await noteFlagService.DeleteAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
-                return NotFound(new { message = $"Note flag {id} not found." });
+                return CreateNotFoundProblem($"Note flag {id} not found.");
 
-            await _cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
+            await cacheInvalidation.InvalidateSemiStaticEntitiesAsync(cancellationToken);
             return NoContent();
         }
         catch (Exception ex)

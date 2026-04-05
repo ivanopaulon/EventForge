@@ -5,27 +5,19 @@ namespace EventForge.Server.Services.Auth.Seeders;
 /// <summary>
 /// Implementation of tenant seeding service.
 /// </summary>
-public class TenantSeeder : ITenantSeeder
+public class TenantSeeder(
+    EventForgeDbContext dbContext,
+    ILogger<TenantSeeder> logger) : ITenantSeeder
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly ILogger<TenantSeeder> _logger;
-
-    public TenantSeeder(
-        EventForgeDbContext dbContext,
-        ILogger<TenantSeeder> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
 
     public async Task<Tenant?> EnsureSystemTenantAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var systemTenant = await _dbContext.Tenants
+            var systemTenant = await dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Id == Guid.Empty, cancellationToken);
 
-            if (systemTenant != null)
+            if (systemTenant is not null)
                 return systemTenant;
 
             // Create system tenant with Id = Guid.Empty
@@ -45,14 +37,14 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = Guid.Empty // Self-referencing for the base property
             };
 
-            _ = _dbContext.Tenants.Add(systemTenant);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = dbContext.Tenants.Add(systemTenant);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             return systemTenant;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ensuring system tenant");
+            logger.LogError(ex, "Error ensuring system tenant");
             return null;
         }
     }
@@ -61,10 +53,10 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
-            var existingTenant = await _dbContext.Tenants
+            var existingTenant = await dbContext.Tenants
                 .FirstOrDefaultAsync(t => t.Code == "default", cancellationToken);
 
-            if (existingTenant != null)
+            if (existingTenant is not null)
                 return existingTenant;
 
             // Create default tenant
@@ -83,14 +75,14 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = Guid.Empty // System-level entity
             };
 
-            _ = _dbContext.Tenants.Add(defaultTenant);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = dbContext.Tenants.Add(defaultTenant);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             return defaultTenant;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating default tenant");
+            logger.LogError(ex, "Error creating default tenant");
             return null;
         }
     }
@@ -99,10 +91,10 @@ public class TenantSeeder : ITenantSeeder
     {
         try
         {
-            var existingRecord = await _dbContext.AdminTenants
+            var existingRecord = await dbContext.AdminTenants
                 .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId, cancellationToken);
 
-            if (existingRecord != null)
+            if (existingRecord is not null)
                 return true;
 
             var adminTenant = new AdminTenant
@@ -116,15 +108,16 @@ public class TenantSeeder : ITenantSeeder
                 TenantId = tenantId // Admin assignment belongs to the managed tenant
             };
 
-            _ = _dbContext.AdminTenants.Add(adminTenant);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = dbContext.AdminTenants.Add(adminTenant);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating AdminTenant record");
+            logger.LogError(ex, "Error creating AdminTenant record");
             return false;
         }
     }
+
 }

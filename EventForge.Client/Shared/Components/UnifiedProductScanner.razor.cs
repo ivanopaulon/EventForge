@@ -53,7 +53,7 @@ namespace EventForge.Client.Shared.Components
         [Inject] private IProductService ProductService { get; set; } = null!;
         [Inject] private IFinancialService FinancialService { get; set; } = null!;
         [Inject] private ITranslationService TranslationService { get; set; } = null!;
-        [Inject] private ISnackbar Snackbar { get; set; } = null!;
+        [Inject] private IAppNotificationService AppNotification { get; set; } = null!;
         [Inject] private ILogger<UnifiedProductScanner> Logger { get; set; } = null!;
         [Inject] private IDialogService DialogService { get; set; } = null!;
 
@@ -135,9 +135,6 @@ namespace EventForge.Client.Shared.Components
         private string? _currentUnitName;
         private string? _currentUnitSymbol;
         private string? _currentVatName;
-
-        // Edit mode tracking
-        private bool _isEditMode = false;
 
         // Prompt mode tracking
         private bool _showNotFoundPrompt = false;
@@ -242,7 +239,7 @@ namespace EventForge.Client.Shared.Components
         {
             if (e.Key == "Enter" && SearchMode.HasFlag(ProductSearchMode.Barcode))
             {
-                var currentText = _autocomplete?.Text;
+                var currentText = _searchText;
                 if (!string.IsNullOrWhiteSpace(currentText))
                     await SearchByBarcode(currentText);
             }
@@ -334,10 +331,7 @@ namespace EventForge.Client.Shared.Components
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error searching product by barcode: {Barcode}", barcode);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.barcodeSearch", "Errore nella ricerca del codice a barre"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.barcodeSearch", "Errore nella ricerca del codice a barre"));
             }
         }
 
@@ -362,10 +356,7 @@ namespace EventForge.Client.Shared.Components
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error loading reference data for UnifiedProductScanner");
-                Snackbar.Add(
-                    TranslationService.GetTranslation("errors.loadingData", "Errore nel caricamento dei dati"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.loadingData", "Errore nel caricamento dei dati"));
             }
         }
 
@@ -422,7 +413,6 @@ namespace EventForge.Client.Shared.Components
                     break;
 
                 case ProductEditMode.Inline:
-                    _isEditMode = true;
                     StateHasChanged();
                     break;
 
@@ -464,7 +454,7 @@ namespace EventForge.Client.Shared.Components
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto updatedProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
             {
                 // Update the selected product with the edited data
                 SelectedProduct = updatedProduct;
@@ -479,10 +469,7 @@ namespace EventForge.Client.Shared.Components
                     await OnProductUpdated.InvokeAsync(updatedProduct);
                 }
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
             }
         }
 
@@ -511,7 +498,7 @@ namespace EventForge.Client.Shared.Components
 
             var result = await dialog.Result;
 
-            if (!result.Canceled && result.Data is ProductDto createdProduct)
+            if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
             {
                 // Set the created product as selected
                 SelectedProduct = createdProduct;
@@ -529,10 +516,7 @@ namespace EventForge.Client.Shared.Components
                 // Hide prompt if it was showing
                 _showNotFoundPrompt = false;
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
             }
         }
 

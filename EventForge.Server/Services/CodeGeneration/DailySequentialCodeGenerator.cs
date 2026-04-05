@@ -7,18 +7,10 @@ namespace EventForge.Server.Services.CodeGeneration;
 /// Generates unique daily sequential codes using SQL Server atomic operations.
 /// Format: YYYYMMDDNNNNNN (UTC date + 6-digit zero-padded counter).
 /// </summary>
-public class DailySequentialCodeGenerator : IDailyCodeGenerator
+public class DailySequentialCodeGenerator(
+    EventForgeDbContext context,
+    ILogger<DailySequentialCodeGenerator> logger) : IDailyCodeGenerator
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<DailySequentialCodeGenerator> _logger;
-
-    public DailySequentialCodeGenerator(
-        EventForgeDbContext context,
-        ILogger<DailySequentialCodeGenerator> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc/>
     public async Task<string> GenerateDailyCodeAsync(CancellationToken cancellationToken = default)
@@ -32,14 +24,14 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
         // Format: YYYYMMDDNNNNNN (date + 6-digit zero-padded counter)
         var code = $"{dateString}{sequenceNumber:D6}";
 
-        _logger.LogDebug("Generated daily code: {Code} for date {Date}", code, utcDate);
+        logger.LogDebug("Generated daily code: {Code} for date {Date}", code, utcDate);
 
         return code;
     }
 
     private async Task<long> GetNextSequenceNumberAsync(DateTime date, CancellationToken cancellationToken)
     {
-        var connection = _context.Database.GetDbConnection();
+        var connection = context.Database.GetDbConnection();
         var wasConnectionClosed = connection.State == ConnectionState.Closed;
 
         try
@@ -92,7 +84,7 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
 
                 var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
 
-                if (scalar == null || scalar == DBNull.Value)
+                if (scalar is null || scalar == DBNull.Value)
                 {
                     throw new InvalidOperationException("Sequence query did not return a value.");
                 }
@@ -106,7 +98,7 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating sequence number for date {Date}", date);
+                logger.LogError(ex, "Error generating sequence number for date {Date}", date);
                 try
                 {
                     dbTransaction.Rollback();
@@ -126,4 +118,5 @@ public class DailySequentialCodeGenerator : IDailyCodeGenerator
             }
         }
     }
+
 }

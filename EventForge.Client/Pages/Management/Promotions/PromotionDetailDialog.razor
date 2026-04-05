@@ -10,7 +10,7 @@
 @inject IAuthService AuthService
 @inject IProductService ProductService
 @inject IBusinessPartyGroupService BusinessPartyGroupService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<PromotionDetailDialog> Logger
@@ -610,7 +610,7 @@
             var isAuthenticated = await AuthService.IsAuthenticatedAsync();
             if (!isAuthenticated)
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.notAuthenticated", "Sessione scaduta. Effettua nuovamente il login."), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("auth.notAuthenticated", "Sessione scaduta. Effettua nuovamente il login."));
                 MudDialog.Close();
                 return;
             }
@@ -620,7 +620,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing promotion detail dialog for ID {Id}", Id);
-            Snackbar.Add(TranslationService.GetTranslation("promotion.loadingError", "Errore nel caricamento della promozione."), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.loadingError", "Errore nel caricamento della promozione."));
         }
         finally
         {
@@ -634,7 +634,7 @@
 
         if (_promotion == null)
         {
-            Snackbar.Add(TranslationService.GetTranslation("promotion.notFound", "Promozione non trovata."), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.notFound", "Promozione non trovata."));
             MudDialog.Close();
             return;
         }
@@ -685,14 +685,14 @@
             {
                 _promotion = updated;
                 PopulateUpdateModel();
-                Snackbar.Add(TranslationService.GetTranslation("promotion.saved", "Promozione salvata con successo."), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.saved", "Promozione salvata con successo."));
                 _hasChanges = false;
                 MudDialog.Close(DialogResult.Ok(true));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(TranslationService.GetTranslation("promotion.saveError", "Errore nel salvataggio della promozione."), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.saveError", "Errore nel salvataggio della promozione."));
             Logger.LogError(ex, "Error saving promotion {Id}", Id);
         }
         finally
@@ -720,13 +720,13 @@
             try
             {
                 await PromotionService.DeleteAsync(_promotion.Id);
-                Snackbar.Add(TranslationService.GetTranslationFormatted("promotion.deleted",
-                    "Promozione '{0}' eliminata con successo.", _promotion.Name), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("promotion.deleted",
+                    "Promozione '{0}' eliminata con successo.", _promotion.Name));
                 MudDialog.Close(DialogResult.Ok(true));
             }
             catch (Exception ex)
             {
-                Snackbar.Add(TranslationService.GetTranslation("promotion.deleteError", "Errore nell'eliminazione della promozione."), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("promotion.deleteError", "Errore nell'eliminazione della promozione."));
                 Logger.LogError(ex, "Error deleting promotion {Id}", Id);
             }
         }
@@ -765,7 +765,6 @@
     private CreatePromotionRuleDto _ruleModel = new();
     private List<ProductDto> _availableProducts = new();
     private List<BusinessPartyGroupDto> _availableGroups = new();
-    private bool _isLoadingProducts = false;
     private TimeSpan? _ruleStartTime;
     private TimeSpan? _ruleEndTime;
     private IReadOnlyCollection<Guid> _selectedProductIds = new List<Guid>();
@@ -801,7 +800,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading rules for promotion {Id}", Id);
-            Snackbar.Add(TranslationService.GetTranslation("promotion.rules.loadError", "Errore nel caricamento delle regole."), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.rules.loadError", "Errore nel caricamento delle regole."));
         }
         finally
         {
@@ -860,7 +859,6 @@
     {
         try
         {
-            _isLoadingProducts = true;
             var productsResult = await ProductService.GetProductsAsync(1, 200);
             _availableProducts = productsResult?.Items?.ToList() ?? new();
             var groupsResult = await BusinessPartyGroupService.GetGroupsAsync(1, 200);
@@ -872,7 +870,6 @@
         }
         finally
         {
-            _isLoadingProducts = false;
             StateHasChanged();
         }
     }
@@ -927,21 +924,21 @@
                 {
                     var idx = _rules.FindIndex(r => r.Id == _editingRule.Id);
                     if (idx >= 0) _rules[idx] = updated;
-                    Snackbar.Add(TranslationService.GetTranslation("promotion.rules.saved", "Regola aggiornata con successo."), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.rules.saved", "Regola aggiornata con successo."));
                 }
             }
             else
             {
                 var added = await PromotionService.AddRuleAsync(_promotion.Id, _ruleModel);
                 _rules.Add(added);
-                Snackbar.Add(TranslationService.GetTranslation("promotion.rules.added", "Regola aggiunta con successo."), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.rules.added", "Regola aggiunta con successo."));
             }
             CloseRuleDialog();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving rule for promotion {Id}", Id);
-            Snackbar.Add(TranslationService.GetTranslation("promotion.rules.saveError", "Errore nel salvataggio della regola."), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.rules.saveError", "Errore nel salvataggio della regola."));
         }
         finally
         {
@@ -964,12 +961,12 @@
             {
                 await PromotionService.DeleteRuleAsync(_promotion.Id, rule.Id);
                 _rules.Remove(rule);
-                Snackbar.Add(TranslationService.GetTranslation("promotion.rules.deleted", "Regola eliminata con successo."), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.rules.deleted", "Regola eliminata con successo."));
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting rule {RuleId} for promotion {Id}", rule.Id, Id);
-                Snackbar.Add(TranslationService.GetTranslation("promotion.rules.deleteError", "Errore nell'eliminazione della regola."), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("promotion.rules.deleteError", "Errore nell'eliminazione della regola."));
             }
         }
     }

@@ -67,14 +67,14 @@ public class PaymentTermDetailViewModel : BaseEntityDetailViewModel<PaymentTermD
         };
     }
 
-    protected override Task<PaymentTermDto?> CreateEntityAsync(CreatePaymentTermDto createDto)
+    protected override async Task<PaymentTermDto?> CreateEntityAsync(CreatePaymentTermDto createDto)
     {
-        return _financialService.CreatePaymentTermAsync(createDto);
+        return await _financialService.CreatePaymentTermAsync(createDto);
     }
 
-    protected override Task<PaymentTermDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTermDto updateDto)
+    protected override async Task<PaymentTermDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTermDto updateDto)
     {
-        return _financialService.UpdatePaymentTermAsync(entityId, updateDto);
+        return await _financialService.UpdatePaymentTermAsync(entityId, updateDto);
     }
 
     protected override Guid GetEntityId(PaymentTermDto entity)

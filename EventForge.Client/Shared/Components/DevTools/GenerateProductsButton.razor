@@ -1,7 +1,7 @@
 @using EventForge.DTOs.DevTools
 @inject IDevToolsService DevToolsService
 @inject IAuthService AuthService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<GenerateProductsButton> Logger
 
@@ -92,7 +92,7 @@
         {
             <MudAlert Severity="Severity.Error" Class="mb-4">
                 @TranslationService.GetTranslation("devtools.generateProducts.failed",
-                    "Generazione fallita: {0}", _errorMessage)
+                    "Generazione fallita: {0}", _errorMessage ?? string.Empty)
             </MudAlert>
         }
     </DialogContent>
@@ -199,10 +199,8 @@
             var response = await DevToolsService.GenerateProductsAsync(request);
             if (response == null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.startError",
-                        "Errore nell'avvio della generazione. Verifica che i devtools siano abilitati."),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.startError",
+                        "Errore nell'avvio della generazione. Verifica che i devtools siano abilitati."));
                 return;
             }
 
@@ -210,10 +208,8 @@
             _total = _count;
             _isGenerating = true;
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("devtools.generateProducts.started",
-                    "Generazione avviata! Job ID: {0}", response.JobId),
-                Severity.Info);
+            AppNotification.ShowInfo(TranslationService.GetTranslation("devtools.generateProducts.started",
+                    "Generazione avviata! Job ID: {0}", response.JobId));
 
             // Avvia polling dello stato
             _pollingTimer = new Timer(PollJobStatus, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
@@ -221,10 +217,8 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore nell'avvio della generazione");
-            Snackbar.Add(
-                TranslationService.GetTranslation("devtools.generateProducts.unexpectedError",
-                    "Errore imprevisto: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.unexpectedError",
+                    "Errore imprevisto: {0}", ex.Message));
         }
     }
 
@@ -256,10 +250,8 @@
 
                 await InvokeAsync(StateHasChanged);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.successNotification",
-                        "Generazione completata con successo! Creati {0} prodotti.", _created),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("devtools.generateProducts.successNotification",
+                        "Generazione completata con successo! Creati {0} prodotti.", _created));
             }
             else if (status.Status == ProductGenerationJobStatus.Failed)
             {
@@ -270,10 +262,8 @@
 
                 await InvokeAsync(StateHasChanged);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.failedNotification",
-                        "Generazione fallita: {0}", status.ErrorMessage),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.failedNotification",
+                        "Generazione fallita: {0}", status.ErrorMessage ?? string.Empty));
             }
             else if (status.Status == ProductGenerationJobStatus.Cancelled)
             {
@@ -282,10 +272,8 @@
 
                 await InvokeAsync(StateHasChanged);
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.cancelledNotification",
-                        "Generazione cancellata."),
-                    Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("devtools.generateProducts.cancelledNotification",
+                        "Generazione cancellata."));
             }
 
             await InvokeAsync(StateHasChanged);
@@ -306,26 +294,20 @@
             var cancelled = await DevToolsService.CancelGenerateProductsAsync(_currentJobId);
             if (cancelled)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.cancelRequested",
-                        "Richiesta di cancellazione inviata."),
-                    Severity.Info);
+                AppNotification.ShowInfo(TranslationService.GetTranslation("devtools.generateProducts.cancelRequested",
+                        "Richiesta di cancellazione inviata."));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("devtools.generateProducts.cancelFailed",
-                        "Impossibile cancellare il job."),
-                    Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("devtools.generateProducts.cancelFailed",
+                        "Impossibile cancellare il job."));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore nella cancellazione del job");
-            Snackbar.Add(
-                TranslationService.GetTranslation("devtools.generateProducts.cancelError",
-                    "Errore nella cancellazione: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.cancelError",
+                    "Errore nella cancellazione: {0}", ex.Message));
         }
     }
 

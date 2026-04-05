@@ -5,7 +5,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IFinancialService FinancialService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<VatNatureDetailDialog> Logger
@@ -14,7 +14,8 @@
           Title="@(_isCreateMode ? TranslationService.GetTranslation("drawer.title.creaNaturaIva", "Crea Nuova Natura IVA") : (_vatNature?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthSimple">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isLoading)
         {
@@ -30,63 +31,90 @@
         }
         else
         {
-            <MudForm @ref="_form">
-                <MudGrid>
-                    <MudItem xs="12" md="4">
-                        <MudTextField @bind-Value="_vatNature!.Code"
-                                      Label="@($"{TranslationService.GetTranslation("drawer.field.codiceNaturaIva", "Codice")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
-                                      MaxLength="10"
-                                      Immediate="true"
-                                      OnBlur="@HandleBlur"
-                                      aria-describedby="code-help" />
-                        <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
-                        </MudText>
-                    </MudItem>
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    <MudForm @ref="_form">
+                        <MudGrid>
+                            <MudItem xs="12" md="4">
+                                <MudTextField @bind-Value="_vatNature!.Code"
+                                              Label="@($"{TranslationService.GetTranslation("drawer.field.codiceNaturaIva", "Codice")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
+                                              MaxLength="10"
+                                              Immediate="true"
+                                              OnBlur="@HandleBlur"
+                                              aria-describedby="code-help" />
+                                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="8">
-                        <MudTextField @bind-Value="_vatNature!.Name"
-                                      Label="@($"{TranslationService.GetTranslation("drawer.field.nomeNaturaIva", "Nome")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
-                                      MaxLength="100"
-                                      Immediate="true"
-                                      OnBlur="@HandleBlur"
-                                      aria-describedby="name-help" />
-                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12" md="8">
+                                <MudTextField @bind-Value="_vatNature!.Name"
+                                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeNaturaIva", "Nome")} *")"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
+                                              MaxLength="100"
+                                              Immediate="true"
+                                              OnBlur="@HandleBlur"
+                                              aria-describedby="name-help" />
+                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_vatNature!.Description"
-                                      Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
-                                      Variant="Variant.Outlined"
-                                      Lines="4"
-                                      MaxLength="500"
-                                      OnBlur="@HandleBlur"
-                                      aria-describedby="description-help" />
-                        <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
-                        </MudText>
-                    </MudItem>
-
-                    @if (!_isCreateMode && _vatNature != null)
-                    {
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_vatNature!.Description"
+                                              Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
+                                              Variant="Variant.Outlined"
+                                              Lines="4"
+                                              MaxLength="500"
+                                              OnBlur="@HandleBlur"
+                                              aria-describedby="description-help" />
+                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+                <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
+                    <MudGrid>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@_vatNature.Id.ToString()"
-                                          Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
+                            <MudTextField Value="@(_vatNature?.Id.ToString() ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                                          aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                                          ReadOnly="true" />
                         </MudItem>
-                    }
-                </MudGrid>
-            </MudForm>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(_vatNature?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(_vatNature?.CreatedBy ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(_vatNature?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(_vatNature?.ModifiedBy ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+            </MudTabs>
         }
     </ChildContent>
     <DialogActions>
@@ -147,7 +175,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading VAT nature {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("vatNature.loadError", "Errore nel caricamento della natura IVA"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("vatNature.loadError", "Errore nel caricamento della natura IVA"), exception: ex);
         }
         finally
         {
@@ -159,7 +187,7 @@
     private async Task SaveVatNatureAsync()
     {
         if (_vatNature == null || _form == null) return;
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         _isSaving = true;
@@ -174,7 +202,7 @@
                     Description = _vatNature.Description
                 };
                 await FinancialService.CreateVatNatureAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -185,7 +213,7 @@
                     Description = _vatNature.Description
                 };
                 await FinancialService.UpdateVatNatureAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -194,7 +222,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving VAT nature");
-            Snackbar.Add(TranslationService.GetTranslation("vatNature.saveError", "Errore nel salvataggio della natura IVA"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("vatNature.saveError", "Errore nel salvataggio della natura IVA"), exception: ex);
         }
         finally
         {

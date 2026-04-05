@@ -8,24 +8,12 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// Controller for user management operations with standardized pagination.
 /// </summary>
-[ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "Admin,SuperAdmin")]
-public class UsersController : BaseApiController
+public class UsersController(
+    IUserService service,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IUserService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<UsersController> _logger;
-
-    public UsersController(
-        IUserService service,
-        ITenantContext tenantContext,
-        ILogger<UsersController> logger)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Retrieves all users with pagination (Admin/SuperAdmin only)
@@ -44,23 +32,13 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetUsersAsync(pagination, cancellationToken);
+            var result = await service.GetUsersAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -89,23 +67,13 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetUsersByRoleAsync(role, pagination, cancellationToken);
+            var result = await service.GetUsersByRoleAsync(role, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -132,23 +100,13 @@ public class UsersController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _service.GetActiveUsersAsync(pagination, cancellationToken);
+            var result = await service.GetActiveUsersAsync(pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }

@@ -4,7 +4,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<BundleItemsTab> Logger
 
 <MudStack Spacing="3">
@@ -92,7 +92,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading bundle items for product {ProductId}", Product.Id);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadBundleItemsError", "Errore nel caricamento dei componenti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadBundleItemsError", "Errore nel caricamento dei componenti"));
         }
     }
 
@@ -164,7 +164,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadBundleItemsAsync();
             await NotifyPersisted();
@@ -192,7 +192,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadBundleItemsAsync();
             await NotifyPersisted();
@@ -215,14 +215,14 @@
             try
             {
                 await ProductService.DeleteProductBundleItemAsync(item.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.bundleItemDeleted", "Componente eliminato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("product.bundleItemDeleted", "Componente eliminato con successo"));
                 await LoadBundleItemsAsync();
                 await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting bundle item {ItemId}", item.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteBundleItemError", "Errore nell'eliminazione del componente"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("product.deleteBundleItemError", "Errore nell'eliminazione del componente"));
             }
         }
     }

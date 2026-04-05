@@ -8,21 +8,11 @@ using ProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitSt
 
 namespace EventForge.Server.Services.PriceLists;
 
-public class PriceCalculationService : IPriceCalculationService
+public class PriceCalculationService(
+    EventForgeDbContext context,
+    IUnitConversionService unitConversionService,
+    ILogger<PriceCalculationService> logger) : IPriceCalculationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IUnitConversionService _unitConversionService;
-    private readonly ILogger<PriceCalculationService> _logger;
-
-    public PriceCalculationService(
-        EventForgeDbContext context,
-        IUnitConversionService unitConversionService,
-        ILogger<PriceCalculationService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _unitConversionService = unitConversionService ?? throw new ArgumentNullException(nameof(unitConversionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<AppliedPriceDto?> GetAppliedPriceAsync(
         Guid productId,
@@ -37,7 +27,7 @@ public class PriceCalculationService : IPriceCalculationService
             var evalDate = evaluationDate ?? DateTime.UtcNow;
 
             // Step 1: Trova listini vendita applicabili
-            var query = _context.PriceLists
+            var query = context.PriceLists
                 .Where(pl => pl.Type == PriceListType.Sales &&
                              pl.Direction == PriceListDirection.Output &&
                              !pl.IsDeleted &&
@@ -103,7 +93,7 @@ public class PriceCalculationService : IPriceCalculationService
                 .ThenByDescending(x => x.PriceList.CreatedAt)
                 .FirstOrDefault();
 
-            if (orderedPriceList == null)
+            if (orderedPriceList is null)
                 return null;
 
             // Step 4: Calcola prezzo finale con sconto globale
@@ -142,7 +132,7 @@ public class PriceCalculationService : IPriceCalculationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating applied price for product {ProductId}", productId);
+            logger.LogError(ex, "Error calculating applied price for product {ProductId}", productId);
             throw;
         }
     }
@@ -153,13 +143,13 @@ public class PriceCalculationService : IPriceCalculationService
         {
             // First get the base applied price
             var basePrice = await GetAppliedPriceAsync(productId, eventId, null, evaluationDate, quantity, cancellationToken);
-            if (basePrice == null)
+            if (basePrice is null)
             {
                 return null;
             }
 
             // Get the target unit information
-            var targetProductUnit = await _context.ProductUnits
+            var targetProductUnit = await context.ProductUnits
                 .Include(pu => pu.UnitOfMeasure)
                 .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
                                          pu.UnitOfMeasureId == targetUnitId &&
@@ -167,14 +157,14 @@ public class PriceCalculationService : IPriceCalculationService
                                          pu.Status == ProductUnitStatus.Active,
                                          cancellationToken);
 
-            if (targetProductUnit == null)
+            if (targetProductUnit is null)
             {
-                _logger.LogWarning("Target unit {TargetUnitId} not found for product {ProductId}", targetUnitId, productId);
+                logger.LogWarning("Target unit {TargetUnitId} not found for product {ProductId}", targetUnitId, productId);
                 return basePrice; // Return base price if target unit not found
             }
 
             // Get the base unit information for conversion
-            var baseProductUnit = await _context.ProductUnits
+            var baseProductUnit = await context.ProductUnits
                 .Include(pu => pu.UnitOfMeasure)
                 .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
                                          pu.UnitOfMeasureId == basePrice.UnitOfMeasureId &&
@@ -182,14 +172,14 @@ public class PriceCalculationService : IPriceCalculationService
                                          pu.Status == ProductUnitStatus.Active,
                                          cancellationToken);
 
-            if (baseProductUnit == null)
+            if (baseProductUnit is null)
             {
-                _logger.LogWarning("Base unit {BaseUnitId} not found for product {ProductId}", basePrice.UnitOfMeasureId, productId);
+                logger.LogWarning("Base unit {BaseUnitId} not found for product {ProductId}", basePrice.UnitOfMeasureId, productId);
                 return basePrice; // Return base price if conversion not possible
             }
 
             // Perform price conversion using the unit conversion service
-            var convertedPrice = _unitConversionService.ConvertPrice(
+            var convertedPrice = unitConversionService.ConvertPrice(
                 basePrice.Price,
                 baseProductUnit.ConversionFactor,
                 targetProductUnit.ConversionFactor,
@@ -220,7 +210,7 @@ public class PriceCalculationService : IPriceCalculationService
                 CalculationNotes = $"Price converted from {basePrice.UnitOfMeasureName} (factor: {baseProductUnit.ConversionFactor}) to {targetProductUnit.UnitOfMeasure?.Name} (factor: {targetProductUnit.ConversionFactor}). Original: {basePrice.Price:F2} {basePrice.Currency}"
             };
 
-            _logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
+            logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
                 basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName,
                 convertedPrice, result.Currency, result.UnitOfMeasureName, productId);
 
@@ -228,7 +218,7 @@ public class PriceCalculationService : IPriceCalculationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}",
+            logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}",
                 productId, eventId, targetUnitId);
             throw;
         }
@@ -243,7 +233,7 @@ public class PriceCalculationService : IPriceCalculationService
             var to = toDate ?? DateTime.UtcNow;
 
             // Get all price lists for the event
-            var priceLists = await _context.PriceLists
+            var priceLists = await context.PriceLists
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted))
                 .ToListAsync(cancellationToken);
@@ -299,14 +289,14 @@ public class PriceCalculationService : IPriceCalculationService
                 .ThenBy(h => h.Priority)
                 .ToList();
 
-            _logger.LogInformation("Retrieved {Count} price history entries for product {ProductId} in event {EventId}",
+            logger.LogInformation("Retrieved {Count} price history entries for product {ProductId} in event {EventId}",
                 result.Count, productId, eventId);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for product {ProductId} in event {EventId}",
+            logger.LogError(ex, "Error retrieving price history for product {ProductId} in event {EventId}",
                 productId, eventId);
             throw;
         }
@@ -322,11 +312,11 @@ public class PriceCalculationService : IPriceCalculationService
         try
         {
             // 1. Recupera il prodotto
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.Codes)
                 .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
                 throw new InvalidOperationException($"Product with ID {request.ProductId} not found");
             }
@@ -346,7 +336,7 @@ public class PriceCalculationService : IPriceCalculationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating product price for ProductId {ProductId}", request.ProductId);
+            logger.LogError(ex, "Error calculating product price for ProductId {ProductId}", request.ProductId);
             throw;
         }
     }
@@ -364,7 +354,7 @@ public class PriceCalculationService : IPriceCalculationService
             var evalDate = evaluationDate ?? DateTime.UtcNow;
 
             // Trova tutti i listini acquisto applicabili
-            var purchasePriceLists = await _context.PriceLists
+            var purchasePriceLists = await context.PriceLists
                 .Where(pl => pl.Type == PriceListType.Purchase &&
                              pl.Direction == PriceListDirection.Input &&
                              !pl.IsDeleted &&
@@ -390,7 +380,7 @@ public class PriceCalculationService : IPriceCalculationService
             foreach (var priceList in purchasePriceLists)
             {
                 var entry = priceList.ProductPrices.FirstOrDefault();
-                if (entry == null) continue;
+                if (entry is null) continue;
 
                 // Se non ci sono BusinessParty assegnati, salta questo listino
                 if (!priceList.BusinessParties.Any()) continue;
@@ -433,7 +423,7 @@ public class PriceCalculationService : IPriceCalculationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error comparing purchase prices for product {ProductId}", productId);
+            logger.LogError(ex, "Error comparing purchase prices for product {ProductId}", productId);
             throw;
         }
     }
@@ -452,28 +442,28 @@ public class PriceCalculationService : IPriceCalculationService
         // 1. Override esplicito nella richiesta → priorità massima
         if (request.PriceApplicationMode.HasValue)
         {
-            _logger.LogDebug("Using explicit price application mode from request: {Mode}", request.PriceApplicationMode.Value);
+            logger.LogDebug("Using explicit price application mode from request: {Mode}", request.PriceApplicationMode.Value);
             return request.PriceApplicationMode.Value;
         }
 
         // 2. Nessun BusinessParty → Automatic
         if (!request.BusinessPartyId.HasValue)
         {
-            _logger.LogDebug("No BusinessParty specified, using Automatic mode");
+            logger.LogDebug("No BusinessParty specified, using Automatic mode");
             return PriceApplicationMode.Automatic;
         }
 
         // 3. Configurazione del BusinessParty
-        var businessParty = await _context.BusinessParties
+        var businessParty = await context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
 
-        if (businessParty == null)
+        if (businessParty is null)
         {
-            _logger.LogWarning("BusinessParty {BusinessPartyId} not found, using Automatic mode", request.BusinessPartyId.Value);
+            logger.LogWarning("BusinessParty {BusinessPartyId} not found, using Automatic mode", request.BusinessPartyId.Value);
             return PriceApplicationMode.Automatic;
         }
 
-        _logger.LogDebug("Using BusinessParty default price application mode: {Mode}", businessParty.DefaultPriceApplicationMode);
+        logger.LogDebug("Using BusinessParty default price application mode: {Mode}", businessParty.DefaultPriceApplicationMode);
         return businessParty.DefaultPriceApplicationMode;
     }
 
@@ -490,7 +480,7 @@ public class PriceCalculationService : IPriceCalculationService
             throw new InvalidOperationException("ManualPrice is required and must be greater than 0 when using Manual mode");
         }
 
-        _logger.LogInformation("Applying manual price {Price} for product {ProductId}", request.ManualPrice.Value, product.Id);
+        logger.LogInformation("Applying manual price {Price} for product {ProductId}", request.ManualPrice.Value, product.Id);
 
         return new ProductPriceResultDto
         {
@@ -519,7 +509,7 @@ public class PriceCalculationService : IPriceCalculationService
 
         if (!forcedPriceListId.HasValue && request.BusinessPartyId.HasValue)
         {
-            var businessParty = await _context.BusinessParties
+            var businessParty = await context.BusinessParties
                 .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
 
             forcedPriceListId = businessParty?.ForcedPriceListId;
@@ -533,7 +523,7 @@ public class PriceCalculationService : IPriceCalculationService
         var evaluationDate = request.ReferenceDate ?? DateTime.UtcNow;
 
         // Cerca il prezzo nel listino forzato
-        var priceEntry = await _context.PriceListEntries
+        var priceEntry = await context.PriceListEntries
             .Include(e => e.PriceList)
             .Where(e => e.PriceListId == forcedPriceListId.Value
                      && e.ProductId == product.Id
@@ -545,7 +535,7 @@ public class PriceCalculationService : IPriceCalculationService
                      && (e.MaxQuantity == 0 || e.MaxQuantity >= request.Quantity))
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (priceEntry == null)
+        if (priceEntry is null)
         {
             throw new InvalidOperationException($"Product {product.Id} not found in forced price list {forcedPriceListId.Value}");
         }
@@ -557,7 +547,7 @@ public class PriceCalculationService : IPriceCalculationService
         // Applica eventuale sconto BusinessParty
         if (request.BusinessPartyId.HasValue)
         {
-            var businessPartyRelation = await _context.PriceListBusinessParties
+            var businessPartyRelation = await context.PriceListBusinessParties
                 .FirstOrDefaultAsync(plbp => plbp.PriceListId == forcedPriceListId.Value
                                           && plbp.BusinessPartyId == request.BusinessPartyId.Value
                                           && !plbp.IsDeleted
@@ -571,7 +561,7 @@ public class PriceCalculationService : IPriceCalculationService
             }
         }
 
-        _logger.LogInformation("Applied forced price list {PriceListId} for product {ProductId}: {Price}",
+        logger.LogInformation("Applied forced price list {PriceListId} for product {ProductId}: {Price}",
             forcedPriceListId.Value, product.Id, finalPrice);
 
         return new ProductPriceResultDto
@@ -605,7 +595,7 @@ public class PriceCalculationService : IPriceCalculationService
         var searchPath = new List<string>();
 
         // Recupera tutti i listini applicabili (attivi, validi per data)
-        var applicablePriceEntries = await _context.PriceListEntries
+        var applicablePriceEntries = await context.PriceListEntries
             .Include(e => e.PriceList)
                 .ThenInclude(pl => pl!.BusinessParties.Where(bp => !bp.IsDeleted))
             .Where(e => e.ProductId == product.Id
@@ -621,7 +611,7 @@ public class PriceCalculationService : IPriceCalculationService
         {
             // Fallback a prezzo base prodotto
             searchPath.Add("No price lists available, using product base price");
-            _logger.LogWarning("No price lists found for product {ProductId}, using base price {BasePrice}",
+            logger.LogWarning("No price lists found for product {ProductId}, using base price {BasePrice}",
                 product.Id, product.DefaultPrice ?? 0m);
 
             return new ProductPriceResultDto
@@ -664,11 +654,11 @@ public class PriceCalculationService : IPriceCalculationService
 
         var selectedEntry = orderedEntries.FirstOrDefault();
 
-        if (selectedEntry == null)
+        if (selectedEntry is null)
         {
             // Fallback a prezzo base prodotto
             searchPath.Add("No applicable price lists found, using product base price");
-            _logger.LogWarning("No applicable price lists found for product {ProductId}, using base price", product.Id);
+            logger.LogWarning("No applicable price lists found for product {ProductId}, using base price", product.Id);
 
             return new ProductPriceResultDto
             {
@@ -721,7 +711,7 @@ public class PriceCalculationService : IPriceCalculationService
             .OrderByDescending(pl => pl.Priority)
             .ToList();
 
-        _logger.LogInformation("Applied automatic price from price list {PriceListId} for product {ProductId}: {Price}",
+        logger.LogInformation("Applied automatic price from price list {PriceListId} for product {ProductId}: {Price}",
             selectedEntry.PriceListId, product.Id, finalPrice);
 
         return new ProductPriceResultDto
@@ -770,4 +760,5 @@ public class PriceCalculationService : IPriceCalculationService
     }
 
     #endregion
+
 }

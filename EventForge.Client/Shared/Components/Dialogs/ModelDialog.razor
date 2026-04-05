@@ -1,7 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Products
 @inject IModelService ModelService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<ModelDialog> Logger
 
@@ -91,7 +91,7 @@
             _name = Model.Name;
             _description = Model.Description;
             _manufacturerPartNumber = Model.ManufacturerPartNumber;
-            _brandName = Model.BrandName;
+            _brandName = Model.BrandName ?? string.Empty;
         }
         else
         {
@@ -110,7 +110,7 @@
     {
         try
         {
-            await _form.Validate();
+            await _form.ValidateAsync();
             if (!_isValid) return;
 
             if (_isEditMode && Model != null)
@@ -124,7 +124,7 @@
                 };
 
                 await ModelService.UpdateModelAsync(Model.Id, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornamento completato con successo"));
             }
             else if (BrandId.HasValue)
             {
@@ -138,7 +138,7 @@
                 };
 
                 await ModelService.CreateModelAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creazione completata con successo"));
             }
 
             MudDialog.Close(DialogResult.Ok(true));
@@ -149,7 +149,7 @@
             var errorMsg = _isEditMode 
                 ? TranslationService.GetTranslation("messages.updateFailed", "Errore durante l'aggiornamento")
                 : TranslationService.GetTranslation("messages.createFailed", "Errore durante la creazione");
-            Snackbar.Add(errorMsg, Severity.Error);
+            AppNotification.ShowError(errorMsg);
         }
     }
 }

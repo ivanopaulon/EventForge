@@ -5,7 +5,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject ITranslationService TranslationService
 @inject IPriceListService PriceListService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ImportPriceListDialog> Logger
 @inject IDialogService DialogService
 
@@ -342,9 +342,7 @@
         // Validate file size (max 5MB)
         if (_selectedFile.Size > 5 * 1024 * 1024)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.fileTooLarge", "File troppo grande (max 5MB)"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.fileTooLarge", "File troppo grande (max 5MB)"));
             return;
         }
 
@@ -421,16 +419,12 @@
 
             _parsedEntries = entries;
             
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("pricelist.parsedRows", "Analizzate")} {entries.Count} {TranslationService.GetTranslation("pricelist.rows", "righe")}",
-                Severity.Success);
+            AppNotification.ShowSuccess($"{TranslationService.GetTranslation("pricelist.parsedRows", "Analizzate")} {entries.Count} {TranslationService.GetTranslation("pricelist.rows", "righe")}");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error parsing file");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.parseFailed", $"Errore analisi file: {ex.Message}"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.parseFailed", $"Errore analisi file: {ex.Message}"));
         }
         finally
         {
@@ -478,16 +472,16 @@
             
             _importResult = await PriceListService.BulkImportEntriesAsync(PriceListId, validEntries, _replaceExisting);
             
-            Snackbar.Add(
-                $"{TranslationService.GetTranslation("pricelist.importSuccess", "Importazione completata")}: {_importResult.SuccessCount} {TranslationService.GetTranslation("pricelist.entries", "voci")}",
-                _importResult.FailureCount > 0 ? Severity.Warning : Severity.Success);
+            var importMsg = $"{TranslationService.GetTranslation("pricelist.importSuccess", "Importazione completata")}: {_importResult.SuccessCount} {TranslationService.GetTranslation("pricelist.entries", "voci")}";
+            if (_importResult.FailureCount > 0)
+                AppNotification.ShowWarning(importMsg);
+            else
+                AppNotification.ShowSuccess(importMsg);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error importing entries");
-            Snackbar.Add(
-                TranslationService.GetTranslation("error.importFailed", $"Errore importazione: {ex.Message}"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.importFailed", $"Errore importazione: {ex.Message}"));
         }
         finally
         {

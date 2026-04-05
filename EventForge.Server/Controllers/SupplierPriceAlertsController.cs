@@ -13,21 +13,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/alerts")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
-public class SupplierPriceAlertsController : BaseApiController
+public class SupplierPriceAlertsController(
+    ISupplierPriceAlertService alertService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly ISupplierPriceAlertService _alertService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SupplierPriceAlertsController> _logger;
-
-    public SupplierPriceAlertsController(
-        ISupplierPriceAlertService alertService,
-        ITenantContext tenantContext,
-        ILogger<SupplierPriceAlertsController> logger)
-    {
-        _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets alerts with filtering and pagination.
@@ -39,12 +28,11 @@ public class SupplierPriceAlertsController : BaseApiController
         [FromQuery] AlertFilterRequest filter,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _alertService.GetAlertsAsync(filter, cancellationToken);
+            var result = await alertService.GetAlertsAsync(filter, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -64,13 +52,12 @@ public class SupplierPriceAlertsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var alert = await _alertService.GetAlertByIdAsync(id, cancellationToken);
-            if (alert == null)
+            var alert = await alertService.GetAlertByIdAsync(id, cancellationToken);
+            if (alert is null)
             {
                 return NotFound(new { message = "Alert not found" });
             }
@@ -92,12 +79,11 @@ public class SupplierPriceAlertsController : BaseApiController
     public async Task<ActionResult<AlertStatistics>> GetStatistics(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var stats = await _alertService.GetAlertStatisticsAsync(cancellationToken);
+            var stats = await alertService.GetAlertStatisticsAsync(cancellationToken);
             return Ok(stats);
         }
         catch (Exception ex)
@@ -117,12 +103,11 @@ public class SupplierPriceAlertsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _alertService.AcknowledgeAlertAsync(id, cancellationToken);
+            var success = await alertService.AcknowledgeAlertAsync(id, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = "Alert not found" });
@@ -148,12 +133,11 @@ public class SupplierPriceAlertsController : BaseApiController
         [FromBody] ResolveAlertRequest? request,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _alertService.ResolveAlertAsync(id, request?.Notes, cancellationToken);
+            var success = await alertService.ResolveAlertAsync(id, request?.Notes, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = "Alert not found" });
@@ -178,12 +162,11 @@ public class SupplierPriceAlertsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var success = await _alertService.DismissAlertAsync(id, cancellationToken);
+            var success = await alertService.DismissAlertAsync(id, cancellationToken);
             if (!success)
             {
                 return NotFound(new { message = "Alert not found" });
@@ -208,17 +191,16 @@ public class SupplierPriceAlertsController : BaseApiController
         [FromBody] DismissMultipleRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (request?.AlertIds == null || !request.AlertIds.Any())
+        if (request?.AlertIds is null || !request.AlertIds.Any())
         {
             return BadRequest(new { message = "No alert IDs provided" });
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var count = await _alertService.DismissMultipleAlertsAsync(request.AlertIds, cancellationToken);
+            var count = await alertService.DismissMultipleAlertsAsync(request.AlertIds, cancellationToken);
             return Ok(new { message = $"{count} alerts dismissed successfully", count });
         }
         catch (Exception ex)
@@ -236,12 +218,11 @@ public class SupplierPriceAlertsController : BaseApiController
     public async Task<ActionResult<int>> GetUnreadCount(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var count = await _alertService.GetUnreadAlertCountAsync(cancellationToken);
+            var count = await alertService.GetUnreadAlertCountAsync(cancellationToken);
             return Ok(count);
         }
         catch (Exception ex)
@@ -259,12 +240,11 @@ public class SupplierPriceAlertsController : BaseApiController
     public async Task<ActionResult<AlertConfigurationDto>> GetConfiguration(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var config = await _alertService.GetUserConfigurationAsync(cancellationToken);
+            var config = await alertService.GetUserConfigurationAsync(cancellationToken);
             var dto = new AlertConfigurationDto
             {
                 Id = config.Id,
@@ -302,12 +282,11 @@ public class SupplierPriceAlertsController : BaseApiController
         [FromBody] UpdateAlertConfigRequest request,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var config = await _alertService.UpdateUserConfigurationAsync(request, cancellationToken);
+            var config = await alertService.UpdateUserConfigurationAsync(request, cancellationToken);
             var dto = new AlertConfigurationDto
             {
                 Id = config.Id,

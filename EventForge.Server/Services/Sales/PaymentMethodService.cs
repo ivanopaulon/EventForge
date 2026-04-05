@@ -7,49 +7,35 @@ namespace EventForge.Server.Services.Sales;
 /// <summary>
 /// Service implementation for managing payment methods.
 /// </summary>
-public class PaymentMethodService : IPaymentMethodService
+public class PaymentMethodService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<PaymentMethodService> logger,
+    ICacheService cacheService) : IPaymentMethodService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<PaymentMethodService> _logger;
-    private readonly ICacheService _cacheService;
 
     private const string CACHE_KEY_ALL = "PaymentMethods_All";
-
-    public PaymentMethodService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<PaymentMethodService> logger,
-        ICacheService cacheService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
 
     public async Task<PagedResult<PaymentMethodDto>> GetPaymentMethodsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            _logger.LogDebug("Querying payment methods for tenant {TenantId}", currentTenantId.Value);
+            logger.LogDebug("Querying payment methods for tenant {TenantId}", currentTenantId.Value);
 
             // Cache all PaymentMethods for 15 minutes
-            var allPaymentMethods = await _cacheService.GetOrCreateAsync(
+            var allPaymentMethods = await cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
                 async (ct) =>
                 {
-                    return await _context.PaymentMethods
+                    return await context.PaymentMethods
                         .AsNoTracking()
                         .Where(pm => pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                         .OrderBy(pm => pm.DisplayOrder)
@@ -69,7 +55,7 @@ public class PaymentMethodService : IPaymentMethodService
                 .Take(pagination.PageSize)
                 .ToList();
 
-            _logger.LogDebug("Found {Count} payment methods for tenant {TenantId}", totalCount, currentTenantId.Value);
+            logger.LogDebug("Found {Count} payment methods for tenant {TenantId}", totalCount, currentTenantId.Value);
 
             return new PagedResult<PaymentMethodDto>
             {
@@ -81,7 +67,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment methods for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving payment methods for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -90,13 +76,13 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var query = _context.PaymentMethods
+            var query = context.PaymentMethods
                 .AsNoTracking()
                 .Where(pm => pm.TenantId == currentTenantId.Value && pm.IsActive && !pm.IsDeleted);
 
@@ -119,7 +105,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active payment methods.");
+            logger.LogError(ex, "Error retrieving active payment methods.");
             throw;
         }
     }
@@ -128,21 +114,21 @@ public class PaymentMethodService : IPaymentMethodService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var paymentMethod = await _context.PaymentMethods
+            var paymentMethod = await context.PaymentMethods
                 .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return paymentMethod != null ? MapToDto(paymentMethod) : null;
+            return paymentMethod is not null ? MapToDto(paymentMethod) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment method {PaymentMethodId}.", id);
+            logger.LogError(ex, "Error retrieving payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -153,21 +139,21 @@ public class PaymentMethodService : IPaymentMethodService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var paymentMethod = await _context.PaymentMethods
+            var paymentMethod = await context.PaymentMethods
                 .Where(pm => pm.Code == code && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return paymentMethod != null ? MapToDto(paymentMethod) : null;
+            return paymentMethod is not null ? MapToDto(paymentMethod) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving payment method by code {Code}.", code);
+            logger.LogError(ex, "Error retrieving payment method by code {Code}.", code);
             throw;
         }
     }
@@ -179,7 +165,7 @@ public class PaymentMethodService : IPaymentMethodService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
@@ -209,10 +195,10 @@ public class PaymentMethodService : IPaymentMethodService
                 CreatedBy = currentUser
             };
 
-            _ = _context.PaymentMethods.Add(paymentMethod);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.PaymentMethods.Add(paymentMethod);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "All",
@@ -224,15 +210,15 @@ public class PaymentMethodService : IPaymentMethodService
                 cancellationToken: cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
-            _logger.LogInformation("Payment method {Name} created by {User}.", paymentMethod.Name, currentUser);
+            logger.LogInformation("Payment method {Name} created by {User}.", paymentMethod.Name, currentUser);
 
             return MapToDto(paymentMethod);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating payment method.");
+            logger.LogError(ex, "Error creating payment method.");
             throw;
         }
     }
@@ -244,17 +230,17 @@ public class PaymentMethodService : IPaymentMethodService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var paymentMethod = await _context.PaymentMethods
+            var paymentMethod = await context.PaymentMethods
                 .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (paymentMethod == null)
+            if (paymentMethod is null)
             {
                 return null;
             }
@@ -274,15 +260,15 @@ public class PaymentMethodService : IPaymentMethodService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating PaymentMethod {PaymentMethodId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating PaymentMethod {PaymentMethodId}.", id);
                 throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "All",
@@ -294,9 +280,9 @@ public class PaymentMethodService : IPaymentMethodService
                 cancellationToken: cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
-            _logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
+            logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
 
             return MapToDto(paymentMethod);
         }
@@ -306,7 +292,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating payment method {PaymentMethodId}.", id);
+            logger.LogError(ex, "Error updating payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -317,17 +303,17 @@ public class PaymentMethodService : IPaymentMethodService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var paymentMethod = await _context.PaymentMethods
+            var paymentMethod = await context.PaymentMethods
                 .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (paymentMethod == null)
+            if (paymentMethod is null)
             {
                 return false;
             }
@@ -339,15 +325,15 @@ public class PaymentMethodService : IPaymentMethodService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting PaymentMethod {PaymentMethodId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting PaymentMethod {PaymentMethodId}.", id);
                 throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "PaymentMethod",
                 entityId: paymentMethod.Id,
                 propertyName: "IsDeleted",
@@ -359,9 +345,9 @@ public class PaymentMethodService : IPaymentMethodService
                 cancellationToken: cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
-            _logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
+            logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
 
             return true;
         }
@@ -371,7 +357,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting payment method {PaymentMethodId}.", id);
+            logger.LogError(ex, "Error deleting payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -382,13 +368,13 @@ public class PaymentMethodService : IPaymentMethodService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for payment method operations.");
             }
 
-            var query = _context.PaymentMethods
+            var query = context.PaymentMethods
                 .Where(pm => pm.Code == code && pm.TenantId == currentTenantId.Value && !pm.IsDeleted);
 
             if (excludeId.HasValue)
@@ -400,7 +386,7 @@ public class PaymentMethodService : IPaymentMethodService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if payment method code exists.");
+            logger.LogError(ex, "Error checking if payment method code exists.");
             throw;
         }
     }
@@ -421,4 +407,5 @@ public class PaymentMethodService : IPaymentMethodService
             FiscalCode = entity.FiscalCode
         };
     }
+
 }

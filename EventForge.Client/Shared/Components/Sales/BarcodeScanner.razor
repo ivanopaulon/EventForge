@@ -1,6 +1,6 @@
 @using EventForge.DTOs.Products
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BarcodeScanner> Logger
 
@@ -95,7 +95,7 @@
         // to avoid synchronization issues between KeyDown event and data binding
         if (e.Key == "Enter")
         {
-            var currentValue = _barcodeInput?.Value;
+            var currentValue = _barcode;
             if (!string.IsNullOrWhiteSpace(currentValue))
             {
                 await SearchBarcodeAsync();
@@ -115,10 +115,7 @@
 
             if (searchResult == null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode),
-                    Severity.Warning
-                );
+                AppNotification.ShowWarning(TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode));
                 await OnProductNotFound.InvokeAsync(_barcode);
                 _barcode = string.Empty;
                 return;
@@ -127,10 +124,7 @@
             // Case 1: Exact code match found
             if (searchResult.IsExactCodeMatch && searchResult.ExactMatch != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", searchResult.ExactMatch.Product?.Name ?? ""),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", searchResult.ExactMatch.Product?.Name ?? ""));
                 await OnProductFound.InvokeAsync(searchResult.ExactMatch);
                 _barcode = string.Empty;
             }
@@ -138,10 +132,7 @@
             else if (searchResult.SearchResults.Count == 1)
             {
                 var product = searchResult.SearchResults[0];
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", product.Name),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.productFound", "Prodotto trovato: {0}", product.Name));
                 // Create ProductWithCodeDto from single result
                 var productWithCode = new ProductWithCodeDto
                 {
@@ -154,20 +145,14 @@
             // Case 3: Multiple text search results
             else if (searchResult.SearchResults.Count > 1)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.multipleProductsFound", "Trovati {0} prodotti", searchResult.SearchResults.Count),
-                    Severity.Info
-                );
+                AppNotification.ShowInfo(TranslationService.GetTranslation("messages.multipleProductsFound", "Trovati {0} prodotti", searchResult.SearchResults.Count));
                 await OnMultipleProductsFound.InvokeAsync(searchResult.SearchResults);
                 _barcode = string.Empty;
             }
             // Case 4: No results
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode),
-                    Severity.Warning
-                );
+                AppNotification.ShowWarning(TranslationService.GetTranslation("messages.productNotFound", "Prodotto non trovato: {0}", _barcode));
                 await OnProductNotFound.InvokeAsync(_barcode);
                 _barcode = string.Empty;
             }
@@ -175,16 +160,13 @@
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             Logger.LogError(ex, "Unauthorized error searching product by barcode {Barcode}", _barcode);
-            Snackbar.Add(
-                TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.sessionExpired", "La sessione è scaduta. Salva il lavoro e rieffettua il login."));
             await OnError.InvokeAsync(ex);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error searching product by barcode {Barcode}", _barcode);
-            Snackbar.Add(TranslationService.GetTranslation("messages.searchError", "Errore nella ricerca"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.searchError", "Errore nella ricerca"));
             await OnError.InvokeAsync(ex);
         }
         finally

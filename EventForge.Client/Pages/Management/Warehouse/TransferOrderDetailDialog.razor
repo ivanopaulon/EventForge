@@ -4,7 +4,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.SwapHoriz"
           Title="@(_transferOrder != null ? $"Transfer Order {_transferOrder.Number}" : "Transfer Order")"
@@ -179,12 +179,12 @@
 
             if (_transferOrder == null)
             {
-                Snackbar.Add("Transfer order not found", Severity.Error);
+                AppNotification.ShowError("Transfer order not found");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading transfer order: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Error loading transfer order: {ex.Message}");
         }
         finally
         {

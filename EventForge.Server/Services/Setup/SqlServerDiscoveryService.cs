@@ -6,14 +6,8 @@ namespace EventForge.Server.Services.Setup;
 /// <summary>
 /// Implementation of SQL Server discovery service.
 /// </summary>
-public class SqlServerDiscoveryService : ISqlServerDiscoveryService
+public class SqlServerDiscoveryService(ILogger<SqlServerDiscoveryService> logger) : ISqlServerDiscoveryService
 {
-    private readonly ILogger<SqlServerDiscoveryService> _logger;
-
-    public SqlServerDiscoveryService(ILogger<SqlServerDiscoveryService> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<List<SqlServerInstance>> DiscoverLocalInstancesAsync(CancellationToken cancellationToken = default)
     {
@@ -68,20 +62,20 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
                             Version = version
                         });
 
-                        _logger.LogInformation("Found SQL Server instance: {Instance} (Version: {Version})", instanceName, version);
+                        logger.LogInformation("Found SQL Server instance: {Instance} (Version: {Version})", instanceName, version);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Could not connect to {Instance}", instanceName);
+                    logger.LogDebug(ex, "Could not connect to {Instance}", instanceName);
                 }
             }
 
-            _logger.LogInformation("Total SQL Server instances discovered: {Count}", instances.Count);
+            logger.LogInformation("Total SQL Server instances discovered: {Count}", instances.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during SQL Server discovery");
+            logger.LogError(ex, "Error during SQL Server discovery");
         }
 
         return instances;
@@ -96,12 +90,12 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
 
             await connection.OpenAsync(cancellationToken);
 
-            _logger.LogInformation("Successfully connected to SQL Server: {Server}", serverAddress);
+            logger.LogInformation("Successfully connected to SQL Server: {Server}", serverAddress);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to connect to SQL Server: {Server}", serverAddress);
+            logger.LogError(ex, "Failed to connect to SQL Server: {Server}", serverAddress);
             return false;
         }
     }
@@ -127,11 +121,11 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
                 databases.Add(reader.GetString(0));
             }
 
-            _logger.LogInformation("Found {Count} user databases on {Server}", databases.Count, serverAddress);
+            logger.LogInformation("Found {Count} user databases on {Server}", databases.Count, serverAddress);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing databases on {Server}", serverAddress);
+            logger.LogError(ex, "Error listing databases on {Server}", serverAddress);
         }
 
         return databases;
@@ -150,4 +144,5 @@ public class SqlServerDiscoveryService : ISqlServerDiscoveryService
             return $"Server={serverAddress};User Id={credentials.Username};Password={credentials.Password};TrustServerCertificate=True;";
         }
     }
+
 }

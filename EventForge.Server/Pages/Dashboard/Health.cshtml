@@ -38,13 +38,13 @@ else
     <div class="row g-3">
         @foreach (var entry in Model.Report.Entries.OrderBy(e => e.Value.Status))
         {
-            string cardBorder, badgeClass, iconClass;
+            string badgeClass, iconClass;
             if (entry.Value.Status == HealthStatus.Healthy)
-            { cardBorder = "border-success"; badgeClass = "ef-badge-success"; iconClass = "bi-check-circle-fill text-success"; }
+            { badgeClass = "ef-badge-success"; iconClass = "bi-check-circle-fill text-success"; }
             else if (entry.Value.Status == HealthStatus.Degraded)
-            { cardBorder = "border-warning"; badgeClass = "ef-badge-warning"; iconClass = "bi-exclamation-circle-fill text-warning"; }
+            { badgeClass = "ef-badge-warning"; iconClass = "bi-exclamation-circle-fill text-warning"; }
             else
-            { cardBorder = "border-danger";  badgeClass = "ef-badge-danger";  iconClass = "bi-x-circle-fill text-danger"; }
+            { badgeClass = "ef-badge-danger";  iconClass = "bi-x-circle-fill text-danger"; }
 
             <div class="col-md-6">
                 <div class="ef-card h-100" style="border-left: 3px solid var(--ef-@(entry.Value.Status == HealthStatus.Healthy ? "success" : entry.Value.Status == HealthStatus.Degraded ? "warning" : "danger"))">

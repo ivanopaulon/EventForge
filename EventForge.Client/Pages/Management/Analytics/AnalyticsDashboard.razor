@@ -6,7 +6,7 @@
 @attribute [Authorize]
 @inject IAnalyticsService AnalyticsService
 @inject IAuthService AuthService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<AnalyticsDashboard> Logger
 
@@ -432,7 +432,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during Analytics Dashboard initialization");
-            Snackbar.Add(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"));
         }
         finally
         {
@@ -461,7 +461,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading analytics data");
-            Snackbar.Add(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"));
         }
         finally
         {

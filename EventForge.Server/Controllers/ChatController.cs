@@ -23,21 +23,11 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public class ChatController : BaseApiController
+public class ChatController(
+    IChatService chatService,
+    ITenantContext tenantContext,
+    ILogger<ChatController> logger) : BaseApiController
 {
-    private readonly IChatService _chatService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ChatController> _logger;
-
-    public ChatController(
-        IChatService chatService,
-        ITenantContext tenantContext,
-        ILogger<ChatController> logger)
-    {
-        _chatService = chatService ?? throw new ArgumentNullException(nameof(chatService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Chat Management
 
@@ -59,16 +49,15 @@ public class ChatController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Creating {ChatType} chat with {ParticipantCount} participants for tenant {TenantId}",
                 createChatDto.Type, createChatDto.ParticipantIds.Count, createChatDto.TenantId);
 
-            var result = await _chatService.CreateChatAsync(createChatDto, cancellationToken);
+            var result = await chatService.CreateChatAsync(createChatDto, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetChatByIdAsync),
@@ -79,7 +68,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem("Rate limit exceeded: " + ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while creating the chat");
         }
@@ -101,24 +90,23 @@ public class ChatController : BaseApiController
         [FromRoute] Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
         try
         {
-            var userId = _tenantContext.CurrentUserId ?? Guid.Empty;
-            var tenantId = _tenantContext.CurrentTenantId;
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
-            var chat = await _chatService.GetChatByIdAsync(id, userId, tenantId, cancellationToken);
+            var chat = await chatService.GetChatByIdAsync(id, userId, tenantId, cancellationToken);
 
-            if (chat == null)
+            if (chat is null)
             {
                 return CreateNotFoundProblem($"Chat with ID {id} was not found or is not accessible");
             }
 
             return Ok(chat);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving the chat");
         }
@@ -138,23 +126,22 @@ public class ChatController : BaseApiController
         [FromQuery] ChatSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
         try
         {
             // Always scope the search to the authenticated user and their tenant
-            searchDto.UserId = _tenantContext.CurrentUserId;
-            searchDto.TenantId = _tenantContext.CurrentTenantId;
+            searchDto.UserId = tenantContext.CurrentUserId;
+            searchDto.TenantId = tenantContext.CurrentTenantId;
 
-            _logger.LogDebug(
+            logger.LogDebug(
                 "Searching chats for user {UserId} in tenant {TenantId} - Page {Page}",
                 searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
 
-            var result = await _chatService.SearchChatsAsync(searchDto, cancellationToken);
+            var result = await chatService.SearchChatsAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while searching chats");
         }
@@ -172,18 +159,17 @@ public class ChatController : BaseApiController
     public async Task<ActionResult<List<ChatAvailableUserDto>>> GetAvailableUsersAsync(
         CancellationToken cancellationToken = default)
     {
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantValidation != null) return tenantValidation;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId!.Value;
-            var users = await _chatService.GetAvailableUsersAsync(tenantId, cancellationToken);
+            var tenantId = tenantContext.CurrentTenantId!.Value;
+            var users = await chatService.GetAvailableUsersAsync(tenantId, cancellationToken);
             return Ok(users);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get available users for chat");
+            logger.LogError(ex, "Failed to get available users for chat");
             return CreateValidationProblemDetails("An error occurred while retrieving available users");
         }
     }
@@ -213,7 +199,7 @@ public class ChatController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
+            var result = await chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -224,7 +210,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while updating the chat");
         }
@@ -255,7 +241,7 @@ public class ChatController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _chatService.DeleteChatAsync(
+            var result = await chatService.DeleteChatAsync(
                 id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
             return Ok(result);
         }
@@ -267,7 +253,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while deleting the chat");
         }
@@ -296,11 +282,11 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Sending message in chat {ChatId} by user {UserId} with {AttachmentCount} attachments",
                 messageDto.ChatId, messageDto.SenderId, messageDto.Attachments?.Count ?? 0);
 
-            var result = await _chatService.SendMessageAsync(messageDto, cancellationToken);
+            var result = await chatService.SendMessageAsync(messageDto, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetMessageByIdAsync),
@@ -311,7 +297,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while sending the message"
                 );
@@ -334,14 +320,14 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogDebug(
+            logger.LogDebug(
                 "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
                 searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
 
-            var result = await _chatService.GetMessagesAsync(searchDto, cancellationToken);
+            var result = await chatService.GetMessagesAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving messages"
                 );
@@ -365,7 +351,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            var result = await _chatService.GetMessagesAsync(pagination, cancellationToken);
+            var result = await chatService.GetMessagesAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -394,7 +380,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            var result = await _chatService.GetMessagesByConversationAsync(conversationId, pagination, cancellationToken);
+            var result = await chatService.GetMessagesByConversationAsync(conversationId, pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -421,7 +407,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            var result = await _chatService.GetUnreadMessagesAsync(pagination, cancellationToken);
+            var result = await chatService.GetUnreadMessagesAsync(pagination, cancellationToken);
             SetPaginationHeaders(result, pagination);
             return Ok(result);
         }
@@ -453,16 +439,16 @@ public class ChatController : BaseApiController
             var userId = Guid.Empty; // GetCurrentUserId();
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
-            var message = await _chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
+            var message = await chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
 
-            if (message == null)
+            if (message is null)
             {
                 return CreateNotFoundProblem($"Message with ID {messageId} was not found or is not accessible");
             }
 
             return Ok(message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving the message"
                 );
@@ -502,7 +488,7 @@ public class ChatController : BaseApiController
                 EditReason = editDto.EditReason
             };
 
-            var result = await _chatService.EditMessageAsync(editMessageDto, cancellationToken);
+            var result = await chatService.EditMessageAsync(editMessageDto, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -514,7 +500,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while editing the message"
                 );
@@ -546,7 +532,7 @@ public class ChatController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _chatService.DeleteMessageAsync(
+            var result = await chatService.DeleteMessageAsync(
                 messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
             return Ok(result);
         }
@@ -559,7 +545,7 @@ public class ChatController : BaseApiController
         {
             return Forbid();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while deleting the message"
                 );
@@ -587,7 +573,7 @@ public class ChatController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _chatService.MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
+            var result = await chatService.MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -595,7 +581,7 @@ public class ChatController : BaseApiController
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while marking the message as read"
                 );
@@ -617,7 +603,7 @@ public class ChatController : BaseApiController
         [FromBody] List<Guid> messageIds,
         CancellationToken cancellationToken = default)
     {
-        if (messageIds == null || !messageIds.Any())
+        if (messageIds is null || !messageIds.Any())
         {
             return CreateValidationProblemDetails("Message IDs list cannot be empty"
             );
@@ -634,10 +620,10 @@ public class ChatController : BaseApiController
             // TODO: Extract user ID from claims
             var userId = Guid.Empty; // GetCurrentUserId();
 
-            var result = await _chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
+            var result = await chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while marking messages as read"
                 );
@@ -666,7 +652,7 @@ public class ChatController : BaseApiController
         CancellationToken cancellationToken = default
     )
     {
-        if (uploadRequest.File == null || uploadRequest.File.Length == 0)
+        if (uploadRequest.File is null || uploadRequest.File.Length == 0)
         {
             return CreateValidationProblemDetails("File cannot be empty"
             );
@@ -694,7 +680,7 @@ public class ChatController : BaseApiController
                 FileStream = uploadRequest.File.OpenReadStream()
             };
 
-            var result = await _chatService.UploadFileAsync(uploadDto, cancellationToken);
+            var result = await chatService.UploadFileAsync(uploadDto, cancellationToken);
 
             if (result.Success)
             {
@@ -713,7 +699,7 @@ public class ChatController : BaseApiController
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while uploading the file"
                 );
@@ -742,16 +728,16 @@ public class ChatController : BaseApiController
             var userId = Guid.Empty; // GetCurrentUserId();
             var tenantId = default(Guid?); // GetCurrentTenantId();
 
-            var downloadInfo = await _chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
+            var downloadInfo = await chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
 
-            if (downloadInfo == null)
+            if (downloadInfo is null)
             {
                 return CreateNotFoundProblem($"File with ID {attachmentId} was not found or is not accessible");
             }
 
             return Ok(downloadInfo);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving file information"
                 );
@@ -779,7 +765,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Downloading file {AttachmentId} with token validation", attachmentId);
+            logger.LogInformation("Downloading file {AttachmentId} with token validation", attachmentId);
 
             // TODO: Implement actual file download with token validation
             await Task.Delay(10, cancellationToken);
@@ -790,7 +776,7 @@ public class ChatController : BaseApiController
 
             return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while downloading the file"
                 );
@@ -825,10 +811,10 @@ public class ChatController : BaseApiController
                 ? new DateRange { StartDate = fromDate.Value, EndDate = toDate.Value }
                 : null;
 
-            var result = await _chatService.GetChatStatisticsAsync(tenantId, dateRange, cancellationToken);
+            var result = await chatService.GetChatStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving statistics"
                 );
@@ -859,7 +845,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting chat export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
                 exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
 
@@ -879,7 +865,7 @@ public class ChatController : BaseApiController
 
             return Accepted(result.StatusUrl, result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while starting the export operation"
                 );
@@ -906,7 +892,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogDebug("Retrieving chat export status for {ExportId}", exportId);
+            logger.LogDebug("Retrieving chat export status for {ExportId}", exportId);
 
             // TODO: Implement actual export status retrieval
             await Task.Delay(10, cancellationToken);
@@ -926,7 +912,7 @@ public class ChatController : BaseApiController
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving export status"
                 );
@@ -953,7 +939,7 @@ public class ChatController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Downloading chat export file for {ExportId}", exportId);
+            logger.LogInformation("Downloading chat export file for {ExportId}", exportId);
 
             // TODO: Implement actual file download logic
             await Task.Delay(10, cancellationToken);
@@ -995,7 +981,7 @@ public class ChatController : BaseApiController
             var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
             return File(bytes, "application/json", $"chat-export-{exportId}.json");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while downloading the export file"
                 );
@@ -1021,10 +1007,10 @@ public class ChatController : BaseApiController
     {
         try
         {
-            var result = await _chatService.GetChatSystemHealthAsync(cancellationToken);
+            var result = await chatService.GetChatSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return CreateValidationProblemDetails("An error occurred while retrieving system health"
                 );

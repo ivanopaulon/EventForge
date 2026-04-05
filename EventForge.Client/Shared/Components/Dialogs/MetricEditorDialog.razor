@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Dashboard
 @using EventForge.Client.Shared.Components.MetricBuilder
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Analytics"
           Title="@(IsNewMetric ? "Crea Nuova Metrica" : "Modifica Metrica")"
@@ -347,7 +347,7 @@
     {
         if (!IsValid())
         {
-            Snackbar.Add("Completa tutti i campi obbligatori", Severity.Warning);
+            AppNotification.ShowWarning("Completa tutti i campi obbligatori");
             return;
         }
 

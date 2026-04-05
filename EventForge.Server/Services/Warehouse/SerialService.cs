@@ -7,24 +7,12 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing individual serial numbers/matricole.
 /// </summary>
-public class SerialService : ISerialService
+public class SerialService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<SerialService> logger) : ISerialService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SerialService> _logger;
-
-    public SerialService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<SerialService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<SerialDto>> GetSerialsAsync(
         int page = 1,
@@ -38,13 +26,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Serials
+            var query = context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -101,7 +89,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials with filters - ProductId: {ProductId}, LotId: {LotId}, LocationId: {LocationId}, Status: {Status}",
+            logger.LogError(ex, "Error getting serials with filters - ProductId: {ProductId}, LotId: {LotId}, LocationId: {LocationId}, Status: {Status}",
                 productId, lotId, locationId, status);
             throw;
         }
@@ -111,13 +99,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -129,7 +117,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serial by ID: {SerialId}", id);
+            logger.LogError(ex, "Error getting serial by ID: {SerialId}", id);
             throw;
         }
     }
@@ -138,13 +126,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -156,7 +144,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serial by number: {SerialNumber}", serialNumber);
+            logger.LogError(ex, "Error getting serial by number: {SerialNumber}", serialNumber);
             throw;
         }
     }
@@ -165,13 +153,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serials = await _context.Serials
+            var serials = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -185,7 +173,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials by product ID: {ProductId}", productId);
+            logger.LogError(ex, "Error getting serials by product ID: {ProductId}", productId);
             throw;
         }
     }
@@ -194,13 +182,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serials = await _context.Serials
+            var serials = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -214,7 +202,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials by lot ID: {LotId}", lotId);
+            logger.LogError(ex, "Error getting serials by lot ID: {LotId}", lotId);
             throw;
         }
     }
@@ -223,13 +211,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serials = await _context.Serials
+            var serials = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -244,7 +232,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials by location ID: {LocationId}", locationId);
+            logger.LogError(ex, "Error getting serials by location ID: {LocationId}", locationId);
             throw;
         }
     }
@@ -253,13 +241,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serials = await _context.Serials
+            var serials = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -274,7 +262,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials by owner ID: {OwnerId}", ownerId);
+            logger.LogError(ex, "Error getting serials by owner ID: {OwnerId}", ownerId);
             throw;
         }
     }
@@ -283,7 +271,7 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -291,7 +279,7 @@ public class SerialService : ISerialService
 
             var thresholdDate = DateTime.UtcNow.AddDays(daysAhead);
 
-            var serials = await _context.Serials
+            var serials = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -308,7 +296,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serials with expiring warranty within {DaysAhead} days", daysAhead);
+            logger.LogError(ex, "Error getting serials with expiring warranty within {DaysAhead} days", daysAhead);
             throw;
         }
     }
@@ -317,31 +305,31 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
             // Check if serial number is unique
-            var existingSerial = await _context.Serials
+            var existingSerial = await context.Serials
                 .FirstOrDefaultAsync(s => s.SerialNumber == createDto.SerialNumber && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (existingSerial != null)
+            if (existingSerial is not null)
             {
                 throw new InvalidOperationException($"Serial number '{createDto.SerialNumber}' already exists.");
             }
 
             var newSerial = createDto.ToEntity(currentTenantId.Value, currentUser);
-            _ = _context.Serials.Add(newSerial);
+            _ = context.Serials.Add(newSerial);
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", newSerial.Id, "Created", "Create", null,
+            _ = await auditLogService.LogEntityChangeAsync("Serial", newSerial.Id, "Created", "Create", null,
                 $"Created serial number {createDto.SerialNumber} for product {createDto.ProductId}", currentUser);
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Reload with includes for DTO mapping
-            var serialForDto = await _context.Serials
+            var serialForDto = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -353,7 +341,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating serial: {SerialNumber}", createDto.SerialNumber);
+            logger.LogError(ex, "Error creating serial: {SerialNumber}", createDto.SerialNumber);
             throw;
         }
     }
@@ -362,13 +350,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -376,7 +364,7 @@ public class SerialService : ISerialService
                 .Include(s => s.Owner)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null)
+            if (serial is null)
             {
                 return null;
             }
@@ -384,12 +372,12 @@ public class SerialService : ISerialService
             // Check serial number uniqueness if it's being changed
             if (!string.IsNullOrEmpty(updateDto.SerialNumber) && updateDto.SerialNumber != serial.SerialNumber)
             {
-                var existingSerial = await _context.Serials
+                var existingSerial = await context.Serials
                     .FirstOrDefaultAsync(s => s.SerialNumber == updateDto.SerialNumber &&
                                             s.TenantId == currentTenantId.Value &&
                                             s.Id != id, cancellationToken);
 
-                if (existingSerial != null)
+                if (existingSerial is not null)
                 {
                     throw new InvalidOperationException($"Serial number '{updateDto.SerialNumber}' already exists.");
                 }
@@ -397,14 +385,14 @@ public class SerialService : ISerialService
 
             serial.UpdateFromDto(updateDto, currentUser);
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Serial {SerialId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Serial {SerialId}.", id);
                 throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
@@ -416,7 +404,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating serial: {SerialId}", id);
+            logger.LogError(ex, "Error updating serial: {SerialId}", id);
             throw;
         }
     }
@@ -425,7 +413,7 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -436,10 +424,10 @@ public class SerialService : ISerialService
                 throw new ArgumentException($"Invalid serial status: {status}");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null)
+            if (serial is null)
             {
                 return false;
             }
@@ -453,21 +441,21 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
                 status, currentUser);
             // Add notes separately if provided
             if (!string.IsNullOrEmpty(notes))
             {
-                _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
+                _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
                     $"Status change notes: {notes}", currentUser);
             }
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Serial status {SerialId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Serial status {SerialId}.", id);
                 throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
@@ -479,7 +467,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating serial status - ID: {SerialId}, Status: {Status}", id, status);
+            logger.LogError(ex, "Error updating serial status - ID: {SerialId}, Status: {Status}", id, status);
             throw;
         }
     }
@@ -488,17 +476,17 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .Include(s => s.CurrentLocation)
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null)
+            if (serial is null)
             {
                 return false;
             }
@@ -512,15 +500,15 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Location", "Move", oldLocationId?.ToString(),
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Location", "Move", oldLocationId?.ToString(),
                 newLocationId.ToString(), currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error moving serial - ID: {SerialId}, NewLocation: {LocationId}", id, newLocationId);
+            logger.LogError(ex, "Error moving serial - ID: {SerialId}, NewLocation: {LocationId}", id, newLocationId);
             throw;
         }
     }
@@ -529,16 +517,16 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null || serial.Status != SerialStatus.Available)
+            if (serial is null || serial.Status != SerialStatus.Available)
             {
                 return false;
             }
@@ -549,15 +537,15 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Sell", null,
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Sell", null,
                 customerId.ToString(), currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error selling serial - ID: {SerialId}, Customer: {CustomerId}", id, customerId);
+            logger.LogError(ex, "Error selling serial - ID: {SerialId}, Customer: {CustomerId}", id, customerId);
             throw;
         }
     }
@@ -566,16 +554,16 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null || serial.Status != SerialStatus.Sold)
+            if (serial is null || serial.Status != SerialStatus.Sold)
             {
                 return false;
             }
@@ -590,15 +578,15 @@ public class SerialService : ISerialService
             serial.ModifiedBy = currentUser;
             serial.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Return", serial.OwnerId?.ToString(),
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Owner", "Return", serial.OwnerId?.ToString(),
                 null, currentUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error returning serial - ID: {SerialId}, Reason: {Reason}", id, reason);
+            logger.LogError(ex, "Error returning serial - ID: {SerialId}, Reason: {Reason}", id, reason);
             throw;
         }
     }
@@ -607,13 +595,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Serials
+            var query = context.Serials
                 .Where(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value);
 
             if (excludeId.HasValue)
@@ -625,7 +613,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking serial number uniqueness: {SerialNumber}", serialNumber);
+            logger.LogError(ex, "Error checking serial number uniqueness: {SerialNumber}", serialNumber);
             throw;
         }
     }
@@ -634,30 +622,30 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var serial = await _context.Serials
+            var serial = await context.Serials
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (serial == null)
+            if (serial is null)
             {
                 return false;
             }
 
-            _ = _context.Serials.Remove(serial);
-            _ = await _auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
+            _ = context.Serials.Remove(serial);
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
                 $"Deleted serial number {serial.SerialNumber}", currentUser);
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Serial {SerialId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Serial {SerialId}.", id);
                 throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
@@ -669,7 +657,7 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting serial: {SerialId}", id);
+            logger.LogError(ex, "Error deleting serial: {SerialId}", id);
             throw;
         }
     }
@@ -678,13 +666,13 @@ public class SerialService : ISerialService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var movements = await _context.StockMovements
+            var movements = await context.StockMovements
                 .Include(sm => sm.Product)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
@@ -697,8 +685,9 @@ public class SerialService : ISerialService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting serial history: {SerialId}", serialId);
+            logger.LogError(ex, "Error getting serial history: {SerialId}", serialId);
             throw;
         }
     }
+
 }

@@ -3,10 +3,8 @@ using System.Collections.Concurrent;
 
 namespace EventForge.Server.Services.Caching;
 
-public class CacheService : ICacheService
+public class CacheService(IMemoryCache cache, ILogger<CacheService> logger) : ICacheService
 {
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<CacheService> _logger;
 
     // Track cache keys for pattern invalidation
     private readonly ConcurrentDictionary<string, byte> _cacheKeys = new();
@@ -14,12 +12,6 @@ public class CacheService : ICacheService
     // Default expiration times
     private static readonly TimeSpan DefaultAbsoluteExpiration = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan DefaultSlidingExpiration = TimeSpan.FromMinutes(5);
-
-    public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
-    {
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<T> GetOrCreateAsync<T>(
         string key,
@@ -38,16 +30,16 @@ public class CacheService : ICacheService
         _cacheKeys.TryAdd(cacheKey, 0);
 
         // Try get from cache
-        if (_cache.TryGetValue<T>(cacheKey, out var cachedValue))
+        if (cache.TryGetValue<T>(cacheKey, out var cachedValue))
         {
-            _logger.LogDebug("Cache HIT for key: {CacheKey}", cacheKey);
+            logger.LogDebug("Cache HIT for key: {CacheKey}", cacheKey);
             return cachedValue!;
         }
 
-        _logger.LogDebug("Cache MISS for key: {CacheKey}", cacheKey);
+        logger.LogDebug("Cache MISS for key: {CacheKey}", cacheKey);
 
         // Cache miss - create new entry using GetOrCreateAsync to prevent race conditions
-        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        return await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             entry.SetSize(1);  // Count towards size limit
             entry.SetAbsoluteExpiration(absoluteExpiration ?? DefaultAbsoluteExpiration);
@@ -63,13 +55,13 @@ public class CacheService : ICacheService
             {
                 try
                 {
-                    _logger.LogDebug("Cache entry evicted: {Key}, Reason: {Reason}", key, reason);
+                    logger.LogDebug("Cache entry evicted: {Key}, Reason: {Reason}", key, reason);
                     _cacheKeys.TryRemove(key.ToString()!, out _);
                 }
                 catch (Exception ex)
                 {
                     // Suppress exceptions in eviction callback to prevent crashes
-                    _logger.LogWarning(ex, "Error in cache eviction callback for key: {Key}", key);
+                    logger.LogWarning(ex, "Error in cache eviction callback for key: {Key}", key);
                 }
             });
 
@@ -80,16 +72,16 @@ public class CacheService : ICacheService
     public void Invalidate(string key, Guid tenantId)
     {
         var cacheKey = BuildCacheKey(key, tenantId);
-        _cache.Remove(cacheKey);
+        cache.Remove(cacheKey);
         _cacheKeys.TryRemove(cacheKey, out _);
-        _logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
+        logger.LogInformation("Cache invalidated for key: {CacheKey}", cacheKey);
     }
 
     public void InvalidateTenant(Guid tenantId)
     {
         var pattern = $"*_{tenantId}";
         InvalidatePattern(pattern);
-        _logger.LogInformation("Cache invalidated for tenant: {TenantId}", tenantId);
+        logger.LogInformation("Cache invalidated for tenant: {TenantId}", tenantId);
     }
 
     public void InvalidatePattern(string pattern)
@@ -100,11 +92,11 @@ public class CacheService : ICacheService
 
         foreach (var key in keysToRemove)
         {
-            _cache.Remove(key);
+            cache.Remove(key);
             _cacheKeys.TryRemove(key, out _);
         }
 
-        _logger.LogInformation("Cache invalidated for pattern: {Pattern}, {Count} entries removed",
+        logger.LogInformation("Cache invalidated for pattern: {Pattern}, {Count} entries removed",
             pattern, keysToRemove.Count);
     }
 
@@ -131,4 +123,5 @@ public class CacheService : ICacheService
         }
         return key == pattern;
     }
+
 }

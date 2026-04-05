@@ -3,7 +3,7 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
 @inject ISupplierSuggestionService SuggestionService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<SupplierSuggestionDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Storefront"
@@ -204,7 +204,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading supplier suggestions for product {ProductId}", ProductId);
-            Snackbar.Add(TranslationService.GetTranslation("supplier.loadError", "Errore nel caricamento dei suggerimenti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("supplier.loadError", "Errore nel caricamento dei suggerimenti"));
         }
         finally
         {
@@ -226,26 +226,20 @@
 
             if (success)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("supplier.appliedSuccess", "Fornitore applicato con successo"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("supplier.appliedSuccess", "Fornitore applicato con successo"));
                 
                 await OnSupplierChanged.InvokeAsync();
                 MudDialog?.Close(DialogResult.Ok(true));
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying suggested supplier {SupplierId}", suggestion.SupplierId);
-            Snackbar.Add(
-                TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("supplier.applyError", "Errore nell'applicazione del fornitore"));
         }
     }
 

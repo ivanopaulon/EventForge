@@ -43,12 +43,11 @@ public interface IHelpService
 /// Provides functionality for interactive walkthroughs, onboarding progress tracking,
 /// and accessibility-compliant help content delivery.
 /// </summary>
-public class HelpService : IHelpService
+public class HelpService(
+    IJSRuntime jsRuntime,
+    ITranslationService translationService,
+    ILogger<HelpService> logger) : IHelpService
 {
-    private readonly IJSRuntime _jsRuntime;
-    private readonly ITranslationService _translationService;
-    private readonly ILogger<HelpService> _logger;
-
     private const string ONBOARDING_STORAGE_KEY = "eventforge_onboarding_progress";
     private const string HELP_PREFERENCE_KEY = "eventforge_help_preferences";
 
@@ -57,51 +56,37 @@ public class HelpService : IHelpService
     /// </summary>
     private readonly Dictionary<string, List<string>> _onboardingSteps = new()
     {
-        ["notifications"] = new List<string>
-        {
+        ["notifications"] = [
             "notifications_overview",
             "notifications_filter",
             "notifications_actions",
             "notifications_preferences"
-        },
-        ["chat"] = new List<string>
-        {
+        ],
+        ["chat"] = [
             "chat_overview",
             "chat_messaging",
             "chat_channels",
             "chat_files"
-        },
-        ["superadmin"] = new List<string>
-        {
+        ],
+        ["superadmin"] = [
             "superadmin_overview",
             "superadmin_users",
             "superadmin_configuration",
             "superadmin_audit"
-        },
-        ["file_management"] = new List<string>
-        {
+        ],
+        ["file_management"] = [
             "files_overview",
             "files_upload",
             "files_management",
             "files_sharing"
-        }
+        ]
     };
-
-    public HelpService(
-        IJSRuntime jsRuntime,
-        ITranslationService translationService,
-        ILogger<HelpService> logger)
-    {
-        _jsRuntime = jsRuntime;
-        _translationService = translationService;
-        _logger = logger;
-    }
 
     public async Task<Dictionary<string, bool>> GetOnboardingProgressAsync()
     {
         try
         {
-            var progressJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ONBOARDING_STORAGE_KEY);
+            var progressJson = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", ONBOARDING_STORAGE_KEY);
 
             if (string.IsNullOrEmpty(progressJson))
             {
@@ -113,7 +98,7 @@ public class HelpService : IHelpService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting onboarding progress");
+            logger.LogError(ex, "Error getting onboarding progress");
             return new Dictionary<string, bool>();
         }
     }
@@ -126,13 +111,13 @@ public class HelpService : IHelpService
             progress[stepId] = true;
 
             var progressJson = System.Text.Json.JsonSerializer.Serialize(progress);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ONBOARDING_STORAGE_KEY, progressJson);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", ONBOARDING_STORAGE_KEY, progressJson);
 
-            _logger.LogDebug("Onboarding step {StepId} marked as completed", stepId);
+            logger.LogDebug("Onboarding step {StepId} marked as completed", stepId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting onboarding step {StepId} as completed", stepId);
+            logger.LogError(ex, "Error setting onboarding step {StepId} as completed", stepId);
         }
     }
 
@@ -145,7 +130,7 @@ public class HelpService : IHelpService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking onboarding step {StepId} completion", stepId);
+            logger.LogError(ex, "Error checking onboarding step {StepId} completion", stepId);
             return false;
         }
     }
@@ -154,21 +139,21 @@ public class HelpService : IHelpService
     {
         try
         {
-            _logger.LogDebug("Starting walkthrough for component {ComponentId}", componentId);
+            logger.LogDebug("Starting walkthrough for component {ComponentId}", componentId);
 
             // Check if we have steps for this component
             if (!_onboardingSteps.ContainsKey(componentId))
             {
-                _logger.LogWarning("No walkthrough steps defined for component {ComponentId}", componentId);
+                logger.LogWarning("No walkthrough steps defined for component {ComponentId}", componentId);
                 return;
             }
 
             // Start the JavaScript-based walkthrough
-            await _jsRuntime.InvokeVoidAsync("startInteractiveWalkthrough", componentId, _onboardingSteps[componentId]);
+            await jsRuntime.InvokeVoidAsync("startInteractiveWalkthrough", componentId, _onboardingSteps[componentId]);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting walkthrough for component {ComponentId}", componentId);
+            logger.LogError(ex, "Error starting walkthrough for component {ComponentId}", componentId);
         }
     }
 
@@ -176,12 +161,12 @@ public class HelpService : IHelpService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", ONBOARDING_STORAGE_KEY);
-            _logger.LogInformation("Onboarding progress reset successfully");
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", ONBOARDING_STORAGE_KEY);
+            logger.LogInformation("Onboarding progress reset successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resetting onboarding progress");
+            logger.LogError(ex, "Error resetting onboarding progress");
         }
     }
 
@@ -192,20 +177,20 @@ public class HelpService : IHelpService
             var baseKey = $"help.{componentId}";
             var key = string.IsNullOrEmpty(section) ? $"{baseKey}.overview" : $"{baseKey}.{section}";
 
-            var content = _translationService.GetTranslation(key, $"Help content for {componentId}");
+            var content = translationService.GetTranslation(key, $"Help content for {componentId}");
 
             // If no specific content found, return general help
             if (content.StartsWith("[") && content.EndsWith("]"))
             {
                 var fallbackKey = $"help.general.{section ?? "overview"}";
-                content = _translationService.GetTranslation(fallbackKey, "Help content is being prepared for this section.");
+                content = translationService.GetTranslation(fallbackKey, "Help content is being prepared for this section.");
             }
 
             return content;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting help content for {ComponentId}, section {Section}", componentId, section);
+            logger.LogError(ex, "Error getting help content for {ComponentId}, section {Section}", componentId, section);
             return "Help content temporarily unavailable.";
         }
     }

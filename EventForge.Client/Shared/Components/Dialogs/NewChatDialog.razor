@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Chat
 @inject IChatService ChatService
 @inject IAuthService AuthService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Filled.PersonAdd"
@@ -160,7 +160,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento degli utenti: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento degli utenti: {ex.Message}");
         }
         finally
         {
@@ -188,7 +188,7 @@
             var userInfo = await AuthService.GetCurrentUserAsync();
             if (userInfo == null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("auth.notAuthenticated", "Utente non autenticato"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.notAuthenticated", "Utente non autenticato"));
                 return;
             }
 
@@ -223,7 +223,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nella creazione della chat: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nella creazione della chat: {ex.Message}");
         }
         finally
         {

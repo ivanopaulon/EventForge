@@ -11,24 +11,12 @@ namespace EventForge.Server.Controllers.Api;
 [Route("api/v1/auth")]
 [ApiController]
 [Produces("application/json")]
-public class ServerAuthController : ControllerBase
+public class ServerAuthController(
+    EventForgeDbContext context,
+    IPasswordService passwordService,
+    IJwtTokenService jwtTokenService,
+    ILogger<ServerAuthController> logger) : ControllerBase
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IPasswordService _passwordService;
-    private readonly IJwtTokenService _jwtTokenService;
-    private readonly ILogger<ServerAuthController> _logger;
-
-    public ServerAuthController(
-        EventForgeDbContext context,
-        IPasswordService passwordService,
-        IJwtTokenService jwtTokenService,
-        ILogger<ServerAuthController> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
-        _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets list of active tenants for login selection.
@@ -40,7 +28,7 @@ public class ServerAuthController : ControllerBase
     [ProducesResponseType(typeof(List<TenantDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TenantDto>>> GetTenants()
     {
-        var tenants = await _context.Tenants
+        var tenants = await context.Tenants
             .Where(t => t.IsActive)
             .OrderBy(t => t.Name)
             .Select(t => new TenantDto
@@ -78,16 +66,16 @@ public class ServerAuthController : ControllerBase
         }
 
         // Find user in database with tenant and include navigation
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.Tenant)
             .FirstOrDefaultAsync(u =>
                 u.Username == request.Username &&
                 u.TenantId == request.TenantId &&
                 u.IsActive);
 
-        if (user == null)
+        if (user is null)
         {
-            _logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: User not found or inactive",
+            logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: User not found or inactive",
                 request.Username, request.TenantId);
 
             return Unauthorized(new ProblemDetails
@@ -103,7 +91,7 @@ public class ServerAuthController : ControllerBase
         // Check if account is locked
         if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
         {
-            _logger.LogWarning("Login attempt for locked account: {Username} in tenant {TenantId}",
+            logger.LogWarning("Login attempt for locked account: {Username} in tenant {TenantId}",
                 request.Username, request.TenantId);
 
             return Unauthorized(new ProblemDetails
@@ -117,7 +105,7 @@ public class ServerAuthController : ControllerBase
         }
 
         // Verify password using Argon2
-        var isPasswordValid = _passwordService.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt);
+        var isPasswordValid = passwordService.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt);
 
         if (!isPasswordValid)
         {
@@ -128,13 +116,13 @@ public class ServerAuthController : ControllerBase
             if (user.FailedLoginAttempts >= 5)
             {
                 user.LockedUntil = DateTime.UtcNow.AddMinutes(30);
-                _logger.LogWarning("Account locked due to failed login attempts: {Username} in tenant {TenantId}",
+                logger.LogWarning("Account locked due to failed login attempts: {Username} in tenant {TenantId}",
                     user.Username, request.TenantId);
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
-            _logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: Invalid password",
+            logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: Invalid password",
                 request.Username, request.TenantId);
 
             return Unauthorized(new ProblemDetails
@@ -148,15 +136,15 @@ public class ServerAuthController : ControllerBase
         }
 
         // Get user roles
-        var roles = await _context.UserRoles
+        var roles = await context.UserRoles
             .Where(ur => ur.UserId == user.Id)
-            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+            .Join(context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
             .ToListAsync();
 
         // Check if user has Admin or SuperAdmin role
         if (!roles.Contains("SuperAdmin") && !roles.Contains("Admin"))
         {
-            _logger.LogWarning("Login attempt by non-admin user: {Username} in tenant {TenantId}",
+            logger.LogWarning("Login attempt by non-admin user: {Username} in tenant {TenantId}",
                 request.Username, request.TenantId);
 
             return Unauthorized(new ProblemDetails
@@ -172,20 +160,20 @@ public class ServerAuthController : ControllerBase
         // Reset failed login attempts on successful login
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         // Get user permissions
-        var permissions = await _context.UserRoles
+        var permissions = await context.UserRoles
             .Where(ur => ur.UserId == user.Id)
-            .Join(_context.RolePermissions, ur => ur.RoleId, rp => rp.RoleId, (ur, rp) => rp.PermissionId)
-            .Join(_context.Permissions, rp => rp, p => p.Id, (rp, p) => p.Name)
+            .Join(context.RolePermissions, ur => ur.RoleId, rp => rp.RoleId, (ur, rp) => rp.PermissionId)
+            .Join(context.Permissions, rp => rp, p => p.Id, (rp, p) => p.Name)
             .Distinct()
             .ToListAsync();
 
         // Generate JWT token
-        var token = _jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
+        var token = jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
 
-        _logger.LogInformation("Successful server login for user {Username} in tenant {TenantName} with roles: {Roles}",
+        logger.LogInformation("Successful server login for user {Username} in tenant {TenantName} with roles: {Roles}",
             user.Username, user.Tenant.Name, string.Join(", ", roles));
 
         return Ok(new ServerLoginResponseDto

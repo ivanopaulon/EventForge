@@ -16,32 +16,16 @@ namespace EventForge.Server.Services.Documents;
 /// PDF export uses QuestPDF (MIT License) for professional document generation.
 /// Excel export uses ClosedXML (MIT License) for spreadsheet generation.
 /// </summary>
-public class DocumentExportService : IDocumentExportService
+public class DocumentExportService(
+    EventForgeDbContext context,
+    IDocumentHeaderService documentHeaderService,
+    IDocumentAccessLogService accessLogService,
+    ILogger<DocumentExportService> logger,
+    ITenantContext tenantContext) : IDocumentExportService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IDocumentAccessLogService _accessLogService;
-    private readonly ILogger<DocumentExportService> _logger;
-    private readonly ITenantContext _tenantContext;
 
     private readonly Dictionary<Guid, DocumentExportResultDto> _exportCache = new();
-
-    public DocumentExportService(
-        EventForgeDbContext context,
-        IDocumentHeaderService documentHeaderService,
-        IDocumentAccessLogService accessLogService,
-        ILogger<DocumentExportService> logger,
-        ITenantContext tenantContext)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _accessLogService = accessLogService ?? throw new ArgumentNullException(nameof(accessLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-
-        // Set QuestPDF license to Community (for non-commercial use)
-        QuestPDF.Settings.License = LicenseType.Community;
-    }
+    private static readonly bool _staticInitialized = InitStatic();
 
     public async Task<DocumentExportResultDto> ExportDocumentsAsync(
         DocumentExportRequestDto request,
@@ -53,12 +37,12 @@ public class DocumentExportService : IDocumentExportService
 
         try
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting document export {ExportId} for user {User} with format {Format}",
                 exportId, currentUser, request.Format);
 
             // Build query for documents to export
-            var query = _context.DocumentHeaders
+            var query = context.DocumentHeaders
                 .Include(d => d.DocumentType)
                 .Include(d => d.BusinessParty)
                 .Include(d => d.Rows)
@@ -69,9 +53,9 @@ public class DocumentExportService : IDocumentExportService
             {
                 query = query.Where(d => d.TenantId == request.TenantId.Value);
             }
-            else if (_tenantContext.CurrentTenantId.HasValue)
+            else if (tenantContext.CurrentTenantId.HasValue)
             {
-                query = query.Where(d => d.TenantId == _tenantContext.CurrentTenantId.Value);
+                query = query.Where(d => d.TenantId == tenantContext.CurrentTenantId.Value);
             }
 
             if (request.DocumentTypeId.HasValue)
@@ -79,7 +63,7 @@ public class DocumentExportService : IDocumentExportService
                 query = query.Where(d => d.DocumentTypeId == request.DocumentTypeId.Value);
             }
 
-            if (request.DocumentIds != null && request.DocumentIds.Any())
+            if (request.DocumentIds is not null && request.DocumentIds.Any())
             {
                 query = query.Where(d => request.DocumentIds.Contains(d.Id));
             }
@@ -111,7 +95,7 @@ public class DocumentExportService : IDocumentExportService
             var documents = await query.ToListAsync(cancellationToken);
             var documentDtos = documents.Select(MapToDto).ToList();
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Retrieved {Count} documents for export {ExportId}",
                 documents.Count, exportId);
 
@@ -180,7 +164,7 @@ public class DocumentExportService : IDocumentExportService
             // Log export access
             foreach (var doc in documents)
             {
-                _ = await _accessLogService.LogAccessAsync(
+                _ = await accessLogService.LogAccessAsync(
                     doc.Id,
                     currentUser,
                     currentUser,
@@ -194,7 +178,7 @@ public class DocumentExportService : IDocumentExportService
                     cancellationToken);
             }
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Completed export {ExportId} with {Count} documents in {Duration}ms",
                 exportId, documents.Count, (DateTime.UtcNow - startTime).TotalMilliseconds);
 
@@ -202,7 +186,7 @@ public class DocumentExportService : IDocumentExportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting documents for export {ExportId}", exportId);
+            logger.LogError(ex, "Error exporting documents for export {ExportId}", exportId);
 
             var errorResult = new DocumentExportResultDto
             {
@@ -231,7 +215,7 @@ public class DocumentExportService : IDocumentExportService
         Guid? templateId = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Generating PDF export for {Count} documents using QuestPDF",
             documents.Count());
 
@@ -339,7 +323,7 @@ public class DocumentExportService : IDocumentExportService
                 });
             }).GeneratePdf();
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "PDF export completed successfully. Size: {Size} bytes",
                 pdfBytes.Length);
 
@@ -347,7 +331,7 @@ public class DocumentExportService : IDocumentExportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating PDF export");
+            logger.LogError(ex, "Error generating PDF export");
             throw new InvalidOperationException("Failed to generate PDF export", ex);
         }
     }
@@ -357,7 +341,7 @@ public class DocumentExportService : IDocumentExportService
         bool includeRows = true,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Generating Excel export for {Count} documents using ClosedXML",
             documents.Count());
 
@@ -465,7 +449,7 @@ public class DocumentExportService : IDocumentExportService
                 // Freeze header row
                 worksheet.SheetView.FreezeRows(headerRow);
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Excel export completed successfully for {Count} documents",
                     documentsList.Count);
 
@@ -476,7 +460,7 @@ public class DocumentExportService : IDocumentExportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating Excel export");
+            logger.LogError(ex, "Error generating Excel export");
             throw new InvalidOperationException("Failed to generate Excel export", ex);
         }
     }
@@ -605,4 +589,11 @@ public class DocumentExportService : IDocumentExportService
             CreatedBy = doc.CreatedBy
         };
     }
+
+    private static bool InitStatic()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+        return true;
+    }
+
 }

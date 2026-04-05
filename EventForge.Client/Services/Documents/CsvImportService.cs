@@ -7,22 +7,16 @@ namespace EventForge.Client.Services.Documents;
 /// <summary>
 /// Service for importing document rows from CSV files
 /// </summary>
-public class CsvImportService : ICsvImportService
+public class CsvImportService(
+    ILogger<CsvImportService> logger) : ICsvImportService
 {
-    private readonly ILogger<CsvImportService> _logger;
-
-    public CsvImportService(ILogger<CsvImportService> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options)
     {
         var result = new CsvImportResult
         {
-            ValidRows = new List<CreateDocumentRowDto>(),
-            InvalidRows = new List<CsvImportError>()
+            ValidRows = [],
+            InvalidRows = []
         };
 
         try
@@ -41,10 +35,10 @@ public class CsvImportService : ICsvImportService
 
             int rowNumber = 1; // Start from 1 (header is row 0)
 
-            while (!reader.EndOfStream)
+            string? line;
+            while ((line = await reader.ReadLineAsync()) is not null)
             {
                 rowNumber++;
-                var line = await reader.ReadLineAsync();
 
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
@@ -64,11 +58,11 @@ public class CsvImportService : ICsvImportService
                         ErrorMessage = ex.Message,
                         RawData = line
                     });
-                    _logger.LogWarning(ex, "Error parsing CSV row {RowNumber}", rowNumber);
+                    logger.LogWarning(ex, "Error parsing CSV row {RowNumber}", rowNumber);
                 }
             }
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "CSV import completed: {ValidCount} valid rows, {InvalidCount} invalid rows",
                 result.ValidRows.Count,
                 result.InvalidRows.Count);
@@ -77,7 +71,7 @@ public class CsvImportService : ICsvImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error importing CSV file");
+            logger.LogError(ex, "Error importing CSV file");
             throw;
         }
     }
@@ -87,7 +81,7 @@ public class CsvImportService : ICsvImportService
     /// </summary>
     private List<string> ParseCsvLine(string line)
     {
-        var values = new List<string>();
+        List<string> values = [];
         var currentValue = new StringBuilder();
         bool inQuotes = false;
 
@@ -176,7 +170,7 @@ public class CsvImportService : ICsvImportService
         }
 
         if (string.IsNullOrWhiteSpace(row.Description))
-            row.Description = row.ProductCode; // Fallback to product code
+            row.Description = row.ProductCode ?? string.Empty; // Fallback to product code
 
         // Quantity
         if (mapping.TryGetValue("Quantity", out int qtyIdx) && qtyIdx < values.Count)

@@ -23,19 +23,13 @@ internal class DbLogRecord
 /// Service implementation for application log operations.
 /// Provides read-only access to Serilog logs stored in the database.
 /// </summary>
-public class ApplicationLogService : IApplicationLogService
+public class ApplicationLogService(
+    IConfiguration configuration,
+    ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
-    private readonly string _logDbConnectionString;
-    private readonly ILogger<ApplicationLogService> _logger;
 
-    public ApplicationLogService(
-        IConfiguration configuration,
-        ILogger<ApplicationLogService> logger)
-    {
-        _logDbConnectionString = configuration.GetConnectionString("LogDb")
+    private readonly string _logDbConnectionString = configuration.GetConnectionString("LogDb")
             ?? throw new InvalidOperationException("LogDb connection string not found.");
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);
 
@@ -127,7 +121,7 @@ public class ApplicationLogService : IApplicationLogService
         await connection.OpenAsync(cancellationToken);
 
         var dbRecord = await connection.QuerySingleOrDefaultAsync<DbLogRecord>(query, new { Id = id });
-        return dbRecord != null ? MapDbRecordToSystemLogDto(dbRecord) : null;
+        return dbRecord is not null ? MapDbRecordToSystemLogDto(dbRecord) : null;
     }
 
     /// <summary>
@@ -358,7 +352,7 @@ public class ApplicationLogService : IApplicationLogService
             EnableRealTimeUpdates = true,
             UpdateIntervalSeconds = 5,
             MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
-            MonitoredSources = new List<string>(),
+            MonitoredSources = [],
             MaxLiveEntries = 100,
             AlertOnCritical = true,
             AlertOnErrors = false
@@ -382,4 +376,5 @@ public class ApplicationLogService : IApplicationLogService
         // For now, just return the provided configuration
         return config;
     }
+
 }

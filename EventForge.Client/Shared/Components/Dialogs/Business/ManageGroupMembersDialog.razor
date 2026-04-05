@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IBusinessPartyService BusinessPartyService
 @inject IBusinessPartyGroupService GroupService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ManageGroupMembersDialog> Logger
 @inject IJSRuntime JSRuntime
 
@@ -302,7 +302,7 @@
         // Check if already selected
         if (_selectedBusinessParties.Any(x => x.Id == bp.Id))
         {
-            Snackbar.Add("Business Party già nella selezione", Severity.Warning);
+            AppNotification.ShowWarning("Business Party già nella selezione");
             _currentSearchSelection = null;
             return;
         }
@@ -330,7 +330,7 @@
         
         if (!validBPs.Any())
         {
-            Snackbar.Add("Nessun nuovo membro da aggiungere", Severity.Warning);
+            AppNotification.ShowWarning("Nessun nuovo membro da aggiungere");
             return;
         }
         
@@ -351,7 +351,7 @@
                 };
                 
                 await GroupService.AddMemberAsync(GroupId, createDto);
-                Snackbar.Add($"Membro '{validBPs[0].Name}' aggiunto con successo", Severity.Success);
+                AppNotification.ShowSuccess($"Membro '{validBPs[0].Name}' aggiunto con successo");
                 MudDialog.Close(DialogResult.Ok(1));
             }
             else
@@ -373,12 +373,12 @@
                 
                 if (result.SuccessCount > 0)
                 {
-                    Snackbar.Add($"{result.SuccessCount} membri aggiunti con successo", Severity.Success);
+                    AppNotification.ShowSuccess($"{result.SuccessCount} membri aggiunti con successo");
                 }
                 
                 if (result.FailureCount > 0)
                 {
-                    Snackbar.Add($"{result.FailureCount} membri non aggiunti", Severity.Warning);
+                    AppNotification.ShowWarning($"{result.FailureCount} membri non aggiunti");
                 }
                 
                 MudDialog.Close(DialogResult.Ok(result.SuccessCount));
@@ -387,7 +387,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error adding members to group {GroupId}", GroupId);
-            Snackbar.Add("Errore durante l'aggiunta dei membri", Severity.Error);
+            AppNotification.ShowError("Errore durante l'aggiunta dei membri");
         }
     }
     
@@ -432,7 +432,7 @@
             const long maxFileSize = 5 * 1024 * 1024;
             if (e.File.Size > maxFileSize)
             {
-                Snackbar.Add("Il file CSV è troppo grande. Dimensione massima: 5 MB", Severity.Error);
+                AppNotification.ShowError("Il file CSV è troppo grande. Dimensione massima: 5 MB");
                 return;
             }
             
@@ -475,12 +475,12 @@
                 }
             }
             
-            Snackbar.Add($"Trovati {_csvParsedBusinessParties.Count} Business Party dal CSV", Severity.Success);
+            AppNotification.ShowSuccess($"Trovati {_csvParsedBusinessParties.Count} Business Party dal CSV");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error parsing CSV file");
-            Snackbar.Add("Errore durante la lettura del file CSV", Severity.Error);
+            AppNotification.ShowError("Errore durante la lettura del file CSV");
         }
     }
     
@@ -493,12 +493,12 @@
             csv += "Example SRL,,EXMPLS80A01H501X\n";
             
             await JSRuntime.InvokeVoidAsync("downloadFile", "template_membri_gruppo.csv", "text/csv", csv);
-            Snackbar.Add("Template CSV scaricato", Severity.Success);
+            AppNotification.ShowSuccess("Template CSV scaricato");
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error downloading CSV template");
-            Snackbar.Add("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)", Severity.Info);
+            AppNotification.ShowInfo("Formato template: Nome,P.IVA,CodiceFiscale (esempio: Acme Corp,12345678901,)");
         }
     }
     

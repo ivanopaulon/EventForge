@@ -101,14 +101,14 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         };
     }
 
-    protected override Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto)
+    protected override async Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto)
     {
-        return _financialService.CreateVatRateAsync(createDto);
+        return await _financialService.CreateVatRateAsync(createDto);
     }
 
-    protected override Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto)
+    protected override async Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto)
     {
-        return _financialService.UpdateVatRateAsync(entityId, updateDto);
+        return await _financialService.UpdateVatRateAsync(entityId, updateDto);
     }
 
     protected override Guid GetEntityId(VatRateDto entity)

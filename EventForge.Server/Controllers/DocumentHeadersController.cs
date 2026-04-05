@@ -14,24 +14,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
-public class DocumentHeadersController : BaseApiController
+public class DocumentHeadersController(
+    IDocumentHeaderService documentHeaderService,
+    ITenantContext tenantContext,
+    IExportService exportService,
+    ILogger<DocumentHeadersController> logger) : BaseApiController
 {
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IExportService _exportService;
-    private readonly ILogger<DocumentHeadersController> _logger;
-
-    public DocumentHeadersController(
-        IDocumentHeaderService documentHeaderService,
-        ITenantContext tenantContext,
-        IExportService exportService,
-        ILogger<DocumentHeadersController> logger)
-    {
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets paginated document headers with optional filtering.
@@ -55,12 +43,11 @@ public class DocumentHeadersController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            var result = await documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -88,14 +75,13 @@ public class DocumentHeadersController : BaseApiController
         [FromQuery] bool includeRows = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var documentHeader = await _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+            var documentHeader = await documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
@@ -121,12 +107,11 @@ public class DocumentHeadersController : BaseApiController
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var documentHeaders = await _documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
+            var documentHeaders = await documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
             return Ok(documentHeaders);
         }
         catch (Exception ex)
@@ -157,13 +142,12 @@ public class DocumentHeadersController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+            var documentHeader = await documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetDocumentHeader),
@@ -202,15 +186,14 @@ public class DocumentHeadersController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
+            var documentHeader = await documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
@@ -238,13 +221,12 @@ public class DocumentHeadersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
+            var deleted = await documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -274,14 +256,13 @@ public class DocumentHeadersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var documentHeader = await _documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
+            var documentHeader = await documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
@@ -309,15 +290,14 @@ public class DocumentHeadersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
@@ -345,15 +325,14 @@ public class DocumentHeadersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
@@ -380,12 +359,11 @@ public class DocumentHeadersController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var exists = await _documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
+            var exists = await documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -410,7 +388,7 @@ public class DocumentHeadersController : BaseApiController
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export operation started by {User} for Documents (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
 
@@ -420,7 +398,7 @@ public class DocumentHeadersController : BaseApiController
             PageSize = 50000
         };
 
-        var data = await _documentHeaderService.GetDocumentsForExportAsync(pagination, ct);
+        var data = await documentHeaderService.GetDocumentsForExportAsync(pagination, ct);
 
         byte[] fileBytes;
         string contentType;
@@ -429,20 +407,20 @@ public class DocumentHeadersController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                fileBytes = await exportService.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
 
             case "excel":
             default:
-                fileBytes = await _exportService.ExportToExcelAsync(data, "Documents", ct);
+                fileBytes = await exportService.ExportToExcelAsync(data, "Documents", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"Documents_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
 

@@ -7,17 +7,11 @@ namespace EventForge.Server.Services;
 /// <summary>
 /// Service for signing QZ Tray requests with SHA512withRSA digital signatures
 /// </summary>
-public class QzSigner
+public class QzSigner(ILogger<QzSigner> logger, IConfiguration configuration)
 {
-    private readonly ILogger<QzSigner> _logger;
-    private readonly string _privateKeyPath;
 
-    public QzSigner(ILogger<QzSigner> logger, IConfiguration configuration)
-    {
-        _logger = logger;
-        _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH")
+    private readonly string _privateKeyPath = Environment.GetEnvironmentVariable("QZ_PRIVATE_KEY_PATH")
             ?? Path.Combine(AppContext.BaseDirectory, "private-key.pem");
-    }
 
     /// <summary>
     /// Signs a QZ Tray call with the specified parameters and timestamp
@@ -29,7 +23,7 @@ public class QzSigner
     /// <returns>Base64-encoded signature using SHA512withRSA</returns>
     public async Task<string> Sign(string callName, object[] @params, long timestamp, CancellationToken ct = default)
     {
-        if (callName == null)
+        if (callName is null)
             throw new ArgumentNullException(nameof(callName));
 
         try
@@ -51,7 +45,7 @@ public class QzSigner
             };
             var jsonData = JsonSerializer.Serialize(payload, options);
 
-            _logger.LogDebug("Signing payload: {Payload}", jsonData);
+            logger.LogDebug("Signing payload: {Payload}", jsonData);
 
             // Load private key and create signature
             using var rsa = await LoadPrivateKeyAsync(ct);
@@ -59,13 +53,13 @@ public class QzSigner
             var signature = rsa.SignData(dataBytes, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
 
             var base64Signature = Convert.ToBase64String(signature);
-            _logger.LogDebug("Successfully created SHA512withRSA signature");
+            logger.LogDebug("Successfully created SHA512withRSA signature");
 
             return base64Signature;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing QZ Tray request");
+            logger.LogError(ex, "Error signing QZ Tray request");
             throw new InvalidOperationException("Failed to sign QZ Tray request", ex);
         }
     }
@@ -89,7 +83,7 @@ public class QzSigner
             try
             {
                 rsa.ImportFromPem(privateKeyPem);
-                _logger.LogDebug("Successfully loaded private key from {Path}", resolvedPath);
+                logger.LogDebug("Successfully loaded private key from {Path}", resolvedPath);
                 return rsa;
             }
             catch (CryptographicException ex)
@@ -102,8 +96,9 @@ public class QzSigner
         }
         catch (Exception ex) when (!(ex is InvalidOperationException))
         {
-            _logger.LogError(ex, "Error loading private key from {Path}", _privateKeyPath);
+            logger.LogError(ex, "Error loading private key from {Path}", _privateKeyPath);
             throw;
         }
     }
+
 }

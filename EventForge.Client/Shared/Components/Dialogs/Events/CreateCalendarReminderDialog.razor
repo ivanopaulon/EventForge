@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject ICalendarReminderService CalendarReminderService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<CreateCalendarReminderDialog> Logger
 
 <EFDialog Icon="@(_itemType == CalendarItemType.Task ? Icons.Material.Outlined.CheckBox : Icons.Material.Outlined.NotificationsActive)"
@@ -310,7 +310,7 @@
 
     private async Task SaveAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_isFormValid || !_dueDateOnly.HasValue) return;
 
         try
@@ -332,7 +332,7 @@
                          ?? ExistingReminder!;
                 var editKey = _itemType == CalendarItemType.Task ? "events.taskUpdated" : "events.reminderUpdated";
                 var editFallback = _itemType == CalendarItemType.Task ? "Task aggiornato con successo" : "Promemoria aggiornato con successo";
-                Snackbar.Add(TranslationService.GetTranslation(editKey, editFallback), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation(editKey, editFallback));
             }
             else
             {
@@ -357,7 +357,7 @@
                 result = await CalendarReminderService.CreateCalendarReminderAsync(createDto);
                 var msgKey = _itemType == CalendarItemType.Task ? "events.taskCreated" : "events.reminderCreated";
                 var msgFallback = _itemType == CalendarItemType.Task ? "Task creato con successo" : "Promemoria creato con successo";
-                Snackbar.Add(TranslationService.GetTranslation(msgKey, msgFallback), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation(msgKey, msgFallback));
             }
 
             MudDialog.Close(DialogResult.Ok(result));
@@ -365,11 +365,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, _isEditMode ? "Error updating calendar reminder/task." : "Error creating calendar reminder/task.");
-            Snackbar.Add(
-                _isEditMode
+            AppNotification.ShowError(_isEditMode
                     ? TranslationService.GetTranslation("events.updateError", "Errore durante l'aggiornamento")
-                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione"),
-                Severity.Error);
+                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione"));
         }
         finally
         {

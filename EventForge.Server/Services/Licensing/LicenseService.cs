@@ -6,34 +6,26 @@ namespace EventForge.Server.Services.Licensing;
 /// <summary>
 /// Implementation of license management services.
 /// </summary>
-public class LicenseService : ILicenseService
+public class LicenseService(EventForgeDbContext context, ILogger<LicenseService> logger) : ILicenseService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<LicenseService> _logger;
-
-    public LicenseService(EventForgeDbContext context, ILogger<LicenseService> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
 
     public async Task<bool> HasFeatureAccessAsync(Guid tenantId, string featureName)
     {
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null || !tenantLicense.IsValid)
+            if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
             var feature = tenantLicense.License.LicenseFeatures
                 .FirstOrDefault(lf => lf.Name.Equals(featureName, StringComparison.OrdinalIgnoreCase) &&
                                      lf.IsActive);
 
-            return feature != null;
+            return feature is not null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking feature access for tenant {TenantId} and feature {FeatureName}",
+            logger.LogError(ex, "Error checking feature access for tenant {TenantId} and feature {FeatureName}",
                 tenantId, featureName);
             return false;
         }
@@ -44,10 +36,10 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null)
+            if (tenantLicense is null)
                 return null;
 
-            var currentUserCount = await _context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted);
+            var currentUserCount = await context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted);
 
             return new TenantLicenseDto
             {
@@ -91,7 +83,7 @@ public class LicenseService : ILicenseService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving tenant license for {TenantId}", tenantId);
+            logger.LogError(ex, "Error retrieving tenant license for {TenantId}", tenantId);
             return null;
         }
     }
@@ -101,7 +93,7 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null || !tenantLicense.IsValid)
+            if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
             // Reset monthly API calls if needed
@@ -111,7 +103,7 @@ public class LicenseService : ILicenseService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking API limits for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error checking API limits for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -121,7 +113,7 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null || !tenantLicense.IsValid)
+            if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
             // Reset monthly API calls if needed
@@ -132,13 +124,13 @@ public class LicenseService : ILicenseService
                 return false;
 
             tenantLicense.ApiCallsThisMonth++;
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error incrementing API call for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error incrementing API call for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -148,7 +140,7 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null)
+            if (tenantLicense is null)
                 return null;
 
             // Reset monthly API calls if needed
@@ -164,7 +156,7 @@ public class LicenseService : ILicenseService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving API usage for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error retrieving API usage for tenant {TenantId}", tenantId);
             return null;
         }
     }
@@ -174,15 +166,15 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null || !tenantLicense.IsValid)
+            if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
-            var currentUserCount = await _context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted);
+            var currentUserCount = await context.Users.CountAsync(u => u.TenantId == tenantId && !u.IsDeleted);
             return currentUserCount < tenantLicense.License.MaxUsers;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if user can be added for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error checking if user can be added for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -192,8 +184,8 @@ public class LicenseService : ILicenseService
         try
         {
             var tenantLicense = await GetActiveTenantLicense(tenantId);
-            if (tenantLicense == null || !tenantLicense.IsValid)
-                return new List<string>();
+            if (tenantLicense is null || !tenantLicense.IsValid)
+                return [];
 
             var permissions = tenantLicense.License.LicenseFeatures
                 .Where(lf => lf.IsActive)
@@ -206,15 +198,15 @@ public class LicenseService : ILicenseService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available permissions for tenant {TenantId}", tenantId);
-            return new List<string>();
+            logger.LogError(ex, "Error retrieving available permissions for tenant {TenantId}", tenantId);
+            return [];
         }
     }
 
     private async Task<Data.Entities.Auth.TenantLicense?> GetActiveTenantLicense(Guid tenantId)
     {
-        // Se ci sono più licenze attive, prende quella con TierLevel più alto
-        return await _context.TenantLicenses
+        // Se ci sono piï¿½ licenze attive, prende quella con TierLevel piï¿½ alto
+        return await context.TenantLicenses
             .Include(tl => tl.Tenant)
             .Include(tl => tl.License)
                 .ThenInclude(l => l.LicenseFeatures)
@@ -236,7 +228,8 @@ public class LicenseService : ILicenseService
         {
             tenantLicense.ApiCallsThisMonth = 0;
             tenantLicense.ApiCallsResetAt = new DateTime(currentDate.Year, currentDate.Month, 1);
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
         }
     }
+
 }

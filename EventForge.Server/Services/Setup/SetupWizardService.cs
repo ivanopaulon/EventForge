@@ -9,24 +9,12 @@ namespace EventForge.Server.Services.Setup;
 /// <summary>
 /// Implementation of setup wizard service.
 /// </summary>
-public class SetupWizardService : ISetupWizardService
+public class SetupWizardService(
+    IConfiguration configuration,
+    IWebHostEnvironment environment,
+    IServiceProvider serviceProvider,
+    ILogger<SetupWizardService> logger) : ISetupWizardService
 {
-    private readonly IConfiguration _configuration;
-    private readonly IWebHostEnvironment _environment;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<SetupWizardService> _logger;
-
-    public SetupWizardService(
-        IConfiguration configuration,
-        IWebHostEnvironment environment,
-        IServiceProvider serviceProvider,
-        ILogger<SetupWizardService> logger)
-    {
-        _configuration = configuration;
-        _environment = environment;
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
 
     public async Task<SetupResult> CompleteSetupAsync(SetupConfiguration config, CancellationToken cancellationToken = default)
     {
@@ -34,7 +22,7 @@ public class SetupWizardService : ISetupWizardService
 
         try
         {
-            _logger.LogInformation("Setup wizard started for environment: {Environment}", config.Environment);
+            logger.LogInformation("Setup wizard started for environment: {Environment}", config.Environment);
 
             // Step 1: Save connection string to appsettings.overrides.json
             await SaveConnectionStringAsync(config, cancellationToken);
@@ -80,11 +68,11 @@ public class SetupWizardService : ISetupWizardService
             result.Message = "Setup completed successfully!";
             result.RedirectUrl = "/";
 
-            _logger.LogInformation("Setup completed successfully - database: {Database}", config.DatabaseName);
+            logger.LogInformation("Setup completed successfully - database: {Database}", config.DatabaseName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Setup wizard failed");
+            logger.LogError(ex, "Setup wizard failed");
             result.Success = false;
             result.Errors.Add($"Setup failed: {ex.Message}");
         }
@@ -94,7 +82,7 @@ public class SetupWizardService : ISetupWizardService
 
     private async Task SaveConnectionStringAsync(SetupConfiguration config, CancellationToken cancellationToken)
     {
-        var overridesPath = Path.Combine(_environment.ContentRootPath, "appsettings.overrides.json");
+        var overridesPath = Path.Combine(environment.ContentRootPath, "appsettings.overrides.json");
 
         var connectionString = BuildConnectionString(config);
 
@@ -146,7 +134,7 @@ public class SetupWizardService : ISetupWizardService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create database '{Database}'", config.DatabaseName);
+            logger.LogError(ex, "Failed to create database '{Database}'", config.DatabaseName);
             return false;
         }
     }
@@ -155,7 +143,7 @@ public class SetupWizardService : ISetupWizardService
     {
         try
         {
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
             await dbContext.Database.MigrateAsync(cancellationToken);
@@ -164,7 +152,7 @@ public class SetupWizardService : ISetupWizardService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to apply database migrations");
+            logger.LogError(ex, "Failed to apply database migrations");
             return false;
         }
     }
@@ -173,7 +161,7 @@ public class SetupWizardService : ISetupWizardService
     {
         try
         {
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
 
             var success = await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken);
@@ -182,14 +170,14 @@ public class SetupWizardService : ISetupWizardService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create SuperAdmin user");
+            logger.LogError(ex, "Failed to create SuperAdmin user");
             return false;
         }
     }
 
     private async Task SaveSecurityConfigurationAsync(SetupConfiguration config, CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
         var configurations = new List<SystemConfiguration>
@@ -253,7 +241,7 @@ public class SetupWizardService : ISetupWizardService
             var existing = await dbContext.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == configItem.Key, cancellationToken);
 
-            if (existing == null)
+            if (existing is null)
             {
                 dbContext.SystemConfigurations.Add(configItem);
             }
@@ -264,7 +252,7 @@ public class SetupWizardService : ISetupWizardService
 
     private async Task SaveSetupHistoryAsync(SetupConfiguration config, CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
@@ -292,7 +280,7 @@ public class SetupWizardService : ISetupWizardService
 
     private void CreateFileMarker()
     {
-        var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
+        var markerPath = Path.Combine(environment.ContentRootPath, "setup.complete");
         File.WriteAllText(markerPath, DateTime.UtcNow.ToString("O"));
     }
 
@@ -338,4 +326,5 @@ public class SetupWizardService : ISetupWizardService
 
         return databaseName;
     }
+
 }

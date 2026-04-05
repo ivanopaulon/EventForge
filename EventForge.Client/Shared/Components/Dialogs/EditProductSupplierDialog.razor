@@ -3,7 +3,7 @@
 @using EventForge.DTOs.Business
 @inject IProductService ProductService
 @inject IBusinessPartyService BusinessPartyService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<EditProductSupplierDialog> Logger
 
@@ -272,19 +272,19 @@
                 var result = await ProductService.UpdateProductSupplierAsync(ProductSupplier.Id, updateDto);
                 if (result != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.supplierUpdatedSuccessfully", "Fornitore aggiornato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.supplierUpdatedSuccessfully", "Fornitore aggiornato con successo"));
                     MudDialog?.Close(DialogResult.Ok(result));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore"));
                 }
             }
             else
             {
                 if (_selectedSupplier == null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio"));
                     return;
                 }
                 var createDto = new CreateProductSupplierDto
@@ -304,12 +304,12 @@
                 var result = await ProductService.CreateProductSupplierAsync(createDto);
                 if (result != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.supplierAddedSuccessfully", "Fornitore aggiunto con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.supplierAddedSuccessfully", "Fornitore aggiunto con successo"));
                     MudDialog?.Close(DialogResult.Ok(result));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore"));
                 }
             }
         }
@@ -319,7 +319,7 @@
             var errorMessage = _isEditMode
                 ? TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore")
                 : TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore");
-            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{errorMessage}: {ex.Message}");
         }
         finally
         {

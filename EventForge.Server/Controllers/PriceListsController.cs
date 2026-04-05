@@ -12,24 +12,12 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/pricelists")]
 [Authorize]
 [ApiController]
-public class PriceListsController : BaseApiController
+public class PriceListsController(
+    IPriceListGenerationService generationService,
+    IPriceListBulkOperationsService bulkOperationsService,
+    IPriceResolutionService priceResolutionService,
+    ILogger<PriceListsController> logger) : BaseApiController
 {
-    private readonly IPriceListGenerationService _generationService;
-    private readonly IPriceListBulkOperationsService _bulkOperationsService;
-    private readonly IPriceResolutionService _priceResolutionService;
-    private readonly ILogger<PriceListsController> _logger;
-
-    public PriceListsController(
-        IPriceListGenerationService generationService,
-        IPriceListBulkOperationsService bulkOperationsService,
-        IPriceResolutionService priceResolutionService,
-        ILogger<PriceListsController> logger)
-    {
-        _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
-        _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
-        _priceResolutionService = priceResolutionService ?? throw new ArgumentNullException(nameof(priceResolutionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Anteprima aggiornamento massivo prezzi.
@@ -60,12 +48,12 @@ public class PriceListsController : BaseApiController
 
         try
         {
-            var result = await _bulkOperationsService.PreviewBulkUpdateAsync(id, dto, cancellationToken);
+            var result = await bulkOperationsService.PreviewBulkUpdateAsync(id, dto, cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Price list {PriceListId} not found for bulk update preview", id);
+            logger.LogWarning(ex, "Price list {PriceListId} not found for bulk update preview", id);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -104,17 +92,17 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _bulkOperationsService.BulkUpdatePricesAsync(id, dto, currentUser, cancellationToken);
+            var result = await bulkOperationsService.BulkUpdatePricesAsync(id, dto, currentUser, cancellationToken);
 
             if (result.FailedCount > 0)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Bulk update for price list {PriceListId} completed with {FailedCount} failures. Updated: {UpdatedCount}",
                     id, result.FailedCount, result.UpdatedCount);
             }
             else
             {
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Bulk update for price list {PriceListId} completed successfully. Updated: {UpdatedCount}",
                     id, result.UpdatedCount);
             }
@@ -123,7 +111,7 @@ public class PriceListsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Price list {PriceListId} not found for bulk update", id);
+            logger.LogWarning(ex, "Price list {PriceListId} not found for bulk update", id);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -159,12 +147,12 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var priceListId = await _generationService.GenerateFromProductPricesAsync(
+            var priceListId = await generationService.GenerateFromProductPricesAsync(
                 dto,
                 currentUser,
                 cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price list {PriceListId} generated from products by user {User}",
                 priceListId, currentUser);
 
@@ -172,7 +160,7 @@ public class PriceListsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Failed to generate price list from products: {Message}", ex.Message);
+            logger.LogWarning(ex, "Failed to generate price list from products: {Message}", ex.Message);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -205,7 +193,7 @@ public class PriceListsController : BaseApiController
         // Validazione: id deve corrispondere a dto.PriceListId
         if (id != dto.PriceListId)
         {
-            return BadRequest("PriceListId mismatch");
+            return CreateValidationProblemDetails("PriceListId in the route does not match the body.");
         }
 
         if (!ModelState.IsValid)
@@ -216,12 +204,12 @@ public class PriceListsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _bulkOperationsService.ApplyPriceListToProductsAsync(
+            var result = await bulkOperationsService.ApplyPriceListToProductsAsync(
                 dto,
                 currentUser,
                 cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price list {PriceListId} applied to products. Updated: {Updated}, Skipped: {Skipped}, Not Found: {NotFound}",
                 id, result.ProductsUpdated, result.ProductsSkipped, result.ProductsNotFound);
 
@@ -229,7 +217,7 @@ public class PriceListsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Failed to apply price list {PriceListId}: {Message}", id, ex.Message);
+            logger.LogWarning(ex, "Failed to apply price list {PriceListId}: {Message}", id, ex.Message);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -276,12 +264,12 @@ public class PriceListsController : BaseApiController
     {
         if (productId == Guid.Empty)
         {
-            return BadRequest("Product ID is required");
+            return CreateValidationProblemDetails("Product ID is required.");
         }
 
         try
         {
-            var result = await _priceResolutionService.ResolvePriceAsync(
+            var result = await priceResolutionService.ResolvePriceAsync(
                 productId,
                 documentHeaderId,
                 businessPartyId,
@@ -291,7 +279,7 @@ public class PriceListsController : BaseApiController
                 unitOfMeasureId,
                 cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price resolved for product {ProductId}: {Price} from {Source}",
                 productId, result.Price, result.Source);
 
@@ -299,7 +287,7 @@ public class PriceListsController : BaseApiController
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Product {ProductId} not found for price resolution", productId);
+            logger.LogWarning(ex, "Product {ProductId} not found for price resolution", productId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -333,9 +321,9 @@ public class PriceListsController : BaseApiController
 
         try
         {
-            var result = await _priceResolutionService.ResolvePricesBatchAsync(request, cancellationToken);
+            var result = await priceResolutionService.ResolvePricesBatchAsync(request, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Batch price resolution: {Total} items processed, {Succeeded} succeeded, {Failed} failed",
                 result.TotalProcessed, result.TotalSucceeded, result.TotalFailed);
 

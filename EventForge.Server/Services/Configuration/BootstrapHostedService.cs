@@ -6,18 +6,11 @@ namespace EventForge.Server.Services.Configuration;
 /// Hosted service that runs database migrations and bootstrap on application startup.
 /// The bootstrap runs in the background so the application starts serving requests immediately.
 /// </summary>
-public class BootstrapHostedService : IHostedService
+public class BootstrapHostedService(IServiceProvider serviceProvider, ILogger<BootstrapHostedService> logger) : IHostedService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<BootstrapHostedService> _logger;
+
     private Task? _bootstrapTask;
     private CancellationTokenSource? _cts;
-
-    public BootstrapHostedService(IServiceProvider serviceProvider, ILogger<BootstrapHostedService> logger)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -42,7 +35,7 @@ public class BootstrapHostedService : IHostedService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Bootstrap process was cancelled during shutdown.");
+            logger.LogWarning("Bootstrap process was cancelled during shutdown.");
         }
         finally
         {
@@ -54,12 +47,12 @@ public class BootstrapHostedService : IHostedService
     {
         try
         {
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
             if (!dbContext.Database.CanConnect())
             {
-                _logger.LogError("Cannot connect to database. Migration and bootstrap skipped.");
+                logger.LogError("Cannot connect to database. Migration and bootstrap skipped.");
                 return;
             }
 
@@ -81,28 +74,29 @@ public class BootstrapHostedService : IHostedService
                         if (hasVatRates && hasUMs && hasWarehouses)
                             return;
 
-                        _logger.LogWarning("Superadmin exists but base entities are missing. Running bootstrap to seed base entities.");
+                        logger.LogWarning("Superadmin exists but base entities are missing. Running bootstrap to seed base entities.");
                     }
                 }
             }
             else
             {
-                _logger.LogWarning("Applying {Count} pending migration(s): {Migrations}",
+                logger.LogWarning("Applying {Count} pending migration(s): {Migrations}",
                     pendingList.Count, string.Join(", ", pendingList));
                 await dbContext.Database.MigrateAsync(cancellationToken);
             }
 
             var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapService>();
             if (!await bootstrapService.EnsureAdminBootstrappedAsync(cancellationToken))
-                _logger.LogWarning("Bootstrap process completed with warnings or errors.");
+                logger.LogWarning("Bootstrap process completed with warnings or errors.");
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Database migration and bootstrap process was cancelled.");
+            logger.LogWarning("Database migration and bootstrap process was cancelled.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during database migration and bootstrap. Application will continue but may require manual setup.");
+            logger.LogError(ex, "Error during database migration and bootstrap. Application will continue but may require manual setup.");
         }
     }
+
 }

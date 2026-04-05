@@ -7,48 +7,34 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing storage facilities.
 /// </summary>
-public class StorageFacilityService : IStorageFacilityService
+public class StorageFacilityService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<StorageFacilityService> logger,
+    ICacheService cacheService) : IStorageFacilityService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StorageFacilityService> _logger;
-    private readonly ICacheService _cacheService;
 
     private const string CACHE_KEY_ALL = "StorageFacilities_All";
-
-    public StorageFacilityService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<StorageFacilityService> logger,
-        ICacheService cacheService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
 
     public async Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for storage facility operations.");
             }
 
             // Cache all StorageFacilities for 5 minutes
-            var allFacilities = await _cacheService.GetOrCreateAsync(
+            var allFacilities = await cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
                 async (ct) =>
                 {
-                    var facilities = await _context.StorageFacilities
+                    var facilities = await context.StorageFacilities
                         .AsNoTracking()
                         .WhereActiveTenant(currentTenantId.Value)
                         .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
@@ -79,7 +65,7 @@ public class StorageFacilityService : IStorageFacilityService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage facilities.");
+            logger.LogError(ex, "Error retrieving storage facilities.");
             throw;
         }
     }
@@ -88,16 +74,16 @@ public class StorageFacilityService : IStorageFacilityService
     {
         try
         {
-            var facility = await _context.StorageFacilities
+            var facility = await context.StorageFacilities
                 .Include(sf => sf.Locations)
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return facility == null ? null : MapToStorageFacilityDto(facility);
+            return facility is null ? null : MapToStorageFacilityDto(facility);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage facility {FacilityId}.", id);
+            logger.LogError(ex, "Error retrieving storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -109,7 +95,7 @@ public class StorageFacilityService : IStorageFacilityService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for storage facility operations.");
@@ -135,21 +121,21 @@ public class StorageFacilityService : IStorageFacilityService
                 IsActive = true
             };
 
-            _ = _context.StorageFacilities.Add(facility);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.StorageFacilities.Add(facility);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
-            _logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
+            logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
 
             return MapToStorageFacilityDto(facility);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating storage facility.");
+            logger.LogError(ex, "Error creating storage facility.");
             throw;
         }
     }
@@ -161,18 +147,18 @@ public class StorageFacilityService : IStorageFacilityService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalFacility = await _context.StorageFacilities
+            var originalFacility = await context.StorageFacilities
                 .AsNoTracking()
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalFacility == null) return null;
+            if (originalFacility is null) return null;
 
-            var facility = await _context.StorageFacilities
+            var facility = await context.StorageFacilities
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (facility == null) return null;
+            if (facility is null) return null;
 
             facility.Name = updateDto.Name;
             facility.Address = updateDto.Address;
@@ -189,20 +175,20 @@ public class StorageFacilityService : IStorageFacilityService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating StorageFacility {StorageFacilityId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating StorageFacility {StorageFacilityId}.", id);
                 throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
+            cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
 
-            _logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
+            logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
 
             return MapToStorageFacilityDto(facility);
         }
@@ -212,7 +198,7 @@ public class StorageFacilityService : IStorageFacilityService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating storage facility {FacilityId}.", id);
+            logger.LogError(ex, "Error updating storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -223,18 +209,18 @@ public class StorageFacilityService : IStorageFacilityService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalFacility = await _context.StorageFacilities
+            var originalFacility = await context.StorageFacilities
                 .AsNoTracking()
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalFacility == null) return false;
+            if (originalFacility is null) return false;
 
-            var facility = await _context.StorageFacilities
+            var facility = await context.StorageFacilities
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (facility == null) return false;
+            if (facility is null) return false;
 
             facility.IsDeleted = true;
             facility.DeletedAt = DateTime.UtcNow;
@@ -244,20 +230,20 @@ public class StorageFacilityService : IStorageFacilityService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting StorageFacility {StorageFacilityId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting StorageFacility {StorageFacilityId}.", id);
                 throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
+            cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
 
-            _logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
+            logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
 
             return true;
         }
@@ -267,7 +253,7 @@ public class StorageFacilityService : IStorageFacilityService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting storage facility {FacilityId}.", id);
+            logger.LogError(ex, "Error deleting storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -276,12 +262,12 @@ public class StorageFacilityService : IStorageFacilityService
     {
         try
         {
-            return await _context.StorageFacilities
+            return await context.StorageFacilities
                 .AnyAsync(sf => sf.Id == facilityId && !sf.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if storage facility {FacilityId} exists.", facilityId);
+            logger.LogError(ex, "Error checking if storage facility {FacilityId} exists.", facilityId);
             throw;
         }
     }
@@ -318,24 +304,24 @@ public class StorageFacilityService : IStorageFacilityService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for storage facility operations.");
         }
 
-        var query = _context.StorageFacilities
+        var query = context.StorageFacilities
             .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
             .OrderBy(sf => sf.Name);
 
         var totalCount = await query.CountAsync(ct);
 
-        _logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
+        logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
-            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetWarehousesInBatchesAsync(query, ct);
         }
 
@@ -392,7 +378,7 @@ public class StorageFacilityService : IStorageFacilityService
 
             skip += batchSize;
 
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
+            logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
 
@@ -414,4 +400,5 @@ public class StorageFacilityService : IStorageFacilityService
     }
 
     #endregion
+
 }

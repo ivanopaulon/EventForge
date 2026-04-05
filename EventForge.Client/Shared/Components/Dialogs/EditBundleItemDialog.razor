@@ -1,7 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Products
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<EditBundleItemDialog> Logger
 
@@ -114,7 +114,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading available products");
-            Snackbar.Add(TranslationService.GetTranslation("product.loadProductsError", "Errore nel caricamento dei prodotti"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadProductsError", "Errore nel caricamento dei prodotti"));
         }
     }
 
@@ -148,12 +148,12 @@
                 var updatedItem = await ProductService.UpdateProductBundleItemAsync(BundleItem.Id, updateDto);
                 if (updatedItem != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("product.bundleItemUpdated", "Componente aggiornato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("product.bundleItemUpdated", "Componente aggiornato con successo"));
                     MudDialog.Close(DialogResult.Ok(updatedItem));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"));
                 }
             }
             else
@@ -167,19 +167,19 @@
                 var newItem = await ProductService.CreateProductBundleItemAsync(createDto);
                 if (newItem != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("product.bundleItemAdded", "Componente aggiunto con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("product.bundleItemAdded", "Componente aggiunto con successo"));
                     MudDialog.Close(DialogResult.Ok(newItem));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio"));
                 }
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving bundle item");
-            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore durante il salvataggio: {0}", ex.Message));
         }
         finally
         {

@@ -7,27 +7,21 @@ namespace EventForge.Client.Services;
 /// Centralized notification service that wraps ISnackbar with enriched error
 /// details support via an EFDialog-based error detail dialog.
 /// </summary>
-public class AppNotificationService : IAppNotificationService
+public class AppNotificationService(
+    ISnackbar snackbar,
+    IDialogService dialogService) : IAppNotificationService
 {
-    private readonly ISnackbar _snackbar;
-    private readonly IDialogService _dialogService;
-
-    public AppNotificationService(ISnackbar snackbar, IDialogService dialogService)
-    {
-        _snackbar = snackbar ?? throw new ArgumentNullException(nameof(snackbar));
-        _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
-    }
 
     /// <inheritdoc />
     public void ShowSuccess(string message)
     {
-        _snackbar.Add(message, Severity.Success);
+        snackbar.Add(message, Severity.Success);
     }
 
     /// <inheritdoc />
     public void ShowInfo(string message)
     {
-        _snackbar.Add(message, Severity.Info);
+        snackbar.Add(message, Severity.Info);
     }
 
     /// <inheritdoc />
@@ -35,7 +29,7 @@ public class AppNotificationService : IAppNotificationService
     {
         if (string.IsNullOrEmpty(details) && string.IsNullOrEmpty(correlationId))
         {
-            _snackbar.Add(message, Severity.Warning);
+            snackbar.Add(message, Severity.Warning);
             return;
         }
 
@@ -47,7 +41,7 @@ public class AppNotificationService : IAppNotificationService
             Timestamp = DateTime.UtcNow
         };
 
-        _snackbar.Add(message, Severity.Warning, config =>
+        snackbar.Add(message, Severity.Warning, config =>
         {
             config.VisibleStateDuration = 7000;
             config.ShowCloseIcon = true;
@@ -64,7 +58,7 @@ public class AppNotificationService : IAppNotificationService
 
         if (!hasExtraInfo)
         {
-            _snackbar.Add(message, Severity.Error, config =>
+            snackbar.Add(message, Severity.Error, config =>
             {
                 config.VisibleStateDuration = 6000;
                 config.ShowCloseIcon = true;
@@ -82,7 +76,7 @@ public class AppNotificationService : IAppNotificationService
             Timestamp = DateTime.UtcNow
         };
 
-        _snackbar.Add(message, Severity.Error, config =>
+        snackbar.Add(message, Severity.Error, config =>
         {
             config.VisibleStateDuration = 8000;
             config.ShowCloseIcon = true;
@@ -123,6 +117,6 @@ public class AppNotificationService : IAppNotificationService
             MaxWidth = MaxWidth.Small,
             FullWidth = true
         };
-        await _dialogService.ShowAsync<ErrorDetailDialog>("Dettagli errore", parameters, options);
+        await dialogService.ShowAsync<ErrorDetailDialog>("Dettagli errore", parameters, options);
     }
 }

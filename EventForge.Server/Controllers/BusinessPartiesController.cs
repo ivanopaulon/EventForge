@@ -17,30 +17,14 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
-public class BusinessPartiesController : BaseApiController
+public class BusinessPartiesController(
+    IBusinessPartyService businessPartyService,
+    ISupplierProductBulkService supplierProductBulkService,
+    ISupplierProductCsvImportService csvImportService,
+    ITenantContext tenantContext,
+    IExportService exportService,
+    ILogger<BusinessPartiesController> logger) : BaseApiController
 {
-    private readonly IBusinessPartyService _businessPartyService;
-    private readonly ISupplierProductBulkService _supplierProductBulkService;
-    private readonly ISupplierProductCsvImportService _csvImportService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IExportService _exportService;
-    private readonly ILogger<BusinessPartiesController> _logger;
-
-    public BusinessPartiesController(
-        IBusinessPartyService businessPartyService,
-        ISupplierProductBulkService supplierProductBulkService,
-        ISupplierProductCsvImportService csvImportService,
-        ITenantContext tenantContext,
-        IExportService exportService,
-        ILogger<BusinessPartiesController> logger)
-    {
-        _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
-        _supplierProductBulkService = supplierProductBulkService ?? throw new ArgumentNullException(nameof(supplierProductBulkService));
-        _csvImportService = csvImportService ?? throw new ArgumentNullException(nameof(csvImportService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region BusinessParty Endpoints
 
@@ -62,24 +46,14 @@ public class BusinessPartiesController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _businessPartyService.GetBusinessPartiesAsync(pagination, cancellationToken);
+            var result = await businessPartyService.GetBusinessPartiesAsync(pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -104,14 +78,13 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyDto>> GetBusinessParty(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var businessParty = await _businessPartyService.GetBusinessPartyByIdAsync(id, cancellationToken);
+            var businessParty = await businessPartyService.GetBusinessPartyByIdAsync(id, cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
             {
                 return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
@@ -144,14 +117,13 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _businessPartyService.GetFullDetailAsync(id, includeInactive, cancellationToken);
+            var result = await businessPartyService.GetFullDetailAsync(id, includeInactive, cancellationToken);
 
-            if (result == null)
+            if (result is null)
             {
                 return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
@@ -168,6 +140,8 @@ public class BusinessPartiesController : BaseApiController
     /// Gets business parties by type.
     /// </summary>
     /// <param name="partyType">Business party type</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 50)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties of the specified type</returns>
     /// <response code="200">Returns the list of business parties</response>
@@ -175,15 +149,28 @@ public class BusinessPartiesController : BaseApiController
     [HttpGet("by-type/{partyType}")]
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(
+        DTOs.Common.BusinessPartyType partyType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var businessParties = await _businessPartyService.GetBusinessPartiesByTypeAsync(partyType, cancellationToken);
-            return Ok(businessParties);
+            var allParties = (await businessPartyService.GetBusinessPartiesByTypeAsync(partyType, cancellationToken)).ToList();
+            var pagedItems = allParties.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pagination = new PaginationParameters(page, pageSize);
+            var pagedResult = new PagedResult<BusinessPartyDto>
+            {
+                Items = pagedItems,
+                TotalCount = allParties.Count,
+                Page = page,
+                PageSize = pageSize
+            };
+            SetPaginationHeaders(pagedResult, pagination);
+            return Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -195,6 +182,9 @@ public class BusinessPartiesController : BaseApiController
     /// Gets all business parties (natural persons) that have a date of birth set.
     /// Used for birthday tracking in the calendar scheduler.
     /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties with a date of birth</returns>
     /// <response code="200">Returns the list of business parties with birthdays</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
@@ -202,15 +192,26 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesWithBirthdays(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var parties = await _businessPartyService.GetBusinessPartiesWithBirthdayAsync(cancellationToken);
-            return Ok(parties);
+            var allParties = (await businessPartyService.GetBusinessPartiesWithBirthdayAsync(cancellationToken)).ToList();
+            var pagedItems = allParties.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pagination = new PaginationParameters(page, pageSize);
+            var pagedResult = new PagedResult<BusinessPartyDto>
+            {
+                Items = pagedItems,
+                TotalCount = allParties.Count,
+                Page = page,
+                PageSize = pageSize
+            };
+            SetPaginationHeaders(pagedResult, pagination);
+            return Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -237,12 +238,11 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var businessParties = await _businessPartyService.SearchBusinessPartiesAsync(searchTerm, partyType, pageSize, cancellationToken);
+            var businessParties = await businessPartyService.SearchBusinessPartiesAsync(searchTerm, partyType, pageSize, cancellationToken);
             return Ok(businessParties);
         }
         catch (Exception ex)
@@ -271,13 +271,12 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var businessParty = await _businessPartyService.CreateBusinessPartyAsync(createBusinessPartyDto, currentUser, cancellationToken);
+            var businessParty = await businessPartyService.CreateBusinessPartyAsync(createBusinessPartyDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetBusinessParty), new { id = businessParty.Id }, businessParty);
         }
@@ -310,15 +309,14 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var businessParty = await _businessPartyService.UpdateBusinessPartyAsync(id, updateBusinessPartyDto, currentUser, cancellationToken);
+            var businessParty = await businessPartyService.UpdateBusinessPartyAsync(id, updateBusinessPartyDto, currentUser, cancellationToken);
 
-            if (businessParty == null)
+            if (businessParty is null)
             {
                 return CreateNotFoundProblem($"Business party with ID {id} not found.");
             }
@@ -346,13 +344,12 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteBusinessParty(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _businessPartyService.DeleteBusinessPartyAsync(id, currentUser, cancellationToken);
+            var deleted = await businessPartyService.DeleteBusinessPartyAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -388,24 +385,14 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _businessPartyService.GetBusinessPartyAccountingAsync(pagination, cancellationToken);
+            var result = await businessPartyService.GetBusinessPartyAccountingAsync(pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -430,14 +417,13 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccounting(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var businessPartyAccounting = await _businessPartyService.GetBusinessPartyAccountingByIdAsync(id, cancellationToken);
+            var businessPartyAccounting = await businessPartyService.GetBusinessPartyAccountingByIdAsync(id, cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
             {
                 return CreateNotFoundProblem($"Business party accounting with ID {id} not found.");
             }
@@ -465,14 +451,13 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingByBusinessPartyId(Guid businessPartyId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var businessPartyAccounting = await _businessPartyService.GetBusinessPartyAccountingByBusinessPartyIdAsync(businessPartyId, cancellationToken);
+            var businessPartyAccounting = await businessPartyService.GetBusinessPartyAccountingByBusinessPartyIdAsync(businessPartyId, cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
             {
                 return CreateNotFoundProblem($"Business party accounting for business party {businessPartyId} not found.");
             }
@@ -505,13 +490,12 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var businessPartyAccounting = await _businessPartyService.CreateBusinessPartyAccountingAsync(createBusinessPartyAccountingDto, currentUser, cancellationToken);
+            var businessPartyAccounting = await businessPartyService.CreateBusinessPartyAccountingAsync(createBusinessPartyAccountingDto, currentUser, cancellationToken);
 
             return CreatedAtAction(nameof(GetBusinessPartyAccounting), new { id = businessPartyAccounting.Id }, businessPartyAccounting);
         }
@@ -544,15 +528,14 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var businessPartyAccounting = await _businessPartyService.UpdateBusinessPartyAccountingAsync(id, updateBusinessPartyAccountingDto, currentUser, cancellationToken);
+            var businessPartyAccounting = await businessPartyService.UpdateBusinessPartyAccountingAsync(id, updateBusinessPartyAccountingDto, currentUser, cancellationToken);
 
-            if (businessPartyAccounting == null)
+            if (businessPartyAccounting is null)
             {
                 return CreateNotFoundProblem($"Business party accounting with ID {id} not found.");
             }
@@ -580,13 +563,12 @@ public class BusinessPartiesController : BaseApiController
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteBusinessPartyAccounting(Guid id, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _businessPartyService.DeleteBusinessPartyAccountingAsync(id, currentUser, cancellationToken);
+            var deleted = await businessPartyService.DeleteBusinessPartyAccountingAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
             {
@@ -636,32 +618,22 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if business party exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Business party with ID {businessPartyId} not found.");
             }
 
-            var result = await _businessPartyService.GetBusinessPartyDocumentsAsync(
+            var result = await businessPartyService.GetBusinessPartyDocumentsAsync(
                 businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, pagination, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -704,32 +676,22 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] bool sortDescending = true,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if business party exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(businessPartyId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Business party with ID {businessPartyId} not found.");
             }
 
-            var result = await _businessPartyService.GetBusinessPartyProductAnalysisAsync(
+            var result = await businessPartyService.GetBusinessPartyProductAnalysisAsync(
                 businessPartyId, fromDate, toDate, type, topN, pagination, sortBy, sortDescending, cancellationToken);
 
             // Add pagination metadata headers
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -769,19 +731,18 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if supplier exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
             }
 
-            var previews = await _supplierProductBulkService.PreviewBulkUpdateAsync(supplierId, request, cancellationToken);
+            var previews = await supplierProductBulkService.PreviewBulkUpdateAsync(supplierId, request, cancellationToken);
             return Ok(previews);
         }
         catch (Exception ex)
@@ -816,20 +777,19 @@ public class BusinessPartiesController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if supplier exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
             }
 
             var currentUser = GetCurrentUser();
-            var result = await _supplierProductBulkService.BulkUpdateSupplierProductsAsync(supplierId, request, currentUser, cancellationToken);
+            var result = await supplierProductBulkService.BulkUpdateSupplierProductsAsync(supplierId, request, currentUser, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -859,28 +819,23 @@ public class BusinessPartiesController : BaseApiController
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid file",
-                Detail = "CSV file is required"
-            });
+            return CreateValidationProblemDetails("CSV file is required");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if supplier exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
             }
 
-            var result = await _csvImportService.ValidateCsvAsync(supplierId, file, null, cancellationToken);
+            var result = await csvImportService.ValidateCsvAsync(supplierId, file, null, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -912,22 +867,17 @@ public class BusinessPartiesController : BaseApiController
         [FromForm] string? options,
         CancellationToken cancellationToken = default)
     {
-        if (file == null || file.Length == 0)
+        if (file is null || file.Length == 0)
         {
-            return BadRequest(new ValidationProblemDetails
-            {
-                Title = "Invalid file",
-                Detail = "CSV file is required"
-            });
+            return CreateValidationProblemDetails("CSV file is required");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
             // Check if supplier exists
-            var exists = await _businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
+            var exists = await businessPartyService.BusinessPartyExistsAsync(supplierId, cancellationToken);
             if (!exists)
             {
                 return CreateNotFoundProblem($"Supplier with ID {supplierId} not found.");
@@ -939,7 +889,7 @@ public class BusinessPartiesController : BaseApiController
                 : System.Text.Json.JsonSerializer.Deserialize<CsvImportOptions>(options) ?? new CsvImportOptions();
 
             var currentUser = GetCurrentUser();
-            var result = await _csvImportService.ImportCsvAsync(supplierId, file, importOptions, currentUser, cancellationToken);
+            var result = await csvImportService.ImportCsvAsync(supplierId, file, importOptions, currentUser, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -964,7 +914,7 @@ public class BusinessPartiesController : BaseApiController
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export operation started by {User} for BusinessParties (format: {Format})",
             User.Identity?.Name ?? "Unknown", format);
 
@@ -975,7 +925,7 @@ public class BusinessPartiesController : BaseApiController
             PageSize = 50000 // Will be capped to MaxExportPageSize
         };
 
-        var data = await _businessPartyService.GetBusinessPartiesForExportAsync(pagination, ct);
+        var data = await businessPartyService.GetBusinessPartiesForExportAsync(pagination, ct);
 
         byte[] fileBytes;
         string contentType;
@@ -984,20 +934,20 @@ public class BusinessPartiesController : BaseApiController
         switch (format.ToLowerInvariant())
         {
             case "csv":
-                fileBytes = await _exportService.ExportToCsvAsync(data, ct);
+                fileBytes = await exportService.ExportToCsvAsync(data, ct);
                 contentType = "text/csv";
                 fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
                 break;
 
             case "excel":
             default:
-                fileBytes = await _exportService.ExportToExcelAsync(data, "Business Parties", ct);
+                fileBytes = await exportService.ExportToExcelAsync(data, "Business Parties", ct);
                 contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 fileName = $"BusinessParties_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
                 break;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Export completed: {FileName}, {Size} bytes, {Records} records",
             fileName, fileBytes.Length, data.Count());
 

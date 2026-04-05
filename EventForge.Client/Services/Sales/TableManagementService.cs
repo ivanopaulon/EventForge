@@ -5,27 +5,21 @@ namespace EventForge.Client.Services.Sales;
 /// <summary>
 /// Client service implementation for table management.
 /// </summary>
-public class TableManagementService : ITableManagementService
+public class TableManagementService(
+    IHttpClientService httpClientService,
+    ILogger<TableManagementService> logger) : ITableManagementService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<TableManagementService> _logger;
     private const string BaseUrl = "api/v1/tables";
-
-    public TableManagementService(IHttpClientService httpClientService, ILogger<TableManagementService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<List<TableSessionDto>?> GetAllTablesAsync()
     {
         try
         {
-            return await _httpClientService.GetAsync<List<TableSessionDto>>(BaseUrl);
+            return await httpClientService.GetAsync<List<TableSessionDto>>(BaseUrl);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving all tables");
+            logger.LogError(ex, "Error retrieving all tables");
             return null;
         }
     }
@@ -34,11 +28,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.GetAsync<TableSessionDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<TableSessionDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving table {Id}", id);
+            logger.LogError(ex, "Error retrieving table {Id}", id);
             return null;
         }
     }
@@ -47,11 +41,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<TableSessionDto>>($"{BaseUrl}/available");
+            return await httpClientService.GetAsync<List<TableSessionDto>>($"{BaseUrl}/available");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving available tables");
+            logger.LogError(ex, "Error retrieving available tables");
             return null;
         }
     }
@@ -60,11 +54,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateTableSessionDto, TableSessionDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateTableSessionDto, TableSessionDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating table");
+            logger.LogError(ex, "Error creating table");
             return null;
         }
     }
@@ -73,11 +67,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateTableSessionDto, TableSessionDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateTableSessionDto, TableSessionDto>($"{BaseUrl}/{id}", updateDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating table {Id}", id);
+            logger.LogError(ex, "Error updating table {Id}", id);
             return null;
         }
     }
@@ -86,11 +80,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateTableStatusDto, TableSessionDto>($"{BaseUrl}/{id}/status", statusDto);
+            return await httpClientService.PutAsync<UpdateTableStatusDto, TableSessionDto>($"{BaseUrl}/{id}/status", statusDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating table status {Id}", id);
+            logger.LogError(ex, "Error updating table status {Id}", id);
             return null;
         }
     }
@@ -99,12 +93,12 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting table {Id}", id);
+            logger.LogError(ex, "Error deleting table {Id}", id);
             return false;
         }
     }
@@ -114,11 +108,11 @@ public class TableManagementService : ITableManagementService
         try
         {
             var dateStr = date.ToString("yyyy-MM-dd");
-            return await _httpClientService.GetAsync<List<TableReservationDto>>($"{BaseUrl}/reservations?date={dateStr}");
+            return await httpClientService.GetAsync<List<TableReservationDto>>($"{BaseUrl}/reservations?date={dateStr}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving reservations for date {Date}", date);
+            logger.LogError(ex, "Error retrieving reservations for date {Date}", date);
             return null;
         }
     }
@@ -127,11 +121,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.GetAsync<TableReservationDto>($"{BaseUrl}/reservations/{id}");
+            return await httpClientService.GetAsync<TableReservationDto>($"{BaseUrl}/reservations/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving reservation {Id}", id);
+            logger.LogError(ex, "Error retrieving reservation {Id}", id);
             return null;
         }
     }
@@ -140,11 +134,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations", createDto);
+            return await httpClientService.PostAsync<CreateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations", createDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating reservation");
+            logger.LogError(ex, "Error creating reservation");
             return null;
         }
     }
@@ -153,11 +147,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations/{id}", updateDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating reservation {Id}", id);
+            logger.LogError(ex, "Error updating reservation {Id}", id);
             return null;
         }
     }
@@ -166,11 +160,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/confirm", new { });
+            return await httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/confirm", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error confirming reservation {Id}", id);
+            logger.LogError(ex, "Error confirming reservation {Id}", id);
             return null;
         }
     }
@@ -179,11 +173,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/arrived", new { });
+            return await httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/arrived", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking reservation arrived {Id}", id);
+            logger.LogError(ex, "Error marking reservation arrived {Id}", id);
             return null;
         }
     }
@@ -192,12 +186,12 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/reservations/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/reservations/{id}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling reservation {Id}", id);
+            logger.LogError(ex, "Error cancelling reservation {Id}", id);
             return false;
         }
     }
@@ -206,11 +200,11 @@ public class TableManagementService : ITableManagementService
     {
         try
         {
-            return await _httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/no-show", new { });
+            return await httpClientService.PutAsync<object, TableReservationDto>($"{BaseUrl}/reservations/{id}/no-show", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking reservation no-show {Id}", id);
+            logger.LogError(ex, "Error marking reservation no-show {Id}", id);
             return null;
         }
     }

@@ -8,7 +8,7 @@
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @implements IDisposable
 
 <MudNavMenu>
@@ -424,7 +424,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error showing help: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error showing help: {ex.Message}");
         }
     }
 
@@ -461,7 +461,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error showing tour options: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error showing tour options: {ex.Message}");
         }
     }
 
@@ -490,7 +490,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error showing tutorial center: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error showing tutorial center: {ex.Message}");
         }
     }
 

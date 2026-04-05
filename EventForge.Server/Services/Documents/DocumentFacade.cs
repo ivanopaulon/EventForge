@@ -7,19 +7,19 @@ namespace EventForge.Server.Services.Documents;
 /// Facade implementation that orchestrates document-related services for the unified DocumentsController.
 /// Delegates operations to existing specialized services without adding new business logic.
 /// </summary>
-public class DocumentFacade : IDocumentFacade
+public class DocumentFacade(
+    IDocumentAttachmentService attachmentService,
+    IDocumentCommentService commentService,
+    IDocumentTemplateService templateService,
+    IDocumentWorkflowService workflowService,
+    IDocumentAnalyticsService analyticsService,
+    IDocumentHeaderService documentHeaderService,
+    IDocumentTypeService documentTypeService,
+    IDocumentStatusService documentStatusService,
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    ILogger<DocumentFacade> logger) : IDocumentFacade
 {
-    private readonly IDocumentAttachmentService _attachmentService;
-    private readonly IDocumentCommentService _commentService;
-    private readonly IDocumentTemplateService _templateService;
-    private readonly IDocumentWorkflowService _workflowService;
-    private readonly IDocumentAnalyticsService _analyticsService;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IDocumentTypeService _documentTypeService;
-    private readonly IDocumentStatusService _documentStatusService;
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentFacade> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentFacade
@@ -35,32 +35,6 @@ public class DocumentFacade : IDocumentFacade
     /// <param name="context">Database context</param>
     /// <param name="tenantContext">Tenant context</param>
     /// <param name="logger">Logger instance</param>
-    public DocumentFacade(
-        IDocumentAttachmentService attachmentService,
-        IDocumentCommentService commentService,
-        IDocumentTemplateService templateService,
-        IDocumentWorkflowService workflowService,
-        IDocumentAnalyticsService analyticsService,
-        IDocumentHeaderService documentHeaderService,
-        IDocumentTypeService documentTypeService,
-        IDocumentStatusService documentStatusService,
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        ILogger<DocumentFacade> logger)
-    {
-        _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
-        _commentService = commentService ?? throw new ArgumentNullException(nameof(commentService));
-        _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
-        _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
-        _analyticsService = analyticsService ?? throw new ArgumentNullException(nameof(analyticsService));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _documentTypeService = documentTypeService ?? throw new ArgumentNullException(nameof(documentTypeService));
-        _documentStatusService = documentStatusService ?? throw new ArgumentNullException(nameof(documentStatusService));
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     // Attachment operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentAttachmentDto>> GetAttachmentsAsync(
@@ -68,7 +42,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.GetDocumentHeaderAttachmentsAsync(documentHeaderId, includeHistory, cancellationToken);
+        return await attachmentService.GetDocumentHeaderAttachmentsAsync(documentHeaderId, includeHistory, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -77,7 +51,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
+        return await attachmentService.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -86,7 +60,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
+        return await attachmentService.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -94,7 +68,7 @@ public class DocumentFacade : IDocumentFacade
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.GetAttachmentByIdAsync(attachmentId, cancellationToken);
+        return await attachmentService.GetAttachmentByIdAsync(attachmentId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -104,7 +78,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
+        return await attachmentService.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -114,7 +88,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
+        return await attachmentService.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -122,7 +96,7 @@ public class DocumentFacade : IDocumentFacade
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
+        return await attachmentService.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -132,7 +106,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
+        return await attachmentService.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -140,7 +114,7 @@ public class DocumentFacade : IDocumentFacade
         string category,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.GetAttachmentsByCategoryAsync(category, cancellationToken);
+        return await attachmentService.GetAttachmentsByCategoryAsync(category, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -149,7 +123,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
+        return await attachmentService.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -157,7 +131,7 @@ public class DocumentFacade : IDocumentFacade
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        return await _attachmentService.AttachmentExistsAsync(attachmentId, cancellationToken);
+        return await attachmentService.AttachmentExistsAsync(attachmentId, cancellationToken);
     }
 
     // Comment operations
@@ -167,7 +141,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.GetDocumentHeaderCommentsAsync(documentHeaderId, includeReplies, cancellationToken);
+        return await commentService.GetDocumentHeaderCommentsAsync(documentHeaderId, includeReplies, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -176,7 +150,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.CreateCommentAsync(createDto, currentUser, cancellationToken);
+        return await commentService.CreateCommentAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -185,7 +159,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
+        return await commentService.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -194,7 +168,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
+        return await commentService.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -204,7 +178,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
+        return await commentService.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -214,7 +188,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
+        return await commentService.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -223,7 +197,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.ReopenCommentAsync(commentId, currentUser, cancellationToken);
+        return await commentService.ReopenCommentAsync(commentId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -232,7 +206,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
+        return await commentService.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -241,7 +215,7 @@ public class DocumentFacade : IDocumentFacade
         string? status = null,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.GetAssignedCommentsAsync(userId, status, cancellationToken);
+        return await commentService.GetAssignedCommentsAsync(userId, status, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -250,7 +224,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.DeleteCommentAsync(commentId, currentUser, cancellationToken);
+        return await commentService.DeleteCommentAsync(commentId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -258,7 +232,7 @@ public class DocumentFacade : IDocumentFacade
         Guid commentId,
         CancellationToken cancellationToken = default)
     {
-        return await _commentService.CommentExistsAsync(commentId, cancellationToken);
+        return await commentService.CommentExistsAsync(commentId, cancellationToken);
     }
 
     // Template operations
@@ -266,7 +240,7 @@ public class DocumentFacade : IDocumentFacade
     public async Task<IEnumerable<DocumentTemplateDto>> GetPublicTemplatesAsync(
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.GetPublicTemplatesAsync(cancellationToken);
+        return await templateService.GetPublicTemplatesAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -274,14 +248,14 @@ public class DocumentFacade : IDocumentFacade
         Guid templateId,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.GetByIdAsync(templateId, cancellationToken);
+        return await templateService.GetByIdAsync(templateId, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetAllTemplatesAsync(
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.GetAllAsync(cancellationToken);
+        return await templateService.GetAllAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -289,7 +263,7 @@ public class DocumentFacade : IDocumentFacade
         Guid documentTypeId,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
+        return await templateService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -297,7 +271,7 @@ public class DocumentFacade : IDocumentFacade
         string category,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.GetByCategoryAsync(category, cancellationToken);
+        return await templateService.GetByCategoryAsync(category, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -306,7 +280,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.CreateAsync(createDto, currentUser, cancellationToken);
+        return await templateService.CreateAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -316,7 +290,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.UpdateAsync(templateId, updateDto, currentUser, cancellationToken);
+        return await templateService.UpdateAsync(templateId, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -325,7 +299,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.DeleteAsync(templateId, currentUser, cancellationToken);
+        return await templateService.DeleteAsync(templateId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -334,7 +308,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _templateService.UpdateUsageAsync(templateId, currentUser, cancellationToken);
+        return await templateService.UpdateUsageAsync(templateId, currentUser, cancellationToken);
     }
 
     // Workflow operations
@@ -345,10 +319,10 @@ public class DocumentFacade : IDocumentFacade
     {
         if (documentTypeId.HasValue)
         {
-            return await _workflowService.GetByDocumentTypeAsync(documentTypeId.Value, cancellationToken);
+            return await workflowService.GetByDocumentTypeAsync(documentTypeId.Value, cancellationToken);
         }
 
-        return await _workflowService.GetAllAsync(cancellationToken);
+        return await workflowService.GetAllAsync(cancellationToken);
     }
 
     /// <inheritdoc />
@@ -356,7 +330,7 @@ public class DocumentFacade : IDocumentFacade
         Guid workflowId,
         CancellationToken cancellationToken = default)
     {
-        return await _workflowService.GetByIdAsync(workflowId, cancellationToken);
+        return await workflowService.GetByIdAsync(workflowId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -365,7 +339,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _workflowService.CreateAsync(createDto, currentUser, cancellationToken);
+        return await workflowService.CreateAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -375,7 +349,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _workflowService.UpdateAsync(workflowId, updateDto, currentUser, cancellationToken);
+        return await workflowService.UpdateAsync(workflowId, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -384,7 +358,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _workflowService.DeleteAsync(workflowId, currentUser, cancellationToken);
+        return await workflowService.DeleteAsync(workflowId, currentUser, cancellationToken);
     }
 
     // Analytics operations
@@ -393,7 +367,7 @@ public class DocumentFacade : IDocumentFacade
         Guid documentHeaderId,
         CancellationToken cancellationToken = default)
     {
-        return await _analyticsService.GetDocumentAnalyticsAsync(documentHeaderId, cancellationToken);
+        return await analyticsService.GetDocumentAnalyticsAsync(documentHeaderId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -402,7 +376,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _analyticsService.CreateOrUpdateAnalyticsAsync(documentHeaderId, currentUser, cancellationToken);
+        return await analyticsService.CreateOrUpdateAnalyticsAsync(documentHeaderId, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -412,7 +386,7 @@ public class DocumentFacade : IDocumentFacade
         string? groupBy = null,
         CancellationToken cancellationToken = default)
     {
-        return await _analyticsService.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
+        return await analyticsService.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -421,7 +395,7 @@ public class DocumentFacade : IDocumentFacade
         DateTime to,
         CancellationToken cancellationToken = default)
     {
-        return await _analyticsService.CalculateKpiSummaryAsync(from, to, cancellationToken);
+        return await analyticsService.CalculateKpiSummaryAsync(from, to, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -432,7 +406,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _analyticsService.HandleWorkflowEventAsync(documentId, eventType, eventData, currentUser, cancellationToken);
+        return await analyticsService.HandleWorkflowEventAsync(documentId, eventType, eventData, currentUser, cancellationToken);
     }
 
     // Document Header operations
@@ -441,7 +415,7 @@ public class DocumentFacade : IDocumentFacade
         DocumentHeaderQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+        return await documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -450,7 +424,7 @@ public class DocumentFacade : IDocumentFacade
         bool includeRows = false,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+        return await documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -458,7 +432,7 @@ public class DocumentFacade : IDocumentFacade
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
+        return await documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -467,7 +441,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+        return await documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -477,7 +451,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
+        return await documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -486,7 +460,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
+        return await documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -494,7 +468,7 @@ public class DocumentFacade : IDocumentFacade
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
+        return await documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -503,7 +477,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
+        return await documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -512,7 +486,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+        return await documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -520,7 +494,7 @@ public class DocumentFacade : IDocumentFacade
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
+        return await documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -529,7 +503,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.AddDocumentRowAsync(createDto, currentUser, cancellationToken);
+        return await documentHeaderService.AddDocumentRowAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -539,7 +513,7 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.UpdateDocumentRowAsync(rowId, updateDto, currentUser, cancellationToken);
+        return await documentHeaderService.UpdateDocumentRowAsync(rowId, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -548,38 +522,38 @@ public class DocumentFacade : IDocumentFacade
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _documentHeaderService.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
+        return await documentHeaderService.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
     }
 
     // Document Type operations
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTypeDto>> GetAllDocumentTypesAsync(CancellationToken cancellationToken = default)
     {
-        return await _documentTypeService.GetAllAsync(cancellationToken);
+        return await documentTypeService.GetAllAsync(cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _documentTypeService.GetByIdAsync(id, cancellationToken);
+        return await documentTypeService.GetByIdAsync(id, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTypeDto> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await _documentTypeService.CreateAsync(createDto, currentUser, cancellationToken);
+        return await documentTypeService.CreateAsync(createDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await _documentTypeService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
+        return await documentTypeService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteDocumentTypeAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await _documentTypeService.DeleteAsync(id, currentUser, cancellationToken);
+        return await documentTypeService.DeleteAsync(id, currentUser, cancellationToken);
     }
 
     // Document Status operations
@@ -590,7 +564,7 @@ public class DocumentFacade : IDocumentFacade
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        return await _documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
+        return await documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -598,7 +572,7 @@ public class DocumentFacade : IDocumentFacade
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        return await _documentStatusService.GetStatusHistoryAsync(documentId, cancellationToken);
+        return await documentStatusService.GetStatusHistoryAsync(documentId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -606,7 +580,7 @@ public class DocumentFacade : IDocumentFacade
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        return await _documentStatusService.GetAvailableTransitionsAsync(documentId, cancellationToken);
+        return await documentStatusService.GetAvailableTransitionsAsync(documentId, cancellationToken);
     }
 
     #region Bulk Operations
@@ -627,10 +601,10 @@ public class DocumentFacade : IDocumentFacade
             throw new ArgumentException("Maximum 500 documents can be approved at once.");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for bulk approval operations.");
@@ -639,7 +613,7 @@ public class DocumentFacade : IDocumentFacade
             var approvalDate = bulkApprovalDto.ApprovalDate ?? DateTime.UtcNow;
 
             // Fetch all documents in one query
-            var documents = await _context.DocumentHeaders
+            var documents = await context.DocumentHeaders
                 .Where(d => bulkApprovalDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
                 .ToListAsync(cancellationToken);
 
@@ -682,11 +656,11 @@ public class DocumentFacade : IDocumentFacade
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = currentUser
                     };
-                    _context.DocumentStatusHistories.Add(statusHistory);
+                    context.DocumentStatusHistories.Add(statusHistory);
 
                     successCount++;
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Bulk approval: Document {DocumentId} approved. Notes: {Notes}",
                         document.Id, bulkApprovalDto.ApprovalNotes ?? "N/A");
                 }
@@ -701,10 +675,10 @@ public class DocumentFacade : IDocumentFacade
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk approval completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
@@ -722,7 +696,7 @@ public class DocumentFacade : IDocumentFacade
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Bulk approval failed and was rolled back");
+            logger.LogError(ex, "Bulk approval failed and was rolled back");
 
             return new EventForge.DTOs.Bulk.BulkApprovalResultDto
             {
@@ -766,10 +740,10 @@ public class DocumentFacade : IDocumentFacade
             throw new ArgumentException($"Invalid status: {bulkStatusChangeDto.NewStatus}");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for bulk status change operations.");
@@ -778,7 +752,7 @@ public class DocumentFacade : IDocumentFacade
             var changeDate = bulkStatusChangeDto.ChangeDate ?? DateTime.UtcNow;
 
             // Fetch all documents in one query
-            var documents = await _context.DocumentHeaders
+            var documents = await context.DocumentHeaders
                 .Where(d => bulkStatusChangeDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
                 .ToListAsync(cancellationToken);
 
@@ -830,11 +804,11 @@ public class DocumentFacade : IDocumentFacade
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = currentUser
                     };
-                    _context.DocumentStatusHistories.Add(statusHistory);
+                    context.DocumentStatusHistories.Add(statusHistory);
 
                     successCount++;
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Bulk status change: Document {DocumentId} status changed from {OldStatus} to {NewStatus}. Reason: {Reason}",
                         document.Id, oldStatus, newStatus, bulkStatusChangeDto.Reason ?? "N/A");
                 }
@@ -849,10 +823,10 @@ public class DocumentFacade : IDocumentFacade
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk status change completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
@@ -870,7 +844,7 @@ public class DocumentFacade : IDocumentFacade
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Bulk status change failed and was rolled back");
+            logger.LogError(ex, "Bulk status change failed and was rolled back");
 
             return new EventForge.DTOs.Bulk.BulkStatusChangeResultDto
             {
@@ -893,4 +867,5 @@ public class DocumentFacade : IDocumentFacade
     }
 
     #endregion
+
 }

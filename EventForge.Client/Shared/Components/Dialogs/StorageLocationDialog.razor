@@ -1,7 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Warehouse
 @inject IStorageLocationService StorageLocationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<StorageLocationDialog> Logger
 
@@ -227,7 +227,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving storage location");
-            Snackbar.Add(TranslationService.GetTranslation("messages.saveFailed", "Errore nel salvataggio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.saveFailed", "Errore nel salvataggio"));
         }
         finally
         {
@@ -243,7 +243,7 @@
         }
         else
         {
-            Snackbar.Add(TranslationService.GetTranslation(errorKey, errorFallback), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation(errorKey, errorFallback));
         }
     }
 

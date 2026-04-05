@@ -4,7 +4,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IEntityManagementService EntityManagementService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<ClassificationNodeDetailDialog> Logger
@@ -373,7 +373,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing classification node detail");
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"));
         }
         finally
         {
@@ -414,7 +414,7 @@
             _node = await _ems.GetClassificationNodeAsync(EntityId.Value);
             if (_node == null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("classificationNode.notFound", "Nodo di classificazione non trovato"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.notFound", "Nodo di classificazione non trovato"));
                 return;
             }
 
@@ -439,7 +439,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading node {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.loadError", "Errore nel caricamento del nodo"));
             _node = null;
         }
         finally
@@ -463,8 +463,8 @@
         {
             Logger.LogError(ex, "Error loading parent nodes");
             _loadError = true;
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.parentLoadWarning",
-                "Impossibile caricare i nodi padre. Il campo Nodo Padre potrebbe non essere disponibile."), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("classificationNode.parentLoadWarning",
+                "Impossibile caricare i nodi padre. Il campo Nodo Padre potrebbe non essere disponibile."));
         }
     }
 
@@ -524,11 +524,11 @@
     private async Task SaveAsync()
     {
         if (_isSaving) return;
-        if (_form != null) await _form.Validate();
+        if (_form != null) await _form.ValidateAsync();
 
         if (_form != null && _form.IsValid == false)
         {
-            Snackbar.Add(TranslationService.GetTranslation("validation.formInvalid", "Modulo non valido"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Modulo non valido"));
             return;
         }
 
@@ -540,32 +540,32 @@
                 var created = await _ems.CreateClassificationNodeAsync(_createModel);
                 if (created != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.created", "Nodo creato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("classificationNode.created", "Nodo creato con successo"));
                     _hasLocalChanges = false;
                     MudDialog.Close(DialogResult.Ok(true));
                     return;
                 }
-                Snackbar.Add(TranslationService.GetTranslation("classificationNode.createError", "Errore nella creazione del nodo"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.createError", "Errore nella creazione del nodo"));
             }
             else if (_node != null)
             {
                 var updated = await _ems.UpdateClassificationNodeAsync(_node.Id, _updateModel);
                 if (updated != null)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.updated", "Nodo aggiornato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("classificationNode.updated", "Nodo aggiornato con successo"));
                     _hasLocalChanges = false;
                     MudDialog.Close(DialogResult.Ok(true));
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("classificationNode.updateError", "Errore nell'aggiornamento del nodo"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.updateError", "Errore nell'aggiornamento del nodo"));
                 }
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving classification node");
-            Snackbar.Add(TranslationService.GetTranslation("classificationNode.saveError", "Errore nel salvataggio del nodo: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.saveError", "Errore nel salvataggio del nodo: {0}", ex.Message));
         }
         finally
         {
@@ -602,7 +602,7 @@
             [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)_node.Id
         };
         var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        if (!(await d.Result).Canceled) await LoadChildrenAsync();
+        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
     }
 
     private async Task OpenChildDetailDialogAsync(Guid childId)
@@ -612,7 +612,7 @@
             [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)childId
         };
         var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        if (!(await d.Result).Canceled) await LoadChildrenAsync();
+        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
     }
 
     private async Task OpenAuditDialog()

@@ -11,26 +11,19 @@ namespace EventForge.Server.Controllers;
 /// Anonymous access is required to capture errors during login/startup and authentication failures.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/client-logs")]
 [AllowAnonymous]
 [Produces("application/json")]
-public class ClientLogsController : BaseApiController
+public class ClientLogsController(
+    ILogger<ClientLogsController> logger,
+    ILogIngestionService logIngestionService) : BaseApiController
 {
-    private readonly ILogger<ClientLogsController> _logger;
-    private readonly ILogIngestionService _logIngestionService;
-
-    public ClientLogsController(
-        ILogger<ClientLogsController> logger,
-        ILogIngestionService logIngestionService)
-    {
-        _logger = logger;
-        _logIngestionService = logIngestionService;
-    }
 
     /// <summary>
     /// Receives a single client log entry and enqueues it for asynchronous processing.
     /// </summary>
     /// <param name="clientLog">The client log entry</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted response</returns>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
@@ -44,10 +37,10 @@ public class ClientLogsController : BaseApiController
 
         try
         {
-            var enqueued = await _logIngestionService.EnqueueAsync(clientLog);
+            var enqueued = await logIngestionService.EnqueueAsync(clientLog);
             if (!enqueued)
             {
-                _logger.LogWarning("Failed to enqueue client log entry - queue may be full");
+                logger.LogWarning("Failed to enqueue client log entry - queue may be full");
             }
 
             return Accepted();
@@ -62,6 +55,7 @@ public class ClientLogsController : BaseApiController
     /// Receives a batch of client log entries and enqueues them for asynchronous processing.
     /// </summary>
     /// <param name="batchRequest">The batch of client log entries</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted response</returns>
     [HttpPost("batch")]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("ClientLogs")]
@@ -75,7 +69,7 @@ public class ClientLogsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        if (batchRequest.Logs == null || batchRequest.Logs.Count == 0)
+        if (batchRequest.Logs is null || batchRequest.Logs.Count == 0)
         {
             return CreateValidationProblemDetails("Batch must contain at least one log entry");
         }
@@ -87,10 +81,10 @@ public class ClientLogsController : BaseApiController
 
         try
         {
-            var enqueuedCount = await _logIngestionService.EnqueueBatchAsync(batchRequest.Logs);
+            var enqueuedCount = await logIngestionService.EnqueueBatchAsync(batchRequest.Logs);
             if (enqueuedCount < batchRequest.Logs.Count)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Only {EnqueuedCount} of {TotalCount} logs were enqueued",
                     enqueuedCount, batchRequest.Logs.Count);
             }
@@ -113,7 +107,7 @@ public class ClientLogsController : BaseApiController
     {
         try
         {
-            var healthStatus = _logIngestionService.GetHealthStatus();
+            var healthStatus = logIngestionService.GetHealthStatus();
 
             var healthDto = new LogIngestionHealthDto
             {

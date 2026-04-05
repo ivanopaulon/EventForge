@@ -57,7 +57,7 @@ public class ExcelExportService : IExcelExportService
                     }
 
                     var cell = worksheet.Cell(excelRow, colIndex + 1);
-                    if (value != null)
+                    if (value is not null)
                         cell.Value = XLCellValue.FromObject(value);
                     else
                         cell.Value = string.Empty;

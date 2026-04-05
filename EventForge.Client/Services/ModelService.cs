@@ -9,30 +9,23 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Service implementation for managing models.
 /// </summary>
-public class ModelService : IModelService
+public class ModelService(
+    IHttpClientService httpClientService,
+    ILogger<ModelService> logger,
+    IMemoryCache cache) : IModelService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<ModelService> _logger;
-    private readonly IMemoryCache _cache;
     private const string BaseUrl = "api/v1/product-management/models";
-
-    public ModelService(IHttpClientService httpClientService, ILogger<ModelService> logger, IMemoryCache cache)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-    }
 
     public async Task<PagedResult<ModelDto>> GetModelsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
-            return result ?? new PagedResult<ModelDto> { Items = new List<ModelDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            var result = await httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
+            return result ?? new PagedResult<ModelDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving models");
+            logger.LogError(ex, "Error retrieving models");
             throw;
         }
     }
@@ -41,31 +34,30 @@ public class ModelService : IModelService
     {
         try
         {
-            var result = await _httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?brandId={brandId}&page={page}&pageSize={pageSize}", ct);
-            return result ?? new PagedResult<ModelDto> { Items = new List<ModelDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            var result = await httpClientService.GetAsync<PagedResult<ModelDto>>($"{BaseUrl}?brandId={brandId}&page={page}&pageSize={pageSize}", ct);
+            return result ?? new PagedResult<ModelDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving models for brand {BrandId}", brandId);
+            logger.LogError(ex, "Error retrieving models for brand {BrandId}", brandId);
             throw;
         }
     }
 
     public async Task<IEnumerable<ModelDto>> GetActiveModelsByBrandAsync(Guid brandId, CancellationToken ct = default)
     {
-        // Note: Method name kept as "GetActiveModelsByBrandAsync" for consistency,
-        // but returns all models since ModelDto doesn't have an IsActive property
+
         var cacheKey = CacheHelper.GetModelsByBrandKey(brandId);
 
         // Try cache first
-        if (_cache.TryGetValue(cacheKey, out IEnumerable<ModelDto>? cached) && cached != null)
+        if (cache.TryGetValue(cacheKey, out IEnumerable<ModelDto>? cached) && cached is not null)
         {
-            _logger.LogDebug("Cache HIT: Models for brand {BrandId} ({Count} items)", brandId, cached.Count());
+            logger.LogDebug("Cache HIT: Models for brand {BrandId} ({Count} items)", brandId, cached.Count());
             return cached;
         }
 
         // Cache miss - API call
-        _logger.LogDebug("Cache MISS: Loading models for brand {BrandId} from API", brandId);
+        logger.LogDebug("Cache MISS: Loading models for brand {BrandId} from API", brandId);
 
         try
         {
@@ -73,13 +65,13 @@ public class ModelService : IModelService
             var models = result?.Items ?? Enumerable.Empty<ModelDto>();
 
             // Store in cache (15 minutes)
-            _cache.Set(
+            cache.Set(
                 cacheKey,
                 models,
                 CacheHelper.GetShortCacheOptions()
             );
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Cached {Count} models for brand {BrandId} for {Minutes} minutes",
                 models.Count(),
                 brandId,
@@ -98,11 +90,11 @@ public class ModelService : IModelService
     {
         try
         {
-            return await _httpClientService.GetAsync<ModelDto>($"{BaseUrl}/{id}", ct);
+            return await httpClientService.GetAsync<ModelDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving model with ID {Id}", id);
+            logger.LogError(ex, "Error retrieving model with ID {Id}", id);
             throw;
         }
     }
@@ -111,21 +103,21 @@ public class ModelService : IModelService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<CreateModelDto, ModelDto>(BaseUrl, createModelDto, ct);
+            var result = await httpClientService.PostAsync<CreateModelDto, ModelDto>(BaseUrl, createModelDto, ct);
 
             // Invalidate cache for specific brand
-            if (result != null)
+            if (result is not null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(result.BrandId);
-                _cache.Remove(cacheKey);
-                _logger.LogDebug("Invalidated models cache for brand {BrandId} after create", result.BrandId);
+                cache.Remove(cacheKey);
+                logger.LogDebug("Invalidated models cache for brand {BrandId} after create", result.BrandId);
             }
 
             return result ?? throw new InvalidOperationException("Failed to create model");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating model");
+            logger.LogError(ex, "Error creating model");
             throw;
         }
     }
@@ -134,14 +126,14 @@ public class ModelService : IModelService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateModelDto, ModelDto>($"{BaseUrl}/{id}", updateModelDto, ct);
+            var result = await httpClientService.PutAsync<UpdateModelDto, ModelDto>($"{BaseUrl}/{id}", updateModelDto, ct);
 
             // Invalidate cache for brand
-            if (result != null)
+            if (result is not null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(result.BrandId);
-                _cache.Remove(cacheKey);
-                _logger.LogDebug("Invalidated models cache for brand {BrandId} after update (model {ModelId})",
+                cache.Remove(cacheKey);
+                logger.LogDebug("Invalidated models cache for brand {BrandId} after update (model {ModelId})",
                     result.BrandId, id);
             }
 
@@ -149,7 +141,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating model with ID {Id}", id);
+            logger.LogError(ex, "Error updating model with ID {Id}", id);
             throw;
         }
     }
@@ -165,19 +157,19 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch model {ModelId} before delete - cache invalidation may be skipped", id);
+            logger.LogWarning(ex, "Failed to fetch model {ModelId} before delete - cache invalidation may be skipped", id);
         }
 
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
 
             // Invalidate if model existed
-            if (model != null)
+            if (model is not null)
             {
                 var cacheKey = CacheHelper.GetModelsByBrandKey(model.BrandId);
-                _cache.Remove(cacheKey);
-                _logger.LogDebug("Invalidated models cache for brand {BrandId} after delete (model {ModelId})",
+                cache.Remove(cacheKey);
+                logger.LogDebug("Invalidated models cache for brand {BrandId} after delete (model {ModelId})",
                     model.BrandId, id);
             }
 
@@ -189,7 +181,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting model with ID {Id}", id);
+            logger.LogError(ex, "Error deleting model with ID {Id}", id);
             throw;
         }
     }

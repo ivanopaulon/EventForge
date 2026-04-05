@@ -8,16 +8,8 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
-public class ExportController : BaseApiController
+public class ExportController(IExcelExportService excelExportService) : BaseApiController
 {
-    private readonly IExcelExportService _excelExportService;
-    private readonly ILogger<ExportController> _logger;
-
-    public ExportController(IExcelExportService excelExportService, ILogger<ExportController> logger)
-    {
-        _excelExportService = excelExportService;
-        _logger = logger;
-    }
 
     [HttpPost("excel")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
@@ -27,19 +19,23 @@ public class ExportController : BaseApiController
     {
         try
         {
+            if (!request.TryGetProperty("options", out var optionsElement) ||
+                !request.TryGetProperty("data", out var dataElement))
+                return CreateValidationProblemDetails("Request must contain 'options' and 'data' properties.");
+
             var options = JsonSerializer.Deserialize<ExcelExportOptions>(
-                request.GetProperty("options").GetRawText(),
+                optionsElement.GetRawText(),
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (options == null) return CreateValidationProblemDetails("Invalid options");
+            if (options is null) return CreateValidationProblemDetails("Invalid options");
 
             var dataList = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(
-                request.GetProperty("data").GetRawText(),
+                dataElement.GetRawText(),
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (dataList == null || !dataList.Any()) return CreateValidationProblemDetails("No data");
+            if (dataList is null || !dataList.Any()) return CreateValidationProblemDetails("No data");
 
-            var bytes = await _excelExportService.ExportToExcelAsync(dataList, options, cancellationToken);
+            var bytes = await excelExportService.ExportToExcelAsync(dataList, options, cancellationToken);
             var fileName = $"{options.FileName}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
 
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);

@@ -422,10 +422,9 @@
         if (result is { Canceled: false, Data: true })
         {
             // Names were updated in place by the dialog; reload for a clean server-side refresh
-            await _entityPage.RefreshAsync();
+            await _entityPage!.RefreshAsync();
         }
     }
-
     // ──────────────────────────── Display helpers ────────────────────────────
 
     private static IEnumerable<BusinessPartyGroupDto> GetSortedGroups(List<BusinessPartyGroupDto> groups)

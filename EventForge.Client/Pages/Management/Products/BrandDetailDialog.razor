@@ -6,7 +6,7 @@
 @attribute [Authorize]
 @inject IBrandService BrandService
 @inject IModelService ModelService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BrandDetailDialog> Logger
@@ -286,7 +286,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading brand {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento del marchio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("brand.loadError", "Errore nel caricamento del marchio"));
         }
         finally
         {
@@ -310,7 +310,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load models for brand {BrandId}", _brand.Id);
-            Snackbar.Add(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("messages.loadFailed", "Errore durante il caricamento"));
         }
         finally
         {
@@ -323,7 +323,7 @@
     {
         if (_brand == null || _form == null) return;
 
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         _isSaving = true;
@@ -340,7 +340,7 @@
                 };
 
                 await BrandService.CreateBrandAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("brand.createSuccess", "Marchio creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("brand.createSuccess", "Marchio creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -353,7 +353,7 @@
                 };
 
                 await BrandService.UpdateBrandAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("brand.updateSuccess", "Marchio aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("brand.updateSuccess", "Marchio aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -362,7 +362,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving brand");
-            Snackbar.Add(TranslationService.GetTranslation("brand.saveError", "Errore nel salvataggio del marchio"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("brand.saveError", "Errore nel salvataggio del marchio"));
         }
         finally
         {
@@ -426,7 +426,7 @@
         );
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadModelsAsync();
         }
@@ -447,7 +447,7 @@
         );
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadModelsAsync();
         }
@@ -469,14 +469,14 @@
             if (confirm != true) return;
 
             await ModelService.DeleteModelAsync(modelId);
-            Snackbar.Add(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.deleteSuccessful", "Eliminazione completata con successo"));
 
             await LoadModelsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to delete model {ModelId}", modelId);
-            Snackbar.Add(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.deleteFailed", "Errore durante l'eliminazione"));
         }
     }
 

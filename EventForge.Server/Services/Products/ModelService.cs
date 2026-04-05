@@ -6,36 +6,24 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service implementation for managing product models.
 /// </summary>
-public class ModelService : IModelService
+public class ModelService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<ModelService> logger) : IModelService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ModelService> _logger;
-
-    public ModelService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<ModelService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<ModelDto>> GetModelsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            var query = _context.Models
+            var query = context.Models
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(m => m.Brand);
@@ -69,7 +57,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving models.");
+            logger.LogError(ex, "Error retrieving models.");
             throw;
         }
     }
@@ -78,13 +66,13 @@ public class ModelService : IModelService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            var query = _context.Models
+            var query = context.Models
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(m => m.BrandId == brandId)
@@ -118,7 +106,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving models for brand {BrandId}.", brandId);
+            logger.LogError(ex, "Error retrieving models for brand {BrandId}.", brandId);
             throw;
         }
     }
@@ -127,22 +115,22 @@ public class ModelService : IModelService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            var model = await _context.Models
+            var model = await context.Models
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Brand)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return model != null ? MapToModelDto(model) : null;
+            return model is not null ? MapToModelDto(model) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving model {ModelId}.", id);
+            logger.LogError(ex, "Error retrieving model {ModelId}.", id);
             throw;
         }
     }
@@ -154,14 +142,14 @@ public class ModelService : IModelService
             ArgumentNullException.ThrowIfNull(createModelDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
             // Verify brand exists and belongs to the same tenant
-            var brandExists = await _context.Brands
+            var brandExists = await context.Brands
                 .Where(b => b.Id == createModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
@@ -182,15 +170,15 @@ public class ModelService : IModelService
                 CreatedBy = currentUser
             };
 
-            _ = _context.Models.Add(model);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Models.Add(model);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Model {ModelId} created by {User}.", model.Id, currentUser);
+            logger.LogInformation("Model {ModelId} created by {User}.", model.Id, currentUser);
 
             // Reload with Brand to get brand name
-            var createdModel = await _context.Models
+            var createdModel = await context.Models
                 .Include(m => m.Brand)
                 .FirstAsync(m => m.Id == model.Id, cancellationToken);
 
@@ -198,7 +186,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating model.");
+            logger.LogError(ex, "Error creating model.");
             throw;
         }
     }
@@ -210,21 +198,21 @@ public class ModelService : IModelService
             ArgumentNullException.ThrowIfNull(updateModelDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            var originalModel = await _context.Models
+            var originalModel = await context.Models
                 .AsNoTracking()
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalModel == null) return null;
+            if (originalModel is null) return null;
 
             // Verify brand exists and belongs to the same tenant
-            var brandExists = await _context.Brands
+            var brandExists = await context.Brands
                 .Where(b => b.Id == updateModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
@@ -233,11 +221,11 @@ public class ModelService : IModelService
                 throw new ArgumentException($"Brand with ID {updateModelDto.BrandId} not found.");
             }
 
-            var model = await _context.Models
+            var model = await context.Models
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (model == null) return null;
+            if (model is null) return null;
 
             model.BrandId = updateModelDto.BrandId;
             model.Name = updateModelDto.Name;
@@ -248,20 +236,20 @@ public class ModelService : IModelService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Model {ModelId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Model {ModelId}.", id);
                 throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
 
-            _logger.LogInformation("Model {ModelId} updated by {User}.", model.Id, currentUser);
+            logger.LogInformation("Model {ModelId} updated by {User}.", model.Id, currentUser);
 
             // Reload with Brand to get brand name
-            var updatedModel = await _context.Models
+            var updatedModel = await context.Models
                 .Include(m => m.Brand)
                 .FirstAsync(m => m.Id == model.Id, cancellationToken);
 
@@ -273,7 +261,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating model {ModelId}.", id);
+            logger.LogError(ex, "Error updating model {ModelId}.", id);
             throw;
         }
     }
@@ -284,24 +272,24 @@ public class ModelService : IModelService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            var originalModel = await _context.Models
+            var originalModel = await context.Models
                 .AsNoTracking()
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalModel == null) return false;
+            if (originalModel is null) return false;
 
-            var model = await _context.Models
+            var model = await context.Models
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (model == null) return false;
+            if (model is null) return false;
 
             model.IsDeleted = true;
             model.ModifiedAt = DateTime.UtcNow;
@@ -309,17 +297,17 @@ public class ModelService : IModelService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Model {ModelId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Model {ModelId}.", id);
                 throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
 
-            _logger.LogInformation("Model {ModelId} deleted by {User}.", model.Id, currentUser);
+            logger.LogInformation("Model {ModelId} deleted by {User}.", model.Id, currentUser);
 
             return true;
         }
@@ -329,7 +317,7 @@ public class ModelService : IModelService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting model {ModelId}.", id);
+            logger.LogError(ex, "Error deleting model {ModelId}.", id);
             throw;
         }
     }
@@ -338,19 +326,19 @@ public class ModelService : IModelService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for model operations.");
             }
 
-            return await _context.Models
+            return await context.Models
                 .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if model {ModelId} exists.", modelId);
+            logger.LogError(ex, "Error checking if model {ModelId} exists.", modelId);
             throw;
         }
     }
@@ -369,4 +357,5 @@ public class ModelService : IModelService
             CreatedBy = model.CreatedBy
         };
     }
+
 }

@@ -10,27 +10,15 @@ namespace EventForge.Server.Services.RetailCart
     /// In-memory implementation of retail cart session service.
     /// Provides tenant-aware, user-scoped cart storage with promotion integration.
     /// </summary>
-    public class RetailCartSessionService : IRetailCartSessionService
+        public class RetailCartSessionService(
+        ITenantContext tenantContext,
+        IPromotionService promotionService,
+        ILogger<RetailCartSessionService> logger,
+        IMemoryCache cache) : IRetailCartSessionService
     {
-        private readonly ITenantContext _tenantContext;
-        private readonly IPromotionService _promotionService;
-        private readonly ILogger<RetailCartSessionService> _logger;
-        private readonly IMemoryCache _cache;
 
         // In-memory storage - in production this would be replaced with persistent storage
         private static readonly ConcurrentDictionary<string, CartSession> _sessions = new();
-
-        public RetailCartSessionService(
-            ITenantContext tenantContext,
-            IPromotionService promotionService,
-            ILogger<RetailCartSessionService> logger,
-            IMemoryCache cache)
-        {
-            _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-            _promotionService = promotionService ?? throw new ArgumentNullException(nameof(promotionService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        }
 
         public async Task<CartSessionDto> CreateSessionAsync(CreateCartSessionDto createDto, CancellationToken cancellationToken = default)
         {
@@ -44,8 +32,8 @@ namespace EventForge.Server.Services.RetailCart
                 CustomerId = createDto.CustomerId,
                 SalesChannel = createDto.SalesChannel,
                 Currency = createDto.Currency,
-                Items = new List<CartSessionItem>(),
-                CouponCodes = new List<string>(),
+                Items = [],
+                CouponCodes = [],
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -53,7 +41,7 @@ namespace EventForge.Server.Services.RetailCart
             var sessionKey = GetSessionKey(tenantId, sessionId);
             _sessions[sessionKey] = session;
 
-            _logger.LogInformation("Created cart session {SessionId} for tenant {TenantId}", sessionId, tenantId);
+            logger.LogInformation("Created cart session {SessionId} for tenant {TenantId}", sessionId, tenantId);
 
             return await MapToDto(session, cancellationToken);
         }
@@ -61,7 +49,7 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             return await MapToDto(session, cancellationToken);
@@ -70,12 +58,12 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> AddItemAsync(Guid sessionId, AddCartItemDto addItemDto, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             // Check if item already exists
             var existingItem = session.Items.FirstOrDefault(i => i.ProductId == addItemDto.ProductId);
-            if (existingItem != null)
+            if (existingItem is not null)
             {
                 existingItem.Quantity += addItemDto.Quantity;
             }
@@ -96,7 +84,7 @@ namespace EventForge.Server.Services.RetailCart
 
             session.UpdatedAt = DateTime.UtcNow;
 
-            _logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}",
+            logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}",
                 addItemDto.ProductId, addItemDto.Quantity, sessionId);
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -105,16 +93,16 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             var item = session.Items.FirstOrDefault(i => i.Id == itemId);
-            if (item != null)
+            if (item is not null)
             {
                 _ = session.Items.Remove(item);
                 session.UpdatedAt = DateTime.UtcNow;
 
-                _logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
+                logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
             }
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -123,22 +111,22 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> UpdateItemQuantityAsync(Guid sessionId, Guid itemId, UpdateCartItemDto updateDto, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             var item = session.Items.FirstOrDefault(i => i.Id == itemId);
-            if (item != null)
+            if (item is not null)
             {
                 if (updateDto.Quantity <= 0)
                 {
                     _ = session.Items.Remove(item);
-                    _logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
+                    logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
                         itemId, sessionId, updateDto.Quantity);
                 }
                 else
                 {
                     item.Quantity = updateDto.Quantity;
-                    _logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}",
+                    logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}",
                         itemId, updateDto.Quantity, sessionId);
                 }
 
@@ -151,13 +139,13 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> ApplyCouponsAsync(Guid sessionId, ApplyCouponsDto applyCouponsDto, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
-            session.CouponCodes = applyCouponsDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? new List<string>();
+            session.CouponCodes = applyCouponsDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? [];
             session.UpdatedAt = DateTime.UtcNow;
 
-            _logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}",
+            logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}",
                 session.CouponCodes.Count, sessionId);
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -166,14 +154,14 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> ClearAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             session.Items.Clear();
             session.CouponCodes.Clear();
             session.UpdatedAt = DateTime.UtcNow;
 
-            _logger.LogDebug("Cleared cart session {SessionId}", sessionId);
+            logger.LogDebug("Cleared cart session {SessionId}", sessionId);
 
             return await RecalculateAndMapToDto(session, cancellationToken);
         }
@@ -181,7 +169,7 @@ namespace EventForge.Server.Services.RetailCart
         public async Task<CartSessionDto?> GetTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
             var session = GetSession(sessionId);
-            if (session == null)
+            if (session is null)
                 return null;
 
             return await RecalculateAndMapToDto(session, cancellationToken);
@@ -191,7 +179,7 @@ namespace EventForge.Server.Services.RetailCart
 
         private Guid GetCurrentTenantId()
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for cart session operations");
             return tenantId.Value;
@@ -236,12 +224,12 @@ namespace EventForge.Server.Services.RetailCart
 
                 try
                 {
-                    var promotionResult = await _promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
+                    var promotionResult = await promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
                     return MapSessionWithPromotions(session, promotionResult);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to apply promotions to cart session {SessionId}, returning without promotions", session.Id);
+                    logger.LogWarning(ex, "Failed to apply promotions to cart session {SessionId}, returning without promotions", session.Id);
                     return MapSessionWithoutPromotions(session);
                 }
             }
@@ -309,7 +297,7 @@ namespace EventForge.Server.Services.RetailCart
                 OriginalTotal = originalTotal,
                 FinalTotal = originalTotal,
                 TotalDiscountAmount = 0m,
-                AppliedPromotions = new List<AppliedPromotionDto>(),
+                AppliedPromotions = [],
                 CreatedAt = session.CreatedAt,
                 UpdatedAt = session.UpdatedAt,
                 Items = session.Items.Select(item => new CartSessionItemDto
@@ -359,5 +347,6 @@ namespace EventForge.Server.Services.RetailCart
         }
 
         #endregion
+    
     }
 }

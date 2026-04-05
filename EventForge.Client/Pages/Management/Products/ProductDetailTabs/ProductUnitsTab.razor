@@ -6,7 +6,7 @@
 @inject IProductService ProductService
 @inject IUMService UMService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ProductUnitsTab> Logger
 
 <MudStack Spacing="3">
@@ -96,7 +96,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product units for product {ProductId}", Product.Id);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadUnitsError", "Errore nel caricamento delle unità"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadUnitsError", "Errore nel caricamento delle unità"));
         }
     }
 
@@ -133,7 +133,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadUnitsAsync();
             await NotifyPersisted();
@@ -166,7 +166,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadUnitsAsync();
             await NotifyPersisted();
@@ -186,14 +186,14 @@
             try
             {
                 await ProductService.DeleteProductUnitAsync(unit.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.unitDeleted", "Unità eliminata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("product.unitDeleted", "Unità eliminata con successo"));
                 await LoadUnitsAsync();
                 await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product unit {UnitId}", unit.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteUnitError", "Errore nell'eliminazione dell'unità"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("product.deleteUnitError", "Errore nell'eliminazione dell'unità"));
             }
         }
     }

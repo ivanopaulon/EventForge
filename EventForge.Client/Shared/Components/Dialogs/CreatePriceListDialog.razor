@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject ITranslationService TranslationService
 @inject IPriceListService PriceListService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<CreatePriceListDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.PlaylistAdd"
@@ -199,17 +199,13 @@
 
             var result = await PriceListService.CreateAsync(_model, CancellationToken.None);
 
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.created", "Listino creato con successo"),
-                Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.created", "Listino creato con successo"));
 
             MudDialog.Close(DialogResult.Ok(result));
         }
         catch (Exception ex)
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("pricelist.createError", "Errore durante la creazione: {0}", ex.Message),
-                Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.createError", "Errore durante la creazione: {0}", ex.Message));
             Logger.LogError(ex, "Error creating price list");
         }
         finally

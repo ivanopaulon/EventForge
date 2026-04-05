@@ -5,7 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ProductSuppliersTab> Logger
 
 <MudStack Spacing="3">
@@ -104,7 +104,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product suppliers for product {ProductId}", Product.Id);
-            Snackbar.Add(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadSuppliersError", "Errore nel caricamento dei fornitori"));
         }
     }
 
@@ -129,7 +129,7 @@
             options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadSuppliersAsync();
             await NotifyPersisted();
@@ -156,7 +156,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadSuppliersAsync();
             await NotifyPersisted();
@@ -183,7 +183,7 @@
         options);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await LoadSuppliersAsync();
             await NotifyPersisted();
@@ -203,14 +203,14 @@
             try
             {
                 await ProductService.DeleteProductSupplierAsync(supplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.supplierDeleted", "Fornitore eliminato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("product.supplierDeleted", "Fornitore eliminato con successo"));
                 await LoadSuppliersAsync();
                 await NotifyPersisted();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting product supplier {SupplierId}", supplier.Id);
-                Snackbar.Add(TranslationService.GetTranslation("product.deleteSupplierError", "Errore nell'eliminazione del fornitore"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("product.deleteSupplierError", "Errore nell'eliminazione del fornitore"));
             }
         }
     }

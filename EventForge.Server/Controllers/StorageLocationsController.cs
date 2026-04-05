@@ -13,21 +13,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireManager")]
 [RequireLicenseFeature("InventoryManagement")]
-public class StorageLocationsController : BaseApiController
+public class StorageLocationsController(
+    IStorageLocationService service,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly IStorageLocationService _service;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StorageLocationsController> _logger;
-
-    public StorageLocationsController(
-        IStorageLocationService service,
-        ITenantContext tenantContext,
-        ILogger<StorageLocationsController> logger)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Retrieves all storage locations with pagination
@@ -44,23 +33,14 @@ public class StorageLocationsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _service.GetStorageLocationsAsync(pagination, null, cancellationToken);
+            var result = await service.GetStorageLocationsAsync(pagination, null, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -87,23 +67,14 @@ public class StorageLocationsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _service.GetLocationsByWarehouseAsync(warehouseId, pagination, cancellationToken);
+            var result = await service.GetLocationsByWarehouseAsync(warehouseId, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }
@@ -130,23 +101,14 @@ public class StorageLocationsController : BaseApiController
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
 
         try
         {
-            var result = await _service.GetLocationsByZoneAsync(zone, pagination, cancellationToken);
+            var result = await service.GetLocationsByZoneAsync(zone, pagination, cancellationToken);
 
-            Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
-            Response.Headers.Append("X-Page", result.Page.ToString());
-            Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
-            Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
-
-            if (pagination.WasCapped)
-            {
-                Response.Headers.Append("X-Pagination-Capped", "true");
-                Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
-            }
+            SetPaginationHeaders(result, pagination);
 
             return Ok(result);
         }

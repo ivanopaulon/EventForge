@@ -14,16 +14,10 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicTeamManagement")]
-public class TeamsController : BaseApiController
+public class TeamsController(
+    ITeamService teamService,
+    ITenantContext tenantContext) : BaseApiController
 {
-    private readonly ITeamService _teamService;
-    private readonly ITenantContext _tenantContext;
-
-    public TeamsController(ITeamService teamService, ITenantContext tenantContext)
-    {
-        _teamService = teamService ?? throw new ArgumentNullException(nameof(teamService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-    }
 
     #region Team CRUD Operations
 
@@ -48,15 +42,14 @@ public class TeamsController : BaseApiController
     {
         // Validate pagination parameters
         var paginationError = ValidatePaginationParameters(page, pageSize);
-        if (paginationError != null) return paginationError;
+        if (paginationError is not null) return paginationError;
 
         // Validate tenant access
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-        if (tenantError != null) return tenantError;
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await _teamService.GetTeamsAsync(page, pageSize, cancellationToken);
+            var result = await teamService.GetTeamsAsync(page, pageSize, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -80,7 +73,7 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var teams = await _teamService.GetTeamsByEventAsync(eventId, cancellationToken);
+            var teams = await teamService.GetTeamsByEventAsync(eventId, cancellationToken);
             return Ok(teams);
         }
         catch (Exception ex)
@@ -106,9 +99,9 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var team = await _teamService.GetTeamByIdAsync(id, cancellationToken);
+            var team = await teamService.GetTeamByIdAsync(id, cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
                 return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
@@ -138,9 +131,9 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var teamDetail = await _teamService.GetTeamDetailAsync(id, cancellationToken);
+            var teamDetail = await teamService.GetTeamDetailAsync(id, cancellationToken);
 
-            if (teamDetail == null)
+            if (teamDetail is null)
             {
                 return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
@@ -176,7 +169,7 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var team = await _teamService.CreateTeamAsync(createTeamDto, currentUser, cancellationToken);
+            var team = await teamService.CreateTeamAsync(createTeamDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetTeam),
@@ -220,9 +213,9 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var team = await _teamService.UpdateTeamAsync(id, updateTeamDto, currentUser, cancellationToken);
+            var team = await teamService.UpdateTeamAsync(id, updateTeamDto, currentUser, cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
                 return CreateNotFoundProblem($"Team with ID {id} not found.");
             }
@@ -253,7 +246,7 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _teamService.DeleteTeamAsync(id, currentUser, cancellationToken);
+            var result = await teamService.DeleteTeamAsync(id, currentUser, cancellationToken);
 
             if (!result)
             {
@@ -287,7 +280,7 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var members = await _teamService.GetTeamMembersAsync(teamId, cancellationToken);
+            var members = await teamService.GetTeamMembersAsync(teamId, cancellationToken);
             return Ok(members);
         }
         catch (Exception ex)
@@ -309,10 +302,9 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var tenantError = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantError != null) return tenantError;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-            var members = await _teamService.GetMembersWithBirthdayAsync(cancellationToken);
+            var members = await teamService.GetMembersWithBirthdayAsync(cancellationToken);
             return Ok(members);
         }
         catch (Exception ex)
@@ -338,9 +330,9 @@ public class TeamsController : BaseApiController
     {
         try
         {
-            var member = await _teamService.GetTeamMemberByIdAsync(memberId, cancellationToken);
+            var member = await teamService.GetTeamMemberByIdAsync(memberId, cancellationToken);
 
-            if (member == null)
+            if (member is null)
             {
                 return CreateNotFoundProblem($"Team member with ID {memberId} not found.");
             }
@@ -376,7 +368,7 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var member = await _teamService.AddTeamMemberAsync(createTeamMemberDto, currentUser, cancellationToken);
+            var member = await teamService.AddTeamMemberAsync(createTeamMemberDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetTeamMember),
@@ -420,9 +412,9 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var member = await _teamService.UpdateTeamMemberAsync(memberId, updateTeamMemberDto, currentUser, cancellationToken);
+            var member = await teamService.UpdateTeamMemberAsync(memberId, updateTeamMemberDto, currentUser, cancellationToken);
 
-            if (member == null)
+            if (member is null)
             {
                 return CreateNotFoundProblem($"Team member with ID {memberId} not found.");
             }
@@ -453,7 +445,7 @@ public class TeamsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await _teamService.RemoveTeamMemberAsync(memberId, currentUser, cancellationToken);
+            var result = await teamService.RemoveTeamMemberAsync(memberId, currentUser, cancellationToken);
 
             if (!result)
             {

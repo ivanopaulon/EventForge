@@ -19,10 +19,9 @@ namespace EventForge.Client.Services
         // BusinessPartyAccounting Management
         Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId);
 
-        // Full Detail Aggregated Query (FASE 5)
+        // Full Detail Aggregated Query
         /// <summary>
         /// Recupera tutti i dettagli completi di un BusinessParty in una singola chiamata.
-        /// Ottimizzazione FASE 5: riduce latency e N+1 queries.
         /// </summary>
         /// <param name="id">BusinessParty ID</param>
         /// <param name="includeInactive">Include contatti/indirizzi inattivi</param>
@@ -58,46 +57,35 @@ namespace EventForge.Client.Services
         Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request);
     }
 
-    public class BusinessPartyService : IBusinessPartyService
+    public class BusinessPartyService(
+        IHttpClientService httpClientService,
+        ILogger<BusinessPartyService> logger) : IBusinessPartyService
     {
-        private const string BaseUrl = "api/v1/business-parties";
-        private readonly IHttpClientService _httpClientService;
-        private readonly ILogger<BusinessPartyService> _logger;
-        private readonly ILoadingDialogService _loadingDialogService; // kept for DI compatibility
-
-        public BusinessPartyService(
-            IHttpClientService httpClientService,
-            ILogger<BusinessPartyService> logger,
-            ILoadingDialogService loadingDialogService)
-        {
-            _httpClientService = httpClientService;
-            _logger = logger;
-            _loadingDialogService = loadingDialogService;
-        }
+        private const string BaseUrl = "api/v1/businessparties";
 
         #region BusinessParty Management
 
         public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20)
         {
-            return await _httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}")
-                ?? new PagedResult<BusinessPartyDto> { Items = new List<BusinessPartyDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}")
+                ?? new PagedResult<BusinessPartyDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
         public async Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id)
         {
-            return await _httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}");
+            return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}");
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType)
         {
-            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
-                ?? new List<BusinessPartyDto>();
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
+                ?? [];
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync()
         {
-            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays")
-                ?? new List<BusinessPartyDto>();
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays")
+                ?? [];
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50)
@@ -107,26 +95,25 @@ namespace EventForge.Client.Services
             {
                 query += $"&partyType={partyType.Value}";
             }
-            return await _httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query)
-                ?? new List<BusinessPartyDto>();
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query)
+                ?? [];
         }
 
         public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto)
         {
-            // Keep service free of UI concerns. Pages/components should control loading UI using page-level flags or the global loading dialog service directly if needed.
-            var result = await _httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto);
+            var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto);
             return result ?? throw new InvalidOperationException("Failed to create business party");
         }
 
         public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto)
         {
-            return await _httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto) ??
+            return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto) ??
                    throw new InvalidOperationException("Failed to update business party");
         }
 
         public async Task DeleteBusinessPartyAsync(Guid id)
         {
-            await _httpClientService.DeleteAsync($"api/v1/businessparties/{id}");
+            await httpClientService.DeleteAsync($"api/v1/businessparties/{id}");
         }
 
         #endregion
@@ -135,7 +122,7 @@ namespace EventForge.Client.Services
 
         public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId)
         {
-            return await _httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
+            return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
         }
 
         public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
@@ -146,13 +133,13 @@ namespace EventForge.Client.Services
             try
             {
                 var url = $"api/v1/businessparties/{id}/full-detail?includeInactive={includeInactive}";
-                _logger.LogInformation("Fetching full detail for BusinessParty {Id} from {Url}", id, url);
+                logger.LogInformation("Fetching full detail for BusinessParty {Id} from {Url}", id, url);
 
-                return await _httpClientService.GetAsync<BusinessPartyFullDetailDto>(url, ct);
+                return await httpClientService.GetAsync<BusinessPartyFullDetailDto>(url, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
+                logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
                 throw;
             }
         }
@@ -198,7 +185,7 @@ namespace EventForge.Client.Services
                 query += $"&approvalStatus={approvalStatus.Value}";
             }
 
-            return await _httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query);
+            return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query);
         }
 
         #endregion
@@ -243,7 +230,7 @@ namespace EventForge.Client.Services
                 query += $"&sortBy={Uri.EscapeDataString(sortBy)}";
             }
 
-            return await _httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query);
+            return await httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query);
         }
 
         #endregion
@@ -252,14 +239,14 @@ namespace EventForge.Client.Services
 
         public async Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
         {
-            return await _httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
+            return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-preview",
                 request);
         }
 
         public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
         {
-            return await _httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
+            return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-update",
                 request);
         }

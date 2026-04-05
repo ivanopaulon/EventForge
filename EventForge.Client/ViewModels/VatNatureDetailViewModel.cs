@@ -58,14 +58,14 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
         };
     }
 
-    protected override Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto)
+    protected override async Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto)
     {
-        return _financialService.CreateVatNatureAsync(createDto);
+        return await _financialService.CreateVatNatureAsync(createDto);
     }
 
-    protected override Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto)
+    protected override async Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto)
     {
-        return _financialService.UpdateVatNatureAsync(entityId, updateDto);
+        return await _financialService.UpdateVatNatureAsync(entityId, updateDto);
     }
 
     protected override Guid GetEntityId(VatNatureDto entity)

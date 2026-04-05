@@ -6,7 +6,7 @@
 @using EventForge.Client.Services.Sales
 @attribute [Authorize]
 @inject IPaymentMethodService PaymentMethodService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<PaymentMethodDetailDialog> Logger
@@ -326,7 +326,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading payment method {EntityId}", EntityId);
-            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.loadError", "Errore nel caricamento del metodo di pagamento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("paymentMethod.loadError", "Errore nel caricamento del metodo di pagamento"));
         }
         finally
         {
@@ -338,7 +338,7 @@
     private async Task SavePaymentMethodAsync()
     {
         if (_paymentMethod == null || _form == null) return;
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         _isSaving = true;
@@ -359,7 +359,7 @@
                     AllowsChange = _paymentMethod.AllowsChange
                 };
                 await PaymentMethodService.CreateAsync(createDto);
-                Snackbar.Add(TranslationService.GetTranslation("paymentMethod.createSuccess", "Metodo di pagamento creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("paymentMethod.createSuccess", "Metodo di pagamento creato con successo"));
             }
             else if (EntityId.HasValue)
             {
@@ -375,7 +375,7 @@
                     AllowsChange = _paymentMethod.AllowsChange
                 };
                 await PaymentMethodService.UpdateAsync(EntityId.Value, updateDto);
-                Snackbar.Add(TranslationService.GetTranslation("paymentMethod.updateSuccess", "Metodo di pagamento aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("paymentMethod.updateSuccess", "Metodo di pagamento aggiornato con successo"));
             }
 
             _hasLocalChanges = false;
@@ -384,7 +384,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving payment method");
-            Snackbar.Add(TranslationService.GetTranslation("paymentMethod.saveError", "Errore nel salvataggio del metodo di pagamento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("paymentMethod.saveError", "Errore nel salvataggio del metodo di pagamento"));
         }
         finally
         {

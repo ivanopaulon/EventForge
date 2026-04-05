@@ -15,24 +15,11 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/documents")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
-public class DocumentsController : BaseApiController
+public class DocumentsController(
+    IDocumentFacade documentFacade,
+    ITenantContext tenantContext,
+    ILogger<DocumentsController> logger) : BaseApiController
 {
-    private readonly IDocumentFacade _documentFacade;
-    private readonly ITenantContext _tenantContext;
-    private readonly ICacheInvalidationService _cacheInvalidation;
-    private readonly ILogger<DocumentsController> _logger;
-
-    public DocumentsController(
-        IDocumentFacade documentFacade,
-        ITenantContext tenantContext,
-        ICacheInvalidationService cacheInvalidation,
-        ILogger<DocumentsController> logger)
-    {
-        _documentFacade = documentFacade ?? throw new ArgumentNullException(nameof(documentFacade));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _cacheInvalidation = cacheInvalidation ?? throw new ArgumentNullException(nameof(cacheInvalidation));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Document Headers
 
@@ -58,12 +45,12 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _documentFacade.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+            var result = await documentFacade.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -91,12 +78,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeRows = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var documentHeader = await _documentFacade.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+            var documentHeader = await documentFacade.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -124,12 +111,12 @@ public class DocumentsController : BaseApiController
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var documentHeaders = await _documentFacade.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
+            var documentHeaders = await documentFacade.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
             return Ok(documentHeaders);
         }
         catch (Exception ex)
@@ -160,13 +147,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentFacade.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+            var documentHeader = await documentFacade.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetDocument),
@@ -205,13 +192,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentFacade.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
+            var documentHeader = await documentFacade.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -241,13 +228,13 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentFacade.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
+            var deleted = await documentFacade.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -277,12 +264,12 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var documentHeader = await _documentFacade.CalculateDocumentTotalsAsync(id, cancellationToken);
+            var documentHeader = await documentFacade.CalculateDocumentTotalsAsync(id, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -312,13 +299,13 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentFacade.ApproveDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await documentFacade.ApproveDocumentAsync(id, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -348,13 +335,13 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await _documentFacade.CloseDocumentAsync(id, currentUser, cancellationToken);
+            var documentHeader = await documentFacade.CloseDocumentAsync(id, currentUser, cancellationToken);
 
             if (documentHeader == null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
@@ -383,12 +370,12 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var exists = await _documentFacade.DocumentHeaderExistsAsync(id, cancellationToken);
+            var exists = await documentFacade.DocumentHeaderExistsAsync(id, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -423,13 +410,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentRow = await _documentFacade.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
+            var documentRow = await documentFacade.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(AddDocumentRow), new { id = documentRow.Id }, documentRow);
         }
         catch (Exception ex)
@@ -464,22 +451,17 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var documentRow = await _documentFacade.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
+            var documentRow = await documentFacade.UpdateDocumentRowAsync(rowId, updateRowDto, currentUser, cancellationToken);
 
             if (documentRow == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Document row not found",
-                    Detail = $"Document row with ID {rowId} was not found."
-                });
+                return CreateNotFoundProblem($"Document row with ID {rowId} was not found.");
             }
 
             return Ok(documentRow);
@@ -507,22 +489,17 @@ public class DocumentsController : BaseApiController
         Guid rowId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var success = await _documentFacade.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
+            var success = await documentFacade.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
 
             if (!success)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Document row not found",
-                    Detail = $"Document row with ID {rowId} was not found."
-                });
+                return CreateNotFoundProblem($"Document row with ID {rowId} was not found.");
             }
 
             return NoContent();
@@ -554,12 +531,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var attachments = await _documentFacade.GetAttachmentsAsync(documentId, includeHistory, cancellationToken);
+            var attachments = await documentFacade.GetAttachmentsAsync(documentId, includeHistory, cancellationToken);
             return Ok(attachments);
         }
         catch (Exception ex)
@@ -585,12 +562,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var attachments = await _documentFacade.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
+            var attachments = await documentFacade.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
             return Ok(attachments);
         }
         catch (Exception ex)
@@ -616,12 +593,12 @@ public class DocumentsController : BaseApiController
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var attachment = await _documentFacade.GetAttachmentByIdAsync(attachmentId, cancellationToken);
+            var attachment = await documentFacade.GetAttachmentByIdAsync(attachmentId, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -654,7 +631,7 @@ public class DocumentsController : BaseApiController
         [FromBody] CreateDocumentAttachmentDto createDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -664,7 +641,7 @@ public class DocumentsController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             createDto.DocumentHeaderId = documentId;
-            var attachment = await _documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
+            var attachment = await documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetAttachment), new { attachmentId = attachment.Id }, attachment);
         }
         catch (Exception ex)
@@ -695,13 +672,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
+            var attachment = await documentFacade.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetAttachment),
@@ -710,7 +687,7 @@ public class DocumentsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -745,13 +722,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _documentFacade.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
+            var attachment = await documentFacade.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -790,13 +767,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var newVersion = await _documentFacade.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
+            var newVersion = await documentFacade.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
 
             if (newVersion == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -827,12 +804,12 @@ public class DocumentsController : BaseApiController
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var versions = await _documentFacade.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
+            var versions = await documentFacade.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
             return Ok(versions);
         }
         catch (Exception ex)
@@ -867,13 +844,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails("Signature information is required.");
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var attachment = await _documentFacade.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
+            var attachment = await documentFacade.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
 
             if (attachment == null)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -901,12 +878,12 @@ public class DocumentsController : BaseApiController
         string category,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var attachments = await _documentFacade.GetAttachmentsByCategoryAsync(category, cancellationToken);
+            var attachments = await documentFacade.GetAttachmentsByCategoryAsync(category, cancellationToken);
             return Ok(attachments);
         }
         catch (Exception ex)
@@ -932,13 +909,13 @@ public class DocumentsController : BaseApiController
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentFacade.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
+            var deleted = await documentFacade.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document attachment with ID {attachmentId} not found.");
@@ -967,12 +944,12 @@ public class DocumentsController : BaseApiController
         Guid attachmentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var exists = await _documentFacade.AttachmentExistsAsync(attachmentId, cancellationToken);
+            var exists = await documentFacade.AttachmentExistsAsync(attachmentId, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -1000,12 +977,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var comments = await _documentFacade.GetCommentsAsync(documentId, includeReplies, cancellationToken);
+            var comments = await documentFacade.GetCommentsAsync(documentId, includeReplies, cancellationToken);
             return Ok(comments);
         }
         catch (Exception ex)
@@ -1031,12 +1008,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var comments = await _documentFacade.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
+            var comments = await documentFacade.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
             return Ok(comments);
         }
         catch (Exception ex)
@@ -1064,12 +1041,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] bool includeReplies = true,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var comment = await _documentFacade.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
+            var comment = await documentFacade.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1102,7 +1079,7 @@ public class DocumentsController : BaseApiController
         [FromBody] CreateDocumentCommentDto createDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -1112,7 +1089,7 @@ public class DocumentsController : BaseApiController
         {
             var currentUser = GetCurrentUser();
             createDto.DocumentHeaderId = documentId;
-            var comment = await _documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
+            var comment = await documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetComment), new { commentId = comment.Id }, comment);
         }
         catch (Exception ex)
@@ -1143,13 +1120,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
+            var comment = await documentFacade.CreateCommentAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetComment),
@@ -1158,7 +1135,7 @@ public class DocumentsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error occurred during request processing");
+            logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -1193,13 +1170,13 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _documentFacade.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
+            var comment = await documentFacade.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1231,13 +1208,13 @@ public class DocumentsController : BaseApiController
         [FromBody] ResolveCommentDto resolveDto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _documentFacade.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
+            var comment = await documentFacade.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1267,13 +1244,13 @@ public class DocumentsController : BaseApiController
         Guid commentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var comment = await _documentFacade.ReopenCommentAsync(commentId, currentUser, cancellationToken);
+            var comment = await documentFacade.ReopenCommentAsync(commentId, currentUser, cancellationToken);
 
             if (comment == null)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1301,13 +1278,13 @@ public class DocumentsController : BaseApiController
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var stats = await _documentFacade.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
+            var stats = await documentFacade.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
             return Ok(stats);
         }
         catch (Exception ex)
@@ -1331,13 +1308,13 @@ public class DocumentsController : BaseApiController
         [FromQuery] string? status = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var comments = await _documentFacade.GetAssignedCommentsAsync(currentUser, status, cancellationToken);
+            var comments = await documentFacade.GetAssignedCommentsAsync(currentUser, status, cancellationToken);
             return Ok(comments);
         }
         catch (Exception ex)
@@ -1363,13 +1340,13 @@ public class DocumentsController : BaseApiController
         Guid commentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentFacade.DeleteCommentAsync(commentId, currentUser, cancellationToken);
+            var deleted = await documentFacade.DeleteCommentAsync(commentId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document comment with ID {commentId} not found.");
@@ -1398,12 +1375,12 @@ public class DocumentsController : BaseApiController
         Guid commentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var exists = await _documentFacade.CommentExistsAsync(commentId, cancellationToken);
+            var exists = await documentFacade.CommentExistsAsync(commentId, cancellationToken);
             return Ok(exists);
         }
         catch (Exception ex)
@@ -1427,12 +1404,12 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentTemplateDto>>> GetTemplates(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var templates = await _documentFacade.GetAllTemplatesAsync(cancellationToken);
+            var templates = await documentFacade.GetAllTemplatesAsync(cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1455,12 +1432,12 @@ public class DocumentsController : BaseApiController
     public async Task<ActionResult<IEnumerable<DocumentTemplateDto>>> GetPublicTemplates(
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var templates = await _documentFacade.GetPublicTemplatesAsync(cancellationToken);
+            var templates = await documentFacade.GetPublicTemplatesAsync(cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1484,12 +1461,12 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentTemplateDto>>> GetTemplatesByDocumentType(Guid documentTypeId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var templates = await _documentFacade.GetTemplatesByDocumentTypeAsync(documentTypeId, cancellationToken);
+            var templates = await documentFacade.GetTemplatesByDocumentTypeAsync(documentTypeId, cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1515,7 +1492,7 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentTemplateDto>>> GetTemplatesByCategory(string category, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (string.IsNullOrWhiteSpace(category))
@@ -1523,7 +1500,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var templates = await _documentFacade.GetTemplatesByCategoryAsync(category, cancellationToken);
+            var templates = await documentFacade.GetTemplatesByCategoryAsync(category, cancellationToken);
             return Ok(templates);
         }
         catch (Exception ex)
@@ -1550,12 +1527,12 @@ public class DocumentsController : BaseApiController
         Guid templateId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var template = await _documentFacade.GetTemplateByIdAsync(templateId, cancellationToken);
+            var template = await documentFacade.GetTemplateByIdAsync(templateId, cancellationToken);
 
             if (template == null)
                 return CreateNotFoundProblem($"Document template with ID {templateId} not found.");
@@ -1585,7 +1562,7 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentTemplateDto>> CreateTemplate([FromBody] CreateDocumentTemplateDto createDto, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -1594,7 +1571,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var template = await _documentFacade.CreateTemplateAsync(createDto, currentUser, cancellationToken);
+            var template = await documentFacade.CreateTemplateAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetTemplate),
@@ -1627,7 +1604,7 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentTemplateDto>> UpdateTemplate(Guid templateId, [FromBody] UpdateDocumentTemplateDto updateDto, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -1636,7 +1613,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var template = await _documentFacade.UpdateTemplateAsync(templateId, updateDto, currentUser, cancellationToken);
+            var template = await documentFacade.UpdateTemplateAsync(templateId, updateDto, currentUser, cancellationToken);
 
             if (template == null)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1666,13 +1643,13 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteTemplate(Guid templateId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentFacade.DeleteTemplateAsync(templateId, currentUser, cancellationToken);
+            var deleted = await documentFacade.DeleteTemplateAsync(templateId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1702,13 +1679,13 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateTemplateUsage(Guid templateId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var updated = await _documentFacade.UpdateTemplateUsageAsync(templateId, currentUser, cancellationToken);
+            var updated = await documentFacade.UpdateTemplateUsageAsync(templateId, currentUser, cancellationToken);
 
             if (!updated)
                 return CreateNotFoundProblem($"Document template with ID {templateId} was not found.");
@@ -1736,12 +1713,12 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<DocumentWorkflowDto>>> GetWorkflows(CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var workflows = await _documentFacade.GetWorkflowsAsync(null, cancellationToken);
+            var workflows = await documentFacade.GetWorkflowsAsync(null, cancellationToken);
             return Ok(workflows);
         }
         catch (Exception ex)
@@ -1768,12 +1745,12 @@ public class DocumentsController : BaseApiController
         [FromQuery] Guid? documentTypeId = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var workflows = await _documentFacade.GetWorkflowsAsync(documentTypeId, cancellationToken);
+            var workflows = await documentFacade.GetWorkflowsAsync(documentTypeId, cancellationToken);
             return Ok(workflows);
         }
         catch (Exception ex)
@@ -1799,12 +1776,12 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentWorkflowDto>> GetWorkflow(Guid workflowId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var workflow = await _documentFacade.GetWorkflowByIdAsync(workflowId, cancellationToken);
+            var workflow = await documentFacade.GetWorkflowByIdAsync(workflowId, cancellationToken);
             if (workflow == null)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
 
@@ -1833,7 +1810,7 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentWorkflowDto>> CreateWorkflow([FromBody] CreateDocumentWorkflowDto createDto, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -1842,7 +1819,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var workflow = await _documentFacade.CreateWorkflowAsync(createDto, currentUser, cancellationToken);
+            var workflow = await documentFacade.CreateWorkflowAsync(createDto, currentUser, cancellationToken);
 
             return CreatedAtAction(
                 nameof(GetWorkflow),
@@ -1875,7 +1852,7 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DocumentWorkflowDto>> UpdateWorkflow(Guid workflowId, [FromBody] UpdateDocumentWorkflowDto updateDto, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (!ModelState.IsValid)
@@ -1884,7 +1861,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var workflow = await _documentFacade.UpdateWorkflowAsync(workflowId, updateDto, currentUser, cancellationToken);
+            var workflow = await documentFacade.UpdateWorkflowAsync(workflowId, updateDto, currentUser, cancellationToken);
 
             if (workflow == null)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
@@ -1914,13 +1891,13 @@ public class DocumentsController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteWorkflow(Guid workflowId, CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var deleted = await _documentFacade.DeleteWorkflowAsync(workflowId, currentUser, cancellationToken);
+            var deleted = await documentFacade.DeleteWorkflowAsync(workflowId, currentUser, cancellationToken);
 
             if (!deleted)
                 return CreateNotFoundProblem($"Document workflow with ID {workflowId} was not found.");
@@ -1952,12 +1929,12 @@ public class DocumentsController : BaseApiController
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var analytics = await _documentFacade.GetAnalyticsAsync(documentId, cancellationToken);
+            var analytics = await documentFacade.GetAnalyticsAsync(documentId, cancellationToken);
 
             if (analytics == null)
                 return CreateNotFoundProblem($"Analytics for document with ID {documentId} not found.");
@@ -1991,7 +1968,7 @@ public class DocumentsController : BaseApiController
         [FromQuery] string? groupBy = "documentType",
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         // Validate groupBy parameter
@@ -2009,7 +1986,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var summary = await _documentFacade.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
+            var summary = await documentFacade.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
             return Ok(summary);
         }
         catch (Exception ex)
@@ -2037,7 +2014,7 @@ public class DocumentsController : BaseApiController
         [FromQuery] DateTime to,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         // Validate date range
@@ -2059,7 +2036,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var kpiSummary = await _documentFacade.CalculateKpiSummaryAsync(from, to, cancellationToken);
+            var kpiSummary = await documentFacade.CalculateKpiSummaryAsync(from, to, cancellationToken);
             return Ok(kpiSummary);
         }
         catch (Exception ex)
@@ -2084,13 +2061,13 @@ public class DocumentsController : BaseApiController
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = GetCurrentUser();
-            var analytics = await _documentFacade.RefreshAnalyticsAsync(documentId, currentUser, cancellationToken);
+            var analytics = await documentFacade.RefreshAnalyticsAsync(documentId, currentUser, cancellationToken);
             return Ok(analytics);
         }
         catch (Exception ex)
@@ -2120,7 +2097,7 @@ public class DocumentsController : BaseApiController
         [FromBody] object? eventData = null,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         if (string.IsNullOrWhiteSpace(eventType))
@@ -2131,7 +2108,7 @@ public class DocumentsController : BaseApiController
         try
         {
             var currentUser = GetCurrentUser();
-            var analytics = await _documentFacade.HandleWorkflowEventAsync(
+            var analytics = await documentFacade.HandleWorkflowEventAsync(
                 documentId, eventType, eventData, currentUser, cancellationToken);
 
             return Ok(analytics);
@@ -2159,13 +2136,13 @@ public class DocumentsController : BaseApiController
     public async Task<ActionResult<IEnumerable<DocumentTypeDto>>> GetDocumentTypes(CancellationToken cancellationToken = default)
     {
         // Validate tenant access
-        var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
         if (tenantValidation != null)
             return tenantValidation;
 
         try
         {
-            var documentTypes = await _documentFacade.GetAllDocumentTypesAsync(cancellationToken);
+            var documentTypes = await documentFacade.GetAllDocumentTypesAsync(cancellationToken);
             return Ok(documentTypes);
         }
         catch (Exception ex)
@@ -2191,7 +2168,7 @@ public class DocumentsController : BaseApiController
     {
         try
         {
-            var documentType = await _documentFacade.GetDocumentTypeByIdAsync(id, cancellationToken);
+            var documentType = await documentFacade.GetDocumentTypeByIdAsync(id, cancellationToken);
 
             if (documentType == null)
             {
@@ -2230,7 +2207,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentType = await _documentFacade.CreateDocumentTypeAsync(createDto, GetCurrentUser(), cancellationToken);
+            var documentType = await documentFacade.CreateDocumentTypeAsync(createDto, GetCurrentUser(), cancellationToken);
             return CreatedAtAction(nameof(GetDocumentType), new { id = documentType.Id }, documentType);
         }
         catch (Exception ex)
@@ -2267,7 +2244,7 @@ public class DocumentsController : BaseApiController
 
         try
         {
-            var documentType = await _documentFacade.UpdateDocumentTypeAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+            var documentType = await documentFacade.UpdateDocumentTypeAsync(id, updateDto, GetCurrentUser(), cancellationToken);
 
             if (documentType == null)
             {
@@ -2299,7 +2276,7 @@ public class DocumentsController : BaseApiController
     {
         try
         {
-            var deleted = await _documentFacade.DeleteDocumentTypeAsync(id, GetCurrentUser(), cancellationToken);
+            var deleted = await documentFacade.DeleteDocumentTypeAsync(id, GetCurrentUser(), cancellationToken);
 
             if (!deleted)
             {
@@ -2341,7 +2318,7 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
@@ -2351,7 +2328,7 @@ public class DocumentsController : BaseApiController
 
             var result = await exportService.ExportDocumentsAsync(request, currentUser, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Document export {ExportId} initiated by {User} with format {Format}",
                 result.ExportId, currentUser, request.Format);
 
@@ -2359,7 +2336,7 @@ public class DocumentsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid export parameters");
+            logger.LogWarning(ex, "Invalid export parameters");
             return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
@@ -2417,12 +2394,12 @@ public class DocumentsController : BaseApiController
         [FromBody] ChangeDocumentStatusDto dto,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var result = await _documentFacade.ChangeStatusAsync(
+            var result = await documentFacade.ChangeStatusAsync(
                 id,
                 dto.NewStatus,
                 dto.Reason,
@@ -2430,24 +2407,14 @@ public class DocumentsController : BaseApiController
 
             if (result == null)
             {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Document not found",
-                    Detail = $"Document with ID {id} was not found."
-                });
+                return CreateNotFoundProblem($"Document with ID {id} was not found.");
             }
 
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid status transition",
-                Detail = ex.Message
-            });
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -2464,12 +2431,12 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var history = await _documentFacade.GetStatusHistoryAsync(id, cancellationToken);
+            var history = await documentFacade.GetStatusHistoryAsync(id, cancellationToken);
             return Ok(history);
         }
         catch (Exception ex)
@@ -2487,12 +2454,12 @@ public class DocumentsController : BaseApiController
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
-            var transitions = await _documentFacade.GetAvailableTransitionsAsync(id, cancellationToken);
+            var transitions = await documentFacade.GetAvailableTransitionsAsync(id, cancellationToken);
             return Ok(transitions);
         }
         catch (Exception ex)
@@ -2528,15 +2495,15 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "System";
-            var result = await _documentFacade.BulkApproveAsync(bulkApprovalDto, currentUser, cancellationToken);
+            var result = await documentFacade.BulkApproveAsync(bulkApprovalDto, currentUser, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk approval: {SuccessCount} successful, {FailedCount} failed",
                 result.SuccessCount, result.FailedCount);
 
@@ -2544,7 +2511,7 @@ public class DocumentsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid bulk approval request");
+            logger.LogWarning(ex, "Invalid bulk approval request");
             return BadRequest(new ValidationProblemDetails
             {
                 Title = "Invalid Request",
@@ -2580,15 +2547,15 @@ public class DocumentsController : BaseApiController
             return CreateValidationProblemDetails();
         }
 
-        var tenantError = await ValidateTenantAccessAsync(_tenantContext);
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError != null) return tenantError;
 
         try
         {
             var currentUser = User.Identity?.Name ?? "System";
-            var result = await _documentFacade.BulkStatusChangeAsync(bulkStatusChangeDto, currentUser, cancellationToken);
+            var result = await documentFacade.BulkStatusChangeAsync(bulkStatusChangeDto, currentUser, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk status change: {SuccessCount} successful, {FailedCount} failed",
                 result.SuccessCount, result.FailedCount);
 
@@ -2596,7 +2563,7 @@ public class DocumentsController : BaseApiController
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Invalid bulk status change request");
+            logger.LogWarning(ex, "Invalid bulk status change request");
             return BadRequest(new ValidationProblemDetails
             {
                 Title = "Invalid Request",

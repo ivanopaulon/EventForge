@@ -5,34 +5,24 @@ namespace EventForge.Server.Services.Configuration;
 /// <summary>
 /// Implementation of port configuration service.
 /// </summary>
-public class PortConfigurationService : IPortConfigurationService
+public class PortConfigurationService(
+    IConfiguration configuration,
+    IWebHostEnvironment environment,
+    ILogger<PortConfigurationService> logger) : IPortConfigurationService
 {
-    private readonly IConfiguration _configuration;
-    private readonly IWebHostEnvironment _environment;
-    private readonly ILogger<PortConfigurationService> _logger;
-
-    public PortConfigurationService(
-        IConfiguration configuration,
-        IWebHostEnvironment environment,
-        ILogger<PortConfigurationService> logger)
-    {
-        _configuration = configuration;
-        _environment = environment;
-        _logger = logger;
-    }
 
     public string DetectEnvironment()
     {
-        var serverType = _configuration["ASPNETCORE_SERVER"] ?? string.Empty;
+        var serverType = configuration["ASPNETCORE_SERVER"] ?? string.Empty;
 
         if (serverType.Contains("IIS", StringComparison.OrdinalIgnoreCase) ||
-            Environment.GetEnvironmentVariable("ASPNETCORE_IIS_PHYSICAL_PATH") != null)
+            Environment.GetEnvironmentVariable("ASPNETCORE_IIS_PHYSICAL_PATH") is not null)
         {
-            _logger.LogDebug("Detected IIS environment");
+            logger.LogDebug("Detected IIS environment");
             return "IIS";
         }
 
-        _logger.LogDebug("Detected Kestrel environment");
+        logger.LogDebug("Detected Kestrel environment");
         return "Kestrel";
     }
 
@@ -40,7 +30,7 @@ public class PortConfigurationService : IPortConfigurationService
     {
         var config = new Dictionary<string, int?>();
 
-        var urls = _configuration["Urls"];
+        var urls = configuration["Urls"];
         if (!string.IsNullOrEmpty(urls))
         {
             var urlList = urls.Split(';');
@@ -69,7 +59,7 @@ public class PortConfigurationService : IPortConfigurationService
             config["HTTPS"] = 5001;
         }
 
-        _logger.LogDebug("Port configuration: {Config}", JsonSerializer.Serialize(config));
+        logger.LogDebug("Port configuration: {Config}", JsonSerializer.Serialize(config));
         return config;
     }
 
@@ -77,7 +67,7 @@ public class PortConfigurationService : IPortConfigurationService
     {
         try
         {
-            var overridesPath = Path.Combine(_environment.ContentRootPath, "appsettings.overrides.json");
+            var overridesPath = Path.Combine(environment.ContentRootPath, "appsettings.overrides.json");
 
             Dictionary<string, object>? existingConfig = null;
             if (File.Exists(overridesPath))
@@ -106,12 +96,13 @@ public class PortConfigurationService : IPortConfigurationService
             var json = JsonSerializer.Serialize(existingConfig, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(overridesPath, json, cancellationToken);
 
-            _logger.LogInformation("Port configuration saved: HTTP={HttpPort}, HTTPS={HttpsPort}", httpPort, httpsPort);
+            logger.LogInformation("Port configuration saved: HTTP={HttpPort}, HTTPS={HttpsPort}", httpPort, httpsPort);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to write port configuration");
+            logger.LogError(ex, "Failed to write port configuration");
             throw;
         }
     }
+
 }

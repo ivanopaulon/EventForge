@@ -226,8 +226,6 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementServ
 // Add Mock services (client-side only, no backend)
 builder.Services.AddSingleton<EventForge.Client.Services.Mock.IMockFidelityService, EventForge.Client.Services.Mock.MockFidelityService>();
 
-// Register AuthenticatedHttpClientHandler for Store services
-builder.Services.AddTransient<EventForge.Client.Services.Http.AuthenticatedHttpClientHandler>();
 // Register authenticated HTTP client handler for Store services
 builder.Services.AddTransient<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 

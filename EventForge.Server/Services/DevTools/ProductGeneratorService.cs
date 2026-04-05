@@ -9,10 +9,11 @@ namespace EventForge.Server.Services.DevTools;
 /// Servizio per la generazione di prodotti di test.
 /// Utilizza Bogus per generare dati randomizzati e salvarli nel database.
 /// </summary>
-public class ProductGeneratorService : IProductGeneratorService
+public class ProductGeneratorService(
+    IServiceScopeFactory scopeFactory,
+    ILogger<ProductGeneratorService> logger) : IProductGeneratorService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<ProductGeneratorService> _logger;
+
     private readonly ConcurrentDictionary<string, GenerateProductsStatusDto> _jobStatuses = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _jobCancellationTokens = new();
 
@@ -29,14 +30,6 @@ public class ProductGeneratorService : IProductGeneratorService
         "nuovo", "offerta", "bestseller", "limitato", "eco-friendly",
         "premium", "economico", "professionale", "domestico", "outdoor"
     };
-
-    public ProductGeneratorService(
-        IServiceScopeFactory scopeFactory,
-        ILogger<ProductGeneratorService> logger)
-    {
-        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<string> StartGenerationJobAsync(
         GenerateProductsRequestDto request,
@@ -67,7 +60,7 @@ public class ProductGeneratorService : IProductGeneratorService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore durante la generazione dei prodotti per il job {JobId}", jobId);
+                logger.LogError(ex, "Errore durante la generazione dei prodotti per il job {JobId}", jobId);
                 UpdateJobStatus(jobId, ProductGenerationJobStatus.Failed, errorMessage: ex.Message);
             }
             finally
@@ -105,7 +98,7 @@ public class ProductGeneratorService : IProductGeneratorService
         var stopwatch = Stopwatch.StartNew();
         UpdateJobStatus(jobId, ProductGenerationJobStatus.Running);
 
-        _logger.LogInformation("Avvio generazione di {Count} prodotti per il tenant {TenantId}", request.Count, tenantId);
+        logger.LogInformation("Avvio generazione di {Count} prodotti per il tenant {TenantId}", request.Count, tenantId);
 
         var faker = new Faker("it");
         var batchSize = request.BatchSize;
@@ -135,7 +128,7 @@ public class ProductGeneratorService : IProductGeneratorService
             status.Status = ProductGenerationJobStatus.Done;
             status.CompletedAt = DateTime.UtcNow;
             status.DurationSeconds = stopwatch.Elapsed.TotalSeconds;
-            _logger.LogInformation("Completata generazione prodotti per job {JobId}. Creati: {Created}, Errori: {Errors}, Durata: {Duration}s",
+            logger.LogInformation("Completata generazione prodotti per job {JobId}. Creati: {Created}, Errori: {Errors}, Durata: {Duration}s",
                 jobId, status.Created, status.Errors, status.DurationSeconds);
         }
     }
@@ -148,7 +141,7 @@ public class ProductGeneratorService : IProductGeneratorService
         Guid userId,
         CancellationToken cancellationToken)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
         var products = new List<Product>();
@@ -163,7 +156,7 @@ public class ProductGeneratorService : IProductGeneratorService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Errore nella generazione di un prodotto nel batch per il job {JobId}", jobId);
+                logger.LogWarning(ex, "Errore nella generazione di un prodotto nel batch per il job {JobId}", jobId);
                 IncrementJobErrors(jobId);
             }
         }
@@ -179,12 +172,12 @@ public class ProductGeneratorService : IProductGeneratorService
                 status.Created += products.Count;
                 status.Processed += batchSize;
 
-                _logger.LogDebug("Batch salvato: {Count} prodotti per job {JobId}. Totale: {Total}/{Target}",
+                logger.LogDebug("Batch salvato: {Count} prodotti per job {JobId}. Totale: {Total}/{Target}",
                     products.Count, jobId, status.Processed, status.Total);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore nel salvataggio del batch per il job {JobId}", jobId);
+                logger.LogError(ex, "Errore nel salvataggio del batch per il job {JobId}", jobId);
                 var errorCount = products.Count;
                 IncrementJobErrors(jobId, errorCount);
 
@@ -203,7 +196,9 @@ public class ProductGeneratorService : IProductGeneratorService
             .RuleFor(p => p.ShortDescription, f => f.Commerce.ProductAdjective())
             .RuleFor(p => p.Description, f => f.Lorem.Sentence(10))
             .RuleFor(p => p.Code, f => $"TEST-{f.Random.AlphaNumeric(8).ToUpper()}")
+#pragma warning disable CS0618
             .RuleFor(p => p.ImageUrl, f => f.Image.PicsumUrl(400, 400))
+#pragma warning restore CS0618
             .RuleFor(p => p.Status, f => f.PickRandom<EventForge.Server.Data.Entities.Products.ProductStatus>())
             .RuleFor(p => p.IsVatIncluded, f => f.Random.Bool())
             .RuleFor(p => p.DefaultPrice, f => f.Random.Decimal(1, 1000))
@@ -227,7 +222,7 @@ public class ProductGeneratorService : IProductGeneratorService
         if (_jobStatuses.TryGetValue(jobId, out var jobStatus))
         {
             jobStatus.Status = status;
-            if (errorMessage != null)
+            if (errorMessage is not null)
             {
                 jobStatus.ErrorMessage = errorMessage;
             }
@@ -249,4 +244,5 @@ public class ProductGeneratorService : IProductGeneratorService
             status.Errors += count;
         }
     }
+
 }

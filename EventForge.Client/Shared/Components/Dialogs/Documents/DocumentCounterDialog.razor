@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Documents
 @using MudBlazor
 @inject IDocumentCounterService DocumentCounterService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentCounterDialog> Logger
 
@@ -203,14 +203,14 @@
             {
                 // Update existing counter
                 var result = await DocumentCounterService.UpdateDocumentCounterAsync(Counter.Id, _updateModel);
-                Snackbar.Add(TranslationService.GetTranslation("documentCounter.updateSuccess", "Contatore aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documentCounter.updateSuccess", "Contatore aggiornato con successo"));
                 MudDialog.Close(DialogResult.Ok(result));
             }
             else
             {
                 // Create new counter
                 var result = await DocumentCounterService.CreateDocumentCounterAsync(_model);
-                Snackbar.Add(TranslationService.GetTranslation("documentCounter.createSuccess", "Contatore creato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documentCounter.createSuccess", "Contatore creato con successo"));
                 MudDialog.Close(DialogResult.Ok(result));
             }
         }
@@ -220,7 +220,7 @@
             var errorMessage = _isEditMode 
                 ? TranslationService.GetTranslation("documentCounter.updateError", "Errore durante l'aggiornamento del contatore")
                 : TranslationService.GetTranslation("documentCounter.createError", "Errore durante la creazione del contatore");
-            Snackbar.Add($"{errorMessage}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{errorMessage}: {ex.Message}");
         }
         finally
         {

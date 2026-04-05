@@ -11,18 +11,10 @@ namespace EventForge.Server.Controllers
     /// </summary>
     [Route("api/v1/[controller]")]
     [Authorize]
-    public class RetailCartSessionsController : BaseApiController
+    public class RetailCartSessionsController(
+        IRetailCartSessionService cartSessionService,
+        ITenantContext tenantContext) : BaseApiController
     {
-        private readonly IRetailCartSessionService _cartSessionService;
-        private readonly ITenantContext _tenantContext;
-
-        public RetailCartSessionsController(
-            IRetailCartSessionService cartSessionService,
-            ITenantContext tenantContext)
-        {
-            _cartSessionService = cartSessionService ?? throw new ArgumentNullException(nameof(cartSessionService));
-            _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        }
 
         /// <summary>
         /// Creates a new cart session.
@@ -44,14 +36,11 @@ namespace EventForge.Server.Controllers
             if (!ModelState.IsValid)
                 return CreateValidationProblemDetails();
 
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.CreateSessionAsync(createDto, cancellationToken);
+                var session = await cartSessionService.CreateSessionAsync(createDto, cancellationToken);
                 return Ok(session);
             }
             catch (ArgumentException ex)
@@ -81,15 +70,12 @@ namespace EventForge.Server.Controllers
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.GetSessionAsync(id, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.GetSessionAsync(id, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);
@@ -124,15 +110,12 @@ namespace EventForge.Server.Controllers
             if (!ModelState.IsValid)
                 return CreateValidationProblemDetails();
 
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.AddItemAsync(id, addItemDto, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.AddItemAsync(id, addItemDto, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);
@@ -173,15 +156,12 @@ namespace EventForge.Server.Controllers
             if (!ModelState.IsValid)
                 return CreateValidationProblemDetails();
 
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.UpdateItemQuantityAsync(id, itemId, updateDto, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.UpdateItemQuantityAsync(id, itemId, updateDto, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);
@@ -215,15 +195,12 @@ namespace EventForge.Server.Controllers
             Guid itemId,
             CancellationToken cancellationToken = default)
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.RemoveItemAsync(id, itemId, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.RemoveItemAsync(id, itemId, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);
@@ -258,15 +235,12 @@ namespace EventForge.Server.Controllers
             if (!ModelState.IsValid)
                 return CreateValidationProblemDetails();
 
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.ApplyCouponsAsync(id, applyCouponsDto, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.ApplyCouponsAsync(id, applyCouponsDto, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);
@@ -298,15 +272,12 @@ namespace EventForge.Server.Controllers
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            // Validate tenant access
-            var tenantValidation = await ValidateTenantAccessAsync(_tenantContext);
-            if (tenantValidation != null)
-                return tenantValidation;
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
             try
             {
-                var session = await _cartSessionService.ClearAsync(id, cancellationToken);
-                if (session == null)
+                var session = await cartSessionService.ClearAsync(id, cancellationToken);
+                if (session is null)
                     return CreateNotFoundProblem($"Cart session with ID {id} not found.");
 
                 return Ok(session);

@@ -6,7 +6,7 @@
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IInventoryService InventoryService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ILogger<InventoryDiagnostics> Logger
 
@@ -298,10 +298,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error initializing inventory diagnostics page");
-            Snackbar.Add(
-                TranslationService.GetTranslation("messages.errorLoadingData", "Errore nel caricamento dei dati"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.errorLoadingData", "Errore nel caricamento dei dati"));
         }
         finally
         {
@@ -348,26 +345,21 @@
                     ? "Analisi completata: nessun problema trovato"
                     : $"Analisi completata: {_diagnosticReport.TotalIssues} problemi trovati";
 
-                Snackbar.Add(
-                    TranslationService.GetTranslation(messageKey, defaultMessage),
-                    _diagnosticReport.IsHealthy ? Severity.Success : Severity.Warning
-                );
+                var diagMsg = TranslationService.GetTranslation(messageKey, defaultMessage);
+                if (_diagnosticReport.IsHealthy)
+                    AppNotification.ShowSuccess(diagMsg);
+                else
+                    AppNotification.ShowWarning(diagMsg);
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error analyzing inventory document");
-            Snackbar.Add(
-                TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.errorAnalyzing", "Errore durante l'analisi"));
         }
         finally
         {
@@ -388,7 +380,7 @@
 
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is InventoryAutoRepairOptionsDto options)
+        if (result is { Canceled: false } && result.Data is InventoryAutoRepairOptionsDto options)
         {
             await ExecuteAutoRepair(options);
         }
@@ -409,29 +401,20 @@
 
             if (_repairResult != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("inventory.diagnostics.repairSuccess", "Correzione Completata con Successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("inventory.diagnostics.repairSuccess", "Correzione Completata con Successo"));
 
                 // Clear diagnostic report to show repair results
                 _diagnosticReport = null;
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error executing auto repair");
-            Snackbar.Add(
-                TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"));
         }
         finally
         {
@@ -453,10 +436,7 @@
 
         if (!criticalIssues.Any())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("inventory.diagnostics.noCriticalIssues", "Nessuna riga critica da rimuovere"),
-                Severity.Info
-            );
+            AppNotification.ShowInfo(TranslationService.GetTranslation("inventory.diagnostics.noCriticalIssues", "Nessuna riga critica da rimuovere"));
             return;
         }
 
@@ -468,29 +448,20 @@
 
             if (removedCount > 0)
             {
-                Snackbar.Add(
-                    $"{removedCount} {TranslationService.GetTranslation("inventory.diagnostics.rowsRemovedSuccess", "righe rimosse con successo")}",
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess($"{removedCount} {TranslationService.GetTranslation("inventory.diagnostics.rowsRemovedSuccess", "righe rimosse con successo")}");
 
                 // Re-analyze after removal
                 await AnalyzeDocument();
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error removing problematic rows");
-            Snackbar.Add(
-                TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRemovingRows", "Errore durante la rimozione delle righe"));
         }
         finally
         {

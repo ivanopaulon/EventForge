@@ -1,7 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Products
 @inject IBusinessPartyService BusinessPartyService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<BulkEditSupplierProductsDialog> Logger
 
@@ -289,13 +289,13 @@
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("bulkEdit.previewError", "Errore durante la generazione dell'anteprima"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("bulkEdit.previewError", "Errore durante la generazione dell'anteprima"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error generating preview for bulk update");
-            Snackbar.Add($"{TranslationService.GetTranslation("bulkEdit.previewError", "Errore durante la generazione dell'anteprima")}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{TranslationService.GetTranslation("bulkEdit.previewError", "Errore durante la generazione dell'anteprima")}: {ex.Message}");
         }
         finally
         {
@@ -317,18 +317,18 @@
 
                 if (!result.RolledBack && result.SuccessCount > 0)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("bulkEdit.successMessage", $"Aggiornati {result.SuccessCount} prodotti con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("bulkEdit.successMessage", $"Aggiornati {result.SuccessCount} prodotti con successo"));
                 }
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("bulkEdit.applyError", "Errore durante l'applicazione delle modifiche"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("bulkEdit.applyError", "Errore durante l'applicazione delle modifiche"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying bulk updates");
-            Snackbar.Add($"{TranslationService.GetTranslation("bulkEdit.applyError", "Errore durante l'applicazione delle modifiche")}: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"{TranslationService.GetTranslation("bulkEdit.applyError", "Errore durante l'applicazione delle modifiche")}: {ex.Message}");
         }
         finally
         {

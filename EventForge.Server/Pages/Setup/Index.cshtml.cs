@@ -33,7 +33,7 @@ public class IndexModel : PageModel
         }
 
         var instances = await _discoveryService.DiscoverLocalInstancesAsync();
-        DiscoveredSqlServers = instances.Select(i => i.InstanceName).ToList();
+        DiscoveredSqlServers = instances.Select(i => i.InstanceName ?? string.Empty).ToList();
         IsKestrel = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") != null;
 
         return Page();
@@ -98,7 +98,7 @@ public class IndexModel : PageModel
         if (!ModelState.IsValid)
         {
             var instances = await _discoveryService.DiscoverLocalInstancesAsync();
-            DiscoveredSqlServers = instances.Select(i => i.InstanceName).ToList();
+            DiscoveredSqlServers = instances.Select(i => i.InstanceName ?? string.Empty).ToList();
             return Page();
         }
 
@@ -137,14 +137,14 @@ public class IndexModel : PageModel
 
             ModelState.AddModelError(string.Empty, result.Message ?? "Setup failed");
             var instances = await _discoveryService.DiscoverLocalInstancesAsync();
-            DiscoveredSqlServers = instances.Select(i => i.InstanceName).ToList();
+            DiscoveredSqlServers = instances.Select(i => i.InstanceName ?? string.Empty).ToList();
             return Page();
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, $"Setup failed: {ex.Message}");
             var instances = await _discoveryService.DiscoverLocalInstancesAsync();
-            DiscoveredSqlServers = instances.Select(i => i.InstanceName).ToList();
+            DiscoveredSqlServers = instances.Select(i => i.InstanceName ?? string.Empty).ToList();
             return Page();
         }
     }

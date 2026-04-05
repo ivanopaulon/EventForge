@@ -4,7 +4,7 @@
 @inject IHttpClientService HttpClientService
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<DocumentViewerDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Description"
@@ -150,11 +150,11 @@
                 new { PropertyName = "productCode", DisplayName = "Codice",    NumberFormat = (string?)null, IsVisible = true },
                 new { PropertyName = "description", DisplayName = "Descrizione",NumberFormat = (string?)null, IsVisible = true },
                 new { PropertyName = "uom",         DisplayName = "UM",         NumberFormat = (string?)null, IsVisible = true },
-                new { PropertyName = "quantity",    DisplayName = "Quantit\u00e0", NumberFormat = "#,##0.00",   IsVisible = true },
-                new { PropertyName = "unitPrice",   DisplayName = "Prezzo",     NumberFormat = "#,##0.00\u20ac",IsVisible = true },
-                new { PropertyName = "discount",    DisplayName = "Sconto %",   NumberFormat = "#,##0.00",   IsVisible = true },
-                new { PropertyName = "vatRate",     DisplayName = "IVA %",      NumberFormat = "#,##0.00",   IsVisible = true },
-                new { PropertyName = "lineTotal",   DisplayName = "Totale",     NumberFormat = "#,##0.00\u20ac",IsVisible = true }
+                new { PropertyName = "quantity",    DisplayName = "Quantit\u00e0", NumberFormat = (string?)"#,##0.00",   IsVisible = true },
+                new { PropertyName = "unitPrice",   DisplayName = "Prezzo",     NumberFormat = (string?)"#,##0.00\u20ac",IsVisible = true },
+                new { PropertyName = "discount",    DisplayName = "Sconto %",   NumberFormat = (string?)"#,##0.00",   IsVisible = true },
+                new { PropertyName = "vatRate",     DisplayName = "IVA %",      NumberFormat = (string?)"#,##0.00",   IsVisible = true },
+                new { PropertyName = "lineTotal",   DisplayName = "Totale",     NumberFormat = (string?)"#,##0.00\u20ac",IsVisible = true }
             };
 
             var data = _document.Rows.Select((r, i) => new Dictionary<string, object?>
@@ -192,12 +192,12 @@
             var fileName = $"Documento_{_document.Number}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
             await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
 
-            Snackbar.Add(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("common.exportSuccess", "Esportazione completata!"));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error exporting document {DocumentId}", DocumentHeaderId);
-            Snackbar.Add(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.exportError", "Errore nell'esportazione"));
         }
         finally
         {

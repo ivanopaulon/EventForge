@@ -19,7 +19,7 @@
 @inject IDocumentTypeService DocumentTypeService
 @inject IBusinessPartyService BusinessPartyService
 @inject IProductService ProductService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<GenericDocumentProcedure> Logger
@@ -727,26 +727,22 @@
                     if (!_hasEditLock)
                     {
                         _isReadOnly = true;
-                        Snackbar.Add(
-                            TranslationService.GetTranslation("documents.documentLockedWarning", 
-                                "⚠️ Documento aperto in sola lettura: già in modifica da altro utente"),
-                            Severity.Warning);
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("documents.documentLockedWarning", 
+                                "⚠️ Documento aperto in sola lettura: già in modifica da altro utente"));
                     }
                 }
                 catch (HubException hex)
                 {
                     _isReadOnly = true;
                     Logger.LogWarning(hex, "Lock acquisition failed - HubException for document {DocumentId}", DocumentId.Value);
-                    Snackbar.Add(hex.Message, Severity.Warning);
+                    AppNotification.ShowWarning(hex.Message);
                 }
                 catch (Exception ex)
                 {
                     _isReadOnly = true;
                     Logger.LogWarning(ex, "Lock acquisition failed for document {DocumentId}", DocumentId.Value);
-                    Snackbar.Add(
-                        TranslationService.GetTranslation("documents.lockConnectionError", 
-                            "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."),
-                        Severity.Warning);
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError", 
+                            "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
                 }
             }
         }
@@ -776,7 +772,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document types");
-            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"));
         }
     }
 
@@ -829,7 +825,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document {DocumentId}", documentId);
-            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoading", "Errore durante il caricamento del documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoading", "Errore durante il caricamento del documento"));
         }
         finally
         {
@@ -878,10 +874,7 @@
         // Block modification if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"));
             return;
         }
         
@@ -897,7 +890,7 @@
                 {
                     DocumentTypeId = _model.DocumentTypeId,
                     Series = _model.Series,
-                    Number = _model.Number,
+                    Number = _model.Number ?? string.Empty,
                     Date = _model.Date,
                     BusinessPartyId = _model.BusinessPartyId,
                     Notes = _model.Notes
@@ -906,7 +899,7 @@
                 if (updated != null)
                 {
                     _currentDocument = updated;
-                    Snackbar.Add(TranslationService.GetTranslation("documents.updateSuccess", "Documento aggiornato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.updateSuccess", "Documento aggiornato con successo"));
                 }
             }
             else
@@ -915,7 +908,7 @@
                 if (created != null)
                 {
                     _currentDocument = created;
-                    Snackbar.Add(TranslationService.GetTranslation("documents.createSuccess", "Documento creato con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.createSuccess", "Documento creato con successo"));
                     NavigationManager.NavigateTo($"/documents/edit/{created.Id}");
                 }
             }
@@ -923,7 +916,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving document header");
-            Snackbar.Add(TranslationService.GetTranslation("documents.saveError", "Errore durante il salvataggio del documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.saveError", "Errore durante il salvataggio del documento"));
         }
         finally
         {
@@ -954,10 +947,8 @@
                 _currentDocument = result;
                 _documentStatus = result.Status;
                 
-                Snackbar.Add(
-                    TranslationService.GetTranslation("documents.statusUpdatedSuccess", 
-                        "Stato aggiornato con successo"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.statusUpdatedSuccess", 
+                        "Stato aggiornato con successo"));
                 
                 Logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus}", 
                     _currentDocument.Id, previousStatus, newStatus);
@@ -966,10 +957,8 @@
             {
                 // Rollback on failure
                 _documentStatus = previousStatus;
-                Snackbar.Add(
-                    TranslationService.GetTranslation("documents.statusUpdateError", 
-                        "Errore nell'aggiornamento dello stato"),
-                    Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.statusUpdateError", 
+                        "Errore nell'aggiornamento dello stato"));
             }
         }
         catch (Exception ex)
@@ -983,10 +972,7 @@
             }
             
             // Show the validation error message from DocumentStateMachine
-            Snackbar.Add(
-                ex.Message,
-                Severity.Error
-            );
+            AppNotification.ShowError(ex.Message);
         }
         finally
         {
@@ -1000,10 +986,7 @@
         // Block if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
             return;
         }
         
@@ -1029,7 +1012,7 @@
         // ✅ OPTIMIZATION: Reload only if dialog was cancelled or no data returned
         // When rows are added in the dialog, they're saved to the server but we need to refresh
         // to see them since the dialog doesn't return each individual row (it allows multiple additions)
-        if (result.Canceled || result.Data == null)
+        if (result is { Canceled: true } || result?.Data == null)
         {
             // Reload to get any rows that were added during the session
             await LoadDocumentAsync(_currentDocument.Id);
@@ -1045,10 +1028,7 @@
         // Block if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
             return;
         }
         
@@ -1073,10 +1053,10 @@
         var result = await dialog.Result;
         
         // ✅ OPTIMIZATION: Incremental update instead of full document reload
-        if (!result.Canceled && result.Data is DocumentRowDto updatedRow)
+        if (result is { Canceled: false } && result.Data is DocumentRowDto updatedRow)
         {
             // Update only the modified row in the local collection
-            var rowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updatedRow.Id);
+            var rowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updatedRow.Id);
             if (rowIndex >= 0)
             {
                 _currentDocument.Rows[rowIndex] = updatedRow;
@@ -1088,7 +1068,7 @@
                 await LoadDocumentAsync(_currentDocument.Id);
             }
         }
-        else if (!result.Canceled)
+        else if (result is { Canceled: false })
         {
             // Fallback: reload if no data was returned but dialog wasn't cancelled
             Logger.LogWarning("Edit dialog completed but no row data returned, reloading document");
@@ -1105,10 +1085,7 @@
         // Block if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
             return;
         }
         
@@ -1126,13 +1103,13 @@
                 bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
                 if (success)
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"));
                     
                     // ✅ OPTIMIZATION: Remove row from local collection instead of full reload
-                    var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == row.Id);
+                    var rowToRemove = _currentDocument!.Rows!.FirstOrDefault(r => r.Id == row.Id);
                     if (rowToRemove != null)
                     {
-                        _currentDocument.Rows.Remove(rowToRemove);
+                        _currentDocument.Rows!.Remove(rowToRemove);
                         Logger.LogInformation("Removed row {RowId} from local collection", row.Id);
                     }
                     
@@ -1142,13 +1119,13 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"));
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting document row");
-                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"));
             }
             finally
             {
@@ -1165,10 +1142,7 @@
         // Block if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
             return;
         }
 
@@ -1198,15 +1172,15 @@
 
                 if (successCount > 0)
                 {
-                    Snackbar.Add(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount));
                     
                     // ✅ OPTIMIZATION: Remove rows from local collection instead of full reload
                     foreach (var rowId in deletedRowIds)
                     {
-                        var rowToRemove = _currentDocument!.Rows.FirstOrDefault(r => r.Id == rowId);
+                        var rowToRemove = _currentDocument!.Rows!.FirstOrDefault(r => r.Id == rowId);
                         if (rowToRemove != null)
                         {
-                            _currentDocument.Rows.Remove(rowToRemove);
+                            _currentDocument.Rows!.Remove(rowToRemove);
                         }
                     }
                     Logger.LogInformation("Removed {Count} rows from local collection", deletedRowIds.Count);
@@ -1219,13 +1193,13 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"));
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error deleting document rows");
-                Snackbar.Add(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"));
             }
             finally
             {
@@ -1260,17 +1234,14 @@
     {
         if (!CanMergeSelectedRows())
         {
-            Snackbar.Add(TranslationService.GetTranslation("documents.cannotMergeRows", "Impossibile unire le righe selezionate. Assicurati che abbiano lo stesso prodotto e unità di misura."), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotMergeRows", "Impossibile unire le righe selezionate. Assicurati che abbiano lo stesso prodotto e unità di misura."));
             return;
         }
 
         // Block if document is closed or cancelled
         if (!IsDocumentEditable())
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
             return;
         }
 
@@ -1338,11 +1309,11 @@
                         }
                     }
 
-                    Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"), Severity.Success);
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"));
                     
                     // ✅ OPTIMIZATION: Update local collection instead of full reload
                     // Update the main row
-                    var mainRowIndex = _currentDocument!.Rows.FindIndex(r => r.Id == updated.Id);
+                    var mainRowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updated.Id);
                     if (mainRowIndex >= 0)
                     {
                         _currentDocument.Rows[mainRowIndex] = updated;
@@ -1351,10 +1322,10 @@
                     // Remove merged rows
                     foreach (var rowId in deletedRowIds)
                     {
-                        var rowToRemove = _currentDocument.Rows.FirstOrDefault(r => r.Id == rowId);
+                        var rowToRemove = _currentDocument.Rows!.FirstOrDefault(r => r.Id == rowId);
                         if (rowToRemove != null)
                         {
-                            _currentDocument.Rows.Remove(rowToRemove);
+                            _currentDocument.Rows!.Remove(rowToRemove);
                         }
                     }
                     Logger.LogInformation("Merged {MergedCount} rows into row {MainRowId}, removed {DeletedCount} rows locally", 
@@ -1368,13 +1339,13 @@
                 }
                 else
                 {
-                    Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"), Severity.Error);
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"));
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error merging document rows");
-                Snackbar.Add(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"));
             }
             finally
             {
@@ -1431,10 +1402,7 @@
         {
             Logger.LogError(ex, "Error recalculating document totals for document {DocumentId}", _currentDocument.Id);
             // Don't throw - allow the operation to complete even if totals calc fails
-            Snackbar.Add(
-                TranslationService.GetTranslation("documents.totalsCalculationError", "Errore nel calcolo dei totali"),
-                Severity.Warning
-            );
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.totalsCalculationError", "Errore nel calcolo dei totali"));
         }
     }
     

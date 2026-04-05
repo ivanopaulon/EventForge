@@ -6,24 +6,17 @@ namespace EventForge.Server.Services.Export;
 /// <summary>
 /// Implementation of IExportService using EPPlus for Excel and custom CSV generator
 /// </summary>
-public class ExportService : IExportService
+public class ExportService(ILogger<ExportService> logger) : IExportService
 {
-    private readonly ILogger<ExportService> _logger;
 
-    public ExportService(ILogger<ExportService> logger)
-    {
-        _logger = logger;
-
-        // Set EPPlus license context (required for EPPlus 8+)
-        ExcelPackage.License.SetNonCommercialPersonal("PRYM");
-    }
+    private static readonly bool _staticInitialized = InitStatic();
 
     public async Task<byte[]> ExportToExcelAsync<T>(
         IEnumerable<T> data,
         string sheetName = "Data",
         CancellationToken ct = default) where T : class
     {
-        _logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
+        logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
             typeof(T).Name, sheetName);
 
         using var package = new ExcelPackage();
@@ -47,7 +40,7 @@ public class ExportService : IExportService
         // Add filters
         worksheet.Cells[1, 1, worksheet.Dimension.Rows, worksheet.Dimension.Columns].AutoFilter = true;
 
-        _logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
+        logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
             worksheet.Dimension.Rows - 1, worksheet.Dimension.Columns);
 
         return await Task.FromResult(package.GetAsByteArray());
@@ -57,7 +50,7 @@ public class ExportService : IExportService
         IEnumerable<T> data,
         CancellationToken ct = default) where T : class
     {
-        _logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
+        logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
 
         using var memoryStream = new MemoryStream();
         using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
@@ -88,7 +81,7 @@ public class ExportService : IExportService
 
         await writer.FlushAsync();
 
-        _logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
+        logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
 
         return memoryStream.ToArray();
     }
@@ -106,4 +99,11 @@ public class ExportService : IExportService
 
         return field;
     }
+
+    private static bool InitStatic()
+    {
+        ExcelPackage.License.SetNonCommercialPersonal("PRYM");
+        return true;
+    }
+
 }

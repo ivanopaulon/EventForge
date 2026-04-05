@@ -2,7 +2,7 @@
 @using EventForge.DTOs.Common
 @inject IEventService EventService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<CreateEventDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.EventNote"
@@ -252,7 +252,7 @@
 
     private async Task SaveAsync()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_isFormValid || _dateRange?.Start == null) return;
 
         try
@@ -266,9 +266,7 @@
             if (_isEditMode)
             {
                 result = await EventService.UpdateEventAsync(ExistingEvent!.Id, _model);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("events.updated", "Evento aggiornato con successo"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("events.updated", "Evento aggiornato con successo"));
             }
             else
             {
@@ -287,9 +285,7 @@
                     Visibility       = _model.Visibility
                 };
                 result = await EventService.CreateEventAsync(createDto);
-                Snackbar.Add(
-                    TranslationService.GetTranslation("events.created", "Evento creato con successo"),
-                    Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("events.created", "Evento creato con successo"));
             }
 
             MudDialog.Close(DialogResult.Ok(result));
@@ -297,11 +293,9 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving event (edit={IsEdit}).", _isEditMode);
-            Snackbar.Add(
-                _isEditMode
+            AppNotification.ShowError(_isEditMode
                     ? TranslationService.GetTranslation("events.updateError", "Errore durante l'aggiornamento dell'evento")
-                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione dell'evento"),
-                Severity.Error);
+                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione dell'evento"));
         }
         finally
         {

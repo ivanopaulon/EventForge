@@ -10,7 +10,7 @@
         @if (SessionNumber != null)
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                #@SessionNumber.ToString().Substring(0, 8)
+                #@SessionNumber!.Value.ToString().Substring(0, 8)
             </MudText>
         }
         <MudText Typo="Typo.caption" Color="Color.Secondary">

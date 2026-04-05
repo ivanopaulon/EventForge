@@ -471,7 +471,9 @@ app.UseSession();
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseCors();
+#pragma warning disable ASP0001
 app.UseAuthorization();
+#pragma warning restore ASP0001
 
 // Add authorization logging after authorization
 app.UseAuthorizationLogging();

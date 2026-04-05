@@ -6,12 +6,12 @@ namespace EventForge.Server.Services.Common;
 /// <summary>
 /// Service implementation for managing references
 /// </summary>
-public class ReferenceService : IReferenceService
+public class ReferenceService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<ReferenceService> logger) : IReferenceService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ReferenceService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the ReferenceService
@@ -20,25 +20,13 @@ public class ReferenceService : IReferenceService
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
-    public ReferenceService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<ReferenceService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<PagedResult<ReferenceDto>> GetReferencesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for reference operations.");
@@ -46,11 +34,11 @@ public class ReferenceService : IReferenceService
 
             var skip = (page - 1) * pageSize;
 
-            var totalCount = await _context.References
+            var totalCount = await context.References
                 .WhereActiveTenant(currentTenantId.Value)
                 .LongCountAsync(cancellationToken);
 
-            var entities = await _context.References
+            var entities = await context.References
                 .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(r => r.LastName)
                 .ThenBy(r => r.FirstName)
@@ -70,7 +58,7 @@ public class ReferenceService : IReferenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving references.");
+            logger.LogError(ex, "Error retrieving references.");
             throw;
         }
     }
@@ -80,13 +68,13 @@ public class ReferenceService : IReferenceService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for reference operations.");
             }
 
-            var entities = await _context.References
+            var entities = await context.References
                 .AsNoTracking()
                 .Where(r => r.OwnerId == ownerId && !r.IsDeleted && r.TenantId == currentTenantId.Value)
                 .OrderBy(r => r.LastName)
@@ -97,7 +85,7 @@ public class ReferenceService : IReferenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving references for owner {OwnerId}.", ownerId);
+            logger.LogError(ex, "Error retrieving references for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -107,15 +95,15 @@ public class ReferenceService : IReferenceService
     {
         try
         {
-            var entity = await _context.References
+            var entity = await context.References
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            return entity == null ? null : ReferenceMapper.ToDto(entity);
+            return entity is null ? null : ReferenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving reference with ID {ReferenceId}.", id);
+            logger.LogError(ex, "Error retrieving reference with ID {ReferenceId}.", id);
             throw;
         }
     }
@@ -128,7 +116,7 @@ public class ReferenceService : IReferenceService
             ArgumentNullException.ThrowIfNull(createReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for reference operations.");
@@ -140,18 +128,18 @@ public class ReferenceService : IReferenceService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _ = _context.References.Add(entity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.References.Add(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
+            logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
 
             return ReferenceMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating reference for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating reference for user {User}.", currentUser);
             throw;
         }
     }
@@ -164,17 +152,17 @@ public class ReferenceService : IReferenceService
             ArgumentNullException.ThrowIfNull(updateReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.References
+            var entity = await context.References
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalValues = context.Entry(entity).CurrentValues.Clone();
             var originalEntity = (Reference)originalValues.ToObject();
 
             ReferenceMapper.UpdateEntity(entity, updateReferenceDto);
@@ -183,17 +171,17 @@ public class ReferenceService : IReferenceService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Reference {ReferenceId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Reference {ReferenceId}.", id);
                 throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
 
-            _logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
 
             return ReferenceMapper.ToDto(entity);
         }
@@ -203,7 +191,7 @@ public class ReferenceService : IReferenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating reference {ReferenceId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating reference {ReferenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -215,17 +203,17 @@ public class ReferenceService : IReferenceService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.References
+            var entity = await context.References
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(entity).CurrentValues.Clone();
+            var originalValues = context.Entry(entity).CurrentValues.Clone();
             var originalEntity = (Reference)originalValues.ToObject();
 
             entity.IsDeleted = true;
@@ -234,17 +222,17 @@ public class ReferenceService : IReferenceService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Reference {ReferenceId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Reference {ReferenceId}.", id);
                 throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
 
-            _logger.LogInformation("Reference {ReferenceId} deleted by {User}.", id, currentUser);
+            logger.LogInformation("Reference {ReferenceId} deleted by {User}.", id, currentUser);
 
             return true;
         }
@@ -254,7 +242,7 @@ public class ReferenceService : IReferenceService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting reference {ReferenceId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting reference {ReferenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -264,14 +252,15 @@ public class ReferenceService : IReferenceService
     {
         try
         {
-            return await _context.References
+            return await context.References
                 .AsNoTracking()
                 .AnyAsync(r => r.Id == referenceId, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if reference {ReferenceId} exists.", referenceId);
+            logger.LogError(ex, "Error checking if reference {ReferenceId} exists.", referenceId);
             throw;
         }
     }
+
 }

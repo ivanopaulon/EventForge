@@ -9,37 +9,27 @@ namespace EventForge.Server.Services.Promotions;
 /// <summary>
 /// Service implementation for managing promotions.
 /// </summary>
-public class PromotionService : IPromotionService
+public class PromotionService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<PromotionService> logger,
+    IMemoryCache cache,
+    IMonitoringMetricsService monitoringMetrics) : IPromotionService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<PromotionService> _logger;
-    private readonly IMemoryCache _cache;
-    private readonly IMonitoringMetricsService _monitoringMetrics;
-
-    public PromotionService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<PromotionService> logger, IMemoryCache cache, IMonitoringMetricsService monitoringMetrics)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _monitoringMetrics = monitoringMetrics ?? throw new ArgumentNullException(nameof(monitoringMetrics));
-    }
 
     public async Task<PagedResult<PromotionDto>> GetPromotionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for promotion operations.");
             }
 
-            var query = _context.Promotions
+            var query = context.Promotions
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Rules.Where(pr => !pr.IsDeleted && pr.TenantId == currentTenantId.Value));
 
@@ -62,7 +52,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotions.");
+            logger.LogError(ex, "Error retrieving promotions.");
             throw;
         }
     }
@@ -71,13 +61,13 @@ public class PromotionService : IPromotionService
     {
         try
         {
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found.", id);
+                logger.LogWarning("Promotion with ID {PromotionId} not found.", id);
                 return null;
             }
 
@@ -85,7 +75,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotion {PromotionId}.", id);
+            logger.LogError(ex, "Error retrieving promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -95,7 +85,7 @@ public class PromotionService : IPromotionService
         try
         {
             var now = DateTime.UtcNow;
-            var promotions = await _context.Promotions
+            var promotions = await context.Promotions
                 .Where(p => !p.IsDeleted && p.StartDate <= now && p.EndDate >= now)
                 .OrderByDescending(p => p.Priority)
                 .ThenBy(p => p.Name)
@@ -105,7 +95,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active promotions.");
+            logger.LogError(ex, "Error retrieving active promotions.");
             throw;
         }
     }
@@ -117,7 +107,7 @@ public class PromotionService : IPromotionService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required.");
 
@@ -141,21 +131,21 @@ public class PromotionService : IPromotionService
                 IsActive = true
             };
 
-            _ = _context.Promotions.Add(promotion);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Promotions.Add(promotion);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache after creating promotion
             InvalidatePromotionCache();
 
-            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(promotion, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Promotion {PromotionId} created by {User}.", promotion.Id, currentUser);
+            logger.LogInformation("Promotion {PromotionId} created by {User}.", promotion.Id, currentUser);
 
             return MapToPromotionDto(promotion);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating promotion.");
+            logger.LogError(ex, "Error creating promotion.");
             throw;
         }
     }
@@ -167,24 +157,24 @@ public class PromotionService : IPromotionService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPromotion = await _context.Promotions
+            var originalPromotion = await context.Promotions
                 .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPromotion == null)
+            if (originalPromotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Promotion with ID {PromotionId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -204,31 +194,31 @@ public class PromotionService : IPromotionService
 
             // Apply optimistic concurrency: if client provided a RowVersion, use it as the
             // expected original value so EF Core detects concurrent modifications.
-            if (updateDto.RowVersion != null && updateDto.RowVersion.Length > 0)
-                _context.Entry(promotion).Property(p => p.RowVersion).OriginalValue = updateDto.RowVersion;
+            if (updateDto.RowVersion is not null && updateDto.RowVersion.Length > 0)
+                context.Entry(promotion).Property(p => p.RowVersion).OriginalValue = updateDto.RowVersion;
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating promotion {PromotionId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating promotion {PromotionId}.", id);
                 throw new InvalidOperationException("La promozione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Invalidate cache after updating promotion
             InvalidatePromotionCache();
 
-            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Update", currentUser, originalPromotion, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(promotion, "Update", currentUser, originalPromotion, cancellationToken);
 
-            _logger.LogInformation("Promotion {PromotionId} updated by {User}.", promotion.Id, currentUser);
+            logger.LogInformation("Promotion {PromotionId} updated by {User}.", promotion.Id, currentUser);
 
             return MapToPromotionDto(promotion);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating promotion {PromotionId}.", id);
+            logger.LogError(ex, "Error updating promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -239,24 +229,24 @@ public class PromotionService : IPromotionService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPromotion = await _context.Promotions
+            var originalPromotion = await context.Promotions
                 .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalPromotion == null)
+            if (originalPromotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Promotion with ID {PromotionId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -266,20 +256,20 @@ public class PromotionService : IPromotionService
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache after deleting promotion
             InvalidatePromotionCache();
 
-            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "Delete", currentUser, originalPromotion, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(promotion, "Delete", currentUser, originalPromotion, cancellationToken);
 
-            _logger.LogInformation("Promotion {PromotionId} deleted by {User}.", promotion.Id, currentUser);
+            logger.LogInformation("Promotion {PromotionId} deleted by {User}.", promotion.Id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting promotion {PromotionId}.", id);
+            logger.LogError(ex, "Error deleting promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -288,12 +278,12 @@ public class PromotionService : IPromotionService
     {
         try
         {
-            return await _context.Promotions
+            return await context.Promotions
                 .AnyAsync(p => p.Id == promotionId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if promotion {PromotionId} exists.", promotionId);
+            logger.LogError(ex, "Error checking if promotion {PromotionId} exists.", promotionId);
             throw;
         }
     }
@@ -328,7 +318,7 @@ public class PromotionService : IPromotionService
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            _logger.LogDebug("Starting promotion rule application for {ItemCount} cart items", applyDto.CartItems.Count);
+            logger.LogDebug("Starting promotion rule application for {ItemCount} cart items", applyDto.CartItems.Count);
 
             // Step 1: Validate input
             var validationResult = ValidateApplyPromotionInput(applyDto);
@@ -361,7 +351,7 @@ public class PromotionService : IPromotionService
                 .ThenBy(p => p.Name)
                 .ToList();
 
-            _logger.LogDebug("Found {PromotionCount} applicable promotions", orderedPromotions.Count);
+            logger.LogDebug("Found {PromotionCount} applicable promotions", orderedPromotions.Count);
 
             // Step 5: Initialize cart items with existing discounts
             result.CartItems = applyDto.CartItems.Select(item => new CartItemResultDto
@@ -435,7 +425,7 @@ public class PromotionService : IPromotionService
                 }
             }
 
-            _logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}",
+            logger.LogInformation("Promotion application completed. Original: {Original}, Final: {Final}, Discount: {Discount}",
                 result.OriginalTotal, result.FinalTotal, result.TotalDiscountAmount);
 
             // Step 8: Increment usage counters for applied promotions (best-effort, non-blocking)
@@ -452,25 +442,25 @@ public class PromotionService : IPromotionService
                     var incremented = await IncrementUsageAsync(promotionId, cancellationToken);
                     if (!incremented)
                     {
-                        _logger.LogWarning("Could not increment usage for promotion {PromotionId} (MaxUses reached or not found).", promotionId);
+                        logger.LogWarning("Could not increment usage for promotion {PromotionId} (MaxUses reached or not found).", promotionId);
                     }
                 }
                 catch (Exception ex)
                 {
                     // Usage tracking failure must NOT block the order - log and continue
-                    _logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
+                    logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
                 }
             }
 
             sw.Stop();
-            _monitoringMetrics.RecordPricingOperation(true, sw.Elapsed.TotalMilliseconds);
+            monitoringMetrics.RecordPricingOperation(true, sw.Elapsed.TotalMilliseconds);
             return result;
         }
         catch (Exception ex)
         {
             sw.Stop();
-            _monitoringMetrics.RecordPricingOperation(false, sw.Elapsed.TotalMilliseconds);
-            _logger.LogError(ex, "Error applying promotion rules");
+            monitoringMetrics.RecordPricingOperation(false, sw.Elapsed.TotalMilliseconds);
+            logger.LogError(ex, "Error applying promotion rules");
             return new PromotionApplicationResultDto
             {
                 Success = false,
@@ -495,7 +485,7 @@ public class PromotionService : IPromotionService
         }
 
         // Validate cart items
-        if (applyDto.CartItems == null || !applyDto.CartItems.Any())
+        if (applyDto.CartItems is null || !applyDto.CartItems.Any())
         {
             errors.Add("Cart cannot be empty");
         }
@@ -519,7 +509,7 @@ public class PromotionService : IPromotionService
         }
 
         // Validate coupon codes format if provided
-        if (applyDto.CouponCodes != null)
+        if (applyDto.CouponCodes is not null)
         {
             foreach (var coupon in applyDto.CouponCodes)
             {
@@ -538,7 +528,7 @@ public class PromotionService : IPromotionService
     /// </summary>
     private async Task<List<Promotion>> GetCachedActivePromotionsAsync(CancellationToken cancellationToken)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for promotion operations");
@@ -546,16 +536,16 @@ public class PromotionService : IPromotionService
 
         var cacheKey = $"ActivePromotions:{currentTenantId.Value}";
 
-        if (_cache.TryGetValue(cacheKey, out List<Promotion>? cachedPromotions))
+        if (cache.TryGetValue(cacheKey, out List<Promotion>? cachedPromotions))
         {
-            _logger.LogDebug("Retrieved {Count} promotions from cache", cachedPromotions?.Count ?? 0);
-            return cachedPromotions ?? new List<Promotion>();
+            logger.LogDebug("Retrieved {Count} promotions from cache", cachedPromotions?.Count ?? 0);
+            return cachedPromotions ?? [];
         }
 
-        _logger.LogDebug("Cache miss - fetching promotions from database");
+        logger.LogDebug("Cache miss - fetching promotions from database");
 
         var now = DateTime.UtcNow;
-        var promotions = await _context.Promotions
+        var promotions = await context.Promotions
             .WhereActiveTenant(currentTenantId.Value)
             .Where(p => p.StartDate <= now && p.EndDate >= now)
             .Include(p => p.Rules.Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value))
@@ -572,8 +562,8 @@ public class PromotionService : IPromotionService
             Size = 1
         };
 
-        _ = _cache.Set(cacheKey, promotions, cacheOptions);
-        _logger.LogDebug("Cached {Count} promotions", promotions.Count);
+        _ = cache.Set(cacheKey, promotions, cacheOptions);
+        logger.LogDebug("Cached {Count} promotions", promotions.Count);
 
         return promotions;
     }
@@ -594,7 +584,7 @@ public class PromotionService : IPromotionService
             {
                 if (!appliedCoupons.Contains(promotion.CouponCode))
                 {
-                    _logger.LogDebug("Skipping promotion {PromotionName} - required coupon {Coupon} not provided",
+                    logger.LogDebug("Skipping promotion {PromotionName} - required coupon {Coupon} not provided",
                         promotion.Name, promotion.CouponCode);
                     continue;
                 }
@@ -606,7 +596,7 @@ public class PromotionService : IPromotionService
                 var currentTotal = applyDto.CartItems.Sum(item => item.UnitPrice * item.Quantity);
                 if (currentTotal < promotion.MinOrderAmount.Value)
                 {
-                    _logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})",
+                    logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})",
                         promotion.Name, promotion.MinOrderAmount.Value, currentTotal);
                     exclusionMessages.Add($"Cart total ${currentTotal:F2} doesn't meet minimum ${promotion.MinOrderAmount.Value:F2} for {promotion.Name}");
                     continue;
@@ -654,11 +644,13 @@ public class PromotionService : IPromotionService
     private bool IsRuleApplicable(PromotionRule rule, ApplyPromotionRulesDto applyDto)
     {
         // Check Business Party Groups (support both new and deprecated field)
+#pragma warning disable CS0618
         var groupIdsToCheck = rule.BusinessPartyGroupIds ?? rule.CustomerGroupIds;
+#pragma warning restore CS0618
 
-        if (groupIdsToCheck != null && groupIdsToCheck.Any())
+        if (groupIdsToCheck is not null && groupIdsToCheck.Any())
         {
-            if (applyDto.BusinessPartyGroupIds == null || !applyDto.BusinessPartyGroupIds.Any())
+            if (applyDto.BusinessPartyGroupIds is null || !applyDto.BusinessPartyGroupIds.Any())
             {
                 return false;
             }
@@ -670,7 +662,7 @@ public class PromotionService : IPromotionService
         }
 
         // Check sales channel
-        if (rule.SalesChannels != null && rule.SalesChannels.Any() && !string.IsNullOrEmpty(applyDto.SalesChannel))
+        if (rule.SalesChannels is not null && rule.SalesChannels.Any() && !string.IsNullOrEmpty(applyDto.SalesChannel))
         {
             if (!rule.SalesChannels.Contains(applyDto.SalesChannel, StringComparer.OrdinalIgnoreCase))
             {
@@ -679,7 +671,7 @@ public class PromotionService : IPromotionService
         }
 
         // Check time restrictions
-        if (rule.ValidDays != null && rule.ValidDays.Any())
+        if (rule.ValidDays is not null && rule.ValidDays.Any())
         {
             var orderDayOfWeek = applyDto.OrderDateTime.DayOfWeek;
             if (!rule.ValidDays.Contains(orderDayOfWeek))
@@ -744,12 +736,12 @@ public class PromotionService : IPromotionService
     /// </summary>
     private void InvalidatePromotionCache()
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (currentTenantId.HasValue)
         {
             var cacheKey = $"ActivePromotions:{currentTenantId.Value}";
-            _cache.Remove(cacheKey);
-            _logger.LogDebug("Invalidated promotion cache for tenant {TenantId}", currentTenantId.Value);
+            cache.Remove(cacheKey);
+            logger.LogDebug("Invalidated promotion cache for tenant {TenantId}", currentTenantId.Value);
         }
     }
 
@@ -841,7 +833,7 @@ public class PromotionService : IPromotionService
                 result.AppliedPromotions.Add(appliedPromotion);
                 applied = true;
 
-                _logger.LogDebug("Applied discount rule: {Description}, Amount: {Amount}", description, discountAmount);
+                logger.LogDebug("Applied discount rule: {Description}, Amount: {Amount}", description, discountAmount);
             }
         }
 
@@ -850,7 +842,7 @@ public class PromotionService : IPromotionService
 
     private bool ApplyCategoryDiscountRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, HashSet<Guid> lockedLines, PromotionApplicationResultDto result)
     {
-        if (rule.CategoryIds == null || !rule.CategoryIds.Any())
+        if (rule.CategoryIds is null || !rule.CategoryIds.Any())
             return false;
 
         bool applied = false;
@@ -1013,7 +1005,7 @@ public class PromotionService : IPromotionService
                 result.AppliedPromotions.Add(appliedPromotion);
                 applied = true;
 
-                _logger.LogDebug("Applied BuyXGetY rule: {Description}, Amount: {Amount}", description, discountAmount);
+                logger.LogDebug("Applied BuyXGetY rule: {Description}, Amount: {Amount}", description, discountAmount);
             }
         }
 
@@ -1063,7 +1055,7 @@ public class PromotionService : IPromotionService
 
     private bool ApplyBundleRule(PromotionRule rule, List<CartItemResultDto> cartItems, Promotion promotion, HashSet<Guid> lockedLines, PromotionApplicationResultDto result)
     {
-        if (!rule.FixedPrice.HasValue || rule.Products == null || rule.Products.Count < 2)
+        if (!rule.FixedPrice.HasValue || rule.Products is null || rule.Products.Count < 2)
             return false;
 
         // Find items that match the bundle requirements
@@ -1079,7 +1071,7 @@ public class PromotionService : IPromotionService
         foreach (var requiredProduct in requiredProducts)
         {
             var matchingItem = bundleItems.FirstOrDefault(i => i.ProductId == requiredProduct.ProductId);
-            if (matchingItem == null || matchingItem.Quantity < (requiredProduct.Quantity ?? 1))
+            if (matchingItem is null || matchingItem.Quantity < (requiredProduct.Quantity ?? 1))
             {
                 canApplyBundle = false;
                 break;
@@ -1168,14 +1160,14 @@ public class PromotionService : IPromotionService
         var targetItems = cartItems.Where(item => !lockedLines.Contains(item.ProductId)).ToList();
 
         // Filter by specific products if rule specifies them
-        if (rule.Products != null && rule.Products.Any())
+        if (rule.Products is not null && rule.Products.Any())
         {
             var ruleProductIds = rule.Products.Select(p => p.ProductId).ToHashSet();
             targetItems = targetItems.Where(item => ruleProductIds.Contains(item.ProductId)).ToList();
         }
 
         // Filter by categories if rule specifies them
-        if (rule.CategoryIds != null && rule.CategoryIds.Any())
+        if (rule.CategoryIds is not null && rule.CategoryIds.Any())
         {
             targetItems = targetItems.Where(item =>
                 item.CategoryIds != null &&
@@ -1197,7 +1189,7 @@ public class PromotionService : IPromotionService
         {
             var checkDateTime = orderDateTime ?? DateTime.UtcNow;
 
-            var query = _context.PromotionRules
+            var query = context.PromotionRules
                 .Include(pr => pr.Promotion)
                 .Where(pr => !pr.IsDeleted &&
                            !pr.Promotion!.IsDeleted &&
@@ -1219,7 +1211,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving applicable promotion rules.");
+            logger.LogError(ex, "Error retrieving applicable promotion rules.");
             throw;
         }
     }
@@ -1231,41 +1223,41 @@ public class PromotionService : IPromotionService
         {
             if (string.IsNullOrWhiteSpace(couponCode))
             {
-                _logger.LogDebug("ValidateCouponAsync called with null or empty coupon code.");
+                logger.LogDebug("ValidateCouponAsync called with null or empty coupon code.");
                 return null;
             }
 
             var now = DateTime.UtcNow;
             var normalizedCode = couponCode.Trim().ToUpperInvariant();
 
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => !p.IsDeleted && p.IsActive &&
                             p.CouponCode != null &&
                             p.CouponCode.ToUpper() == normalizedCode &&
                             p.StartDate <= now && p.EndDate >= now)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
             {
-                _logger.LogInformation("Coupon code '{CouponCode}' is invalid, expired, or not found.", couponCode);
+                logger.LogInformation("Coupon code '{CouponCode}' is invalid, expired, or not found.", couponCode);
                 return null;
             }
 
             if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
             {
-                _logger.LogInformation("Coupon code '{CouponCode}' has reached its maximum uses limit ({MaxUses}).", couponCode, promotion.MaxUses.Value);
+                logger.LogInformation("Coupon code '{CouponCode}' has reached its maximum uses limit ({MaxUses}).", couponCode, promotion.MaxUses.Value);
                 return null;
             }
 
-            _logger.LogInformation("Coupon code '{CouponCode}' validated successfully for promotion '{PromotionName}' ({PromotionId}).", couponCode, promotion.Name, promotion.Id);
+            logger.LogInformation("Coupon code '{CouponCode}' validated successfully for promotion '{PromotionName}' ({PromotionId}).", couponCode, promotion.Name, promotion.Id);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(promotion, "ValidateCoupon", "System", null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(promotion, "ValidateCoupon", "System", null, cancellationToken);
 
             return MapToPromotionDto(promotion);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating coupon code '{CouponCode}'.", couponCode);
+            logger.LogError(ex, "Error validating coupon code '{CouponCode}'.", couponCode);
             throw;
         }
     }
@@ -1277,13 +1269,13 @@ public class PromotionService : IPromotionService
 
         try
         {
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => p.Id == promotionId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
             {
-                _logger.LogWarning("Promotion with ID {PromotionId} not found for usage increment.", promotionId);
+                logger.LogWarning("Promotion with ID {PromotionId} not found for usage increment.", promotionId);
                 return false;
             }
 
@@ -1291,7 +1283,7 @@ public class PromotionService : IPromotionService
             {
                 if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
                 {
-                    _logger.LogInformation("Promotion {PromotionId} has reached its maximum uses limit ({MaxUses}).", promotionId, promotion.MaxUses.Value);
+                    logger.LogInformation("Promotion {PromotionId} has reached its maximum uses limit ({MaxUses}).", promotionId, promotion.MaxUses.Value);
                     return false;
                 }
 
@@ -1299,18 +1291,18 @@ public class PromotionService : IPromotionService
 
                 try
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _ = await _auditLogService.TrackEntityChangesAsync(promotion, "IncrementUsage", "System", null, cancellationToken);
-                    _logger.LogInformation("Successfully incremented usage for promotion {PromotionId}. CurrentUses: {CurrentUses}.", promotionId, promotion.CurrentUses);
+                    await context.SaveChangesAsync(cancellationToken);
+                    _ = await auditLogService.TrackEntityChangesAsync(promotion, "IncrementUsage", "System", null, cancellationToken);
+                    logger.LogInformation("Successfully incremented usage for promotion {PromotionId}. CurrentUses: {CurrentUses}.", promotionId, promotion.CurrentUses);
                     return true;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
-                    _logger.LogWarning(ex, "Concurrency conflict while incrementing usage for promotion {PromotionId}. Attempt {Attempt}/{MaxRetries}.", promotionId, attempt + 1, maxRetries);
+                    logger.LogWarning(ex, "Concurrency conflict while incrementing usage for promotion {PromotionId}. Attempt {Attempt}/{MaxRetries}.", promotionId, attempt + 1, maxRetries);
 
                     if (attempt >= maxRetries - 1)
                     {
-                        _logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
+                        logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
                         throw;
                     }
 
@@ -1319,7 +1311,7 @@ public class PromotionService : IPromotionService
                     await Task.Delay(delayMs, cancellationToken);
 
                     var entry = ex.Entries.FirstOrDefault();
-                    if (entry != null)
+                    if (entry is not null)
                     {
                         await entry.ReloadAsync(cancellationToken);
                         promotion = (Promotion)entry.Entity;
@@ -1337,7 +1329,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
+            logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1346,7 +1338,7 @@ public class PromotionService : IPromotionService
     public string? SerializeAppliedPromotionsJson(IEnumerable<AppliedPromotionDto> appliedPromotions)
     {
         var list = appliedPromotions?.ToList();
-        if (list == null || list.Count == 0)
+        if (list is null || list.Count == 0)
         {
             return null;
         }
@@ -1371,7 +1363,7 @@ public class PromotionService : IPromotionService
     {
         try
         {
-            var rules = await _context.PromotionRules
+            var rules = await context.PromotionRules
                 .Include(r => r.Products.Where(p => !p.IsDeleted))
                     .ThenInclude(p => p.Product)
                 .Where(r => r.PromotionId == promotionId && !r.IsDeleted)
@@ -1382,7 +1374,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}.", promotionId);
+            logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1394,15 +1386,15 @@ public class PromotionService : IPromotionService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required.");
 
-            var promotion = await _context.Promotions
+            var promotion = await context.Promotions
                 .Where(p => p.Id == promotionId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion == null)
+            if (promotion is null)
                 throw new InvalidOperationException($"Promotion {promotionId} not found.");
 
             if (!Enum.TryParse<Data.Entities.Promotions.PromotionRuleType>(createDto.RuleType, true, out var ruleType))
@@ -1431,15 +1423,15 @@ public class PromotionService : IPromotionService
                 CreatedBy = currentUser
             };
 
-            _context.PromotionRules.Add(rule);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.PromotionRules.Add(rule);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Add product associations
-            if (createDto.ProductIds != null && createDto.ProductIds.Any())
+            if (createDto.ProductIds is not null && createDto.ProductIds.Any())
             {
                 foreach (var productId in createDto.ProductIds.Distinct())
                 {
-                    _context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
+                    context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
                     {
                         Id = Guid.NewGuid(),
                         PromotionRuleId = rule.Id,
@@ -1449,17 +1441,17 @@ public class PromotionService : IPromotionService
                         CreatedBy = currentUser
                     });
                 }
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
             }
 
             InvalidatePromotionCache();
-            _logger.LogInformation("Rule {RuleId} added to promotion {PromotionId} by {User}.", rule.Id, promotionId, currentUser);
+            logger.LogInformation("Rule {RuleId} added to promotion {PromotionId} by {User}.", rule.Id, promotionId, currentUser);
 
             return MapToPromotionRuleDto(rule);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding rule to promotion {PromotionId}.", promotionId);
+            logger.LogError(ex, "Error adding rule to promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1471,13 +1463,13 @@ public class PromotionService : IPromotionService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var rule = await _context.PromotionRules
+            var rule = await context.PromotionRules
                 .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (rule == null)
+            if (rule is null)
             {
-                _logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
+                logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
                 return null;
             }
 
@@ -1501,12 +1493,12 @@ public class PromotionService : IPromotionService
             rule.ModifiedAt = DateTime.UtcNow;
             rule.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Update product associations if provided
-            if (updateDto.ProductIds != null)
+            if (updateDto.ProductIds is not null)
             {
-                var existingProducts = await _context.PromotionRuleProducts
+                var existingProducts = await context.PromotionRuleProducts
                     .Where(rp => rp.PromotionRuleId == ruleId && !rp.IsDeleted)
                     .ToListAsync(cancellationToken);
 
@@ -1519,7 +1511,7 @@ public class PromotionService : IPromotionService
 
                 foreach (var productId in updateDto.ProductIds.Distinct())
                 {
-                    _context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
+                    context.PromotionRuleProducts.Add(new Data.Entities.Promotions.PromotionRuleProduct
                     {
                         Id = Guid.NewGuid(),
                         PromotionRuleId = ruleId,
@@ -1529,17 +1521,17 @@ public class PromotionService : IPromotionService
                         CreatedBy = currentUser
                     });
                 }
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
             }
 
             InvalidatePromotionCache();
-            _logger.LogInformation("Rule {RuleId} for promotion {PromotionId} updated by {User}.", ruleId, promotionId, currentUser);
+            logger.LogInformation("Rule {RuleId} for promotion {PromotionId} updated by {User}.", ruleId, promotionId, currentUser);
 
             return MapToPromotionRuleDto(rule);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
+            logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
             throw;
         }
     }
@@ -1550,13 +1542,13 @@ public class PromotionService : IPromotionService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var rule = await _context.PromotionRules
+            var rule = await context.PromotionRules
                 .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (rule == null)
+            if (rule is null)
             {
-                _logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
+                logger.LogWarning("Rule {RuleId} for promotion {PromotionId} not found.", ruleId, promotionId);
                 return false;
             }
 
@@ -1564,16 +1556,16 @@ public class PromotionService : IPromotionService
             rule.ModifiedAt = DateTime.UtcNow;
             rule.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             InvalidatePromotionCache();
-            _logger.LogInformation("Rule {RuleId} for promotion {PromotionId} deleted by {User}.", ruleId, promotionId, currentUser);
+            logger.LogInformation("Rule {RuleId} for promotion {PromotionId} deleted by {User}.", ruleId, promotionId, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
+            logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
             throw;
         }
     }
@@ -1623,10 +1615,10 @@ public class PromotionService : IPromotionService
     {
         try
         {
-            var products = await _context.PromotionRuleProducts
+            var products = await context.PromotionRuleProducts
                 .Include(rp => rp.Product)
                 .Where(rp => rp.PromotionRuleId == ruleId && !rp.IsDeleted &&
-                             _context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
+                             context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
                 .OrderBy(rp => rp.CreatedAt)
                 .ToListAsync(cancellationToken);
 
@@ -1645,7 +1637,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products for rule {RuleId}.", ruleId);
+            logger.LogError(ex, "Error retrieving products for rule {RuleId}.", ruleId);
             throw;
         }
     }
@@ -1655,20 +1647,20 @@ public class PromotionService : IPromotionService
         try
         {
             ArgumentNullException.ThrowIfNull(createDto);
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required.");
 
-            var rule = await _context.PromotionRules
+            var rule = await context.PromotionRules
                 .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
-            if (rule == null)
+            if (rule is null)
                 throw new InvalidOperationException($"Rule {ruleId} not found for promotion {promotionId}.");
 
             // Avoid duplicates
-            var existing = await _context.PromotionRuleProducts
+            var existing = await context.PromotionRuleProducts
                 .FirstOrDefaultAsync(rp => rp.PromotionRuleId == ruleId && rp.ProductId == createDto.ProductId && !rp.IsDeleted, cancellationToken);
-            if (existing != null)
+            if (existing is not null)
                 return new PromotionRuleProductDto
                 {
                     Id = existing.Id,
@@ -1688,11 +1680,11 @@ public class PromotionService : IPromotionService
                 CreatedBy = currentUser
             };
 
-            _context.PromotionRuleProducts.Add(ruleProduct);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.PromotionRuleProducts.Add(ruleProduct);
+            await context.SaveChangesAsync(cancellationToken);
             InvalidatePromotionCache();
 
-            var product = await _context.Set<Data.Entities.Products.Product>()
+            var product = await context.Set<Data.Entities.Products.Product>()
                 .Where(p => p.Id == createDto.ProductId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1709,7 +1701,7 @@ public class PromotionService : IPromotionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding product {ProductId} to rule {RuleId}.", createDto?.ProductId, ruleId);
+            logger.LogError(ex, "Error adding product {ProductId} to rule {RuleId}.", createDto?.ProductId, ruleId);
             throw;
         }
     }
@@ -1718,25 +1710,26 @@ public class PromotionService : IPromotionService
     {
         try
         {
-            var ruleProduct = await _context.PromotionRuleProducts
+            var ruleProduct = await context.PromotionRuleProducts
                 .Where(rp => rp.PromotionRuleId == ruleId && rp.ProductId == productId && !rp.IsDeleted &&
-                             _context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
+                             context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (ruleProduct == null)
+            if (ruleProduct is null)
                 return false;
 
             ruleProduct.IsDeleted = true;
             ruleProduct.ModifiedAt = DateTime.UtcNow;
             ruleProduct.ModifiedBy = currentUser;
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             InvalidatePromotionCache();
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing product {ProductId} from rule {RuleId}.", productId, ruleId);
+            logger.LogError(ex, "Error removing product {ProductId} from rule {RuleId}.", productId, ruleId);
             throw;
         }
     }
+
 }

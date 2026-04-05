@@ -1,7 +1,7 @@
 @using EventForge.DTOs.Warehouse
 @inject ITranslationService TranslationService
 @inject IInventoryService InventoryService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.MergeType"
           Title="Unisci Inventari"
@@ -87,19 +87,16 @@
 
             if (result != null)
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("warehouse.mergeSuccess",
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.mergeSuccess",
                         "{0} inventari accorpati con successo in {1}",
-                        SelectedInventories.Count, result.Number),
-                    Severity.Success
-                );
+                        SelectedInventories.Count, result.Number));
 
                 MudDialog.Close(DialogResult.Ok(result));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 

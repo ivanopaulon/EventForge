@@ -19,7 +19,7 @@ namespace EventForge.Client.Services.Schema
         {
             if (!_entityTypeMap.TryGetValue(entityType, out var dtoType))
             {
-                return new List<FieldMetadata>();
+                return [];
             }
 
             return ExtractFields(dtoType, string.Empty, includeNested);
@@ -32,7 +32,7 @@ namespace EventForge.Client.Services.Schema
             // Count doesn't need a field
             if (metricType == MetricType.Count)
             {
-                return new List<FieldMetadata>();
+                return [];
             }
 
             // Sum, Average, Min, Max require numeric fields
@@ -52,7 +52,7 @@ namespace EventForge.Client.Services.Schema
 
         private List<FieldMetadata> ExtractFields(Type type, string prefix, bool includeNested, int depth = 0)
         {
-            var fields = new List<FieldMetadata>();
+            List<FieldMetadata> fields = [];
             const int maxDepth = 2; // Prevent infinite recursion
 
             if (depth > maxDepth)
@@ -201,17 +201,17 @@ namespace EventForge.Client.Services.Schema
             // Provide realistic examples based on field name and type
             return (fieldName, dataType) switch
             {
-                ("Percentage", FieldDataType.Decimal) => new List<string> { "22.0", "10.0", "4.0" },
-                ("Name", FieldDataType.String) => new List<string> { "IVA Ordinaria", "Prodotto A" },
-                ("Status", _) => new List<string> { "Active", "Inactive" },
-                ("Amount", FieldDataType.Decimal) => new List<string> { "1000.00", "500.50" },
-                ("Quantity", _) => new List<string> { "10", "50", "100" },
-                ("Price", FieldDataType.Decimal) => new List<string> { "99.99", "149.90" },
-                ("DefaultPrice", FieldDataType.Decimal) => new List<string> { "99.99", "149.90" },
-                ("IsActive", FieldDataType.Boolean) => new List<string> { "true", "false" },
-                ("IsVatIncluded", FieldDataType.Boolean) => new List<string> { "true", "false" },
-                ("Code", FieldDataType.String) => new List<string> { "PROD001", "SKU123" },
-                _ => new List<string>()
+                ("Percentage", FieldDataType.Decimal) => ["22.0", "10.0", "4.0"],
+                ("Name", FieldDataType.String) => ["IVA Ordinaria", "Prodotto A"],
+                ("Status", _) => ["Active", "Inactive"],
+                ("Amount", FieldDataType.Decimal) => ["1000.00", "500.50"],
+                ("Quantity", _) => ["10", "50", "100"],
+                ("Price", FieldDataType.Decimal) => ["99.99", "149.90"],
+                ("DefaultPrice", FieldDataType.Decimal) => ["99.99", "149.90"],
+                ("IsActive", FieldDataType.Boolean) => ["true", "false"],
+                ("IsVatIncluded", FieldDataType.Boolean) => ["true", "false"],
+                ("Code", FieldDataType.String) => ["PROD001", "SKU123"],
+                _ => []
             };
         }
     }

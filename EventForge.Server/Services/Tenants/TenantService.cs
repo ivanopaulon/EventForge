@@ -7,51 +7,39 @@ namespace EventForge.Server.Services.Tenants;
 /// <summary>
 /// Implementation of tenant management operations.
 /// </summary>
-public class TenantService : ITenantService
+public class TenantService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IPasswordService passwordService,
+    ILogger<TenantService> logger) : ITenantService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IPasswordService _passwordService;
-    private readonly ILogger<TenantService> _logger;
-
-    public TenantService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IPasswordService passwordService,
-        ILogger<TenantService> logger)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _passwordService = passwordService;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
-            _logger.LogWarning("Tentativo di creazione tenant non autorizzato.");
+            logger.LogWarning("Tentativo di creazione tenant non autorizzato.");
             throw new UnauthorizedAccessException("Only super administrators can create tenants.");
         }
 
         // Check if tenant code already exists
-        var existingTenantByCode = await _context.Tenants
+        var existingTenantByCode = await context.Tenants
             .FirstOrDefaultAsync(t => t.Code.ToLower() == createDto.Code.ToLower());
-        if (existingTenantByCode != null)
+        if (existingTenantByCode is not null)
         {
-            _logger.LogWarning("Tenant con codice '{TenantCode}' già esistente.", createDto.Code);
+            logger.LogWarning("Tenant con codice '{TenantCode}' già esistente.", createDto.Code);
             throw new InvalidOperationException($"Tenant with code '{createDto.Code}' already exists.");
         }
 
-        var existingTenant = await _context.Tenants
+        var existingTenant = await context.Tenants
             .FirstOrDefaultAsync(t => t.Name.ToLower() == createDto.Name.ToLower());
-        if (existingTenant != null)
+        if (existingTenant is not null)
         {
-            _logger.LogWarning("Tenant con nome '{TenantName}' già esistente.", createDto.Name);
+            logger.LogWarning("Tenant con nome '{TenantName}' già esistente.", createDto.Name);
             throw new InvalidOperationException($"Tenant with name '{createDto.Name}' already exists.");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var transaction = await context.Database.BeginTransactionAsync();
         try
         {
             var tenant = new Tenant
@@ -71,8 +59,8 @@ public class TenantService : ITenantService
 
             tenant.TenantId = tenant.Id;
 
-            _ = _context.Tenants.Add(tenant);
-            _ = await _context.SaveChangesAsync();
+            _ = context.Tenants.Add(tenant);
+            _ = await context.SaveChangesAsync();
 
             // Admin users are not automatically created during tenant creation
             // to avoid FK constraint violations. Admin users should be assigned
@@ -83,7 +71,7 @@ public class TenantService : ITenantService
             // Audit log
             try
             {
-                var currentUserIdForAudit = _tenantContext.CurrentUserId;
+                var currentUserIdForAudit = tenantContext.CurrentUserId;
                 if (currentUserIdForAudit.HasValue)
                 {
                     var auditTrail = new AuditTrail
@@ -96,13 +84,13 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _ = _context.AuditTrails.Add(auditTrail);
-                    _ = await _context.SaveChangesAsync();
+                    _ = context.AuditTrails.Add(auditTrail);
+                    _ = await context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant.");
+                logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant.");
             }
 
             var response = TenantMapper.ToServerResponseDto(tenant);
@@ -115,43 +103,43 @@ public class TenantService : ITenantService
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            _logger.LogError(ex, "Errore durante la creazione del tenant.");
+            logger.LogError(ex, "Errore durante la creazione del tenant.");
             throw;
         }
     }
 
     public async Task<TenantResponseDto> CreateTenantWithAdminAsync(CreateTenantDto createDto)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
-            _logger.LogWarning("Tentativo di creazione tenant con admin non autorizzato.");
+            logger.LogWarning("Tentativo di creazione tenant con admin non autorizzato.");
             throw new UnauthorizedAccessException("Only super administrators can create tenants with admin users.");
         }
 
-        if (createDto.AdminUser == null)
+        if (createDto.AdminUser is null)
         {
-            _logger.LogWarning("Admin user information is required for tenant creation with admin.");
+            logger.LogWarning("Admin user information is required for tenant creation with admin.");
             throw new InvalidOperationException("Admin user information is required.");
         }
 
         // Check if tenant code already exists
-        var existingTenantByCode = await _context.Tenants
+        var existingTenantByCode = await context.Tenants
             .FirstOrDefaultAsync(t => t.Code.ToLower() == createDto.Code.ToLower());
-        if (existingTenantByCode != null)
+        if (existingTenantByCode is not null)
         {
-            _logger.LogWarning("Tenant con codice '{TenantCode}' già esistente.", createDto.Code);
+            logger.LogWarning("Tenant con codice '{TenantCode}' già esistente.", createDto.Code);
             throw new InvalidOperationException($"Tenant with code '{createDto.Code}' already exists.");
         }
 
-        var existingTenant = await _context.Tenants
+        var existingTenant = await context.Tenants
             .FirstOrDefaultAsync(t => t.Name.ToLower() == createDto.Name.ToLower());
-        if (existingTenant != null)
+        if (existingTenant is not null)
         {
-            _logger.LogWarning("Tenant con nome '{TenantName}' già esistente.", createDto.Name);
+            logger.LogWarning("Tenant con nome '{TenantName}' già esistente.", createDto.Name);
             throw new InvalidOperationException($"Tenant with name '{createDto.Name}' already exists.");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var transaction = await context.Database.BeginTransactionAsync();
         try
         {
             // Create tenant first
@@ -171,30 +159,30 @@ public class TenantService : ITenantService
             };
 
             tenant.TenantId = tenant.Id;
-            _ = _context.Tenants.Add(tenant);
-            _ = await _context.SaveChangesAsync();
+            _ = context.Tenants.Add(tenant);
+            _ = await context.SaveChangesAsync();
 
             // Check if username already exists in the tenant
-            var existingUser = await _context.Users
+            var existingUser = await context.Users
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == createDto.AdminUser.Username.ToLower()
                                      && u.TenantId == tenant.Id);
-            if (existingUser != null)
+            if (existingUser is not null)
             {
                 throw new InvalidOperationException($"Username '{createDto.AdminUser.Username}' already exists in this tenant.");
             }
 
             // Check if email already exists in the tenant
-            var existingUserByEmail = await _context.Users
+            var existingUserByEmail = await context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == createDto.AdminUser.Email.ToLower()
                                      && u.TenantId == tenant.Id);
-            if (existingUserByEmail != null)
+            if (existingUserByEmail is not null)
             {
                 throw new InvalidOperationException($"Email '{createDto.AdminUser.Email}' already exists in this tenant.");
             }
 
             // Generate random password for admin user
             var randomPassword = GenerateRandomPassword();
-            var (hash, salt) = _passwordService.HashPassword(randomPassword);
+            var (hash, salt) = passwordService.HashPassword(randomPassword);
 
             // Create admin user
             var adminUser = new User
@@ -214,14 +202,14 @@ public class TenantService : ITenantService
                 PasswordChangedAt = DateTime.UtcNow
             };
 
-            _ = _context.Users.Add(adminUser);
-            _ = await _context.SaveChangesAsync();
+            _ = context.Users.Add(adminUser);
+            _ = await context.SaveChangesAsync();
 
             // Assign SuperAdmin role to the user
-            var superAdminRole = await _context.Roles
+            var superAdminRole = await context.Roles
                 .FirstOrDefaultAsync(r => r.Name == "SuperAdmin");
 
-            if (superAdminRole != null)
+            if (superAdminRole is not null)
             {
                 var userRole = new UserRole
                 {
@@ -233,8 +221,8 @@ public class TenantService : ITenantService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _ = _context.UserRoles.Add(userRole);
-                _ = await _context.SaveChangesAsync();
+                _ = context.UserRoles.Add(userRole);
+                _ = await context.SaveChangesAsync();
             }
 
             await transaction.CommitAsync();
@@ -242,7 +230,7 @@ public class TenantService : ITenantService
             // Audit log
             try
             {
-                var currentUserIdForAudit = _tenantContext.CurrentUserId;
+                var currentUserIdForAudit = tenantContext.CurrentUserId;
                 if (currentUserIdForAudit.HasValue)
                 {
                     var auditTrail = new AuditTrail
@@ -255,13 +243,13 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _ = _context.AuditTrails.Add(auditTrail);
-                    _ = await _context.SaveChangesAsync();
+                    _ = context.AuditTrails.Add(auditTrail);
+                    _ = await context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant con admin.");
+                logger.LogError(ex, "Errore durante la scrittura dell'audit trail per la creazione tenant con admin.");
             }
 
             var response = TenantMapper.ToServerResponseDto(tenant);
@@ -277,7 +265,7 @@ public class TenantService : ITenantService
                 GeneratedPassword = randomPassword // Include generated password in response
             };
 
-            _logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}' (Password: {Password})",
+            logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}' (Password: {Password})",
                 tenant.Name, adminUser.Username, randomPassword);
 
             return response;
@@ -285,7 +273,7 @@ public class TenantService : ITenantService
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            _logger.LogError(ex, "Errore durante la creazione del tenant con admin.");
+            logger.LogError(ex, "Errore durante la creazione del tenant con admin.");
             throw;
         }
     }
@@ -336,21 +324,21 @@ public class TenantService : ITenantService
     {
         try
         {
-            var canAccess = await _tenantContext.CanAccessTenantAsync(tenantId);
+            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
             if (!canAccess)
             {
-                _logger.LogWarning("Accesso negato al tenant {TenantId}.", tenantId);
+                logger.LogWarning("Accesso negato al tenant {TenantId}.", tenantId);
                 throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
             }
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
-            return tenant != null ? TenantMapper.ToServerResponseDto(tenant) : null;
+            return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero del tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Errore durante il recupero del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -359,10 +347,10 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
                 throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
 
-            var tenants = await _context.Tenants
+            var tenants = await context.Tenants
                 .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.Name)
                 .ToListAsync();
@@ -371,7 +359,7 @@ public class TenantService : ITenantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero di tutti i tenant.");
+            logger.LogError(ex, "Errore durante il recupero di tutti i tenant.");
             throw;
         }
     }
@@ -380,18 +368,18 @@ public class TenantService : ITenantService
     {
         try
         {
-            var canAccess = await _tenantContext.CanAccessTenantAsync(tenantId);
+            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
             if (!canAccess)
             {
-                _logger.LogWarning("Accesso negato all'aggiornamento del tenant {TenantId}.", tenantId);
+                logger.LogWarning("Accesso negato all'aggiornamento del tenant {TenantId}.", tenantId);
                 throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
             }
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant == null)
+            if (tenant is null)
             {
-                _logger.LogWarning("Tenant {TenantId} non trovato per aggiornamento.", tenantId);
+                logger.LogWarning("Tenant {TenantId} non trovato per aggiornamento.", tenantId);
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
@@ -423,18 +411,18 @@ public class TenantService : ITenantService
 
             try
             {
-                _ = await _context.SaveChangesAsync();
+                _ = await context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Tenant {TenantId}.", tenantId);
+                logger.LogWarning(ex, "Concurrency conflict updating Tenant {TenantId}.", tenantId);
                 throw new InvalidOperationException("Il tenant è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
             try
             {
-                var currentUserId = _tenantContext.CurrentUserId;
+                var currentUserId = tenantContext.CurrentUserId;
                 if (currentUserId.HasValue)
                 {
                     var auditTrail = new AuditTrail
@@ -447,13 +435,13 @@ public class TenantService : ITenantService
                         WasSuccessful = true,
                         PerformedAt = DateTime.UtcNow
                     };
-                    _ = _context.AuditTrails.Add(auditTrail);
-                    _ = await _context.SaveChangesAsync();
+                    _ = context.AuditTrails.Add(auditTrail);
+                    _ = await context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
+                logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
             }
 
             return TenantMapper.ToServerResponseDto(tenant);
@@ -464,7 +452,7 @@ public class TenantService : ITenantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiornamento del tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Errore durante l'aggiornamento del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -473,17 +461,17 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di cambio stato tenant non autorizzato.");
+                logger.LogWarning("Tentativo di cambio stato tenant non autorizzato.");
                 throw new UnauthorizedAccessException("Only super administrators can change tenant status.");
             }
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant == null)
+            if (tenant is null)
             {
-                _logger.LogWarning("Tenant {TenantId} non trovato per cambio stato.", tenantId);
+                logger.LogWarning("Tenant {TenantId} non trovato per cambio stato.", tenantId);
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
@@ -508,10 +496,10 @@ public class TenantService : ITenantService
             tenant.IsActive = isEnabled;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Audit log
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (currentUserId.HasValue)
             {
                 var auditTrail = new AuditTrail
@@ -524,13 +512,13 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _ = _context.AuditTrails.Add(auditTrail);
-                _ = await _context.SaveChangesAsync();
+                _ = context.AuditTrails.Add(auditTrail);
+                _ = await context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il cambio stato del tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Errore durante il cambio stato del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -539,33 +527,33 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di aggiunta admin tenant non autorizzato.");
+                logger.LogWarning("Tentativo di aggiunta admin tenant non autorizzato.");
                 throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
             }
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant == null)
+            if (tenant is null)
             {
-                _logger.LogWarning("Tenant {TenantId} non trovato per aggiunta admin.", tenantId);
+                logger.LogWarning("Tenant {TenantId} non trovato per aggiunta admin.", tenantId);
                 throw new ArgumentException($"Tenant {tenantId} not found.");
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
+            if (user is null)
             {
-                _logger.LogWarning("Utente {UserId} non trovato per aggiunta admin.", userId);
+                logger.LogWarning("Utente {UserId} non trovato per aggiunta admin.", userId);
                 throw new ArgumentException($"User {userId} not found.");
             }
 
-            var existingMapping = await _context.AdminTenants
+            var existingMapping = await context.AdminTenants
                 .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
-            if (existingMapping != null)
+            if (existingMapping is not null)
             {
-                _logger.LogWarning("Utente {UserId} gi� admin per tenant {TenantId}.", userId, tenantId);
+                logger.LogWarning("Utente {UserId} gi� admin per tenant {TenantId}.", userId, tenantId);
                 throw new InvalidOperationException($"User {userId} is already an admin for tenant {tenantId}.");
             }
 
@@ -579,11 +567,11 @@ public class TenantService : ITenantService
                 GrantedAt = DateTime.UtcNow
             };
 
-            _ = _context.AdminTenants.Add(adminTenant);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AdminTenants.Add(adminTenant);
+            _ = await context.SaveChangesAsync();
 
             // Audit log
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (currentUserId.HasValue)
             {
                 var auditTrail = new AuditTrail
@@ -597,8 +585,8 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _ = _context.AuditTrails.Add(auditTrail);
-                _ = await _context.SaveChangesAsync();
+                _ = context.AuditTrails.Add(auditTrail);
+                _ = await context.SaveChangesAsync();
             }
 
             return new AdminTenantResponseDto
@@ -617,7 +605,7 @@ public class TenantService : ITenantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiunta di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
+            logger.LogError(ex, "Errore durante l'aggiunta di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
             throw;
         }
     }
@@ -626,18 +614,18 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di rimozione admin tenant non autorizzato.");
+                logger.LogWarning("Tentativo di rimozione admin tenant non autorizzato.");
                 throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
             }
 
-            var adminTenant = await _context.AdminTenants
+            var adminTenant = await context.AdminTenants
                 .Include(at => at.User)
                 .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
-            if (adminTenant == null)
+            if (adminTenant is null)
             {
-                _logger.LogWarning("Admin mapping non trovato per utente {UserId} e tenant {TenantId}.", userId, tenantId);
+                logger.LogWarning("Admin mapping non trovato per utente {UserId} e tenant {TenantId}.", userId, tenantId);
                 throw new ArgumentException($"Admin mapping not found for user {userId} and tenant {tenantId}.");
             }
 
@@ -656,11 +644,11 @@ public class TenantService : ITenantService
                 ModifiedBy = adminTenant.ModifiedBy
             };
 
-            _ = _context.AdminTenants.Remove(adminTenant);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AdminTenants.Remove(adminTenant);
+            _ = await context.SaveChangesAsync();
 
             // Audit log
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (currentUserId.HasValue)
             {
                 var auditTrail = new AuditTrail
@@ -674,13 +662,13 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _ = _context.AuditTrails.Add(auditTrail);
-                _ = await _context.SaveChangesAsync();
+                _ = context.AuditTrails.Add(auditTrail);
+                _ = await context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la rimozione di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
+            logger.LogError(ex, "Errore durante la rimozione di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
             throw;
         }
     }
@@ -689,14 +677,14 @@ public class TenantService : ITenantService
     {
         try
         {
-            var canAccess = await _tenantContext.CanAccessTenantAsync(tenantId);
+            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
             if (!canAccess)
             {
-                _logger.LogWarning("Accesso negato alla lista admin per tenant {TenantId}.", tenantId);
+                logger.LogWarning("Accesso negato alla lista admin per tenant {TenantId}.", tenantId);
                 throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
             }
 
-            var adminTenants = await _context.AdminTenants
+            var adminTenants = await context.AdminTenants
                 .Include(at => at.User)
                 .Include(at => at.ManagedTenant)
                 .Where(at => at.ManagedTenantId == tenantId)
@@ -718,7 +706,7 @@ public class TenantService : ITenantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero degli admin tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Errore durante il recupero degli admin tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -727,17 +715,17 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di forzare cambio password non autorizzato.");
+                logger.LogWarning("Tentativo di forzare cambio password non autorizzato.");
                 throw new UnauthorizedAccessException("Only super administrators can force password changes.");
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
+            if (user is null)
             {
-                _logger.LogWarning("Utente {UserId} non trovato per forzatura cambio password.", userId);
+                logger.LogWarning("Utente {UserId} non trovato per forzatura cambio password.", userId);
                 throw new ArgumentException($"User {userId} not found.");
             }
 
@@ -767,10 +755,10 @@ public class TenantService : ITenantService
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Audit log
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (currentUserId.HasValue)
             {
                 var auditTrail = new AuditTrail
@@ -783,13 +771,13 @@ public class TenantService : ITenantService
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
-                _ = _context.AuditTrails.Add(auditTrail);
-                _ = await _context.SaveChangesAsync();
+                _ = context.AuditTrails.Add(auditTrail);
+                _ = await context.SaveChangesAsync();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la forzatura del cambio password per utente {UserId}.", userId);
+            logger.LogError(ex, "Errore durante la forzatura del cambio password per utente {UserId}.", userId);
             throw;
         }
     }
@@ -802,13 +790,13 @@ public class TenantService : ITenantService
     {
         try
         {
-            if (!_tenantContext.IsSuperAdmin)
+            if (!tenantContext.IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di accesso all'audit trail senza permessi.");
+                logger.LogWarning("Tentativo di accesso all'audit trail senza permessi.");
                 throw new UnauthorizedAccessException("Only super administrators can view audit trails.");
             }
 
-            var query = _context.AuditTrails
+            var query = context.AuditTrails
                 .AsNoTracking()
                 .Include(at => at.PerformedByUser)
                 .Include(at => at.SourceTenant)
@@ -864,29 +852,29 @@ public class TenantService : ITenantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dell'audit trail.");
+            logger.LogError(ex, "Errore durante il recupero dell'audit trail.");
             throw;
         }
     }
 
     public async Task<TenantStatisticsDto> GetTenantStatisticsAsync()
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant statistics.");
         }
 
-        var totalTenants = await _context.Tenants.CountAsync();
-        var activeTenants = await _context.Tenants.CountAsync(t => t.IsActive);
+        var totalTenants = await context.Tenants.CountAsync();
+        var activeTenants = await context.Tenants.CountAsync(t => t.IsActive);
         var inactiveTenants = totalTenants - activeTenants;
 
-        var totalUsers = await _context.Users.CountAsync();
+        var totalUsers = await context.Users.CountAsync();
         var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-        var usersLastMonth = await _context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
+        var usersLastMonth = await context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
 
-        var tenantsNearLimit = await _context.Tenants
+        var tenantsNearLimit = await context.Tenants
             .Where(t => t.IsActive)
-            .CountAsync(t => _context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
+            .CountAsync(t => context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
 
         return new TenantStatisticsDto
         {
@@ -901,12 +889,12 @@ public class TenantService : ITenantService
 
     public async Task<PagedResult<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
             throw new UnauthorizedAccessException("Only super administrators can search tenants.");
         }
 
-        var query = _context.Tenants.AsNoTracking().AsQueryable();
+        var query = context.Tenants.AsNoTracking().AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrEmpty(searchDto.SearchTerm))
@@ -941,7 +929,7 @@ public class TenantService : ITenantService
 
         if (searchDto.NearUserLimit.HasValue && searchDto.NearUserLimit.Value)
         {
-            query = query.Where(t => _context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
+            query = query.Where(t => context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
         }
 
         // Apply sorting
@@ -996,13 +984,13 @@ public class TenantService : ITenantService
 
     public async Task<TenantDetailDto?> GetTenantDetailsAsync(Guid tenantId)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant details.");
         }
 
-        var tenant = await _context.Tenants.FindAsync(tenantId);
-        if (tenant == null)
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
             return null;
         }
@@ -1044,18 +1032,18 @@ public class TenantService : ITenantService
 
     public async Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid tenantId)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant limits.");
         }
 
-        var tenant = await _context.Tenants.FindAsync(tenantId);
-        if (tenant == null)
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
             return null;
         }
 
-        var currentUsers = await _context.Users.CountAsync(u => u.TenantId == tenantId);
+        var currentUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
         var currentStorage = await CalculateStorageUsageAsync(tenantId);
         var currentEventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
 
@@ -1073,27 +1061,27 @@ public class TenantService : ITenantService
 
     public async Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, UpdateTenantLimitsDto updateDto)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
         {
             throw new UnauthorizedAccessException("Only super administrators can update tenant limits.");
         }
 
-        var tenant = await _context.Tenants.FindAsync(tenantId);
-        if (tenant == null)
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
             throw new ArgumentException($"Tenant {tenantId} not found.");
         }
 
         tenant.MaxUsers = updateDto.MaxUsers;
         tenant.ModifiedAt = DateTime.UtcNow;
-        tenant.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+        tenant.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-        _ = await _context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Create audit trail entry
         var auditTrail = new AuditTrail
         {
-            PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+            PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
             OperationType = AuthAuditOperationType.TenantStatusChanged,
             TargetTenantId = tenantId,
             Details = $"Tenant limits updated: MaxUsers={updateDto.MaxUsers}, MaxStorage={updateDto.MaxStorageBytes}, MaxEvents={updateDto.MaxEventsPerMonth}. Reason: {updateDto.Reason}",
@@ -1103,32 +1091,32 @@ public class TenantService : ITenantService
             CreatedBy = tenant.ModifiedBy
         };
 
-        _ = _context.AuditTrails.Add(auditTrail);
-        _ = await _context.SaveChangesAsync();
+        _ = context.AuditTrails.Add(auditTrail);
+        _ = await context.SaveChangesAsync();
 
         return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
     }
 
     private async Task<TenantUsageStatsDto> GetTenantUsageStatsAsync(Guid tenantId)
     {
-        var totalUsers = await _context.Users.CountAsync(u => u.TenantId == tenantId);
-        var activeUsers = await _context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive);
-        var totalEvents = await _context.Events.CountAsync(e => e.TenantId == tenantId);
+        var totalUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
+        var activeUsers = await context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive);
+        var totalEvents = await context.Events.CountAsync(e => e.TenantId == tenantId);
         var eventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
         var storageUsed = await CalculateStorageUsageAsync(tenantId);
-        var lastActivity = await _context.AuditTrails
+        var lastActivity = await context.AuditTrails
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Select(a => a.PerformedAt)
             .FirstOrDefaultAsync();
 
         var today = DateTime.UtcNow.Date;
-        var loginAttemptsToday = await _context.AuditTrails
+        var loginAttemptsToday = await context.AuditTrails
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
-        var failedLoginsToday = await _context.AuditTrails
+        var failedLoginsToday = await context.AuditTrails
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
@@ -1148,7 +1136,7 @@ public class TenantService : ITenantService
 
     private async Task<List<string>> GetRecentActivitiesAsync(Guid tenantId)
     {
-        var recentAudits = await _context.AuditTrails
+        var recentAudits = await context.AuditTrails
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Take(10)
@@ -1163,8 +1151,8 @@ public class TenantService : ITenantService
         // This is a placeholder implementation
         // In a real application, you would calculate actual storage usage
         // from file uploads, documents, etc.
-        var userCount = await _context.Users.CountAsync(u => u.TenantId == tenantId);
-        var eventCount = await _context.Events.CountAsync(e => e.TenantId == tenantId);
+        var userCount = await context.Users.CountAsync(u => u.TenantId == tenantId);
+        var eventCount = await context.Events.CountAsync(e => e.TenantId == tenantId);
 
         // Rough estimation: 1KB per user + 10KB per event
         return (userCount * 1024) + (eventCount * 10240);
@@ -1173,17 +1161,17 @@ public class TenantService : ITenantService
     private async Task<int> CalculateEventsThisMonthAsync(Guid tenantId)
     {
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        return await _context.Events
+        return await context.Events
             .CountAsync(e => e.TenantId == tenantId && e.CreatedAt >= startOfMonth);
     }
 
     public async Task SoftDeleteTenantAsync(Guid tenantId, string reason)
     {
-        if (!_tenantContext.IsSuperAdmin)
+        if (!tenantContext.IsSuperAdmin)
             throw new UnauthorizedAccessException("Only super administrators can delete tenants.");
 
-        var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
-        if (tenant == null)
+        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant is null)
             throw new ArgumentException($"Tenant {tenantId} not found.");
 
         if (tenant.IsDeleted)
@@ -1193,10 +1181,10 @@ public class TenantService : ITenantService
         tenant.IsActive = false;
         tenant.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync();
+        _ = await context.SaveChangesAsync();
 
         // Audit log
-        var currentUserId = _tenantContext.CurrentUserId;
+        var currentUserId = tenantContext.CurrentUserId;
         if (currentUserId.HasValue)
         {
             var auditTrail = new AuditTrail
@@ -1209,8 +1197,8 @@ public class TenantService : ITenantService
                 WasSuccessful = true,
                 PerformedAt = DateTime.UtcNow
             };
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
     }
 
@@ -1222,7 +1210,7 @@ public class TenantService : ITenantService
         CancellationToken ct = default)
     {
         // NOTE: No tenant filter - SuperAdmin sees all tenants
-        var query = _context.Tenants
+        var query = context.Tenants
             .AsNoTracking()
             .Where(t => !t.IsDeleted);
 
@@ -1268,7 +1256,7 @@ public class TenantService : ITenantService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.Tenants
+        var query = context.Tenants
             .AsNoTracking()
             .Where(t => !t.IsDeleted && t.IsActive);
 
@@ -1306,4 +1294,5 @@ public class TenantService : ITenantService
             PageSize = pagination.PageSize
         };
     }
+
 }

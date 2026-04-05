@@ -6,12 +6,12 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for managing document comments and collaboration
 /// </summary>
-public class DocumentCommentService : IDocumentCommentService
+public class DocumentCommentService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<DocumentCommentService> logger) : IDocumentCommentService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DocumentCommentService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentCommentService
@@ -20,18 +20,6 @@ public class DocumentCommentService : IDocumentCommentService
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="tenantContext">Tenant context service</param>
     /// <param name="logger">Logger instance</param>
-    public DocumentCommentService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<DocumentCommentService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentCommentDto>> GetDocumentHeaderCommentsAsync(
         Guid documentHeaderId,
@@ -40,7 +28,7 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var query = _context.DocumentComments
+            var query = context.DocumentComments
                 .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -56,7 +44,7 @@ public class DocumentCommentService : IDocumentCommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving comments for document header {DocumentHeaderId}", documentHeaderId);
+            logger.LogError(ex, "Error retrieving comments for document header {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -69,7 +57,7 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var query = _context.DocumentComments
+            var query = context.DocumentComments
                 .Where(c => c.DocumentRowId == documentRowId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -85,7 +73,7 @@ public class DocumentCommentService : IDocumentCommentService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving comments for document row {DocumentRowId}", documentRowId);
+            logger.LogError(ex, "Error retrieving comments for document row {DocumentRowId}", documentRowId);
             throw;
         }
     }
@@ -98,7 +86,7 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var query = _context.DocumentComments.Where(c => c.Id == id && !c.IsDeleted);
+            var query = context.DocumentComments.Where(c => c.Id == id && !c.IsDeleted);
 
             if (includeReplies)
             {
@@ -106,11 +94,11 @@ public class DocumentCommentService : IDocumentCommentService
             }
 
             var comment = await query.FirstOrDefaultAsync(cancellationToken);
-            return comment != null ? MapToDto(comment) : null;
+            return comment is not null ? MapToDto(comment) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving comment {CommentId}", id);
+            logger.LogError(ex, "Error retrieving comment {CommentId}", id);
             throw;
         }
     }
@@ -149,13 +137,13 @@ public class DocumentCommentService : IDocumentCommentService
                 Status = CommentStatus.Open,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
-                TenantId = _tenantContext.CurrentTenantId ?? Guid.Empty
+                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
             };
 
-            _ = _context.DocumentComments.Add(comment);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentComments.Add(comment);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "CREATE",
@@ -164,13 +152,13 @@ public class DocumentCommentService : IDocumentCommentService
                 $"Created comment on document",
                 currentUser);
 
-            _logger.LogInformation("Created comment {CommentId} for user {User}", comment.Id, currentUser);
+            logger.LogInformation("Created comment {CommentId} for user {User}", comment.Id, currentUser);
 
             return MapToDto(comment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating comment for user {User}", currentUser);
+            logger.LogError(ex, "Error creating comment for user {User}", currentUser);
             throw;
         }
     }
@@ -184,10 +172,10 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var comment = await _context.DocumentComments
+            var comment = await context.DocumentComments
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-            if (comment == null)
+            if (comment is null)
                 return null;
 
             // Update fields
@@ -197,7 +185,7 @@ public class DocumentCommentService : IDocumentCommentService
                 comment.Priority = Enum.Parse<CommentPriority>(updateDto.Priority, true);
             if (!string.IsNullOrEmpty(updateDto.Status))
                 comment.Status = Enum.Parse<CommentStatus>(updateDto.Status, true);
-            if (updateDto.AssignedTo != null)
+            if (updateDto.AssignedTo is not null)
                 comment.AssignedTo = updateDto.AssignedTo;
             if (updateDto.DueDate.HasValue)
                 comment.DueDate = updateDto.DueDate;
@@ -205,17 +193,17 @@ public class DocumentCommentService : IDocumentCommentService
                 comment.IsPinned = updateDto.IsPinned.Value;
             if (!string.IsNullOrEmpty(updateDto.Visibility))
                 comment.Visibility = Enum.Parse<CommentVisibility>(updateDto.Visibility, true);
-            if (updateDto.Tags != null)
+            if (updateDto.Tags is not null)
                 comment.Tags = updateDto.Tags;
-            if (updateDto.Metadata != null)
+            if (updateDto.Metadata is not null)
                 comment.Metadata = updateDto.Metadata;
 
             comment.ModifiedAt = DateTime.UtcNow;
             comment.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "UPDATE",
@@ -224,13 +212,13 @@ public class DocumentCommentService : IDocumentCommentService
                 $"Updated comment",
                 currentUser);
 
-            _logger.LogInformation("Updated comment {CommentId} for user {User}", comment.Id, currentUser);
+            logger.LogInformation("Updated comment {CommentId} for user {User}", comment.Id, currentUser);
 
             return MapToDto(comment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating comment {CommentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error updating comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -243,19 +231,19 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var comment = await _context.DocumentComments
+            var comment = await context.DocumentComments
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-            if (comment == null)
+            if (comment is null)
                 return false;
 
             comment.IsDeleted = true;
             comment.DeletedAt = DateTime.UtcNow;
             comment.DeletedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "DELETE",
@@ -264,13 +252,13 @@ public class DocumentCommentService : IDocumentCommentService
                 $"Deleted comment",
                 currentUser);
 
-            _logger.LogInformation("Deleted comment {CommentId} for user {User}", comment.Id, currentUser);
+            logger.LogInformation("Deleted comment {CommentId} for user {User}", comment.Id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting comment {CommentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error deleting comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -284,10 +272,10 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            var comment = await _context.DocumentComments
+            var comment = await context.DocumentComments
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-            if (comment == null)
+            if (comment is null)
                 return null;
 
             comment.Status = CommentStatus.Resolved;
@@ -303,9 +291,9 @@ public class DocumentCommentService : IDocumentCommentService
                     : comment.Metadata;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentComment",
                 comment.Id,
                 "RESOLVE",
@@ -314,13 +302,13 @@ public class DocumentCommentService : IDocumentCommentService
                 $"Resolved comment",
                 currentUser);
 
-            _logger.LogInformation("Resolved comment {CommentId} for user {User}", comment.Id, currentUser);
+            logger.LogInformation("Resolved comment {CommentId} for user {User}", comment.Id, currentUser);
 
             return MapToDto(comment);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resolving comment {CommentId} for user {User}", id, currentUser);
+            logger.LogError(ex, "Error resolving comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -333,10 +321,10 @@ public class DocumentCommentService : IDocumentCommentService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comment = await _context.DocumentComments
+        var comment = await context.DocumentComments
             .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-        if (comment == null) return null;
+        if (comment is null) return null;
 
         comment.Status = CommentStatus.Open;
         comment.ResolvedAt = null;
@@ -344,7 +332,7 @@ public class DocumentCommentService : IDocumentCommentService
         comment.ModifiedAt = DateTime.UtcNow;
         comment.ModifiedBy = currentUser;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
         return MapToDto(comment);
     }
 
@@ -354,7 +342,7 @@ public class DocumentCommentService : IDocumentCommentService
         string? statusFilter = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.DocumentComments
+        var query = context.DocumentComments
             .Where(c => c.AssignedTo == username && !c.IsDeleted);
 
         if (!string.IsNullOrEmpty(statusFilter) && Enum.TryParse<CommentStatus>(statusFilter, out var status))
@@ -401,7 +389,7 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        return await _context.DocumentComments
+        return await context.DocumentComments
             .Where(c => c.Priority == priorityEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new DocumentCommentDto
@@ -441,7 +429,7 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<CommentStatus>(status, out var statusEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        return await _context.DocumentComments
+        return await context.DocumentComments
             .Where(c => c.Status == statusEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new DocumentCommentDto
@@ -481,7 +469,7 @@ public class DocumentCommentService : IDocumentCommentService
         if (!Enum.TryParse<DocumentCommentType>(commentType, out var typeEnum))
             return Enumerable.Empty<DocumentCommentDto>();
 
-        return await _context.DocumentComments
+        return await context.DocumentComments
             .Where(c => c.CommentType == typeEnum && !c.IsDeleted)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new DocumentCommentDto
@@ -519,7 +507,7 @@ public class DocumentCommentService : IDocumentCommentService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comments = await _context.DocumentComments
+        var comments = await context.DocumentComments
             .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -539,7 +527,7 @@ public class DocumentCommentService : IDocumentCommentService
         Guid parentCommentId,
         CancellationToken cancellationToken = default)
     {
-        var replies = await _context.DocumentComments
+        var replies = await context.DocumentComments
             .Where(c => c.ParentCommentId == parentCommentId && !c.IsDeleted)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -554,16 +542,16 @@ public class DocumentCommentService : IDocumentCommentService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comment = await _context.DocumentComments
+        var comment = await context.DocumentComments
             .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-        if (comment == null) return null;
+        if (comment is null) return null;
 
         comment.AssignedTo = assignToUsername;
         comment.ModifiedAt = DateTime.UtcNow;
         comment.ModifiedBy = currentUser;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
         return MapToDto(comment);
     }
 
@@ -576,7 +564,7 @@ public class DocumentCommentService : IDocumentCommentService
         string? assignedTo = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.DocumentComments.Where(c => !c.IsDeleted);
+        var query = context.DocumentComments.Where(c => !c.IsDeleted);
 
         if (!string.IsNullOrEmpty(searchText))
             query = query.Where(c => c.Content.Contains(searchText));
@@ -604,12 +592,12 @@ public class DocumentCommentService : IDocumentCommentService
     {
         try
         {
-            return await _context.DocumentComments
+            return await context.DocumentComments
                 .AnyAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if comment {CommentId} exists", id);
+            logger.LogError(ex, "Error checking if comment {CommentId} exists", id);
             throw;
         }
     }
@@ -648,4 +636,5 @@ public class DocumentCommentService : IDocumentCommentService
             Replies = comment.Replies?.Where(r => !r.IsDeleted).Select(MapToDto).ToList() ?? new List<DocumentCommentDto>()
         };
     }
+
 }

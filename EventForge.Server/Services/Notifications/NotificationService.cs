@@ -25,24 +25,12 @@ namespace EventForge.Server.Services.Notifications;
 /// - Real-time analytics and monitoring dashboards
 /// - Custom notification templates and workflow engine
 /// </summary>
-public class NotificationService : INotificationService
+public class NotificationService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<NotificationService> logger,
+    IHubContext<NotificationHub> hubContext) : INotificationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<NotificationService> _logger;
-    private readonly IHubContext<NotificationHub> _hubContext;
-
-    public NotificationService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<NotificationService> logger,
-        IHubContext<NotificationHub> hubContext)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
-    }
 
     #region Core Notification Management
 
@@ -80,11 +68,11 @@ public class NotificationService : INotificationService
                 ActionUrl = createDto.Payload.ActionUrl,
                 IconUrl = createDto.Payload.IconUrl,
                 PayloadLocale = createDto.Payload.Locale,
-                LocalizationParamsJson = createDto.Payload.LocalizationParams != null
+                LocalizationParamsJson = createDto.Payload.LocalizationParams is not null
                     ? System.Text.Json.JsonSerializer.Serialize(createDto.Payload.LocalizationParams)
                     : null,
                 ExpiresAt = createDto.ExpiresAt,
-                MetadataJson = createDto.Metadata != null
+                MetadataJson = createDto.Metadata is not null
                     ? System.Text.Json.JsonSerializer.Serialize(createDto.Metadata)
                     : null,
                 CreatedAt = now,
@@ -104,17 +92,17 @@ public class NotificationService : INotificationService
             }).ToList();
 
             // Save to database
-            _ = _context.Notifications.Add(notification);
-            _context.NotificationRecipients.AddRange(recipients);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Notifications.Add(notification);
+            context.NotificationRecipients.AddRange(recipients);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update status to sent
             notification.Status = NotificationStatus.Sent;
             notification.ModifiedAt = DateTime.UtcNow; // Use ModifiedAt instead of UpdatedAt
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail for notification creation
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "Notification",
                 entityId: notificationId,
                 propertyName: "Create",
@@ -125,7 +113,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: $"Notification: {createDto.Payload.Title}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Notification {NotificationId} created for tenant {TenantId} with {RecipientCount} recipients in {ElapsedMs}ms",
                 notificationId, createDto.TenantId, createDto.RecipientIds.Count, stopwatch.ElapsedMilliseconds);
 
@@ -143,14 +131,14 @@ public class NotificationService : INotificationService
             // Send to each recipient
             foreach (var recipientId in createDto.RecipientIds)
             {
-                await _hubContext.Clients.Group($"user_{recipientId}")
+                await hubContext.Clients.Group($"user_{recipientId}")
                     .SendAsync("NotificationReceived", notificationData);
             }
 
             // Also send to tenant-wide group if tenant is specified
             if (createDto.TenantId.HasValue)
             {
-                await _hubContext.Clients.Group($"tenant_{createDto.TenantId.Value}")
+                await hubContext.Clients.Group($"tenant_{createDto.TenantId.Value}")
                     .SendAsync("TenantNotificationReceived", notificationData);
             }
 
@@ -173,7 +161,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send notification for tenant {TenantId}", createDto.TenantId);
+            logger.LogError(ex, "Failed to send notification for tenant {TenantId}", createDto.TenantId);
             throw new InvalidOperationException("Failed to send notification", ex);
         }
     }
@@ -193,9 +181,9 @@ public class NotificationService : INotificationService
         var failureCount = 0;
 
         // 1. Validate input
-        if (notifications == null || notifications.Count == 0)
+        if (notifications is null || notifications.Count == 0)
         {
-            _logger.LogWarning("SendBulkNotificationsAsync called with null or empty notifications list");
+            logger.LogWarning("SendBulkNotificationsAsync called with null or empty notifications list");
             return new BulkNotificationResultDto
             {
                 TotalCount = 0,
@@ -211,7 +199,7 @@ public class NotificationService : INotificationService
             throw new ArgumentException("Batch size must be greater than 0", nameof(batchSize));
         }
 
-        _logger.LogInformation("Starting bulk notification processing for {Count} notifications with batch size {BatchSize}",
+        logger.LogInformation("Starting bulk notification processing for {Count} notifications with batch size {BatchSize}",
             notifications.Count, batchSize);
 
         // 2. Check rate limiting for bulk operations
@@ -223,7 +211,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Rate limit validation failed for bulk operation");
+            logger.LogWarning(ex, "Rate limit validation failed for bulk operation");
             // Continue processing but log the warning
         }
 
@@ -234,7 +222,7 @@ public class NotificationService : INotificationService
             .Select(g => g.Select(x => x.notification).ToList())
             .ToList();
 
-        _logger.LogInformation("Split {TotalCount} notifications into {BatchCount} batches",
+        logger.LogInformation("Split {TotalCount} notifications into {BatchCount} batches",
             notifications.Count, batches.Count);
 
         // 4. Process batches with optimized database operations
@@ -275,11 +263,11 @@ public class NotificationService : INotificationService
                             ActionUrl = createDto.Payload.ActionUrl,
                             IconUrl = createDto.Payload.IconUrl,
                             PayloadLocale = createDto.Payload.Locale,
-                            LocalizationParamsJson = createDto.Payload.LocalizationParams != null
+                            LocalizationParamsJson = createDto.Payload.LocalizationParams is not null
                                 ? System.Text.Json.JsonSerializer.Serialize(createDto.Payload.LocalizationParams)
                                 : null,
                             ExpiresAt = createDto.ExpiresAt,
-                            MetadataJson = createDto.Metadata != null
+                            MetadataJson = createDto.Metadata is not null
                                 ? System.Text.Json.JsonSerializer.Serialize(createDto.Metadata)
                                 : null,
                             CreatedAt = now,
@@ -326,18 +314,18 @@ public class NotificationService : INotificationService
                             }
                         });
                         batchFailureCount++;
-                        _logger.LogWarning(ex, "Failed to prepare notification in bulk batch");
+                        logger.LogWarning(ex, "Failed to prepare notification in bulk batch");
                     }
                 }
 
                 // 5. Bulk insert into database  
                 if (notificationEntities.Any())
                 {
-                    await _context.Notifications.AddRangeAsync(notificationEntities, cancellationToken);
-                    await _context.NotificationRecipients.AddRangeAsync(recipientEntities, cancellationToken);
+                    await context.Notifications.AddRangeAsync(notificationEntities, cancellationToken);
+                    await context.NotificationRecipients.AddRangeAsync(recipientEntities, cancellationToken);
 
                     // Single SaveChanges per batch
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await context.SaveChangesAsync(cancellationToken);
 
                     // 6. Send SignalR notifications in batches (group by recipient)
                     // Create lookup for O(1) access
@@ -365,16 +353,16 @@ public class NotificationService : INotificationService
                                 .ToList();
 
                             // Send all notifications for this user in one call
-                            await _hubContext.Clients
+                            await hubContext.Clients
                                 .Group($"user_{recipientId}")
                                 .SendAsync("ReceiveBulkNotifications", recipientNotifications, cancellationToken);
 
-                            _logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR",
+                            logger.LogDebug("Sent {Count} notifications to user {UserId} via SignalR",
                                 recipientNotifications.Count, recipientId);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Failed to send SignalR notifications to user {UserId}", recipientGroup.Key);
+                            logger.LogWarning(ex, "Failed to send SignalR notifications to user {UserId}", recipientGroup.Key);
                             // Continue processing other recipients
                         }
                     }
@@ -387,7 +375,7 @@ public class NotificationService : INotificationService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to process batch in bulk notification operation");
+                logger.LogError(ex, "Failed to process batch in bulk notification operation");
 
                 // Only mark as failed items that weren't already processed
                 var alreadyProcessedCount = batchResults.Count;
@@ -420,7 +408,7 @@ public class NotificationService : INotificationService
         }
 
         // 7. Log audit trail for bulk operation
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             entityName: "BulkNotification",
             entityId: Guid.NewGuid(),
             propertyName: "BulkSend",
@@ -431,7 +419,7 @@ public class NotificationService : INotificationService
             entityDisplayName: "Bulk Notification Operation",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Bulk notification processing completed: {Success} success, {Failure} failures in {ElapsedMs}ms",
             successCount, failureCount, stopwatch.ElapsedMilliseconds);
 
@@ -454,13 +442,13 @@ public class NotificationService : INotificationService
         NotificationSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving notifications for user {UserId} in tenant {TenantId} - Page {Page}",
             searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
 
         try
         {
-            var query = _context.NotificationRecipients
+            var query = context.NotificationRecipients
                 .AsNoTracking()
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.UserId == searchDto.UserId);
@@ -590,7 +578,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notifications for user {UserId}", searchDto.UserId);
+            logger.LogError(ex, "Failed to retrieve notifications for user {UserId}", searchDto.UserId);
             throw new InvalidOperationException("Failed to retrieve notifications", ex);
         }
     }
@@ -607,7 +595,7 @@ public class NotificationService : INotificationService
         // In a full implementation, you would extract userId and tenantId from authentication context
         try
         {
-            var query = _context.Notifications
+            var query = context.Notifications
                 .AsNoTracking()
                 .Where(n => !n.IsDeleted)
                 .AsQueryable();
@@ -651,7 +639,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notifications");
+            logger.LogError(ex, "Failed to retrieve notifications");
             throw new InvalidOperationException("Failed to retrieve notifications", ex);
         }
     }
@@ -663,11 +651,11 @@ public class NotificationService : INotificationService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving unread notifications - Page {Page}", pagination.Page);
+        logger.LogInformation("Retrieving unread notifications - Page {Page}", pagination.Page);
 
         try
         {
-            var query = _context.Notifications
+            var query = context.Notifications
                 .AsNoTracking()
                 .Where(n => !n.IsDeleted && !n.ReadAt.HasValue)
                 .AsQueryable();
@@ -711,7 +699,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve unread notifications");
+            logger.LogError(ex, "Failed to retrieve unread notifications");
             throw new InvalidOperationException("Failed to retrieve unread notifications", ex);
         }
     }
@@ -724,7 +712,7 @@ public class NotificationService : INotificationService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving notifications of type {Type} - Page {Page}", type, pagination.Page);
+        logger.LogInformation("Retrieving notifications of type {Type} - Page {Page}", type, pagination.Page);
 
         try
         {
@@ -734,7 +722,7 @@ public class NotificationService : INotificationService
                 throw new ArgumentException($"Invalid notification type: {type}", nameof(type));
             }
 
-            var query = _context.Notifications
+            var query = context.Notifications
                 .AsNoTracking()
                 .Where(n => !n.IsDeleted && n.Type == notificationType)
                 .AsQueryable();
@@ -778,7 +766,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notifications of type {Type}", type);
+            logger.LogError(ex, "Failed to retrieve notifications of type {Type}", type);
             throw new InvalidOperationException($"Failed to retrieve notifications of type {type}", ex);
         }
     }
@@ -793,19 +781,19 @@ public class NotificationService : INotificationService
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving notification {NotificationId} for user {UserId} in tenant {TenantId}",
             notificationId, userId, tenantId);
 
         try
         {
-            var notificationRecipient = await _context.NotificationRecipients
+            var notificationRecipient = await context.NotificationRecipients
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .Where(nr => !tenantId.HasValue || nr.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (notificationRecipient == null)
+            if (notificationRecipient is null)
             {
                 return null;
             }
@@ -813,7 +801,7 @@ public class NotificationService : INotificationService
             var notification = notificationRecipient.Notification;
 
             // Log audit trail for notification access
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Access",
@@ -858,7 +846,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notification {NotificationId} for user {UserId}", notificationId, userId);
+            logger.LogError(ex, "Failed to retrieve notification {NotificationId} for user {UserId}", notificationId, userId);
             throw new InvalidOperationException("Failed to retrieve notification", ex);
         }
     }
@@ -882,12 +870,12 @@ public class NotificationService : INotificationService
         try
         {
             // Find the notification recipient
-            var notificationRecipient = await _context.NotificationRecipients
+            var notificationRecipient = await context.NotificationRecipients
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (notificationRecipient == null)
+            if (notificationRecipient is null)
             {
                 throw new InvalidOperationException($"Notification {notificationId} not found for user {userId}");
             }
@@ -899,15 +887,15 @@ public class NotificationService : INotificationService
             notificationRecipient.ModifiedAt = now; // Use ModifiedAt instead of UpdatedAt
 
             // If not already read, mark as read too
-            if (notificationRecipient.ReadAt == null)
+            if (notificationRecipient.ReadAt is null)
             {
                 notificationRecipient.ReadAt = now;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -918,7 +906,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: $"Notification Acknowledgment: {notificationRecipient.Notification.Title}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "User {UserId} acknowledged notification {NotificationId} with reason: {Reason}",
                 userId, notificationId, reason ?? "No reason provided");
 
@@ -954,7 +942,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to acknowledge notification {NotificationId} for user {UserId}", notificationId, userId);
+            logger.LogError(ex, "Failed to acknowledge notification {NotificationId} for user {UserId}", notificationId, userId);
             throw new InvalidOperationException("Failed to acknowledge notification", ex);
         }
     }
@@ -975,12 +963,12 @@ public class NotificationService : INotificationService
         try
         {
             // Find the notification recipient
-            var notificationRecipient = await _context.NotificationRecipients
+            var notificationRecipient = await context.NotificationRecipients
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (notificationRecipient == null)
+            if (notificationRecipient is null)
             {
                 throw new InvalidOperationException($"Notification {notificationId} not found for user {userId}");
             }
@@ -997,10 +985,10 @@ public class NotificationService : INotificationService
                 notificationRecipient.SilencedUntil = expiresAt.Value;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -1011,7 +999,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: $"Notification Silenced: {notificationRecipient.Notification.Title}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "User {UserId} silenced notification {NotificationId} until {ExpiresAt} with reason: {Reason}",
                 userId, notificationId, expiresAt?.ToString() ?? "permanent", reason ?? "No reason provided");
 
@@ -1031,7 +1019,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to silence notification {NotificationId} for user {UserId}", notificationId, userId);
+            logger.LogError(ex, "Failed to silence notification {NotificationId} for user {UserId}", notificationId, userId);
             throw new InvalidOperationException("Failed to silence notification", ex);
         }
     }
@@ -1051,12 +1039,12 @@ public class NotificationService : INotificationService
         try
         {
             // Find the notification recipient
-            var notificationRecipient = await _context.NotificationRecipients
+            var notificationRecipient = await context.NotificationRecipients
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (notificationRecipient == null)
+            if (notificationRecipient is null)
             {
                 throw new InvalidOperationException($"Notification {notificationId} not found for user {userId}");
             }
@@ -1068,7 +1056,7 @@ public class NotificationService : INotificationService
             notificationRecipient.ModifiedAt = now; // Use ModifiedAt instead of UpdatedAt
 
             // Update notification archive flag if all recipients have archived
-            var allRecipients = await _context.NotificationRecipients
+            var allRecipients = await context.NotificationRecipients
                 .Where(nr => nr.NotificationId == notificationId)
                 .ToListAsync(cancellationToken);
 
@@ -1079,10 +1067,10 @@ public class NotificationService : INotificationService
                 notificationRecipient.Notification.ModifiedAt = now; // Use ModifiedAt instead of UpdatedAt
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationRecipient",
                 entityId: notificationId,
                 propertyName: "Status",
@@ -1093,7 +1081,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: $"Notification Archived: {notificationRecipient.Notification.Title}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "User {UserId} archived notification {NotificationId} with reason: {Reason}",
                 userId, notificationId, reason ?? "No reason provided");
 
@@ -1112,7 +1100,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to archive notification {NotificationId} for user {UserId}", notificationId, userId);
+            logger.LogError(ex, "Failed to archive notification {NotificationId} for user {UserId}", notificationId, userId);
             throw new InvalidOperationException("Failed to archive notification", ex);
         }
     }
@@ -1130,7 +1118,7 @@ public class NotificationService : INotificationService
         var successCount = 0;
         var failureCount = 0;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Processing bulk action {Action} on {Count} notifications for user {UserId}",
             bulkAction.Action, bulkAction.NotificationIds.Count, bulkAction.UserId);
 
@@ -1168,7 +1156,7 @@ public class NotificationService : INotificationService
                 });
                 failureCount++;
 
-                _logger.LogWarning(ex, "Failed to process bulk action for notification {NotificationId}", notificationId);
+                logger.LogWarning(ex, "Failed to process bulk action for notification {NotificationId}", notificationId);
             }
         }
 
@@ -1195,16 +1183,16 @@ public class NotificationService : INotificationService
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving notification preferences for user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Retrieving notification preferences for user {UserId} in tenant {TenantId}", userId, tenantId);
 
         try
         {
             // 1. Query User entity by userId and tenantId
-            var user = await _context.Users
+            var user = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
 
             // 2. If user found and has preferences in metadata
-            if (user?.MetadataJson != null)
+            if (user?.MetadataJson is not null)
             {
                 try
                 {
@@ -1216,24 +1204,24 @@ public class NotificationService : INotificationService
                         var preferences = System.Text.Json.JsonSerializer.Deserialize<NotificationPreferencesDto>(
                             metadata["NotificationPreferences"].GetRawText());
 
-                        if (preferences != null)
+                        if (preferences is not null)
                         {
                             preferences.UserId = userId;
                             preferences.TenantId = tenantId;
-                            _logger.LogDebug("Retrieved stored notification preferences for user {UserId}", userId);
+                            logger.LogDebug("Retrieved stored notification preferences for user {UserId}", userId);
                             return preferences;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to parse notification preferences from user metadata for user {UserId}", userId);
+                    logger.LogWarning(ex, "Failed to parse notification preferences from user metadata for user {UserId}", userId);
                     // Continue to return defaults
                 }
             }
 
             // 3. Return default preferences if not found or parsing failed
-            _logger.LogDebug("Returning default notification preferences for user {UserId}", userId);
+            logger.LogDebug("Returning default notification preferences for user {UserId}", userId);
             return new NotificationPreferencesDto
             {
                 UserId = userId,
@@ -1248,7 +1236,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve notification preferences for user {UserId}", userId);
+            logger.LogError(ex, "Failed to retrieve notification preferences for user {UserId}", userId);
 
             // Return defaults on error
             return new NotificationPreferencesDto
@@ -1276,10 +1264,10 @@ public class NotificationService : INotificationService
         try
         {
             // 1. Find user by preferences.UserId and TenantId
-            var user = await _context.Users
+            var user = await context.Users
                 .FirstOrDefaultAsync(u => u.Id == preferences.UserId && u.TenantId == preferences.TenantId, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 throw new InvalidOperationException($"User {preferences.UserId} not found in tenant {preferences.TenantId}");
             }
@@ -1290,7 +1278,7 @@ public class NotificationService : INotificationService
             // 3. Update User.MetadataJson with new preferences
             Dictionary<string, System.Text.Json.JsonElement> metadata;
 
-            if (user.MetadataJson != null)
+            if (user.MetadataJson is not null)
             {
                 try
                 {
@@ -1316,10 +1304,10 @@ public class NotificationService : INotificationService
             user.ModifiedAt = DateTime.UtcNow;
 
             // 4. Save to database
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // 5. Log audit trail with old vs new values
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationPreferences",
                 entityId: preferences.UserId,
                 propertyName: "Preferences",
@@ -1330,7 +1318,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: $"Notification Preferences: {preferences.UserId}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Updated notification preferences for user {UserId}: Locale={Locale}, Enabled={Enabled}, MinPriority={MinPriority}",
                 preferences.UserId, preferences.PreferredLocale, preferences.NotificationsEnabled, preferences.MinPriority);
 
@@ -1339,7 +1327,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update notification preferences for user {UserId}", preferences.UserId);
+            logger.LogError(ex, "Failed to update notification preferences for user {UserId}", preferences.UserId);
             throw new InvalidOperationException("Failed to update notification preferences", ex);
         }
     }
@@ -1357,12 +1345,12 @@ public class NotificationService : INotificationService
         // 1. Check if already in target locale (early return)
         if (notification.Payload.Locale == targetLocale)
         {
-            _logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
+            logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
                 notification.Id, targetLocale);
             return notification;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Localizing notification {NotificationId} to locale {Locale} for user {UserId}",
             notification.Id, targetLocale, userId);
 
@@ -1392,7 +1380,7 @@ public class NotificationService : INotificationService
         // }
 
         // 4. Log localization request for analytics
-        _logger.LogDebug(
+        logger.LogDebug(
             "Localized notification {NotificationId} to {ToLocale} (translation service integration pending)",
             notification.Id, targetLocale);
 
@@ -1424,14 +1412,14 @@ public class NotificationService : INotificationService
         var deletedCount = 0;
         var processedCount = 0;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Processing expired notifications for tenant {TenantId} with batch size {BatchSize}",
             tenantId?.ToString() ?? "ALL", batchSize);
 
         try
         {
             // 1. Query expired notifications and get all IDs upfront to avoid infinite loop
-            var query = _context.Notifications
+            var query = context.Notifications
                 .Where(n => n.ExpiresAt.HasValue && n.ExpiresAt.Value <= now)
                 .Where(n => n.Status != NotificationStatus.Archived && n.Status != NotificationStatus.Expired);
 
@@ -1447,7 +1435,7 @@ public class NotificationService : INotificationService
                 .Select(n => new { n.Id, n.ExpiresAt })
                 .ToListAsync(cancellationToken);
 
-            _logger.LogInformation("Found {Count} expired notifications to process", expiredNotificationIds.Count);
+            logger.LogInformation("Found {Count} expired notifications to process", expiredNotificationIds.Count);
 
             // 3. Process in batches to avoid memory issues
             var remainingIds = expiredNotificationIds.Select(n => n.Id).ToList();
@@ -1458,7 +1446,7 @@ public class NotificationService : INotificationService
                 var batchIds = remainingIds.Take(batchSize).ToList();
 
                 // Fetch the actual entities for this batch
-                var batch = await _context.Notifications
+                var batch = await context.Notifications
                     .Where(n => batchIds.Contains(n.Id))
                     .ToListAsync(cancellationToken);
 
@@ -1470,9 +1458,9 @@ public class NotificationService : INotificationService
                     if (daysSinceExpiry > 90)
                     {
                         // Hard delete old notifications (>90 days expired)
-                        _context.Notifications.Remove(notification);
+                        context.Notifications.Remove(notification);
                         deletedCount++;
-                        _logger.LogDebug("Deleting notification {NotificationId} expired {Days} days ago",
+                        logger.LogDebug("Deleting notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                     else if (daysSinceExpiry > 30)
@@ -1483,7 +1471,7 @@ public class NotificationService : INotificationService
                         notification.ArchivedAt = now;
                         notification.ModifiedAt = now;
                         archivedCount++;
-                        _logger.LogDebug("Archiving notification {NotificationId} expired {Days} days ago",
+                        logger.LogDebug("Archiving notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                     else
@@ -1492,26 +1480,26 @@ public class NotificationService : INotificationService
                         notification.Status = NotificationStatus.Expired;
                         notification.ModifiedAt = now;
                         expiredCount++;
-                        _logger.LogDebug("Expiring notification {NotificationId} expired {Days} days ago",
+                        logger.LogDebug("Expiring notification {NotificationId} expired {Days} days ago",
                             notification.Id, daysSinceExpiry);
                     }
                 }
 
                 // 5. Save changes for this batch
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
                 processedCount += batch.Count;
 
                 // Remove processed IDs from remaining list
                 remainingIds = remainingIds.Skip(batchSize).ToList();
 
                 // 6. Log progress
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Processed {ProcessedCount} expired notifications ({Expired} expired, {Archived} archived, {Deleted} deleted)",
                     processedCount, expiredCount, archivedCount, deletedCount);
             }
 
             // 7. Log audit trail for cleanup operation
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 entityName: "NotificationCleanup",
                 entityId: Guid.NewGuid(),
                 propertyName: "Cleanup",
@@ -1522,7 +1510,7 @@ public class NotificationService : INotificationService
                 entityDisplayName: "Notification Expiry Cleanup",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Completed expired notification processing: {ProcessedCount} processed, {ExpiredCount} expired, {ArchivedCount} archived, {DeletedCount} deleted in {ElapsedMs}ms",
                 processedCount, expiredCount, archivedCount, deletedCount, stopwatch.ElapsedMilliseconds);
 
@@ -1538,7 +1526,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process expired notifications");
+            logger.LogError(ex, "Failed to process expired notifications");
 
             return new ExpiryProcessingResultDto
             {
@@ -1562,7 +1550,7 @@ public class NotificationService : INotificationService
     {
         var stopwatch = Stopwatch.StartNew();
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Cleaning up notification data for tenant {TenantId} with retention period {RetentionPeriod}",
             cleanupPolicy.TenantId?.ToString() ?? "ALL", cleanupPolicy.RetentionPeriod);
 
@@ -1592,7 +1580,7 @@ public class NotificationService : INotificationService
         NotificationTypes notificationType,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug(
+        logger.LogDebug(
             "Checking rate limit for tenant {TenantId}, user {UserId}, type {Type}",
             tenantId, userId, notificationType);
 
@@ -1638,7 +1626,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
+            logger.LogError(ex, "Failed to check rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
 
             // On error, allow but log the issue
             return new RateLimitStatusDto
@@ -1665,7 +1653,7 @@ public class NotificationService : INotificationService
         RateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "RateLimitPolicy",
             entityId: tenantId,
             propertyName: "Update",
@@ -1676,7 +1664,7 @@ public class NotificationService : INotificationService
             entityDisplayName: $"Rate Limit Policy: {tenantId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Updated rate limit policy for tenant {TenantId}: GlobalLimit={GlobalLimit}",
             tenantId, rateLimitPolicy.GlobalLimit);
 
@@ -1692,7 +1680,7 @@ public class NotificationService : INotificationService
         DateRange? dateRange = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
             tenantId?.ToString() ?? "ALL",
             dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
@@ -1728,7 +1716,7 @@ public class NotificationService : INotificationService
         Guid adminUserId,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "SystemNotification",
             entityId: Guid.NewGuid(),
             propertyName: "Send",
@@ -1739,7 +1727,7 @@ public class NotificationService : INotificationService
             entityDisplayName: $"System Notification: {systemNotification.Payload.Title}",
             cancellationToken: cancellationToken);
 
-        _logger.LogWarning(
+        logger.LogWarning(
             "System notification sent by admin {AdminId}: Emergency={Emergency}, Title={Title}",
             adminUserId, systemNotification.IsEmergency, systemNotification.Payload.Title);
 
@@ -1760,7 +1748,7 @@ public class NotificationService : INotificationService
         NotificationAuditQueryDto auditQuery,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving notification audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
             auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
 
@@ -1769,7 +1757,7 @@ public class NotificationService : INotificationService
 
         return new PagedResult<NotificationAuditEntryDto>
         {
-            Items = new List<NotificationAuditEntryDto>(),
+            Items = [],
             Page = auditQuery.PageNumber,
             PageSize = auditQuery.PageSize,
             TotalCount = 0
@@ -1783,7 +1771,7 @@ public class NotificationService : INotificationService
     public async Task<NotificationSystemHealthDto> GetSystemHealthAsync(
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Checking notification system health");
+        logger.LogDebug("Checking notification system health");
 
         // TODO: Implement health checks for database, cache, external services
         await Task.Delay(10, cancellationToken);
@@ -1816,7 +1804,7 @@ public class NotificationService : INotificationService
     {
         if (tenantId.HasValue)
         {
-            _logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
+            logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
             // TODO: Validate tenant exists and is active
         }
         await Task.Delay(1, cancellationToken);
@@ -1843,4 +1831,5 @@ public class NotificationService : INotificationService
     }
 
     #endregion
+
 }

@@ -7,24 +7,12 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing stock alerts and notifications.
 /// </summary>
-public class StockAlertService : IStockAlertService
+public class StockAlertService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<StockAlertService> logger) : IStockAlertService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StockAlertService> _logger;
-
-    public StockAlertService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<StockAlertService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StockAlertDto>> GetAlertsAsync(
         int page = 1,
@@ -39,13 +27,13 @@ public class StockAlertService : IStockAlertService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.StockAlerts
+            var query = context.StockAlerts
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -110,7 +98,7 @@ public class StockAlertService : IStockAlertService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock alerts with filters");
+            logger.LogError(ex, "Error getting stock alerts with filters");
             throw;
         }
     }
@@ -119,13 +107,13 @@ public class StockAlertService : IStockAlertService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var alert = await _context.StockAlerts
+            var alert = await context.StockAlerts
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -136,16 +124,16 @@ public class StockAlertService : IStockAlertService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting stock alert by ID: {AlertId}", id);
+            logger.LogError(ex, "Error getting stock alert by ID: {AlertId}", id);
             throw;
         }
     }
 
     public async Task<IEnumerable<StockAlertDto>> GetActiveAlertsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var alerts = await _context.StockAlerts
+        var alerts = await context.StockAlerts
             .Include(sa => sa.Stock)
                 .ThenInclude(s => s!.Product)
             .Include(sa => sa.Stock)
@@ -161,9 +149,9 @@ public class StockAlertService : IStockAlertService
 
     public async Task<IEnumerable<StockAlertDto>> GetActiveAlertsByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var alerts = await _context.StockAlerts
+        var alerts = await context.StockAlerts
             .Include(sa => sa.Stock)
                 .ThenInclude(s => s!.Product)
             .Include(sa => sa.Stock)
@@ -179,7 +167,7 @@ public class StockAlertService : IStockAlertService
 
     public async Task<StockAlertDto> CreateAlertAsync(CreateStockAlertDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var alert = new StockAlert
         {
@@ -199,17 +187,16 @@ public class StockAlertService : IStockAlertService
             CreatedBy = currentUser
         };
 
-        _ = _context.StockAlerts.Add(alert);
-        _ = await _context.SaveChangesAsync(cancellationToken);
-
+        _ = context.StockAlerts.Add(alert);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
         return (await GetAlertByIdAsync(alert.Id, cancellationToken))!;
     }
 
     public async Task<bool> AcknowledgeAlertAsync(Guid alertId, string acknowledgedBy, string? notes = null, CancellationToken cancellationToken = default)
     {
-        var alert = await _context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
-        if (alert == null)
+        var alert = await context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
+        if (alert is null)
         {
             return false;
         }
@@ -224,16 +211,15 @@ public class StockAlertService : IStockAlertService
             alert.ResolutionNotes = notes;
         }
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
-
+        _ = await context.SaveChangesAsync(cancellationToken);
 
         return true;
     }
 
     public async Task<bool> ResolveAlertAsync(Guid alertId, string resolvedBy, string? resolutionNotes = null, CancellationToken cancellationToken = default)
     {
-        var alert = await _context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
-        if (alert == null)
+        var alert = await context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
+        if (alert is null)
         {
             return false;
         }
@@ -245,16 +231,15 @@ public class StockAlertService : IStockAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = resolvedBy;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
-
+        _ = await context.SaveChangesAsync(cancellationToken);
 
         return true;
     }
 
     public async Task<bool> DismissAlertAsync(Guid alertId, string dismissedBy, string? reason = null, CancellationToken cancellationToken = default)
     {
-        var alert = await _context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
-        if (alert == null)
+        var alert = await context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
+        if (alert is null)
         {
             return false;
         }
@@ -264,17 +249,16 @@ public class StockAlertService : IStockAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = dismissedBy;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
-
+        _ = await context.SaveChangesAsync(cancellationToken);
 
         return true;
     }
 
     public async Task<IEnumerable<StockAlertDto>> CheckLowStockAlertsAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var lowStockItems = await _context.Stocks
+        var lowStockItems = await context.Stocks
             .Include(s => s.Product)
             .Include(s => s.StorageLocation)
             .Where(s => s.TenantId == currentTenantId
@@ -287,7 +271,7 @@ public class StockAlertService : IStockAlertService
         foreach (var stock in lowStockItems)
         {
             // Check if alert already exists
-            var existingAlert = await _context.StockAlerts
+            var existingAlert = await context.StockAlerts
                 .AnyAsync(sa => sa.StockId == stock.Id
                              && sa.AlertType == StockAlertType.LowStock
                              && sa.Status == AlertStatus.Active,
@@ -317,8 +301,8 @@ public class StockAlertService : IStockAlertService
 
         if (alerts.Any())
         {
-            _context.StockAlerts.AddRange(alerts);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            context.StockAlerts.AddRange(alerts);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -326,9 +310,9 @@ public class StockAlertService : IStockAlertService
 
     public async Task<IEnumerable<StockAlertDto>> CheckOverstockAlertsAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var overstockItems = await _context.Stocks
+        var overstockItems = await context.Stocks
             .Include(s => s.Product)
             .Include(s => s.StorageLocation)
             .Where(s => s.TenantId == currentTenantId
@@ -341,7 +325,7 @@ public class StockAlertService : IStockAlertService
         foreach (var stock in overstockItems)
         {
             // Check if alert already exists
-            var existingAlert = await _context.StockAlerts
+            var existingAlert = await context.StockAlerts
                 .AnyAsync(sa => sa.StockId == stock.Id
                              && sa.AlertType == StockAlertType.HighStock
                              && sa.Status == AlertStatus.Active,
@@ -371,8 +355,8 @@ public class StockAlertService : IStockAlertService
 
         if (alerts.Any())
         {
-            _context.StockAlerts.AddRange(alerts);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            context.StockAlerts.AddRange(alerts);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -380,11 +364,11 @@ public class StockAlertService : IStockAlertService
 
     public async Task<IEnumerable<StockAlertDto>> CheckExpiryAlertsAsync(int daysAhead = 30, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var expiringDate = DateTime.UtcNow.AddDays(daysAhead);
 
-        var expiringLots = await _context.Lots
+        var expiringLots = await context.Lots
             .Include(l => l.Product)
             .Where(l => l.TenantId == currentTenantId
                      && l.ExpiryDate.HasValue
@@ -396,7 +380,7 @@ public class StockAlertService : IStockAlertService
 
         foreach (var lot in expiringLots)
         {
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .Include(s => s.StorageLocation)
                 .Where(s => s.LotId == lot.Id && s.AvailableQuantity > 0)
                 .ToListAsync(cancellationToken);
@@ -404,7 +388,7 @@ public class StockAlertService : IStockAlertService
             foreach (var stock in stocks)
             {
                 // Check if alert already exists
-                var existingAlert = await _context.StockAlerts
+                var existingAlert = await context.StockAlerts
                     .AnyAsync(sa => sa.StockId == stock.Id
                                  && sa.AlertType == StockAlertType.Expiry
                                  && sa.Status == AlertStatus.Active,
@@ -436,8 +420,8 @@ public class StockAlertService : IStockAlertService
 
         if (alerts.Any())
         {
-            _context.StockAlerts.AddRange(alerts);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            context.StockAlerts.AddRange(alerts);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
 
         return alerts.Select(a => a.ToStockAlertDto());
@@ -460,9 +444,9 @@ public class StockAlertService : IStockAlertService
 
     public async Task<AlertStatisticsDto> GetAlertStatisticsAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var alerts = await _context.StockAlerts
+        var alerts = await context.StockAlerts
             .Where(sa => sa.TenantId == currentTenantId)
             .ToListAsync(cancellationToken);
 
@@ -483,8 +467,8 @@ public class StockAlertService : IStockAlertService
 
     public async Task<bool> SendAlertNotificationsAsync(Guid alertId, CancellationToken cancellationToken = default)
     {
-        var alert = await _context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
-        if (alert == null || !alert.SendEmailNotifications || string.IsNullOrEmpty(alert.NotificationEmails))
+        var alert = await context.StockAlerts.FindAsync(new object[] { alertId }, cancellationToken);
+        if (alert is null || !alert.SendEmailNotifications || string.IsNullOrEmpty(alert.NotificationEmails))
         {
             return false;
         }
@@ -494,18 +478,18 @@ public class StockAlertService : IStockAlertService
         alert.LastNotificationDate = DateTime.UtcNow;
         alert.NotificationCount++;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Email notification sent for alert {AlertId} to {Emails}", alertId, alert.NotificationEmails);
+        logger.LogInformation("Email notification sent for alert {AlertId} to {Emails}", alertId, alert.NotificationEmails);
 
         return true;
     }
 
     public async Task<IEnumerable<StockAlertDto>> GetAlertsForNotificationAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var alerts = await _context.StockAlerts
+        var alerts = await context.StockAlerts
             .Include(sa => sa.Stock)
                 .ThenInclude(s => s!.Product)
             .Include(sa => sa.Stock)
@@ -535,22 +519,23 @@ public class StockAlertService : IStockAlertService
 
     public async Task<int> CleanupOldAlertsAsync(int olderThanDays = 90, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var cutoffDate = DateTime.UtcNow.AddDays(-olderThanDays);
 
-        var oldAlerts = await _context.StockAlerts
+        var oldAlerts = await context.StockAlerts
             .Where(sa => sa.TenantId == currentTenantId
                       && sa.Status == AlertStatus.Resolved
                       && sa.ResolvedDate.HasValue
                       && sa.ResolvedDate.Value < cutoffDate)
             .ToListAsync(cancellationToken);
 
-        _context.StockAlerts.RemoveRange(oldAlerts);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        context.StockAlerts.RemoveRange(oldAlerts);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Cleaned up {Count} old resolved alerts", oldAlerts.Count);
+        logger.LogInformation("Cleaned up {Count} old resolved alerts", oldAlerts.Count);
 
         return oldAlerts.Count;
     }
+
 }

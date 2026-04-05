@@ -5,38 +5,26 @@ namespace EventForge.Server.Services.Common;
 /// <summary>
 /// Service implementation for managing classification nodes in a hierarchical structure.
 /// </summary>
-public class ClassificationNodeService : IClassificationNodeService
+public class ClassificationNodeService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<ClassificationNodeService> logger) : IClassificationNodeService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ClassificationNodeService> _logger;
-
-    public ClassificationNodeService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<ClassificationNodeService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<ClassificationNodeDto>> GetClassificationNodesAsync(PaginationParameters pagination, Guid? parentId = null, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for classification node operations.");
             }
-            _logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", pagination.Page, pagination.PageSize, parentId);
+            logger.LogDebug("Getting classification nodes: page={Page}, pageSize={PageSize}, parentId={ParentId}", pagination.Page, pagination.PageSize, parentId);
 
-            var query = _context.ClassificationNodes
+            var query = context.ClassificationNodes
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -79,7 +67,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving classification nodes.");
+            logger.LogError(ex, "Error retrieving classification nodes.");
             throw;
         }
     }
@@ -88,9 +76,9 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Getting classification node by ID: {Id}", id);
+            logger.LogDebug("Getting classification node by ID: {Id}", id);
 
-            var node = await _context.ClassificationNodes
+            var node = await context.ClassificationNodes
                 .Where(cn => cn.Id == id)
                 .Select(cn => new ClassificationNodeDto
                 {
@@ -115,7 +103,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving classification node with ID {Id}.", id);
+            logger.LogError(ex, "Error retrieving classification node with ID {Id}.", id);
             throw;
         }
     }
@@ -124,9 +112,9 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Getting root classification nodes");
+            logger.LogDebug("Getting root classification nodes");
 
-            var nodes = await _context.ClassificationNodes
+            var nodes = await context.ClassificationNodes
                 .Where(cn => cn.ParentId == null)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
@@ -153,7 +141,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving root classification nodes.");
+            logger.LogError(ex, "Error retrieving root classification nodes.");
             throw;
         }
     }
@@ -162,9 +150,9 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Getting children for classification node: {ParentId}", parentId);
+            logger.LogDebug("Getting children for classification node: {ParentId}", parentId);
 
-            var children = await _context.ClassificationNodes
+            var children = await context.ClassificationNodes
                 .Where(cn => cn.ParentId == parentId)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
@@ -191,7 +179,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving children for classification node {ParentId}.", parentId);
+            logger.LogError(ex, "Error retrieving children for classification node {ParentId}.", parentId);
             throw;
         }
     }
@@ -200,17 +188,17 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Creating classification node: {Name}", createDto.Name);
+            logger.LogDebug("Creating classification node: {Name}", createDto.Name);
 
             // Validate parent exists if specified
             if (createDto.ParentId.HasValue)
             {
-                var parentExists = await _context.ClassificationNodes
+                var parentExists = await context.ClassificationNodes
                     .AnyAsync(cn => cn.Id == createDto.ParentId.Value, cancellationToken);
 
                 if (!parentExists)
                 {
-                    _logger.LogWarning("Parent classification node with ID {ParentId} not found.", createDto.ParentId);
+                    logger.LogWarning("Parent classification node with ID {ParentId} not found.", createDto.ParentId);
                     throw new ArgumentException($"Parent classification node with ID {createDto.ParentId} not found.");
                 }
             }
@@ -218,12 +206,12 @@ public class ClassificationNodeService : IClassificationNodeService
             // Check for duplicate code
             if (!string.IsNullOrEmpty(createDto.Code))
             {
-                var codeExists = await _context.ClassificationNodes
+                var codeExists = await context.ClassificationNodes
                     .AnyAsync(cn => cn.Code == createDto.Code, cancellationToken);
 
                 if (codeExists)
                 {
-                    _logger.LogWarning("Classification node with code '{Code}' already exists.", createDto.Code);
+                    logger.LogWarning("Classification node with code '{Code}' already exists.", createDto.Code);
                     throw new ArgumentException($"Classification node with code '{createDto.Code}' already exists.");
                 }
             }
@@ -244,12 +232,12 @@ public class ClassificationNodeService : IClassificationNodeService
                 CreatedBy = currentUser
             };
 
-            _ = _context.ClassificationNodes.Add(node);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ClassificationNodes.Add(node);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(node, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(node, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Created classification node: {Id} - {Name}", node.Id, node.Name);
+            logger.LogInformation("Created classification node: {Id} - {Name}", node.Id, node.Name);
 
             return new ClassificationNodeDto
             {
@@ -271,7 +259,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating classification node.");
+            logger.LogError(ex, "Error creating classification node.");
             throw;
         }
     }
@@ -280,24 +268,24 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Updating classification node: {Id}", id);
+            logger.LogDebug("Updating classification node: {Id}", id);
 
-            var originalNode = await _context.ClassificationNodes
+            var originalNode = await context.ClassificationNodes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
 
-            if (originalNode == null)
+            if (originalNode is null)
             {
-                _logger.LogWarning("Classification node with ID {Id} not found for update.", id);
+                logger.LogWarning("Classification node with ID {Id} not found for update.", id);
                 return null;
             }
 
-            var node = await _context.ClassificationNodes
+            var node = await context.ClassificationNodes
                 .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
 
-            if (node == null)
+            if (node is null)
             {
-                _logger.LogWarning("Classification node with ID {Id} not found for update.", id);
+                logger.LogWarning("Classification node with ID {Id} not found for update.", id);
                 return null;
             }
 
@@ -306,16 +294,16 @@ public class ClassificationNodeService : IClassificationNodeService
             {
                 if (updateDto.ParentId == id)
                 {
-                    _logger.LogWarning("A classification node cannot be its own parent. Node ID: {Id}", id);
+                    logger.LogWarning("A classification node cannot be its own parent. Node ID: {Id}", id);
                     throw new ArgumentException("A classification node cannot be its own parent.");
                 }
 
-                var parentExists = await _context.ClassificationNodes
+                var parentExists = await context.ClassificationNodes
                     .AnyAsync(cn => cn.Id == updateDto.ParentId.Value, cancellationToken);
 
                 if (!parentExists)
                 {
-                    _logger.LogWarning("Parent classification node with ID {ParentId} not found.", updateDto.ParentId);
+                    logger.LogWarning("Parent classification node with ID {ParentId} not found.", updateDto.ParentId);
                     throw new ArgumentException($"Parent classification node with ID {updateDto.ParentId} not found.");
                 }
             }
@@ -323,12 +311,12 @@ public class ClassificationNodeService : IClassificationNodeService
             // Check for duplicate code if changed
             if (!string.IsNullOrEmpty(updateDto.Code) && updateDto.Code != node.Code)
             {
-                var codeExists = await _context.ClassificationNodes
+                var codeExists = await context.ClassificationNodes
                     .AnyAsync(cn => cn.Code == updateDto.Code && cn.Id != id, cancellationToken);
 
                 if (codeExists)
                 {
-                    _logger.LogWarning("Classification node with code '{Code}' already exists.", updateDto.Code);
+                    logger.LogWarning("Classification node with code '{Code}' already exists.", updateDto.Code);
                     throw new ArgumentException($"Classification node with code '{updateDto.Code}' already exists.");
                 }
             }
@@ -338,7 +326,7 @@ public class ClassificationNodeService : IClassificationNodeService
                 node.Code = updateDto.Code;
             if (!string.IsNullOrEmpty(updateDto.Name))
                 node.Name = updateDto.Name;
-            if (updateDto.Description != null)
+            if (updateDto.Description is not null)
                 node.Description = updateDto.Description;
 
             node.Type = updateDto.Type.ToEntity();
@@ -352,11 +340,11 @@ public class ClassificationNodeService : IClassificationNodeService
             node.ModifiedAt = DateTime.UtcNow;
             node.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(node, "Update", currentUser, originalNode, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(node, "Update", currentUser, originalNode, cancellationToken);
 
-            _logger.LogInformation("Updated classification node: {Id} - {Name}", node.Id, node.Name);
+            logger.LogInformation("Updated classification node: {Id} - {Name}", node.Id, node.Name);
 
             return new ClassificationNodeDto
             {
@@ -378,7 +366,7 @@ public class ClassificationNodeService : IClassificationNodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating classification node {Id}.", id);
+            logger.LogError(ex, "Error updating classification node {Id}.", id);
             throw;
         }
     }
@@ -387,41 +375,41 @@ public class ClassificationNodeService : IClassificationNodeService
     {
         try
         {
-            _logger.LogDebug("Deleting classification node: {Id}", id);
+            logger.LogDebug("Deleting classification node: {Id}", id);
 
-            var originalNode = await _context.ClassificationNodes
+            var originalNode = await context.ClassificationNodes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
 
-            if (originalNode == null)
+            if (originalNode is null)
             {
-                _logger.LogWarning("Classification node with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Classification node with ID {Id} not found for deletion.", id);
                 return false;
             }
 
-            var node = await _context.ClassificationNodes
+            var node = await context.ClassificationNodes
                 .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
 
-            if (node == null)
+            if (node is null)
             {
-                _logger.LogWarning("Classification node with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Classification node with ID {Id} not found for deletion.", id);
                 return false;
             }
 
             // Check if it has children
-            var hasChildren = await _context.ClassificationNodes
+            var hasChildren = await context.ClassificationNodes
                 .AnyAsync(cn => cn.ParentId == id, cancellationToken);
 
             if (hasChildren)
             {
-                _logger.LogWarning("Cannot delete classification node {Id} because it has children.", id);
+                logger.LogWarning("Cannot delete classification node {Id} because it has children.", id);
                 throw new InvalidOperationException("Cannot delete classification node that has children. Delete or reassign children first.");
             }
 
             // Gestione concorrenza ottimistica tramite rowVersion
-            if (node.RowVersion == null || !node.RowVersion.SequenceEqual(rowVersion))
+            if (node.RowVersion is null || !node.RowVersion.SequenceEqual(rowVersion))
             {
-                _logger.LogWarning("Concurrency conflict when deleting classification node {Id}.", id);
+                logger.LogWarning("Concurrency conflict when deleting classification node {Id}.", id);
                 throw new DbUpdateConcurrencyException("The classification node was modified by another user.");
             }
 
@@ -432,17 +420,18 @@ public class ClassificationNodeService : IClassificationNodeService
             node.ModifiedAt = DateTime.UtcNow;
             node.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(node, "Delete", currentUser, originalNode, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(node, "Delete", currentUser, originalNode, cancellationToken);
 
-            _logger.LogInformation("Deleted classification node: {Id}", id);
+            logger.LogInformation("Deleted classification node: {Id}", id);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting classification node {Id}.", id);
+            logger.LogError(ex, "Error deleting classification node {Id}.", id);
             throw;
         }
     }
+
 }

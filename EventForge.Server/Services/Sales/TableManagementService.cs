@@ -4,25 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Sales;
 
-public class TableManagementService : ITableManagementService
+public class TableManagementService(
+    EventForgeDbContext context,
+    ILogger<TableManagementService> logger,
+    ITenantContext tenantContext) : ITableManagementService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<TableManagementService> _logger;
-    private readonly ITenantContext _tenantContext;
-
-    public TableManagementService(
-        EventForgeDbContext context,
-        ILogger<TableManagementService> logger,
-        ITenantContext tenantContext)
-    {
-        _context = context;
-        _logger = logger;
-        _tenantContext = tenantContext;
-    }
 
     private Guid GetTenantId()
     {
-        var tenantId = _tenantContext.CurrentTenantId;
+        var tenantId = tenantContext.CurrentTenantId;
         if (!tenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for table management operations.");
@@ -33,9 +23,9 @@ public class TableManagementService : ITableManagementService
     public async Task<PagedResult<TableSessionDto>> GetTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting tables with pagination for tenant {TenantId}", tenantId);
+        logger.LogInformation("Getting tables with pagination for tenant {TenantId}", tenantId);
 
-        var query = _context.Set<TableSession>()
+        var query = context.Set<TableSession>()
             .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted);
 
@@ -60,9 +50,9 @@ public class TableManagementService : ITableManagementService
     public async Task<PagedResult<TableSessionDto>> GetTablesByZoneAsync(string zone, PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting tables by zone {Zone} with pagination for tenant {TenantId}", zone, tenantId);
+        logger.LogInformation("Getting tables by zone {Zone} with pagination for tenant {TenantId}", zone, tenantId);
 
-        var query = _context.Set<TableSession>()
+        var query = context.Set<TableSession>()
             .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.Area == zone);
 
@@ -86,9 +76,9 @@ public class TableManagementService : ITableManagementService
     public async Task<PagedResult<TableSessionDto>> GetAvailableTablesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting available tables with pagination for tenant {TenantId}", tenantId);
+        logger.LogInformation("Getting available tables with pagination for tenant {TenantId}", tenantId);
 
-        var query = _context.Set<TableSession>()
+        var query = context.Set<TableSession>()
             .AsNoTracking()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.IsActive && t.Status == TableStatus.Available);
 
@@ -114,9 +104,9 @@ public class TableManagementService : ITableManagementService
     public async Task<List<TableSessionDto>> GetAllTablesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting all tables for tenant {TenantId}", tenantId);
+        logger.LogInformation("Getting all tables for tenant {TenantId}", tenantId);
 
-        var tables = await _context.Set<TableSession>()
+        var tables = await context.Set<TableSession>()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted)
             .OrderBy(t => t.TableNumber)
             .ToListAsync(cancellationToken);
@@ -127,20 +117,20 @@ public class TableManagementService : ITableManagementService
     public async Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting table {TableId} for tenant {TenantId}", tableId, tenantId);
+        logger.LogInformation("Getting table {TableId} for tenant {TenantId}", tableId, tenantId);
 
-        var table = await _context.Set<TableSession>()
+        var table = await context.Set<TableSession>()
             .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
-        return table != null ? MapToDto(table) : null;
+        return table is not null ? MapToDto(table) : null;
     }
 
     public async Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting available tables for tenant {TenantId}", tenantId);
+        logger.LogInformation("Getting available tables for tenant {TenantId}", tenantId);
 
-        var tables = await _context.Set<TableSession>()
+        var tables = await context.Set<TableSession>()
             .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.IsActive && t.Status == TableStatus.Available)
             .OrderBy(t => t.TableNumber)
             .ToListAsync(cancellationToken);
@@ -151,9 +141,9 @@ public class TableManagementService : ITableManagementService
     public async Task<TableSessionDto> CreateTableAsync(CreateTableSessionDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Creating table {TableNumber} for tenant {TenantId}", dto.TableNumber, tenantId);
+        logger.LogInformation("Creating table {TableNumber} for tenant {TenantId}", dto.TableNumber, tenantId);
 
-        var exists = await _context.Set<TableSession>()
+        var exists = await context.Set<TableSession>()
             .AnyAsync(t => t.TenantId == tenantId && t.TableNumber == dto.TableNumber && !t.IsDeleted, cancellationToken);
 
         if (exists)
@@ -176,10 +166,10 @@ public class TableManagementService : ITableManagementService
             CreatedAt = DateTime.UtcNow
         };
 
-        _ = _context.Set<TableSession>().Add(table);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = context.Set<TableSession>().Add(table);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Created table {TableId} with number {TableNumber}", table.Id, table.TableNumber);
+        logger.LogInformation("Created table {TableId} with number {TableNumber}", table.Id, table.TableNumber);
 
         return MapToDto(table);
     }
@@ -187,20 +177,20 @@ public class TableManagementService : ITableManagementService
     public async Task<TableSessionDto?> UpdateTableAsync(Guid tableId, UpdateTableSessionDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Updating table {TableId} for tenant {TenantId}", tableId, tenantId);
+        logger.LogInformation("Updating table {TableId} for tenant {TenantId}", tableId, tenantId);
 
-        var table = await _context.Set<TableSession>()
+        var table = await context.Set<TableSession>()
             .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
-        if (table == null)
+        if (table is null)
         {
-            _logger.LogWarning("Table {TableId} not found", tableId);
+            logger.LogWarning("Table {TableId} not found", tableId);
             return null;
         }
 
         if (!string.IsNullOrWhiteSpace(dto.TableNumber) && dto.TableNumber != table.TableNumber)
         {
-            var exists = await _context.Set<TableSession>()
+            var exists = await context.Set<TableSession>()
                 .AnyAsync(t => t.TenantId == tenantId && t.TableNumber == dto.TableNumber && t.Id != tableId && !t.IsDeleted, cancellationToken);
 
             if (exists)
@@ -211,18 +201,18 @@ public class TableManagementService : ITableManagementService
             table.TableNumber = dto.TableNumber;
         }
 
-        if (dto.TableName != null) table.TableName = dto.TableName;
+        if (dto.TableName is not null) table.TableName = dto.TableName;
         if (dto.Capacity.HasValue) table.Capacity = dto.Capacity.Value;
-        if (dto.Area != null) table.Area = dto.Area;
+        if (dto.Area is not null) table.Area = dto.Area;
         if (dto.PositionX.HasValue) table.PositionX = dto.PositionX;
         if (dto.PositionY.HasValue) table.PositionY = dto.PositionY;
         if (dto.IsActive.HasValue) table.IsActive = dto.IsActive.Value;
 
         table.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Updated table {TableId}", tableId);
+        logger.LogInformation("Updated table {TableId}", tableId);
 
         return MapToDto(table);
     }
@@ -230,14 +220,14 @@ public class TableManagementService : ITableManagementService
     public async Task<TableSessionDto?> UpdateTableStatusAsync(Guid tableId, UpdateTableStatusDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Updating status for table {TableId} to {Status}", tableId, dto.Status);
+        logger.LogInformation("Updating status for table {TableId} to {Status}", tableId, dto.Status);
 
-        var table = await _context.Set<TableSession>()
+        var table = await context.Set<TableSession>()
             .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
-        if (table == null)
+        if (table is null)
         {
-            _logger.LogWarning("Table {TableId} not found", tableId);
+            logger.LogWarning("Table {TableId} not found", tableId);
             return null;
         }
 
@@ -250,9 +240,9 @@ public class TableManagementService : ITableManagementService
         table.CurrentSaleSessionId = dto.SaleSessionId;
         table.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Updated table {TableId} status to {Status}", tableId, newStatus);
+        logger.LogInformation("Updated table {TableId} status to {Status}", tableId, newStatus);
 
         return MapToDto(table);
     }
@@ -260,23 +250,23 @@ public class TableManagementService : ITableManagementService
     public async Task<bool> DeleteTableAsync(Guid tableId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Deleting table {TableId} for tenant {TenantId}", tableId, tenantId);
+        logger.LogInformation("Deleting table {TableId} for tenant {TenantId}", tableId, tenantId);
 
-        var table = await _context.Set<TableSession>()
+        var table = await context.Set<TableSession>()
             .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
-        if (table == null)
+        if (table is null)
         {
-            _logger.LogWarning("Table {TableId} not found", tableId);
+            logger.LogWarning("Table {TableId} not found", tableId);
             return false;
         }
 
         table.IsDeleted = true;
         table.DeletedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Deleted table {TableId}", tableId);
+        logger.LogInformation("Deleted table {TableId}", tableId);
 
         return true;
     }
@@ -287,9 +277,9 @@ public class TableManagementService : ITableManagementService
         var startDate = date.Date;
         var endDate = startDate.AddDays(1);
 
-        _logger.LogInformation("Getting reservations for date {Date} and tenant {TenantId}", date.Date, tenantId);
+        logger.LogInformation("Getting reservations for date {Date} and tenant {TenantId}", date.Date, tenantId);
 
-        var reservations = await _context.Set<TableReservation>()
+        var reservations = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .Where(r => r.TenantId == tenantId && !r.IsDeleted &&
                        r.ReservationDateTime >= startDate && r.ReservationDateTime < endDate)
@@ -302,24 +292,24 @@ public class TableManagementService : ITableManagementService
     public async Task<TableReservationDto?> GetReservationAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Getting reservation {ReservationId} for tenant {TenantId}", reservationId, tenantId);
+        logger.LogInformation("Getting reservation {ReservationId} for tenant {TenantId}", reservationId, tenantId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        return reservation != null ? MapReservationToDto(reservation) : null;
+        return reservation is not null ? MapReservationToDto(reservation) : null;
     }
 
     public async Task<TableReservationDto> CreateReservationAsync(CreateTableReservationDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
+        logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
 
-        var table = await _context.Set<TableSession>()
+        var table = await context.Set<TableSession>()
             .FirstOrDefaultAsync(t => t.Id == dto.TableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
-        if (table == null)
+        if (table is null)
         {
             throw new InvalidOperationException("Table not found.");
         }
@@ -344,12 +334,12 @@ public class TableManagementService : ITableManagementService
             CreatedAt = DateTime.UtcNow
         };
 
-        _ = _context.Set<TableReservation>().Add(reservation);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = context.Set<TableReservation>().Add(reservation);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Created reservation {ReservationId}", reservation.Id);
+        logger.LogInformation("Created reservation {ReservationId}", reservation.Id);
 
-        reservation = await _context.Set<TableReservation>()
+        reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstAsync(r => r.Id == reservation.Id, cancellationToken);
 
@@ -359,23 +349,23 @@ public class TableManagementService : ITableManagementService
     public async Task<TableReservationDto?> UpdateReservationAsync(Guid reservationId, UpdateTableReservationDto dto, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Updating reservation {ReservationId}", reservationId);
+        logger.LogInformation("Updating reservation {ReservationId}", reservationId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        if (reservation == null)
+        if (reservation is null)
         {
-            _logger.LogWarning("Reservation {ReservationId} not found", reservationId);
+            logger.LogWarning("Reservation {ReservationId} not found", reservationId);
             return null;
         }
 
-        if (dto.CustomerName != null) reservation.CustomerName = dto.CustomerName;
-        if (dto.PhoneNumber != null) reservation.PhoneNumber = dto.PhoneNumber;
+        if (dto.CustomerName is not null) reservation.CustomerName = dto.CustomerName;
+        if (dto.PhoneNumber is not null) reservation.PhoneNumber = dto.PhoneNumber;
         if (dto.NumberOfGuests.HasValue)
         {
-            if (reservation.Table != null && dto.NumberOfGuests.Value > reservation.Table.Capacity)
+            if (reservation.Table is not null && dto.NumberOfGuests.Value > reservation.Table.Capacity)
             {
                 throw new InvalidOperationException($"Number of guests ({dto.NumberOfGuests.Value}) exceeds table capacity ({reservation.Table.Capacity}).");
             }
@@ -383,13 +373,13 @@ public class TableManagementService : ITableManagementService
         }
         if (dto.ReservationDateTime.HasValue) reservation.ReservationDateTime = dto.ReservationDateTime.Value;
         if (dto.DurationMinutes.HasValue) reservation.DurationMinutes = dto.DurationMinutes;
-        if (dto.SpecialRequests != null) reservation.SpecialRequests = dto.SpecialRequests;
+        if (dto.SpecialRequests is not null) reservation.SpecialRequests = dto.SpecialRequests;
 
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Updated reservation {ReservationId}", reservationId);
+        logger.LogInformation("Updated reservation {ReservationId}", reservationId);
 
         return MapReservationToDto(reservation);
     }
@@ -397,15 +387,15 @@ public class TableManagementService : ITableManagementService
     public async Task<TableReservationDto?> ConfirmReservationAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Confirming reservation {ReservationId}", reservationId);
+        logger.LogInformation("Confirming reservation {ReservationId}", reservationId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        if (reservation == null)
+        if (reservation is null)
         {
-            _logger.LogWarning("Reservation {ReservationId} not found", reservationId);
+            logger.LogWarning("Reservation {ReservationId} not found", reservationId);
             return null;
         }
 
@@ -413,9 +403,9 @@ public class TableManagementService : ITableManagementService
         reservation.ConfirmedAt = DateTime.UtcNow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Confirmed reservation {ReservationId}", reservationId);
+        logger.LogInformation("Confirmed reservation {ReservationId}", reservationId);
 
         return MapReservationToDto(reservation);
     }
@@ -423,15 +413,15 @@ public class TableManagementService : ITableManagementService
     public async Task<TableReservationDto?> MarkArrivedAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Marking reservation {ReservationId} as arrived", reservationId);
+        logger.LogInformation("Marking reservation {ReservationId} as arrived", reservationId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        if (reservation == null)
+        if (reservation is null)
         {
-            _logger.LogWarning("Reservation {ReservationId} not found", reservationId);
+            logger.LogWarning("Reservation {ReservationId} not found", reservationId);
             return null;
         }
 
@@ -439,9 +429,9 @@ public class TableManagementService : ITableManagementService
         reservation.ArrivedAt = DateTime.UtcNow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Marked reservation {ReservationId} as arrived", reservationId);
+        logger.LogInformation("Marked reservation {ReservationId} as arrived", reservationId);
 
         return MapReservationToDto(reservation);
     }
@@ -449,23 +439,23 @@ public class TableManagementService : ITableManagementService
     public async Task<bool> CancelReservationAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Cancelling reservation {ReservationId}", reservationId);
+        logger.LogInformation("Cancelling reservation {ReservationId}", reservationId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        if (reservation == null)
+        if (reservation is null)
         {
-            _logger.LogWarning("Reservation {ReservationId} not found", reservationId);
+            logger.LogWarning("Reservation {ReservationId} not found", reservationId);
             return false;
         }
 
         reservation.Status = ReservationStatus.Cancelled;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Cancelled reservation {ReservationId}", reservationId);
+        logger.LogInformation("Cancelled reservation {ReservationId}", reservationId);
 
         return true;
     }
@@ -473,24 +463,24 @@ public class TableManagementService : ITableManagementService
     public async Task<TableReservationDto?> MarkNoShowAsync(Guid reservationId, CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
-        _logger.LogInformation("Marking reservation {ReservationId} as no-show", reservationId);
+        logger.LogInformation("Marking reservation {ReservationId} as no-show", reservationId);
 
-        var reservation = await _context.Set<TableReservation>()
+        var reservation = await context.Set<TableReservation>()
             .Include(r => r.Table)
             .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
 
-        if (reservation == null)
+        if (reservation is null)
         {
-            _logger.LogWarning("Reservation {ReservationId} not found", reservationId);
+            logger.LogWarning("Reservation {ReservationId} not found", reservationId);
             return null;
         }
 
         reservation.Status = ReservationStatus.NoShow;
         reservation.ModifiedAt = DateTime.UtcNow;
 
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Marked reservation {ReservationId} as no-show", reservationId);
+        logger.LogInformation("Marked reservation {ReservationId} as no-show", reservationId);
 
         return MapReservationToDto(reservation);
     }
@@ -533,4 +523,5 @@ public class TableManagementService : ITableManagementService
             CreatedAt = reservation.CreatedAt
         };
     }
+
 }

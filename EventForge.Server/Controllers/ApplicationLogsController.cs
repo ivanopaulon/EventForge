@@ -9,20 +9,11 @@ namespace EventForge.Server.Controllers;
 /// Controller for application log operations with standardized pagination.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/application-logs")]
 [Authorize(Roles = "Admin,SuperAdmin")]
-public class ApplicationLogsController : BaseApiController
+public class ApplicationLogsController(
+    IApplicationLogService service) : BaseApiController
 {
-    private readonly IApplicationLogService _service;
-    private readonly ILogger<ApplicationLogsController> _logger;
-
-    public ApplicationLogsController(
-        IApplicationLogService service,
-        ILogger<ApplicationLogsController> logger)
-    {
-        _service = service ?? throw new ArgumentNullException(nameof(service));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Retrieves all application logs with pagination (Admin/SuperAdmin only)
@@ -43,7 +34,7 @@ public class ApplicationLogsController : BaseApiController
     {
         try
         {
-            var result = await _service.GetApplicationLogsAsync(pagination, cancellationToken);
+            var result = await service.GetApplicationLogsAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -85,7 +76,7 @@ public class ApplicationLogsController : BaseApiController
     {
         try
         {
-            var result = await _service.GetLogsByLevelAsync(level, pagination, cancellationToken);
+            var result = await service.GetLogsByLevelAsync(level, pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -129,7 +120,7 @@ public class ApplicationLogsController : BaseApiController
     {
         try
         {
-            var result = await _service.GetLogsByDateRangeAsync(startDate, endDate, pagination, cancellationToken);
+            var result = await service.GetLogsByDateRangeAsync(startDate, endDate, pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());

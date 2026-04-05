@@ -22,24 +22,14 @@ public interface IViesValidationService
 /// Simple implementation of VIES VAT validation service using the official REST API.
 /// Uses direct GET requests to: https://ec.europa.eu/taxation_customs/vies/rest-api/ms/{country}/vat/{vat}
 /// </summary>
-public class ViesValidationService : IViesValidationService
+public class ViesValidationService(
+    HttpClient httpClient,
+    ILogger<ViesValidationService> logger) : IViesValidationService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<ViesValidationService> _logger;
+
+    private readonly bool _ctorInitialized = InitInstance(httpClient);
+
     private const string BaseUrl = "https://ec.europa.eu/taxation_customs/vies/rest-api/ms";
-
-    public ViesValidationService(
-        HttpClient httpClient,
-        ILogger<ViesValidationService> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-
-        // Configure JSON options to handle property name case
-        _httpClient.DefaultRequestHeaders.Accept.Clear();
-        _httpClient.DefaultRequestHeaders.Accept.Add(
-            new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-    }
 
     public async Task<ViesValidationResponseDto?> ValidateVatAsync(
         string countryCode,
@@ -54,15 +44,15 @@ public class ViesValidationService : IViesValidationService
             // Build URL
             var url = $"{BaseUrl}/{countryCode.ToUpper()}/vat/{cleanVat}";
 
-            _logger.LogInformation("Validating VAT: {CountryCode}{VatNumber} via VIES REST API",
+            logger.LogInformation("Validating VAT: {CountryCode}{VatNumber} via VIES REST API",
                 countryCode, cleanVat);
 
             // Make request
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            var response = await httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("VIES API returned status {StatusCode} for VAT {CountryCode}{VatNumber}",
+                logger.LogWarning("VIES API returned status {StatusCode} for VAT {CountryCode}{VatNumber}",
                     response.StatusCode, countryCode, cleanVat);
                 return null;
             }
@@ -75,16 +65,16 @@ public class ViesValidationService : IViesValidationService
 
             var result = await response.Content.ReadFromJsonAsync<ViesValidationResponseDto>(options, cancellationToken);
 
-            if (result != null)
+            if (result is not null)
             {
-                _logger.LogInformation("VIES validation result: {IsValid} for {CountryCode}{VatNumber} - Name={Name} UserError={UserError}",
+                logger.LogInformation("VIES validation result: {IsValid} for {CountryCode}{VatNumber} - Name={Name} UserError={UserError}",
                     result.IsValid, countryCode, cleanVat, result.Name, result.UserError);
 
                 // Transient errors (service/member-state unavailable, rate limit) must NOT be cached.
                 // Return null so the caller treats this as a temporary failure.
                 if (!result.IsValid && IsTransientViesError(result.UserError))
                 {
-                    _logger.LogWarning("VIES transient error for {CountryCode}{VatNumber}: {UserError} — result will not be cached",
+                    logger.LogWarning("VIES transient error for {CountryCode}{VatNumber}: {UserError} — result will not be cached",
                         countryCode, cleanVat, result.UserError);
                     return null;
                 }
@@ -94,13 +84,13 @@ public class ViesValidationService : IViesValidationService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error validating VAT {CountryCode}{VatNumber}",
+            logger.LogError(ex, "HTTP error validating VAT {CountryCode}{VatNumber}",
                 countryCode, vatNumber);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}",
+            logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}",
                 countryCode, vatNumber);
             return null;
         }
@@ -134,4 +124,13 @@ public class ViesValidationService : IViesValidationService
 
         return cleaned;
     }
+
+    private static bool InitInstance(HttpClient httpClient)
+    {
+        httpClient.DefaultRequestHeaders.Accept.Clear();
+        httpClient.DefaultRequestHeaders.Accept.Add(
+                    new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        return true;
+    }
+
 }

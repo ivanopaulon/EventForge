@@ -13,24 +13,12 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service for importing supplier products from CSV files.
 /// </summary>
-public class SupplierProductCsvImportService : ISupplierProductCsvImportService
+public class SupplierProductCsvImportService(
+    EventForgeDbContext context,
+    ISupplierProductPriceHistoryService priceHistoryService,
+    ILogger<SupplierProductCsvImportService> logger,
+    IConfiguration configuration) : ISupplierProductCsvImportService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ISupplierProductPriceHistoryService _priceHistoryService;
-    private readonly ILogger<SupplierProductCsvImportService> _logger;
-    private readonly IConfiguration _configuration;
-
-    public SupplierProductCsvImportService(
-        EventForgeDbContext context,
-        ISupplierProductPriceHistoryService priceHistoryService,
-        ILogger<SupplierProductCsvImportService> logger,
-        IConfiguration configuration)
-    {
-        _context = context;
-        _priceHistoryService = priceHistoryService;
-        _logger = logger;
-        _configuration = configuration;
-    }
 
     /// <inheritdoc />
     public async Task<CsvValidationResult> ValidateCsvAsync(
@@ -52,7 +40,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         try
         {
             // Check file size
-            var maxFileSize = _configuration.GetValue<long>("CsvImport:MaxFileSizeBytes", 10485760);
+            var maxFileSize = configuration.GetValue<long>("CsvImport:MaxFileSizeBytes", 10485760);
             if (file.Length > maxFileSize)
             {
                 result.IsValid = false;
@@ -134,7 +122,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             }
 
             // Read preview rows
-            var maxPreviewRows = _configuration.GetValue<int>("CsvImport:MaxRowsPreview", 10);
+            var maxPreviewRows = configuration.GetValue<int>("CsvImport:MaxRowsPreview", 10);
             var rowNumber = 1;
             var totalRows = 0;
 
@@ -175,7 +163,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating CSV file {FileName}", file.FileName);
+            logger.LogError(ex, "Error validating CSV file {FileName}", file.FileName);
             result.IsValid = false;
             result.ValidationErrors.Add(new CsvImportError
             {
@@ -202,11 +190,11 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         try
         {
             // Get user ID from username
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == currentUser, cancellationToken);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == currentUser, cancellationToken);
             var userId = user?.Id ?? Guid.Empty;
 
             // Verify supplier exists
-            var supplierExists = await _context.BusinessParties
+            var supplierExists = await context.BusinessParties
                 .AnyAsync(bp => bp.Id == supplierId, cancellationToken);
 
             if (!supplierExists)
@@ -256,7 +244,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             await csv.ReadAsync();
             csv.ReadHeader();
 
-            var batchSize = _configuration.GetValue<int>("CsvImport:BatchSize", 100);
+            var batchSize = configuration.GetValue<int>("CsvImport:BatchSize", 100);
             var rowNumber = 1;
             var priceChanges = new List<PriceChangeLogRequest>();
             decimal totalValue = 0;
@@ -334,17 +322,17 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
 
                     // Find product by code (case-insensitive)
                     // Note: Using string comparison in memory after loading to avoid case-sensitivity issues
-                    var products = await _context.Products
+                    var products = await context.Products
                         .Where(p => p.Code != null)
                         .ToListAsync(cancellationToken);
                     var product = products.FirstOrDefault(p => p.Code.Equals(productCode, StringComparison.OrdinalIgnoreCase));
 
-                    if (product == null)
+                    if (product is null)
                     {
                         if (options.CreateNew && !string.IsNullOrWhiteSpace(productName))
                         {
                             // Create new product
-                            var supplier = await _context.BusinessParties.FirstAsync(bp => bp.Id == supplierId, cancellationToken);
+                            var supplier = await context.BusinessParties.FirstAsync(bp => bp.Id == supplierId, cancellationToken);
                             product = new Product
                             {
                                 Id = Guid.NewGuid(),
@@ -355,8 +343,8 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                                 CreatedAt = DateTime.UtcNow,
                                 ModifiedAt = DateTime.UtcNow
                             };
-                            _context.Products.Add(product);
-                            await _context.SaveChangesAsync(cancellationToken);
+                            context.Products.Add(product);
+                            await context.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
@@ -376,10 +364,10 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                     }
 
                     // Check if product-supplier relationship exists
-                    var productSupplier = await _context.Set<ProductSupplier>()
+                    var productSupplier = await context.Set<ProductSupplier>()
                         .FirstOrDefaultAsync(ps => ps.ProductId == product.Id && ps.SupplierId == supplierId, cancellationToken);
 
-                    if (productSupplier != null)
+                    if (productSupplier is not null)
                     {
                         // Update existing
                         if (options.UpdateExisting)
@@ -460,7 +448,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                             CreatedAt = DateTime.UtcNow,
                             ModifiedAt = DateTime.UtcNow
                         };
-                        _context.Set<ProductSupplier>().Add(productSupplier);
+                        context.Set<ProductSupplier>().Add(productSupplier);
                         result.CreatedCount++;
                         totalValue += unitCost;
                     }
@@ -468,12 +456,12 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
                     // Batch save
                     if (rowNumber % batchSize == 0)
                     {
-                        await _context.SaveChangesAsync(cancellationToken);
+                        await context.SaveChangesAsync(cancellationToken);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing row {RowNumber}", rowNumber);
+                    logger.LogError(ex, "Error processing row {RowNumber}", rowNumber);
                     result.ErrorCount++;
                     result.Errors.Add(new CsvImportError
                     {
@@ -487,18 +475,18 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
             }
 
             // Final save
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
             // Log price changes
             if (priceChanges.Any())
             {
                 try
                 {
-                    await _priceHistoryService.LogBulkPriceChangesAsync(priceChanges, cancellationToken);
+                    await priceHistoryService.LogBulkPriceChangesAsync(priceChanges, cancellationToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error logging price changes");
+                    logger.LogError(ex, "Error logging price changes");
                 }
             }
 
@@ -510,7 +498,7 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error importing CSV file {FileName}", file.FileName);
+            logger.LogError(ex, "Error importing CSV file {FileName}", file.FileName);
             result.Success = false;
             result.Errors.Add(new CsvImportError
             {
@@ -693,13 +681,14 @@ public class SupplierProductCsvImportService : ISupplierProductCsvImportService
         }
         catch (CsvHelper.MissingFieldException ex)
         {
-            _logger.LogWarning(ex, "Column '{ColumnName}' not found in CSV", columnName);
+            logger.LogWarning(ex, "Column '{ColumnName}' not found in CSV", columnName);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting field value for column '{ColumnName}'", columnName);
+            logger.LogError(ex, "Error getting field value for column '{ColumnName}'", columnName);
             return null;
         }
     }
+
 }

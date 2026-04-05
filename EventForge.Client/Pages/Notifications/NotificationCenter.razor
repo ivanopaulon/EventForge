@@ -7,7 +7,7 @@
 @inject INotificationService NotificationService
 @inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
@@ -391,7 +391,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore durante l'inizializzazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore durante l'inizializzazione: {ex.Message}");
         }
     }
 
@@ -442,7 +442,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error starting walkthrough: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error starting walkthrough: {ex.Message}");
         }
     }
 
@@ -454,11 +454,11 @@
         try
         {
             await HelpService.SetOnboardingStepCompletedAsync("notifications_onboarding_completed");
-            Snackbar.Add(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error completing onboarding: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error completing onboarding: {ex.Message}");
         }
     }
 
@@ -470,11 +470,11 @@
         try
         {
             await HelpService.SetOnboardingStepCompletedAsync("notifications_walkthrough_completed");
-            Snackbar.Add(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use notifications effectively."), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use notifications effectively."));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error completing walkthrough: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error completing walkthrough: {ex.Message}");
         }
     }
 
@@ -505,7 +505,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle notifiche: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle notifiche: {ex.Message}");
         }
         finally
         {
@@ -525,7 +525,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle statistiche: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle statistiche: {ex.Message}");
         }
     }
 
@@ -540,7 +540,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle preferenze: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle preferenze: {ex.Message}");
         }
     }
 
@@ -564,16 +564,16 @@
                 }
                 _unreadCount = 0;
                 
-                Snackbar.Add(TranslationService.GetTranslation("notifications.allMarkedRead", "Tutte le notifiche sono state segnate come lette"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.allMarkedRead", "Tutte le notifiche sono state segnate come lette"));
             }
             else
             {
-                Snackbar.Add("Errore nell'operazione", Severity.Error);
+                AppNotification.ShowError("Errore nell'operazione");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'operazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'operazione: {ex.Message}");
         }
         finally
         {
@@ -595,17 +595,17 @@
                 // Remove archived notifications from local state
                 _notifications.RemoveAll(n => n.Status == NotificationStatus.Read);
                 
-                Snackbar.Add(TranslationService.GetTranslation("notifications.readArchived", "Notifiche lette archiviate"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.readArchived", "Notifiche lette archiviate"));
                 StateHasChanged();
             }
             else
             {
-                Snackbar.Add("Errore nell'archiviazione", Severity.Error);
+                AppNotification.ShowError("Errore nell'archiviazione");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'archiviazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'archiviazione: {ex.Message}");
         }
     }
 
@@ -615,7 +615,7 @@
     private async Task RefreshNotificationsAsync()
     {
         await LoadNotificationsAsync();
-        Snackbar.Add(TranslationService.GetTranslation("notifications.refreshed", "Notifiche aggiornate"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("notifications.refreshed", "Notifiche aggiornate"));
     }
 
     /// <summary>
@@ -639,7 +639,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'operazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'operazione: {ex.Message}");
         }
     }
 
@@ -657,12 +657,12 @@
                 _unreadCount = _notifications.Count(n => n.Status != NotificationStatus.Read);
                 StateHasChanged();
                 
-                Snackbar.Add(TranslationService.GetTranslation("notifications.archived", "Notifica archiviata"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.archived", "Notifica archiviata"));
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'archiviazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'archiviazione: {ex.Message}");
         }
     }
 
@@ -672,7 +672,7 @@
     private async Task ShowNotificationDetailsAsync(NotificationResponseDto notification)
     {
         // For now, just show a snackbar with the notification details
-        Snackbar.Add($"{notification.Payload.Title}: {notification.Payload.Message}", Severity.Info);
+        AppNotification.ShowInfo($"{notification.Payload.Title}: {notification.Payload.Message}");
         await Task.CompletedTask;
     }
 
@@ -697,16 +697,16 @@
             if (success)
             {
                 _subscriptions = newSubscriptions;
-                Snackbar.Add(TranslationService.GetTranslation("notifications.settingsSaved", "Impostazioni salvate con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.settingsSaved", "Impostazioni salvate con successo"));
             }
             else
             {
-                Snackbar.Add("Errore nel salvataggio delle impostazioni", Severity.Error);
+                AppNotification.ShowError("Errore nel salvataggio delle impostazioni");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel salvataggio: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel salvataggio: {ex.Message}");
         }
         finally
         {
@@ -774,7 +774,7 @@
         InvokeAsync(StateHasChanged);
         
         // Show snackbar for new notification
-        InvokeAsync(() => Snackbar.Add($"Nuova notifica: {notification.Payload.Title}", Severity.Info));
+        InvokeAsync(() => AppNotification.ShowInfo($"Nuova notifica: {notification.Payload.Title}"));
     }
 
     private void OnNotificationRead(Guid notificationId)
@@ -879,7 +879,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel raggruppamento: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel raggruppamento: {ex.Message}");
         }
         return Task.CompletedTask;
     }
@@ -924,11 +924,11 @@
                 await NotificationService.MarkAsReadAsync(notification.Id);
             }
 
-            Snackbar.Add(TranslationService.GetTranslation("notifications.groupMarkedAsRead", "Gruppo segnato come letto"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.groupMarkedAsRead", "Gruppo segnato come letto"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -945,11 +945,11 @@
                 await NotificationService.ArchiveNotificationAsync(notification.Id);
             }
 
-            Snackbar.Add(TranslationService.GetTranslation("notifications.groupArchived", "Gruppo archiviato"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("notifications.groupArchived", "Gruppo archiviato"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -971,11 +971,11 @@
             }
 
             await GenerateNotificationGroups();
-            Snackbar.Add(TranslationService.GetTranslation("notifications.groupUngrouped", "Notifiche separate"), Severity.Info);
+            AppNotification.ShowInfo(TranslationService.GetTranslation("notifications.groupUngrouped", "Notifiche separate"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
 
@@ -1003,12 +1003,12 @@
             if (!string.IsNullOrEmpty(action.ApiEndpoint))
             {
                 // TODO: Implement API call for custom actions
-                Snackbar.Add($"Azione '{action.Label}' eseguita", Severity.Success);
+                AppNotification.ShowSuccess($"Azione '{action.Label}' eseguita");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'esecuzione dell'azione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'esecuzione dell'azione: {ex.Message}");
         }
         return Task.CompletedTask;
     }

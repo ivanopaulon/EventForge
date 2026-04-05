@@ -11,27 +11,13 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/user-management")]
 [Authorize(Roles = "SuperAdmin")]
-public class UserManagementController : BaseApiController
+public class UserManagementController(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IAuditLogService auditLogService,
+    IHubContext<AuditLogHub> hubContext,
+    ILogger<UserManagementController> logger) : BaseApiController
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IAuditLogService _auditLogService;
-    private readonly IHubContext<AuditLogHub> _hubContext;
-    private readonly ILogger<UserManagementController> _logger;
-
-    public UserManagementController(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IAuditLogService auditLogService,
-        IHubContext<AuditLogHub> hubContext,
-        ILogger<UserManagementController> logger)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _auditLogService = auditLogService;
-        _hubContext = hubContext;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Gets all users across all tenants.
@@ -47,9 +33,9 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
+            logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
 
-            var query = _context.Users
+            var query = context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -82,7 +68,7 @@ public class UserManagementController : BaseApiController
                 })
                 .ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} users", result.Count);
+            logger.LogInformation("Retrieved {Count} users", result.Count);
 
             return Ok(result);
         }
@@ -108,7 +94,7 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var userDto = await _context.Users
+            var userDto = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -131,7 +117,7 @@ public class UserManagementController : BaseApiController
                 })
                 .FirstOrDefaultAsync();
 
-            if (userDto == null)
+            if (userDto is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
@@ -163,13 +149,13 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
@@ -177,12 +163,12 @@ public class UserManagementController : BaseApiController
             var oldStatus = user.IsActive;
             user.IsActive = updateDto.IsActive;
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the status change
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "IsActive",
@@ -196,7 +182,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User status changed to {(updateDto.IsActive ? "Active" : "Inactive")}. Reason: {updateDto.Reason}",
@@ -206,11 +192,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserStatusChanged", new { UserId = userId, IsActive = updateDto.IsActive });
 
             var result = new UserManagementDto
@@ -246,19 +232,19 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
 
             // Get the roles by name
-            var roles = await _context.Roles
+            var roles = await context.Roles
                 .Where(r => updateDto.Roles.Contains(r.Name))
                 .ToListAsync();
 
@@ -271,7 +257,7 @@ public class UserManagementController : BaseApiController
             var oldRoles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
 
             // Remove all existing roles
-            _context.UserRoles.RemoveRange(user.UserRoles);
+            context.UserRoles.RemoveRange(user.UserRoles);
 
             // Add new roles
             foreach (var role in roles)
@@ -281,17 +267,17 @@ public class UserManagementController : BaseApiController
                     UserId = userId,
                     RoleId = role.Id,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+                    CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
                 });
             }
 
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the role change
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "Roles",
@@ -305,7 +291,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.AdminTenantGranted, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User roles changed from [{string.Join(", ", oldRoles)}] to [{string.Join(", ", updateDto.Roles)}]. Reason: {updateDto.Reason}",
@@ -315,11 +301,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserRolesChanged", new { UserId = userId, Roles = updateDto.Roles });
 
             var result = new UserManagementDto
@@ -355,9 +341,9 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await context.Users.FindAsync(userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
@@ -370,12 +356,12 @@ public class UserManagementController : BaseApiController
 
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the password reset
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "PasswordReset",
@@ -389,7 +375,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.ForcePasswordChange,
                 TargetUserId = userId,
                 Details = $"Password reset for user '{user.Username}'. Reason: {resetDto.Reason}",
@@ -399,11 +385,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("PasswordReset", new { UserId = userId, Username = user.Username });
 
             var result = new PasswordResetResultDto
@@ -432,21 +418,21 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await context.Users.FindAsync(userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
 
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the password change requirement
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "MustChangePassword",
@@ -460,7 +446,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.ForcePasswordChange,
                 TargetUserId = userId,
                 Details = $"Password change forced for user '{user.Username}'. Reason: {forceDto.Reason}",
@@ -470,11 +456,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("PasswordChangeForced", new { UserId = userId, Username = user.Username });
 
             return Ok(new { message = $"Password change forced for user {user.Username}" });
@@ -495,7 +481,7 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var roles = await _context.Roles
+            var roles = await context.Roles
                 .Select(r => new RoleResponseDto
                 {
                     Id = r.Id,
@@ -521,7 +507,7 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var query = _context.Users
+            var query = context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .AsQueryable();
@@ -647,7 +633,7 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var query = _context.Users.AsQueryable();
+            var query = context.Users.AsQueryable();
 
             if (tenantId.HasValue)
             {
@@ -664,22 +650,22 @@ public class UserManagementController : BaseApiController
             var newUsersThisMonth = await query.CountAsync(u => u.CreatedAt >= oneMonthAgo);
 
             var today = DateTime.UtcNow.Date;
-            var loginsToday = await _context.AuditTrails
+            var loginsToday = await context.AuditTrails
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantSwitch &&
                                 a.PerformedAt >= today);
 
-            var failedLoginsToday = await _context.AuditTrails
+            var failedLoginsToday = await context.AuditTrails
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantStatusChanged &&
                                 a.PerformedAt >= today);
 
-            var usersByRole = await _context.UserRoles
+            var usersByRole = await context.UserRoles
                 .Include(ur => ur.Role)
                 .Where(ur => tenantId == null || ur.User.TenantId == tenantId.Value)
                 .GroupBy(ur => ur.Role.Name)
                 .Select(g => new { Role = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Role, x => x.Count);
 
-            var usersByTenantDict = await _context.Users
+            var usersByTenantDict = await context.Users
                 .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
                 .GroupBy(u => new { u.TenantId, TenantName = u.Tenant != null ? u.Tenant.Name : null })
@@ -724,8 +710,8 @@ public class UserManagementController : BaseApiController
             {
                 try
                 {
-                    var user = await _context.Users.FindAsync(userId);
-                    if (user == null)
+                    var user = await context.Users.FindAsync(userId);
+                    if (user is null)
                     {
                         results.Add(new UserActionResultDto
                         {
@@ -783,10 +769,10 @@ public class UserManagementController : BaseApiController
                     if (actionPerformed)
                     {
                         user.ModifiedAt = DateTime.UtcNow;
-                        user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+                        user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
                         // Log the action
-                        _ = await _auditLogService.LogEntityChangeAsync(
+                        _ = await auditLogService.LogEntityChangeAsync(
                             nameof(User),
                             user.Id,
                             actionDto.Action,
@@ -819,25 +805,25 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Create bulk audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.TenantStatusChanged, // Using closest available enum value
                 Details = $"Bulk action '{actionDto.Action}' performed on {actionDto.UserIds.Count} users. Success: {successCount}, Failed: {failCount}. Reason: {actionDto.Reason}",
                 WasSuccessful = successCount > 0,
                 PerformedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+                CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("BulkUserActionCompleted", new
                 {
                     Action = actionDto.Action,
@@ -871,13 +857,13 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
@@ -895,13 +881,13 @@ public class UserManagementController : BaseApiController
             user.LastName = updateDto.LastName;
             user.IsActive = updateDto.IsActive;
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
             // Update roles if they changed
             if (!oldRoles.SequenceEqual(updateDto.Roles))
             {
                 // Get the roles by name
-                var roles = await _context.Roles
+                var roles = await context.Roles
                     .Where(r => updateDto.Roles.Contains(r.Name))
                     .ToListAsync();
 
@@ -912,7 +898,7 @@ public class UserManagementController : BaseApiController
                 }
 
                 // Remove all existing roles
-                _context.UserRoles.RemoveRange(user.UserRoles);
+                context.UserRoles.RemoveRange(user.UserRoles);
 
                 // Add new roles
                 foreach (var role in roles)
@@ -927,36 +913,36 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the changes
             if (oldEmail != user.Email)
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "Email", "Update", oldEmail, user.Email, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldFirstName != user.FirstName)
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "FirstName", "Update", oldFirstName, user.FirstName, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldLastName != user.LastName)
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "LastName", "Update", oldLastName, user.LastName, user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (oldIsActive != user.IsActive)
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "IsActive", "Update", oldIsActive.ToString(), user.IsActive.ToString(), user.ModifiedBy, $"User '{user.Username}'");
             }
 
             if (!oldRoles.SequenceEqual(updateDto.Roles))
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     nameof(User), user.Id, "Roles", "Update",
                     string.Join(", ", oldRoles), string.Join(", ", updateDto.Roles),
                     user.ModifiedBy, $"User '{user.Username}'");
@@ -965,7 +951,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User '{user.Username}' updated",
@@ -975,11 +961,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserUpdated", new { UserId = userId, Username = user.Username });
 
             var result = new UserManagementDto
@@ -1015,9 +1001,9 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await context.Users.FindAsync(userId);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found");
             }
@@ -1025,12 +1011,12 @@ public class UserManagementController : BaseApiController
             // Soft delete by setting IsActive to false and marking as deleted
             user.IsActive = false;
             user.ModifiedAt = DateTime.UtcNow;
-            user.ModifiedBy = _tenantContext.CurrentUserId?.ToString() ?? "System";
+            user.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log the deletion
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "SoftDeleted",
@@ -1044,7 +1030,7 @@ public class UserManagementController : BaseApiController
             // Create audit trail entry
             var auditTrail = new AuditTrail
             {
-                PerformedByUserId = _tenantContext.CurrentUserId ?? Guid.Empty,
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
                 OperationType = AuditOperationType.TenantStatusChanged, // We can extend this enum
                 TargetUserId = userId,
                 Details = $"User '{user.Username}' soft deleted. Reason: {deleteDto?.Reason ?? "Not specified"}",
@@ -1054,11 +1040,11 @@ public class UserManagementController : BaseApiController
                 CreatedBy = user.ModifiedBy
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
-            _ = await _context.SaveChangesAsync();
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
 
             // Notify clients
-            await _hubContext.Clients.Group("AuditLogUpdates")
+            await hubContext.Clients.Group("AuditLogUpdates")
                 .SendAsync("UserDeleted", new { UserId = userId, Username = user.Username });
 
             return Ok(new { message = $"User {user.Username} deleted successfully" });
@@ -1078,7 +1064,7 @@ public class UserManagementController : BaseApiController
         try
         {
             // Check if username or email already exists
-            var existingUser = await _context.Users
+            var existingUser = await context.Users
                 .AnyAsync(u => u.Username == createDto.Username || u.Email == createDto.Email);
 
             if (existingUser)
@@ -1087,8 +1073,8 @@ public class UserManagementController : BaseApiController
             }
 
             // Verify tenant exists
-            var tenant = await _context.Tenants.FindAsync(createDto.TenantId);
-            if (tenant == null)
+            var tenant = await context.Tenants.FindAsync(createDto.TenantId);
+            if (tenant is null)
             {
                 return CreateValidationProblemDetails("Invalid tenant ID");
             }
@@ -1107,18 +1093,18 @@ public class UserManagementController : BaseApiController
                 IsActive = true, // Default to active for management creation
                 MustChangePassword = true, // Force password change for new users
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+                CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
             // Hash the temporary password (implementation depends on your password service)
             // user.PasswordHash = _passwordService.HashPassword(tempPassword);
 
-            _ = _context.Users.Add(user);
+            _ = context.Users.Add(user);
 
             // Add roles if specified
             if (createDto.Roles.Any())
             {
-                var roles = await _context.Roles
+                var roles = await context.Roles
                     .Where(r => createDto.Roles.Contains(r.Name))
                     .ToListAsync();
 
@@ -1134,10 +1120,10 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log user creation
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "UserCreated",
@@ -1182,7 +1168,7 @@ public class UserManagementController : BaseApiController
         try
         {
             // Check if username or email already exists
-            var existingUser = await _context.Users
+            var existingUser = await context.Users
                 .AnyAsync(u => u.Username == createDto.Username || u.Email == createDto.Email);
 
             if (existingUser)
@@ -1191,8 +1177,8 @@ public class UserManagementController : BaseApiController
             }
 
             // Verify tenant exists
-            var tenant = await _context.Tenants.FindAsync(createDto.TenantId);
-            if (tenant == null)
+            var tenant = await context.Tenants.FindAsync(createDto.TenantId);
+            if (tenant is null)
             {
                 return CreateValidationProblemDetails("Invalid tenant ID");
             }
@@ -1211,18 +1197,18 @@ public class UserManagementController : BaseApiController
                 IsActive = createDto.IsActive,
                 MustChangePassword = createDto.MustChangePassword,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = _tenantContext.CurrentUserId?.ToString() ?? "System"
+                CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
             // Hash the temporary password (implementation depends on your password service)
             // user.PasswordHash = _passwordService.HashPassword(tempPassword);
 
-            _ = _context.Users.Add(user);
+            _ = context.Users.Add(user);
 
             // Add roles if specified
             if (createDto.Roles.Any())
             {
-                var roles = await _context.Roles
+                var roles = await context.Roles
                     .Where(r => createDto.Roles.Contains(r.Name))
                     .ToListAsync();
 
@@ -1238,10 +1224,10 @@ public class UserManagementController : BaseApiController
                 }
             }
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Log user creation
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 nameof(User),
                 user.Id,
                 "UserCreated",
@@ -1296,12 +1282,12 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var role = await _context.Roles
+            var role = await context.Roles
                 .Include(r => r.RolePermissions)
                     .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(r => r.Id == roleId);
 
-            if (role == null)
+            if (role is null)
             {
                 return NotFound($"Role with ID {roleId} not found");
             }
@@ -1342,22 +1328,22 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var role = await _context.Roles
+            var role = await context.Roles
                 .Include(r => r.RolePermissions)
                 .FirstOrDefaultAsync(r => r.Id == roleId);
 
-            if (role == null)
+            if (role is null)
             {
                 return NotFound($"Role with ID {roleId} not found");
             }
 
             // Remove all existing role permissions
-            _context.RolePermissions.RemoveRange(role.RolePermissions);
+            context.RolePermissions.RemoveRange(role.RolePermissions);
 
             // Add new role permissions
             foreach (var permissionId in dto.PermissionIds)
             {
-                _context.RolePermissions.Add(new RolePermission
+                context.RolePermissions.Add(new RolePermission
                 {
                     RoleId = roleId,
                     PermissionId = permissionId,
@@ -1369,13 +1355,13 @@ public class UserManagementController : BaseApiController
                 });
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Updated permissions for role {RoleId} ({RoleName}). {PermissionCount} permissions assigned",
+            logger.LogInformation("Updated permissions for role {RoleId} ({RoleName}). {PermissionCount} permissions assigned",
                 roleId, role.Name, dto.PermissionIds.Count);
 
             // Notify via SignalR
-            await _hubContext.Clients.All.SendAsync("RolePermissionsUpdated", roleId);
+            await hubContext.Clients.All.SendAsync("RolePermissionsUpdated", roleId);
 
             return Ok();
         }
@@ -1398,7 +1384,7 @@ public class UserManagementController : BaseApiController
     {
         try
         {
-            var permissions = await _context.Permissions
+            var permissions = await context.Permissions
                 .Select(p => new PermissionDto
                 {
                     Id = p.Id,

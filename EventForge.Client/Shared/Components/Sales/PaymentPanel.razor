@@ -1,5 +1,5 @@
 @using EventForge.DTOs.Sales
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <MudPaper Class="pa-4 payment-panel" Elevation="2">
     <div class="d-flex align-center mb-3">
@@ -212,7 +212,7 @@
         if (_selectedMethod != null && _paymentAmount > 0)
         {
             await OnPaymentAdded.InvokeAsync((_selectedMethod, _paymentAmount));
-            Snackbar.Add($"Aggiunto pagamento: {_selectedMethod.Name} - {_paymentAmount:C}", Severity.Success);
+            AppNotification.ShowSuccess($"Aggiunto pagamento: {_selectedMethod.Name} - {_paymentAmount:C}");
             
             // Reset
             _selectedMethod = null;
@@ -223,6 +223,6 @@
     private async Task RemovePayment(SalePaymentDto payment)
     {
         await OnPaymentRemoved.InvokeAsync(payment);
-        Snackbar.Add($"Rimosso pagamento: {payment.PaymentMethodName}", Severity.Warning);
+        AppNotification.ShowWarning($"Rimosso pagamento: {payment.PaymentMethodName}");
     }
 }

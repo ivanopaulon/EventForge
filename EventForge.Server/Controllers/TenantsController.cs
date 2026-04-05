@@ -12,19 +12,8 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class TenantsController : BaseApiController
+public class TenantsController(ITenantService tenantService, EventForgeDbContext context) : BaseApiController
 {
-    private readonly ITenantService _tenantService;
-    private readonly ITenantContext _tenantContext;
-    private readonly EventForgeDbContext _context;
-
-    public TenantsController(ITenantService tenantService, ITenantContext tenantContext, EventForgeDbContext context)
-    {
-        _tenantService = tenantService;
-        _tenantContext = tenantContext;
-        _context = context;
-    }
-
     /// <summary>
     /// Creates a new tenant without generating any default admin users.
     /// </summary>
@@ -41,7 +30,7 @@ public class TenantsController : BaseApiController
     {
         try
         {
-            var result = await _tenantService.CreateTenantAsync(createDto);
+            var result = await tenantService.CreateTenantAsync(createDto);
             return CreatedAtAction(nameof(GetTenant), new { id = result.Id }, result);
         }
         catch (UnauthorizedAccessException ex)
@@ -70,7 +59,7 @@ public class TenantsController : BaseApiController
     {
         try
         {
-            var result = await _tenantService.CreateTenantWithAdminAsync(createDto);
+            var result = await tenantService.CreateTenantWithAdminAsync(createDto);
             return CreatedAtAction(nameof(GetTenant), new { id = result.Id }, result);
         }
         catch (UnauthorizedAccessException ex)
@@ -87,20 +76,18 @@ public class TenantsController : BaseApiController
     /// Gets a tenant by ID.
     /// </summary>
     /// <param name="id">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Tenant details</returns>
-    /// <response code="200">Returns the tenant</response>
-    /// <response code="404">If the tenant is not found</response>
-    /// <response code="500">If an error occurred</response>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(TenantResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<TenantResponseDto>> GetTenant(Guid id)
+    public async Task<ActionResult<TenantResponseDto>> GetTenant(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var tenant = await _tenantService.GetTenantAsync(id);
-            if (tenant == null)
+            var tenant = await tenantService.GetTenantAsync(id);
+            if (tenant is null)
             {
                 return CreateNotFoundProblem("Tenant {id} not found.");
             }
@@ -132,7 +119,7 @@ public class TenantsController : BaseApiController
     {
         try
         {
-            var result = await _tenantService.GetTenantsAsync(pagination, cancellationToken);
+            var result = await tenantService.GetTenantsAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -177,7 +164,7 @@ public class TenantsController : BaseApiController
     {
         try
         {
-            var result = await _tenantService.GetActiveTenantsAsync(pagination, cancellationToken);
+            var result = await tenantService.GetActiveTenantsAsync(pagination, cancellationToken);
 
             Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
             Response.Headers.Append("X-Page", result.Page.ToString());
@@ -207,13 +194,18 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="updateDto">Updated tenant data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated tenant details</returns>
     [HttpPut("{id}")]
-    public async Task<ActionResult<TenantResponseDto>> UpdateTenant(Guid id, [FromBody] UpdateTenantDto updateDto)
+    [ProducesResponseType(typeof(TenantResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantResponseDto>> UpdateTenant(Guid id, [FromBody] UpdateTenantDto updateDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _tenantService.UpdateTenantAsync(id, updateDto);
+            var result = await tenantService.UpdateTenantAsync(id, updateDto);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -231,12 +223,16 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Reason for enabling the tenant</param>
-    [HttpPost("{id}/enable")]
-    public async Task<IActionResult> EnableTenant(Guid id, [FromBody] string reason = "Enabled by admin")
+    /// <param name="cancellationToken">Cancellation token</param>
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> EnableTenant(Guid id, [FromBody] string reason = "Enabled by admin", CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantService.SetTenantStatusAsync(id, true, reason);
+            await tenantService.SetTenantStatusAsync(id, true, reason);
             return Ok();
         }
         catch (UnauthorizedAccessException ex)
@@ -254,12 +250,16 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Reason for disabling the tenant</param>
-    [HttpPost("{id}/disable")]
-    public async Task<IActionResult> DisableTenant(Guid id, [FromBody] string reason = "Disabled by admin")
+    /// <param name="cancellationToken">Cancellation token</param>
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DisableTenant(Guid id, [FromBody] string reason = "Disabled by admin", CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantService.SetTenantStatusAsync(id, false, reason);
+            await tenantService.SetTenantStatusAsync(id, false, reason);
             return Ok();
         }
         catch (UnauthorizedAccessException ex)
@@ -276,13 +276,17 @@ public class TenantsController : BaseApiController
     /// Gets all admins for a tenant.
     /// </summary>
     /// <param name="id">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of tenant admins</returns>
     [HttpGet("{id}/admins")]
-    public async Task<ActionResult<IEnumerable<AdminTenantResponseDto>>> GetTenantAdmins(Guid id)
+    [ProducesResponseType(typeof(IEnumerable<AdminTenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<AdminTenantResponseDto>>> GetTenantAdmins(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var admins = await _tenantService.GetTenantAdminsAsync(id);
+            var admins = await tenantService.GetTenantAdminsAsync(id);
             return Ok(admins);
         }
         catch (UnauthorizedAccessException ex)
@@ -297,16 +301,22 @@ public class TenantsController : BaseApiController
     /// <param name="id">Tenant ID</param>
     /// <param name="userId">User ID to make admin</param>
     /// <param name="accessLevel">Admin access level</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Admin tenant mapping details</returns>
     [HttpPost("{id}/admins/{userId}")]
+    [ProducesResponseType(typeof(AdminTenantResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<AdminTenantResponseDto>> AddTenantAdmin(
         Guid id,
         Guid userId,
-        [FromQuery] AdminAccessLevel accessLevel = AdminAccessLevel.TenantAdmin)
+        [FromQuery] AdminAccessLevel accessLevel = AdminAccessLevel.TenantAdmin,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _tenantService.AddTenantAdminAsync(id, userId, accessLevel);
+            var result = await tenantService.AddTenantAdminAsync(id, userId, accessLevel);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -328,12 +338,16 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="userId">User ID to remove as admin</param>
-    [HttpDelete("{id}/admins/{userId}")]
-    public async Task<IActionResult> RemoveTenantAdmin(Guid id, Guid userId)
+    /// <param name="cancellationToken">Cancellation token</param>
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RemoveTenantAdmin(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantService.RemoveTenantAdminAsync(id, userId);
+            await tenantService.RemoveTenantAdminAsync(id, userId);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
@@ -351,12 +365,16 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID (for context)</param>
     /// <param name="userId">User ID</param>
-    [HttpPost("{id}/users/{userId}/force-password-change")]
-    public async Task<IActionResult> ForcePasswordChange(Guid id, Guid userId)
+    /// <param name="cancellationToken">Cancellation token</param>
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ForcePasswordChange(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantService.ForcePasswordChangeAsync(userId);
+            await tenantService.ForcePasswordChangeAsync(userId);
             return Ok();
         }
         catch (UnauthorizedAccessException ex)
@@ -374,11 +392,14 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <returns>Tenant statistics</returns>
     [HttpGet("statistics")]
-    public async Task<ActionResult<TenantStatisticsDto>> GetTenantStatistics()
+    [ProducesResponseType(typeof(TenantStatisticsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantStatisticsDto>> GetTenantStatistics(CancellationToken cancellationToken = default)
     {
         try
         {
-            var statistics = await _tenantService.GetTenantStatisticsAsync();
+            var statistics = await tenantService.GetTenantStatisticsAsync();
             return Ok(statistics);
         }
         catch (UnauthorizedAccessException ex)
@@ -395,13 +416,17 @@ public class TenantsController : BaseApiController
     /// Searches tenants with advanced filtering.
     /// </summary>
     /// <param name="searchDto">Search criteria</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated tenant results</returns>
     [HttpPost("search")]
-    public async Task<ActionResult<PagedResult<TenantResponseDto>>> SearchTenants([FromBody] TenantSearchDto searchDto)
+    [ProducesResponseType(typeof(PagedResult<TenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PagedResult<TenantResponseDto>>> SearchTenants([FromBody] TenantSearchDto searchDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var results = await _tenantService.SearchTenantsAsync(searchDto);
+            var results = await tenantService.SearchTenantsAsync(searchDto);
             return Ok(results);
         }
         catch (UnauthorizedAccessException ex)
@@ -418,14 +443,18 @@ public class TenantsController : BaseApiController
     /// Gets detailed information for a tenant including limits and usage.
     /// </summary>
     /// <param name="id">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Detailed tenant information</returns>
-    [HttpGet("{id}/details")]
-    public async Task<ActionResult<TenantDetailDto>> GetTenantDetails(Guid id)
+    [ProducesResponseType(typeof(TenantDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantDetailDto>> GetTenantDetails(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var details = await _tenantService.GetTenantDetailsAsync(id);
-            if (details == null)
+            var details = await tenantService.GetTenantDetailsAsync(id);
+            if (details is null)
             {
                 return CreateNotFoundProblem("Tenant {id} not found.");
             }
@@ -445,14 +474,19 @@ public class TenantsController : BaseApiController
     /// Gets tenant limits and usage information.
     /// </summary>
     /// <param name="id">Tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Tenant limits information</returns>
     [HttpGet("{id}/limits")]
-    public async Task<ActionResult<TenantLimitsDto>> GetTenantLimits(Guid id)
+    [ProducesResponseType(typeof(TenantLimitsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantLimitsDto>> GetTenantLimits(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
-            var limits = await _tenantService.GetTenantLimitsAsync(id);
-            if (limits == null)
+            var limits = await tenantService.GetTenantLimitsAsync(id);
+            if (limits is null)
             {
                 return CreateNotFoundProblem("Tenant {id} not found.");
             }
@@ -473,13 +507,18 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="updateDto">Updated limits data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated limits information</returns>
     [HttpPut("{id}/limits")]
-    public async Task<ActionResult<TenantLimitsDto>> UpdateTenantLimits(Guid id, [FromBody] UpdateTenantLimitsDto updateDto)
+    [ProducesResponseType(typeof(TenantLimitsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TenantLimitsDto>> UpdateTenantLimits(Guid id, [FromBody] UpdateTenantLimitsDto updateDto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var result = await _tenantService.UpdateTenantLimitsAsync(id, updateDto);
+            var result = await tenantService.UpdateTenantLimitsAsync(id, updateDto);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
@@ -505,12 +544,15 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <returns>Live tenant statistics including active users, current sessions, and usage metrics</returns>
     [HttpGet("statistics/live")]
-    public async Task<ActionResult<object>> GetLiveStatistics()
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<object>> GetLiveStatistics(CancellationToken cancellationToken = default)
     {
         try
         {
             // Get basic statistics
-            var statistics = await _tenantService.GetTenantStatisticsAsync();
+            var statistics = await tenantService.GetTenantStatisticsAsync();
 
             // Get additional live metrics
             var liveStats = new
@@ -520,10 +562,10 @@ public class TenantsController : BaseApiController
 
                 // Live metrics calculated in real-time
                 CurrentTimestamp = DateTime.UtcNow,
-                ActiveSessions = await GetActiveSessionsCount(),
-                RecentActivity = await GetRecentActivitySummary(),
-                SystemHealth = await GetSystemHealthMetrics(),
-                TenantUsage = await GetTenantUsageMetrics()
+                ActiveSessions = await GetActiveSessionsCount(cancellationToken),
+                RecentActivity = await GetRecentActivitySummary(cancellationToken),
+                SystemHealth = await GetSystemHealthMetrics(cancellationToken),
+                TenantUsage = await GetTenantUsageMetrics(cancellationToken)
             };
 
             return Ok(liveStats);
@@ -543,13 +585,17 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="tenantId">Optional tenant ID filter</param>
     /// <param name="limit">Number of recent activities to return</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Real-time activity stream</returns>
     [HttpGet("activity/live")]
-    public async Task<ActionResult<object>> GetLiveActivity([FromQuery] Guid? tenantId = null, [FromQuery] int limit = 50)
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<object>> GetLiveActivity([FromQuery] Guid? tenantId = null, [FromQuery] int limit = 50, CancellationToken cancellationToken = default)
     {
         try
         {
-            var activities = await GetRecentActivities(tenantId, limit);
+            var activities = await GetRecentActivities(tenantId, limit, cancellationToken);
 
             var result = new
             {
@@ -574,24 +620,24 @@ public class TenantsController : BaseApiController
 
     #region Private Helper Methods for Live Statistics
 
-    private async Task<int> GetActiveSessionsCount()
+    private async Task<int> GetActiveSessionsCount(CancellationToken cancellationToken = default)
     {
         // Get count of active user sessions from the last hour
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
-        return await _context.AuditTrails
+        return await context.AuditTrails
             .Where(at => at.PerformedAt >= oneHourAgo &&
                         (at.OperationType == AuthAuditOperationType.TenantSwitch ||
                          at.OperationType == AuthAuditOperationType.ImpersonationStart))
             .Select(at => at.PerformedByUserId)
             .Distinct()
-            .CountAsync();
+            .CountAsync(cancellationToken);
     }
 
-    private async Task<object> GetRecentActivitySummary()
+    private async Task<object> GetRecentActivitySummary(CancellationToken cancellationToken = default)
     {
         var fifteenMinutesAgo = DateTime.UtcNow.AddMinutes(-15);
 
-        var activities = await _context.AuditTrails
+        var activities = await context.AuditTrails
             .Where(at => at.PerformedAt >= fifteenMinutesAgo)
             .GroupBy(at => at.OperationType)
             .Select(g => new
@@ -599,7 +645,7 @@ public class TenantsController : BaseApiController
                 OperationType = g.Key.ToString(),
                 Count = g.Count()
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return new
         {
@@ -609,20 +655,20 @@ public class TenantsController : BaseApiController
         };
     }
 
-    private async Task<object> GetSystemHealthMetrics()
+    private async Task<object> GetSystemHealthMetrics(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var oneDayAgo = now.AddDays(-1);
 
         // Calculate system health metrics
-        var totalTenants = await _context.Tenants.CountAsync(t => !t.IsDeleted);
-        var activeTenants = await _context.Tenants.CountAsync(t => t.IsActive && !t.IsDeleted);
-        var totalUsers = await _context.Users.CountAsync(u => !u.IsDeleted);
-        var activeUsers = await _context.Users.CountAsync(u => u.IsActive && !u.IsDeleted);
+        var totalTenants = await context.Tenants.CountAsync(t => !t.IsDeleted, cancellationToken);
+        var activeTenants = await context.Tenants.CountAsync(t => t.IsActive && !t.IsDeleted, cancellationToken);
+        var totalUsers = await context.Users.CountAsync(u => !u.IsDeleted, cancellationToken);
+        var activeUsers = await context.Users.CountAsync(u => u.IsActive && !u.IsDeleted, cancellationToken);
 
-        var recentErrors = await _context.AuditTrails
+        var recentErrors = await context.AuditTrails
             .Where(at => at.PerformedAt >= oneDayAgo && !at.WasSuccessful)
-            .CountAsync();
+            .CountAsync(cancellationToken);
 
         return new
         {
@@ -633,24 +679,24 @@ public class TenantsController : BaseApiController
         };
     }
 
-    private async Task<object> GetTenantUsageMetrics()
+    private async Task<object> GetTenantUsageMetrics(CancellationToken cancellationToken = default)
     {
-        var tenantUsage = await _context.Tenants
+        var tenantUsage = await context.Tenants
             .Where(t => t.IsActive && !t.IsDeleted)
             .Select(t => new
             {
                 TenantId = t.Id,
                 TenantName = t.Name,
-                UserCount = _context.Users.Count(u => u.TenantId == t.Id && !u.IsDeleted),
-                ActiveUserCount = _context.Users.Count(u => u.TenantId == t.Id && u.IsActive && !u.IsDeleted),
+                UserCount = context.Users.Count(u => u.TenantId == t.Id && !u.IsDeleted),
+                ActiveUserCount = context.Users.Count(u => u.TenantId == t.Id && u.IsActive && !u.IsDeleted),
                 MaxUsers = t.MaxUsers,
-                LastActivity = _context.AuditTrails
+                LastActivity = context.AuditTrails
                     .Where(at => at.SourceTenantId == t.Id || at.TargetTenantId == t.Id)
                     .OrderByDescending(at => at.PerformedAt)
                     .Select(at => (DateTime?)at.PerformedAt)
                     .FirstOrDefault()
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return new
         {
@@ -669,9 +715,9 @@ public class TenantsController : BaseApiController
         };
     }
 
-    private async Task<IEnumerable<object>> GetRecentActivities(Guid? tenantId, int limit)
+    private async Task<IEnumerable<object>> GetRecentActivities(Guid? tenantId, int limit, CancellationToken cancellationToken = default)
     {
-        var query = _context.AuditTrails.AsQueryable();
+        var query = context.AuditTrails.AsQueryable();
 
         if (tenantId.HasValue)
         {
@@ -693,22 +739,22 @@ public class TenantsController : BaseApiController
                 at.WasSuccessful,
                 at.Details,
                 at.IpAddress,
-                UserName = _context.Users
+                UserName = context.Users
                     .Where(u => u.Id == at.PerformedByUserId)
                     .Select(u => u.Username)
                     .FirstOrDefault(),
                 SourceTenantName = at.SourceTenantId.HasValue ?
-                    _context.Tenants
+                    context.Tenants
                         .Where(t => t.Id == at.SourceTenantId)
                         .Select(t => t.Name)
                         .FirstOrDefault() : null,
                 TargetTenantName = at.TargetTenantId.HasValue ?
-                    _context.Tenants
+                    context.Tenants
                         .Where(t => t.Id == at.TargetTenantId)
                         .Select(t => t.Name)
                         .FirstOrDefault() : null
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return activities;
     }
@@ -720,12 +766,16 @@ public class TenantsController : BaseApiController
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Motivazione della cancellazione</param>
-    [HttpDelete("{id}/soft")]
-    public async Task<IActionResult> SoftDeleteTenant(Guid id, [FromBody] string reason = "Soft deleted by admin")
+    /// <param name="cancellationToken">Cancellation token</param>
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> SoftDeleteTenant(Guid id, [FromBody] string reason = "Soft deleted by admin", CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantService.SoftDeleteTenantAsync(id, reason);
+            await tenantService.SoftDeleteTenantAsync(id, reason);
             return Ok();
         }
         catch (UnauthorizedAccessException ex)
@@ -749,11 +799,11 @@ public class TenantsController : BaseApiController
     [HttpGet("available")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<TenantResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAvailableTenants()
+    public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAvailableTenants(CancellationToken cancellationToken = default)
     {
         try
         {
-            var tenants = await _context.Tenants
+            var tenants = await context.Tenants
                 .AsNoTracking()
                 .Where(t => t.IsActive && !t.IsDeleted)
                 .OrderBy(t => t.Name)
@@ -772,7 +822,7 @@ public class TenantsController : BaseApiController
                     CreatedAt = t.CreatedAt
                     // Evita di esporre campi sensibili o relazioni
                 })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return Ok(tenants);
         }

@@ -7,30 +7,18 @@ namespace EventForge.Server.Services.Auth.Seeders;
 /// Implementation of store seeding service.
 /// Seeds default payment methods, POS terminals, and store operators for tenants.
 /// </summary>
-public class StoreSeeder : IStoreSeeder
+public class StoreSeeder(
+    EventForgeDbContext dbContext,
+    IPasswordService passwordService,
+    IConfiguration configuration,
+    ILogger<StoreSeeder> logger) : IStoreSeeder
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly IPasswordService _passwordService;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<StoreSeeder> _logger;
-
-    public StoreSeeder(
-        EventForgeDbContext dbContext,
-        IPasswordService passwordService,
-        IConfiguration configuration,
-        ILogger<StoreSeeder> logger)
-    {
-        _dbContext = dbContext;
-        _passwordService = passwordService;
-        _configuration = configuration;
-        _logger = logger;
-    }
 
     public async Task<bool> SeedPaymentMethodsAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var existingCount = await _dbContext.PaymentMethods
+            var existingCount = await dbContext.PaymentMethods
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingCount > 0)
@@ -96,13 +84,13 @@ public class StoreSeeder : IStoreSeeder
                 }
             };
 
-            await _dbContext.PaymentMethods.AddRangeAsync(paymentMethods, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.PaymentMethods.AddRangeAsync(paymentMethods, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding payment methods for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error seeding payment methods for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -111,7 +99,7 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            var existingCount = await _dbContext.StorePoses
+            var existingCount = await dbContext.StorePoses
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingCount > 0)
@@ -131,13 +119,13 @@ public class StoreSeeder : IStoreSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            _dbContext.StorePoses.Add(defaultPos);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.StorePoses.Add(defaultPos);
+            await dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding default POS for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error seeding default POS for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -146,19 +134,19 @@ public class StoreSeeder : IStoreSeeder
     {
         try
         {
-            var existingOperator = await _dbContext.StoreUsers
+            var existingOperator = await dbContext.StoreUsers
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Username == "operator1", cancellationToken);
 
-            if (existingOperator != null)
+            if (existingOperator is not null)
                 return true;
 
             // Get operator password from configuration, environment variable, or use default
             var operatorPassword = Environment.GetEnvironmentVariable("EVENTFORGE_STORE_OPERATOR_PASSWORD")
-                ?? _configuration["Bootstrap:StoreOperatorPassword"]
+                ?? configuration["Bootstrap:StoreOperatorPassword"]
                 ?? "Operator@2025!";
 
             // Hash the password
-            var (passwordHash, passwordSalt) = _passwordService.HashPassword(operatorPassword);
+            var (passwordHash, passwordSalt) = passwordService.HashPassword(operatorPassword);
 
             var defaultOperator = new EventForge.Server.Data.Entities.Store.StoreUser
             {
@@ -179,13 +167,13 @@ public class StoreSeeder : IStoreSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            _dbContext.StoreUsers.Add(defaultOperator);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.StoreUsers.Add(defaultOperator);
+            await dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding default operator for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error seeding default operator for tenant {TenantId}", tenantId);
             return false;
         }
     }
@@ -198,19 +186,19 @@ public class StoreSeeder : IStoreSeeder
 
             if (!await SeedPaymentMethodsAsync(tenantId, cancellationToken))
             {
-                _logger.LogWarning("Failed to seed payment methods for tenant {TenantId}", tenantId);
+                logger.LogWarning("Failed to seed payment methods for tenant {TenantId}", tenantId);
                 success = false;
             }
 
             if (!await SeedDefaultPosAsync(tenantId, cancellationToken))
             {
-                _logger.LogWarning("Failed to seed default POS for tenant {TenantId}", tenantId);
+                logger.LogWarning("Failed to seed default POS for tenant {TenantId}", tenantId);
                 success = false;
             }
 
             if (!await SeedDefaultOperatorAsync(tenantId, cancellationToken))
             {
-                _logger.LogWarning("Failed to seed default operator for tenant {TenantId}", tenantId);
+                logger.LogWarning("Failed to seed default operator for tenant {TenantId}", tenantId);
                 success = false;
             }
 
@@ -218,8 +206,9 @@ public class StoreSeeder : IStoreSeeder
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding store base entities for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error seeding store base entities for tenant {TenantId}", tenantId);
             return false;
         }
     }
+
 }

@@ -8,7 +8,7 @@
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentTypeService DocumentTypeService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject ILogger<DocumentList> Logger
 
@@ -234,7 +234,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document types");
-            Snackbar.Add(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"));
         }
     }
 
@@ -266,18 +266,18 @@
             var result = await DocumentHeaderService.CloseDocumentAsync(documentId);
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("documents.closeSuccess", "Documento chiuso con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.closeSuccess", "Documento chiuso con successo"));
                 await _managementPage.RefreshAsync();
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error closing document {DocumentId}", documentId);
-            Snackbar.Add(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
         }
     }
 }

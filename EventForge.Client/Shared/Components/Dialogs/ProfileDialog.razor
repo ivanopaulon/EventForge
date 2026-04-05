@@ -3,7 +3,7 @@
 @inject IProfileService ProfileService
 @inject IAuthService AuthService
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Outlined.Person"
@@ -369,7 +369,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento del profilo: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento del profilo: {ex.Message}");
         }
         finally
         {
@@ -427,7 +427,7 @@
             if (updated != null)
             {
                 _profile = updated;
-                Snackbar.Add(TranslationService.GetTranslation("profile.updateSuccess", "Profilo aggiornato con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("profile.updateSuccess", "Profilo aggiornato con successo"));
             }
         }
         finally
@@ -445,7 +445,7 @@
             if (updated != null)
             {
                 _profile = updated;
-                Snackbar.Add(TranslationService.GetTranslation("profile.notificationsUpdateSuccess", "Preferenze notifiche aggiornate"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("profile.notificationsUpdateSuccess", "Preferenze notifiche aggiornate"));
             }
         }
         finally
@@ -463,7 +463,7 @@
             if (success)
             {
                 _changePassword = new ChangePasswordDto();
-                Snackbar.Add(TranslationService.GetTranslation("profile.passwordChangeSuccess", "Password aggiornata con successo"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("profile.passwordChangeSuccess", "Password aggiornata con successo"));
                 await LoadProfile();
             }
         }
@@ -485,7 +485,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Errore nel caricamento avatar: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Errore nel caricamento avatar: {ex.Message}");
             }
         }
     }

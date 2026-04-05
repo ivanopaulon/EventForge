@@ -18,56 +18,48 @@ namespace EventForge.Client.Services
         Task DeleteEventAsync(Guid id, CancellationToken ct = default);
     }
 
-    public class EventService : IEventService
+    public class EventService(IHttpClientService httpClientService) : IEventService
     {
-        private readonly IHttpClientService _httpClientService;
-        private readonly ILogger<EventService> _logger;
-
-        public EventService(IHttpClientService httpClientService, ILogger<EventService> logger)
-        {
-            _httpClientService = httpClientService;
-            _logger = logger;
-        }
 
         public async Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
         {
             var url = $"api/v1/events?page={page}&pageSize={pageSize}";
-            return await _httpClientService.GetAsync<PagedResult<EventDto>>(url, ct) ??
-                new PagedResult<EventDto> { Items = new List<EventDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
+            return await httpClientService.GetAsync<PagedResult<EventDto>>(url, ct) ??
+                new PagedResult<EventDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<EventDto>> GetEventsByDateRangeAsync(DateTime startDate, DateTime endDate, CancellationToken ct = default)
         {
             var url = $"api/v1/events/date-range?startDate={startDate:O}&endDate={endDate:O}&page=1&pageSize=1000";
-            var result = await _httpClientService.GetAsync<PagedResult<EventDto>>(url, ct);
+            var result = await httpClientService.GetAsync<PagedResult<EventDto>>(url, ct);
             return result?.Items ?? Enumerable.Empty<EventDto>();
         }
 
         public async Task<EventDto?> GetEventByIdAsync(Guid id, CancellationToken ct = default)
         {
-            return await _httpClientService.GetAsync<EventDto>($"api/v1/events/{id}", ct);
+            return await httpClientService.GetAsync<EventDto>($"api/v1/events/{id}", ct);
         }
 
         public async Task<EventDetailDto?> GetEventDetailAsync(Guid id, CancellationToken ct = default)
         {
-            return await _httpClientService.GetAsync<EventDetailDto>($"api/v1/events/{id}/details", ct);
+            return await httpClientService.GetAsync<EventDetailDto>($"api/v1/events/{id}/details", ct);
         }
 
         public async Task<EventDto> CreateEventAsync(CreateEventDto createDto, CancellationToken ct = default)
         {
-            return await _httpClientService.PostAsync<CreateEventDto, EventDto>("api/v1/events", createDto, ct) ??
+            return await httpClientService.PostAsync<CreateEventDto, EventDto>("api/v1/events", createDto, ct) ??
                    throw new InvalidOperationException("Failed to create event");
         }
 
         public async Task<EventDto> UpdateEventAsync(Guid id, UpdateEventDto updateDto, CancellationToken ct = default)
         {
-            return await _httpClientService.PutAsync<UpdateEventDto, EventDto>($"api/v1/events/{id}", updateDto, ct) ??
+            return await httpClientService.PutAsync<UpdateEventDto, EventDto>($"api/v1/events/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update event");
         }
 
         public async Task DeleteEventAsync(Guid id, CancellationToken ct = default)
         {
-            await _httpClientService.DeleteAsync($"api/v1/events/{id}", ct);
+            await httpClientService.DeleteAsync($"api/v1/events/{id}", ct);
         }
     }
 }

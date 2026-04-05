@@ -157,7 +157,7 @@
         Indentation = false,
         Expandable = true,
         IsInitiallyExpanded = true,
-        Selector = (e) => e.WarehouseName
+        Selector = (e) => e.WarehouseName ?? string.Empty
     };
 
     protected override async Task OnParametersSetAsync()

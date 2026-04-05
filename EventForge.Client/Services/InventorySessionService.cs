@@ -109,22 +109,16 @@ public interface IInventorySessionService
 /// <summary>
 /// Implementation of inventory session service using localStorage for persistence.
 /// </summary>
-public class InventorySessionService : IInventorySessionService
+public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionService
 {
-    private readonly IJSRuntime _jsRuntime;
     private const string SessionKey = "eventforge-inventory-session";
-
-    public InventorySessionService(IJSRuntime jsRuntime)
-    {
-        _jsRuntime = jsRuntime;
-    }
 
     public async Task SaveSessionAsync(InventorySessionState state)
     {
         try
         {
             var json = System.Text.Json.JsonSerializer.Serialize(state);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", SessionKey, json);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", SessionKey, json);
         }
         catch (Exception ex)
         {
@@ -136,7 +130,7 @@ public class InventorySessionService : IInventorySessionService
     {
         try
         {
-            var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", SessionKey);
+            var json = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", SessionKey);
             if (string.IsNullOrEmpty(json))
             {
                 return null;
@@ -155,7 +149,7 @@ public class InventorySessionService : IInventorySessionService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", SessionKey);
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", SessionKey);
         }
         catch (Exception ex)
         {

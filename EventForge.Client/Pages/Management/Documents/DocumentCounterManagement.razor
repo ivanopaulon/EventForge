@@ -7,7 +7,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentCounterManagement> Logger
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("documentCounter.management", "Gestione Contatori Documenti")</PageTitle>
 
@@ -229,7 +229,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading document types");
-            Snackbar.Add(TranslationService.GetTranslation("documentCounter.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("documentCounter.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"));
         }
     }
 
@@ -251,7 +251,7 @@
             _dialogOptions);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
         }
@@ -271,7 +271,7 @@
             _dialogOptions);
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result is { Canceled: false })
         {
             await _managementPage.RefreshAsync();
         }

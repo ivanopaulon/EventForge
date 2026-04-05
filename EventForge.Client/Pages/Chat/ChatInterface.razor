@@ -8,7 +8,7 @@
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
 @inject NavigationManager NavigationManager
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
@@ -68,7 +68,7 @@
             </div>
         </MudDrawerHeader>
         
-        <MudDrawerContent>
+        <div class="d-flex flex-column" style="height:100%; overflow-y:auto;">
             <!-- Search and filters -->
             <div class="pa-3">
                 <MudTextField T="string" 
@@ -183,7 +183,7 @@
                     @TranslationService.GetTranslation("chat.newChat", "Nuova Chat")
                 </MudButton>
             </div>
-        </MudDrawerContent>
+        </div>
     </MudDrawer>
 
     <!-- Main chat content -->
@@ -449,7 +449,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore durante l'inizializzazione: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore durante l'inizializzazione: {ex.Message}");
         }
     }
 
@@ -490,7 +490,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento delle chat: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento delle chat: {ex.Message}");
         }
         finally
         {
@@ -545,7 +545,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nel caricamento dei messaggi: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nel caricamento dei messaggi: {ex.Message}");
         }
         finally
         {
@@ -613,7 +613,7 @@
     {
         // TODO: Show dialog for group management (add/remove users, settings)
         await Task.Delay(100); // Placeholder
-        Snackbar.Add(TranslationService.GetTranslation("chat.manageGroupPlaceholder", "Gestione gruppo - Da implementare"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("chat.manageGroupPlaceholder", "Gestione gruppo - Da implementare"));
     }
 
     /// <summary>
@@ -624,7 +624,7 @@
     {
         // TODO: Implement file selection dialog and upload
         await Task.Delay(100); // Placeholder
-        Snackbar.Add(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"), Severity.Info);
+        AppNotification.ShowInfo(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"));
     }
 
 
@@ -666,7 +666,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore nell'invio del messaggio: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Errore nell'invio del messaggio: {ex.Message}");
         }
         finally
         {
@@ -907,7 +907,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error starting walkthrough: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error starting walkthrough: {ex.Message}");
         }
     }
 
@@ -919,11 +919,11 @@
         try
         {
             await HelpService.SetOnboardingStepCompletedAsync("chat_onboarding_completed");
-            Snackbar.Add(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error completing onboarding: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error completing onboarding: {ex.Message}");
         }
     }
 
@@ -935,11 +935,11 @@
         try
         {
             await HelpService.SetOnboardingStepCompletedAsync("chat_walkthrough_completed");
-            Snackbar.Add(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use chat effectively."), Severity.Success);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("walkthrough.completed", "Tour completed! You're now ready to use chat effectively."));
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error completing walkthrough: {ex.Message}", Severity.Warning);
+            AppNotification.ShowWarning($"Error completing walkthrough: {ex.Message}");
         }
     }
 
@@ -1021,7 +1021,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error adding reaction: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Error adding reaction: {ex.Message}");
         }
     }
 
@@ -1032,7 +1032,7 @@
     {
         // TODO: Implement message editing dialog
         // For now, show a placeholder
-        Snackbar.Add("Message editing coming soon!", Severity.Info);
+        AppNotification.ShowInfo("Message editing coming soon!");
         return Task.CompletedTask;
     }
 
@@ -1057,11 +1057,11 @@
                 _messages.Remove(message);
                 StateHasChanged();
                 
-                Snackbar.Add(TranslationService.GetTranslation("chat.messageDeleted", "Message deleted"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageDeleted", "Message deleted"));
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Error deleting message: {ex.Message}", Severity.Error);
+                AppNotification.ShowError($"Error deleting message: {ex.Message}");
             }
         }
     }
@@ -1072,7 +1072,7 @@
     private Task ShareMessage(ChatMessageDto message)
     {
         // TODO: Implement message sharing
-        Snackbar.Add("Message sharing coming soon!", Severity.Info);
+        AppNotification.ShowInfo("Message sharing coming soon!");
         return Task.CompletedTask;
     }
 
@@ -1082,7 +1082,7 @@
     private Task ReportMessage(ChatMessageDto message)
     {
         // TODO: Implement message reporting
-        Snackbar.Add("Message reporting coming soon!", Severity.Info);
+        AppNotification.ShowInfo("Message reporting coming soon!");
         return Task.CompletedTask;
     }
 
@@ -1108,7 +1108,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error downloading file: {ex.Message}", Severity.Error);
+            AppNotification.ShowError($"Error downloading file: {ex.Message}");
         }
     }
 

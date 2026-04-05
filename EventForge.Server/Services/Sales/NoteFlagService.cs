@@ -7,36 +7,24 @@ namespace EventForge.Server.Services.Sales;
 /// <summary>
 /// Service implementation for managing note flags.
 /// </summary>
-public class NoteFlagService : INoteFlagService
+public class NoteFlagService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<NoteFlagService> logger) : INoteFlagService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<NoteFlagService> _logger;
-
-    public NoteFlagService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<NoteFlagService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<NoteFlagDto>> GetNoteFlagsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var query = _context.NoteFlags
+            var query = context.NoteFlags
                 .AsNoTracking()
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted);
 
@@ -59,7 +47,7 @@ public class NoteFlagService : INoteFlagService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving note flags.");
+            logger.LogError(ex, "Error retrieving note flags.");
             throw;
         }
     }
@@ -68,13 +56,13 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var noteFlags = await _context.NoteFlags
+            var noteFlags = await context.NoteFlags
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted)
                 .OrderBy(nf => nf.DisplayOrder)
                 .ThenBy(nf => nf.Name)
@@ -84,7 +72,7 @@ public class NoteFlagService : INoteFlagService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving note flags.");
+            logger.LogError(ex, "Error retrieving note flags.");
             throw;
         }
     }
@@ -93,13 +81,13 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var noteFlags = await _context.NoteFlags
+            var noteFlags = await context.NoteFlags
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted && nf.IsActive)
                 .OrderBy(nf => nf.DisplayOrder)
                 .ThenBy(nf => nf.Name)
@@ -109,7 +97,7 @@ public class NoteFlagService : INoteFlagService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active note flags.");
+            logger.LogError(ex, "Error retrieving active note flags.");
             throw;
         }
     }
@@ -118,20 +106,20 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var noteFlag = await _context.NoteFlags
+            var noteFlag = await context.NoteFlags
                 .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
 
-            return noteFlag == null ? null : MapToDto(noteFlag);
+            return noteFlag is null ? null : MapToDto(noteFlag);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving note flag {NoteFlagId}.", id);
+            logger.LogError(ex, "Error retrieving note flag {NoteFlagId}.", id);
             throw;
         }
     }
@@ -140,14 +128,14 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
             // Check if code already exists
-            var codeExists = await _context.NoteFlags
+            var codeExists = await context.NoteFlags
                 .AnyAsync(nf => nf.Code == createDto.Code && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
 
             if (codeExists)
@@ -172,18 +160,18 @@ public class NoteFlagService : INoteFlagService
                 ModifiedAt = DateTime.UtcNow
             };
 
-            _ = _context.NoteFlags.Add(noteFlag);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.NoteFlags.Add(noteFlag);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
 
-            _logger.LogInformation("Created note flag {NoteFlagId} with code {Code}", noteFlag.Id, createDto.Code);
+            logger.LogInformation("Created note flag {NoteFlagId} with code {Code}", noteFlag.Id, createDto.Code);
 
             return MapToDto(noteFlag);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating note flag.");
+            logger.LogError(ex, "Error creating note flag.");
             throw;
         }
     }
@@ -192,16 +180,16 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var noteFlag = await _context.NoteFlags
+            var noteFlag = await context.NoteFlags
                 .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
 
-            if (noteFlag == null)
+            if (noteFlag is null)
             {
                 return null;
             }
@@ -217,17 +205,17 @@ public class NoteFlagService : INoteFlagService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating NoteFlag {NoteFlagId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating NoteFlag {NoteFlagId}.", id);
                 throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
 
-            _logger.LogInformation("Updated note flag {NoteFlagId}", id);
+            logger.LogInformation("Updated note flag {NoteFlagId}", id);
 
             return MapToDto(noteFlag);
         }
@@ -237,7 +225,7 @@ public class NoteFlagService : INoteFlagService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating note flag {NoteFlagId}.", id);
+            logger.LogError(ex, "Error updating note flag {NoteFlagId}.", id);
             throw;
         }
     }
@@ -246,16 +234,16 @@ public class NoteFlagService : INoteFlagService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for note flag operations.");
             }
 
-            var noteFlag = await _context.NoteFlags
+            var noteFlag = await context.NoteFlags
                 .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
 
-            if (noteFlag == null)
+            if (noteFlag is null)
             {
                 return false;
             }
@@ -266,17 +254,17 @@ public class NoteFlagService : INoteFlagService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting NoteFlag {NoteFlagId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting NoteFlag {NoteFlagId}.", id);
                 throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
+            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
 
-            _logger.LogInformation("Deleted note flag {NoteFlagId}", id);
+            logger.LogInformation("Deleted note flag {NoteFlagId}", id);
 
             return true;
         }
@@ -286,7 +274,7 @@ public class NoteFlagService : INoteFlagService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting note flag {NoteFlagId}.", id);
+            logger.LogError(ex, "Error deleting note flag {NoteFlagId}.", id);
             throw;
         }
     }
@@ -305,4 +293,5 @@ public class NoteFlagService : INoteFlagService
             DisplayOrder = noteFlag.DisplayOrder
         };
     }
+
 }

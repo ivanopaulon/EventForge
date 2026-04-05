@@ -44,16 +44,15 @@ public class ThemeInfo
     };
 }
 
-public class ThemeService : IThemeService
+public class ThemeService(IJSRuntime jsRuntime) : IThemeService
 {
-    private readonly IJSRuntime _jsRuntime;
     private const string ThemeKey = "eventforge-theme";
 
-    public static readonly List<ThemeInfo> AvailableThemes = new()
-    {
+    public static readonly List<ThemeInfo> AvailableThemes =
+    [
         ThemeInfo.CarbonNeonDark,
         ThemeInfo.CarbonNeonLight
-    };
+    ];
 
     private string _currentTheme = ThemeInfo.CarbonNeonLight.Key;
 
@@ -61,13 +60,11 @@ public class ThemeService : IThemeService
     public string CurrentTheme => _currentTheme;
     public event Action? OnThemeChanged;
 
-    public ThemeService(IJSRuntime jsRuntime) => _jsRuntime = jsRuntime;
-
     public async Task InitializeAsync()
     {
         try
         {
-            var stored = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
+            var stored = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
 
             // Backward compatibility with old "light"/"dark" values
             if (string.Equals(stored, "dark", StringComparison.OrdinalIgnoreCase))
@@ -108,7 +105,7 @@ public class ThemeService : IThemeService
 
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, _currentTheme);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, _currentTheme);
             await ApplyThemeToDocumentAsync();
         }
         catch { }
@@ -120,7 +117,7 @@ public class ThemeService : IThemeService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
+            await jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
         }
         catch { }
     }

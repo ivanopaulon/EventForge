@@ -8,7 +8,7 @@
 @inject IStorageLocationService StorageLocationService
 @inject ILotService LotService
 @inject IStockService StockService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<CreateTransferOrderDialog> Logger
 
@@ -263,7 +263,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading warehouses");
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.warehousesLoadError", "Errore nel caricamento dei magazzini"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.warehousesLoadError", "Errore nel caricamento dei magazzini"));
         }
     }
 
@@ -497,13 +497,13 @@
         // Final validation
         if (_sourceWarehouseId == _destinationWarehouseId)
         {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.validationSourceDestSame", "Magazzino origine e destinazione devono essere diversi"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("transferOrder.validationSourceDestSame", "Magazzino origine e destinazione devono essere diversi"));
             return;
         }
 
         if (!_sourceWarehouseId.HasValue || !_destinationWarehouseId.HasValue)
         {
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.selectBothWarehouses", "Selezionare magazzini origine e destinazione"), Severity.Warning);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("transferOrder.selectBothWarehouses", "Selezionare magazzini origine e destinazione"));
             return;
         }
 
@@ -517,18 +517,18 @@
             var result = await TransferOrderService.CreateTransferOrderAsync(_model);
             if (result != null)
             {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.createSuccess", "Ordine di trasferimento creato con successo!"), Severity.Success);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.createSuccess", "Ordine di trasferimento creato con successo!"));
                 MudDialog.Close(DialogResult.Ok(result));
             }
             else
             {
-                Snackbar.Add(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine"), Severity.Error);
+                AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error creating transfer order");
-            Snackbar.Add(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine: {0}", ex.Message), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.createError", "Errore nella creazione dell'ordine: {0}", ex.Message));
         }
         finally
         {

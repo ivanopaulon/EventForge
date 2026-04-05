@@ -4,7 +4,7 @@
 @inject IProductService ProductService
 @inject IFinancialService FinancialService
 @inject ITranslationService TranslationService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ILogger<ProductQuickInfo> Logger
 
 @* ProductQuickInfo Component - Displays and allows quick inline editing of product essential information *@
@@ -247,7 +247,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading reference data for ProductQuickInfo");
-            Snackbar.Add(TranslationService.GetTranslation("errors.loadingData", "Errore nel caricamento dei dati"), Severity.Error);
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.loadingData", "Errore nel caricamento dei dati"));
         }
     }
 
@@ -357,10 +357,7 @@
                 _isEditMode = false;
 
                 // Show success message
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"),
-                    Severity.Success
-                );
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
 
                 // Notify parent component
                 if (OnProductUpdated.HasDelegate)
@@ -370,19 +367,13 @@
             }
             else
             {
-                Snackbar.Add(
-                    TranslationService.GetTranslation("products.updateFailed", "Errore nell'aggiornamento del prodotto"),
-                    Severity.Error
-                );
+                AppNotification.ShowError(TranslationService.GetTranslation("products.updateFailed", "Errore nell'aggiornamento del prodotto"));
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating product {ProductId}", Product.Id);
-            Snackbar.Add(
-                TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"),
-                Severity.Error
-            );
+            AppNotification.ShowError(TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"));
         }
         finally
         {

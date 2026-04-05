@@ -9,7 +9,7 @@
 @inject IFontPreferencesService FontPreferencesService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<MainLayout> Logger
 @inject IDialogService DialogService
@@ -390,14 +390,8 @@
         
         InvokeAsync(() =>
         {
-            Snackbar.Add(
-                TranslationService.GetTranslation("session.refreshFailure", "Impossibile rinnovare la sessione. Salva il lavoro e rieffettua il login."),
-                Severity.Error,
-                config =>
-                {
-                    config.VisibleStateDuration = 10000;
-                    config.ShowCloseIcon = true;
-                }
+            AppNotification.ShowError(
+                TranslationService.GetTranslation("session.refreshFailure", "Impossibile rinnovare la sessione. Salva il lavoro e rieffettua il login.")
             );
         });
     }
@@ -411,15 +405,9 @@
             // Show warning only when truly critical (<= 10 minutes remaining)
             if (minutesRemaining <= 10)
             {
-                Snackbar.Add(
+                AppNotification.ShowWarning(
                     TranslationService.GetTranslation("session.expiringWarning", 
-                        $"Sessione in scadenza tra {minutesRemaining} min. Salva il lavoro. / Session expiring in {minutesRemaining} min. Save your work."),
-                    Severity.Warning,
-                    config =>
-                    {
-                        config.VisibleStateDuration = 8000;
-                        config.ShowCloseIcon = true;
-                    }
+                        $"Sessione in scadenza tra {minutesRemaining} min. Salva il lavoro. / Session expiring in {minutesRemaining} min. Save your work.")
                 );
             }
         });

@@ -7,24 +7,14 @@ namespace EventForge.Server.Services.External;
 /// Simplified VAT lookup service using the official VIES REST API.
 /// Replaces complex multi-provider system with direct calls to VIES.
 /// </summary>
-public class VatLookupService : IVatLookupService
+public class VatLookupService(
+    IViesValidationService viesValidationService,
+    IMemoryCache cache,
+    ILogger<VatLookupService> logger) : IVatLookupService
 {
-    private readonly IViesValidationService _viesValidationService;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<VatLookupService> _logger;
 
     private static readonly TimeSpan ValidResultCacheDuration = TimeSpan.FromHours(24);
     private static readonly TimeSpan InvalidResultCacheDuration = TimeSpan.FromHours(1);
-
-    public VatLookupService(
-        IViesValidationService viesValidationService,
-        IMemoryCache cache,
-        ILogger<VatLookupService> logger)
-    {
-        _viesValidationService = viesValidationService;
-        _cache = cache;
-        _logger = logger;
-    }
 
     public async Task<VatLookupResult?> LookupAsync(string vatNumber, CancellationToken cancellationToken = default)
     {
@@ -42,20 +32,20 @@ public class VatLookupService : IVatLookupService
 
         // Check cache first
         var cacheKey = $"vat_lookup_{countryCode}_{vatNumberOnly}";
-        if (_cache.TryGetValue<VatLookupResult>(cacheKey, out var cachedResult))
+        if (cache.TryGetValue<VatLookupResult>(cacheKey, out var cachedResult))
         {
-            _logger.LogInformation("VAT lookup cache hit for {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
+            logger.LogInformation("VAT lookup cache hit for {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
             return cachedResult;
         }
 
         // Call VIES REST API
         try
         {
-            var viesResponse = await _viesValidationService.ValidateVatAsync(countryCode, vatNumberOnly, cancellationToken);
+            var viesResponse = await viesValidationService.ValidateVatAsync(countryCode, vatNumberOnly, cancellationToken);
 
-            if (viesResponse == null)
+            if (viesResponse is null)
             {
-                _logger.LogWarning("VIES service returned null for {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
+                logger.LogWarning("VIES service returned null for {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
                 return new VatLookupResult
                 {
                     IsValid = false,
@@ -84,14 +74,14 @@ public class VatLookupService : IVatLookupService
             // Cache the result
             CacheResult(cacheKey, result);
 
-            _logger.LogInformation("VIES validation completed for {CountryCode}{VatNumber}: Valid={IsValid}",
+            logger.LogInformation("VIES validation completed for {CountryCode}{VatNumber}: Valid={IsValid}",
                 countryCode, vatNumberOnly, result.IsValid);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
+            logger.LogError(ex, "Error validating VAT {CountryCode}{VatNumber}", countryCode, vatNumberOnly);
             return new VatLookupResult
             {
                 IsValid = false,
@@ -113,8 +103,8 @@ public class VatLookupService : IVatLookupService
             AbsoluteExpirationRelativeToNow = cacheDuration,
             Size = 1
         };
-        _cache.Set(cacheKey, result, cacheOptions);
-        _logger.LogDebug("Cached VAT lookup result for {CacheKey} with TTL {Duration}", cacheKey, cacheDuration);
+        cache.Set(cacheKey, result, cacheOptions);
+        logger.LogDebug("Cached VAT lookup result for {CacheKey} with TTL {Duration}", cacheKey, cacheDuration);
     }
 
     /// <summary>
