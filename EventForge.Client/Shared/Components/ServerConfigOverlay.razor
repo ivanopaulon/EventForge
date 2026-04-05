@@ -1,174 +1,51 @@
 @namespace EventForge.Client.Shared.Components
-@inject IServerConfigService ServerConfigService
 @inject IServerConfigOverlayService OverlayService
-@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 @implements IDisposable
 
-<EFOverlay Visible="@_isVisible"
-           ZIndex="10000"
-           Subtitle="Configurazione Server"
-           TopBar="@_efTopBar">
-
-    <MudTextField @bind-Value="_serverUrl"
-                  Label="URL Server"
-                  Placeholder="https://mioserver:7241/"
-                  Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  FullWidth="true"
-                  Disabled="@_isSaving"
-                  Adornment="Adornment.End"
-                  AdornmentIcon="@_adornmentIcon"
-                  AdornmentColor="@_adornmentColor"
-                  OnKeyUp="@OnUrlKeyUp" />
-
-    @if (_testStatus == TestStatus.Success)
-    {
-        <div class="sco-status-ok">✓ Server raggiungibile</div>
-    }
-    else if (_testStatus == TestStatus.Failure)
-    {
-        <div class="sco-status-err">✗ Server non raggiungibile. Verifica l'URL e riprova.</div>
-    }
-
-    <div class="sco-action-row">
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Info"
-                   Size="Size.Small"
-                   OnClick="@TestConnectionAsync"
-                   Disabled="@(_isTesting || _isSaving || string.IsNullOrWhiteSpace(_serverUrl))"
-                   StartIcon="@Icons.Material.Outlined.NetworkCheck">
-            @(_isTesting ? "Test in corso…" : "Testa connessione")
-        </MudButton>
-
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Size="Size.Small"
-                   OnClick="@SaveAndConnectAsync"
-                   Disabled="@(_testStatus != TestStatus.Success || _isSaving)"
-                   StartIcon="@Icons.Material.Outlined.Save">
-            @(_isSaving ? "Connessione…" : "Salva e connetti")
-        </MudButton>
-    </div>
-
-    <div class="sco-reset">
-        <MudLink OnClick="@ResetToDefaultAsync" Color="Color.Default" Style="cursor:pointer;">
-            Reimposta URL di default
-        </MudLink>
-    </div>
-
-</EFOverlay>
-
 @code {
-    private enum TestStatus { None, Success, Failure }
-
-    private bool _isVisible = false;
-    private string _serverUrl = "";
-    private bool _isTesting = false;
-    private bool _isSaving = false;
-    private TestStatus _testStatus = TestStatus.None;
-
-    private EFOverlay.EFOverlayTopBar _efTopBar => _testStatus switch
+    private static readonly DialogOptions _options = new()
     {
-        TestStatus.Success => EFOverlay.EFOverlayTopBar.Success,
-        TestStatus.Failure => EFOverlay.EFOverlayTopBar.Error,
-        _                  => EFOverlay.EFOverlayTopBar.Primary
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
     };
 
-    private string _adornmentIcon => _testStatus switch
-    {
-        TestStatus.Success => Icons.Material.Filled.CheckCircle,
-        TestStatus.Failure => Icons.Material.Filled.Error,
-        _                  => Icons.Material.Outlined.Link
-    };
-
-    private Color _adornmentColor => _testStatus switch
-    {
-        TestStatus.Success => Color.Success,
-        TestStatus.Failure => Color.Error,
-        _                  => Color.Default
-    };
+    private IDialogReference? _dialogRef;
 
     protected override async Task OnInitializedAsync()
     {
         OverlayService.OnVisibilityChanged += OnVisibilityChanged;
-        _isVisible = OverlayService.IsVisible;
 
-        if (_isVisible)
-        {
-            await LoadCurrentUrlAsync();
-        }
+        if (OverlayService.IsVisible)
+            await OpenDialogAsync();
     }
 
     private void OnVisibilityChanged()
     {
         InvokeAsync(async () =>
         {
-            _isVisible = OverlayService.IsVisible;
-            if (_isVisible)
-            {
-                await LoadCurrentUrlAsync();
-            }
+            if (OverlayService.IsVisible)
+                await OpenDialogAsync();
             else
-            {
-                ResetState();
-            }
-            StateHasChanged();
+                await CloseDialogAsync();
         });
     }
 
-    private async Task LoadCurrentUrlAsync()
+    private async Task OpenDialogAsync()
     {
-        _serverUrl = await ServerConfigService.GetServerUrlAsync();
-        _testStatus = TestStatus.None;
+        if (_dialogRef is not null) return;
+        _dialogRef = await DialogService.ShowAsync<ServerConfigSystemDialog>(string.Empty, _options);
+        _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => _dialogRef = null));
     }
 
-    private void ResetState()
+    private async Task CloseDialogAsync()
     {
-        _testStatus = TestStatus.None;
-        _isTesting = false;
-        _isSaving = false;
-    }
-
-    private void OnUrlKeyUp(KeyboardEventArgs e)
-    {
-        if (_testStatus != TestStatus.None)
-        {
-            _testStatus = TestStatus.None;
-        }
-    }
-
-    private async Task TestConnectionAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_serverUrl)) return;
-
-        _isTesting = true;
-        _testStatus = TestStatus.None;
-        StateHasChanged();
-
-        var success = await ServerConfigService.TestConnectionAsync(_serverUrl);
-        _testStatus = success ? TestStatus.Success : TestStatus.Failure;
-
-        _isTesting = false;
-        StateHasChanged();
-    }
-
-    private async Task SaveAndConnectAsync()
-    {
-        if (_testStatus != TestStatus.Success) return;
-
-        _isSaving = true;
-        StateHasChanged();
-
-        await ServerConfigService.SetServerUrlAsync(_serverUrl);
-        NavigationManager.NavigateTo("/", forceLoad: true);
-    }
-
-    private async Task ResetToDefaultAsync()
-    {
-        await ServerConfigService.ResetToDefaultAsync();
-        _serverUrl = await ServerConfigService.GetServerUrlAsync();
-        _testStatus = TestStatus.None;
-        StateHasChanged();
+        if (_dialogRef is null) return;
+        DialogService.Close(_dialogRef);
+        _ = await _dialogRef.Result;
+        _dialogRef = null;
     }
 
     public void Dispose()
@@ -176,27 +53,3 @@
         OverlayService.OnVisibilityChanged -= OnVisibilityChanged;
     }
 }
-
-<style>
-    /* ── Status messages ── */
-    .sco-status-ok  { color: #66bb6a; font-size: 0.85rem; font-weight: 600; }
-    .sco-status-err { color: #ef5350; font-size: 0.85rem; font-weight: 600; }
-
-    /* ── Action row ── */
-    .sco-action-row {
-        display: flex;
-        flex-direction: row;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    /* ── Reset link ── */
-    .sco-reset {
-        font-size: 0.78rem;
-        opacity: 0.6;
-    }
-
-    @@media (max-width: 480px) {
-        .sco-action-row { justify-content: center; }
-    }
-</style>
