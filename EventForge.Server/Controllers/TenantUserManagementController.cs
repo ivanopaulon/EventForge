@@ -10,18 +10,10 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/tenant/user-management")]
 [ApiController]
-public class TenantUserManagementController : BaseApiController
+public class TenantUserManagementController(
+    ITenantUserManagementService tenantUserService,
+    ILogger<TenantUserManagementController> logger) : BaseApiController
 {
-    private readonly ITenantUserManagementService _tenantUserService;
-    private readonly ILogger<TenantUserManagementController> _logger;
-
-    public TenantUserManagementController(
-        ITenantUserManagementService tenantUserService,
-        ILogger<TenantUserManagementController> logger)
-    {
-        _tenantUserService = tenantUserService;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Gets all users in the current tenant.
@@ -37,16 +29,16 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<UserManagementDto>>> GetAllUsers(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<UserManagementDto>>> GetAllUsers(CancellationToken cancellationToken = default)
     {
         try
         {
-            var users = await _tenantUserService.GetAllUsersAsync(cancellationToken);
+            var users = await tenantUserService.GetAllUsersAsync(cancellationToken);
             return Ok(users);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access to tenant users");
+            logger.LogWarning(ex, "Unauthorized access to tenant users");
             return CreateForbiddenProblem("Access to tenant users is not allowed");
         }
         catch (Exception ex)
@@ -73,12 +65,12 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> GetUser(Guid userId, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserManagementDto>> GetUser(Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var user = await _tenantUserService.GetUserByIdAsync(userId, cancellationToken);
-            if (user == null)
+            var user = await tenantUserService.GetUserByIdAsync(userId, cancellationToken);
+            if (user is null)
             {
                 return CreateNotFoundProblem($"User {userId} not found in current tenant");
             }
@@ -86,7 +78,7 @@ public class TenantUserManagementController : BaseApiController
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access to user {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized access to user {UserId}", userId);
             return CreateForbiddenProblem("Access to this user is not allowed");
         }
         catch (Exception ex)
@@ -111,21 +103,21 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<UserManagementDto>>> SearchUsers([FromQuery] string query, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<UserManagementDto>>> SearchUsers([FromQuery] string query, CancellationToken cancellationToken = default)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(query))
             {
-                return BadRequest("Search query cannot be empty");
+                return CreateValidationProblemDetails("Search query cannot be empty");
             }
 
-            var users = await _tenantUserService.SearchUsersAsync(query, cancellationToken);
+            var users = await tenantUserService.SearchUsersAsync(query, cancellationToken);
             return Ok(users);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized search access");
+            logger.LogWarning(ex, "Unauthorized search access");
             return CreateForbiddenProblem("Search access is not allowed");
         }
         catch (Exception ex)
@@ -152,7 +144,7 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CreatedUserDto>> CreateUser([FromBody] CreateTenantUserDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<CreatedUserDto>> CreateUser([FromBody] CreateTenantUserDto dto, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -167,18 +159,18 @@ public class TenantUserManagementController : BaseApiController
                 Roles = dto.Roles
             };
 
-            var user = await _tenantUserService.CreateUserAsync(createDto, cancellationToken);
+            var user = await tenantUserService.CreateUserAsync(createDto, cancellationToken);
             return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, user);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized user creation");
+            logger.LogWarning(ex, "Unauthorized user creation");
             return CreateForbiddenProblem("User creation is not allowed");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid user creation request");
-            return BadRequest(ex.Message);
+            logger.LogWarning(ex, "Invalid user creation request");
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -207,21 +199,21 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> UpdateUser(Guid userId, [FromBody] UpdateUserManagementDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserManagementDto>> UpdateUser(Guid userId, [FromBody] UpdateUserManagementDto dto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var user = await _tenantUserService.UpdateUserAsync(userId, dto, cancellationToken);
+            var user = await tenantUserService.UpdateUserAsync(userId, dto, cancellationToken);
             return Ok(user);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized user update for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized user update for {UserId}", userId);
             return CreateForbiddenProblem("User update is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -248,27 +240,27 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> DeleteUser(Guid userId, CancellationToken cancellationToken)
+    public async Task<ActionResult> DeleteUser(Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantUserService.DeleteUserAsync(userId, cancellationToken);
+            await tenantUserService.DeleteUserAsync(userId, cancellationToken);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized user deletion for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized user deletion for {UserId}", userId);
             return CreateForbiddenProblem("User deletion is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid user deletion request for {UserId}", userId);
-            return BadRequest(ex.Message);
+            logger.LogWarning(ex, "Invalid user deletion request for {UserId}", userId);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -297,21 +289,21 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> UpdateUserStatus(Guid userId, [FromBody] UpdateUserStatusDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserManagementDto>> UpdateUserStatus(Guid userId, [FromBody] UpdateUserStatusDto dto, CancellationToken cancellationToken = default)
     {
         try
         {
-            var user = await _tenantUserService.UpdateUserStatusAsync(userId, dto, cancellationToken);
+            var user = await tenantUserService.UpdateUserStatusAsync(userId, dto, cancellationToken);
             return Ok(user);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized status update for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized status update for {UserId}", userId);
             return CreateForbiddenProblem("Status update is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -341,21 +333,21 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> UpdateUserRoles(Guid userId, [FromBody] List<string> roles, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserManagementDto>> UpdateUserRoles(Guid userId, [FromBody] List<string> roles, CancellationToken cancellationToken = default)
     {
         try
         {
-            var user = await _tenantUserService.UpdateUserRolesAsync(userId, roles, cancellationToken);
+            var user = await tenantUserService.UpdateUserRolesAsync(userId, roles, cancellationToken);
             return Ok(user);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized roles update for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized roles update for {UserId}", userId);
             return CreateForbiddenProblem("Roles update is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -385,27 +377,27 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> ResetPassword(Guid userId, [FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult> ResetPassword(Guid userId, [FromBody] ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantUserService.ResetPasswordAsync(userId, request.NewPassword, request.MustChangePassword, cancellationToken);
+            await tenantUserService.ResetPasswordAsync(userId, request.NewPassword, request.MustChangePassword, cancellationToken);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized password reset for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized password reset for {UserId}", userId);
             return CreateForbiddenProblem("Password reset is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid password reset request for {UserId}", userId);
-            return BadRequest(ex.Message);
+            logger.LogWarning(ex, "Invalid password reset request for {UserId}", userId);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
@@ -431,21 +423,21 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> ForcePasswordChange(Guid userId, CancellationToken cancellationToken)
+    public async Task<ActionResult> ForcePasswordChange(Guid userId, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _tenantUserService.ForcePasswordChangeAsync(userId, cancellationToken);
+            await tenantUserService.ForcePasswordChangeAsync(userId, cancellationToken);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized force password change for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized force password change for {UserId}", userId);
             return CreateForbiddenProblem("Force password change is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (Exception ex)
@@ -469,16 +461,16 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<object>> GetStatistics(CancellationToken cancellationToken)
+    public async Task<ActionResult<object>> GetStatistics(CancellationToken cancellationToken = default)
     {
         try
         {
-            var statistics = await _tenantUserService.GetUserStatisticsAsync(cancellationToken);
+            var statistics = await tenantUserService.GetUserStatisticsAsync(cancellationToken);
             return Ok(statistics);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access to statistics");
+            logger.LogWarning(ex, "Unauthorized access to statistics");
             return CreateForbiddenProblem("Access to statistics is not allowed");
         }
         catch (Exception ex)
@@ -508,27 +500,27 @@ public class TenantUserManagementController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserManagementDto>> PerformQuickAction(Guid userId, [FromBody] QuickActionRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserManagementDto>> PerformQuickAction(Guid userId, [FromBody] QuickActionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var user = await _tenantUserService.PerformQuickActionAsync(userId, request.Action, cancellationToken);
+            var user = await tenantUserService.PerformQuickActionAsync(userId, request.Action, cancellationToken);
             return Ok(user);
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized quick action for {UserId}", userId);
+            logger.LogWarning(ex, "Unauthorized quick action for {UserId}", userId);
             return CreateForbiddenProblem("Quick action is not allowed");
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "User {UserId} not found", userId);
+            logger.LogWarning(ex, "User {UserId} not found", userId);
             return CreateNotFoundProblem(ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Invalid quick action for {UserId}", userId);
-            return BadRequest(ex.Message);
+            logger.LogWarning(ex, "Invalid quick action for {UserId}", userId);
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {
