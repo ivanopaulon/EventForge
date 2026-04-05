@@ -6,27 +6,21 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of inventory management service using HTTP client.
 /// </summary>
-public class InventoryService : IInventoryService
+public class InventoryService(
+    IHttpClientService httpClientService,
+    ILogger<InventoryService> logger) : IInventoryService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<InventoryService> _logger;
     private const string BaseUrl = "api/v1/warehouse/inventory";
-
-    public InventoryService(IHttpClientService httpClientService, ILogger<InventoryService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20)
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving inventory entries");
+            logger.LogError(ex, "Error retrieving inventory entries");
             return null;
         }
     }
@@ -35,11 +29,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating inventory entry");
+            logger.LogError(ex, "Error creating inventory entry");
             return null;
         }
     }
@@ -48,11 +42,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto);
+            return await httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting inventory document");
+            logger.LogError(ex, "Error starting inventory document");
             return null;
         }
     }
@@ -61,11 +55,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating inventory document");
+            logger.LogError(ex, "Error updating inventory document");
             return null;
         }
     }
@@ -74,11 +68,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto);
+            return await httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding inventory document row");
+            logger.LogError(ex, "Error adding inventory document row");
             return null;
         }
     }
@@ -87,11 +81,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating inventory document row");
+            logger.LogError(ex, "Error updating inventory document row");
             return null;
         }
     }
@@ -101,11 +95,11 @@ public class InventoryService : IInventoryService
         try
         {
             // Delete returns the updated document in our case
-            return await _httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}");
+            return await httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting inventory document row");
+            logger.LogError(ex, "Error deleting inventory document row");
             return null;
         }
     }
@@ -114,11 +108,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/finalize", new { });
+            return await httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/finalize", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finalizing inventory document");
+            logger.LogError(ex, "Error finalizing inventory document");
             return null;
         }
     }
@@ -127,11 +121,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}");
+            return await httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting inventory document");
+            logger.LogError(ex, "Error getting inventory document");
             return null;
         }
     }
@@ -163,11 +157,11 @@ public class InventoryService : IInventoryService
             }
 
             var queryString = string.Join("&", queryParams);
-            return await _httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving inventory documents");
+            logger.LogError(ex, "Error retrieving inventory documents");
             return null;
         }
     }
@@ -183,7 +177,7 @@ public class InventoryService : IInventoryService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting most recent open inventory document");
+            logger.LogError(ex, "Error getting most recent open inventory document");
             return null;
         }
     }
@@ -192,11 +186,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, InventoryValidationResultDto>($"{BaseUrl}/documents/{documentId}/validate", new { });
+            return await httpClientService.PostAsync<object, InventoryValidationResultDto>($"{BaseUrl}/documents/{documentId}/validate", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating inventory document");
+            logger.LogError(ex, "Error validating inventory document");
             throw;
         }
     }
@@ -205,11 +199,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open");
+            return await httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving open inventory documents");
+            logger.LogError(ex, "Error retrieving open inventory documents");
             return null;
         }
     }
@@ -218,11 +212,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers");
+            return await httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving open inventory document headers");
+            logger.LogError(ex, "Error retrieving open inventory document headers");
             return null;
         }
     }
@@ -231,11 +225,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving inventory document rows");
+            logger.LogError(ex, "Error retrieving inventory document rows");
             return null;
         }
     }
@@ -243,12 +237,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            await _httpClientService.PostAsync<object, object>($"{BaseUrl}/documents/{documentId}/cancel", new { });
+            await httpClientService.PostAsync<object, object>($"{BaseUrl}/documents/{documentId}/cancel", new { });
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling inventory document {DocumentId}", documentId);
+            logger.LogError(ex, "Error cancelling inventory document {DocumentId}", documentId);
             return false;
         }
     }
@@ -257,11 +251,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, List<InventoryDocumentDto>>($"{BaseUrl}/documents/finalize-all", new { });
+            return await httpClientService.PostAsync<object, List<InventoryDocumentDto>>($"{BaseUrl}/documents/finalize-all", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finalizing all open inventories");
+            logger.LogError(ex, "Error finalizing all open inventories");
             return null;
         }
     }
@@ -270,12 +264,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<object, int>($"{BaseUrl}/documents/cancel-all", new { });
+            var result = await httpClientService.PostAsync<object, int>($"{BaseUrl}/documents/cancel-all", new { });
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling all open inventories");
+            logger.LogError(ex, "Error cancelling all open inventories");
             return 0;
         }
     }
@@ -285,11 +279,11 @@ public class InventoryService : IInventoryService
         try
         {
             var request = new { SourceDocumentIds = sourceDocumentIds, Notes = notes };
-            return await _httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/documents/merge", request);
+            return await httpClientService.PostAsync<object, InventoryDocumentDto>($"{BaseUrl}/documents/merge", request);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error merging inventory documents");
+            logger.LogError(ex, "Error merging inventory documents");
             return null;
         }
     }
@@ -298,12 +292,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<List<Guid>, MergeInventoryDocumentsPreviewDto>(
+            return await httpClientService.PostAsync<List<Guid>, MergeInventoryDocumentsPreviewDto>(
                 $"{BaseUrl}/documents/merge-preview", documentIds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating merge preview for inventory documents");
+            logger.LogError(ex, "Error generating merge preview for inventory documents");
             return null;
         }
     }
@@ -312,12 +306,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<MergeInventoryDocumentsDto, MergeInventoryDocumentsResultDto>(
+            return await httpClientService.PostAsync<MergeInventoryDocumentsDto, MergeInventoryDocumentsResultDto>(
                 $"{BaseUrl}/documents/merge", mergeDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error merging inventory documents");
+            logger.LogError(ex, "Error merging inventory documents");
             return null;
         }
     }
@@ -326,11 +320,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<object, InventoryDiagnosticReportDto>($"{BaseUrl}/documents/{documentId}/diagnose", new { });
+            return await httpClientService.PostAsync<object, InventoryDiagnosticReportDto>($"{BaseUrl}/documents/{documentId}/diagnose", new { });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error diagnosing inventory document {DocumentId}", documentId);
+            logger.LogError(ex, "Error diagnosing inventory document {DocumentId}", documentId);
             return null;
         }
     }
@@ -339,11 +333,11 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            return await _httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options);
+            return await httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error auto-repairing inventory document {DocumentId}", documentId);
+            logger.LogError(ex, "Error auto-repairing inventory document {DocumentId}", documentId);
             return null;
         }
     }
@@ -352,12 +346,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            await _httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData);
+            await httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error repairing row {RowId} in inventory document {DocumentId}", rowId, documentId);
+            logger.LogError(ex, "Error repairing row {RowId} in inventory document {DocumentId}", rowId, documentId);
             return false;
         }
     }
@@ -366,12 +360,12 @@ public class InventoryService : IInventoryService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds);
+            var result = await httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds);
             return result?.GetValueOrDefault("removedCount", 0) ?? 0;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing problematic rows from inventory document {DocumentId}", documentId);
+            logger.LogError(ex, "Error removing problematic rows from inventory document {DocumentId}", documentId);
             return 0;
         }
     }

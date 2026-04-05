@@ -24,46 +24,35 @@ namespace EventForge.Client.Services
         Task UnsubscribeFromLogsAsync(CancellationToken ct = default);
     }
 
-    public class LogsService : ILogsService
+    public class LogsService(
+        IHttpClientService httpClientService,
+        IRealtimeService realtimeService,
+        ILogger<LogsService> logger) : ILogsService
     {
-        private const string BaseUrl = "api/v1/logs"; // unused - kept for future consolidation
-        private readonly IHttpClientService _httpClientService;
-        private readonly IRealtimeService _realtimeService;
-        private readonly ILogger<LogsService> _logger;
-
-        public LogsService(
-            IHttpClientService httpClientService,
-            IRealtimeService realtimeService,
-            ILogger<LogsService> logger)
-        {
-            _httpClientService = httpClientService;
-            _realtimeService = realtimeService;
-            _logger = logger;
-        }
 
         #region Application Logs
 
         public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
         {
             var queryString = BuildQueryString(queryParams);
-            return await _httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
+            return await httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
                    new PagedResult<ApplicationLogDto>();
         }
 
         public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
         {
-            return await _httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
+            return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
         }
 
         public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
         {
-            return await _httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
+            return await httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
                    new ApplicationLogStatisticsDto();
         }
 
         public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto)
         {
-            return await _httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
+            return await httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
         }
 
         #endregion
@@ -73,24 +62,24 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
         {
             var queryString = BuildQueryString(queryParams);
-            return await _httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
+            return await httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
                    new PagedResult<EntityChangeLogDto>();
         }
 
         public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id)
         {
-            return await _httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
+            return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
         }
 
         public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
         {
-            return await _httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
+            return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
                    new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
         }
 
         public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
         {
-            return await _httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
+            return await httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
         }
 
         #endregion
@@ -101,13 +90,13 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _realtimeService.StartAuditConnectionAsync();
+                await realtimeService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
-                _logger.LogInformation("Application log subscription requested");
+                logger.LogInformation("Application log subscription requested");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to subscribe to application logs");
+                logger.LogError(ex, "Failed to subscribe to application logs");
                 throw;
             }
         }
@@ -116,13 +105,13 @@ namespace EventForge.Client.Services
         {
             try
             {
-                await _realtimeService.StartAuditConnectionAsync();
+                await realtimeService.StartAuditConnectionAsync();
                 // SignalR subscription will be implemented in future version
-                _logger.LogInformation("Audit log subscription requested");
+                logger.LogInformation("Audit log subscription requested");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to subscribe to audit logs");
+                logger.LogError(ex, "Failed to subscribe to audit logs");
                 throw;
             }
         }
@@ -132,12 +121,12 @@ namespace EventForge.Client.Services
             try
             {
                 // SignalR unsubscription will be implemented in future version
-                _logger.LogInformation("Log unsubscription requested");
+                logger.LogInformation("Log unsubscription requested");
                 await Task.CompletedTask;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to unsubscribe from logs");
+                logger.LogError(ex, "Failed to unsubscribe from logs");
                 throw;
             }
         }
@@ -153,7 +142,7 @@ namespace EventForge.Client.Services
             foreach (var kvp in queryParams)
             {
                 var value = kvp.Value;
-                if (value != null)
+                if (value is not null)
                 {
                     if (value is DateTime dateTime && dateTime != default)
                     {
