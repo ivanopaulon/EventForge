@@ -20,9 +20,9 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
 <MudLayout>
-    <!-- Improved AppBar with accessibility enhancements and dynamic title -->
+    <!-- AppBar: [Menu] [Home] ---- [logoWhite] [Login?] -->
     <MudAppBar Elevation="1" role="banner" Class="ef-appbar">
-        <MudTooltip Text="@TranslationService.GetTranslation("button.delete", "Elimina")">
+        <MudTooltip Text="@TranslationService.GetTranslation("navigation.menu", "Menu")">
             <MudIconButton Icon="@Icons.Material.Outlined.Menu"
                            Edge="Edge.Start"
                            OnClick="@(() => _drawerOpen = !_drawerOpen)"
@@ -32,35 +32,21 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-        <MudTooltip Text="@($"{(_branding?.ApplicationName ?? "PRYM")} - Torna alla Home")">
-            <MudIconButton Color="Color.Inherit"
-                          OnClick="@(() => NavigationManager.NavigateTo("/"))"
-                          Size="Size.Large"
-                          Class="pa-0"
-                          aria-label="@($"{(_branding?.ApplicationName ?? "PRYM")} - Torna alla Home")"
-                          Style="width: auto; height: auto;">
-                <MudImage Src="@(_branding?.LogoUrl ?? "/logoWhite.svg")" 
-                          Alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
-                          Height="@(_branding?.LogoHeight ?? 40)"
-                          ObjectFit="ObjectFit.Contain"
-                          Class="mx-2"
-                          Style="max-width: 200px;">
-                </MudImage>
+        <MudTooltip Text="@TranslationService.GetTranslation("navigation.home", "Home")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Home"
+                           Color="Color.Inherit"
+                           OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                           aria-label="@TranslationService.GetTranslation("navigation.home", "Home")"
+                           Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
         <MudSpacer />
-        
-        @if (!_isAuthenticated)
-        {
-            <!-- Login button for unauthenticated users -->
-            <MudButton Variant="Variant.Text" 
-                       Color="Color.Inherit" 
-                       StartIcon="Icons.Material.Filled.Login"
-                       OnClick="@ShowLoginDialogAsync"
-                       aria-label="@TranslationService.GetTranslation("auth.loginDescription", "Login to system")">
-                @TranslationService.GetTranslation("auth.login", "Login")
-            </MudButton>
-        }
+        <MudImage Src="@(_branding?.LogoUrl ?? "/logoWhite.svg")"
+                  Alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
+                  Height="@(_branding?.LogoHeight ?? 40)"
+                  ObjectFit="ObjectFit.Contain"
+                  Class="ef-appbar-logo mx-2">
+        </MudImage>
     </MudAppBar>
     
     @if (_isAuthenticated)
