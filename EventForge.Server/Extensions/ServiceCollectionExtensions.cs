@@ -399,7 +399,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Configures authentication services with JWT bearer token support.
     /// </summary>
-    public static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static void AddAuthentication(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         // Register authentication services
         _ = services.AddScoped<IPasswordService, PasswordService>();
@@ -436,7 +436,7 @@ public static class ServiceCollectionExtensions
         // Configure session and distributed cache for tenant context
         // Use Redis in production environment, memory cache in development
         var redisConnectionString = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
+        if (!string.IsNullOrEmpty(redisConnectionString) && !environment.IsDevelopment())
         {
             // Production: Use Redis for distributed caching and sessions
             _ = services.AddStackExchangeRedisCache(options =>
@@ -447,7 +447,7 @@ public static class ServiceCollectionExtensions
         }
         else
         {
-            // Development: Use in-memory distributed cache
+            // Development or Redis not configured: Use in-memory distributed cache
             _ = services.AddDistributedMemoryCache();
         }
 
@@ -610,7 +610,7 @@ public static class ServiceCollectionExtensions
     /// Configures ASP.NET Core health checks for monitoring application health.
     /// Optimized: Health checks don't probe on registration, only when endpoint is called.
     /// </summary>
-    public static void AddHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    public static void AddHealthChecks(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         // OPTIMIZATION: Health checks are lazy - they don't probe during registration
         // They only execute when /health endpoint is called
@@ -628,7 +628,7 @@ public static class ServiceCollectionExtensions
 
         // Add Redis health check if connection string is available (production)
         var redisConnectionString = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrEmpty(redisConnectionString) && !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true)
+        if (!string.IsNullOrEmpty(redisConnectionString) && !environment.IsDevelopment())
         {
             _ = services.AddHealthChecks()
                 .AddRedis(redisConnectionString, "redis", tags: new[] { "ready" });

@@ -20,8 +20,17 @@ if (!File.Exists(appsettingsPath))
     throw new FileNotFoundException("Critical configuration file missing", "appsettings.json");
 }
 
-// Load overrides file (optional) - must load BEFORE validation
-builder.Configuration.AddJsonFile("appsettings.overrides.json", optional: true, reloadOnChange: true);
+// Load environment-specific overrides from "Environments:{env}" section in appsettings.json.
+// Development (launchSettings) → Port 7241 | Production (IIS default) → Port 7242
+var envSection = builder.Configuration.GetSection($"Environments:{environment}");
+if (envSection.Exists())
+{
+    var envOverrides = envSection
+        .AsEnumerable(makePathsRelative: true)
+        .Where(kvp => kvp.Value != null)
+        .Select(kvp => new KeyValuePair<string, string?>(kvp.Key, kvp.Value));
+    builder.Configuration.AddInMemoryCollection(envOverrides);
+}
 
 // Verify connection strings AFTER loading all configuration sources
 var connectionStringsSection = builder.Configuration.GetSection("ConnectionStrings");
@@ -56,7 +65,7 @@ builder.Services.AddConfiguredHttpClient(builder.Configuration);
 builder.Services.AddConfiguredDbContext(builder.Configuration);
 
 // Add Authentication & Authorization services
-builder.Services.AddAuthentication(builder.Configuration);
+builder.Services.AddAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddAuthorization(builder.Configuration);
 
 // Note: Session state configuration (including IdleTimeout with sliding behavior) is handled
@@ -67,7 +76,7 @@ builder.Services.AddAuthorization(builder.Configuration);
 // that accesses the session (e.g., tenant context operations).
 
 // Add Health Checks
-builder.Services.AddHealthChecks(builder.Configuration);
+builder.Services.AddHealthChecks(builder.Configuration, builder.Environment);
 
 // Configure Pagination Settings
 builder.Services.Configure<EventForge.Server.Configuration.PaginationSettings>(
@@ -387,9 +396,6 @@ app.UseCorrelationId();
 // Add startup performance monitoring (logs time to first request)
 app.UseStartupPerformanceMonitoring();
 
-// Setup wizard redirect (before routing) - check if first run
-app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
-
 // Swagger is only enabled in Development or when explicitly enabled via Swagger:Enabled = true
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled", false))
 {
@@ -403,25 +409,27 @@ if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swa
     });
 }
 
-// Pipeline HTTP
+// Pipeline HTTP — exception handler first so wraps ALL subsequent middleware including SetupWizard
+_ = app.UseGlobalExceptionHandler();
+
 if (!app.Environment.IsDevelopment())
 {
-    // Use global exception handler middleware for centralized exception handling
-    _ = app.UseGlobalExceptionHandler();
-
-    // Production hardening: HTTPS enforcement
-    if (builder.Configuration.GetValue<bool>("Security:EnforceHttps", true))
+    // Production hardening: HTTPS enforcement ONLY if binding HTTPS esiste.
+    // Default false: non abilitare su server HTTP-only (IIS senza cert HTTPS).
+    if (builder.Configuration.GetValue<bool>("Security:EnforceHttps", false))
     {
         _ = app.UseHsts();
         app.UseHttpsRedirection();
     }
 }
-else
-{
-    _ = app.UseGlobalExceptionHandler(); // Use global exception handler in all environments
-}
+
+// Setup wizard redirect — DOPO l'exception handler per catturare errori DB/Redis
+app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
 
 // Note: UseHttpsRedirection is conditionally used above based on environment and configuration
+
+// Enable session BEFORE routing (required for session-dependent middleware)
+app.UseSession();
 
 // Enable routing BEFORE static files
 app.UseRouting();
@@ -473,9 +481,6 @@ defaultFilesOptions.DefaultFileNames.Add("index.html");
 app.UseDefaultFiles(defaultFilesOptions);
 
 app.UseStaticFiles();
-
-// Enable session support for wizard state
-app.UseSession();
 
 // Authentication & Authorization
 app.UseAuthentication();

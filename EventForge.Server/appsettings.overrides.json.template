@@ -43,5 +43,18 @@
     "PrivateKeyPath": "private-key.pem",
     "CertificatePath": "digital-certificate.txt",
     "IntermediateCertificatePath": "intermediate-certificate.txt"
+  },
+
+  "Security": {
+    "_Comment": "HTTPS abilitato per default (EnforceHttps:true). Impostare false solo se il server usa HTTP-only senza certificato SSL.",
+    "EnforceHttps": true,
+    "EnableHsts": true,
+    "HstsMaxAge": 31536000
+  },
+
+  "HttpClient": {
+    "_Comment": "Indirizzo interno HttpClient. Deve corrispondere al binding IIS. Dev default: https://localhost:7241. Produzione HTTPS: https://localhost:7242. Produzione HTTP-only: http://localhost:PORT.",
+    "BaseAddress": "https://localhost",
+    "Port": 7242
   }
 }

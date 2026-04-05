@@ -20,8 +20,9 @@ $TRANSCRIPT  = "$LOG_DIR\setup_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $TEMP_DIR    = "C:\Prym\_tmp"
 $SITE_NAME   = "EventForge"
 $POOL_NAME   = "EventForge"
-$SITE_PORT   = 7242
-$APP_DLL     = "EventForge.Server.dll"
+$SITE_PORT          = 7242
+$SITE_CERT_FRIENDLY = "EventForge IIS"
+$APP_DLL            = "EventForge.Server.dll"
 
 # ------------------------------------------------------------------------------
 # Helpers
@@ -48,7 +49,7 @@ Write-Step "CONFIGURAZIONE"
 Write-INFO "Deploy path : $DEPLOY_PATH"
 Write-INFO "Pool        : $POOL_NAME"
 Write-INFO "Sito        : $SITE_NAME"
-Write-INFO "Porta       : $SITE_PORT"
+Write-INFO "Porta       : $SITE_PORT (HTTPS)"
 Write-INFO "DLL         : $APP_DLL"
 Write-INFO "OS          : $((Get-CimInstance Win32_OperatingSystem).Caption)"
 Write-INFO "PowerShell  : $($PSVersionTable.PSVersion)"
@@ -357,27 +358,58 @@ Set-ItemProperty "IIS:\AppPools\$POOL_NAME" -Name "failure.rapidFailProtection" 
 Write-OK "rapidFailProtection = False"
 
 # ==============================================================================
-# STEP 10 - Sito IIS
+# STEP 10 - Certificato SSL + Sito IIS: $SITE_NAME (porta $SITE_PORT HTTPS)
 # ==============================================================================
-Write-Step "STEP 10 - Sito IIS: $SITE_NAME (porta $SITE_PORT)"
+Write-Step "STEP 10 - Certificato SSL + Sito IIS: $SITE_NAME (porta $SITE_PORT HTTPS)"
 
-$appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
+$appcmd         = "$env:windir\system32\inetsrv\appcmd.exe"
+$certThumbprint = $null
+
+# ── Certificato SSL self-signed ──────────────────────────────────────────────
+$existingCert = Get-ChildItem "Cert:\LocalMachine\My" -ErrorAction SilentlyContinue |
+    Where-Object { $_.FriendlyName -eq $SITE_CERT_FRIENDLY -and $_.NotAfter -gt (Get-Date).AddDays(30) } |
+    Sort-Object NotAfter -Descending |
+    Select-Object -First 1
+
+if ($existingCert) {
+    $certThumbprint = $existingCert.Thumbprint
+    Write-OK "Certificato '$SITE_CERT_FRIENDLY' gia presente (scade $($existingCert.NotAfter.ToString('dd/MM/yyyy')))"
+    Write-INFO "Thumbprint: $certThumbprint"
+} else {
+    try {
+        $newCert = New-SelfSignedCertificate `
+            -DnsName "localhost" `
+            -CertStoreLocation "cert:\LocalMachine\My" `
+            -NotAfter (Get-Date).AddYears(10) `
+            -FriendlyName $SITE_CERT_FRIENDLY `
+            -KeyExportPolicy Exportable `
+            -ErrorAction Stop
+        $certThumbprint = $newCert.Thumbprint
+        Write-OK "Certificato self-signed creato (valido 10 anni)"
+        Write-INFO "Thumbprint: $certThumbprint"
+        $rootStore = New-Object System.Security.Cryptography.X509Certificates.X509Store("Root", "LocalMachine")
+        $rootStore.Open("ReadWrite")
+        $rootStore.Add($newCert)
+        $rootStore.Close()
+        Write-OK "Certificato aggiunto a 'Trusted Root CA' - nessun warning browser"
+    } catch {
+        Write-FAIL "Impossibile creare certificato SSL: $_"
+        Write-WARN "Configurare manualmente un certificato HTTPS per la porta $SITE_PORT"
+    }
+}
 
 # ── Binding conflict check ──────────────────────────────────────────────────
-# Se un altro sito ha un binding specifico sulla stessa porta (es. *:7242:localhost),
-# quel binding ha PRIORITA' sul wildcard *:7242: di EventForge e IIS restituisce
-# "Bad Request - Invalid Hostname 400" per qualsiasi richiesta con Host header.
-# Soluzione: rimuovere i binding conflittuali dagli altri siti prima di creare EventForge.
+# Se un altro sito ha un binding specifico sulla stessa porta, ha priorita' su EventForge.
 Write-INFO "Scansione binding conflittuali su porta $SITE_PORT in tutti i siti IIS..."
-$allSites = @(Get-Website -ErrorAction SilentlyContinue)
+$allSites     = @(Get-Website -ErrorAction SilentlyContinue)
 $conflictFound = $false
 foreach ($other in ($allSites | Where-Object { $_.Name -ne $SITE_NAME })) {
     $conflicts = @(Get-WebBinding -Name $other.Name -ErrorAction SilentlyContinue |
                    Where-Object { $_.bindingInformation -match ":${SITE_PORT}:" })
     foreach ($cb in $conflicts) {
         $conflictFound = $true
-        Write-WARN "CONFLITTO: sito '$($other.Name)' usa porta $SITE_PORT con '$($cb.bindingInformation)'"
-        $appcmdResult = & $appcmd set site "$($other.Name)" "/-bindings.[protocol='http',bindingInformation='$($cb.bindingInformation)']" 2>&1
+        Write-WARN "CONFLITTO: sito '$($other.Name)' usa porta $SITE_PORT con '$($cb.bindingInformation)' (proto: $($cb.protocol))"
+        $appcmdResult = & $appcmd set site "$($other.Name)" "/-bindings.[protocol='$($cb.protocol)',bindingInformation='$($cb.bindingInformation)']" 2>&1
         Write-OK "Binding rimosso da '$($other.Name)': $appcmdResult"
     }
 }
@@ -397,26 +429,49 @@ if (!(Test-Path $DEPLOY_PATH)) {
     exit 1
 }
 
-# ── Creazione sito ──────────────────────────────────────────────────────────
+# ── Creazione sito (binding HTTP temporaneo, sostituito da HTTPS sotto) ─────
 try {
     New-WebSite -Name $SITE_NAME -PhysicalPath $DEPLOY_PATH -ApplicationPool $POOL_NAME -Port $SITE_PORT -IPAddress "*" -Force | Out-Null
-    Write-OK "Sito '$SITE_NAME' creato su porta $SITE_PORT"
+    Write-OK "Sito '$SITE_NAME' creato"
 } catch {
     Write-FAIL "Impossibile creare il sito: $_"
     Stop-Transcript
     exit 1
 }
 
-# ── Fix binding via appcmd ──────────────────────────────────────────────────
-# New-WebSite puo creare binding con proprieta null internamente (visualizzati come *:7242:
-# ma non abbinati da IIS). appcmd scrive direttamente in applicationHost.config.
-Write-INFO "Fix binding via appcmd..."
+# ── Sostituzione binding HTTP → HTTPS ──────────────────────────────────────
 & $appcmd set site "$SITE_NAME" "/-bindings.[protocol='http',bindingInformation='*:${SITE_PORT}:']" 2>&1 | Out-Null
-$addResult = & $appcmd set site "$SITE_NAME" "/+bindings.[protocol='http',bindingInformation='*:${SITE_PORT}:']" 2>&1
-Write-OK "appcmd binding: $addResult"
+$addHttps = & $appcmd set site "$SITE_NAME" "/+bindings.[protocol='https',bindingInformation='*:${SITE_PORT}:']" 2>&1
+Write-OK "Binding HTTPS aggiunto: $addHttps"
 
-$finalBinding = (Get-WebBinding -Name $SITE_NAME -Protocol "http" -ErrorAction SilentlyContinue).bindingInformation
-Write-OK "Binding finale: '$finalBinding'"
+# ── Associazione certificato SSL ────────────────────────────────────────────
+if ($certThumbprint) {
+    try {
+        Remove-Item "IIS:\SslBindings\0.0.0.0!$SITE_PORT" -Force -ErrorAction SilentlyContinue
+        $sslCert = Get-Item "Cert:\LocalMachine\My\$certThumbprint" -ErrorAction Stop
+        New-Item "IIS:\SslBindings\0.0.0.0!$SITE_PORT" -Value $sslCert -Force -ErrorAction Stop | Out-Null
+        Write-OK "Certificato SSL associato al binding HTTPS:$SITE_PORT (IIS SslBindings)"
+    } catch {
+        Write-WARN "IIS SslBindings fallito: $_. Tentativo via netsh..."
+        try {
+            netsh http delete sslcert ipport=0.0.0.0:$SITE_PORT 2>&1 | Out-Null
+            $appGuid  = [System.Guid]::NewGuid().ToString("B")
+            $netshOut = netsh http add sslcert ipport=0.0.0.0:$SITE_PORT certhash=$certThumbprint appid="$appGuid" certstorename=MY 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-OK "Certificato SSL associato via netsh"
+            } else {
+                Write-FAIL "Associazione SSL fallita: $netshOut"
+            }
+        } catch {
+            Write-FAIL "Impossibile associare certificato SSL: $_"
+        }
+    }
+} else {
+    Write-WARN "Thumbprint non disponibile - associazione SSL saltata. HTTPS non funzionera'."
+}
+
+$finalBinding = (Get-WebBinding -Name $SITE_NAME -Protocol "https" -ErrorAction SilentlyContinue).bindingInformation
+Write-OK "Binding finale: 'https $finalBinding'"
 
 # ── Avvio sito ─────────────────────────────────────────────────────────────
 try {
@@ -463,7 +518,14 @@ try {
 # ==============================================================================
 Write-Step "STEP 12 - Windows Firewall (porta $SITE_PORT)"
 
-$ruleName     = "EventForge Server HTTP $SITE_PORT"
+# Rimuovi eventuale vecchia regola HTTP
+$oldHttpRule = Get-NetFirewallRule -DisplayName "EventForge Server HTTP $SITE_PORT" -ErrorAction SilentlyContinue
+if ($oldHttpRule) {
+    Remove-NetFirewallRule -DisplayName "EventForge Server HTTP $SITE_PORT" -ErrorAction SilentlyContinue
+    Write-OK "Vecchia regola 'HTTP $SITE_PORT' rimossa"
+}
+
+$ruleName     = "EventForge Server HTTPS $SITE_PORT"
 $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 
 if ($existingRule) {
@@ -471,7 +533,7 @@ if ($existingRule) {
 } else {
     try {
         New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort $SITE_PORT -Action Allow -Profile Any -Enabled True | Out-Null
-        Write-OK "Regola firewall creata: porta $SITE_PORT TCP inbound"
+        Write-OK "Regola firewall creata: porta $SITE_PORT TCP inbound (HTTPS)"
     } catch {
         Write-WARN "Impossibile creare regola firewall: $_"
     }
@@ -609,9 +671,9 @@ if (Test-Path $webConfigPath) {
 }
 
 # ==============================================================================
-# STEP 17 - Test HTTP
+# STEP 17 - Test connessione HTTPS
 # ==============================================================================
-Write-Step "STEP 17 - Test connessione HTTP"
+Write-Step "STEP 17 - Test connessione HTTPS"
 
 try {
     Restart-WebAppPool -Name $POOL_NAME -ErrorAction SilentlyContinue
@@ -622,11 +684,17 @@ try {
 
 Start-Sleep -Seconds 5
 
-$testUrl    = "http://localhost:$SITE_PORT"
+$testUrl    = "https://localhost:$SITE_PORT/health"
 $httpStatus = $null
 
 try {
-    $response   = Invoke-WebRequest -Uri $testUrl -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+    # PS 7+ supporta -SkipCertificateCheck nativo; PS 5 usa callback globale
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        $response = Invoke-WebRequest -Uri $testUrl -UseBasicParsing -TimeoutSec 15 -SkipCertificateCheck -ErrorAction Stop
+    } else {
+        [Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+        $response = Invoke-WebRequest -Uri $testUrl -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+    }
     $httpStatus = [int]$response.StatusCode
 } catch {
     try {
@@ -639,24 +707,24 @@ try {
 }
 
 if ($httpStatus -ge 200 -and $httpStatus -lt 300) {
-    Write-OK "HTTP $httpStatus - Sito raggiungibile su $testUrl"
+    Write-OK "HTTPS $httpStatus - Sito raggiungibile su $testUrl"
 } elseif ($httpStatus -ge 300 -and $httpStatus -lt 400) {
-    Write-OK "HTTP $httpStatus - Sito ATTIVO (redirect a /Dashboard/Index - normale)"
+    Write-OK "HTTPS $httpStatus - Sito ATTIVO (redirect - normale)"
 } elseif ($httpStatus -eq 400) {
-    Write-FAIL "HTTP 400 - Bad Request / Invalid Hostname"
-    Write-FAIL "Il binding IIS non risponde a 'localhost:$SITE_PORT'. Rilancia lo script."
+    Write-FAIL "HTTPS 400 - Bad Request"
+    Write-FAIL "Verifica binding IIS e certificato SSL. Rilancia lo script."
 } elseif ($httpStatus -eq 401 -or $httpStatus -eq 403) {
-    Write-OK "HTTP $httpStatus - Sito ATTIVO (autenticazione richiesta - normale)"
+    Write-OK "HTTPS $httpStatus - Sito ATTIVO (autenticazione richiesta - normale)"
 } elseif ($httpStatus -eq 500) {
-    Write-FAIL "HTTP 500 - L'app va in errore. Controlla: $DEPLOY_PATH\logs\"
+    Write-FAIL "HTTPS 500 - L'app va in errore. Controlla: $DEPLOY_PATH\logs\"
     Write-FAIL "Per debug: imposta stdoutLogEnabled='true' in web.config"
 } elseif ($httpStatus -eq 503) {
-    Write-FAIL "HTTP 503 - App Pool non risponde o crash all avvio"
+    Write-FAIL "HTTPS 503 - App Pool non risponde o crash all avvio"
 } elseif ($httpStatus) {
-    Write-WARN "HTTP $httpStatus - Risposta inattesa"
+    Write-WARN "HTTPS $httpStatus - Risposta inattesa"
 } else {
     Write-WARN "Nessuna risposta da $testUrl"
-    Write-WARN "Verifica che il sito sia avviato e la porta $SITE_PORT sia libera"
+    Write-WARN "Verifica: sito avviato, porta $SITE_PORT libera, cert SSL associato"
 }
 
 # ==============================================================================
@@ -711,7 +779,8 @@ Write-Host "  Setup completato: $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -Fore
 Write-Host "  Log salvato in  : $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 Write-Host ""
-Write-Host "  URL sito    : http://localhost:$SITE_PORT" -ForegroundColor Yellow
+Write-Host "  URL sito    : https://localhost:$SITE_PORT" -ForegroundColor Yellow
+Write-Host "  Certificato : Self-signed (trusted in LocalMachine\Root)" -ForegroundColor Yellow
 Write-Host "  Log app IIS : $DEPLOY_PATH\logs\" -ForegroundColor Yellow
 Write-Host "  Log setup   : $TRANSCRIPT" -ForegroundColor Yellow
 Write-Host ""
