@@ -6,9 +6,13 @@
 @inject ILogger<CreateCalendarReminderDialog> Logger
 
 <EFDialog Icon="@(_itemType == CalendarItemType.Task ? Icons.Material.Outlined.CheckBox : Icons.Material.Outlined.NotificationsActive)"
-          Title="@(_itemType == CalendarItemType.Task
-              ? TranslationService.GetTranslation("events.createTask", "Nuovo Task")
-              : TranslationService.GetTranslation("events.createReminder", "Nuovo Promemoria"))"
+          Title="@(_isEditMode
+              ? (_itemType == CalendarItemType.Task
+                  ? TranslationService.GetTranslation("events.editTask", "Modifica Task")
+                  : TranslationService.GetTranslation("events.editReminder", "Modifica Promemoria"))
+              : (_itemType == CalendarItemType.Task
+                  ? TranslationService.GetTranslation("events.createTask", "Nuovo Task")
+                  : TranslationService.GetTranslation("events.createReminder", "Nuovo Promemoria")))"
           IsProcessing="@_isLoading"
           OnClose="Cancel">
     <ChildContent>
@@ -210,10 +214,12 @@
         <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton OnClick="CreateAsync" Variant="Variant.Filled" Color="Color.Primary"
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
                    Disabled="@(!_isFormValid || _isLoading || !_dueDateOnly.HasValue)"
                    StartIcon="@Icons.Material.Outlined.Save">
-            @TranslationService.GetTranslation("common.create", "Crea")
+            @(_isEditMode
+                ? TranslationService.GetTranslation("common.save", "Salva")
+                : TranslationService.GetTranslation("common.create", "Crea"))
         </MudButton>
     </DialogActions>
 </EFDialog>
@@ -224,6 +230,10 @@
     /// <summary>Pre-set the item type (Reminder or Task). If null, user can choose.</summary>
     [Parameter] public CalendarItemType? ItemType { get; set; }
     [Parameter] public DateTime? PrefilledDueDate { get; set; }
+    /// <summary>When set, the dialog opens in edit mode for this reminder/task.</summary>
+    [Parameter] public CalendarReminderDto? ExistingReminder { get; set; }
+
+    private bool _isEditMode => ExistingReminder != null;
 
     private MudForm _form = null!;
     private bool _isFormValid;
@@ -239,7 +249,7 @@
 
     private readonly string[] _presetColors = ["#FF9800", "#F44336", "#9C27B0", "#2196F3", "#4CAF50", "#00BCD4", "#795548", "#607D8B"];
 
-    private CreateCalendarReminderDto _model = new()
+    private UpdateCalendarReminderDto _model = new()
     {
         Priority = ReminderPriority.Normal,
         Status = ReminderStatus.Active,
@@ -254,10 +264,41 @@
             _itemType = ItemType.Value;
             _typeFixed = true;
         }
-        var prefilled = PrefilledDueDate ?? DateTime.Now.AddHours(1);
-        _dueDateOnly = prefilled.Date;
-        _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : DefaultReminderTime;
-        _model.ItemType = _itemType;
+        if (_isEditMode)
+        {
+            var r = ExistingReminder!;
+            _itemType = r.ItemType;
+            _typeFixed = true;
+            var local = r.DueDate.ToLocalTime();
+            _dueDateOnly = local.Date;
+            _dueTime = r.IsAllDay ? DefaultReminderTime : local.TimeOfDay;
+            _recurrenceEndDate = r.RecurrenceEndDate?.ToLocalTime();
+            _model = new UpdateCalendarReminderDto
+            {
+                Title              = r.Title,
+                Description        = r.Description,
+                DueDate            = r.DueDate,
+                IsAllDay           = r.IsAllDay,
+                ItemType           = r.ItemType,
+                Priority           = r.Priority,
+                Status             = r.Status,
+                EventId            = r.EventId,
+                IsRecurring        = r.IsRecurring,
+                RecurrencePattern  = r.RecurrencePattern,
+                RecurrenceInterval = r.RecurrenceInterval,
+                RecurrenceEndDate  = r.RecurrenceEndDate,
+                Color              = r.Color,
+                AssignedToUserId   = r.AssignedToUserId,
+                Visibility         = r.Visibility
+            };
+        }
+        else
+        {
+            var prefilled = PrefilledDueDate ?? DateTime.Now.AddHours(1);
+            _dueDateOnly = prefilled.Date;
+            _dueTime = prefilled.TimeOfDay != TimeSpan.Zero ? prefilled.TimeOfDay : DefaultReminderTime;
+            _model.ItemType = _itemType;
+        }
     }
 
     private void OnColorChanged(ChangeEventArgs e)
@@ -267,7 +308,7 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private async Task CreateAsync()
+    private async Task SaveAsync()
     {
         await _form.Validate();
         if (!_isFormValid || !_dueDateOnly.HasValue) return;
@@ -277,7 +318,6 @@
             _isLoading = true;
             _model.ItemType = _itemType;
 
-            // Combine the date part with the time (or use midnight for all-day events)
             var date = _dueDateOnly.Value.Date;
             _model.DueDate = _model.IsAllDay
                 ? date.ToUniversalTime()
@@ -285,19 +325,50 @@
 
             _model.RecurrenceEndDate = _recurrenceEndDate?.ToUniversalTime();
 
-            var result = await CalendarReminderService.CreateCalendarReminderAsync(_model);
-
-            var msgKey = _itemType == CalendarItemType.Task ? "events.taskCreated" : "events.reminderCreated";
-            var msgFallback = _itemType == CalendarItemType.Task ? "Task creato con successo" : "Promemoria creato con successo";
-            Snackbar.Add(TranslationService.GetTranslation(msgKey, msgFallback), Severity.Success);
+            CalendarReminderDto result;
+            if (_isEditMode)
+            {
+                result = await CalendarReminderService.UpdateCalendarReminderAsync(ExistingReminder!.Id, _model)
+                         ?? ExistingReminder!;
+                var editKey = _itemType == CalendarItemType.Task ? "events.taskUpdated" : "events.reminderUpdated";
+                var editFallback = _itemType == CalendarItemType.Task ? "Task aggiornato con successo" : "Promemoria aggiornato con successo";
+                Snackbar.Add(TranslationService.GetTranslation(editKey, editFallback), Severity.Success);
+            }
+            else
+            {
+                var createDto = new CreateCalendarReminderDto
+                {
+                    Title              = _model.Title,
+                    Description        = _model.Description,
+                    DueDate            = _model.DueDate,
+                    IsAllDay           = _model.IsAllDay,
+                    ItemType           = _model.ItemType,
+                    Priority           = _model.Priority,
+                    Status             = _model.Status,
+                    EventId            = _model.EventId,
+                    IsRecurring        = _model.IsRecurring,
+                    RecurrencePattern  = _model.RecurrencePattern,
+                    RecurrenceInterval = _model.RecurrenceInterval,
+                    RecurrenceEndDate  = _model.RecurrenceEndDate,
+                    Color              = _model.Color,
+                    AssignedToUserId   = _model.AssignedToUserId,
+                    Visibility         = _model.Visibility
+                };
+                result = await CalendarReminderService.CreateCalendarReminderAsync(createDto);
+                var msgKey = _itemType == CalendarItemType.Task ? "events.taskCreated" : "events.reminderCreated";
+                var msgFallback = _itemType == CalendarItemType.Task ? "Task creato con successo" : "Promemoria creato con successo";
+                Snackbar.Add(TranslationService.GetTranslation(msgKey, msgFallback), Severity.Success);
+            }
 
             MudDialog.Close(DialogResult.Ok(result));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error creating calendar reminder/task.");
+            Logger.LogError(ex, _isEditMode ? "Error updating calendar reminder/task." : "Error creating calendar reminder/task.");
             Snackbar.Add(
-                TranslationService.GetTranslation("events.createError", "Errore durante la creazione"),
+                _isEditMode
+                    ? TranslationService.GetTranslation("events.updateError", "Errore durante l'aggiornamento")
+                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione"),
                 Severity.Error);
         }
         finally
