@@ -52,8 +52,11 @@ public class ConnectionMonitorService : IConnectionMonitorService
     {
         if (_isRunning) return;
         _isRunning = true;
+        // Use a 10-second initial delay so the app has time to fully initialise
+        // (load translations, branding, auth state) before the first connectivity probe.
+        // Subsequent checks fire every 8 seconds.
         _timer = new Timer(async _ => await CheckNowAsync(), null,
-            TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(8));
+            TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(8));
     }
 
     public void Stop()

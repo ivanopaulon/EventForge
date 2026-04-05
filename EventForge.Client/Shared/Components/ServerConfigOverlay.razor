@@ -4,84 +4,59 @@
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
-@if (_isVisible)
-{
-    <MudOverlay Visible="true" DarkBackground="true" AutoClose="false"
-                Style="backdrop-filter: blur(3px); z-index: 10000;">
+<EFOverlay Visible="@_isVisible"
+           ZIndex="10000"
+           Subtitle="Configurazione Server"
+           TopBar="@_efTopBar">
 
-        <div class="sco-card">
+    <MudTextField @bind-Value="_serverUrl"
+                  Label="URL Server"
+                  Placeholder="https://mioserver:7241/"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  FullWidth="true"
+                  Disabled="@_isSaving"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@_adornmentIcon"
+                  AdornmentColor="@_adornmentColor"
+                  OnKeyUp="@OnUrlKeyUp" />
 
-            @* Top color bar *@
-            <div class="sco-topbar @_topBarClass"></div>
+    @if (_testStatus == TestStatus.Success)
+    {
+        <div class="sco-status-ok">✓ Server raggiungibile</div>
+    }
+    else if (_testStatus == TestStatus.Failure)
+    {
+        <div class="sco-status-err">✗ Server non raggiungibile. Verifica l'URL e riprova.</div>
+    }
 
-            @* Header: logo + title *@
-            <div class="sco-header">
-                <div class="sco-logo-col">
-                    <img src="trace.svg" width="72" height="72"
-                         class="sco-logo" alt="PRYM logo" />
-                </div>
-                <div class="sco-title-col">
-                    <div class="sco-title">PRYM</div>
-                    <div class="sco-divider"></div>
-                    <div class="sco-subtitle">Configurazione Server</div>
-                </div>
-            </div>
+    <div class="sco-action-row">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   Size="Size.Small"
+                   OnClick="@TestConnectionAsync"
+                   Disabled="@(_isTesting || _isSaving || string.IsNullOrWhiteSpace(_serverUrl))"
+                   StartIcon="@Icons.Material.Outlined.NetworkCheck">
+            @(_isTesting ? "Test in corso…" : "Testa connessione")
+        </MudButton>
 
-            @* Form body *@
-            <div class="sco-form-body">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   OnClick="@SaveAndConnectAsync"
+                   Disabled="@(_testStatus != TestStatus.Success || _isSaving)"
+                   StartIcon="@Icons.Material.Outlined.Save">
+            @(_isSaving ? "Connessione…" : "Salva e connetti")
+        </MudButton>
+    </div>
 
-                <MudTextField @bind-Value="_serverUrl"
-                              Label="URL Server"
-                              Placeholder="https://mioserver:7241/"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              FullWidth="true"
-                              Disabled="@_isSaving"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@_adornmentIcon"
-                              AdornmentColor="@_adornmentColor"
-                              OnKeyUp="@OnUrlKeyUp"
-                              Class="sco-url-field" />
+    <div class="sco-reset">
+        <MudLink OnClick="@ResetToDefaultAsync" Color="Color.Default" Style="cursor:pointer;">
+            Reimposta URL di default
+        </MudLink>
+    </div>
 
-                @if (_testStatus == TestStatus.Success)
-                {
-                    <div class="sco-status-ok">✓ Server raggiungibile</div>
-                }
-                else if (_testStatus == TestStatus.Failure)
-                {
-                    <div class="sco-status-err">✗ Server non raggiungibile. Verifica l'URL e riprova.</div>
-                }
-
-                <div class="sco-actions">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Info"
-                               Size="Size.Small"
-                               OnClick="@TestConnectionAsync"
-                               Disabled="@(_isTesting || _isSaving || string.IsNullOrWhiteSpace(_serverUrl))"
-                               StartIcon="@Icons.Material.Outlined.NetworkCheck">
-                        @(_isTesting ? "Test in corso…" : "Testa connessione")
-                    </MudButton>
-
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               OnClick="@SaveAndConnectAsync"
-                               Disabled="@(_testStatus != TestStatus.Success || _isSaving)"
-                               StartIcon="@Icons.Material.Outlined.Save">
-                        @(_isSaving ? "Connessione…" : "Salva e connetti")
-                    </MudButton>
-                </div>
-
-                <div class="sco-reset">
-                    <MudLink OnClick="@ResetToDefaultAsync" Color="Color.Default" Style="cursor:pointer;">
-                        Reimposta URL di default
-                    </MudLink>
-                </div>
-
-            </div>
-        </div>
-    </MudOverlay>
-}
+</EFOverlay>
 
 @code {
     private enum TestStatus { None, Success, Failure }
@@ -92,25 +67,25 @@
     private bool _isSaving = false;
     private TestStatus _testStatus = TestStatus.None;
 
-    private string _topBarClass => _testStatus switch
+    private EFOverlay.EFOverlayTopBar _efTopBar => _testStatus switch
     {
-        TestStatus.Success => "sco-topbar-green",
-        TestStatus.Failure => "sco-topbar-red",
-        _ => "sco-topbar-blue"
+        TestStatus.Success => EFOverlay.EFOverlayTopBar.Success,
+        TestStatus.Failure => EFOverlay.EFOverlayTopBar.Error,
+        _                  => EFOverlay.EFOverlayTopBar.Primary
     };
 
     private string _adornmentIcon => _testStatus switch
     {
         TestStatus.Success => Icons.Material.Filled.CheckCircle,
         TestStatus.Failure => Icons.Material.Filled.Error,
-        _ => Icons.Material.Outlined.Link
+        _                  => Icons.Material.Outlined.Link
     };
 
     private Color _adornmentColor => _testStatus switch
     {
         TestStatus.Success => Color.Success,
         TestStatus.Failure => Color.Error,
-        _ => Color.Default
+        _                  => Color.Default
     };
 
     protected override async Task OnInitializedAsync()
@@ -156,7 +131,6 @@
 
     private void OnUrlKeyUp(KeyboardEventArgs e)
     {
-        // Reset test result when the user edits the URL
         if (_testStatus != TestStatus.None)
         {
             _testStatus = TestStatus.None;
@@ -186,8 +160,6 @@
         StateHasChanged();
 
         await ServerConfigService.SetServerUrlAsync(_serverUrl);
-
-        // Force a full page reload so all HttpClients pick up the new base URL
         NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
@@ -206,115 +178,12 @@
 }
 
 <style>
-    /* ── Card container ── */
-    .sco-card {
-        background: rgba(18, 18, 32, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        min-width: 340px;
-        max-width: 480px;
-        width: 100%;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* ── Color bar on top ── */
-    .sco-topbar {
-        height: 4px;
-        width: 100%;
-    }
-
-    .sco-topbar-blue {
-        background: #247BFF;
-    }
-
-    .sco-topbar-green {
-        background: #66bb6a;
-    }
-
-    .sco-topbar-red {
-        background: #ef5350;
-    }
-
-    /* ── Header: logo + title ── */
-    .sco-header {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 16px;
-        padding: 20px 24px 12px 20px;
-    }
-
-    .sco-logo-col {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .sco-logo {
-        display: block;
-        object-fit: contain;
-    }
-
-    .sco-title-col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .sco-title {
-        color: white;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        line-height: 1.2;
-    }
-
-    .sco-divider {
-        height: 1px;
-        background: rgba(255, 255, 255, 0.15);
-        margin: 2px 0;
-    }
-
-    .sco-subtitle {
-        color: rgba(255, 255, 255, 0.65);
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-
-    /* ── Form body ── */
-    .sco-form-body {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 4px 24px 20px 24px;
-    }
-
-    .sco-url-field .mud-input-outlined-border {
-        border-color: rgba(255, 255, 255, 0.3) !important;
-    }
-
     /* ── Status messages ── */
-    .sco-status-ok {
-        color: #66bb6a;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
+    .sco-status-ok  { color: #66bb6a; font-size: 0.85rem; font-weight: 600; }
+    .sco-status-err { color: #ef5350; font-size: 0.85rem; font-weight: 600; }
 
-    .sco-status-err {
-        color: #ef5350;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-
-    /* ── Action buttons row ── */
-    .sco-actions {
+    /* ── Action row ── */
+    .sco-action-row {
         display: flex;
         flex-direction: row;
         gap: 8px;
@@ -325,30 +194,9 @@
     .sco-reset {
         font-size: 0.78rem;
         opacity: 0.6;
-        margin-top: 2px;
     }
 
-    /* ── Mobile ── */
     @@media (max-width: 480px) {
-        .sco-card {
-            min-width: unset;
-            max-width: 92vw;
-            width: 92vw;
-        }
-
-        .sco-header {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 16px 16px 8px 16px;
-        }
-
-        .sco-form-body {
-            padding: 4px 16px 16px 16px;
-        }
-
-        .sco-actions {
-            justify-content: center;
-        }
+        .sco-action-row { justify-content: center; }
     }
 </style>
