@@ -6,11 +6,11 @@ namespace EventForge.Server.Services.Logging;
 /// Implementation of log ingestion service using a bounded channel for async processing.
 /// Uses a DropOldest strategy when the channel is full to ensure newer logs are prioritized.
 /// </summary>
-public class LogIngestionService : ILogIngestionService
+public class LogIngestionService(ILogger<LogIngestionService> logger) : ILogIngestionService
 {
+
     private const int DefaultChannelCapacity = 10000;
-    private readonly Channel<ClientLogDto> _logChannel;
-    private readonly ILogger<LogIngestionService> _logger;
+    private readonly Channel<ClientLogDto> _logChannel = BuildLogChannel();
 
     // Metrics tracking
     private long _droppedCount;
@@ -19,31 +19,12 @@ public class LogIngestionService : ILogIngestionService
     private DateTime? _lastProcessedAt;
     private string _circuitBreakerState = "Closed";
 
-    public LogIngestionService(ILogger<LogIngestionService> logger)
-    {
-        _logger = logger;
-
-        // Create bounded channel with DropOldest behavior
-        var options = new BoundedChannelOptions(DefaultChannelCapacity)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true, // Only one background processor will read
-            SingleWriter = false // Multiple API requests can write concurrently
-        };
-
-        _logChannel = Channel.CreateBounded<ClientLogDto>(options);
-
-        _logger.LogDebug(
-            "LogIngestionService initialized with channel capacity: {Capacity}",
-            DefaultChannelCapacity);
-    }
-
     /// <inheritdoc/>
     public async Task<bool> EnqueueAsync(ClientLogDto logEntry, CancellationToken cancellationToken = default)
     {
-        if (logEntry == null)
+        if (logEntry is null)
         {
-            _logger.LogWarning("Attempted to enqueue null log entry");
+            logger.LogWarning("Attempted to enqueue null log entry");
             return false;
         }
 
@@ -59,26 +40,26 @@ public class LogIngestionService : ILogIngestionService
             {
                 // Channel is closed
                 Interlocked.Increment(ref _droppedCount);
-                _logger.LogWarning("Log channel is closed, log entry dropped");
+                logger.LogWarning("Log channel is closed, log entry dropped");
                 return false;
             }
         }
         catch (ChannelClosedException)
         {
             Interlocked.Increment(ref _droppedCount);
-            _logger.LogWarning("Log channel is closed, log entry dropped");
+            logger.LogWarning("Log channel is closed, log entry dropped");
             return false;
         }
         catch (OperationCanceledException)
         {
             Interlocked.Increment(ref _droppedCount);
-            _logger.LogDebug("Log enqueue operation cancelled");
+            logger.LogDebug("Log enqueue operation cancelled");
             return false;
         }
         catch (Exception ex)
         {
             Interlocked.Increment(ref _droppedCount);
-            _logger.LogError(ex, "Error enqueueing log entry");
+            logger.LogError(ex, "Error enqueueing log entry");
             return false;
         }
     }
@@ -86,9 +67,9 @@ public class LogIngestionService : ILogIngestionService
     /// <inheritdoc/>
     public async Task<int> EnqueueBatchAsync(IEnumerable<ClientLogDto> logEntries, CancellationToken cancellationToken = default)
     {
-        if (logEntries == null)
+        if (logEntries is null)
         {
-            _logger.LogWarning("Attempted to enqueue null log batch");
+            logger.LogWarning("Attempted to enqueue null log batch");
             return 0;
         }
 
@@ -175,4 +156,17 @@ public class LogIngestionService : ILogIngestionService
             _circuitBreakerState = state;
         }
     }
+
+    private static Channel<ClientLogDto> BuildLogChannel()
+    {
+
+        var options = new BoundedChannelOptions(DefaultChannelCapacity)
+        {
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true, 
+            SingleWriter = false 
+        };
+        return Channel.CreateBounded<ClientLogDto>(options);
+    }
+
 }

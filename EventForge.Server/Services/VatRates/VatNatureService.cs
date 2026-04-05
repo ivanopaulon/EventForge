@@ -7,47 +7,33 @@ namespace EventForge.Server.Services.VatRates;
 /// <summary>
 /// Service implementation for managing VAT natures.
 /// </summary>
-public class VatNatureService : IVatNatureService
+public class VatNatureService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<VatNatureService> logger,
+    ICacheService cacheService) : IVatNatureService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<VatNatureService> _logger;
-    private readonly ICacheService _cacheService;
 
     private const string CACHE_KEY_ALL = "VatNatures_All";
-
-    public VatNatureService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<VatNatureService> logger,
-        ICacheService cacheService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    }
 
     public async Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
             }
 
             // Cache all VatNatures for 30 minutes
-            var allNatures = await _cacheService.GetOrCreateAsync(
+            var allNatures = await cacheService.GetOrCreateAsync(
                 CACHE_KEY_ALL,
                 currentTenantId.Value,
                 async (ct) =>
                 {
-                    return await _context.VatNatures
+                    return await context.VatNatures
                         .WhereActiveTenant(currentTenantId.Value)
                         .OrderBy(v => v.Code)
                         .Select(v => MapToVatNatureDto(v))
@@ -75,7 +61,7 @@ public class VatNatureService : IVatNatureService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving VAT natures.");
+            logger.LogError(ex, "Error retrieving VAT natures.");
             throw;
         }
     }
@@ -84,15 +70,15 @@ public class VatNatureService : IVatNatureService
     {
         try
         {
-            var vatNature = await _context.VatNatures
+            var vatNature = await context.VatNatures
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return vatNature != null ? MapToVatNatureDto(vatNature) : null;
+            return vatNature is not null ? MapToVatNatureDto(vatNature) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving VAT nature {VatNatureId}.", id);
+            logger.LogError(ex, "Error retrieving VAT nature {VatNatureId}.", id);
             throw;
         }
     }
@@ -104,7 +90,7 @@ public class VatNatureService : IVatNatureService
             ArgumentNullException.ThrowIfNull(createVatNatureDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
@@ -121,21 +107,21 @@ public class VatNatureService : IVatNatureService
                 CreatedBy = currentUser
             };
 
-            _ = _context.VatNatures.Add(vatNature);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.VatNatures.Add(vatNature);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
 
-            _logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
+            logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
 
             return MapToVatNatureDto(vatNature);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating VAT nature.");
+            logger.LogError(ex, "Error creating VAT nature.");
             throw;
         }
     }
@@ -147,18 +133,18 @@ public class VatNatureService : IVatNatureService
             ArgumentNullException.ThrowIfNull(updateVatNatureDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalVatNature = await _context.VatNatures
+            var originalVatNature = await context.VatNatures
                 .AsNoTracking()
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalVatNature == null) return null;
+            if (originalVatNature is null) return null;
 
-            var vatNature = await _context.VatNatures
+            var vatNature = await context.VatNatures
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (vatNature == null) return null;
+            if (vatNature is null) return null;
 
             vatNature.Code = updateVatNatureDto.Code;
             vatNature.Name = updateVatNatureDto.Name;
@@ -168,20 +154,20 @@ public class VatNatureService : IVatNatureService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating VatNature {VatNatureId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating VatNature {VatNatureId}.", id);
                 throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
+            cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
 
-            _logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
+            logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
 
             return MapToVatNatureDto(vatNature);
         }
@@ -191,7 +177,7 @@ public class VatNatureService : IVatNatureService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating VAT nature {VatNatureId}.", id);
+            logger.LogError(ex, "Error updating VAT nature {VatNatureId}.", id);
             throw;
         }
     }
@@ -202,18 +188,18 @@ public class VatNatureService : IVatNatureService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalVatNature = await _context.VatNatures
+            var originalVatNature = await context.VatNatures
                 .AsNoTracking()
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalVatNature == null) return false;
+            if (originalVatNature is null) return false;
 
-            var vatNature = await _context.VatNatures
+            var vatNature = await context.VatNatures
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (vatNature == null) return false;
+            if (vatNature is null) return false;
 
             vatNature.IsDeleted = true;
             vatNature.ModifiedAt = DateTime.UtcNow;
@@ -221,20 +207,20 @@ public class VatNatureService : IVatNatureService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting VatNature {VatNatureId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting VatNature {VatNatureId}.", id);
                 throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
 
             // Invalidate cache
-            _cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
+            cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
 
-            _logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
+            logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
 
             return true;
         }
@@ -244,7 +230,7 @@ public class VatNatureService : IVatNatureService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting VAT nature {VatNatureId}.", id);
+            logger.LogError(ex, "Error deleting VAT nature {VatNatureId}.", id);
             throw;
         }
     }
@@ -263,4 +249,5 @@ public class VatNatureService : IVatNatureService
             ModifiedBy = vatNature.ModifiedBy
         };
     }
+
 }

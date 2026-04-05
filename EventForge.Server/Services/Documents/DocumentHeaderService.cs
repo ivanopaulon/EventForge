@@ -6,33 +6,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
 
-public class DocumentHeaderService : IDocumentHeaderService
+public class DocumentHeaderService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    IDocumentCounterService documentCounterService,
+    IStockMovementService stockMovementService,
+    IUnitConversionService unitConversionService,
+    ILogger<DocumentHeaderService> logger) : IDocumentHeaderService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly IDocumentCounterService _documentCounterService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly IUnitConversionService _unitConversionService;
-    private readonly ILogger<DocumentHeaderService> _logger;
-
-    public DocumentHeaderService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        IDocumentCounterService documentCounterService,
-        IStockMovementService stockMovementService,
-        IUnitConversionService unitConversionService,
-        ILogger<DocumentHeaderService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _documentCounterService = documentCounterService ?? throw new ArgumentNullException(nameof(documentCounterService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _unitConversionService = unitConversionService ?? throw new ArgumentNullException(nameof(unitConversionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<DocumentHeaderDto>> GetPagedDocumentHeadersAsync(
         DocumentHeaderQueryParameters queryParameters,
@@ -74,7 +56,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving paginated document headers.");
+            logger.LogError(ex, "Error retrieving paginated document headers.");
             throw;
         }
     }
@@ -86,7 +68,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var query = _context.DocumentHeaders
+            var query = context.DocumentHeaders
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.PriceList)
                 .Where(dh => dh.Id == id && !dh.IsDeleted);
@@ -98,9 +80,9 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             var documentHeader = await query.FirstOrDefaultAsync(cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found.", id);
+                logger.LogWarning("Document header with ID {Id} not found.", id);
                 return null;
             }
 
@@ -108,7 +90,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document header {Id}.", id);
+            logger.LogError(ex, "Error retrieving document header {Id}.", id);
             throw;
         }
     }
@@ -119,7 +101,7 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var documentHeaders = await _context.DocumentHeaders
+            var documentHeaders = await context.DocumentHeaders
                 .Where(dh => dh.BusinessPartyId == businessPartyId && !dh.IsDeleted)
                 .OrderByDescending(dh => dh.Date)
                 .Include(dh => dh.DocumentType)
@@ -130,7 +112,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document headers for business party {BusinessPartyId}.", businessPartyId);
+            logger.LogError(ex, "Error retrieving document headers for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -142,10 +124,10 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot create document header without a tenant context.");
+                logger.LogWarning("Cannot create document header without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
@@ -158,17 +140,17 @@ public class DocumentHeaderService : IDocumentHeaderService
             if (string.IsNullOrWhiteSpace(documentHeader.Number))
             {
                 var series = documentHeader.Series ?? string.Empty;
-                documentHeader.Number = await _documentCounterService.GenerateDocumentNumberAsync(
+                documentHeader.Number = await documentCounterService.GenerateDocumentNumberAsync(
                     documentHeader.DocumentTypeId,
                     series,
                     currentUser,
                     cancellationToken);
 
-                _logger.LogInformation("Auto-generated document number '{Number}' for document type {DocumentTypeId}, series '{Series}'.",
+                logger.LogInformation("Auto-generated document number '{Number}' for document type {DocumentTypeId}, series '{Series}'.",
                     documentHeader.Number, documentHeader.DocumentTypeId, series);
             }
 
-            _ = _context.DocumentHeaders.Add(documentHeader);
+            _ = context.DocumentHeaders.Add(documentHeader);
 
             if (createDto.Rows?.Any() == true)
             {
@@ -183,17 +165,17 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document header {DocumentHeaderId} created by {User}.", documentHeader.Id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} created by {User}.", documentHeader.Id, currentUser);
 
             return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document header.");
+            logger.LogError(ex, "Error creating document header.");
             throw;
         }
     }
@@ -206,22 +188,22 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var originalHeader = await _context.DocumentHeaders
+            var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (originalHeader == null)
+            if (originalHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for update.", id);
+                logger.LogWarning("Document header with ID {Id} not found for update.", id);
                 return null;
             }
 
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for update.", id);
+                logger.LogWarning("Document header with ID {Id} not found for update.", id);
                 return null;
             }
 
@@ -237,15 +219,15 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating document header {DocumentHeaderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating document header {DocumentHeaderId}.", id);
                 throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
 
             // Sync stock movement dates if document date changed
             if (dateChanged)
@@ -253,7 +235,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
             }
 
-            _logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
         }
@@ -263,7 +245,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document header {Id}.", id);
+            logger.LogError(ex, "Error updating document header {Id}.", id);
             throw;
         }
     }
@@ -275,31 +257,31 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var originalHeader = await _context.DocumentHeaders
+            var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (originalHeader == null)
+            if (originalHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
                 return false;
             }
 
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .Include(dh => dh.Rows)
                 .Include(dh => dh.DocumentType)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
+                logger.LogWarning("Document header with ID {Id} not found for deletion.", id);
                 return false;
             }
 
             // If the document is approved and DocumentType is available, generate compensating movements BEFORE delete
             if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved
-                && documentHeader.DocumentType != null)
+                && documentHeader.DocumentType is not null)
             {
                 var compensatingCount = 0;
                 var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
@@ -312,17 +294,17 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (!warehouseLocationId.HasValue)
                     {
-                        _logger.LogWarning("No warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping compensating movement.", row.Id, id);
+                        logger.LogWarning("No warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping compensating movement.", row.Id, id);
                         continue;
                     }
 
-                    var storageLocation = await _context.StorageLocations
+                    var storageLocation = await context.StorageLocations
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (storageLocation == null)
+                    if (storageLocation is null)
                     {
-                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping compensating movement.", warehouseLocationId, row.Id);
+                        logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping compensating movement.", warehouseLocationId, row.Id);
                         continue;
                     }
 
@@ -332,7 +314,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                     if (documentHeader.DocumentType.IsStockIncrease)
                     {
                         // Original was Inbound → compensating is Outbound
-                        await _stockMovementService.ProcessOutboundMovementAsync(
+                        await stockMovementService.ProcessOutboundMovementAsync(
                             productId: row.ProductId!.Value,
                             fromLocationId: storageLocation.Id,
                             quantity: quantity,
@@ -346,7 +328,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                     else
                     {
                         // Original was Outbound → compensating is Inbound
-                        await _stockMovementService.ProcessInboundMovementAsync(
+                        await stockMovementService.ProcessInboundMovementAsync(
                             productId: row.ProductId!.Value,
                             toLocationId: storageLocation.Id,
                             quantity: quantity,
@@ -362,7 +344,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                     compensatingCount++;
                 }
 
-                _logger.LogInformation("Created {Count} compensating stock movements before deleting document {DocumentHeaderId}.", compensatingCount, id);
+                logger.LogInformation("Created {Count} compensating stock movements before deleting document {DocumentHeaderId}.", compensatingCount, id);
             }
 
             documentHeader.IsDeleted = true;
@@ -376,17 +358,17 @@ public class DocumentHeaderService : IDocumentHeaderService
                 row.ModifiedAt = DateTime.UtcNow;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Delete", currentUser, originalHeader, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Delete", currentUser, originalHeader, cancellationToken);
 
-            _logger.LogInformation("Document header {DocumentHeaderId} deleted by {User}.", id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} deleted by {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document header {Id}.", id);
+            logger.LogError(ex, "Error deleting document header {Id}.", id);
             throw;
         }
     }
@@ -397,13 +379,13 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .Include(dh => dh.Rows.Where(r => !r.IsDeleted))
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for total calculation.", id);
+                logger.LogWarning("Document header with ID {Id} not found for total calculation.", id);
                 return null;
             }
 
@@ -419,15 +401,15 @@ public class DocumentHeaderService : IDocumentHeaderService
             documentHeader.VatAmount = vatTotal;
             documentHeader.TotalGrossAmount = documentHeader.TotalNetAmount + documentHeader.VatAmount;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
+            logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
 
             return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating document totals for {Id}.", id);
+            logger.LogError(ex, "Error calculating document totals for {Id}.", id);
             throw;
         }
     }
@@ -439,24 +421,24 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var originalHeader = await _context.DocumentHeaders
+            var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (originalHeader == null)
+            if (originalHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for approval.", id);
+                logger.LogWarning("Document header with ID {Id} not found for approval.", id);
                 return null;
             }
 
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for approval.", id);
+                logger.LogWarning("Document header with ID {Id} not found for approval.", id);
                 return null;
             }
 
@@ -468,29 +450,29 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict approving document {DocumentHeaderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict approving document {DocumentHeaderId}.", id);
                 throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
 
             // Reload document with dependencies for stock movement processing
-            var documentForStockMovement = await _context.DocumentHeaders
+            var documentForStockMovement = await context.DocumentHeaders
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentForStockMovement != null)
+            if (documentForStockMovement is not null)
             {
                 // Process stock movements after approval
                 await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
             }
 
-            _logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
         }
@@ -500,7 +482,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error approving document {Id}.", id);
+            logger.LogError(ex, "Error approving document {Id}.", id);
             throw;
         }
     }
@@ -512,22 +494,22 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var originalHeader = await _context.DocumentHeaders
+            var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (originalHeader == null)
+            if (originalHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for closing.", id);
+                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
                 return null;
             }
 
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
-                _logger.LogWarning("Document header with ID {Id} not found for closing.", id);
+                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
                 return null;
             }
 
@@ -538,29 +520,29 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict closing document {DocumentHeaderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict closing document {DocumentHeaderId}.", id);
                 throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
 
             // Reload document with dependencies for stock movement processing
-            var documentForStockMovement = await _context.DocumentHeaders
+            var documentForStockMovement = await context.DocumentHeaders
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
-            if (documentForStockMovement != null)
+            if (documentForStockMovement is not null)
             {
                 // Process stock movements after closing
                 await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
             }
 
-            _logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
         }
@@ -570,7 +552,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error closing document {Id}.", id);
+            logger.LogError(ex, "Error closing document {Id}.", id);
             throw;
         }
     }
@@ -581,19 +563,19 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            return await _context.DocumentHeaders
+            return await context.DocumentHeaders
                 .AnyAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if document header {Id} exists.", id);
+            logger.LogError(ex, "Error checking if document header {Id} exists.", id);
             throw;
         }
     }
 
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
-        var query = _context.DocumentHeaders.Where(dh => !dh.IsDeleted);
+        var query = context.DocumentHeaders.Where(dh => !dh.IsDeleted);
 
         if (parameters.DocumentTypeId.HasValue)
             query = query.Where(dh => dh.DocumentTypeId == parameters.DocumentTypeId.Value);
@@ -656,11 +638,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             // Try to find existing inventory document type
-            var existingType = await _context.DocumentTypes
+            var existingType = await context.DocumentTypes
                 .Where(dt => dt.TenantId == tenantId && dt.Code == "INVENTORY" && !dt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (existingType != null)
+            if (existingType is not null)
             {
                 return DocumentTypeMapper.ToDto(existingType);
             }
@@ -678,16 +660,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.DocumentTypes.Add(newType);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentTypes.Add(newType);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Created inventory document type for tenant {TenantId}.", tenantId);
+            logger.LogInformation("Created inventory document type for tenant {TenantId}.", tenantId);
 
             return DocumentTypeMapper.ToDto(newType);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting or creating inventory document type for tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Error getting or creating inventory document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -702,11 +684,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             // Try to find existing receipt document type
-            var existingType = await _context.DocumentTypes
+            var existingType = await context.DocumentTypes
                 .Where(dt => dt.TenantId == tenantId && dt.Code == "RECEIPT" && !dt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (existingType != null)
+            if (existingType is not null)
             {
                 return DocumentTypeMapper.ToDto(existingType);
             }
@@ -724,16 +706,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.DocumentTypes.Add(newType);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentTypes.Add(newType);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Created receipt document type for tenant {TenantId}.", tenantId);
+            logger.LogInformation("Created receipt document type for tenant {TenantId}.", tenantId);
 
             return DocumentTypeMapper.ToDto(newType);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting or creating receipt document type for tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Error getting or creating receipt document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -748,11 +730,11 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             // Try to find existing system business party
-            var existingParty = await _context.BusinessParties
+            var existingParty = await context.BusinessParties
                 .Where(bp => bp.TenantId == tenantId && bp.Name == "System Internal" && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (existingParty != null)
+            if (existingParty is not null)
             {
                 return existingParty.Id;
             }
@@ -769,16 +751,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.BusinessParties.Add(newParty);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.BusinessParties.Add(newParty);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Created system business party for tenant {TenantId}.", tenantId);
+            logger.LogInformation("Created system business party for tenant {TenantId}.", tenantId);
 
             return newParty.Id;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting or creating system business party for tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Error getting or creating system business party for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -791,10 +773,10 @@ public class DocumentHeaderService : IDocumentHeaderService
         try
         {
             // Verify document header exists
-            var documentHeader = await _context.DocumentHeaders
+            var documentHeader = await context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == createDto.DocumentHeaderId && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader == null)
+            if (documentHeader is null)
             {
                 throw new InvalidOperationException($"Document header with ID {createDto.DocumentHeaderId} not found.");
             }
@@ -807,17 +789,17 @@ public class DocumentHeaderService : IDocumentHeaderService
             if (createDto.UnitOfMeasureId.HasValue && createDto.ProductId.HasValue)
             {
                 // Load the ProductUnit to get the conversion factor and base unit
-                var productUnit = await _context.ProductUnits
+                var productUnit = await context.ProductUnits
                     .FirstOrDefaultAsync(pu =>
                         pu.ProductId == createDto.ProductId.Value &&
                         pu.UnitOfMeasureId == createDto.UnitOfMeasureId.Value &&
                         !pu.IsDeleted,
                         cancellationToken);
 
-                if (productUnit != null)
+                if (productUnit is not null)
                 {
                     // Find the base unit for this product (ConversionFactor = 1.0 and UnitType = "Base")
-                    var baseUnit = await _context.ProductUnits
+                    var baseUnit = await context.ProductUnits
                         .FirstOrDefaultAsync(pu =>
                             pu.ProductId == createDto.ProductId.Value &&
                             pu.ConversionFactor == 1m &&
@@ -825,12 +807,12 @@ public class DocumentHeaderService : IDocumentHeaderService
                             !pu.IsDeleted,
                             cancellationToken);
 
-                    if (baseUnit != null)
+                    if (baseUnit is not null)
                     {
                         baseUnitOfMeasureId = baseUnit.UnitOfMeasureId;
 
                         // Compute base quantity using conversion factor
-                        baseQuantity = _unitConversionService.ConvertToBaseUnit(
+                        baseQuantity = unitConversionService.ConvertToBaseUnit(
                             createDto.Quantity,
                             productUnit.ConversionFactor,
                             decimalPlaces: 4);
@@ -838,7 +820,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         // Compute base unit price (inverse conversion for price)
                         if (createDto.UnitPrice > 0)
                         {
-                            baseUnitPrice = _unitConversionService.ConvertPrice(
+                            baseUnitPrice = unitConversionService.ConvertPrice(
                                 createDto.UnitPrice,
                                 fromConversionFactor: productUnit.ConversionFactor,
                                 toConversionFactor: 1m,
@@ -852,7 +834,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
                 // Compare ALL conditions for "identical" rows
-                var existingRow = await _context.DocumentRows
+                var existingRow = await context.DocumentRows
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
@@ -868,9 +850,9 @@ public class DocumentHeaderService : IDocumentHeaderService
                         !r.IsDeleted,
                         cancellationToken);
 
-                if (existingRow != null)
+                if (existingRow is not null)
                 {
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Merging identical row: ProductId={ProductId}, Price={Price}, VatRate={VatRate}, ExistingQty={ExistingQty}, AddQty={AddQty}",
                         createDto.ProductId.Value,
                         createDto.UnitPrice,
@@ -886,16 +868,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                         // Recalculate the display quantity if the existing row has a unit
                         if (existingRow.UnitOfMeasureId.HasValue && createDto.ProductId.HasValue)
                         {
-                            var existingProductUnit = await _context.ProductUnits
+                            var existingProductUnit = await context.ProductUnits
                                 .FirstOrDefaultAsync(pu =>
                                     pu.ProductId == createDto.ProductId.Value &&
                                     pu.UnitOfMeasureId == existingRow.UnitOfMeasureId.Value &&
                                     !pu.IsDeleted,
                                     cancellationToken);
 
-                            if (existingProductUnit != null)
+                            if (existingProductUnit is not null)
                             {
-                                existingRow.Quantity = _unitConversionService.ConvertFromBaseUnit(
+                                existingRow.Quantity = unitConversionService.ConvertFromBaseUnit(
                                     existingRow.BaseQuantity.Value,
                                     existingProductUnit.ConversionFactor,
                                     decimalPlaces: 4);
@@ -919,16 +901,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                     existingRow.ModifiedBy = currentUser;
                     existingRow.ModifiedAt = DateTime.UtcNow;
 
-                    _ = await _context.SaveChangesAsync(cancellationToken);
+                    _ = await context.SaveChangesAsync(cancellationToken);
 
-                    _ = await _auditLogService.TrackEntityChangesAsync(
+                    _ = await auditLogService.TrackEntityChangesAsync(
                         existingRow,
                         "MergeUpdate",
                         currentUser,
                         null,
                         cancellationToken);
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Row merged successfully: RowId={RowId}, NewQty={NewQty}, NewBaseQty={NewBaseQty}",
                         existingRow.Id,
                         existingRow.Quantity,
@@ -938,7 +920,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
                 else
                 {
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "No identical row found for merge. Creating new row for ProductId={ProductId}, Price={Price}, VatRate={VatRate}",
                         createDto.ProductId.Value,
                         createDto.UnitPrice,
@@ -955,18 +937,18 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.CreatedBy = currentUser;
             row.CreatedAt = DateTime.UtcNow;
 
-            _ = _context.DocumentRows.Add(row);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentRows.Add(row);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(row, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
+            logger.LogInformation("Document row {RowId} added to document {DocumentHeaderId} by {User}.",
                 row.Id, createDto.DocumentHeaderId, currentUser);
 
             // Auto-create or update ProductSupplier for purchase documents
             if (row.ProductId.HasValue && documentHeader.BusinessPartyId != Guid.Empty)
             {
-                var docType = await _context.DocumentTypes
+                var docType = await context.DocumentTypes
                     .FirstOrDefaultAsync(dt => dt.Id == documentHeader.DocumentTypeId && !dt.IsDeleted, cancellationToken);
 
                 if (docType?.IsStockIncrease == true)
@@ -984,14 +966,14 @@ public class DocumentHeaderService : IDocumentHeaderService
             if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && row.ProductId.HasValue)
             {
                 // Load document type to determine stock increase/decrease
-                if (documentHeader.DocumentType == null)
+                if (documentHeader.DocumentType is null)
                 {
-                    documentHeader = await _context.DocumentHeaders
+                    documentHeader = await context.DocumentHeaders
                         .Include(dh => dh.DocumentType)
                         .FirstOrDefaultAsync(dh => dh.Id == documentHeader.Id && !dh.IsDeleted, cancellationToken) ?? documentHeader;
                 }
 
-                if (documentHeader.DocumentType != null)
+                if (documentHeader.DocumentType is not null)
                 {
                     var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
@@ -1012,15 +994,15 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (warehouseLocationId.HasValue)
                     {
-                        var storageLocation = await _context.StorageLocations
+                        var storageLocation = await context.StorageLocations
                             .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
-                        if (storageLocation != null)
+                        if (storageLocation is not null)
                         {
                             if (documentHeader.DocumentType.IsStockIncrease)
                             {
-                                await _stockMovementService.ProcessInboundMovementAsync(
+                                await stockMovementService.ProcessInboundMovementAsync(
                                     productId: row.ProductId!.Value,
                                     toLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
@@ -1032,11 +1014,11 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
 
-                                _logger.LogInformation("Created immediate inbound stock movement for approved document row {RowId}.", row.Id);
+                                logger.LogInformation("Created immediate inbound stock movement for approved document row {RowId}.", row.Id);
                             }
                             else
                             {
-                                await _stockMovementService.ProcessOutboundMovementAsync(
+                                await stockMovementService.ProcessOutboundMovementAsync(
                                     productId: row.ProductId!.Value,
                                     fromLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
@@ -1047,18 +1029,18 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
 
-                                _logger.LogInformation("Created immediate outbound stock movement for approved document row {RowId}.", row.Id);
+                                logger.LogInformation("Created immediate outbound stock movement for approved document row {RowId}.", row.Id);
                             }
                         }
                         else
                         {
-                            _logger.LogWarning("No storage location found in warehouse {WarehouseId} for approved document row {RowId}. Stock movement not created.",
+                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for approved document row {RowId}. Stock movement not created.",
                                 warehouseLocationId, row.Id);
                         }
                     }
                     else
                     {
-                        _logger.LogWarning("No warehouse found for approved document row {RowId}. Stock movement not created.", row.Id);
+                        logger.LogWarning("No warehouse found for approved document row {RowId}. Stock movement not created.", row.Id);
                     }
                 }
             }
@@ -1067,7 +1049,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
+            logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
             throw;
         }
     }
@@ -1083,14 +1065,14 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var row = await _context.DocumentRows
+            var row = await context.DocumentRows
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(dh => dh!.DocumentType)
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
-            if (row == null)
+            if (row is null)
             {
-                _logger.LogWarning("Document row {RowId} not found for update.", rowId);
+                logger.LogWarning("Document row {RowId} not found for update.", rowId);
                 return null;
             }
 
@@ -1130,14 +1112,14 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.ModifiedBy = currentUser;
             row.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(row, "Update", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(row, "Update", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
+            logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
 
             // If document is approved and quantity changed, create compensating movement
-            if (row.DocumentHeader != null &&
+            if (row.DocumentHeader is not null &&
                 row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                 row.ProductId.HasValue &&
                 row.ProductId == oldProductId)
@@ -1150,7 +1132,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     // Determine warehouse location
                     Guid? warehouseLocationId = null;
-                    if (row.DocumentHeader.DocumentType != null)
+                    if (row.DocumentHeader.DocumentType is not null)
                     {
                         if (row.DocumentHeader.DocumentType.IsStockIncrease)
                         {
@@ -1167,18 +1149,18 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                         if (warehouseLocationId.HasValue)
                         {
-                            var storageLocation = await _context.StorageLocations
+                            var storageLocation = await context.StorageLocations
                                 .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                                 .FirstOrDefaultAsync(cancellationToken);
 
-                            if (storageLocation != null)
+                            if (storageLocation is not null)
                             {
                                 if (delta > 0)
                                 {
                                     // Positive delta: add more stock
                                     if (row.DocumentHeader.DocumentType.IsStockIncrease)
                                     {
-                                        await _stockMovementService.ProcessInboundMovementAsync(
+                                        await stockMovementService.ProcessInboundMovementAsync(
                                             productId: row.ProductId!.Value,
                                             toLocationId: storageLocation.Id,
                                             quantity: delta,
@@ -1192,7 +1174,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     }
                                     else
                                     {
-                                        await _stockMovementService.ProcessOutboundMovementAsync(
+                                        await stockMovementService.ProcessOutboundMovementAsync(
                                             productId: row.ProductId!.Value,
                                             fromLocationId: storageLocation.Id,
                                             quantity: delta,
@@ -1210,7 +1192,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     var absDelta = Math.Abs(delta);
                                     if (row.DocumentHeader.DocumentType.IsStockIncrease)
                                     {
-                                        await _stockMovementService.ProcessOutboundMovementAsync(
+                                        await stockMovementService.ProcessOutboundMovementAsync(
                                             productId: row.ProductId!.Value,
                                             fromLocationId: storageLocation.Id,
                                             quantity: absDelta,
@@ -1223,7 +1205,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     }
                                     else
                                     {
-                                        await _stockMovementService.ProcessInboundMovementAsync(
+                                        await stockMovementService.ProcessInboundMovementAsync(
                                             productId: row.ProductId!.Value,
                                             toLocationId: storageLocation.Id,
                                             quantity: absDelta,
@@ -1237,7 +1219,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     }
                                 }
 
-                                _logger.LogInformation("Created compensating stock movement for updated row {RowId} in approved document. Delta: {Delta}",
+                                logger.LogInformation("Created compensating stock movement for updated row {RowId} in approved document. Delta: {Delta}",
                                     rowId, delta);
                             }
                         }
@@ -1249,7 +1231,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document row {RowId}.", rowId);
+            logger.LogError(ex, "Error updating document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1264,27 +1246,27 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var row = await _context.DocumentRows
+            var row = await context.DocumentRows
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(dh => dh!.DocumentType)
                 .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
-            if (row == null)
+            if (row is null)
             {
-                _logger.LogWarning("Document row {RowId} not found for deletion.", rowId);
+                logger.LogWarning("Document row {RowId} not found for deletion.", rowId);
                 return false;
             }
 
             // If document is approved, create compensating movement before deleting row
-            if (row.DocumentHeader != null &&
+            if (row.DocumentHeader is not null &&
                 row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                 row.ProductId.HasValue)
             {
                 // Find existing movement for this row
-                var existingMovement = await _context.StockMovements
+                var existingMovement = await context.StockMovements
                     .FirstOrDefaultAsync(sm => sm.DocumentRowId == rowId && !sm.IsDeleted, cancellationToken);
 
-                if (existingMovement != null && row.DocumentHeader.DocumentType != null)
+                if (existingMovement is not null && row.DocumentHeader.DocumentType is not null)
                 {
                     var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
 
@@ -1305,16 +1287,16 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (warehouseLocationId.HasValue)
                     {
-                        var storageLocation = await _context.StorageLocations
+                        var storageLocation = await context.StorageLocations
                             .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
-                        if (storageLocation != null)
+                        if (storageLocation is not null)
                         {
                             // Create reverse movement to compensate for the deletion
                             if (existingMovement.MovementType == StockMovementType.Inbound)
                             {
-                                await _stockMovementService.ProcessOutboundMovementAsync(
+                                await stockMovementService.ProcessOutboundMovementAsync(
                                     productId: existingMovement.ProductId,
                                     fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
                                     quantity: existingMovement.Quantity,
@@ -1327,7 +1309,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                             }
                             else
                             {
-                                await _stockMovementService.ProcessInboundMovementAsync(
+                                await stockMovementService.ProcessInboundMovementAsync(
                                     productId: existingMovement.ProductId,
                                     toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
                                     quantity: existingMovement.Quantity,
@@ -1339,7 +1321,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                                     cancellationToken: cancellationToken);
                             }
 
-                            _logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                            logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
                         }
                     }
                 }
@@ -1349,17 +1331,17 @@ public class DocumentHeaderService : IDocumentHeaderService
             row.IsDeleted = true;
             row.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(row, "Delete", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(row, "Delete", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document row {RowId} deleted.", rowId);
+            logger.LogInformation("Document row {RowId} deleted.", rowId);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document row {RowId}.", rowId);
+            logger.LogError(ex, "Error deleting document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1374,33 +1356,33 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            if (documentHeader.DocumentType == null)
+            if (documentHeader.DocumentType is null)
             {
-                _logger.LogWarning("Document type not loaded for document {DocumentHeaderId}. Cannot process stock movements.", documentHeader.Id);
+                logger.LogWarning("Document type not loaded for document {DocumentHeaderId}. Cannot process stock movements.", documentHeader.Id);
                 return;
             }
 
-            if (documentHeader.Rows == null || !documentHeader.Rows.Any())
+            if (documentHeader.Rows is null || !documentHeader.Rows.Any())
             {
-                _logger.LogInformation("Document {DocumentHeaderId} has no rows. No stock movements to process.", documentHeader.Id);
+                logger.LogInformation("Document {DocumentHeaderId} has no rows. No stock movements to process.", documentHeader.Id);
                 return;
             }
 
             // Ensure document date is in UTC for stock movements
             var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
-            _logger.LogInformation("Processing stock movements for document {DocumentHeaderId} with type {DocumentTypeName}.",
+            logger.LogInformation("Processing stock movements for document {DocumentHeaderId} with type {DocumentTypeName}.",
                 documentHeader.Id, documentHeader.DocumentType.Name);
 
             foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
             {
                 // Per-row guard: skip only this row if its movement already exists
-                var rowMovementExists = await _context.StockMovements
+                var rowMovementExists = await context.StockMovements
                     .AnyAsync(sm => sm.DocumentRowId == row.Id && !sm.IsDeleted, cancellationToken);
 
                 if (rowMovementExists)
                 {
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Stock movement already exists for row {RowId} in document {DocumentHeaderId}. Skipping this row.",
                         row.Id, documentHeader.Id);
                     continue;
@@ -1419,25 +1401,25 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (!warehouseLocationId.HasValue)
                     {
-                        _logger.LogWarning("No destination warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
+                        logger.LogWarning("No destination warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
                             row.Id, documentHeader.Id);
                         continue;
                     }
 
                     // Get the first storage location in the warehouse
-                    var storageLocation = await _context.StorageLocations
+                    var storageLocation = await context.StorageLocations
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (storageLocation == null)
+                    if (storageLocation is null)
                     {
-                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
+                        logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
                             warehouseLocationId, row.Id);
                         continue;
                     }
 
                     // Create inbound movement
-                    await _stockMovementService.ProcessInboundMovementAsync(
+                    await stockMovementService.ProcessInboundMovementAsync(
                         productId: row.ProductId!.Value,
                         toLocationId: storageLocation.Id,
                         quantity: row.Quantity,
@@ -1451,7 +1433,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                         movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
-                    _logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
+                    logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
                         row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
                 // For stock decrease documents (sales, deliveries)
@@ -1464,25 +1446,25 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (!warehouseLocationId.HasValue)
                     {
-                        _logger.LogWarning("No source warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
+                        logger.LogWarning("No source warehouse found for row {RowId} in document {DocumentHeaderId}. Skipping stock movement.",
                             row.Id, documentHeader.Id);
                         continue;
                     }
 
                     // Get the storage location with available stock
-                    var storageLocation = await _context.StorageLocations
+                    var storageLocation = await context.StorageLocations
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (storageLocation == null)
+                    if (storageLocation is null)
                     {
-                        _logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
+                        logger.LogWarning("No storage location found in warehouse {WarehouseId} for row {RowId}. Skipping stock movement.",
                             warehouseLocationId, row.Id);
                         continue;
                     }
 
                     // Check if sufficient stock is available
-                    var availableStock = await _context.Stocks
+                    var availableStock = await context.Stocks
                         .Where(s => s.ProductId == row.ProductId!.Value
                                  && s.StorageLocationId == storageLocation.Id
                                  && !s.IsDeleted)
@@ -1490,13 +1472,13 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                     if (availableStock < row.Quantity)
                     {
-                        _logger.LogWarning("Insufficient stock for product {ProductId} at location {LocationId}. Available: {Available}, Required: {Required}.",
+                        logger.LogWarning("Insufficient stock for product {ProductId} at location {LocationId}. Available: {Available}, Required: {Required}.",
                             row.ProductId!.Value, storageLocation.Id, availableStock, row.Quantity);
                         // Continue processing but log the warning
                     }
 
                     // Create outbound movement
-                    await _stockMovementService.ProcessOutboundMovementAsync(
+                    await stockMovementService.ProcessOutboundMovementAsync(
                         productId: row.ProductId!.Value,
                         fromLocationId: storageLocation.Id,
                         quantity: row.Quantity,
@@ -1509,16 +1491,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                         movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
-                    _logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
+                    logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
                         row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
             }
 
-            _logger.LogInformation("Completed processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
+            logger.LogInformation("Completed processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
+            logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
             throw;
         }
     }
@@ -1543,7 +1525,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             int affected;
             try
             {
-                affected = await _context.Database.ExecuteSqlInterpolatedAsync(
+                affected = await context.Database.ExecuteSqlInterpolatedAsync(
                     $@"UPDATE StockMovements
                        SET MovementDate = {newDateUtc}, 
                            ModifiedAt = {modifiedAt}, 
@@ -1555,7 +1537,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             catch (InvalidOperationException)
             {
                 // Fallback for in-memory databases used in tests
-                var movements = await _context.StockMovements
+                var movements = await context.StockMovements
                     .Where(sm => sm.DocumentHeaderId == documentHeaderId && !sm.IsDeleted)
                     .ToListAsync(cancellationToken);
 
@@ -1569,14 +1551,14 @@ public class DocumentHeaderService : IDocumentHeaderService
 
                 if (affected > 0)
                 {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    await context.SaveChangesAsync(cancellationToken);
                 }
             }
 
             if (affected > 0)
             {
                 // Log the sync operation
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "StockMovement",
                     documentHeaderId,
                     "MovementDate",
@@ -1585,17 +1567,17 @@ public class DocumentHeaderService : IDocumentHeaderService
                     $"Synchronized {affected} stock movement(s) to document date {newDateUtc:yyyy-MM-dd HH:mm:ss} UTC",
                     currentUser);
 
-                _logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
+                logger.LogInformation("Synchronized {Count} stock movement dates for document {DocumentHeaderId} to {NewDate}.",
                     affected, documentHeaderId, newDateUtc);
             }
             else
             {
-                _logger.LogInformation("No stock movements found for document {DocumentHeaderId} to sync dates.", documentHeaderId);
+                logger.LogInformation("No stock movements found for document {DocumentHeaderId} to sync dates.", documentHeaderId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
+            logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -1609,11 +1591,11 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var existing = await _context.Set<ProductSupplier>()
+            var existing = await context.Set<ProductSupplier>()
                 .FirstOrDefaultAsync(ps => ps.ProductId == productId &&
                     ps.SupplierId == supplierId && !ps.IsDeleted, ct);
 
-            if (existing != null)
+            if (existing is not null)
             {
                 existing.LastPurchasePrice = unitPrice;
                 existing.LastPurchaseDate = DateTime.UtcNow;
@@ -1622,8 +1604,8 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
             else
             {
-                var tenantId = _tenantContext.CurrentTenantId!.Value;
-                _context.Set<ProductSupplier>().Add(new ProductSupplier
+                var tenantId = tenantContext.CurrentTenantId!.Value;
+                context.Set<ProductSupplier>().Add(new ProductSupplier
                 {
                     Id = Guid.NewGuid(),
                     ProductId = productId,
@@ -1637,14 +1619,14 @@ public class DocumentHeaderService : IDocumentHeaderService
                     CreatedAt = DateTime.UtcNow
                 });
             }
-            await _context.SaveChangesAsync(ct);
+            await context.SaveChangesAsync(ct);
 
-            _logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.",
+            logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.",
                 productId, supplierId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ensuring ProductSupplier for Product {ProductId} and Supplier {SupplierId}.",
+            logger.LogError(ex, "Error ensuring ProductSupplier for Product {ProductId} and Supplier {SupplierId}.",
                 productId, supplierId);
             // Don't throw - this is a non-critical operation
         }
@@ -1659,22 +1641,22 @@ public class DocumentHeaderService : IDocumentHeaderService
     /// </summary>
     public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId)
     {
-        _logger.LogDebug(
+        logger.LogDebug(
             "AcquireLockAsync called: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
             documentId, userName, connectionId);
 
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "❌ Lock acquisition FAILED: TenantId is NULL. DocumentId={DocumentId}, UserName={UserName}",
                     documentId, userName);
                 return false;
             }
 
-            _logger.LogDebug(
+            logger.LogDebug(
                 "TenantId retrieved: {TenantId} for document {DocumentId}",
                 tenantId.Value, documentId);
 
@@ -1684,29 +1666,29 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 try
                 {
-                    _logger.LogDebug(
+                    logger.LogDebug(
                         "Lock acquisition attempt {Attempt}/{MaxRetries} for document {DocumentId}",
                         attempt + 1, maxRetries, documentId);
 
-                    var document = await _context.DocumentHeaders
+                    var document = await context.DocumentHeaders
                         .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
 
-                    if (document == null)
+                    if (document is null)
                     {
-                        _logger.LogWarning(
+                        logger.LogWarning(
                             "❌ Lock acquisition FAILED: Document NOT FOUND. DocumentId={DocumentId}, TenantId={TenantId}, UserName={UserName}",
                             documentId, tenantId.Value, userName);
                         return false;
                     }
 
-                    _logger.LogDebug(
+                    logger.LogDebug(
                         "Document found: {DocumentId}, Current lock status: LockedBy={LockedBy}, LockedAt={LockedAt}, ConnectionId={ConnectionId}",
                         documentId, document.LockedBy ?? "(none)", document.LockedAt, document.LockConnectionId ?? "(none)");
 
                     // Check existing lock
                     if (!string.IsNullOrEmpty(document.LockedBy) && document.LockedBy != userName)
                     {
-                        _logger.LogDebug(
+                        logger.LogDebug(
                             "Document {DocumentId} has existing lock by different user. Current: {CurrentUser}, Requested: {RequestedUser}",
                             documentId, document.LockedBy, userName);
 
@@ -1715,27 +1697,27 @@ public class DocumentHeaderService : IDocumentHeaderService
                         {
                             var lockAge = DateTime.UtcNow - document.LockedAt.Value;
 
-                            _logger.LogDebug(
+                            logger.LogDebug(
                                 "Lock age check: {LockAge} (threshold: 30 minutes) for document {DocumentId}",
                                 lockAge, documentId);
 
                             if (lockAge < TimeSpan.FromMinutes(30))
                             {
-                                _logger.LogWarning(
+                                logger.LogWarning(
                                     "❌ Lock acquisition FAILED: Document {DocumentId} is locked by {LockedBy} (lock age: {LockAge}, still valid)",
                                     documentId, document.LockedBy, lockAge);
                                 return false; // Lock is still valid
                             }
 
                             // Lock expired - can be acquired
-                            _logger.LogInformation(
+                            logger.LogInformation(
                                 "Lock on document {DocumentId} EXPIRED (lock age: {LockAge}). Acquiring for {UserName}.",
                                 documentId, lockAge, userName);
                         }
                     }
 
                     // Acquire or refresh lock
-                    _logger.LogDebug(
+                    logger.LogDebug(
                         "Attempting to set lock: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
                         documentId, userName, connectionId);
 
@@ -1743,13 +1725,13 @@ public class DocumentHeaderService : IDocumentHeaderService
                     document.LockedAt = DateTime.UtcNow;
                     document.LockConnectionId = connectionId;
 
-                    _logger.LogDebug(
+                    logger.LogDebug(
                         "Lock properties set, calling SaveChangesAsync for document {DocumentId}",
                         documentId);
 
-                    var changeCount = await _context.SaveChangesAsync();
+                    var changeCount = await context.SaveChangesAsync();
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "✅ Lock ACQUIRED successfully on document {DocumentId} by {UserName} (connection: {ConnectionId}). Changes saved: {ChangeCount}",
                         documentId, userName, connectionId, changeCount);
 
@@ -1757,17 +1739,17 @@ public class DocumentHeaderService : IDocumentHeaderService
                 }
                 catch (DbUpdateConcurrencyException concurrencyEx) when (attempt < maxRetries - 1)
                 {
-                    _logger.LogWarning(
+                    logger.LogWarning(
                         concurrencyEx,
                         "⚠️ Concurrency conflict acquiring lock for document {DocumentId}, attempt {Attempt}/{MaxRetries}. Retrying...",
                         documentId, attempt + 1, maxRetries);
 
                     // Detach the entity to allow retry
-                    var entries = _context.ChangeTracker.Entries()
+                    var entries = context.ChangeTracker.Entries()
                         .Where(e => e.Entity is DocumentHeader && ((DocumentHeader)e.Entity).Id == documentId);
                     foreach (var entry in entries)
                     {
-                        _logger.LogDebug(
+                        logger.LogDebug(
                             "Detaching entity {EntityType} with state {State}",
                             entry.Entity.GetType().Name, entry.State);
                         entry.State = EntityState.Detached;
@@ -1780,7 +1762,7 @@ public class DocumentHeaderService : IDocumentHeaderService
                 {
                     // Non-concurrency database errors (e.g., constraint violations, FK errors)
                     // are not transient and should not be retried - propagate to outer catch
-                    _logger.LogError(
+                    logger.LogError(
                         dbEx,
                         "❌ DATABASE UPDATE ERROR during lock acquisition for document {DocumentId}, attempt {Attempt}. Inner exception: {InnerException}",
                         documentId, attempt + 1, dbEx.InnerException?.Message ?? "(none)");
@@ -1789,14 +1771,14 @@ public class DocumentHeaderService : IDocumentHeaderService
             }
 
             // All retries failed
-            _logger.LogWarning(
+            logger.LogWarning(
                 "❌ Lock acquisition FAILED: Max retries ({MaxRetries}) exceeded for document {DocumentId}",
                 documentId, maxRetries);
             return false;
         }
         catch (DbUpdateConcurrencyException finalConcurrencyEx)
         {
-            _logger.LogError(
+            logger.LogError(
                 finalConcurrencyEx,
                 "❌ CONCURRENCY EXCEPTION (final) acquiring lock for document {DocumentId}",
                 documentId);
@@ -1804,7 +1786,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (DbUpdateException finalDbEx)
         {
-            _logger.LogError(
+            logger.LogError(
                 finalDbEx,
                 "❌ DATABASE EXCEPTION acquiring lock for document {DocumentId}. Inner: {InnerException}",
                 documentId, finalDbEx.InnerException?.Message ?? "(none)");
@@ -1812,7 +1794,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(
+            logger.LogError(
                 ex,
                 "❌ UNEXPECTED EXCEPTION acquiring lock for document {DocumentId}. Exception type: {ExceptionType}, Message: {Message}",
                 documentId, ex.GetType().Name, ex.Message);
@@ -1828,19 +1810,19 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot release lock without a tenant context.");
+                logger.LogWarning("Cannot release lock without a tenant context.");
                 return false;
             }
 
-            var document = await _context.DocumentHeaders
+            var document = await context.DocumentHeaders
                 .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
 
-            if (document == null)
+            if (document is null)
             {
-                _logger.LogWarning("Document {DocumentId} not found for lock release.", documentId);
+                logger.LogWarning("Document {DocumentId} not found for lock release.", documentId);
                 return false;
             }
 
@@ -1851,16 +1833,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                 document.LockedAt = null;
                 document.LockConnectionId = null;
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Lock released on document {DocumentId} by {UserName}",
                     documentId, userName);
 
                 return true;
             }
 
-            _logger.LogWarning(
+            logger.LogWarning(
                 "User {UserName} attempted to release lock on document {DocumentId} but doesn't hold it (locked by: {LockedBy})",
                 userName, documentId, document.LockedBy);
 
@@ -1868,7 +1850,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error releasing lock for document {DocumentId}", documentId);
+            logger.LogError(ex, "Error releasing lock for document {DocumentId}", documentId);
             return false;
         }
     }
@@ -1881,9 +1863,9 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var effectiveTenantId = tenantId ?? _tenantContext.CurrentTenantId;
+            var effectiveTenantId = tenantId ?? tenantContext.CurrentTenantId;
 
-            var query = _context.DocumentHeaders
+            var query = context.DocumentHeaders
                 .Where(d => d.LockConnectionId == connectionId && !d.IsDeleted);
 
             if (effectiveTenantId.HasValue)
@@ -1895,7 +1877,7 @@ public class DocumentHeaderService : IDocumentHeaderService
             {
                 foreach (var doc in documents)
                 {
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Releasing lock on document {DocumentId} (locked by {LockedBy}) due to connection disconnect",
                         doc.Id, doc.LockedBy);
 
@@ -1904,16 +1886,16 @@ public class DocumentHeaderService : IDocumentHeaderService
                     doc.LockConnectionId = null;
                 }
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Released {Count} locks for disconnected connection {ConnectionId}",
                     documents.Count, connectionId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error releasing locks for connection {ConnectionId}", connectionId);
+            logger.LogError(ex, "Error releasing locks for connection {ConnectionId}", connectionId);
         }
     }
 
@@ -1924,14 +1906,14 @@ public class DocumentHeaderService : IDocumentHeaderService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
             {
-                _logger.LogWarning("Cannot get lock info without a tenant context.");
+                logger.LogWarning("Cannot get lock info without a tenant context.");
                 return null;
             }
 
-            var lockInfo = await _context.DocumentHeaders
+            var lockInfo = await context.DocumentHeaders
                 .Where(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted)
                 .Select(d => new DocumentLockInfo
                 {
@@ -1947,7 +1929,7 @@ public class DocumentHeaderService : IDocumentHeaderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting lock info for document {DocumentId}", documentId);
+            logger.LogError(ex, "Error getting lock info for document {DocumentId}", documentId);
             return null;
         }
     }
@@ -1960,13 +1942,13 @@ public class DocumentHeaderService : IDocumentHeaderService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for document operations.");
         }
 
-        var query = _context.DocumentHeaders
+        var query = context.DocumentHeaders
             .Include(d => d.DocumentType)
             .Include(d => d.BusinessParty)
             .Where(d => !d.IsDeleted && d.TenantId == currentTenantId.Value)
@@ -1974,12 +1956,12 @@ public class DocumentHeaderService : IDocumentHeaderService
 
         var totalCount = await query.CountAsync(ct);
 
-        _logger.LogInformation("Export requested for {Count} documents", totalCount);
+        logger.LogInformation("Export requested for {Count} documents", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
-            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetDocumentsInBatchesAsync(query, ct);
         }
 
@@ -2040,7 +2022,7 @@ public class DocumentHeaderService : IDocumentHeaderService
 
             skip += batchSize;
 
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
+            logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
 
@@ -2048,4 +2030,5 @@ public class DocumentHeaderService : IDocumentHeaderService
     }
 
     #endregion
+
 }

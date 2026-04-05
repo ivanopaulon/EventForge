@@ -6,24 +6,12 @@ namespace EventForge.Server.Services.Setup;
 /// <summary>
 /// Implementation of first run detection service.
 /// </summary>
-public class FirstRunDetectionService : IFirstRunDetectionService
+public class FirstRunDetectionService(
+    EventForgeDbContext dbContext,
+    IConfiguration configuration,
+    IWebHostEnvironment environment,
+    ILogger<FirstRunDetectionService> logger) : IFirstRunDetectionService
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly IConfiguration _configuration;
-    private readonly IWebHostEnvironment _environment;
-    private readonly ILogger<FirstRunDetectionService> _logger;
-
-    public FirstRunDetectionService(
-        EventForgeDbContext dbContext,
-        IConfiguration configuration,
-        IWebHostEnvironment environment,
-        ILogger<FirstRunDetectionService> logger)
-    {
-        _dbContext = dbContext;
-        _configuration = configuration;
-        _environment = environment;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Helper method to create file marker if missing. Prevents code duplication and handles errors gracefully.
@@ -38,7 +26,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to create file marker (non-critical)");
+                logger.LogWarning(ex, "Failed to create file marker (non-critical)");
             }
         }
     }
@@ -56,7 +44,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
 
             // Level 2: Check file marker
-            var markerPath = Path.Combine(_environment.ContentRootPath, "setup.complete");
+            var markerPath = Path.Combine(environment.ContentRootPath, "setup.complete");
 
             if (File.Exists(markerPath))
             {
@@ -64,14 +52,14 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
 
             // Level 3: Check connection string and database
-            var defaultConnection = _configuration.GetConnectionString("DefaultConnection");
-            var sqlServerConnection = _configuration.GetConnectionString("SqlServer");
+            var defaultConnection = configuration.GetConnectionString("DefaultConnection");
+            var sqlServerConnection = configuration.GetConnectionString("SqlServer");
 
             var connectionString = defaultConnection ?? sqlServerConnection;
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                _logger.LogWarning("Setup not complete - no connection string configured");
+                logger.LogWarning("Setup not complete - no connection string configured");
                 return false;
             }
 
@@ -115,7 +103,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                             {
                                 ServerAddress = connection.DataSource,
                                 DatabaseName = connection.Database,
-                                Environment = _environment.EnvironmentName,
+                                Environment = environment.EnvironmentName,
                                 AutoSynced = true,
                                 SyncedAt = DateTime.UtcNow
                             });
@@ -135,7 +123,7 @@ public class FirstRunDetectionService : IFirstRunDetectionService
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to auto-populate SetupHistories");
+                            logger.LogError(ex, "Failed to auto-populate SetupHistories");
                             // Continue to other checks
                         }
                     }
@@ -145,17 +133,17 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
             catch (SqlException ex)
             {
-                _logger.LogError(ex, "SQL Error {ErrorNumber} during setup check", ex.Number);
+                logger.LogError(ex, "SQL Error {ErrorNumber} during setup check", ex.Number);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Database connection failed during setup check");
+                logger.LogError(ex, "Database connection failed during setup check");
             }
 
             // Level 4: Fallback - EF Core
             try
             {
-                var hasSetupHistory = await _dbContext.SetupHistories.AnyAsync(cancellationToken);
+                var hasSetupHistory = await dbContext.SetupHistories.AnyAsync(cancellationToken);
                 if (hasSetupHistory)
                 {
                     // Auto-create file marker
@@ -166,16 +154,17 @@ public class FirstRunDetectionService : IFirstRunDetectionService
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "EF Core check failed");
+                logger.LogDebug(ex, "EF Core check failed");
             }
 
-            _logger.LogWarning("Setup not complete - setup wizard required");
+            logger.LogWarning("Setup not complete - setup wizard required");
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Critical error in first run detection");
+            logger.LogError(ex, "Critical error in first run detection");
             return false;
         }
     }
+
 }

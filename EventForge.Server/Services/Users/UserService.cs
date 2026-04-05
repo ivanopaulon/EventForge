@@ -5,21 +5,11 @@ namespace EventForge.Server.Services.Users;
 /// <summary>
 /// Service implementation for managing users.
 /// </summary>
-public class UserService : IUserService
+public class UserService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    ILogger<UserService> logger) : IUserService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<UserService> _logger;
-
-    public UserService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        ILogger<UserService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets all users with pagination.
@@ -28,11 +18,11 @@ public class UserService : IUserService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.Users
+        var query = context.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .Where(u => !u.IsDeleted && u.TenantId == _tenantContext.CurrentTenantId);
+            .Where(u => !u.IsDeleted && u.TenantId == tenantContext.CurrentTenantId);
 
         var totalCount = await query.CountAsync(ct);
 
@@ -71,12 +61,12 @@ public class UserService : IUserService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.Users
+        var query = context.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Where(u => !u.IsDeleted
-                && u.TenantId == _tenantContext.CurrentTenantId
+                && u.TenantId == tenantContext.CurrentTenantId
                 && u.UserRoles.Any(ur => ur.Role.Name == role));
 
         var totalCount = await query.CountAsync(ct);
@@ -115,12 +105,12 @@ public class UserService : IUserService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.Users
+        var query = context.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Where(u => !u.IsDeleted
-                && u.TenantId == _tenantContext.CurrentTenantId
+                && u.TenantId == tenantContext.CurrentTenantId
                 && u.IsActive);
 
         var totalCount = await query.CountAsync(ct);
@@ -151,4 +141,5 @@ public class UserService : IUserService
             PageSize = pagination.PageSize
         };
     }
+
 }

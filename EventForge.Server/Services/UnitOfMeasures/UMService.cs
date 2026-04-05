@@ -6,37 +6,25 @@ namespace EventForge.Server.Services.UnitOfMeasures;
 /// <summary>
 /// Service implementation for managing units of measure.
 /// </summary>
-public class UMService : IUMService
+public class UMService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<UMService> logger) : IUMService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<UMService> _logger;
-
-    public UMService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<UMService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<UMDto>> GetUMsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
             }
 
-            var query = _context.UMs
+            var query = context.UMs
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(u => !u.IsDeleted);
@@ -60,7 +48,7 @@ public class UMService : IUMService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving units of measure.");
+            logger.LogError(ex, "Error retrieving units of measure.");
             throw;
         }
     }
@@ -69,21 +57,21 @@ public class UMService : IUMService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
             }
 
-            var um = await _context.UMs
+            var um = await context.UMs
                 .Where(u => u.Id == id && u.TenantId == currentTenantId.Value && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return um != null ? MapToUMDto(um) : null;
+            return um is not null ? MapToUMDto(um) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving unit of measure {UMId}.", id);
+            logger.LogError(ex, "Error retrieving unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -95,7 +83,7 @@ public class UMService : IUMService
             ArgumentNullException.ThrowIfNull(createUMDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
@@ -113,18 +101,18 @@ public class UMService : IUMService
                 CreatedBy = currentUser
             };
 
-            _ = _context.UMs.Add(um);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.UMs.Add(um);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Unit of measure {UMId} created by {User}.", um.Id, currentUser);
+            logger.LogInformation("Unit of measure {UMId} created by {User}.", um.Id, currentUser);
 
             return MapToUMDto(um);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating unit of measure.");
+            logger.LogError(ex, "Error creating unit of measure.");
             throw;
         }
     }
@@ -136,18 +124,18 @@ public class UMService : IUMService
             ArgumentNullException.ThrowIfNull(updateUMDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalUM = await _context.UMs
+            var originalUM = await context.UMs
                 .AsNoTracking()
                 .Where(u => u.Id == id && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalUM == null) return null;
+            if (originalUM is null) return null;
 
-            var um = await _context.UMs
+            var um = await context.UMs
                 .Where(u => u.Id == id && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (um == null) return null;
+            if (um is null) return null;
 
             um.Name = updateUMDto.Name;
             // Note: Symbol is intentionally not updatable - it's used in calculations
@@ -158,17 +146,17 @@ public class UMService : IUMService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating UM {UMId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating UM {UMId}.", id);
                 throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
 
-            _logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
+            logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
 
             return MapToUMDto(um);
         }
@@ -178,7 +166,7 @@ public class UMService : IUMService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating unit of measure {UMId}.", id);
+            logger.LogError(ex, "Error updating unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -189,18 +177,18 @@ public class UMService : IUMService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalUM = await _context.UMs
+            var originalUM = await context.UMs
                 .AsNoTracking()
                 .Where(u => u.Id == id && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalUM == null) return false;
+            if (originalUM is null) return false;
 
-            var um = await _context.UMs
+            var um = await context.UMs
                 .Where(u => u.Id == id && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (um == null) return false;
+            if (um is null) return false;
 
             um.IsDeleted = true;
             um.ModifiedAt = DateTime.UtcNow;
@@ -208,17 +196,17 @@ public class UMService : IUMService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting UM {UMId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting UM {UMId}.", id);
                 throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
 
-            _logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
+            logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
 
             return true;
         }
@@ -228,7 +216,7 @@ public class UMService : IUMService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting unit of measure {UMId}.", id);
+            logger.LogError(ex, "Error deleting unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -237,12 +225,12 @@ public class UMService : IUMService
     {
         try
         {
-            return await _context.UMs
+            return await context.UMs
                 .AnyAsync(u => u.Id == umId && !u.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if unit of measure {UMId} exists.", umId);
+            logger.LogError(ex, "Error checking if unit of measure {UMId} exists.", umId);
             throw;
         }
     }
@@ -263,4 +251,5 @@ public class UMService : IUMService
             ModifiedBy = um.ModifiedBy
         };
     }
+
 }

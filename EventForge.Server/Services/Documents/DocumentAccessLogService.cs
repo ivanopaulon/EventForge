@@ -6,18 +6,10 @@ namespace EventForge.Server.Services.Documents;
 /// Implementation of document access logging service.
 /// Tracks all document access for security audit and compliance.
 /// </summary>
-public class DocumentAccessLogService : IDocumentAccessLogService
+public class DocumentAccessLogService(
+    EventForgeDbContext context,
+    ILogger<DocumentAccessLogService> logger) : IDocumentAccessLogService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<DocumentAccessLogService> _logger;
-
-    public DocumentAccessLogService(
-        EventForgeDbContext context,
-        ILogger<DocumentAccessLogService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<Guid> LogAccessAsync(
         Guid documentId,
@@ -50,10 +42,10 @@ public class DocumentAccessLogService : IDocumentAccessLogService
                 SessionId = sessionId
             };
 
-            _ = _context.Set<DocumentAccessLog>().Add(logEntry);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Set<DocumentAccessLog>().Add(logEntry);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogDebug(
+            logger.LogDebug(
                 "Logged document access: Document={DocumentId}, User={UserId}, Type={AccessType}, Result={Result}",
                 documentId, userId, accessType, result);
 
@@ -61,7 +53,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            logger.LogError(ex,
                 "Error logging document access for document {DocumentId} by user {UserId}",
                 documentId, userId);
             throw;
@@ -74,7 +66,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<DocumentAccessLog>()
+        var query = context.Set<DocumentAccessLog>()
             .Include(l => l.DocumentHeader)
             .Where(l => l.DocumentHeaderId == documentId);
 
@@ -101,7 +93,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<DocumentAccessLog>()
+        var query = context.Set<DocumentAccessLog>()
             .Include(l => l.DocumentHeader)
             .Where(l => l.UserId == userId);
 
@@ -133,7 +125,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
         int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<DocumentAccessLog>()
+        var query = context.Set<DocumentAccessLog>()
             .Include(l => l.DocumentHeader)
             .Where(l => l.TenantId == tenantId);
 
@@ -185,7 +177,7 @@ public class DocumentAccessLogService : IDocumentAccessLogService
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
 
-        var oldLogs = await _context.Set<DocumentAccessLog>()
+        var oldLogs = await context.Set<DocumentAccessLog>()
             .Where(l => l.AccessedAt < cutoffDate)
             .ToListAsync(cancellationToken);
 
@@ -194,14 +186,14 @@ public class DocumentAccessLogService : IDocumentAccessLogService
             return 0;
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Deleting {Count} access log entries older than {Date}",
             oldLogs.Count, cutoffDate);
 
-        _context.Set<DocumentAccessLog>().RemoveRange(oldLogs);
-        _ = await _context.SaveChangesAsync(cancellationToken);
+        context.Set<DocumentAccessLog>().RemoveRange(oldLogs);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Deleted {Count} old access log entries",
             oldLogs.Count);
 
@@ -229,4 +221,5 @@ public class DocumentAccessLogService : IDocumentAccessLogService
             SessionId = log.SessionId
         };
     }
+
 }

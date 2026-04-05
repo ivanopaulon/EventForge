@@ -7,21 +7,11 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for document analytics and KPI tracking
 /// </summary>
-public class DocumentAnalyticsService : IDocumentAnalyticsService
+public class DocumentAnalyticsService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<DocumentAnalyticsService> logger) : IDocumentAnalyticsService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<DocumentAnalyticsService> _logger;
-
-    public DocumentAnalyticsService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<DocumentAnalyticsService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<DocumentAnalyticsDto> CreateOrUpdateAnalyticsAsync(
         Guid documentHeaderId,
@@ -31,10 +21,10 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         try
         {
             // Get or create analytics record
-            var analytics = await _context.DocumentAnalytics
+            var analytics = await context.DocumentAnalytics
                 .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
 
-            if (analytics == null)
+            if (analytics is null)
             {
                 // Create new analytics record
                 analytics = new DocumentAnalytics
@@ -45,7 +35,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _ = _context.DocumentAnalytics.Add(analytics);
+                _ = context.DocumentAnalytics.Add(analytics);
             }
 
             // Calculate analytics from document data
@@ -54,27 +44,27 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "DocumentAnalytics",
                 analytics.Id,
                 "Analytics",
-                analytics == null ? "Created" : "Updated",
+                analytics is null ? "Created" : "Updated",
                 null,
                 analytics?.Id.ToString() ?? "N/A",
                 currentUser,
                 "Document Analytics",
                 cancellationToken);
 
-            _logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
+            logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
                 documentHeaderId, currentUser);
 
             return DocumentAnalyticsMapper.ToDto(analytics!);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating analytics for document {DocumentHeaderId}", documentHeaderId);
+            logger.LogError(ex, "Error creating/updating analytics for document {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -85,16 +75,16 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
     {
         try
         {
-            var analytics = await _context.DocumentAnalytics
+            var analytics = await context.DocumentAnalytics
                 .Include(a => a.DocumentHeader)
                 .Include(a => a.DocumentType)
                 .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
 
-            return analytics != null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
+            return analytics is not null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting analytics for document {DocumentHeaderId}", documentHeaderId);
+            logger.LogError(ex, "Error getting analytics for document {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -107,7 +97,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
     {
         try
         {
-            var query = _context.DocumentAnalytics.AsQueryable();
+            var query = context.DocumentAnalytics.AsQueryable();
 
             // Apply date filters
             if (from.HasValue)
@@ -143,7 +133,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting analytics summary from {From} to {To} grouped by {GroupBy}",
+            logger.LogError(ex, "Error getting analytics summary from {From} to {To} grouped by {GroupBy}",
                 from, to, groupBy);
             throw;
         }
@@ -158,10 +148,10 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
     {
         try
         {
-            var analytics = await _context.DocumentAnalytics
+            var analytics = await context.DocumentAnalytics
                 .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
 
-            if (analytics == null)
+            if (analytics is null)
             {
                 analytics = new DocumentAnalytics
                 {
@@ -170,7 +160,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow
                 };
-                _ = _context.DocumentAnalytics.Add(analytics);
+                _ = context.DocumentAnalytics.Add(analytics);
             }
 
             // Update analytics based on event type
@@ -179,16 +169,16 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
             analytics.ModifiedBy = currentUser;
             analytics.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
+            logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
                 eventType, documentHeaderId);
 
             return DocumentAnalyticsMapper.ToDto(analytics);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling workflow event {EventType} for document {DocumentHeaderId}",
+            logger.LogError(ex, "Error handling workflow event {EventType} for document {DocumentHeaderId}",
                 eventType, documentHeaderId);
             throw;
         }
@@ -201,7 +191,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
     {
         try
         {
-            var analytics = await _context.DocumentAnalytics
+            var analytics = await context.DocumentAnalytics
                 .Where(a => a.AnalyticsDate >= from.Date && a.AnalyticsDate <= to.Date)
                 .ToListAsync(cancellationToken);
 
@@ -231,7 +221,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating KPI summary from {From} to {To}", from, to);
+            logger.LogError(ex, "Error calculating KPI summary from {From} to {To}", from, to);
             throw;
         }
     }
@@ -239,13 +229,13 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
     private async Task CalculateAnalyticsMetrics(DocumentAnalytics analytics, CancellationToken cancellationToken)
     {
         // Get document header with related data
-        var document = await _context.DocumentHeaders
+        var document = await context.DocumentHeaders
             .Include(d => d.DocumentType)
             .Include(d => d.WorkflowExecutions)
                 .ThenInclude(we => we.WorkflowSteps)
             .FirstOrDefaultAsync(d => d.Id == analytics.DocumentHeaderId, cancellationToken);
 
-        if (document == null) return;
+        if (document is null) return;
 
         // Update basic information
         analytics.DocumentTypeId = document.DocumentTypeId;
@@ -254,7 +244,7 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
         // Calculate workflow metrics
         var latestWorkflow = document.WorkflowExecutions?.OrderByDescending(we => we.CreatedAt).FirstOrDefault();
-        if (latestWorkflow != null)
+        if (latestWorkflow is not null)
         {
             analytics.ApprovalStepsRequired = latestWorkflow.WorkflowSteps?.Count ?? 0;
             analytics.ApprovalStepsCompleted = latestWorkflow.WorkflowSteps?.Count(s => s.CompletedAt.HasValue) ?? 0;
@@ -376,4 +366,5 @@ public class DocumentAnalyticsService : IDocumentAnalyticsService
 
         return totalCost > 0 ? totalValue / totalCost : null;
     }
+
 }

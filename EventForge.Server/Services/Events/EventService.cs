@@ -3,36 +3,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Events;
 
-public class EventService : IEventService
+public class EventService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<EventService> logger) : IEventService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<EventService> _logger;
-
-    public EventService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<EventService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<EventDto>> GetEventsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var query = _context.Events
+            var query = context.Events
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
@@ -58,7 +46,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero degli eventi.");
+            logger.LogError(ex, "Errore durante il recupero degli eventi.");
             throw;
         }
     }
@@ -67,13 +55,13 @@ public class EventService : IEventService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var query = _context.Events
+            var query = context.Events
                 .AsNoTracking()
                 .Where(e => !e.IsDeleted && e.TenantId == currentTenantId.Value)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
@@ -100,7 +88,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero degli eventi.");
+            logger.LogError(ex, "Errore durante il recupero degli eventi.");
             throw;
         }
     }
@@ -113,7 +101,7 @@ public class EventService : IEventService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
@@ -121,7 +109,7 @@ public class EventService : IEventService
 
             var end = endDate ?? startDate.AddYears(1);
 
-            var query = _context.Events
+            var query = context.Events
                 .AsNoTracking()
                 .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
@@ -149,7 +137,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero degli eventi per intervallo date.");
+            logger.LogError(ex, "Errore durante il recupero degli eventi per intervallo date.");
             throw;
         }
     }
@@ -160,7 +148,7 @@ public class EventService : IEventService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
@@ -168,7 +156,7 @@ public class EventService : IEventService
 
             var now = DateTime.UtcNow;
 
-            var query = _context.Events
+            var query = context.Events
                 .AsNoTracking()
                 .Where(e => !e.IsDeleted
                     && e.TenantId == currentTenantId.Value
@@ -195,7 +183,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero degli eventi futuri.");
+            logger.LogError(ex, "Errore durante il recupero degli eventi futuri.");
             throw;
         }
     }
@@ -204,21 +192,21 @@ public class EventService : IEventService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var eventEntity = await _context.Events
+            var eventEntity = await context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                 .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (eventEntity == null)
+            if (eventEntity is null)
             {
-                _logger.LogWarning("Evento con ID {EventId} non trovato.", id);
+                logger.LogWarning("Evento con ID {EventId} non trovato.", id);
                 return null;
             }
 
@@ -226,7 +214,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dell'evento {EventId}.", id);
+            logger.LogError(ex, "Errore durante il recupero dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -235,22 +223,22 @@ public class EventService : IEventService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var eventEntity = await _context.Events
+            var eventEntity = await context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                     .ThenInclude(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
                 .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (eventEntity == null)
+            if (eventEntity is null)
             {
-                _logger.LogWarning("Evento con ID {EventId} non trovato (dettaglio).", id);
+                logger.LogWarning("Evento con ID {EventId} non trovato (dettaglio).", id);
                 return null;
             }
 
@@ -258,7 +246,7 @@ public class EventService : IEventService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero del dettaglio evento {EventId}.", id);
+            logger.LogError(ex, "Errore durante il recupero del dettaglio evento {EventId}.", id);
             throw;
         }
     }
@@ -270,7 +258,7 @@ public class EventService : IEventService
             ArgumentNullException.ThrowIfNull(createEventDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
@@ -310,23 +298,23 @@ public class EventService : IEventService
 
             eventEntity.CheckInvariants();
 
-            _ = _context.Events.Add(eventEntity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Events.Add(eventEntity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(eventEntity, "Insert", currentUser, null, cancellationToken);
 
-            var createdEvent = await _context.Events
+            var createdEvent = await context.Events
                 .Include(e => e.Teams)
                 .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
                 .FirstAsync(e => e.Id == eventEntity.Id, cancellationToken);
 
-            _logger.LogInformation("Evento {EventId} creato da {User}.", eventEntity.Id, currentUser);
+            logger.LogInformation("Evento {EventId} creato da {User}.", eventEntity.Id, currentUser);
 
             return MapToEventDto(createdEvent);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la creazione dell'evento.");
+            logger.LogError(ex, "Errore durante la creazione dell'evento.");
             throw;
         }
     }
@@ -338,26 +326,26 @@ public class EventService : IEventService
             ArgumentNullException.ThrowIfNull(updateEventDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var eventEntity = await _context.Events
+            var eventEntity = await context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                 .Include(e => e.TimeSlots)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (eventEntity == null)
+            if (eventEntity is null)
             {
-                _logger.LogWarning("Evento con ID {EventId} non trovato per aggiornamento.", id);
+                logger.LogWarning("Evento con ID {EventId} non trovato per aggiornamento.", id);
                 return null;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(eventEntity).CurrentValues.Clone();
+            var originalValues = context.Entry(eventEntity).CurrentValues.Clone();
             var originalEvent = (Event)originalValues.ToObject();
 
             eventEntity.Name = updateEventDto.Name;
@@ -376,11 +364,11 @@ public class EventService : IEventService
 
             // Apply optimistic concurrency: if client provided a RowVersion, use it as the
             // expected original value so EF Core detects concurrent modifications.
-            if (updateEventDto.RowVersion != null && updateEventDto.RowVersion.Length > 0)
-                _context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = updateEventDto.RowVersion;
+            if (updateEventDto.RowVersion is not null && updateEventDto.RowVersion.Length > 0)
+                context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = updateEventDto.RowVersion;
 
             // Replace all time slots: remove existing ones, add new ones from DTO
-            _context.RemoveRange(eventEntity.TimeSlots);
+            context.RemoveRange(eventEntity.TimeSlots);
             eventEntity.TimeSlots.Clear();
             for (var i = 0; i < updateEventDto.TimeSlots.Count; i++)
             {
@@ -399,23 +387,23 @@ public class EventService : IEventService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Conflitto di concorrenza durante l'aggiornamento dell'evento {EventId}.", id);
+                logger.LogWarning(ex, "Conflitto di concorrenza durante l'aggiornamento dell'evento {EventId}.", id);
                 throw new InvalidOperationException("L'evento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Update", currentUser, originalEvent, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(eventEntity, "Update", currentUser, originalEvent, cancellationToken);
 
-            _logger.LogInformation("Evento {EventId} aggiornato da {User}.", id, currentUser);
+            logger.LogInformation("Evento {EventId} aggiornato da {User}.", id, currentUser);
 
             return MapToEventDto(eventEntity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiornamento dell'evento {EventId}.", id);
+            logger.LogError(ex, "Errore durante l'aggiornamento dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -426,24 +414,24 @@ public class EventService : IEventService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for event operations.");
             }
 
-            var eventEntity = await _context.Events
+            var eventEntity = await context.Events
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (eventEntity == null)
+            if (eventEntity is null)
             {
-                _logger.LogWarning("Evento con ID {EventId} non trovato per cancellazione.", id);
+                logger.LogWarning("Evento con ID {EventId} non trovato per cancellazione.", id);
                 return false;
             }
 
             // Create snapshot of original event state
-            var originalEventValues = _context.Entry(eventEntity).CurrentValues.Clone();
+            var originalEventValues = context.Entry(eventEntity).CurrentValues.Clone();
             var originalEvent = (Event)originalEventValues.ToObject();
 
             eventEntity.IsDeleted = true;
@@ -451,10 +439,10 @@ public class EventService : IEventService
             eventEntity.DeletedAt = DateTime.UtcNow;
 
             // Apply optimistic concurrency for delete as well
-            if (rowVersion != null && rowVersion.Length > 0)
-                _context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = rowVersion;
+            if (rowVersion is not null && rowVersion.Length > 0)
+                context.Entry(eventEntity).Property(e => e.RowVersion).OriginalValue = rowVersion;
 
-            var teams = await _context.Teams
+            var teams = await context.Teams
                 .Where(t => t.EventId == id && !t.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -463,7 +451,7 @@ public class EventService : IEventService
                 t => t.Id,
                 t =>
                 {
-                    var originalValues = _context.Entry(t).CurrentValues.Clone();
+                    var originalValues = context.Entry(t).CurrentValues.Clone();
                     return (Team)originalValues.ToObject();
                 }
             );
@@ -476,9 +464,9 @@ public class EventService : IEventService
                 team.DeletedBy = currentUser;
                 team.DeletedAt = DateTime.UtcNow;
 
-                _ = await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
+                _ = await auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
-                var members = await _context.TeamMembers
+                var members = await context.TeamMembers
                     .Where(m => m.TeamId == team.Id && !m.IsDeleted)
                     .ToListAsync(cancellationToken);
 
@@ -487,7 +475,7 @@ public class EventService : IEventService
                     m => m.Id,
                     m =>
                     {
-                        var originalValues = _context.Entry(m).CurrentValues.Clone();
+                        var originalValues = context.Entry(m).CurrentValues.Clone();
                         return (TeamMember)originalValues.ToObject();
                     }
                 );
@@ -500,29 +488,29 @@ public class EventService : IEventService
                     member.DeletedBy = currentUser;
                     member.DeletedAt = DateTime.UtcNow;
 
-                    _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+                    _ = await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
                 }
             }
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Conflitto di concorrenza durante la cancellazione dell'evento {EventId}.", id);
+                logger.LogWarning(ex, "Conflitto di concorrenza durante la cancellazione dell'evento {EventId}.", id);
                 throw new InvalidOperationException("L'evento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(eventEntity, "Delete", currentUser, originalEvent, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(eventEntity, "Delete", currentUser, originalEvent, cancellationToken);
 
-            _logger.LogInformation("Evento {EventId} cancellato da {User}.", id, currentUser);
+            logger.LogInformation("Evento {EventId} cancellato da {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la cancellazione dell'evento {EventId}.", id);
+            logger.LogError(ex, "Errore durante la cancellazione dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -531,12 +519,12 @@ public class EventService : IEventService
     {
         try
         {
-            return await _context.Events
+            return await context.Events
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il controllo esistenza evento {EventId}.", eventId);
+            logger.LogError(ex, "Errore durante il controllo esistenza evento {EventId}.", eventId);
             throw;
         }
     }
@@ -569,7 +557,7 @@ public class EventService : IEventService
                     Label = s.Label,
                     SortOrder = s.SortOrder
                 })
-                .ToList() ?? new List<EventTimeSlotDto>(),
+                .ToList() ?? [],
             TeamCount = eventEntity.Teams?.Count(t => !t.IsDeleted) ?? 0,
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
@@ -605,8 +593,8 @@ public class EventService : IEventService
                     Label = s.Label,
                     SortOrder = s.SortOrder
                 })
-                .ToList() ?? new List<EventTimeSlotDto>(),
-            Teams = eventEntity.Teams?.Where(t => !t.IsDeleted).Select(MapToTeamDetailDto).ToList() ?? new List<TeamDetailDto>(),
+                .ToList() ?? [],
+            Teams = eventEntity.Teams?.Where(t => !t.IsDeleted).Select(MapToTeamDetailDto).ToList() ?? [],
             CreatedAt = eventEntity.CreatedAt,
             CreatedBy = eventEntity.CreatedBy,
             ModifiedAt = eventEntity.ModifiedAt,
@@ -625,7 +613,7 @@ public class EventService : IEventService
             Email = team.Email,
             EventId = team.EventId,
             EventName = team.Event?.Name,
-            Members = team.Members?.Where(m => !m.IsDeleted).Select(MapToTeamMemberDto).ToList() ?? new List<TeamMemberDto>(),
+            Members = team.Members?.Where(m => !m.IsDeleted).Select(MapToTeamMemberDto).ToList() ?? [],
             CreatedAt = team.CreatedAt,
             CreatedBy = team.CreatedBy,
             ModifiedAt = team.ModifiedAt,
@@ -651,4 +639,5 @@ public class EventService : IEventService
             ModifiedBy = member.ModifiedBy
         };
     }
+
 }

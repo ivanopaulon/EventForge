@@ -7,55 +7,47 @@ namespace EventForge.Server.Services.Auth.Seeders;
 /// <summary>
 /// Implementation of product seeding service.
 /// </summary>
-public class ProductSeeder : IProductSeeder
+public class ProductSeeder(
+    EventForgeDbContext dbContext,
+    ILogger<ProductSeeder> logger) : IProductSeeder
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly ILogger<ProductSeeder> _logger;
-
-    public ProductSeeder(
-        EventForgeDbContext dbContext,
-        ILogger<ProductSeeder> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
 
     public async Task<bool> SeedDemoProductsAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var existingProductCount = await _dbContext.Products
+            var existingProductCount = await dbContext.Products
                 .CountAsync(p => p.TenantId == tenantId, cancellationToken);
 
             if (existingProductCount > 0)
                 return true;
 
             // Get default VAT rate (22%)
-            var vatRate22 = await _dbContext.VatRates
+            var vatRate22 = await dbContext.VatRates
                 .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.Percentage == 22m, cancellationToken);
 
             // Get IVA 10% rate
-            var vatRate10 = await _dbContext.VatRates
+            var vatRate10 = await dbContext.VatRates
                 .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.Percentage == 10m, cancellationToken);
 
             // Get IVA 4% rate
-            var vatRate4 = await _dbContext.VatRates
+            var vatRate4 = await dbContext.VatRates
                 .FirstOrDefaultAsync(v => v.TenantId == tenantId && v.Percentage == 4m, cancellationToken);
 
             // Get default unit of measure (Pezzo)
-            var umPezzo = await _dbContext.UMs
+            var umPezzo = await dbContext.UMs
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Symbol == "pz", cancellationToken);
 
             // Get kg unit
-            var umKg = await _dbContext.UMs
+            var umKg = await dbContext.UMs
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Symbol == "kg", cancellationToken);
 
             // Get litro unit
-            var umLitro = await _dbContext.UMs
+            var umLitro = await dbContext.UMs
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Symbol == "l", cancellationToken);
 
             // Get confezione unit
-            var umConfezione = await _dbContext.UMs
+            var umConfezione = await dbContext.UMs
                 .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Symbol == "conf", cancellationToken);
 
             // Create 10 demo products with diverse, realistic Italian data
@@ -263,14 +255,15 @@ public class ProductSeeder : IProductSeeder
                 }
             };
 
-            await _dbContext.Products.AddRangeAsync(demoProducts, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.Products.AddRangeAsync(demoProducts, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding demo products for tenant {TenantId}", tenantId);
+            logger.LogError(ex, "Error seeding demo products for tenant {TenantId}", tenantId);
             return false;
         }
     }
+
 }

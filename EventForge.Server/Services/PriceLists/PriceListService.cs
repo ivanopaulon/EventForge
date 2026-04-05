@@ -7,49 +7,29 @@ using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatu
 
 namespace EventForge.Server.Services.PriceLists;
 
-public class PriceListService : IPriceListService
+public class PriceListService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<PriceListService> logger,
+    IUnitConversionService unitConversionService,
+    IPriceListGenerationService generationService,
+    IPriceCalculationService calculationService,
+    IPriceListBusinessPartyService businessPartyService,
+    IPriceListBulkOperationsService bulkOperationsService) : IPriceListService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<PriceListService> _logger;
-    private readonly IUnitConversionService _unitConversionService;
-    private readonly IPriceListGenerationService _generationService;
-    private readonly IPriceCalculationService _calculationService;
-    private readonly IPriceListBusinessPartyService _businessPartyService;
-    private readonly IPriceListBulkOperationsService _bulkOperationsService;
-
-    public PriceListService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<PriceListService> logger,
-        IUnitConversionService unitConversionService,
-        IPriceListGenerationService generationService,
-        IPriceCalculationService calculationService,
-        IPriceListBusinessPartyService businessPartyService,
-        IPriceListBulkOperationsService bulkOperationsService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _unitConversionService = unitConversionService ?? throw new ArgumentNullException(nameof(unitConversionService));
-        _generationService = generationService ?? throw new ArgumentNullException(nameof(generationService));
-        _calculationService = calculationService ?? throw new ArgumentNullException(nameof(calculationService));
-        _businessPartyService = businessPartyService ?? throw new ArgumentNullException(nameof(businessPartyService));
-        _bulkOperationsService = bulkOperationsService ?? throw new ArgumentNullException(nameof(bulkOperationsService));
-    }
 
     public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var query = _context.PriceLists
+            var query = context.PriceLists
                 .Where(pl => !pl.IsDeleted);
 
             // Apply filters BEFORE pagination
             if (direction.HasValue)
             {
                 query = query.Where(pl => pl.Direction == direction.Value);
-                _logger.LogDebug("Filtering price lists by direction: {Direction}", direction.Value);
+                logger.LogDebug("Filtering price lists by direction: {Direction}", direction.Value);
             }
 
             if (status.HasValue)
@@ -57,13 +37,13 @@ public class PriceListService : IPriceListService
                 // Cast DTO enum to entity enum for comparison
                 var entityStatus = (PriceListStatus)status.Value;
                 query = query.Where(pl => pl.Status == entityStatus);
-                _logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
+                logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
             }
 
             // Count AFTER filters
             var totalCount = await query.CountAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Found {TotalCount} price lists matching filters (Direction: {Direction}, Status: {Status})",
                 totalCount,
                 direction?.ToString() ?? "Any",
@@ -90,7 +70,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists with filters.");
+            logger.LogError(ex, "Error retrieving price lists with filters.");
             throw;
         }
     }
@@ -99,7 +79,7 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var priceLists = await _context.PriceLists
+            var priceLists = await context.PriceLists
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
@@ -110,7 +90,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists for event {EventId}.", eventId);
+            logger.LogError(ex, "Error retrieving price lists for event {EventId}.", eventId);
             throw;
         }
     }
@@ -119,16 +99,16 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var priceList = await _context.PriceLists
+            var priceList = await context.PriceLists
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return priceList != null ? MapToPriceListDto(priceList) : null;
+            return priceList is not null ? MapToPriceListDto(priceList) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list {PriceListId}.", id);
+            logger.LogError(ex, "Error retrieving price list {PriceListId}.", id);
             throw;
         }
     }
@@ -137,16 +117,16 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var priceList = await _context.PriceLists
+            var priceList = await context.PriceLists
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return priceList != null ? MapToPriceListDetailDto(priceList) : null;
+            return priceList is not null ? MapToPriceListDetailDto(priceList) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list detail {PriceListId}.", id);
+            logger.LogError(ex, "Error retrieving price list detail {PriceListId}.", id);
             throw;
         }
     }
@@ -178,18 +158,18 @@ public class PriceListService : IPriceListService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.PriceLists.Add(priceList);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.PriceLists.Add(priceList);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
+            logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
 
             return MapToPriceListDto(priceList);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating price list for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating price list for user {User}.", currentUser);
             throw;
         }
     }
@@ -201,23 +181,23 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(updatePriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPriceList = await _context.PriceLists
+            var originalPriceList = await context.PriceLists
                 .AsNoTracking()
                 .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
-            if (originalPriceList == null)
+            if (originalPriceList is null)
             {
-                _logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var priceList = await _context.PriceLists
+            var priceList = await context.PriceLists
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
-            if (priceList == null)
+            if (priceList is null)
             {
-                _logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -233,17 +213,17 @@ public class PriceListService : IPriceListService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating PriceList {PriceListId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating PriceList {PriceListId}.", id);
                 throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
 
-            _logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
 
             return MapToPriceListDto(priceList);
         }
@@ -253,7 +233,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating price list {PriceListId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating price list {PriceListId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -264,24 +244,24 @@ public class PriceListService : IPriceListService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalPriceList = await _context.PriceLists
+            var originalPriceList = await context.PriceLists
                 .AsNoTracking()
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
-            if (originalPriceList == null)
+            if (originalPriceList is null)
             {
-                _logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var priceList = await _context.PriceLists
+            var priceList = await context.PriceLists
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
 
-            if (priceList == null)
+            if (priceList is null)
             {
-                _logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -298,17 +278,17 @@ public class PriceListService : IPriceListService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting PriceList {PriceListId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting PriceList {PriceListId}.", id);
                 throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
 
-            _logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
@@ -318,7 +298,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting price list {PriceListId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting price list {PriceListId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -327,7 +307,7 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var entries = await _context.PriceListEntries
+            var entries = await context.PriceListEntries
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .OrderBy(ple => ple.ProductId)
@@ -337,7 +317,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list entries for price list {PriceListId}.", priceListId);
+            logger.LogError(ex, "Error retrieving price list entries for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -346,16 +326,16 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            var entry = await _context.PriceListEntries
+            var entry = await context.PriceListEntries
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.Id == id && !ple.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return entry != null ? MapToPriceListEntryDto(entry) : null;
+            return entry is not null ? MapToPriceListEntryDto(entry) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price list entry {EntryId}.", id);
+            logger.LogError(ex, "Error retrieving price list entry {EntryId}.", id);
             throw;
         }
     }
@@ -394,19 +374,19 @@ public class PriceListService : IPriceListService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.PriceListEntries.Add(entry);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.PriceListEntries.Add(entry);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
+            logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
                 entry.Id, createPriceListEntryDto.PriceListId, currentUser);
 
             return MapToPriceListEntryDto(entry);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating price list entry for price list {PriceListId} by user {User}.",
+            logger.LogError(ex, "Error creating price list entry for price list {PriceListId} by user {User}.",
                 createPriceListEntryDto.PriceListId, currentUser);
             throw;
         }
@@ -419,23 +399,23 @@ public class PriceListService : IPriceListService
             ArgumentNullException.ThrowIfNull(updatePriceListEntryDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalEntry = await _context.PriceListEntries
+            var originalEntry = await context.PriceListEntries
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
-            if (originalEntry == null)
+            if (originalEntry is null)
             {
-                _logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var entry = await _context.PriceListEntries
+            var entry = await context.PriceListEntries
                 .Include(ple => ple.UnitOfMeasure)
                 .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
-            if (entry == null)
+            if (entry is null)
             {
-                _logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -453,17 +433,17 @@ public class PriceListService : IPriceListService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating PriceListEntry {PriceListEntryId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating PriceListEntry {PriceListEntryId}.", id);
                 throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
 
-            _logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
 
             return MapToPriceListEntryDto(entry);
         }
@@ -473,7 +453,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating price list entry {EntryId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating price list entry {EntryId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -484,22 +464,22 @@ public class PriceListService : IPriceListService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var originalEntry = await _context.PriceListEntries
+            var originalEntry = await context.PriceListEntries
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
-            if (originalEntry == null)
+            if (originalEntry is null)
             {
-                _logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var entry = await _context.PriceListEntries
+            var entry = await context.PriceListEntries
                 .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
 
-            if (entry == null)
+            if (entry is null)
             {
-                _logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -509,17 +489,17 @@ public class PriceListService : IPriceListService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting PriceListEntry {PriceListEntryId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting PriceListEntry {PriceListEntryId}.", id);
                 throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
 
-            _logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
@@ -529,7 +509,7 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting price list entry {EntryId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting price list entry {EntryId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -538,12 +518,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _context.PriceLists
+            return await context.PriceLists
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if price list {PriceListId} exists.", priceListId);
+            logger.LogError(ex, "Error checking if price list {PriceListId} exists.", priceListId);
             throw;
         }
     }
@@ -552,12 +532,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _context.Events
+            return await context.Events
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if event {EventId} exists.", eventId);
+            logger.LogError(ex, "Error checking if event {EventId} exists.", eventId);
             throw;
         }
     }
@@ -566,12 +546,12 @@ public class PriceListService : IPriceListService
     {
         try
         {
-            return await _context.Products
+            return await context.Products
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
+            logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
             throw;
         }
     }
@@ -675,17 +655,17 @@ public class PriceListService : IPriceListService
         int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        return await _calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
+        return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
     }
 
     public async Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
     {
-        return await _calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
+        return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        return await _calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
+        return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
     }
 
     public async Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
@@ -694,7 +674,7 @@ public class PriceListService : IPriceListService
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
-        return await _calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
+        return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
     }
 
     /// <summary>
@@ -704,7 +684,7 @@ public class PriceListService : IPriceListService
         GetProductPriceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        return await _calculationService.GetProductPriceAsync(request, cancellationToken);
+        return await calculationService.GetProductPriceAsync(request, cancellationToken);
     }
 
     #endregion
@@ -713,17 +693,17 @@ public class PriceListService : IPriceListService
 
     public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
+        return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
     }
 
     public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
+        return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
     }
 
     public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
+        return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
     }
 
     #endregion
@@ -732,24 +712,24 @@ public class PriceListService : IPriceListService
 
     public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await _businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
+        return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
     }
 
     public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await _businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
+        return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        return await _businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
+        return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default)
     {
         try
         {
-            var priceLists = await _context.PriceLists
+            var priceLists = await context.PriceLists
                 .Where(pl => pl.Type == type && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
@@ -760,14 +740,14 @@ public class PriceListService : IPriceListService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price lists by type {Type}.", type);
+            logger.LogError(ex, "Error retrieving price lists by type {Type}.", type);
             throw;
         }
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
     {
-        return await _businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
+        return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
     }
 
     #endregion
@@ -787,7 +767,7 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
+        return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
     }
 
     #region Bulk Price Update Methods
@@ -800,7 +780,7 @@ public class PriceListService : IPriceListService
         BulkPriceUpdateDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
+        return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
     }
 
     /// <summary>
@@ -812,7 +792,7 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
+        return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
     }
 
     #endregion
@@ -826,7 +806,7 @@ public class PriceListService : IPriceListService
         GeneratePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+        return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -837,7 +817,7 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
     }
 
     /// <summary>
@@ -847,7 +827,7 @@ public class PriceListService : IPriceListService
         UpdatePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+        return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -858,7 +838,7 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
     }
 
     #endregion
@@ -873,7 +853,7 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
+        return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
     }
 
     /// <summary>
@@ -883,7 +863,7 @@ public class PriceListService : IPriceListService
         GeneratePriceListFromProductsDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await _generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
+        return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -894,10 +874,11 @@ public class PriceListService : IPriceListService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await _bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
+        return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
     }
 
     #endregion
 
     #endregion
+
 }

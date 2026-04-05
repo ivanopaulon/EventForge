@@ -6,8 +6,9 @@ namespace EventForge.Server.Services.Logs;
 /// Implementation of log sanitization service that removes or masks sensitive information
 /// from log entries before exposing them to non-admin users.
 /// </summary>
-public class LogSanitizationService : ILogSanitizationService
+public class LogSanitizationService(ILogger<LogSanitizationService> logger) : ILogSanitizationService
 {
+
     private static readonly Regex EmailRegex = new(@"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", RegexOptions.Compiled);
     private static readonly Regex IpAddressRegex = new(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", RegexOptions.Compiled);
     private static readonly Regex PathRegex = new(@"[A-Za-z]:\\(?:[^\\/:*?""<>|\r\n]+\\)*[^\\/:*?""<>|\r\n]*", RegexOptions.Compiled);
@@ -28,13 +29,6 @@ public class LogSanitizationService : ILogSanitizationService
         "ipaddress",
         "useragent"
     };
-
-    private readonly ILogger<LogSanitizationService> _logger;
-
-    public LogSanitizationService(ILogger<LogSanitizationService> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public IEnumerable<SanitizedSystemLogDto> SanitizeLogs(IEnumerable<SystemLogDto> logs)
@@ -65,7 +59,7 @@ public class LogSanitizationService : ILogSanitizationService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error sanitizing log entry {LogId}, returning minimal sanitized log", log.Id);
+            logger.LogWarning(ex, "Error sanitizing log entry {LogId}, returning minimal sanitized log", log.Id);
 
             // Return a minimal sanitized log in case of errors
             return new SanitizedSystemLogDto
@@ -146,7 +140,7 @@ public class LogSanitizationService : ILogSanitizationService
     /// </summary>
     private Dictionary<string, string>? FilterAndSanitizeProperties(Dictionary<string, object>? properties)
     {
-        if (properties == null || properties.Count == 0)
+        if (properties is null || properties.Count == 0)
         {
             return null;
         }
@@ -168,4 +162,5 @@ public class LogSanitizationService : ILogSanitizationService
 
         return sanitized.Count > 0 ? sanitized : null;
     }
+
 }

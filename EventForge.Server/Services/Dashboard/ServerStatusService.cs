@@ -9,22 +9,13 @@ namespace EventForge.Server.Services.Dashboard;
 /// <summary>
 /// Implementation of server status service.
 /// </summary>
-public class ServerStatusService : IServerStatusService
+public class ServerStatusService(
+    EventForgeDbContext dbContext,
+    IConfiguration configuration,
+    ILogger<ServerStatusService> logger) : IServerStatusService
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<ServerStatusService> _logger;
-    private static readonly DateTime _startTime = DateTime.UtcNow;
 
-    public ServerStatusService(
-        EventForgeDbContext dbContext,
-        IConfiguration configuration,
-        ILogger<ServerStatusService> logger)
-    {
-        _dbContext = dbContext;
-        _configuration = configuration;
-        _logger = logger;
-    }
+    private static readonly DateTime _startTime = DateTime.UtcNow;
 
     public async Task<ServerStatus> GetServerStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -35,7 +26,7 @@ public class ServerStatusService : IServerStatusService
             OperatingSystem = GetOperatingSystem(),
             RuntimeVersion = Environment.Version.ToString(),
             CpuCores = Environment.ProcessorCount,
-            Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production"
+            Environment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production"
         };
 
         var version = Assembly.GetExecutingAssembly().GetName().Version;
@@ -51,50 +42,50 @@ public class ServerStatusService : IServerStatusService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to get memory information");
+            logger.LogWarning(ex, "Failed to get memory information");
         }
 
         try
         {
-            status.DatabaseConnected = await _dbContext.Database.CanConnectAsync(cancellationToken);
+            status.DatabaseConnected = await dbContext.Database.CanConnectAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to check database connection");
+            logger.LogWarning(ex, "Failed to check database connection");
             status.DatabaseConnected = false;
         }
 
         try
         {
-            var maintenanceMode = await _dbContext.SystemConfigurations
+            var maintenanceMode = await dbContext.SystemConfigurations
                 .FirstOrDefaultAsync(c => c.Key == "System.MaintenanceMode", cancellationToken);
 
-            if (maintenanceMode != null && maintenanceMode.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
+            if (maintenanceMode is not null && maintenanceMode.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
                 status.Status = "Maintenance";
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to check maintenance mode");
+            logger.LogDebug(ex, "Failed to check maintenance mode");
         }
 
         try
         {
             var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
-            status.ActiveUsers = await _dbContext.Users
+            status.ActiveUsers = await dbContext.Users
                 .Where(u => u.LastLoginAt.HasValue && u.LastLoginAt.Value > fiveMinutesAgo)
                 .CountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to count active users");
+            logger.LogDebug(ex, "Failed to count active users");
         }
 
         try
         {
             var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
-            var recentLogs = await _dbContext.SystemOperationLogs
+            var recentLogs = await dbContext.SystemOperationLogs
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
 
@@ -102,7 +93,7 @@ public class ServerStatusService : IServerStatusService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to calculate requests per minute");
+            logger.LogDebug(ex, "Failed to calculate requests per minute");
         }
 
         status.CacheType = "Memory";
@@ -123,4 +114,5 @@ public class ServerStatusService : IServerStatusService
 
         return "Unknown";
     }
+
 }

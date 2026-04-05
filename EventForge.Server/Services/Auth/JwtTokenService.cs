@@ -67,47 +67,20 @@ public class JwtOptions
 /// <summary>
 /// Implementation of JWT token service.
 /// </summary>
-public class JwtTokenService : IJwtTokenService
+public class JwtTokenService(IConfiguration configuration, ILogger<JwtTokenService> logger) : IJwtTokenService
 {
-    private readonly JwtOptions _jwtOptions;
-    private readonly ILogger<JwtTokenService> _logger;
-    private readonly TokenValidationParameters _tokenValidationParameters;
 
-    public JwtTokenService(IConfiguration configuration, ILogger<JwtTokenService> logger)
-    {
-        _logger = logger;
-        _jwtOptions = configuration.GetSection("Authentication:Jwt").Get<JwtOptions>() ?? new JwtOptions();
+    private readonly JwtOptions _jwtOptions = configuration.GetSection("Authentication:Jwt").Get<JwtOptions>() ?? new JwtOptions();
 
-        if (string.IsNullOrEmpty(_jwtOptions.SecretKey))
-        {
-            throw new InvalidOperationException("JWT SecretKey must be configured in Authentication:Jwt:SecretKey");
-        }
-
-        if (_jwtOptions.SecretKey.Length < 32)
-        {
-            throw new InvalidOperationException("JWT SecretKey must be at least 32 characters long");
-        }
-
-        _tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = _jwtOptions.Issuer,
-            ValidAudience = _jwtOptions.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey)),
-            ClockSkew = TimeSpan.FromMinutes(_jwtOptions.ClockSkewMinutes)
-        };
-    }
+    private readonly TokenValidationParameters _tokenValidationParameters = BuildTokenValidationParameters(configuration);
 
     public int TokenExpirationSeconds => _jwtOptions.ExpirationMinutes * 60;
 
     public string GenerateToken(User user, Tenant tenant, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
-        if (user == null)
+        if (user is null)
             throw new ArgumentNullException(nameof(user));
-        if (tenant == null)
+        if (tenant is null)
             throw new ArgumentNullException(nameof(tenant));
 
         var claims = new List<Claim>
@@ -155,7 +128,7 @@ public class JwtTokenService : IJwtTokenService
         var securityToken = tokenHandler.CreateToken(tokenDescriptor);
         var token = tokenHandler.WriteToken(securityToken);
 
-        _logger.LogDebug("JWT token generated for user {Username} in tenant {TenantCode}", user.Username, tenant.Code);
+        logger.LogDebug("JWT token generated for user {Username} in tenant {TenantCode}", user.Username, tenant.Code);
 
         return token;
     }
@@ -173,8 +146,35 @@ public class JwtTokenService : IJwtTokenService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to validate JWT token");
+            logger.LogWarning(ex, "Failed to validate JWT token");
             return null;
         }
     }
+
+    private static TokenValidationParameters BuildTokenValidationParameters(IConfiguration configuration)
+    {
+        var jwtOptions = configuration.GetSection("Authentication:Jwt").Get<JwtOptions>() ?? new JwtOptions();
+
+        if (string.IsNullOrEmpty(jwtOptions.SecretKey))
+        {
+            throw new InvalidOperationException("JWT SecretKey must be configured in Authentication:Jwt:SecretKey");
+        }
+
+        if (jwtOptions.SecretKey.Length < 32)
+        {
+            throw new InvalidOperationException("JWT SecretKey must be at least 32 characters long");
+        }
+        return new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            ClockSkew = TimeSpan.FromMinutes(jwtOptions.ClockSkewMinutes)
+        };
+    }
+
 }

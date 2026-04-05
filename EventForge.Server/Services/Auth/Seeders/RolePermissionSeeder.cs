@@ -158,7 +158,7 @@ public static class RolePermissionSeeder
                 var role = await dbContext.Roles
                     .Include(r => r.RolePermissions)
                     .FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
-                if (role == null) return;
+                if (role is null) return;
 
                 var existingPermIds = role.RolePermissions.Select(rp => rp.PermissionId).ToHashSet();
                 var toAdd = allPermissions

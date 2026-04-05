@@ -7,31 +7,19 @@ namespace EventForge.Server.Services.PriceHistory;
 /// <summary>
 /// Service implementation for managing supplier product price history.
 /// </summary>
-public class SupplierProductPriceHistoryService : ISupplierProductPriceHistoryService
+public class SupplierProductPriceHistoryService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    ILogger<SupplierProductPriceHistoryService> logger,
+    Lazy<ISupplierPriceAlertService>? alertService = null) : ISupplierProductPriceHistoryService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<SupplierProductPriceHistoryService> _logger;
-    private readonly Lazy<ISupplierPriceAlertService>? _alertService;
-
-    public SupplierProductPriceHistoryService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        ILogger<SupplierProductPriceHistoryService> logger,
-        Lazy<ISupplierPriceAlertService>? alertService = null)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _alertService = alertService;
-    }
 
     /// <inheritdoc/>
     public async Task<Guid> LogPriceChangeAsync(PriceChangeLogRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
@@ -66,10 +54,10 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.SupplierProductPriceHistories.Add(priceHistory);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.SupplierProductPriceHistories.Add(priceHistory);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Price history logged for ProductSupplier {ProductSupplierId}: {OldPrice} -> {NewPrice} ({ChangePercentage}%)",
                 request.ProductSupplierId,
                 request.OldPrice,
@@ -77,11 +65,11 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
                 priceChangePercentage);
 
             // Generate alerts for price change (FASE 5 integration)
-            if (_alertService != null)
+            if (alertService is not null)
             {
                 try
                 {
-                    await _alertService.Value.GenerateAlertsForPriceChangeAsync(
+                    await alertService.Value.GenerateAlertsForPriceChangeAsync(
                         request.ProductId,
                         request.SupplierId,
                         request.OldPrice,
@@ -90,7 +78,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
                 }
                 catch (Exception alertEx)
                 {
-                    _logger.LogWarning(alertEx, "Failed to generate price change alerts for product {ProductId}", request.ProductId);
+                    logger.LogWarning(alertEx, "Failed to generate price change alerts for product {ProductId}", request.ProductId);
                     // Don't throw - alerts are not critical to price history logging
                 }
             }
@@ -99,7 +87,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error logging price change for ProductSupplier {ProductSupplierId}", request.ProductSupplierId);
+            logger.LogError(ex, "Error logging price change for ProductSupplier {ProductSupplierId}", request.ProductSupplierId);
             throw;
         }
     }
@@ -109,7 +97,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
@@ -151,16 +139,16 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
                 priceHistories.Add(priceHistory);
             }
 
-            _context.SupplierProductPriceHistories.AddRange(priceHistories);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.SupplierProductPriceHistories.AddRange(priceHistories);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Bulk logged {Count} price changes", priceHistories.Count);
+            logger.LogInformation("Bulk logged {Count} price changes", priceHistories.Count);
 
             return priceHistories.Select(ph => ph.Id).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error bulk logging price changes");
+            logger.LogError(ex, "Error bulk logging price changes");
             throw;
         }
     }
@@ -174,13 +162,13 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
             }
 
-            var query = _context.SupplierProductPriceHistories
+            var query = context.SupplierProductPriceHistories
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId && h.ProductId == productId);
 
@@ -201,7 +189,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
             var historyItems = items.Select(MapToPriceHistoryItem).ToList();
 
             var statistics = await CalculateStatisticsAsync(
-                _context.SupplierProductPriceHistories
+                context.SupplierProductPriceHistories
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.SupplierId == supplierId && h.ProductId == productId),
                 cancellationToken);
@@ -218,7 +206,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
+            logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             throw;
         }
     }
@@ -231,13 +219,13 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
             }
 
-            var query = _context.SupplierProductPriceHistories
+            var query = context.SupplierProductPriceHistories
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId);
 
@@ -258,7 +246,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
             var historyItems = items.Select(MapToPriceHistoryItem).ToList();
 
             var statistics = await CalculateStatisticsAsync(
-                _context.SupplierProductPriceHistories
+                context.SupplierProductPriceHistories
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.SupplierId == supplierId),
                 cancellationToken);
@@ -275,7 +263,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -288,13 +276,13 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
             }
 
-            var query = _context.SupplierProductPriceHistories
+            var query = context.SupplierProductPriceHistories
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.ProductId == productId);
 
@@ -315,7 +303,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
             var historyItems = items.Select(MapToPriceHistoryItem).ToList();
 
             var statistics = await CalculateStatisticsAsync(
-                _context.SupplierProductPriceHistories
+                context.SupplierProductPriceHistories
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.ProductId == productId),
                 cancellationToken);
@@ -332,7 +320,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price history for Product {ProductId}", productId);
+            logger.LogError(ex, "Error retrieving price history for Product {ProductId}", productId);
             throw;
         }
     }
@@ -345,13 +333,13 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
             }
 
-            var query = _context.SupplierProductPriceHistories
+            var query = context.SupplierProductPriceHistories
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId);
 
@@ -364,7 +352,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating price history statistics for Supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Error calculating price history statistics for Supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -379,13 +367,13 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for price history operations.");
             }
 
-            var trendData = await _context.SupplierProductPriceHistories
+            var trendData = await context.SupplierProductPriceHistories
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId && h.ProductId == productId)
                 .Where(h => h.ChangedAt >= fromDate && h.ChangedAt <= toDate)
@@ -403,7 +391,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving price trend data for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
+            logger.LogError(ex, "Error retrieving price trend data for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             throw;
         }
     }
@@ -474,7 +462,7 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
             PriceChangePercentage = history.PriceChangePercentage,
             Currency = history.Currency,
             ChangedAt = history.ChangedAt,
-            ChangedByUserName = history.ChangedByUser != null
+            ChangedByUserName = history.ChangedByUser is not null
                 ? $"{history.ChangedByUser.FirstName} {history.ChangedByUser.LastName}".Trim()
                 : "Unknown",
             ChangeSource = history.ChangeSource,
@@ -533,4 +521,5 @@ public class SupplierProductPriceHistoryService : ISupplierProductPriceHistorySe
     }
 
     #endregion
+
 }

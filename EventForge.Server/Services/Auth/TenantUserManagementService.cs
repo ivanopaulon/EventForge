@@ -8,37 +8,21 @@ namespace EventForge.Server.Services.Auth;
 /// Service for tenant-scoped user management operations.
 /// Filters all operations to the current tenant context and validates access permissions.
 /// </summary>
-public class TenantUserManagementService : ITenantUserManagementService
+public class TenantUserManagementService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IPasswordService passwordService,
+    IAuditLogService auditLogService,
+    IHubContext<AuditLogHub> hubContext,
+    ILogger<TenantUserManagementService> logger) : ITenantUserManagementService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IPasswordService _passwordService;
-    private readonly IAuditLogService _auditLogService;
-    private readonly IHubContext<AuditLogHub> _hubContext;
-    private readonly ILogger<TenantUserManagementService> _logger;
-
-    public TenantUserManagementService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IPasswordService passwordService,
-        IAuditLogService auditLogService,
-        IHubContext<AuditLogHub> hubContext,
-        ILogger<TenantUserManagementService> logger)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _passwordService = passwordService;
-        _auditLogService = auditLogService;
-        _hubContext = hubContext;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Validates that the current user can access the specified tenant.
     /// </summary>
     private async Task ValidateTenantAccessAsync(Guid tenantId)
     {
-        if (!await _tenantContext.CanAccessTenantAsync(tenantId))
+        if (!await tenantContext.CanAccessTenantAsync(tenantId))
         {
             throw new UnauthorizedAccessException("Access to this tenant is not allowed");
         }
@@ -49,11 +33,11 @@ public class TenantUserManagementService : ITenantUserManagementService
     /// </summary>
     private Guid GetCurrentTenantId()
     {
-        if (!_tenantContext.CurrentTenantId.HasValue)
+        if (!tenantContext.CurrentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is not set");
         }
-        return _tenantContext.CurrentTenantId.Value;
+        return tenantContext.CurrentTenantId.Value;
     }
 
     /// <summary>
@@ -61,11 +45,11 @@ public class TenantUserManagementService : ITenantUserManagementService
     /// </summary>
     private Guid GetCurrentUserId()
     {
-        if (!_tenantContext.CurrentUserId.HasValue)
+        if (!tenantContext.CurrentUserId.HasValue)
         {
             throw new InvalidOperationException("User context is not set");
         }
-        return _tenantContext.CurrentUserId.Value;
+        return tenantContext.CurrentUserId.Value;
     }
 
     public async Task<IEnumerable<UserManagementDto>> GetAllUsersAsync(CancellationToken cancellationToken = default)
@@ -73,9 +57,9 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Retrieving all users for tenant {TenantId}", tenantId);
+        logger.LogInformation("Retrieving all users for tenant {TenantId}", tenantId);
 
-        var users = await _context.Users
+        var users = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
@@ -90,7 +74,7 @@ public class TenantUserManagementService : ITenantUserManagementService
             u.Tenant?.Name
         )).ToList();
 
-        _logger.LogInformation("Retrieved {Count} users for tenant {TenantId}", result.Count, tenantId);
+        logger.LogInformation("Retrieved {Count} users for tenant {TenantId}", result.Count, tenantId);
         return result;
     }
 
@@ -99,16 +83,16 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
-            _logger.LogWarning("User {UserId} not found in tenant {TenantId}", userId, tenantId);
+            logger.LogWarning("User {UserId} not found in tenant {TenantId}", userId, tenantId);
             return null;
         }
 
@@ -124,10 +108,10 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Searching users in tenant {TenantId} with query: {Query}", tenantId, query);
+        logger.LogInformation("Searching users in tenant {TenantId} with query: {Query}", tenantId, query);
 
         var lowerQuery = query.ToLower();
-        var users = await _context.Users
+        var users = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
@@ -155,23 +139,23 @@ public class TenantUserManagementService : ITenantUserManagementService
         // Override TenantId to current tenant (tenant admins can only create users in their own tenant)
         dto.TenantId = tenantId;
 
-        _logger.LogInformation("Creating new user {Username} in tenant {TenantId}", dto.Username, tenantId);
+        logger.LogInformation("Creating new user {Username} in tenant {TenantId}", dto.Username, tenantId);
 
         // Check if username already exists
-        if (await _context.Users.AnyAsync(u => u.Username == dto.Username, cancellationToken))
+        if (await context.Users.AnyAsync(u => u.Username == dto.Username, cancellationToken))
         {
             throw new InvalidOperationException($"Username '{dto.Username}' already exists");
         }
 
         // Check if email already exists
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email, cancellationToken))
+        if (await context.Users.AnyAsync(u => u.Email == dto.Email, cancellationToken))
         {
             throw new InvalidOperationException($"Email '{dto.Email}' already exists");
         }
 
         // Generate initial password
         var initialPassword = GenerateRandomPassword();
-        var (hash, salt) = _passwordService.HashPassword(initialPassword);
+        var (hash, salt) = passwordService.HashPassword(initialPassword);
 
         var user = new User
         {
@@ -189,12 +173,12 @@ public class TenantUserManagementService : ITenantUserManagementService
             ModifiedAt = DateTime.UtcNow
         };
 
-        _context.Users.Add(user);
+        context.Users.Add(user);
 
         // Assign roles
         if (dto.Roles.Any())
         {
-            var roles = await _context.Roles
+            var roles = await context.Roles
                 .Where(r => dto.Roles.Contains(r.Name))
                 .ToListAsync(cancellationToken);
 
@@ -209,14 +193,14 @@ public class TenantUserManagementService : ITenantUserManagementService
                     CreatedAt = DateTime.UtcNow,
                     ModifiedAt = DateTime.UtcNow
                 };
-                _context.UserRoles.Add(userRole);
+                context.UserRoles.Add(userRole);
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "User",
             user.Id,
             "User",
@@ -228,10 +212,10 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.",
+        logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.",
             dto.Username, user.Id);
 
-        var tenant = await _context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
+        var tenant = await context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
         var userManagementDto = UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
 
         // Return the created user with the initial password
@@ -259,16 +243,16 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Updating user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Updating user {UserId} in tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
@@ -278,7 +262,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         if (user.Email != dto.Email)
         {
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "Email", "Update",
                 user.Email, dto.Email,
                 GetCurrentUserId().ToString(), user.Username,
@@ -290,7 +274,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         if (user.FirstName != dto.FirstName)
         {
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "FirstName", "Update",
                 user.FirstName, dto.FirstName,
                 GetCurrentUserId().ToString(), user.Username,
@@ -302,7 +286,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         if (user.LastName != dto.LastName)
         {
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "LastName", "Update",
                 user.LastName, dto.LastName,
                 GetCurrentUserId().ToString(), user.Username,
@@ -314,7 +298,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         if (user.IsActive != dto.IsActive)
         {
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "IsActive", "Update",
                 user.IsActive.ToString(), dto.IsActive.ToString(),
                 GetCurrentUserId().ToString(), user.Username,
@@ -333,10 +317,10 @@ public class TenantUserManagementService : ITenantUserManagementService
         if (rolesChanged)
         {
             // Remove old roles
-            _context.UserRoles.RemoveRange(user.UserRoles);
+            context.UserRoles.RemoveRange(user.UserRoles);
 
             // Add new roles
-            var roles = await _context.Roles
+            var roles = await context.Roles
                 .Where(r => dto.Roles.Contains(r.Name))
                 .ToListAsync(cancellationToken);
 
@@ -351,10 +335,10 @@ public class TenantUserManagementService : ITenantUserManagementService
                     CreatedAt = DateTime.UtcNow,
                     ModifiedAt = DateTime.UtcNow
                 };
-                _context.UserRoles.Add(userRole);
+                context.UserRoles.Add(userRole);
             }
 
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "Roles", "Update",
                 string.Join(", ", currentRoles),
                 string.Join(", ", dto.Roles),
@@ -364,9 +348,9 @@ public class TenantUserManagementService : ITenantUserManagementService
             changes.Add($"Roles: [{string.Join(", ", currentRoles)}] -> [{string.Join(", ", dto.Roles)}]");
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("User {UserId} updated successfully. Changes: {Changes}",
+        logger.LogInformation("User {UserId} updated successfully. Changes: {Changes}",
             userId, string.Join("; ", changes));
 
         return UserMapper.ToManagementDto(user, dto.Roles, user.Tenant?.Name);
@@ -377,14 +361,14 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Deleting user {UserId} from tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Deleting user {UserId} from tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
@@ -396,16 +380,16 @@ public class TenantUserManagementService : ITenantUserManagementService
         }
 
         // Remove user roles first
-        _context.UserRoles.RemoveRange(user.UserRoles);
+        context.UserRoles.RemoveRange(user.UserRoles);
 
         // Soft delete by deactivating
         user.IsActive = false;
         user.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "User",
             userId,
             "IsActive",
@@ -417,7 +401,7 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {UserId} deleted (deactivated) successfully", userId);
+        logger.LogInformation("User {UserId} deleted (deactivated) successfully", userId);
     }
 
     public async Task<UserManagementDto> UpdateUserStatusAsync(Guid userId, UpdateUserStatusDto dto, CancellationToken cancellationToken = default)
@@ -425,23 +409,23 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Updating status for user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Updating status for user {UserId} in tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
 
         if (user.IsActive != dto.IsActive)
         {
-            await _auditLogService.LogEntityChangeAsync(
+            await auditLogService.LogEntityChangeAsync(
                 "User", userId, "IsActive", "Update",
                 user.IsActive.ToString(), dto.IsActive.ToString(),
                 GetCurrentUserId().ToString(), user.Username,
@@ -450,7 +434,7 @@ public class TenantUserManagementService : ITenantUserManagementService
             user.IsActive = dto.IsActive;
             user.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         return UserMapper.ToManagementDto(
@@ -465,16 +449,16 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Updating roles for user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Updating roles for user {UserId} in tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
@@ -482,10 +466,10 @@ public class TenantUserManagementService : ITenantUserManagementService
         var currentRoles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
 
         // Remove old roles
-        _context.UserRoles.RemoveRange(user.UserRoles);
+        context.UserRoles.RemoveRange(user.UserRoles);
 
         // Add new roles
-        var roleEntities = await _context.Roles
+        var roleEntities = await context.Roles
             .Where(r => roles.Contains(r.Name))
             .ToListAsync(cancellationToken);
 
@@ -500,14 +484,14 @@ public class TenantUserManagementService : ITenantUserManagementService
                 CreatedAt = DateTime.UtcNow,
                 ModifiedAt = DateTime.UtcNow
             };
-            _context.UserRoles.Add(userRole);
+            context.UserRoles.Add(userRole);
         }
 
         user.ModifiedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "User", userId, "Roles", "Update",
             string.Join(", ", currentRoles),
             string.Join(", ", roles),
@@ -515,7 +499,7 @@ public class TenantUserManagementService : ITenantUserManagementService
             cancellationToken
         );
 
-        _logger.LogInformation("User {UserId} roles updated successfully", userId);
+        logger.LogInformation("User {UserId} roles updated successfully", userId);
 
         return UserMapper.ToManagementDto(user, roles, user.Tenant?.Name);
     }
@@ -525,42 +509,42 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Resetting password for user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Resetting password for user {UserId} in tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
 
         // Validate password
-        var validationResult = _passwordService.ValidatePassword(newPassword);
+        var validationResult = passwordService.ValidatePassword(newPassword);
         if (!validationResult.IsValid)
         {
             throw new InvalidOperationException($"Password validation failed: {string.Join(", ", validationResult.Errors)}");
         }
 
-        var (hash, salt) = _passwordService.HashPassword(newPassword);
+        var (hash, salt) = passwordService.HashPassword(newPassword);
         user.PasswordHash = hash;
         user.PasswordSalt = salt;
         user.MustChangePassword = mustChangePassword;
         user.PasswordChangedAt = DateTime.UtcNow;
         user.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "User", userId, "Password", "Update",
             null, "***RESET***",
             GetCurrentUserId().ToString(), user.Username,
             cancellationToken
         );
 
-        _logger.LogInformation("Password reset successfully for user {UserId}", userId);
+        logger.LogInformation("Password reset successfully for user {UserId}", userId);
     }
 
     public async Task ForcePasswordChangeAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -568,13 +552,13 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Forcing password change for user {UserId} in tenant {TenantId}", userId, tenantId);
+        logger.LogInformation("Forcing password change for user {UserId} in tenant {TenantId}", userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
@@ -582,17 +566,17 @@ public class TenantUserManagementService : ITenantUserManagementService
         user.MustChangePassword = true;
         user.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "User", userId, "MustChangePassword", "Update",
             "false", "true",
             GetCurrentUserId().ToString(), user.Username,
             cancellationToken
         );
 
-        _logger.LogInformation("Password change forced for user {UserId}", userId);
+        logger.LogInformation("Password change forced for user {UserId}", userId);
     }
 
     public async Task<object> GetUserStatisticsAsync(CancellationToken cancellationToken = default)
@@ -600,16 +584,16 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Retrieving user statistics for tenant {TenantId}", tenantId);
+        logger.LogInformation("Retrieving user statistics for tenant {TenantId}", tenantId);
 
-        var totalUsers = await _context.Users.CountAsync(u => u.TenantId == tenantId, cancellationToken);
-        var activeUsers = await _context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive, cancellationToken);
+        var totalUsers = await context.Users.CountAsync(u => u.TenantId == tenantId, cancellationToken);
+        var activeUsers = await context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive, cancellationToken);
         var inactiveUsers = totalUsers - activeUsers;
-        var usersRequiringPasswordChange = await _context.Users.CountAsync(
+        var usersRequiringPasswordChange = await context.Users.CountAsync(
             u => u.TenantId == tenantId && u.MustChangePassword, cancellationToken);
 
         var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-        var recentLogins = await _context.Users.CountAsync(
+        var recentLogins = await context.Users.CountAsync(
             u => u.TenantId == tenantId && u.LastLoginAt.HasValue && u.LastLoginAt.Value >= oneMonthAgo,
             cancellationToken);
 
@@ -629,17 +613,17 @@ public class TenantUserManagementService : ITenantUserManagementService
         var tenantId = GetCurrentTenantId();
         await ValidateTenantAccessAsync(tenantId);
 
-        _logger.LogInformation("Performing quick action {Action} for user {UserId} in tenant {TenantId}",
+        logger.LogInformation("Performing quick action {Action} for user {UserId} in tenant {TenantId}",
             action, userId, tenantId);
 
-        var user = await _context.Users
+        var user = await context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Tenant)
             .Where(u => u.Id == userId && u.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new KeyNotFoundException($"User with ID {userId} not found in current tenant");
         }
@@ -648,7 +632,7 @@ public class TenantUserManagementService : ITenantUserManagementService
         {
             case "lock":
                 user.LockedUntil = DateTime.UtcNow.AddDays(30);
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "User", userId, "LockedUntil", "Update",
                     null, user.LockedUntil.ToString(),
                     GetCurrentUserId().ToString(), user.Username,
@@ -659,7 +643,7 @@ public class TenantUserManagementService : ITenantUserManagementService
             case "unlock":
                 user.LockedUntil = null;
                 user.FailedLoginAttempts = 0;
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "User", userId, "LockedUntil", "Update",
                     "locked", "null",
                     GetCurrentUserId().ToString(), user.Username,
@@ -669,7 +653,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
             case "activate":
                 user.IsActive = true;
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "User", userId, "IsActive", "Update",
                     "false", "true",
                     GetCurrentUserId().ToString(), user.Username,
@@ -679,7 +663,7 @@ public class TenantUserManagementService : ITenantUserManagementService
 
             case "deactivate":
                 user.IsActive = false;
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "User", userId, "IsActive", "Update",
                     "true", "false",
                     GetCurrentUserId().ToString(), user.Username,
@@ -692,9 +676,9 @@ public class TenantUserManagementService : ITenantUserManagementService
         }
 
         user.ModifiedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Quick action {Action} performed successfully for user {UserId}", action, userId);
+        logger.LogInformation("Quick action {Action} performed successfully for user {UserId}", action, userId);
 
         return UserMapper.ToManagementDto(
             user,
@@ -737,4 +721,5 @@ public class TenantUserManagementService : ITenantUserManagementService
 
         return new string(password);
     }
+
 }

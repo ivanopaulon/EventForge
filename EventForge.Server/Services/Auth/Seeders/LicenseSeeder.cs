@@ -5,18 +5,10 @@ namespace EventForge.Server.Services.Auth.Seeders;
 /// <summary>
 /// Implementation of license seeding service.
 /// </summary>
-public class LicenseSeeder : ILicenseSeeder
+public class LicenseSeeder(
+    EventForgeDbContext dbContext,
+    ILogger<LicenseSeeder> logger) : ILicenseSeeder
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly ILogger<LicenseSeeder> _logger;
-
-    public LicenseSeeder(
-        EventForgeDbContext dbContext,
-        ILogger<LicenseSeeder> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
 
     public async Task<License?> EnsureSuperAdminLicenseAsync(CancellationToken cancellationToken = default)
     {
@@ -33,10 +25,10 @@ public class LicenseSeeder : ILicenseSeeder
                 IsActive = true
             };
 
-            var existingLicense = await _dbContext.Licenses
+            var existingLicense = await dbContext.Licenses
                 .FirstOrDefaultAsync(l => l.Name == expectedConfig.Name, cancellationToken);
 
-            if (existingLicense != null)
+            if (existingLicense is not null)
             {
                 var hasChanges = false;
 
@@ -80,7 +72,7 @@ public class LicenseSeeder : ILicenseSeeder
                 {
                     existingLicense.ModifiedBy = "system";
                     existingLicense.ModifiedAt = DateTime.UtcNow;
-                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    _ = await dbContext.SaveChangesAsync(cancellationToken);
                 }
 
                 await SyncSuperAdminLicenseFeaturesAsync(existingLicense.Id, cancellationToken);
@@ -101,15 +93,15 @@ public class LicenseSeeder : ILicenseSeeder
                 TenantId = Guid.Empty
             };
 
-            _ = _dbContext.Licenses.Add(superAdminLicense);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = dbContext.Licenses.Add(superAdminLicense);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             await SyncSuperAdminLicenseFeaturesAsync(superAdminLicense.Id, cancellationToken);
             return superAdminLicense;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ensuring SuperAdmin license");
+            logger.LogError(ex, "Error ensuring SuperAdmin license");
             return null;
         }
     }
@@ -119,10 +111,10 @@ public class LicenseSeeder : ILicenseSeeder
         try
         {
             // Check if license is already assigned to this tenant
-            var existingAssignment = await _dbContext.TenantLicenses
+            var existingAssignment = await dbContext.TenantLicenses
                 .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && tl.LicenseId == licenseId, cancellationToken);
 
-            if (existingAssignment != null)
+            if (existingAssignment is not null)
             {
 
                 // Ensure assignment is active
@@ -131,7 +123,7 @@ public class LicenseSeeder : ILicenseSeeder
                     existingAssignment.IsAssignmentActive = true;
                     existingAssignment.ModifiedBy = "system";
                     existingAssignment.ModifiedAt = DateTime.UtcNow;
-                    _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                    _ = await dbContext.SaveChangesAsync(cancellationToken);
                 }
 
                 return true;
@@ -150,14 +142,14 @@ public class LicenseSeeder : ILicenseSeeder
                 TenantId = tenantId // License assignment belongs to the tenant it's assigned to
             };
 
-            _ = _dbContext.TenantLicenses.Add(tenantLicense);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = dbContext.TenantLicenses.Add(tenantLicense);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error assigning license to tenant");
+            logger.LogError(ex, "Error assigning license to tenant");
             return false;
         }
     }
@@ -211,7 +203,7 @@ public class LicenseSeeder : ILicenseSeeder
                 new { Name = "AdvancedSecurity", DisplayName = "Sicurezza Avanzata", Description = "Funzionalità di sicurezza avanzate", Category = "Security" }
             };
 
-            var existingFeatures = await _dbContext.LicenseFeatures
+            var existingFeatures = await dbContext.LicenseFeatures
                 .Where(lf => lf.LicenseId == licenseId)
                 .ToListAsync(cancellationToken);
 
@@ -222,7 +214,7 @@ public class LicenseSeeder : ILicenseSeeder
             {
                 var existing = existingFeatures.FirstOrDefault(f => f.Name == expected.Name);
 
-                if (existing == null)
+                if (existing is null)
                 {
                     // Feature doesn't exist, create it
                     var newFeature = new LicenseFeature
@@ -238,7 +230,7 @@ public class LicenseSeeder : ILicenseSeeder
                         TenantId = Guid.Empty
                     };
 
-                    _ = _dbContext.LicenseFeatures.Add(newFeature);
+                    _ = dbContext.LicenseFeatures.Add(newFeature);
                     featuresAdded++;
                 }
                 else
@@ -291,13 +283,14 @@ public class LicenseSeeder : ILicenseSeeder
 
             if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
             {
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error synchronizing SuperAdmin license features");
+            logger.LogError(ex, "Error synchronizing SuperAdmin license features");
             throw;
         }
     }
+
 }

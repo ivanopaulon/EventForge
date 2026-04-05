@@ -9,30 +9,16 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for bulk seeding inventory documents with all active tenant products.
 /// </summary>
-public class InventoryBulkSeedService : IInventoryBulkSeedService
+public class InventoryBulkSeedService(
+    EventForgeDbContext context,
+    IDocumentHeaderService documentHeaderService,
+    IStorageLocationService storageLocationService,
+    ITenantContext tenantContext,
+    ILogger<InventoryBulkSeedService> logger) : IInventoryBulkSeedService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IStorageLocationService _storageLocationService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<InventoryBulkSeedService> _logger;
 
     // Thread-local Random to avoid thread safety issues
     private static readonly ThreadLocal<Random> _random = new(() => new Random());
-
-    public InventoryBulkSeedService(
-        EventForgeDbContext context,
-        IDocumentHeaderService documentHeaderService,
-        IStorageLocationService storageLocationService,
-        ITenantContext tenantContext,
-        ILogger<InventoryBulkSeedService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<InventorySeedResultDto> SeedInventoryAsync(
         InventorySeedRequestDto request,
@@ -44,13 +30,13 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
 
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting inventory seed for tenant {TenantId} - Mode: {Mode}, CreateDocument: {CreateDocument}, BatchSize: {BatchSize}",
                 currentTenantId.Value, request.Mode, request.CreateDocument, request.BatchSize);
 
@@ -58,7 +44,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             ValidateRequest(request);
 
             // Get all active products for the tenant
-            var products = await _context.Products
+            var products = await context.Products
                 .Where(p => p.TenantId == currentTenantId.Value && p.Status == Data.Entities.Products.ProductStatus.Active && !p.IsDeleted)
                 .OrderBy(p => p.Code)
                 .ToListAsync(cancellationToken);
@@ -68,34 +54,34 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             if (products.Count == 0)
             {
                 result.Message = "Nessun prodotto attivo trovato per questo tenant.";
-                _logger.LogWarning("No active products found for tenant {TenantId}", currentTenantId.Value);
+                logger.LogWarning("No active products found for tenant {TenantId}", currentTenantId.Value);
                 return result;
             }
 
-            _logger.LogInformation("Found {Count} active products for seeding", products.Count);
+            logger.LogInformation("Found {Count} active products for seeding", products.Count);
 
             // Get or select location
             Guid locationId;
             if (request.LocationId.HasValue)
             {
                 locationId = request.LocationId.Value;
-                _logger.LogInformation("Using specified location: {LocationId}", locationId);
+                logger.LogInformation("Using specified location: {LocationId}", locationId);
             }
             else
             {
                 // Get the first available location for this tenant
-                var firstLocation = await _context.StorageLocations
+                var firstLocation = await context.StorageLocations
                     .Where(sl => sl.TenantId == currentTenantId.Value && !sl.IsDeleted)
                     .OrderBy(sl => sl.Code)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (firstLocation == null)
+                if (firstLocation is null)
                 {
                     throw new InvalidOperationException("Nessuna ubicazione trovata per questo tenant. Creare almeno un'ubicazione prima di seminare l'inventario.");
                 }
 
                 locationId = firstLocation.Id;
-                _logger.LogInformation("Using default location: {LocationId} ({Code})", locationId, firstLocation.Code);
+                logger.LogInformation("Using default location: {LocationId} ({Code})", locationId, firstLocation.Code);
             }
 
             // Create inventory document if requested
@@ -110,7 +96,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
                     cancellationToken);
 
                 result.DocumentId = documentId;
-                _logger.LogInformation("Created inventory document: {DocumentId}", documentId);
+                logger.LogInformation("Created inventory document: {DocumentId}", documentId);
             }
 
             // Process products in batches
@@ -120,7 +106,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             for (int i = 0; i < products.Count; i += batchSize)
             {
                 var batch = products.Skip(i).Take(batchSize).ToList();
-                _logger.LogInformation("Processing batch {BatchNumber} of {TotalBatches} ({Count} products)",
+                logger.LogInformation("Processing batch {BatchNumber} of {TotalBatches} ({Count} products)",
                     (i / batchSize) + 1, (products.Count + batchSize - 1) / batchSize, batch.Count);
 
                 foreach (var product in batch)
@@ -145,15 +131,15 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error processing product {ProductId} ({ProductCode})",
+                        logger.LogError(ex, "Error processing product {ProductId} ({ProductCode})",
                             product.Id, product.Code);
                         // Continue with next product
                     }
                 }
 
                 // Save changes for this batch
-                await _context.SaveChangesAsync(cancellationToken);
-                _logger.LogInformation("Saved batch {BatchNumber} - Total rows created: {RowsCreated}",
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Saved batch {BatchNumber} - Total rows created: {RowsCreated}",
                     (i / batchSize) + 1, rowsCreated);
             }
 
@@ -162,7 +148,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             result.DurationMs = sw.ElapsedMilliseconds;
             result.Message = $"Operazione completata con successo. Creati {rowsCreated} righe per {result.ProductsFound} prodotti in {sw.ElapsedMilliseconds}ms.";
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Inventory seed completed - Products: {ProductsFound}, Rows: {RowsCreated}, Duration: {Duration}ms",
                 result.ProductsFound, result.RowsCreated, result.DurationMs);
 
@@ -173,7 +159,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             sw.Stop();
             result.DurationMs = sw.ElapsedMilliseconds;
             result.Message = $"Errore durante l'operazione: {ex.Message}";
-            _logger.LogError(ex, "Error during inventory seed operation");
+            logger.LogError(ex, "Error during inventory seed operation");
             throw;
         }
     }
@@ -264,12 +250,12 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
         CancellationToken cancellationToken)
     {
         // Get or create inventory document type
-        var inventoryDocumentType = await _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
+        var inventoryDocumentType = await documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(
             tenantId,
             cancellationToken);
 
         // Get or create system business party for internal operations
-        var systemBusinessPartyId = await _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(
+        var systemBusinessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(
             tenantId,
             cancellationToken);
 
@@ -292,7 +278,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             IsProforma = true // Test document, not a real inventory operation
         };
 
-        var documentHeader = await _documentHeaderService.CreateDocumentHeaderAsync(
+        var documentHeader = await documentHeaderService.CreateDocumentHeaderAsync(
             createHeaderDto,
             currentUser,
             cancellationToken);
@@ -312,7 +298,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
         string? unitOfMeasure = null;
         if (product.UnitOfMeasureId.HasValue)
         {
-            var um = await _context.UMs
+            var um = await context.UMs
                 .FirstOrDefaultAsync(u => u.Id == product.UnitOfMeasureId.Value && !u.IsDeleted, cancellationToken);
             unitOfMeasure = um?.Symbol;
         }
@@ -322,9 +308,9 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
         string? vatDescription = null;
         if (product.VatRateId.HasValue)
         {
-            var vat = await _context.VatRates
+            var vat = await context.VatRates
                 .FirstOrDefaultAsync(v => v.Id == product.VatRateId.Value && !v.IsDeleted, cancellationToken);
-            if (vat != null)
+            if (vat is not null)
             {
                 vatRate = vat.Percentage;
                 vatDescription = $"VAT {vat.Percentage}%";
@@ -332,7 +318,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
         }
 
         // Get location info
-        var location = await _context.StorageLocations
+        var location = await context.StorageLocations
             .FirstOrDefaultAsync(sl => sl.Id == locationId && !sl.IsDeleted, cancellationToken);
 
         // Create document row
@@ -353,6 +339,7 @@ public class InventoryBulkSeedService : IInventoryBulkSeedService
             Notes = "Riga generata automaticamente dal seed"
         };
 
-        await _documentHeaderService.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
+        await documentHeaderService.AddDocumentRowAsync(createRowDto, currentUser, cancellationToken);
     }
+
 }

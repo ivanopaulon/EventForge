@@ -5,18 +5,10 @@ namespace EventForge.Server.Services.Logging;
 /// <summary>
 /// Service implementation for managing application logs.
 /// </summary>
-public class ApplicationLogService : IApplicationLogService
+public class ApplicationLogService(
+    EventForgeDbContext context,
+    ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<ApplicationLogService> _logger;
-
-    public ApplicationLogService(
-        EventForgeDbContext context,
-        ILogger<ApplicationLogService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets all application logs with pagination.
@@ -25,7 +17,7 @@ public class ApplicationLogService : IApplicationLogService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.LogEntries.AsQueryable();
+        var query = context.LogEntries.AsQueryable();
 
         var totalCount = await query.CountAsync(ct);
 
@@ -62,7 +54,7 @@ public class ApplicationLogService : IApplicationLogService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = _context.LogEntries
+        var query = context.LogEntries
             .Where(log => log.Level == level);
 
         var totalCount = await query.CountAsync(ct);
@@ -103,7 +95,7 @@ public class ApplicationLogService : IApplicationLogService
     {
         var end = endDate ?? DateTime.UtcNow;
 
-        var query = _context.LogEntries
+        var query = context.LogEntries
             .Where(log => log.TimeStamp >= startDate && log.TimeStamp <= end);
 
         var totalCount = await query.CountAsync(ct);
@@ -132,4 +124,5 @@ public class ApplicationLogService : IApplicationLogService
             PageSize = pagination.PageSize
         };
     }
+
 }

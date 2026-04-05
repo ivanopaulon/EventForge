@@ -8,25 +8,17 @@ namespace EventForge.Server.Services.Printing;
 /// Service for creating digital signatures for QZ Tray payloads using RSA-SHA256
 /// with complete certificate chain, timestamp, and uid support
 /// </summary>
-public class QzDigitalSignatureService
+public class QzDigitalSignatureService(ILogger<QzDigitalSignatureService> logger, IConfiguration configuration)
 {
-    private readonly ILogger<QzDigitalSignatureService> _logger;
-    private readonly string _privateKeyPath;
-    private readonly string _certificatePath;
-    private readonly string _intermediateCertificatePath;
+
+    private readonly string _privateKeyPath = configuration["QzSigning:PrivateKeyPath"] ?? "private-key.pem";
+    private readonly string _certificatePath = configuration["QzSigning:CertificatePath"] ?? "digital-certificate.txt";
+    private readonly string _intermediateCertificatePath = configuration["QzSigning:IntermediateCertificatePath"] ?? "";
 
     // Lightweight certificate chain caching
     private string? _cachedCertificateChain;
     private DateTime _cacheTimestamp = DateTime.MinValue;
     private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5); // 5 minute cache
-
-    public QzDigitalSignatureService(ILogger<QzDigitalSignatureService> logger, IConfiguration configuration)
-    {
-        _logger = logger;
-        _privateKeyPath = configuration["QzSigning:PrivateKeyPath"] ?? "private-key.pem";
-        _certificatePath = configuration["QzSigning:CertificatePath"] ?? "digital-certificate.txt";
-        _intermediateCertificatePath = configuration["QzSigning:IntermediateCertificatePath"] ?? "";
-    }
 
     /// <summary>
     /// Signs a QZ Tray payload and returns the payload with complete certificate chain, timestamp, uid, and signature
@@ -39,7 +31,7 @@ public class QzDigitalSignatureService
         try
         {
             ct.ThrowIfCancellationRequested();
-            _logger.LogDebug("Starting to sign QZ Tray payload");
+            logger.LogDebug("Starting to sign QZ Tray payload");
 
             // Load private key and certificate chain
             var privateKey = await LoadPrivateKeyAsync(ct);
@@ -62,7 +54,7 @@ public class QzDigitalSignatureService
 
             // Serialize the unsigned payload for signature calculation
             var unsignedPayloadJson = JsonSerializer.Serialize(unsignedPayload);
-            _logger.LogDebug("Unsigned payload for signing: {PayloadJson}", unsignedPayloadJson);
+            logger.LogDebug("Unsigned payload for signing: {PayloadJson}", unsignedPayloadJson);
 
             // Create signature
             var signature = CreateSignature(unsignedPayloadJson, privateKey);
@@ -79,12 +71,12 @@ public class QzDigitalSignatureService
                 position = unsignedPayload.position
             };
 
-            _logger.LogInformation("Successfully signed QZ Tray payload with timestamp: {Timestamp}, uid: {Uid}", timestamp, uid);
+            logger.LogInformation("Successfully signed QZ Tray payload with timestamp: {Timestamp}, uid: {Uid}", timestamp, uid);
             return signedPayload;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing QZ Tray payload");
+            logger.LogError(ex, "Error signing QZ Tray payload");
             throw new InvalidOperationException("Failed to sign QZ Tray payload", ex);
         }
     }
@@ -103,12 +95,12 @@ public class QzDigitalSignatureService
             var rsa = RSA.Create();
             rsa.ImportFromPem(privateKeyPem);
 
-            _logger.LogDebug("Successfully loaded private key from {PrivateKeyPath}", privateKeyPath);
+            logger.LogDebug("Successfully loaded private key from {PrivateKeyPath}", privateKeyPath);
             return rsa;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading private key from {PrivateKeyPath}", _privateKeyPath);
+            logger.LogError(ex, "Error loading private key from {PrivateKeyPath}", _privateKeyPath);
             throw;
         }
     }
@@ -139,20 +131,20 @@ public class QzDigitalSignatureService
                     // Concatenate with intermediate certificate marker as per QZ Tray requirements
                     certificateChain += "\n--START INTERMEDIATE CERT--\n" + intermediateCertificate.Trim();
 
-                    _logger.LogDebug("Successfully loaded certificate chain with intermediate certificate from {IntermediatePath}", intermediatePath);
+                    logger.LogDebug("Successfully loaded certificate chain with intermediate certificate from {IntermediatePath}", intermediatePath);
                 }
                 else
                 {
-                    _logger.LogWarning("Intermediate certificate path configured but file not found: {IntermediatePath}", intermediatePath);
+                    logger.LogWarning("Intermediate certificate path configured but file not found: {IntermediatePath}", intermediatePath);
                 }
             }
 
-            _logger.LogDebug("Successfully loaded certificate chain from {CertificatePath}", certificatePath);
+            logger.LogDebug("Successfully loaded certificate chain from {CertificatePath}", certificatePath);
             return certificateChain;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading certificate chain from {CertificatePath}", _certificatePath);
+            logger.LogError(ex, "Error loading certificate chain from {CertificatePath}", _certificatePath);
             throw;
         }
     }
@@ -164,12 +156,12 @@ public class QzDigitalSignatureService
             var dataBytes = Encoding.UTF8.GetBytes(data);
             var signature = privateKey.SignData(dataBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-            _logger.LogDebug("Successfully created RSA-SHA256 signature for data length: {DataLength}", dataBytes.Length);
+            logger.LogDebug("Successfully created RSA-SHA256 signature for data length: {DataLength}", dataBytes.Length);
             return signature;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating RSA-SHA256 signature");
+            logger.LogError(ex, "Error creating RSA-SHA256 signature");
             throw;
         }
     }
@@ -190,12 +182,12 @@ public class QzDigitalSignatureService
                 .Replace("=", "")
                 .ToLowerInvariant();
 
-            _logger.LogDebug("Generated uid: {Uid}", base64);
+            logger.LogDebug("Generated uid: {Uid}", base64);
             return base64;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating uid");
+            logger.LogError(ex, "Error generating uid");
             throw;
         }
     }
@@ -230,10 +222,10 @@ public class QzDigitalSignatureService
             ct.ThrowIfCancellationRequested();
 
             // Check cache first
-            if (_cachedCertificateChain != null &&
+            if (_cachedCertificateChain is not null &&
                 DateTime.UtcNow - _cacheTimestamp < _cacheExpiry)
             {
-                _logger.LogDebug("Returning cached certificate chain");
+                logger.LogDebug("Returning cached certificate chain");
                 return _cachedCertificateChain;
             }
 
@@ -244,12 +236,12 @@ public class QzDigitalSignatureService
             _cachedCertificateChain = certificateChain;
             _cacheTimestamp = DateTime.UtcNow;
 
-            _logger.LogDebug("Certificate chain loaded and cached");
+            logger.LogDebug("Certificate chain loaded and cached");
             return certificateChain;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting certificate chain for QZ endpoint");
+            logger.LogError(ex, "Error getting certificate chain for QZ endpoint");
             throw new InvalidOperationException("Failed to load certificate chain for QZ Tray", ex);
         }
     }
@@ -270,7 +262,7 @@ public class QzDigitalSignatureService
             }
 
             ct.ThrowIfCancellationRequested();
-            _logger.LogDebug("Signing challenge for QZ endpoint, length: {Length}", challenge.Length);
+            logger.LogDebug("Signing challenge for QZ endpoint, length: {Length}", challenge.Length);
 
             // Load private key
             using var privateKey = await LoadPrivateKeyAsync(ct);
@@ -279,12 +271,12 @@ public class QzDigitalSignatureService
             var signature = CreateSignature(challenge, privateKey);
             var base64Signature = Convert.ToBase64String(signature);
 
-            _logger.LogDebug("Challenge signed successfully, signature length: {Length}", base64Signature.Length);
+            logger.LogDebug("Challenge signed successfully, signature length: {Length}", base64Signature.Length);
             return base64Signature;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error signing challenge for QZ endpoint");
+            logger.LogError(ex, "Error signing challenge for QZ endpoint");
             throw new InvalidOperationException("Failed to sign challenge for QZ Tray", ex);
         }
     }
@@ -305,13 +297,13 @@ public class QzDigitalSignatureService
 
             if (!File.Exists(privateKeyPath))
             {
-                _logger.LogWarning("Private key file not found: {PrivateKeyPath}", privateKeyPath);
+                logger.LogWarning("Private key file not found: {PrivateKeyPath}", privateKeyPath);
                 return false;
             }
 
             if (!File.Exists(certificatePath))
             {
-                _logger.LogWarning("Certificate file not found: {CertificatePath}", certificatePath);
+                logger.LogWarning("Certificate file not found: {CertificatePath}", certificatePath);
                 return false;
             }
 
@@ -321,7 +313,7 @@ public class QzDigitalSignatureService
                 var intermediatePath = GetFilePath(_intermediateCertificatePath);
                 if (!File.Exists(intermediatePath))
                 {
-                    _logger.LogWarning("Intermediate certificate file not found: {IntermediatePath}", intermediatePath);
+                    logger.LogWarning("Intermediate certificate file not found: {IntermediatePath}", intermediatePath);
                     // This is a warning, not a failure - intermediate cert is optional
                 }
             }
@@ -330,13 +322,14 @@ public class QzDigitalSignatureService
             using var privateKey = await LoadPrivateKeyAsync(ct);
             var certificateChain = await LoadCertificateChainAsync(ct);
 
-            _logger.LogInformation("QZ Tray signing configuration is valid");
+            logger.LogInformation("QZ Tray signing configuration is valid");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "QZ Tray signing configuration validation failed");
+            logger.LogError(ex, "QZ Tray signing configuration validation failed");
             return false;
         }
     }
+
 }

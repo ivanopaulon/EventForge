@@ -6,27 +6,13 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for stock reconciliation operations.
 /// </summary>
-public class StockReconciliationService : IStockReconciliationService
+public class StockReconciliationService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    IStockMovementService stockMovementService,
+    ITenantContext tenantContext,
+    ILogger<StockReconciliationService> logger) : IStockReconciliationService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StockReconciliationService> _logger;
-
-    public StockReconciliationService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        IStockMovementService stockMovementService,
-        ITenantContext tenantContext,
-        ILogger<StockReconciliationService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<StockReconciliationResultDto> CalculateReconciledStockAsync(
         StockReconciliationRequestDto request,
@@ -34,7 +20,7 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -46,12 +32,12 @@ public class StockReconciliationService : IStockReconciliationService
                 throw new ArgumentException("FromDate cannot be after ToDate.");
             }
 
-            _logger.LogInformation("Starting stock reconciliation calculation for tenant {TenantId}", currentTenantId);
+            logger.LogInformation("Starting stock reconciliation calculation for tenant {TenantId}", currentTenantId);
 
             var result = new StockReconciliationResultDto();
 
             // Get stocks based on filters
-            var stocksQuery = _context.Stocks
+            var stocksQuery = context.Stocks
                 .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
@@ -76,7 +62,7 @@ public class StockReconciliationService : IStockReconciliationService
 
             var stocks = await stocksQuery.ToListAsync(cancellationToken);
 
-            _logger.LogInformation("Found {Count} stock records to reconcile", stocks.Count);
+            logger.LogInformation("Found {Count} stock records to reconcile", stocks.Count);
 
             if (stocks.Count == 0)
             {
@@ -92,7 +78,7 @@ public class StockReconciliationService : IStockReconciliationService
             var allInventoryRows = new List<Data.Entities.Documents.DocumentRow>();
             if (request.IncludeInventories)
             {
-                var invQuery = _context.DocumentRows
+                var invQuery = context.DocumentRows
                     .AsNoTracking()
                     .Include(dr => dr.DocumentHeader)
                         .ThenInclude(dh => dh!.DocumentType)
@@ -118,7 +104,7 @@ public class StockReconciliationService : IStockReconciliationService
             var allDocumentRows = new List<Data.Entities.Documents.DocumentRow>();
             if (request.IncludeDocuments)
             {
-                var docQuery = _context.DocumentRows
+                var docQuery = context.DocumentRows
                     .AsNoTracking()
                     .Include(dr => dr.DocumentHeader)
                         .ThenInclude(dh => dh!.DocumentType)
@@ -145,7 +131,7 @@ public class StockReconciliationService : IStockReconciliationService
             var allManualMovements = new List<StockMovement>();
             if (request.IncludeStockMovements)
             {
-                var manualMovQuery = _context.StockMovements
+                var manualMovQuery = context.StockMovements
                     .AsNoTracking()
                     .Where(sm => sm.TenantId == currentTenantId.Value &&
                                 !sm.IsDeleted &&
@@ -176,14 +162,14 @@ public class StockReconciliationService : IStockReconciliationService
             // Calculate summary
             result.Summary = CalculateSummary(result.Items);
 
-            _logger.LogInformation("Reconciliation calculation completed. Total items: {Total}, With discrepancies: {Discrepancies}",
+            logger.LogInformation("Reconciliation calculation completed. Total items: {Total}, With discrepancies: {Discrepancies}",
                 result.Summary.TotalProducts, result.Summary.TotalProducts - result.Summary.CorrectCount);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating stock reconciliation");
+            logger.LogError(ex, "Error calculating stock reconciliation");
             throw;
         }
     }
@@ -221,7 +207,7 @@ public class StockReconciliationService : IStockReconciliationService
                 .OrderByDescending(dr => dr.DocumentHeader!.Date)
                 .FirstOrDefault();
 
-            if (lastInventoryRow != null)
+            if (lastInventoryRow is not null)
             {
                 sourceMovements.Add(new StockMovementSourceDto
                 {
@@ -238,7 +224,7 @@ public class StockReconciliationService : IStockReconciliationService
 
                 if (request.StartingQuantity.HasValue && request.StartingQuantity.Value != 0m)
                 {
-                    _logger.LogDebug(
+                    logger.LogDebug(
                         "StartingQuantity {Qty} overridden by inventory document for product {ProductId} at location {LocationId}",
                         request.StartingQuantity.Value, stock.ProductId, stock.StorageLocationId);
                 }
@@ -378,19 +364,19 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            _logger.LogInformation("Applying stock reconciliation for {Count} items by user {User}",
+            logger.LogInformation("Applying stock reconciliation for {Count} items by user {User}",
                 request.ItemsToApply.Count, currentUser);
 
             var result = new StockReconciliationApplyResultDto { Success = true };
 
             // Use transaction for atomicity
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 // Recalculate using the exact same filters that produced the preview shown to the user.
@@ -408,12 +394,12 @@ public class StockReconciliationService : IStockReconciliationService
 
                 foreach (var item in itemsToUpdate)
                 {
-                    var stock = await _context.Stocks
+                    var stock = await context.Stocks
                         .FirstOrDefaultAsync(s => s.Id == item.StockId && s.TenantId == currentTenantId.Value, cancellationToken);
 
-                    if (stock == null)
+                    if (stock is null)
                     {
-                        _logger.LogWarning("Stock {StockId} not found", item.StockId);
+                        logger.LogWarning("Stock {StockId} not found", item.StockId);
                         continue;
                     }
 
@@ -430,7 +416,7 @@ public class StockReconciliationService : IStockReconciliationService
                     // so we only set stock.Quantity directly when not creating a movement to avoid double-applying the delta.
                     if (request.CreateAdjustmentMovements && adjustment != 0)
                     {
-                        await _stockMovementService.ProcessAdjustmentMovementAsync(
+                        await stockMovementService.ProcessAdjustmentMovementAsync(
                             productId: stock.ProductId,
                             locationId: stock.StorageLocationId,
                             adjustmentQuantity: adjustment,
@@ -452,7 +438,7 @@ public class StockReconciliationService : IStockReconciliationService
                     }
 
                     // Audit log — include the reconciliation reason for a complete audit trail
-                    await _auditLogService.LogEntityChangeAsync(
+                    await auditLogService.LogEntityChangeAsync(
                         entityName: "Stock",
                         entityId: stock.Id,
                         propertyName: "Quantity",
@@ -464,16 +450,16 @@ public class StockReconciliationService : IStockReconciliationService
                         cancellationToken: cancellationToken);
                 }
 
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                _logger.LogInformation("Stock reconciliation applied successfully. Updated: {Updated}, Movements: {Movements}",
+                logger.LogInformation("Stock reconciliation applied successfully. Updated: {Updated}, Movements: {Movements}",
                     result.UpdatedCount, result.MovementsCreated);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Error applying stock reconciliation, transaction rolled back");
+                logger.LogError(ex, "Error applying stock reconciliation, transaction rolled back");
                 result.Success = false;
                 result.ErrorMessage = ex.Message;
             }
@@ -482,7 +468,7 @@ public class StockReconciliationService : IStockReconciliationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in ApplyReconciliationAsync");
+            logger.LogError(ex, "Error in ApplyReconciliationAsync");
             return new StockReconciliationApplyResultDto
             {
                 Success = false,
@@ -496,7 +482,7 @@ public class StockReconciliationService : IStockReconciliationService
         CancellationToken cancellationToken = default)
     {
         // TODO: Implement Excel export using EPPlus or ClosedXML with Summary, Details, and Movements sheets
-        _logger.LogWarning("Excel export not yet implemented - returning empty array");
+        logger.LogWarning("Excel export not yet implemented - returning empty array");
         return Task.FromResult(Array.Empty<byte>());
     }
 
@@ -505,7 +491,7 @@ public class StockReconciliationService : IStockReconciliationService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Current tenant ID is not available.");
@@ -519,16 +505,16 @@ public class StockReconciliationService : IStockReconciliationService
         var result = new RebuildMovementsResultDto { IsDryRun = request.DryRun };
 
         // Resolve effective status filters (defaults: Approved, Closed)
-        var approvalStatusFilter = (request.ApprovalStatuses != null && request.ApprovalStatuses.Count > 0)
+        var approvalStatusFilter = (request.ApprovalStatuses is not null && request.ApprovalStatuses.Count > 0)
             ? request.ApprovalStatuses.Select(v => (Data.Entities.Documents.ApprovalStatus)v).ToList()
             : new List<Data.Entities.Documents.ApprovalStatus> { Data.Entities.Documents.ApprovalStatus.Approved };
 
-        var documentStatusFilter = (request.DocumentStatuses != null && request.DocumentStatuses.Count > 0)
+        var documentStatusFilter = (request.DocumentStatuses is not null && request.DocumentStatuses.Count > 0)
             ? request.DocumentStatuses.Select(v => (EventForge.DTOs.Common.DocumentStatus)v).ToList()
             : new List<EventForge.DTOs.Common.DocumentStatus> { EventForge.DTOs.Common.DocumentStatus.Closed };
 
         // Build query on DocumentHeaders
-        var headersQuery = _context.DocumentHeaders
+        var headersQuery = context.DocumentHeaders
             .AsNoTracking()
             .Include(dh => dh.DocumentType)
             .Include(dh => dh.Rows!.Where(r => !r.IsDeleted))
@@ -569,7 +555,7 @@ public class StockReconciliationService : IStockReconciliationService
         var allRowIds = allEligibleRows.Select(r => r.Id).ToHashSet();
 
         // Batch query: which of these rows already have a movement?
-        var rowIdsWithMovement = await _context.StockMovements
+        var rowIdsWithMovement = await context.StockMovements
             .AsNoTracking()
             .Where(sm => sm.DocumentRowId.HasValue && allRowIds.Contains(sm.DocumentRowId!.Value) && !sm.IsDeleted)
             .Select(sm => sm.DocumentRowId!.Value)
@@ -597,7 +583,7 @@ public class StockReconciliationService : IStockReconciliationService
         }
 
         // Batch: fetch first storage location per warehouse
-        var storageLocationsByWarehouse = await _context.StorageLocations
+        var storageLocationsByWarehouse = await context.StorageLocations
             .AsNoTracking()
             .Where(sl => allWarehouseIds.Contains(sl.WarehouseId) && !sl.IsDeleted)
             .GroupBy(sl => sl.WarehouseId)
@@ -612,7 +598,7 @@ public class StockReconciliationService : IStockReconciliationService
 
         foreach (var documentHeader in documentHeaders)
         {
-            if (documentHeader.DocumentType == null || documentHeader.Rows == null)
+            if (documentHeader.DocumentType is null || documentHeader.Rows is null)
                 continue;
 
             var eligibleRows = documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue).ToList();
@@ -710,7 +696,7 @@ public class StockReconciliationService : IStockReconciliationService
             {
                 // Batch-load existing StockMovement entities by DocumentRowId
                 var rowIdsToUpdate = movementsToUpdate.Select(m => m.DocRowId).ToHashSet();
-                var existingByRowId = await _context.StockMovements
+                var existingByRowId = await context.StockMovements
                     .Where(sm => sm.DocumentRowId.HasValue && rowIdsToUpdate.Contains(sm.DocumentRowId!.Value) && !sm.IsDeleted)
                     .ToDictionaryAsync(sm => sm.DocumentRowId!.Value, cancellationToken);
 
@@ -725,7 +711,7 @@ public class StockReconciliationService : IStockReconciliationService
                     if (ex.ToLocationId.HasValue) updateLocationIds.Add(ex.ToLocationId.Value);
                 }
 
-                var stocksForUpdate = await _context.Stocks
+                var stocksForUpdate = await context.Stocks
                     .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted
                                 && updateProductIds.Contains(s.ProductId)
                                 && updateLocationIds.Contains(s.StorageLocationId))
@@ -790,7 +776,7 @@ public class StockReconciliationService : IStockReconciliationService
                             updatedCount++;
                         }
 
-                        _ = await _context.SaveChangesAsync(cancellationToken);
+                        _ = await context.SaveChangesAsync(cancellationToken);
                     }
 
                     result.MovementsUpdated += updatedCount;
@@ -814,7 +800,7 @@ public class StockReconciliationService : IStockReconciliationService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in batch movement update during rebuild");
+                    logger.LogError(ex, "Error in batch movement update during rebuild");
                     result.Errors += movementsToUpdate.Count - updatedCount;
                     foreach (var m in movementsToUpdate)
                     {
@@ -865,7 +851,7 @@ public class StockReconciliationService : IStockReconciliationService
                 // Batch create all movements: single SaveChangesAsync + single audit log entry
                 try
                 {
-                    await _stockMovementService.CreateMovementsBatchAsync(
+                    await stockMovementService.CreateMovementsBatchAsync(
                         movementsToCreate.Select(m => m.Dto),
                         currentUser!,
                         cancellationToken);
@@ -888,7 +874,7 @@ public class StockReconciliationService : IStockReconciliationService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error in batch movement creation during rebuild");
+                    logger.LogError(ex, "Error in batch movement creation during rebuild");
                     result.Errors += movementsToCreate.Count;
                     foreach (var m in movementsToCreate)
                     {
@@ -947,11 +933,11 @@ public class StockReconciliationService : IStockReconciliationService
             if (affectedPairs.Count > 0)
             {
                 await RecalculateStockForAffectedPairsAsync(affectedPairs, currentTenantId.Value, currentUser, cancellationToken);
-                _logger.LogInformation("RebuildMissingMovements Phase 3: recalculated stock for {Count} product/location pair(s).", affectedPairs.Count);
+                logger.LogInformation("RebuildMissingMovements Phase 3: recalculated stock for {Count} product/location pair(s).", affectedPairs.Count);
             }
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "RebuildMissingMovements: scanned {docs} documents, {rows} rows. Created: {created}, Updated: {updated}, AlreadyExists: {exists}, SkippedNoLocation: {skipped}, Errors: {errors}. DryRun={dryRun}",
             result.DocumentsScanned, result.RowsScanned, result.MovementsCreated, result.MovementsUpdated,
             result.RowsAlreadyHadMovement, result.RowsSkippedNoLocation, result.Errors, result.IsDryRun);
@@ -1014,7 +1000,7 @@ public class StockReconciliationService : IStockReconciliationService
         var locationIds = pairs.Select(p => p.LocationId).ToHashSet();
 
         // Load all active Stock records for the affected pairs.
-        var existingStocks = await _context.Stocks
+        var existingStocks = await context.Stocks
             .Where(s => s.TenantId == tenantId
                         && productIds.Contains(s.ProductId)
                         && locationIds.Contains(s.StorageLocationId))
@@ -1034,7 +1020,7 @@ public class StockReconciliationService : IStockReconciliationService
             var missingProductIds = missingPairs.Select(p => p.ProductId).ToHashSet();
             var missingLocationIds = missingPairs.Select(p => p.LocationId).ToHashSet();
 
-            var inboundTotals = await _context.StockMovements
+            var inboundTotals = await context.StockMovements
                 .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
                              && sm.ToLocationId.HasValue
                              && missingProductIds.Contains(sm.ProductId)
@@ -1043,7 +1029,7 @@ public class StockReconciliationService : IStockReconciliationService
                 .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => sm.Quantity) })
                 .ToListAsync(cancellationToken);
 
-            var outboundTotals = await _context.StockMovements
+            var outboundTotals = await context.StockMovements
                 .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
                              && sm.FromLocationId.HasValue
                              && missingProductIds.Contains(sm.ProductId)
@@ -1084,7 +1070,7 @@ public class StockReconciliationService : IStockReconciliationService
                 // No stock record exists — create from movement net.
                 // Cap at 0 to avoid negative balances when outbound-only document history is incomplete.
                 var netQty = Math.Max(0m, netForMissingPairs.GetValueOrDefault(pair, 0m));
-                _context.Stocks.Add(new Stock
+                context.Stocks.Add(new Stock
                 {
                     TenantId = tenantId,
                     ProductId = pair.ProductId,
@@ -1098,6 +1084,7 @@ public class StockReconciliationService : IStockReconciliationService
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
+
 }

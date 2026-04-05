@@ -7,14 +7,14 @@ namespace EventForge.Server.Services.Configuration;
 /// <summary>
 /// Service for managing branding configuration with multi-tenant support and caching.
 /// </summary>
-public class BrandingService : IBrandingService
+public class BrandingService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IConfigurationService configurationService,
+    IMemoryCache cache,
+    ILogger<BrandingService> logger,
+    IWebHostEnvironment environment) : IBrandingService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IConfigurationService _configurationService;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<BrandingService> _logger;
-    private readonly IWebHostEnvironment _environment;
 
     private const string CACHE_KEY_PREFIX = "branding_";
     private const string GLOBAL_CACHE_KEY = "branding_global";
@@ -31,22 +31,6 @@ public class BrandingService : IBrandingService
     private const long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private const string UPLOAD_FOLDER = "uploads/logos";
 
-    public BrandingService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IConfigurationService configurationService,
-        IMemoryCache cache,
-        ILogger<BrandingService> logger,
-        IWebHostEnvironment environment)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _configurationService = configurationService;
-        _cache = cache;
-        _logger = logger;
-        _environment = environment;
-    }
-
     public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null, CancellationToken ct = default)
     {
         try
@@ -54,13 +38,13 @@ public class BrandingService : IBrandingService
             var cacheKey = tenantId.HasValue ? $"{CACHE_KEY_PREFIX}{tenantId}" : GLOBAL_CACHE_KEY;
 
             // Try to get from cache
-            if (_cache.TryGetValue(cacheKey, out BrandingConfigurationDto? cached) && cached != null)
+            if (cache.TryGetValue(cacheKey, out BrandingConfigurationDto? cached) && cached is not null)
             {
-                _logger.LogDebug("Returning branding configuration from cache for {CacheKey}", cacheKey);
+                logger.LogDebug("Returning branding configuration from cache for {CacheKey}", cacheKey);
                 return cached;
             }
 
-            _logger.LogInformation("Loading branding configuration for TenantId: {TenantId}", tenantId);
+            logger.LogInformation("Loading branding configuration for TenantId: {TenantId}", tenantId);
 
             var branding = new BrandingConfigurationDto
             {
@@ -73,11 +57,11 @@ public class BrandingService : IBrandingService
             };
 
             // Get global configuration
-            var logoUrl = await _configurationService.GetValueAsync("Branding:LogoUrl", DEFAULT_LOGO_URL, ct);
-            var logoHeight = await _configurationService.GetValueAsync("Branding:LogoHeight", DEFAULT_LOGO_HEIGHT.ToString(), ct);
-            var applicationName = await _configurationService.GetValueAsync("Branding:ApplicationName", DEFAULT_APPLICATION_NAME, ct);
-            var faviconUrl = await _configurationService.GetValueAsync("Branding:FaviconUrl", DEFAULT_FAVICON_URL, ct);
-            var allowTenantOverride = await _configurationService.GetValueAsync("Branding:AllowTenantOverride", "true", ct);
+            var logoUrl = await configurationService.GetValueAsync("Branding:LogoUrl", DEFAULT_LOGO_URL, ct);
+            var logoHeight = await configurationService.GetValueAsync("Branding:LogoHeight", DEFAULT_LOGO_HEIGHT.ToString(), ct);
+            var applicationName = await configurationService.GetValueAsync("Branding:ApplicationName", DEFAULT_APPLICATION_NAME, ct);
+            var faviconUrl = await configurationService.GetValueAsync("Branding:FaviconUrl", DEFAULT_FAVICON_URL, ct);
+            var allowTenantOverride = await configurationService.GetValueAsync("Branding:AllowTenantOverride", "true", ct);
 
             branding.LogoUrl = logoUrl;
             branding.LogoHeight = int.TryParse(logoHeight, out var height) ? height : DEFAULT_LOGO_HEIGHT;
@@ -87,11 +71,11 @@ public class BrandingService : IBrandingService
             // Check for tenant override if allowed and tenant specified
             if (tenantId.HasValue && bool.TryParse(allowTenantOverride, out var allowed) && allowed)
             {
-                var tenant = await _context.Tenants
+                var tenant = await context.Tenants
                     .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
 
-                if (tenant != null)
+                if (tenant is not null)
                 {
                     var hasOverride = false;
 
@@ -123,18 +107,18 @@ public class BrandingService : IBrandingService
                 AbsoluteExpirationRelativeToNow = CacheDuration,
                 Size = 1  // REQUIRED when SizeLimit is set in Program.cs
             };
-            _cache.Set(cacheKey, branding, cacheOptions);
+            cache.Set(cacheKey, branding, cacheOptions);
 
             return branding;
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("GetBrandingAsync operation was cancelled");
+            logger.LogInformation("GetBrandingAsync operation was cancelled");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting branding configuration for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error getting branding configuration for TenantId: {TenantId}", tenantId);
 
             // Return default branding on error
             return new BrandingConfigurationDto
@@ -153,39 +137,39 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            _logger.LogInformation("Updating global branding configuration by user: {Username}", username);
+            logger.LogInformation("Updating global branding configuration by user: {Username}", username);
 
             // Update configuration values
             if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
             {
-                await _configurationService.SetValueAsync("Branding:LogoUrl", updateDto.LogoUrl, $"Updated by {username}", ct);
+                await configurationService.SetValueAsync("Branding:LogoUrl", updateDto.LogoUrl, $"Updated by {username}", ct);
             }
 
             if (updateDto.LogoHeight.HasValue)
             {
-                await _configurationService.SetValueAsync("Branding:LogoHeight", updateDto.LogoHeight.Value.ToString(), $"Updated by {username}", ct);
+                await configurationService.SetValueAsync("Branding:LogoHeight", updateDto.LogoHeight.Value.ToString(), $"Updated by {username}", ct);
             }
 
             if (!string.IsNullOrWhiteSpace(updateDto.ApplicationName))
             {
-                await _configurationService.SetValueAsync("Branding:ApplicationName", updateDto.ApplicationName, $"Updated by {username}", ct);
+                await configurationService.SetValueAsync("Branding:ApplicationName", updateDto.ApplicationName, $"Updated by {username}", ct);
             }
 
             if (!string.IsNullOrWhiteSpace(updateDto.FaviconUrl))
             {
-                await _configurationService.SetValueAsync("Branding:FaviconUrl", updateDto.FaviconUrl, $"Updated by {username}", ct);
+                await configurationService.SetValueAsync("Branding:FaviconUrl", updateDto.FaviconUrl, $"Updated by {username}", ct);
             }
 
             // Invalidate cache
-            _cache.Remove(GLOBAL_CACHE_KEY);
+            cache.Remove(GLOBAL_CACHE_KEY);
 
-            _logger.LogInformation("Global branding configuration updated successfully by user: {Username}", username);
+            logger.LogInformation("Global branding configuration updated successfully by user: {Username}", username);
 
             return await GetBrandingAsync(null, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating global branding configuration");
+            logger.LogError(ex, "Error updating global branding configuration");
             throw;
         }
     }
@@ -194,12 +178,12 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            _logger.LogInformation("Updating tenant branding for TenantId: {TenantId} by user: {Username}", tenantId, username);
+            logger.LogInformation("Updating tenant branding for TenantId: {TenantId} by user: {Username}", tenantId, username);
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
 
-            if (tenant == null)
+            if (tenant is null)
             {
                 throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
             }
@@ -223,18 +207,18 @@ public class BrandingService : IBrandingService
             tenant.ModifiedBy = username;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(ct);
+            await context.SaveChangesAsync(ct);
 
             // Invalidate cache
-            _cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
+            cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
 
-            _logger.LogInformation("Tenant branding updated successfully for TenantId: {TenantId}", tenantId);
+            logger.LogInformation("Tenant branding updated successfully for TenantId: {TenantId}", tenantId);
 
             return await GetBrandingAsync(tenantId, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -243,12 +227,12 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            _logger.LogInformation("Deleting tenant branding override for TenantId: {TenantId}", tenantId);
+            logger.LogInformation("Deleting tenant branding override for TenantId: {TenantId}", tenantId);
 
-            var tenant = await _context.Tenants
+            var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
 
-            if (tenant == null)
+            if (tenant is null)
             {
                 throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
             }
@@ -259,16 +243,16 @@ public class BrandingService : IBrandingService
             tenant.CustomFaviconUrl = null;
             tenant.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync(ct);
+            await context.SaveChangesAsync(ct);
 
             // Invalidate cache
-            _cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
+            cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
 
-            _logger.LogInformation("Tenant branding override deleted successfully for TenantId: {TenantId}", tenantId);
+            logger.LogInformation("Tenant branding override deleted successfully for TenantId: {TenantId}", tenantId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -277,7 +261,7 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            if (file == null || file.Length == 0)
+            if (file is null || file.Length == 0)
             {
                 throw new ArgumentException("File is required.");
             }
@@ -296,7 +280,7 @@ public class BrandingService : IBrandingService
             }
 
             // Create upload directory if it doesn't exist
-            var uploadPath = Path.Combine(_environment.WebRootPath, UPLOAD_FOLDER);
+            var uploadPath = Path.Combine(environment.WebRootPath, UPLOAD_FOLDER);
             Directory.CreateDirectory(uploadPath);
 
             // Generate unique filename
@@ -311,14 +295,15 @@ public class BrandingService : IBrandingService
 
             var logoUrl = $"/{UPLOAD_FOLDER}/{fileName}";
 
-            _logger.LogInformation("Logo uploaded successfully: {LogoUrl} for TenantId: {TenantId}", logoUrl, tenantId);
+            logger.LogInformation("Logo uploaded successfully: {LogoUrl} for TenantId: {TenantId}", logoUrl, tenantId);
 
             return logoUrl;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading logo for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error uploading logo for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
+
 }

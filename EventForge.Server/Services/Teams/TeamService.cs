@@ -6,24 +6,12 @@ namespace EventForge.Server.Services.Teams;
 /// <summary>
 /// Service implementation for managing teams and team members.
 /// </summary>
-public class TeamService : ITeamService
+public class TeamService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<TeamService> logger) : ITeamService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<TeamService> _logger;
-
-    public TeamService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<TeamService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     // Team CRUD operations
 
@@ -31,13 +19,13 @@ public class TeamService : ITeamService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for team operations.");
             }
 
-            var query = _context.Teams
+            var query = context.Teams
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value));
@@ -61,7 +49,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei team.");
+            logger.LogError(ex, "Errore durante il recupero dei team.");
             throw;
         }
     }
@@ -70,7 +58,7 @@ public class TeamService : ITeamService
     {
         try
         {
-            var teams = await _context.Teams
+            var teams = await context.Teams
                 .Where(t => t.EventId == eventId && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
@@ -81,7 +69,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei team per l'evento {EventId}.", eventId);
+            logger.LogError(ex, "Errore durante il recupero dei team per l'evento {EventId}.", eventId);
             throw;
         }
     }
@@ -90,15 +78,15 @@ public class TeamService : ITeamService
     {
         try
         {
-            var team = await _context.Teams
+            var team = await context.Teams
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
-                _logger.LogWarning("Team con ID {TeamId} non trovato.", id);
+                logger.LogWarning("Team con ID {TeamId} non trovato.", id);
                 return null;
             }
 
@@ -106,7 +94,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero del team {TeamId}.", id);
+            logger.LogError(ex, "Errore durante il recupero del team {TeamId}.", id);
             throw;
         }
     }
@@ -115,15 +103,15 @@ public class TeamService : ITeamService
     {
         try
         {
-            var team = await _context.Teams
+            var team = await context.Teams
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
-                _logger.LogWarning("Team con ID {TeamId} non trovato per dettagli.", id);
+                logger.LogWarning("Team con ID {TeamId} non trovato per dettagli.", id);
                 return null;
             }
 
@@ -131,7 +119,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei dettagli del team {TeamId}.", id);
+            logger.LogError(ex, "Errore durante il recupero dei dettagli del team {TeamId}.", id);
             throw;
         }
     }
@@ -158,13 +146,13 @@ public class TeamService : ITeamService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.Teams.Add(team);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Teams.Add(team);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            _ = await _auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
 
-            var createdTeam = await _context.Teams
+            var createdTeam = await context.Teams
                 .Include(t => t.Event)
                 .Include(t => t.Members)
                 .FirstAsync(t => t.Id == team.Id, cancellationToken);
@@ -173,7 +161,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la creazione del team.");
+            logger.LogError(ex, "Errore durante la creazione del team.");
             throw;
         }
     }
@@ -185,20 +173,20 @@ public class TeamService : ITeamService
             ArgumentNullException.ThrowIfNull(updateTeamDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var team = await _context.Teams
+            var team = await context.Teams
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
-                _logger.LogWarning("Team con ID {TeamId} non trovato per update da parte di {User}.", id, currentUser);
+                logger.LogWarning("Team con ID {TeamId} non trovato per update da parte di {User}.", id, currentUser);
                 return null;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(team).CurrentValues.Clone();
+            var originalValues = context.Entry(team).CurrentValues.Clone();
             var originalTeam = (Team)originalValues.ToObject();
 
             team.Name = updateTeamDto.Name;
@@ -210,16 +198,16 @@ public class TeamService : ITeamService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating team {TeamId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating team {TeamId}.", id);
                 throw new InvalidOperationException("Il team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            _ = await _auditLogService.TrackEntityChangesAsync(team, "Update", currentUser, originalTeam, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(team, "Update", currentUser, originalTeam, cancellationToken);
 
             return MapToTeamDto(team);
         }
@@ -229,7 +217,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiornamento del team {TeamId}.", id);
+            logger.LogError(ex, "Errore durante l'aggiornamento del team {TeamId}.", id);
             throw;
         }
     }
@@ -240,25 +228,25 @@ public class TeamService : ITeamService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var team = await _context.Teams
+            var team = await context.Teams
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (team == null)
+            if (team is null)
             {
-                _logger.LogWarning("Team con ID {TeamId} non trovato per cancellazione da parte di {User}.", id, currentUser);
+                logger.LogWarning("Team con ID {TeamId} non trovato per cancellazione da parte di {User}.", id, currentUser);
                 return false;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(team).CurrentValues.Clone();
+            var originalValues = context.Entry(team).CurrentValues.Clone();
             var originalTeam = (Team)originalValues.ToObject();
 
             team.IsDeleted = true;
             team.DeletedBy = currentUser;
             team.DeletedAt = DateTime.UtcNow;
 
-            var members = await _context.TeamMembers
+            var members = await context.TeamMembers
                 .Where(m => m.TeamId == id && !m.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -267,7 +255,7 @@ public class TeamService : ITeamService
                 m => m.Id,
                 m =>
                 {
-                    var originalMemberValues = _context.Entry(m).CurrentValues.Clone();
+                    var originalMemberValues = context.Entry(m).CurrentValues.Clone();
                     return (TeamMember)originalMemberValues.ToObject();
                 }
             );
@@ -281,21 +269,21 @@ public class TeamService : ITeamService
                 member.DeletedAt = DateTime.UtcNow;
 
                 // Audit log per ogni membro eliminato
-                _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+                _ = await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
             }
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting team {TeamId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting team {TeamId}.", id);
                 throw new InvalidOperationException("Il team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log per il team eliminato
-            _ = await _auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
             return true;
         }
@@ -305,7 +293,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la cancellazione del team {TeamId}.", id);
+            logger.LogError(ex, "Errore durante la cancellazione del team {TeamId}.", id);
             throw;
         }
     }
@@ -314,7 +302,7 @@ public class TeamService : ITeamService
 
     public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        var members = await _context.TeamMembers
+        var members = await context.TeamMembers
             .Where(m => m.TeamId == teamId && !m.IsDeleted)
             .Include(m => m.Team)
             .OrderBy(m => m.LastName)
@@ -326,14 +314,14 @@ public class TeamService : ITeamService
 
     public async Task<TeamMemberDto?> GetTeamMemberByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var member = await _context.TeamMembers
+        var member = await context.TeamMembers
             .Where(m => m.Id == id && !m.IsDeleted)
             .Include(m => m.Team)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (member == null)
+        if (member is null)
         {
-            _logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
+            logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
             return null;
         }
 
@@ -363,13 +351,13 @@ public class TeamService : ITeamService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.TeamMembers.Add(member);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.TeamMembers.Add(member);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log
-            _ = await _auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
 
-            var createdMember = await _context.TeamMembers
+            var createdMember = await context.TeamMembers
                 .Include(m => m.Team)
                 .FirstAsync(m => m.Id == member.Id, cancellationToken);
 
@@ -377,7 +365,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiunta di un membro al team.");
+            logger.LogError(ex, "Errore durante l'aggiunta di un membro al team.");
             throw;
         }
     }
@@ -389,18 +377,18 @@ public class TeamService : ITeamService
             ArgumentNullException.ThrowIfNull(updateTeamMemberDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var member = await _context.TeamMembers
+            var member = await context.TeamMembers
                 .Where(m => m.Id == id && !m.IsDeleted)
                 .Include(m => m.Team)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (member == null)
+            if (member is null)
             {
-                _logger.LogWarning("Team member con ID {MemberId} non trovato per update da parte di {User}.", id, currentUser);
+                logger.LogWarning("Team member con ID {MemberId} non trovato per update da parte di {User}.", id, currentUser);
                 return null;
             }
 
-            var originalMember = await _context.TeamMembers
+            var originalMember = await context.TeamMembers
                 .AsNoTracking()
                 .Where(m => m.Id == id && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -415,16 +403,16 @@ public class TeamService : ITeamService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating team member {MemberId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating team member {MemberId}.", id);
                 throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            _ = await _auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
 
             return MapToTeamMemberDto(member);
         }
@@ -434,7 +422,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiornamento del membro {MemberId}.", id);
+            logger.LogError(ex, "Errore durante l'aggiornamento del membro {MemberId}.", id);
             throw;
         }
     }
@@ -445,17 +433,17 @@ public class TeamService : ITeamService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var member = await _context.TeamMembers
+            var member = await context.TeamMembers
                 .Where(m => m.Id == id && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (member == null)
+            if (member is null)
             {
-                _logger.LogWarning("Team member con ID {MemberId} non trovato per cancellazione da parte di {User}.", id, currentUser);
+                logger.LogWarning("Team member con ID {MemberId} non trovato per cancellazione da parte di {User}.", id, currentUser);
                 return false;
             }
 
-            var originalMember = await _context.TeamMembers
+            var originalMember = await context.TeamMembers
                 .AsNoTracking()
                 .Where(m => m.Id == id && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -466,16 +454,16 @@ public class TeamService : ITeamService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict removing team member {MemberId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict removing team member {MemberId}.", id);
                 throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log
-            _ = await _auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
 
             return true;
         }
@@ -485,23 +473,23 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la rimozione del membro {MemberId}.", id);
+            logger.LogError(ex, "Errore durante la rimozione del membro {MemberId}.", id);
             throw;
         }
     }
 
     public async Task<bool> TeamExistsAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        return await _context.Teams
+        return await context.Teams
             .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<TeamMemberDto>> GetMembersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId;
+        var tenantId = tenantContext.CurrentTenantId;
         if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
 
-        var members = await _context.TeamMembers
+        var members = await context.TeamMembers
             .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
             .Include(m => m.Team)
             .OrderBy(m => m.LastName)
@@ -513,7 +501,7 @@ public class TeamService : ITeamService
 
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await _context.Events
+        return await context.Events
             .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
     }
 
@@ -523,7 +511,7 @@ public class TeamService : ITeamService
     {
         try
         {
-            var documents = await _context.DocumentReferences
+            var documents = await context.DocumentReferences
                 .Where(d => d.OwnerId == ownerId && d.OwnerType == ownerType && !d.IsDeleted)
                 .OrderBy(d => d.Type)
                 .ThenBy(d => d.CreatedAt)
@@ -533,7 +521,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving documents for owner {OwnerId} of type {OwnerType}", ownerId, ownerType);
+            logger.LogError(ex, "Error retrieving documents for owner {OwnerId} of type {OwnerType}", ownerId, ownerType);
             throw;
         }
     }
@@ -542,15 +530,15 @@ public class TeamService : ITeamService
     {
         try
         {
-            var document = await _context.DocumentReferences
+            var document = await context.DocumentReferences
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return document != null ? MapToDocumentReferenceDto(document) : null;
+            return document is not null ? MapToDocumentReferenceDto(document) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document reference {DocumentId}", id);
+            logger.LogError(ex, "Error retrieving document reference {DocumentId}", id);
             throw;
         }
     }
@@ -579,19 +567,19 @@ public class TeamService : ITeamService
                 Notes = createDocumentDto.Notes,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
-                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _ = _context.DocumentReferences.Add(document);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentReferences.Add(document);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
 
             return MapToDocumentReferenceDto(document);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document reference");
+            logger.LogError(ex, "Error creating document reference");
             throw;
         }
     }
@@ -603,17 +591,17 @@ public class TeamService : ITeamService
             ArgumentNullException.ThrowIfNull(updateDocumentDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var document = await _context.DocumentReferences
+            var document = await context.DocumentReferences
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (document == null)
+            if (document is null)
             {
-                _logger.LogWarning("Document reference {DocumentId} not found for update", id);
+                logger.LogWarning("Document reference {DocumentId} not found for update", id);
                 return null;
             }
 
-            var originalDocument = await _context.DocumentReferences
+            var originalDocument = await context.DocumentReferences
                 .AsNoTracking()
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -629,15 +617,15 @@ public class TeamService : ITeamService
             document.ModifiedBy = currentUser;
             document.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
 
             return MapToDocumentReferenceDto(document);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document reference {DocumentId}", id);
+            logger.LogError(ex, "Error updating document reference {DocumentId}", id);
             throw;
         }
     }
@@ -648,17 +636,17 @@ public class TeamService : ITeamService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var document = await _context.DocumentReferences
+            var document = await context.DocumentReferences
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (document == null)
+            if (document is null)
             {
-                _logger.LogWarning("Document reference {DocumentId} not found for deletion", id);
+                logger.LogWarning("Document reference {DocumentId} not found for deletion", id);
                 return false;
             }
 
-            var originalDocument = await _context.DocumentReferences
+            var originalDocument = await context.DocumentReferences
                 .AsNoTracking()
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -667,15 +655,15 @@ public class TeamService : ITeamService
             document.DeletedBy = currentUser;
             document.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document reference {DocumentId}", id);
+            logger.LogError(ex, "Error deleting document reference {DocumentId}", id);
             throw;
         }
     }
@@ -686,7 +674,7 @@ public class TeamService : ITeamService
     {
         try
         {
-            var cards = await _context.MembershipCards
+            var cards = await context.MembershipCards
                 .Where(mc => mc.TeamMemberId == teamMemberId && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .OrderBy(mc => mc.ValidFrom)
@@ -696,7 +684,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving membership cards for team member {TeamMemberId}", teamMemberId);
+            logger.LogError(ex, "Error retrieving membership cards for team member {TeamMemberId}", teamMemberId);
             throw;
         }
     }
@@ -705,17 +693,17 @@ public class TeamService : ITeamService
     {
         try
         {
-            var card = await _context.MembershipCards
+            var card = await context.MembershipCards
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return card != null ? MapToMembershipCardDto(card) : null;
+            return card is not null ? MapToMembershipCardDto(card) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving membership card {CardId}", id);
+            logger.LogError(ex, "Error retrieving membership card {CardId}", id);
             throw;
         }
     }
@@ -739,15 +727,15 @@ public class TeamService : ITeamService
                 Notes = createMembershipCardDto.Notes,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
-                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _ = _context.MembershipCards.Add(card);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.MembershipCards.Add(card);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
 
-            var createdCard = await _context.MembershipCards
+            var createdCard = await context.MembershipCards
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
                 .FirstAsync(mc => mc.Id == card.Id, cancellationToken);
@@ -756,7 +744,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating membership card");
+            logger.LogError(ex, "Error creating membership card");
             throw;
         }
     }
@@ -768,19 +756,19 @@ public class TeamService : ITeamService
             ArgumentNullException.ThrowIfNull(updateMembershipCardDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var card = await _context.MembershipCards
+            var card = await context.MembershipCards
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (card == null)
+            if (card is null)
             {
-                _logger.LogWarning("Membership card {CardId} not found for update", id);
+                logger.LogWarning("Membership card {CardId} not found for update", id);
                 return null;
             }
 
-            var originalCard = await _context.MembershipCards
+            var originalCard = await context.MembershipCards
                 .AsNoTracking()
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -795,15 +783,15 @@ public class TeamService : ITeamService
             card.ModifiedBy = currentUser;
             card.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
 
             return MapToMembershipCardDto(card);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating membership card {CardId}", id);
+            logger.LogError(ex, "Error updating membership card {CardId}", id);
             throw;
         }
     }
@@ -814,17 +802,17 @@ public class TeamService : ITeamService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var card = await _context.MembershipCards
+            var card = await context.MembershipCards
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (card == null)
+            if (card is null)
             {
-                _logger.LogWarning("Membership card {CardId} not found for deletion", id);
+                logger.LogWarning("Membership card {CardId} not found for deletion", id);
                 return false;
             }
 
-            var originalCard = await _context.MembershipCards
+            var originalCard = await context.MembershipCards
                 .AsNoTracking()
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -833,15 +821,15 @@ public class TeamService : ITeamService
             card.DeletedBy = currentUser;
             card.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting membership card {CardId}", id);
+            logger.LogError(ex, "Error deleting membership card {CardId}", id);
             throw;
         }
     }
@@ -852,7 +840,7 @@ public class TeamService : ITeamService
     {
         try
         {
-            var policies = await _context.InsurancePolicies
+            var policies = await context.InsurancePolicies
                 .Where(ip => ip.TeamMemberId == teamMemberId && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .OrderBy(ip => ip.ValidFrom)
@@ -862,7 +850,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving insurance policies for team member {TeamMemberId}", teamMemberId);
+            logger.LogError(ex, "Error retrieving insurance policies for team member {TeamMemberId}", teamMemberId);
             throw;
         }
     }
@@ -871,17 +859,17 @@ public class TeamService : ITeamService
     {
         try
         {
-            var policy = await _context.InsurancePolicies
+            var policy = await context.InsurancePolicies
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return policy != null ? MapToInsurancePolicyDto(policy) : null;
+            return policy is not null ? MapToInsurancePolicyDto(policy) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving insurance policy {PolicyId}", id);
+            logger.LogError(ex, "Error retrieving insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -907,15 +895,15 @@ public class TeamService : ITeamService
                 Notes = createInsurancePolicyDto.Notes,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
-                TenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
             };
 
-            _ = _context.InsurancePolicies.Add(policy);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.InsurancePolicies.Add(policy);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
 
-            var createdPolicy = await _context.InsurancePolicies
+            var createdPolicy = await context.InsurancePolicies
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
                 .FirstAsync(ip => ip.Id == policy.Id, cancellationToken);
@@ -924,7 +912,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating insurance policy");
+            logger.LogError(ex, "Error creating insurance policy");
             throw;
         }
     }
@@ -936,19 +924,19 @@ public class TeamService : ITeamService
             ArgumentNullException.ThrowIfNull(updateInsurancePolicyDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var policy = await _context.InsurancePolicies
+            var policy = await context.InsurancePolicies
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (policy == null)
+            if (policy is null)
             {
-                _logger.LogWarning("Insurance policy {PolicyId} not found for update", id);
+                logger.LogWarning("Insurance policy {PolicyId} not found for update", id);
                 return null;
             }
 
-            var originalPolicy = await _context.InsurancePolicies
+            var originalPolicy = await context.InsurancePolicies
                 .AsNoTracking()
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -965,15 +953,15 @@ public class TeamService : ITeamService
             policy.ModifiedBy = currentUser;
             policy.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
 
             return MapToInsurancePolicyDto(policy);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating insurance policy {PolicyId}", id);
+            logger.LogError(ex, "Error updating insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -984,17 +972,17 @@ public class TeamService : ITeamService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var policy = await _context.InsurancePolicies
+            var policy = await context.InsurancePolicies
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (policy == null)
+            if (policy is null)
             {
-                _logger.LogWarning("Insurance policy {PolicyId} not found for deletion", id);
+                logger.LogWarning("Insurance policy {PolicyId} not found for deletion", id);
                 return false;
             }
 
-            var originalPolicy = await _context.InsurancePolicies
+            var originalPolicy = await context.InsurancePolicies
                 .AsNoTracking()
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -1003,15 +991,15 @@ public class TeamService : ITeamService
             policy.DeletedBy = currentUser;
             policy.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting insurance policy {PolicyId}", id);
+            logger.LogError(ex, "Error deleting insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -1022,7 +1010,7 @@ public class TeamService : ITeamService
     {
         try
         {
-            var query = _context.TeamMembers
+            var query = context.TeamMembers
                 .Where(tm => tm.TeamId == teamId && tm.JerseyNumber == jerseyNumber && !tm.IsDeleted);
 
             if (excludeTeamMemberId.HasValue)
@@ -1035,7 +1023,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating jersey number {JerseyNumber} for team {TeamId}", jerseyNumber, teamId);
+            logger.LogError(ex, "Error validating jersey number {JerseyNumber} for team {TeamId}", jerseyNumber, teamId);
             throw;
         }
     }
@@ -1046,7 +1034,7 @@ public class TeamService : ITeamService
         {
             var expiryDate = DateTime.UtcNow.AddDays(daysBeforeExpiry);
 
-            var membersWithExpiringDocs = await _context.TeamMembers
+            var membersWithExpiringDocs = await context.TeamMembers
                 .Where(tm => !tm.IsDeleted)
                 .Include(tm => tm.Team)
                 .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate))
@@ -1059,7 +1047,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving members with expiring documents");
+            logger.LogError(ex, "Error retrieving members with expiring documents");
             throw;
         }
     }
@@ -1074,13 +1062,13 @@ public class TeamService : ITeamService
                 ValidatedAt = DateTime.UtcNow
             };
 
-            var member = await _context.TeamMembers
+            var member = await context.TeamMembers
                 .Where(tm => tm.Id == teamMemberId && !tm.IsDeleted)
                 .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted))
                 .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (member == null)
+            if (member is null)
             {
                 result.IsEligible = false;
                 result.Issues.Add(new EligibilityIssue
@@ -1097,7 +1085,7 @@ public class TeamService : ITeamService
             var validMembershipCard = member.MembershipCards
                 .FirstOrDefault(mc => mc.IsValid);
 
-            if (validMembershipCard == null)
+            if (validMembershipCard is null)
             {
                 result.IsEligible = false;
                 result.Issues.Add(new EligibilityIssue
@@ -1114,7 +1102,7 @@ public class TeamService : ITeamService
             var validInsurancePolicy = member.InsurancePolicies
                 .FirstOrDefault(ip => ip.IsValid);
 
-            if (validInsurancePolicy == null)
+            if (validInsurancePolicy is null)
             {
                 result.Issues.Add(new EligibilityIssue
                 {
@@ -1147,7 +1135,7 @@ public class TeamService : ITeamService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating team member eligibility for member {TeamMemberId}", teamMemberId);
+            logger.LogError(ex, "Error validating team member eligibility for member {TeamMemberId}", teamMemberId);
             throw;
         }
     }
@@ -1242,7 +1230,7 @@ public class TeamService : ITeamService
         {
             Id = card.Id,
             TeamMemberId = card.TeamMemberId,
-            TeamMemberName = card.TeamMember != null ? $"{card.TeamMember.FirstName} {card.TeamMember.LastName}" : null,
+            TeamMemberName = card.TeamMember is not null ? $"{card.TeamMember.FirstName} {card.TeamMember.LastName}" : null,
             CardNumber = card.CardNumber,
             Federation = card.Federation,
             ValidFrom = card.ValidFrom,
@@ -1263,7 +1251,7 @@ public class TeamService : ITeamService
         {
             Id = policy.Id,
             TeamMemberId = policy.TeamMemberId,
-            TeamMemberName = policy.TeamMember != null ? $"{policy.TeamMember.FirstName} {policy.TeamMember.LastName}" : null,
+            TeamMemberName = policy.TeamMember is not null ? $"{policy.TeamMember.FirstName} {policy.TeamMember.LastName}" : null,
             Provider = policy.Provider,
             PolicyNumber = policy.PolicyNumber,
             ValidFrom = policy.ValidFrom,
@@ -1279,4 +1267,5 @@ public class TeamService : ITeamService
             ModifiedBy = policy.ModifiedBy
         };
     }
+
 }

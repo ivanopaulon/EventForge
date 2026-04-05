@@ -7,18 +7,10 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service for bulk operations on supplier products with transaction safety and audit logging.
 /// </summary>
-public class SupplierProductBulkService : ISupplierProductBulkService
+public class SupplierProductBulkService(
+    EventForgeDbContext context,
+    ILogger<SupplierProductBulkService> logger) : ISupplierProductBulkService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<SupplierProductBulkService> _logger;
-
-    public SupplierProductBulkService(
-        EventForgeDbContext context,
-        ILogger<SupplierProductBulkService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <inheritdoc />
     public async Task<BulkUpdateResult> BulkUpdateSupplierProductsAsync(
@@ -34,7 +26,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
 
         if (request.ProductIds.Count == 0)
         {
-            _logger.LogWarning("Bulk update requested with no product IDs for supplier {SupplierId}", supplierId);
+            logger.LogWarning("Bulk update requested with no product IDs for supplier {SupplierId}", supplierId);
             return result;
         }
 
@@ -43,16 +35,16 @@ public class SupplierProductBulkService : ISupplierProductBulkService
         try
         {
             // Start transaction for atomic operation
-            transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Starting bulk update for {Count} products for supplier {SupplierId} by user {User}",
                 request.ProductIds.Count,
                 supplierId,
                 currentUser);
 
             // Load all product suppliers in one query
-            var productSuppliers = await _context.ProductSuppliers
+            var productSuppliers = await context.ProductSuppliers
                 .Include(ps => ps.Product)
                 .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
                 .ToListAsync(cancellationToken);
@@ -63,7 +55,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
                 {
                     var productSupplier = productSuppliers.FirstOrDefault(ps => ps.ProductId == productId);
 
-                    if (productSupplier == null)
+                    if (productSupplier is null)
                     {
                         result.Errors.Add(new BulkUpdateError
                         {
@@ -88,7 +80,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error updating product {ProductId} for supplier {SupplierId}", productId, supplierId);
+                    logger.LogError(ex, "Error updating product {ProductId} for supplier {SupplierId}", productId, supplierId);
                     result.Errors.Add(new BulkUpdateError
                     {
                         ProductId = productId,
@@ -102,7 +94,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
             // If there are errors, decide whether to rollback
             if (result.FailureCount > 0)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Bulk update had {FailureCount} failures out of {TotalRequested} for supplier {SupplierId}. Rolling back transaction.",
                     result.FailureCount,
                     result.TotalRequested,
@@ -115,10 +107,10 @@ public class SupplierProductBulkService : ISupplierProductBulkService
             else
             {
                 // Save changes and commit transaction
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Successfully completed bulk update for {SuccessCount} products for supplier {SupplierId}",
                     result.SuccessCount,
                     supplierId);
@@ -126,9 +118,9 @@ public class SupplierProductBulkService : ISupplierProductBulkService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fatal error during bulk update for supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Fatal error during bulk update for supplier {SupplierId}", supplierId);
 
-            if (transaction != null)
+            if (transaction is not null)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 result.RolledBack = true;
@@ -158,7 +150,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
         }
 
         // Load all product suppliers
-        var productSuppliers = await _context.ProductSuppliers
+        var productSuppliers = await context.ProductSuppliers
             .Include(ps => ps.Product)
             .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
             .ToListAsync(cancellationToken);
@@ -388,6 +380,7 @@ public class SupplierProductBulkService : ISupplierProductBulkService
             ChangedAt = changedAt
         };
 
-        _context.EntityChangeLogs.Add(changeLog);
+        context.EntityChangeLogs.Add(changeLog);
     }
+
 }

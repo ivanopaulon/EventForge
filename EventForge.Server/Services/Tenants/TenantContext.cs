@@ -7,11 +7,11 @@ namespace EventForge.Server.Services.Tenants;
 /// <summary>
 /// Implementation of tenant context management for multi-tenant operations.
 /// </summary>
-public class TenantContext : ITenantContext
+public class TenantContext(
+    IHttpContextAccessor httpContextAccessor,
+    EventForgeDbContext context,
+    ILogger<TenantContext> logger) : ITenantContext
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<TenantContext> _logger;
 
     // Session keys for tenant context
     private const string TenantIdSessionKey = "CurrentTenantId";
@@ -19,19 +19,12 @@ public class TenantContext : ITenantContext
     private const string ImpersonatedUserIdSessionKey = "ImpersonatedUserId";
     private const string IsImpersonatingSessionKey = "IsImpersonating";
 
-    public TenantContext(IHttpContextAccessor httpContextAccessor, EventForgeDbContext context, ILogger<TenantContext> logger)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _context = context;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     public Guid? CurrentTenantId
     {
         get
         {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session != null)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is not null)
             {
                 var tenantIdString = httpContext.Session.GetString(TenantIdSessionKey);
                 if (Guid.TryParse(tenantIdString, out var tenantId))
@@ -55,8 +48,8 @@ public class TenantContext : ITenantContext
     {
         get
         {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session != null && IsImpersonating)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is not null && IsImpersonating)
             {
                 var impersonatedUserIdString = httpContext.Session.GetString(ImpersonatedUserIdSessionKey);
                 if (Guid.TryParse(impersonatedUserIdString, out var impersonatedUserId))
@@ -81,7 +74,7 @@ public class TenantContext : ITenantContext
     {
         get
         {
-            var httpContext = _httpContextAccessor.HttpContext;
+            var httpContext = httpContextAccessor.HttpContext;
             return httpContext?.User?.IsInRole("SuperAdmin") == true ||
                    httpContext?.User?.HasClaim("permission", "System.Admin.FullAccess") == true;
         }
@@ -91,8 +84,8 @@ public class TenantContext : ITenantContext
     {
         get
         {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session != null)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is not null)
             {
                 return httpContext.Session.GetString(IsImpersonatingSessionKey) == "true";
             }
@@ -106,28 +99,28 @@ public class TenantContext : ITenantContext
         {
             if (!IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di cambio tenant non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
+                logger.LogWarning("Tentativo di cambio tenant non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
                 throw new UnauthorizedAccessException("Only super administrators can switch tenant context.");
             }
 
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session == null)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is null)
             {
-                _logger.LogError("Sessione non disponibile per il cambio tenant.");
+                logger.LogError("Sessione non disponibile per il cambio tenant.");
                 throw new InvalidOperationException("Session is not available for tenant switching.");
             }
 
             var canAccess = await CanAccessTenantAsync(tenantId, ct);
             if (!canAccess)
             {
-                _logger.LogWarning("Accesso negato al tenant {TenantId} per l'utente {UserId}.", tenantId, CurrentUserId);
+                logger.LogWarning("Accesso negato al tenant {TenantId} per l'utente {UserId}.", tenantId, CurrentUserId);
                 throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
             }
 
             var currentUserId = CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                _logger.LogError("Impossibile determinare l'ID utente corrente durante il cambio tenant.");
+                logger.LogError("Impossibile determinare l'ID utente corrente durante il cambio tenant.");
                 throw new InvalidOperationException("Unable to determine current user ID.");
             }
 
@@ -146,12 +139,12 @@ public class TenantContext : ITenantContext
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Operazione di cambio tenant annullata.");
+            logger.LogWarning("Operazione di cambio tenant annullata.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il cambio tenant.");
+            logger.LogError(ex, "Errore durante il cambio tenant.");
             throw;
         }
     }
@@ -162,30 +155,30 @@ public class TenantContext : ITenantContext
         {
             if (!IsSuperAdmin)
             {
-                _logger.LogWarning("Tentativo di impersonificazione non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
+                logger.LogWarning("Tentativo di impersonificazione non autorizzato da parte dell'utente {UserId}.", CurrentUserId);
                 throw new UnauthorizedAccessException("Only super administrators can impersonate users.");
             }
 
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session == null)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is null)
             {
-                _logger.LogError("Sessione non disponibile per impersonificazione.");
+                logger.LogError("Sessione non disponibile per impersonificazione.");
                 throw new InvalidOperationException("Session is not available for impersonation.");
             }
 
             var currentUserId = CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                _logger.LogError("Impossibile determinare l'ID utente corrente durante impersonificazione.");
+                logger.LogError("Impossibile determinare l'ID utente corrente durante impersonificazione.");
                 throw new InvalidOperationException("Unable to determine current user ID.");
             }
 
-            var targetUser = await _context.Users
+            var targetUser = await context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId, ct);
-            if (targetUser == null)
+            if (targetUser is null)
             {
-                _logger.LogWarning("Utente {UserId} non trovato per impersonificazione.", userId);
+                logger.LogWarning("Utente {UserId} non trovato per impersonificazione.", userId);
                 throw new ArgumentException($"User {userId} not found.");
             }
 
@@ -206,12 +199,12 @@ public class TenantContext : ITenantContext
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Operazione di impersonificazione annullata.");
+            logger.LogWarning("Operazione di impersonificazione annullata.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'inizio dell'impersonificazione.");
+            logger.LogError(ex, "Errore durante l'inizio dell'impersonificazione.");
             throw;
         }
     }
@@ -222,14 +215,14 @@ public class TenantContext : ITenantContext
         {
             if (!IsImpersonating)
             {
-                _logger.LogWarning("Tentativo di terminare impersonificazione quando non attiva.");
+                logger.LogWarning("Tentativo di terminare impersonificazione quando non attiva.");
                 throw new InvalidOperationException("Not currently impersonating a user.");
             }
 
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext?.Session == null)
+            var httpContext = httpContextAccessor.HttpContext;
+            if (httpContext?.Session is null)
             {
-                _logger.LogError("Sessione non disponibile per terminare impersonificazione.");
+                logger.LogError("Sessione non disponibile per terminare impersonificazione.");
                 throw new InvalidOperationException("Session is not available.");
             }
 
@@ -239,7 +232,7 @@ public class TenantContext : ITenantContext
             if (!Guid.TryParse(originalUserIdString, out var originalUserId) ||
                 !Guid.TryParse(impersonatedUserIdString, out var impersonatedUserId))
             {
-                _logger.LogError("Stato sessione impersonificazione non valido.");
+                logger.LogError("Stato sessione impersonificazione non valido.");
                 throw new InvalidOperationException("Invalid impersonation session state.");
             }
 
@@ -258,12 +251,12 @@ public class TenantContext : ITenantContext
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Operazione di fine impersonificazione annullata.");
+            logger.LogWarning("Operazione di fine impersonificazione annullata.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la fine dell'impersonificazione.");
+            logger.LogError(ex, "Errore durante la fine dell'impersonificazione.");
             throw;
         }
     }
@@ -274,19 +267,19 @@ public class TenantContext : ITenantContext
         {
             if (!IsSuperAdmin)
             {
-                _logger.LogWarning("Utente {UserId} ha tentato di accedere ai tenant gestibili senza permessi.", CurrentUserId);
+                logger.LogWarning("Utente {UserId} ha tentato di accedere ai tenant gestibili senza permessi.", CurrentUserId);
                 return Enumerable.Empty<Guid>();
             }
 
             var currentUserId = CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                _logger.LogWarning("Impossibile determinare l'ID utente corrente per tenant gestibili.");
+                logger.LogWarning("Impossibile determinare l'ID utente corrente per tenant gestibili.");
                 return Enumerable.Empty<Guid>();
             }
 
             // First, check if SuperAdmin has specific AdminTenant entries
-            var adminTenants = await _context.AdminTenants
+            var adminTenants = await context.AdminTenants
                 .AsNoTracking()
                 .Where(at => at.UserId == currentUserId.Value && at.ManagedTenant.IsActive && !at.ManagedTenant.IsDeleted)
                 .Select(at => at.ManagedTenantId)
@@ -299,7 +292,7 @@ public class TenantContext : ITenantContext
             }
 
             // If SuperAdmin has no specific assignments, they can access all active tenants
-            var allTenants = await _context.Tenants
+            var allTenants = await context.Tenants
                 .AsNoTracking()
                 .Where(t => t.IsActive && !t.IsDeleted)
                 .Select(t => t.Id)
@@ -309,12 +302,12 @@ public class TenantContext : ITenantContext
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Operazione di recupero tenant gestibili annullata.");
+            logger.LogWarning("Operazione di recupero tenant gestibili annullata.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei tenant gestibili.");
+            logger.LogError(ex, "Errore durante il recupero dei tenant gestibili.");
             throw;
         }
     }
@@ -331,12 +324,12 @@ public class TenantContext : ITenantContext
             var currentUserId = CurrentUserId;
             if (!currentUserId.HasValue)
             {
-                _logger.LogWarning("Impossibile determinare l'ID utente corrente per verifica accesso tenant.");
+                logger.LogWarning("Impossibile determinare l'ID utente corrente per verifica accesso tenant.");
                 return false;
             }
 
             // Check if SuperAdmin has specific tenant access defined
-            var hasSpecificAccess = await _context.AdminTenants
+            var hasSpecificAccess = await context.AdminTenants
                 .AsNoTracking()
                 .AnyAsync(at => at.UserId == currentUserId.Value &&
                                at.ManagedTenantId == tenantId &&
@@ -349,14 +342,14 @@ public class TenantContext : ITenantContext
             }
 
             // Check if SuperAdmin has any specific tenant assignments
-            var hasAnySpecificAssignments = await _context.AdminTenants
+            var hasAnySpecificAssignments = await context.AdminTenants
                 .AsNoTracking()
                 .AnyAsync(at => at.UserId == currentUserId.Value, ct);
 
             // If SuperAdmin has no specific assignments, they can access all active tenants
             if (!hasAnySpecificAssignments)
             {
-                var tenantExists = await _context.Tenants
+                var tenantExists = await context.Tenants
                     .AsNoTracking()
                     .AnyAsync(t => t.Id == tenantId && t.IsActive && !t.IsDeleted, ct);
                 return tenantExists;
@@ -367,12 +360,12 @@ public class TenantContext : ITenantContext
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Operazione di verifica accesso tenant annullata.");
+            logger.LogWarning("Operazione di verifica accesso tenant annullata.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la verifica di accesso al tenant {TenantId}.", tenantId);
+            logger.LogError(ex, "Errore durante la verifica di accesso al tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -386,7 +379,7 @@ public class TenantContext : ITenantContext
         string reason,
         CancellationToken ct = default)
     {
-        var httpContext = _httpContextAccessor.HttpContext;
+        var httpContext = httpContextAccessor.HttpContext;
 
         var auditTrail = new AuditTrail
         {
@@ -404,20 +397,21 @@ public class TenantContext : ITenantContext
             PerformedAt = DateTime.UtcNow
         };
 
-        _ = _context.AuditTrails.Add(auditTrail);
+        _ = context.AuditTrails.Add(auditTrail);
 
         try
         {
-            _ = await _context.SaveChangesAsync(ct);
+            _ = await context.SaveChangesAsync(ct);
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Salvataggio audit trail annullato per l'operazione {OperationType}.", operationType);
+            logger.LogWarning("Salvataggio audit trail annullato per l'operazione {OperationType}.", operationType);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Impossibile salvare l'audit trail per l'operazione {OperationType}.", operationType);
+            logger.LogError(ex, "Impossibile salvare l'audit trail per l'operazione {OperationType}.", operationType);
         }
     }
+
 }

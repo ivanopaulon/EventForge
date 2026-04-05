@@ -7,11 +7,11 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Service implementation for managing document workflows
 /// </summary>
-public class DocumentWorkflowService : IDocumentWorkflowService
+public class DocumentWorkflowService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<DocumentWorkflowService> logger) : IDocumentWorkflowService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<DocumentWorkflowService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the DocumentWorkflowService
@@ -19,22 +19,12 @@ public class DocumentWorkflowService : IDocumentWorkflowService
     /// <param name="context">Database context</param>
     /// <param name="auditLogService">Audit log service</param>
     /// <param name="logger">Logger</param>
-    public DocumentWorkflowService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<DocumentWorkflowService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
-
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentWorkflowDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var entities = await _context.DocumentWorkflows
+            var entities = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -46,7 +36,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document workflows.");
+            logger.LogError(ex, "Error retrieving document workflows.");
             throw;
         }
     }
@@ -56,17 +46,17 @@ public class DocumentWorkflowService : IDocumentWorkflowService
     {
         try
         {
-            var entity = await _context.DocumentWorkflows
+            var entity = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
                 .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
 
-            return entity == null ? null : DocumentWorkflowMapper.ToDto(entity);
+            return entity is null ? null : DocumentWorkflowMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document workflow {WorkflowId}.", id);
+            logger.LogError(ex, "Error retrieving document workflow {WorkflowId}.", id);
             throw;
         }
     }
@@ -76,7 +66,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
     {
         try
         {
-            var entities = await _context.DocumentWorkflows
+            var entities = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -88,7 +78,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document workflows for document type {DocumentTypeId}.", documentTypeId);
+            logger.LogError(ex, "Error retrieving document workflows for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -98,7 +88,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
     {
         try
         {
-            var entities = await _context.DocumentWorkflows
+            var entities = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -110,7 +100,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active document workflows.");
+            logger.LogError(ex, "Error retrieving active document workflows.");
             throw;
         }
     }
@@ -122,7 +112,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
-            var entities = await _context.DocumentWorkflows
+            var entities = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -134,7 +124,7 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving document workflows for category {Category}.", category);
+            logger.LogError(ex, "Error retrieving document workflows for category {Category}.", category);
             throw;
         }
     }
@@ -152,23 +142,23 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
-            _ = _context.DocumentWorkflows.Add(entity);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentWorkflows.Add(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Insert", currentUser, null, cancellationToken);
 
             // Reload with includes
-            await _context.Entry(entity)
+            await context.Entry(entity)
                 .Reference(dw => dw.DocumentType)
                 .LoadAsync(cancellationToken);
 
-            _logger.LogInformation("Document workflow {WorkflowId} created by {User}.", entity.Id, currentUser);
+            logger.LogInformation("Document workflow {WorkflowId} created by {User}.", entity.Id, currentUser);
 
             return DocumentWorkflowMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating document workflow for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating document workflow for user {User}.", currentUser);
             throw;
         }
     }
@@ -181,15 +171,15 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentWorkflows
+            var entity = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
                 .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document workflow {WorkflowId} not found for update.", id);
+                logger.LogWarning("Document workflow {WorkflowId} not found for update.", id);
                 return null;
             }
 
@@ -199,17 +189,17 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Update", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "Update", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document workflow {WorkflowId} updated by {User}.", id, currentUser);
+            logger.LogInformation("Document workflow {WorkflowId} updated by {User}.", id, currentUser);
 
             return DocumentWorkflowMapper.ToDto(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating document workflow {WorkflowId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating document workflow {WorkflowId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -221,12 +211,12 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentWorkflows
+            var entity = await context.DocumentWorkflows
                 .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document workflow {WorkflowId} not found for deletion.", id);
+                logger.LogWarning("Document workflow {WorkflowId} not found for deletion.", id);
                 return false;
             }
 
@@ -235,17 +225,17 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "SoftDelete", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "SoftDelete", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document workflow {WorkflowId} soft deleted by {User}.", id, currentUser);
+            logger.LogInformation("Document workflow {WorkflowId} soft deleted by {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting document workflow {WorkflowId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting document workflow {WorkflowId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -257,12 +247,12 @@ public class DocumentWorkflowService : IDocumentWorkflowService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = await _context.DocumentWorkflows
+            var entity = await context.DocumentWorkflows
                 .FirstOrDefaultAsync(dw => dw.Id == id, cancellationToken);
 
-            if (entity == null)
+            if (entity is null)
             {
-                _logger.LogWarning("Document workflow {WorkflowId} not found for status update.", id);
+                logger.LogWarning("Document workflow {WorkflowId} not found for status update.", id);
                 return false;
             }
 
@@ -270,17 +260,17 @@ public class DocumentWorkflowService : IDocumentWorkflowService
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "StatusUpdate", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync<DocumentWorkflow>(entity, "StatusUpdate", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Document workflow {WorkflowId} status updated to {Status} by {User}.", id, isActive, currentUser);
+            logger.LogInformation("Document workflow {WorkflowId} status updated to {Status} by {User}.", id, isActive, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating status for document workflow {WorkflowId}.", id);
+            logger.LogError(ex, "Error updating status for document workflow {WorkflowId}.", id);
             throw;
         }
     }
@@ -290,15 +280,16 @@ public class DocumentWorkflowService : IDocumentWorkflowService
     {
         try
         {
-            var entity = await _context.DocumentWorkflows
+            var entity = await context.DocumentWorkflows
                 .FirstOrDefaultAsync(dw => dw.Id == workflowId, cancellationToken);
 
             return entity?.WorkflowVersion;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving latest version for document workflow {WorkflowId}.", workflowId);
+            logger.LogError(ex, "Error retrieving latest version for document workflow {WorkflowId}.", workflowId);
             throw;
         }
     }
+
 }

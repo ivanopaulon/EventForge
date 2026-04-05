@@ -5,24 +5,12 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Local file system implementation of file storage service with tenant isolation
 /// </summary>
-public class LocalFileStorageService : IFileStorageService
+public class LocalFileStorageService(
+    IConfiguration configuration,
+    ILogger<LocalFileStorageService> logger) : IFileStorageService
 {
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<LocalFileStorageService> _logger;
-    private readonly string _baseStoragePath;
 
-    public LocalFileStorageService(
-        IConfiguration configuration,
-        ILogger<LocalFileStorageService> logger)
-    {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        _baseStoragePath = _configuration["FileStorage:BasePath"] ?? "App_Data/Files";
-
-        // Ensure base storage directory exists
-        _ = Directory.CreateDirectory(_baseStoragePath);
-    }
+    private readonly string _baseStoragePath = BuildBaseStoragePath(configuration);
 
     public async Task<FileStorageResult> SaveFileAsync(
         Guid tenantId,
@@ -70,7 +58,7 @@ public class LocalFileStorageService : IFileStorageService
 
             var storagePath = Path.Combine(tenantId.ToString(), uniqueFileName);
 
-            _logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)",
+            logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)",
                 fileName, storagePath, fileSize);
 
             return new FileStorageResult
@@ -85,7 +73,7 @@ public class LocalFileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving file {FileName} for tenant {TenantId}", fileName, tenantId);
+            logger.LogError(ex, "Error saving file {FileName} for tenant {TenantId}", fileName, tenantId);
             throw;
         }
     }
@@ -103,7 +91,7 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}",
+                logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult<FileRetrievalResult?>(null);
             }
@@ -112,7 +100,7 @@ public class LocalFileStorageService : IFileStorageService
 
             if (!File.Exists(fullPath))
             {
-                _logger.LogWarning("File not found: {StoragePath}", storagePath);
+                logger.LogWarning("File not found: {StoragePath}", storagePath);
                 return Task.FromResult<FileRetrievalResult?>(null);
             }
 
@@ -136,7 +124,7 @@ public class LocalFileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
+            logger.LogError(ex, "Error retrieving file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }
@@ -154,7 +142,7 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}",
+                logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult(false);
             }
@@ -168,14 +156,14 @@ public class LocalFileStorageService : IFileStorageService
 
             File.Delete(fullPath);
 
-            _logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}",
+            logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}",
                 storagePath, tenantId);
 
             return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
+            logger.LogError(ex, "Error deleting file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }
@@ -193,7 +181,7 @@ public class LocalFileStorageService : IFileStorageService
             // Validate path is within tenant scope
             if (!storagePath.StartsWith(tenantId.ToString()))
             {
-                _logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}",
+                logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}",
                     storagePath, tenantId);
                 return Task.FromResult<FileMetadata?>(null);
             }
@@ -221,7 +209,7 @@ public class LocalFileStorageService : IFileStorageService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting file metadata {StoragePath} for tenant {TenantId}", storagePath, tenantId);
+            logger.LogError(ex, "Error getting file metadata {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }
@@ -249,4 +237,13 @@ public class LocalFileStorageService : IFileStorageService
             _ => "application/octet-stream"
         };
     }
+
+    private static string BuildBaseStoragePath(IConfiguration configuration)
+    {
+        var baseStoragePath = configuration["FileStorage:BasePath"] ?? "App_Data/Files";
+
+        _ = Directory.CreateDirectory(baseStoragePath);
+        return baseStoragePath;
+    }
+
 }

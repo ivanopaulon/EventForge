@@ -5,21 +5,11 @@ using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatu
 
 namespace EventForge.Server.Services.PriceLists;
 
-public class PriceListBulkOperationsService : IPriceListBulkOperationsService
+public class PriceListBulkOperationsService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<PriceListBulkOperationsService> logger) : IPriceListBulkOperationsService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<PriceListBulkOperationsService> _logger;
-
-    public PriceListBulkOperationsService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<PriceListBulkOperationsService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
     {
@@ -34,10 +24,10 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         try
         {
             // Verify price list exists
-            var priceList = await _context.PriceLists
+            var priceList = await context.PriceLists
                 .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
-            if (priceList == null)
+            if (priceList is null)
             {
                 result.Errors.Add(new BulkImportErrorDto
                 {
@@ -61,7 +51,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 try
                 {
                     // Validate product exists
-                    var productExists = await _context.Products
+                    var productExists = await context.Products
                         .AnyAsync(p => p.Id == entryDto.ProductId && !p.IsDeleted, cancellationToken);
 
                     if (!productExists)
@@ -80,13 +70,13 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                     }
 
                     // Check if entry already exists
-                    var existingEntry = await _context.PriceListEntries
+                    var existingEntry = await context.PriceListEntries
                         .FirstOrDefaultAsync(ple => ple.PriceListId == priceListId &&
                                                    ple.ProductId == entryDto.ProductId &&
                                                    !ple.IsDeleted,
                                                    cancellationToken);
 
-                    if (existingEntry != null)
+                    if (existingEntry is not null)
                     {
                         if (replaceExisting)
                         {
@@ -140,14 +130,14 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                             CreatedBy = currentUser
                         };
 
-                        _ = _context.PriceListEntries.Add(newEntry);
+                        _ = context.PriceListEntries.Add(newEntry);
                         result.CreatedCount++;
                         result.SuccessCount++;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error importing price list entry at row {RowIndex}", rowIndex);
+                    logger.LogError(ex, "Error importing price list entry at row {RowIndex}", rowIndex);
                     result.Errors.Add(new BulkImportErrorDto
                     {
                         RowIndex = rowIndex,
@@ -162,9 +152,9 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             // Save all changes
             if (result.SuccessCount > 0)
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
 
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     "PriceList",
                     priceListId,
                     "BulkImport",
@@ -178,7 +168,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
 
             result.Duration = DateTime.UtcNow - startTime;
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk import completed for price list {PriceListId}: {Success} succeeded, {Failed} failed, {Skipped} skipped in {Duration}ms",
                 priceListId, result.SuccessCount, result.FailureCount, result.SkippedCount, result.Duration.TotalMilliseconds);
 
@@ -186,7 +176,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during bulk import for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error during bulk import for price list {PriceListId}", priceListId);
             result.Duration = DateTime.UtcNow - startTime;
             throw;
         }
@@ -197,7 +187,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         try
         {
             // Get price list entries with related product information
-            var query = _context.PriceListEntries
+            var query = context.PriceListEntries
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .Include(ple => ple.Product!)
                 .ThenInclude(p => p.CategoryNode)
@@ -247,14 +237,14 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 };
             }).ToList();
 
-            _logger.LogInformation("Exported {Count} price list entries from price list {PriceListId}",
+            logger.LogInformation("Exported {Count} price list entries from price list {PriceListId}",
                 exportableEntries.Count, priceListId);
 
             return exportableEntries;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting price list entries for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error exporting price list entries for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -270,7 +260,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         try
         {
             // Get all price lists for the event
-            var priceLists = await _context.PriceLists
+            var priceLists = await context.PriceLists
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -434,7 +424,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
 
             result.ValidationDuration = DateTime.UtcNow - startTime;
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Precedence validation completed for event {EventId}: {IsValid}, {IssueCount} issues, {WarningCount} warnings in {Duration}ms",
                 eventId, result.IsValid, result.Issues.Count, result.Warnings.Count, result.ValidationDuration.TotalMilliseconds);
 
@@ -442,7 +432,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating price list precedence for event {EventId}", eventId);
+            logger.LogError(ex, "Error validating price list precedence for event {EventId}", eventId);
             result.ValidationDuration = DateTime.UtcNow - startTime;
             throw;
         }
@@ -461,7 +451,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         try
         {
             // Verifica esistenza listino
-            var priceListExists = await _context.PriceLists
+            var priceListExists = await context.PriceLists
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
@@ -470,7 +460,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             }
 
             // Query base per gli items del listino
-            IQueryable<PriceListEntry> query = _context.PriceListEntries
+            IQueryable<PriceListEntry> query = context.PriceListEntries
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .Include(ple => ple.Product);
 
@@ -529,7 +519,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing bulk price update for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error previewing bulk price update for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -546,7 +536,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         try
         {
             // Verifica esistenza listino
-            var priceListExists = await _context.PriceLists
+            var priceListExists = await context.PriceLists
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
@@ -555,7 +545,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             }
 
             // Query base per gli items del listino
-            IQueryable<PriceListEntry> query = _context.PriceListEntries
+            IQueryable<PriceListEntry> query = context.PriceListEntries
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .Include(ple => ple.Product);
 
@@ -598,7 +588,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 {
                     result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: {ex.Message}");
                     result.FailedCount++;
-                    _logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}",
+                    logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}",
                         item.ProductId, priceListId);
                 }
             }
@@ -606,10 +596,10 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             // Salva modifiche in una transazione
             if (result.UpdatedCount > 0)
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await context.SaveChangesAsync(cancellationToken);
 
                 // Audit log per l'operazione bulk
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "PriceList",
                     priceListId,
                     "BulkUpdate",
@@ -625,7 +615,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk price update for price list {PriceListId}", priceListId);
+            logger.LogError(ex, "Error performing bulk price update for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -638,20 +628,20 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         BulkPriceUpdateDto dto)
     {
         // Filtro per ProductIds specifici
-        if (dto.ProductIds != null && dto.ProductIds.Any())
+        if (dto.ProductIds is not null && dto.ProductIds.Any())
         {
             query = query.Where(ple => dto.ProductIds.Contains(ple.ProductId));
         }
 
         // Filtro per CategoryIds
-        if (dto.CategoryIds != null && dto.CategoryIds.Any())
+        if (dto.CategoryIds is not null && dto.CategoryIds.Any())
         {
             query = query.Where(ple => ple.Product != null &&
                 dto.CategoryIds.Contains(ple.Product.CategoryNodeId!.Value));
         }
 
         // Filtro per BrandIds
-        if (dto.BrandIds != null && dto.BrandIds.Any())
+        if (dto.BrandIds is not null && dto.BrandIds.Any())
         {
             query = query.Where(ple => ple.Product != null &&
                 ple.Product.BrandId != null &&
@@ -733,11 +723,11 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
 
         // 2. Carica listino con entries per ottenere TenantId
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
             .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId && !pl.IsDeleted, cancellationToken);
 
-        if (priceList == null)
+        if (priceList is null)
         {
             throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
         }
@@ -764,17 +754,17 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
                 continue;
 
             // Applica filtri se specificati
-            if (dto.FilterByProductIds != null && dto.FilterByProductIds.Any() &&
+            if (dto.FilterByProductIds is not null && dto.FilterByProductIds.Any() &&
                 !dto.FilterByProductIds.Contains(entry.ProductId))
             {
                 continue;
             }
 
             // Carica prodotto
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == entry.ProductId && p.TenantId == tenantId && !p.IsDeleted, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
                 notFoundCount++;
                 result.UpdateDetails.Add(new ProductPriceUpdateDetail
@@ -790,7 +780,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             }
 
             // Applica filtro categorie
-            if (dto.FilterByCategoryIds != null && dto.FilterByCategoryIds.Any() &&
+            if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any() &&
                 (!product.CategoryNodeId.HasValue || !dto.FilterByCategoryIds.Contains(product.CategoryNodeId.Value)))
             {
                 skippedCount++;
@@ -843,7 +833,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
             // Backup prezzo se richiesto
             if (dto.CreateBackup)
             {
-                await _auditLogService.LogEntityChangeAsync(
+                await auditLogService.LogEntityChangeAsync(
                     "Product",
                     product.Id,
                     "DefaultPrice",
@@ -872,7 +862,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         }
 
         // 5. Salva modifiche
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Aggiorna risultato con i contatori finali
         var finalResult = new ApplyPriceListResultDto
@@ -888,7 +878,7 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
         };
 
         // Log applicazione listino
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceList",
             priceList.Id,
             "Action",
@@ -901,4 +891,5 @@ public class PriceListBulkOperationsService : IPriceListBulkOperationsService
 
         return finalResult;
     }
+
 }

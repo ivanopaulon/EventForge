@@ -14,36 +14,22 @@ namespace EventForge.Server.Services.Alerts;
 /// Implementation of supplier price alert service.
 /// Part of FASE 5: Price Alerts System.
 /// </summary>
-public class SupplierPriceAlertService : ISupplierPriceAlertService
+public class SupplierPriceAlertService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<SupplierPriceAlertService> logger,
+    IHubContext<AlertHub>? hubContext = null) : ISupplierPriceAlertService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly ILogger<SupplierPriceAlertService> _logger;
-    private readonly IHubContext<AlertHub>? _hubContext;
-
-    public SupplierPriceAlertService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger<SupplierPriceAlertService> logger,
-        IHubContext<AlertHub>? hubContext = null)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _httpContextAccessor = httpContextAccessor;
-        _logger = logger;
-        _hubContext = hubContext;
-    }
 
     private string GetCurrentUserId()
     {
-        return _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
+        return httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "system";
     }
 
     public async Task<Guid> CreateAlertAsync(CreateAlertRequest request, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
         // Parse enums
         if (!Enum.TryParse<AlertType>(request.AlertType, true, out var alertType))
@@ -77,24 +63,24 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
             CreatedBy = GetCurrentUserId()
         };
 
-        _context.SupplierPriceAlerts.Add(alert);
-        await _context.SaveChangesAsync(cancellationToken);
+        context.SupplierPriceAlerts.Add(alert);
+        await context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Created alert {AlertId} for tenant {TenantId}", alert.Id, tenantId);
+        logger.LogInformation("Created alert {AlertId} for tenant {TenantId}", alert.Id, tenantId);
 
         // Broadcast via SignalR
         try
         {
             var alertDto = await MapToDto(alert, cancellationToken);
-            if (_hubContext != null && alertDto != null)
+            if (hubContext is not null && alertDto is not null)
             {
-                await _hubContext.Clients.Group($"tenant-{tenantId}")
+                await hubContext.Clients.Group($"tenant-{tenantId}")
                     .SendAsync("NewAlert", alertDto, cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to broadcast alert via SignalR");
+            logger.LogWarning(ex, "Failed to broadcast alert via SignalR");
         }
 
         return alert.Id;
@@ -107,7 +93,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         decimal newPrice,
         CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var alertIds = new List<Guid>();
 
         if (oldPrice == 0)
@@ -118,23 +104,23 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         var priceChangePercentage = ((newPrice - oldPrice) / oldPrice) * 100;
 
         // Get product and supplier info
-        var product = await _context.Products
+        var product = await context.Products
             .Where(p => p.Id == productId)
             .Select(p => new { p.Name, p.Code })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var supplier = await _context.BusinessParties
+        var supplier = await context.BusinessParties
             .Where(s => s.Id == supplierId)
             .Select(s => s.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (product == null || supplier == null)
+        if (product is null || supplier is null)
         {
             return alertIds;
         }
 
         // Get user configurations for this tenant
-        var configs = await _context.AlertConfigurations
+        var configs = await context.AlertConfigurations
             .Where(c => c.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
@@ -195,15 +181,15 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
                     CreatedBy = "system"
                 };
 
-                _context.SupplierPriceAlerts.Add(alert);
+                context.SupplierPriceAlerts.Add(alert);
                 alertIds.Add(alert.Id);
             }
         }
 
         if (alertIds.Any())
         {
-            await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Generated {Count} alerts for price change on product {ProductId}",
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Generated {Count} alerts for price change on product {ProductId}",
                 alertIds.Count, productId);
         }
 
@@ -216,33 +202,33 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         Guid betterSupplierId,
         CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var alertIds = new List<Guid>();
 
         // Get product info
-        var product = await _context.Products
+        var product = await context.Products
             .Where(p => p.Id == productId)
             .Select(p => new { p.Name, p.Code })
             .FirstOrDefaultAsync(cancellationToken);
 
         // Get supplier info
-        var suppliers = await _context.BusinessParties
+        var suppliers = await context.BusinessParties
             .Where(s => s.Id == currentSupplierId || s.Id == betterSupplierId)
             .Select(s => new { s.Id, s.Name })
             .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
 
-        if (product == null || suppliers.Count != 2)
+        if (product is null || suppliers.Count != 2)
         {
             return alertIds;
         }
 
         // Get prices and currency to calculate potential savings
-        var currentSupplierData = await _context.ProductSuppliers
+        var currentSupplierData = await context.ProductSuppliers
             .Where(ps => ps.ProductId == productId && ps.SupplierId == currentSupplierId)
             .Select(ps => new { ps.UnitCost, ps.Currency })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var betterSupplierData = await _context.ProductSuppliers
+        var betterSupplierData = await context.ProductSuppliers
             .Where(ps => ps.ProductId == productId && ps.SupplierId == betterSupplierId)
             .Select(ps => new { ps.UnitCost, ps.Currency })
             .FirstOrDefaultAsync(cancellationToken);
@@ -253,7 +239,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         var potentialSavings = currentPrice > betterPrice ? currentPrice - betterPrice : 0;
 
         // Check user configurations
-        var configs = await _context.AlertConfigurations
+        var configs = await context.AlertConfigurations
             .Where(c => c.TenantId == tenantId && c.AlertOnBetterSupplier)
             .ToListAsync(cancellationToken);
 
@@ -286,14 +272,14 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
                 CreatedBy = "system"
             };
 
-            _context.SupplierPriceAlerts.Add(alert);
+            context.SupplierPriceAlerts.Add(alert);
             alertIds.Add(alert.Id);
         }
 
         if (alertIds.Any())
         {
-            await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Generated {Count} alerts for better supplier on product {ProductId}",
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Generated {Count} alerts for better supplier on product {ProductId}",
                 alertIds.Count, productId);
         }
 
@@ -302,24 +288,24 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
 
     public async Task<SupplierPriceAlertDto?> GetAlertByIdAsync(Guid alertId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
-        var alert = await _context.SupplierPriceAlerts
+        var alert = await context.SupplierPriceAlerts
             .Include(a => a.Product)
             .Include(a => a.Supplier)
             .Where(a => a.Id == alertId && a.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return alert == null ? null : await MapToDto(alert, cancellationToken);
+        return alert is null ? null : await MapToDto(alert, cancellationToken);
     }
 
     public async Task<PaginatedResult<SupplierPriceAlertDto>> GetAlertsAsync(
         AlertFilterRequest filter,
         CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
-        var query = _context.SupplierPriceAlerts
+        var query = context.SupplierPriceAlerts
             .Include(a => a.Product)
             .Include(a => a.Supplier)
             .Where(a => a.TenantId == tenantId);
@@ -397,7 +383,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         foreach (var alert in alerts)
         {
             var dto = await MapToDto(alert, cancellationToken);
-            if (dto != null)
+            if (dto is not null)
             {
                 dtos.Add(dto);
             }
@@ -414,9 +400,9 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
 
     public async Task<AlertStatistics> GetAlertStatisticsAsync(CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
-        var alerts = await _context.SupplierPriceAlerts
+        var alerts = await context.SupplierPriceAlerts
             .Where(a => a.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
@@ -450,14 +436,14 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
 
     public async Task<bool> AcknowledgeAlertAsync(Guid alertId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var userId = GetCurrentUserId();
 
-        var alert = await _context.SupplierPriceAlerts
+        var alert = await context.SupplierPriceAlerts
             .Where(a => a.Id == alertId && a.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (alert == null)
+        if (alert is null)
         {
             return false;
         }
@@ -468,20 +454,20 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = userId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<bool> ResolveAlertAsync(Guid alertId, string? notes, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var userId = GetCurrentUserId();
 
-        var alert = await _context.SupplierPriceAlerts
+        var alert = await context.SupplierPriceAlerts
             .Where(a => a.Id == alertId && a.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (alert == null)
+        if (alert is null)
         {
             return false;
         }
@@ -493,20 +479,20 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = userId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<bool> DismissAlertAsync(Guid alertId, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var userId = GetCurrentUserId();
 
-        var alert = await _context.SupplierPriceAlerts
+        var alert = await context.SupplierPriceAlerts
             .Where(a => a.Id == alertId && a.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (alert == null)
+        if (alert is null)
         {
             return false;
         }
@@ -515,16 +501,16 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         alert.ModifiedAt = DateTime.UtcNow;
         alert.ModifiedBy = userId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<int> DismissMultipleAlertsAsync(List<Guid> alertIds, CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var userId = GetCurrentUserId();
 
-        var alerts = await _context.SupplierPriceAlerts
+        var alerts = await context.SupplierPriceAlerts
             .Where(a => alertIds.Contains(a.Id) && a.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
@@ -535,29 +521,29 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
             alert.ModifiedBy = userId;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return alerts.Count;
     }
 
     public async Task<int> GetUnreadAlertCountAsync(CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
-        return await _context.SupplierPriceAlerts
+        return await context.SupplierPriceAlerts
             .Where(a => a.TenantId == tenantId && a.Status == AlertStatus.New)
             .CountAsync(cancellationToken);
     }
 
     public async Task<AlertConfiguration> GetUserConfigurationAsync(CancellationToken cancellationToken = default)
     {
-        var tenantId = _tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
+        var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
         var userId = GetCurrentUserId();
 
-        var config = await _context.AlertConfigurations
+        var config = await context.AlertConfigurations
             .Where(c => c.TenantId == tenantId && c.UserId == userId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (config == null)
+        if (config is null)
         {
             // Create default configuration
             config = new AlertConfiguration
@@ -568,8 +554,8 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
                 CreatedBy = userId
             };
 
-            _context.AlertConfigurations.Add(config);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.AlertConfigurations.Add(config);
+            await context.SaveChangesAsync(cancellationToken);
         }
 
         return config;
@@ -601,7 +587,7 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
         config.ModifiedAt = DateTime.UtcNow;
         config.ModifiedBy = userId;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return config;
     }
 
@@ -638,4 +624,5 @@ public class SupplierPriceAlertService : ISupplierPriceAlertService
             EmailSentAt = alert.EmailSentAt
         };
     }
+
 }

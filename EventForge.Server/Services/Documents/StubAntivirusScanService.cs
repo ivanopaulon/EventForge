@@ -3,23 +3,15 @@ namespace EventForge.Server.Services.Documents;
 /// <summary>
 /// Stub implementation of antivirus scanning service for development/testing
 /// </summary>
-public class StubAntivirusScanService : IAntivirusScanService
+public class StubAntivirusScanService(
+    IConfiguration configuration,
+    ILogger<StubAntivirusScanService> logger) : IAntivirusScanService
 {
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<StubAntivirusScanService> _logger;
-
-    public StubAntivirusScanService(
-        IConfiguration configuration,
-        ILogger<StubAntivirusScanService> logger)
-    {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Gets whether antivirus scanning is enabled from configuration
     /// </summary>
-    public bool IsEnabled => _configuration.GetValue<bool>("AntivirusScan:Enabled", false);
+    public bool IsEnabled => configuration.GetValue<bool>("AntivirusScan:Enabled", false);
 
     /// <summary>
     /// Performs a mock antivirus scan for development purposes
@@ -31,7 +23,7 @@ public class StubAntivirusScanService : IAntivirusScanService
     {
         if (!IsEnabled)
         {
-            _logger.LogDebug("Antivirus scanning is disabled - skipping scan for file {FileName}", fileName);
+            logger.LogDebug("Antivirus scanning is disabled - skipping scan for file {FileName}", fileName);
             return new AntivirusScanResult
             {
                 IsClean = true,
@@ -46,14 +38,14 @@ public class StubAntivirusScanService : IAntivirusScanService
         }
 
         // Simulate scan delay
-        var scanDelayMs = _configuration.GetValue<int>("AntivirusScan:MockDelayMs", 100);
+        var scanDelayMs = configuration.GetValue<int>("AntivirusScan:MockDelayMs", 100);
         if (scanDelayMs > 0)
         {
             await Task.Delay(scanDelayMs, cancellationToken);
         }
 
         // Mock threat detection based on filename patterns (for testing)
-        var mockThreats = _configuration.GetSection("AntivirusScan:MockThreats").Get<string[]>() ?? Array.Empty<string>();
+        var mockThreats = configuration.GetSection("AntivirusScan:MockThreats").Get<string[]>() ?? Array.Empty<string>();
         var detectedThreats = new List<string>();
         var isClean = true;
 
@@ -63,13 +55,13 @@ public class StubAntivirusScanService : IAntivirusScanService
             {
                 detectedThreats.Add($"Mock.{threat}.Detected");
                 isClean = false;
-                _logger.LogWarning("Mock threat detected in file {FileName}: {Threat}", fileName, threat);
+                logger.LogWarning("Mock threat detected in file {FileName}: {Threat}", fileName, threat);
             }
         }
 
         if (isClean)
         {
-            _logger.LogDebug("Mock antivirus scan completed - file {FileName} is clean", fileName);
+            logger.LogDebug("Mock antivirus scan completed - file {FileName} is clean", fileName);
         }
 
         return new AntivirusScanResult
@@ -86,4 +78,5 @@ public class StubAntivirusScanService : IAntivirusScanService
             }
         };
     }
+
 }

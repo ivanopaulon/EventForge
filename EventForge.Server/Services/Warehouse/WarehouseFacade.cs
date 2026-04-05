@@ -15,253 +15,221 @@ namespace EventForge.Server.Services.Warehouse;
 /// Consolidates access to storage, stock, inventory, and related services to reduce controller dependencies.
 /// This facade delegates to underlying services and does not contain business logic.
 /// </summary>
-public class WarehouseFacade : IWarehouseFacade
+public class WarehouseFacade(
+    IStorageFacilityService storageFacilityService,
+    IStorageLocationService storageLocationService,
+    ILotService lotService,
+    IStockService stockService,
+    ISerialService serialService,
+    IStockMovementService stockMovementService,
+    IDocumentHeaderService documentHeaderService,
+    IProductService productService,
+    IInventoryBulkSeedService inventoryBulkSeedService,
+    IInventoryDiagnosticService inventoryDiagnosticService,
+    IStockReconciliationService stockReconciliationService,
+    IExportService exportService,
+    EventForgeDbContext context,
+    ILogger<WarehouseFacade> logger) : IWarehouseFacade
 {
-    private readonly IStorageFacilityService _storageFacilityService;
-    private readonly IStorageLocationService _storageLocationService;
-    private readonly ILotService _lotService;
-    private readonly IStockService _stockService;
-    private readonly ISerialService _serialService;
-    private readonly IStockMovementService _stockMovementService;
-    private readonly IDocumentHeaderService _documentHeaderService;
-    private readonly IProductService _productService;
-    private readonly IInventoryBulkSeedService _inventoryBulkSeedService;
-    private readonly IInventoryDiagnosticService _inventoryDiagnosticService;
-    private readonly IStockReconciliationService _stockReconciliationService;
-    private readonly IExportService _exportService;
-    private readonly EventForgeDbContext _context;
-    private readonly ILogger<WarehouseFacade> _logger;
-
-    public WarehouseFacade(
-        IStorageFacilityService storageFacilityService,
-        IStorageLocationService storageLocationService,
-        ILotService lotService,
-        IStockService stockService,
-        ISerialService serialService,
-        IStockMovementService stockMovementService,
-        IDocumentHeaderService documentHeaderService,
-        IProductService productService,
-        IInventoryBulkSeedService inventoryBulkSeedService,
-        IInventoryDiagnosticService inventoryDiagnosticService,
-        IStockReconciliationService stockReconciliationService,
-        IExportService exportService,
-        EventForgeDbContext context,
-        ILogger<WarehouseFacade> logger)
-    {
-        _storageFacilityService = storageFacilityService ?? throw new ArgumentNullException(nameof(storageFacilityService));
-        _storageLocationService = storageLocationService ?? throw new ArgumentNullException(nameof(storageLocationService));
-        _lotService = lotService ?? throw new ArgumentNullException(nameof(lotService));
-        _stockService = stockService ?? throw new ArgumentNullException(nameof(stockService));
-        _serialService = serialService ?? throw new ArgumentNullException(nameof(serialService));
-        _stockMovementService = stockMovementService ?? throw new ArgumentNullException(nameof(stockMovementService));
-        _documentHeaderService = documentHeaderService ?? throw new ArgumentNullException(nameof(documentHeaderService));
-        _productService = productService ?? throw new ArgumentNullException(nameof(productService));
-        _inventoryBulkSeedService = inventoryBulkSeedService ?? throw new ArgumentNullException(nameof(inventoryBulkSeedService));
-        _inventoryDiagnosticService = inventoryDiagnosticService ?? throw new ArgumentNullException(nameof(inventoryDiagnosticService));
-        _stockReconciliationService = stockReconciliationService ?? throw new ArgumentNullException(nameof(stockReconciliationService));
-        _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Storage Facility Operations
 
     public Task<StorageFacilityDto> CreateStorageFacilityAsync(CreateStorageFacilityDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _storageFacilityService.CreateStorageFacilityAsync(createDto, currentUser, cancellationToken);
+        => storageFacilityService.CreateStorageFacilityAsync(createDto, currentUser, cancellationToken);
 
     public Task<StorageFacilityDto?> GetStorageFacilityByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _storageFacilityService.GetStorageFacilityByIdAsync(id, cancellationToken);
+        => storageFacilityService.GetStorageFacilityByIdAsync(id, cancellationToken);
 
     public Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
-        => _storageFacilityService.GetStorageFacilitiesAsync(pagination, cancellationToken);
+        => storageFacilityService.GetStorageFacilitiesAsync(pagination, cancellationToken);
 
     public Task<IEnumerable<WarehouseExportDto>> GetWarehousesForExportAsync(PaginationParameters pagination, CancellationToken ct = default)
-        => _storageFacilityService.GetWarehousesForExportAsync(pagination, ct);
+        => storageFacilityService.GetWarehousesForExportAsync(pagination, ct);
 
     #endregion
 
     #region Storage Location Operations
 
     public Task<StorageLocationDto?> GetStorageLocationByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _storageLocationService.GetStorageLocationByIdAsync(id, cancellationToken);
+        => storageLocationService.GetStorageLocationByIdAsync(id, cancellationToken);
 
     public Task<StorageLocationDto> CreateStorageLocationAsync(CreateStorageLocationDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _storageLocationService.CreateStorageLocationAsync(createDto, currentUser, cancellationToken);
+        => storageLocationService.CreateStorageLocationAsync(createDto, currentUser, cancellationToken);
 
     public Task<PagedResult<StorageLocationDto>> GetStorageLocationsAsync(PaginationParameters pagination, Guid? warehouseId = null, CancellationToken cancellationToken = default)
-        => _storageLocationService.GetStorageLocationsAsync(pagination, warehouseId, cancellationToken);
+        => storageLocationService.GetStorageLocationsAsync(pagination, warehouseId, cancellationToken);
 
     #endregion
 
     #region Lot Operations
 
     public Task<bool> BlockLotAsync(Guid id, string reason, string currentUser, CancellationToken cancellationToken = default)
-        => _lotService.BlockLotAsync(id, reason, currentUser, cancellationToken);
+        => lotService.BlockLotAsync(id, reason, currentUser, cancellationToken);
 
     public Task<LotDto> CreateLotAsync(CreateLotDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _lotService.CreateLotAsync(createDto, currentUser, cancellationToken);
+        => lotService.CreateLotAsync(createDto, currentUser, cancellationToken);
 
     public Task<bool> DeleteLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
-        => _lotService.DeleteLotAsync(id, currentUser, cancellationToken);
+        => lotService.DeleteLotAsync(id, currentUser, cancellationToken);
 
     public Task<IEnumerable<LotDto>> GetExpiringLotsAsync(int daysAhead = 30, CancellationToken cancellationToken = default)
-        => _lotService.GetExpiringLotsAsync(daysAhead, cancellationToken);
+        => lotService.GetExpiringLotsAsync(daysAhead, cancellationToken);
 
     public Task<LotDto?> GetLotByCodeAsync(string code, CancellationToken cancellationToken = default)
-        => _lotService.GetLotByCodeAsync(code, cancellationToken);
+        => lotService.GetLotByCodeAsync(code, cancellationToken);
 
     public Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _lotService.GetLotByIdAsync(id, cancellationToken);
+        => lotService.GetLotByIdAsync(id, cancellationToken);
 
     public Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken cancellationToken = default)
-        => _lotService.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+        => lotService.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
 
     public Task<bool> UnblockLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
-        => _lotService.UnblockLotAsync(id, currentUser, cancellationToken);
+        => lotService.UnblockLotAsync(id, currentUser, cancellationToken);
 
     public Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto, string currentUser, CancellationToken cancellationToken = default)
-        => _lotService.UpdateLotAsync(id, updateDto, currentUser, cancellationToken);
+        => lotService.UpdateLotAsync(id, updateDto, currentUser, cancellationToken);
 
     public Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
-        => _lotService.UpdateQualityStatusAsync(id, qualityStatus, currentUser, notes, cancellationToken);
+        => lotService.UpdateQualityStatusAsync(id, qualityStatus, currentUser, notes, cancellationToken);
 
     #endregion
 
     #region Stock Operations
 
     public Task UpdateLastInventoryDateAsync(Guid stockId, DateTime inventoryDate, CancellationToken cancellationToken = default)
-        => _stockService.UpdateLastInventoryDateAsync(stockId, inventoryDate, cancellationToken);
+        => stockService.UpdateLastInventoryDateAsync(stockId, inventoryDate, cancellationToken);
 
     public Task<StockDto> CreateOrUpdateStockAsync(CreateStockDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _stockService.CreateOrUpdateStockAsync(createDto, currentUser, cancellationToken);
+        => stockService.CreateOrUpdateStockAsync(createDto, currentUser, cancellationToken);
 
     public Task<StockDto> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, string currentUser, CancellationToken cancellationToken = default)
-        => _stockService.CreateOrUpdateStockAsync(dto, currentUser, cancellationToken);
+        => stockService.CreateOrUpdateStockAsync(dto, currentUser, cancellationToken);
 
     public Task<PagedResult<StockDto>> GetStockAsync(int page = 1, int pageSize = 20, Guid? productId = null, Guid? locationId = null, Guid? lotId = null, bool? lowStock = null, CancellationToken cancellationToken = default)
-        => _stockService.GetStockAsync(page, pageSize, productId, locationId, lotId, lowStock, cancellationToken);
+        => stockService.GetStockAsync(page, pageSize, productId, locationId, lotId, lowStock, cancellationToken);
 
     public Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default)
-        => _stockService.AdjustStockAsync(dto, currentUser, cancellationToken);
+        => stockService.AdjustStockAsync(dto, currentUser, cancellationToken);
 
     public Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? warehouseId = null, Guid? locationId = null, Guid? lotId = null, bool? lowStock = null, bool? criticalStock = null, bool? outOfStock = null, bool? inStockOnly = null, bool? showAllProducts = null, bool detailedView = false, CancellationToken cancellationToken = default)
-        => _stockService.GetStockOverviewAsync(page, pageSize, searchTerm, warehouseId, locationId, lotId, lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView, cancellationToken);
+        => stockService.GetStockOverviewAsync(page, pageSize, searchTerm, warehouseId, locationId, lotId, lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView, cancellationToken);
 
     public Task<bool> ReserveStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string? currentUser = null, CancellationToken cancellationToken = default)
-        => _stockService.ReserveStockAsync(productId, locationId, quantity, lotId, currentUser, cancellationToken);
+        => stockService.ReserveStockAsync(productId, locationId, quantity, lotId, currentUser, cancellationToken);
 
     public Task<StockDto?> GetStockByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _stockService.GetStockByIdAsync(id, cancellationToken);
+        => stockService.GetStockByIdAsync(id, cancellationToken);
 
     public Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
-        => _stockService.GetStockByProductIdAsync(productId, cancellationToken);
+        => stockService.GetStockByProductIdAsync(productId, cancellationToken);
 
     #endregion
 
     #region Serial Operations
 
     public Task<SerialDto> CreateSerialAsync(CreateSerialDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _serialService.CreateSerialAsync(createDto, currentUser, cancellationToken);
+        => serialService.CreateSerialAsync(createDto, currentUser, cancellationToken);
 
     public Task<PagedResult<SerialDto>> GetSerialsAsync(int page = 1, int pageSize = 20, Guid? productId = null, Guid? lotId = null, Guid? locationId = null, string? status = null, string? searchTerm = null, CancellationToken cancellationToken = default)
-        => _serialService.GetSerialsAsync(page, pageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
+        => serialService.GetSerialsAsync(page, pageSize, productId, lotId, locationId, status, searchTerm, cancellationToken);
 
     public Task<bool> UpdateSerialStatusAsync(Guid id, string status, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
-        => _serialService.UpdateSerialStatusAsync(id, status, currentUser, notes, cancellationToken);
+        => serialService.UpdateSerialStatusAsync(id, status, currentUser, notes, cancellationToken);
 
     public Task<SerialDto?> GetSerialByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _serialService.GetSerialByIdAsync(id, cancellationToken);
+        => serialService.GetSerialByIdAsync(id, cancellationToken);
 
     #endregion
 
     #region Stock Movement Operations
 
     public Task<StockMovementDto> ProcessAdjustmentMovementAsync(Guid productId, Guid locationId, decimal adjustmentQuantity, string reason, Guid? lotId = null, string? notes = null, string? currentUser = null, DateTime? movementDate = null, CancellationToken cancellationToken = default)
-        => _stockMovementService.ProcessAdjustmentMovementAsync(productId, locationId, adjustmentQuantity, reason, lotId, notes, currentUser, movementDate, cancellationToken);
+        => stockMovementService.ProcessAdjustmentMovementAsync(productId, locationId, adjustmentQuantity, reason, lotId, notes, currentUser, movementDate, cancellationToken);
 
     public Task<IEnumerable<InventoryExportDto>> GetInventoryForExportAsync(PaginationParameters pagination, CancellationToken ct = default)
-        => _stockMovementService.GetInventoryForExportAsync(pagination, ct);
+        => stockMovementService.GetInventoryForExportAsync(pagination, ct);
 
     #endregion
 
     #region Document Operations
 
     public Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
-        => _documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+        => documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
 
     public Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(Guid id, bool includeRows = false, CancellationToken cancellationToken = default)
-        => _documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
+        => documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
 
     public Task<DocumentRowDto> AddDocumentRowAsync(CreateDocumentRowDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _documentHeaderService.AddDocumentRowAsync(createDto, currentUser, cancellationToken);
+        => documentHeaderService.AddDocumentRowAsync(createDto, currentUser, cancellationToken);
 
     public Task<DocumentHeaderDto> CreateDocumentHeaderAsync(CreateDocumentHeaderDto createDto, string currentUser, CancellationToken cancellationToken = default)
-        => _documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
+        => documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
 
     public Task<PagedResult<DocumentHeaderDto>> GetPagedDocumentHeadersAsync(DocumentHeaderQueryParameters queryParameters, CancellationToken cancellationToken = default)
-        => _documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
+        => documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
 
     public Task<DocumentTypeDto> GetOrCreateInventoryDocumentTypeAsync(Guid tenantId, CancellationToken cancellationToken = default)
-        => _documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
+        => documentHeaderService.GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
 
     public Task<Guid> GetOrCreateSystemBusinessPartyAsync(Guid tenantId, CancellationToken cancellationToken = default)
-        => _documentHeaderService.GetOrCreateSystemBusinessPartyAsync(tenantId, cancellationToken);
+        => documentHeaderService.GetOrCreateSystemBusinessPartyAsync(tenantId, cancellationToken);
 
     #endregion
 
     #region Product Operations
 
     public Task<ProductDto?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => _productService.GetProductByIdAsync(id, cancellationToken);
+        => productService.GetProductByIdAsync(id, cancellationToken);
 
     #endregion
 
     #region Inventory Bulk Operations
 
     public Task<InventorySeedResultDto> SeedInventoryAsync(InventorySeedRequestDto request, string currentUser, CancellationToken cancellationToken = default)
-        => _inventoryBulkSeedService.SeedInventoryAsync(request, currentUser, cancellationToken);
+        => inventoryBulkSeedService.SeedInventoryAsync(request, currentUser, cancellationToken);
 
     #endregion
 
     #region Inventory Diagnostic Operations
 
     public Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds, string currentUser, CancellationToken cancellationToken = default)
-        => _inventoryDiagnosticService.RemoveProblematicRowsAsync(documentId, rowIds, currentUser, cancellationToken);
+        => inventoryDiagnosticService.RemoveProblematicRowsAsync(documentId, rowIds, currentUser, cancellationToken);
 
     public Task<InventoryDiagnosticReportDto> DiagnoseDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
-        => _inventoryDiagnosticService.DiagnoseDocumentAsync(documentId, cancellationToken);
+        => inventoryDiagnosticService.DiagnoseDocumentAsync(documentId, cancellationToken);
 
     public Task<InventoryRepairResultDto> AutoRepairDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options, string currentUser, CancellationToken cancellationToken = default)
-        => _inventoryDiagnosticService.AutoRepairDocumentAsync(documentId, options, currentUser, cancellationToken);
+        => inventoryDiagnosticService.AutoRepairDocumentAsync(documentId, options, currentUser, cancellationToken);
 
     public Task<bool> RepairRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData, string currentUser, CancellationToken cancellationToken = default)
-        => _inventoryDiagnosticService.RepairRowAsync(documentId, rowId, repairData, currentUser, cancellationToken);
+        => inventoryDiagnosticService.RepairRowAsync(documentId, rowId, repairData, currentUser, cancellationToken);
 
     #endregion
 
     #region Stock Reconciliation Operations
 
     public Task<byte[]> ExportReconciliationReportAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
-        => _stockReconciliationService.ExportReconciliationReportAsync(request, cancellationToken);
+        => stockReconciliationService.ExportReconciliationReportAsync(request, cancellationToken);
 
     public Task<StockReconciliationApplyResultDto> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request, string currentUser, CancellationToken cancellationToken = default)
-        => _stockReconciliationService.ApplyReconciliationAsync(request, currentUser, cancellationToken);
+        => stockReconciliationService.ApplyReconciliationAsync(request, currentUser, cancellationToken);
 
     public Task<StockReconciliationResultDto> CalculateReconciledStockAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
-        => _stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
+        => stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
 
     public Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default)
-        => _stockReconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, currentUser, cancellationToken);
+        => stockReconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, currentUser, cancellationToken);
 
     #endregion
 
     #region Export Operations
 
     public Task<byte[]> ExportToCsvAsync<T>(IEnumerable<T> data, CancellationToken ct = default) where T : class
-        => _exportService.ExportToCsvAsync(data, ct);
+        => exportService.ExportToCsvAsync(data, ct);
 
     public Task<byte[]> ExportToExcelAsync<T>(IEnumerable<T> data, string sheetName = "Data", CancellationToken ct = default) where T : class
-        => _exportService.ExportToExcelAsync(data, sheetName, ct);
+        => exportService.ExportToExcelAsync(data, sheetName, ct);
 
     #endregion
 
@@ -279,11 +247,11 @@ public class WarehouseFacade : IWarehouseFacade
         var rowsList = rows.ToList();
         if (!rowsList.Any())
         {
-            return new List<InventoryDocumentRowDto>();
+            return [];
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        _logger.LogInformation("Starting optimized enrichment for {RowCount} inventory rows", rowsList.Count);
+        logger.LogInformation("Starting optimized enrichment for {RowCount} inventory rows", rowsList.Count);
 
         // BATCH 1: Fetch ALL products in a single query
         var productIds = rowsList
@@ -295,13 +263,13 @@ public class WarehouseFacade : IWarehouseFacade
         var productsDict = new Dictionary<Guid, Product>();
         if (productIds.Any())
         {
-            var products = await _context.Products
+            var products = await context.Products
                 .AsNoTracking()
                 .Where(p => productIds.Contains(p.Id))
                 .ToListAsync(cancellationToken);
 
             productsDict = products.ToDictionary(p => p.Id);
-            _logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
+            logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
         }
 
         // BATCH 2: Fetch ALL locations in a single query
@@ -314,13 +282,13 @@ public class WarehouseFacade : IWarehouseFacade
         var locationsDict = new Dictionary<Guid, StorageLocation>();
         if (locationIds.Any())
         {
-            var locations = await _context.StorageLocations
+            var locations = await context.StorageLocations
                 .AsNoTracking()
                 .Where(l => locationIds.Contains(l.Id))
                 .ToListAsync(cancellationToken);
 
             locationsDict = locations.ToDictionary(l => l.Id);
-            _logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
+            logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
         }
 
         // BATCH 3: Fetch ALL stocks in a single query
@@ -337,7 +305,7 @@ public class WarehouseFacade : IWarehouseFacade
             var stockProductIds = stockKeys.Select(k => k.ProductId).ToList();
             var stockLocationIds = stockKeys.Select(k => k.LocationId).ToList();
 
-            var stocks = await _context.Stocks
+            var stocks = await context.Stocks
                 .AsNoTracking()
                 .Where(s => stockProductIds.Contains(s.ProductId) &&
                             stockLocationIds.Contains(s.StorageLocationId) &&
@@ -345,7 +313,7 @@ public class WarehouseFacade : IWarehouseFacade
                 .ToListAsync(cancellationToken);
 
             stocksDict = stocks.ToDictionary(s => (s.ProductId, s.StorageLocationId));
-            _logger.LogDebug("Batch loaded {StockCount} stock entries", stocksDict.Count);
+            logger.LogDebug("Batch loaded {StockCount} stock entries", stocksDict.Count);
         }
 
         // Now process all rows with O(1) dictionary lookups
@@ -362,7 +330,7 @@ public class WarehouseFacade : IWarehouseFacade
                 if (!productsDict.TryGetValue(productId.Value, out product))
                 {
                     // Product lookup failed - log for data quality tracking
-                    _logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
+                    logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
                 }
             }
 
@@ -382,7 +350,7 @@ public class WarehouseFacade : IWarehouseFacade
             decimal? adjustmentQuantity = null;
             if (productId.HasValue && locationId.HasValue)
             {
-                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock != null)
+                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock is not null)
                 {
                     previousQuantity = stock.Quantity;
                     adjustmentQuantity = row.Quantity - previousQuantity;
@@ -407,7 +375,7 @@ public class WarehouseFacade : IWarehouseFacade
         }
 
         stopwatch.Stop();
-        _logger.LogInformation(
+        logger.LogInformation(
             "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
             "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
             rowsList.Count, stopwatch.ElapsedMilliseconds,
@@ -422,7 +390,7 @@ public class WarehouseFacade : IWarehouseFacade
     {
         var inventoryDocType = await GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
 
-        return await _context.DocumentHeaders
+        return await context.DocumentHeaders
             .AsNoTracking()
             .Where(d => d.TenantId == tenantId
                         && d.DocumentTypeId == inventoryDocType.Id
@@ -450,17 +418,17 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<string?> GetUnitOfMeasureSymbolAsync(Guid unitOfMeasureId, CancellationToken cancellationToken = default)
     {
-        var um = await _context.UMs
+        var um = await context.UMs
             .FirstOrDefaultAsync(u => u.Id == unitOfMeasureId && !u.IsDeleted, cancellationToken);
         return um?.Symbol;
     }
 
     public async Task<(decimal Percentage, string? Description)?> GetVatRateDetailsAsync(Guid vatRateId, CancellationToken cancellationToken = default)
     {
-        var vat = await _context.VatRates
+        var vat = await context.VatRates
             .FirstOrDefaultAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
 
-        if (vat == null)
+        if (vat is null)
             return null;
 
         return (vat.Percentage, $"VAT {vat.Percentage}%");
@@ -468,10 +436,10 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<DocumentRowDto> UpdateOrMergeInventoryRowAsync(Guid documentId, Guid existingRowId, decimal newQuantity, string? additionalNotes, string currentUser, CancellationToken cancellationToken = default)
     {
-        var rowEntity = await _context.DocumentRows
+        var rowEntity = await context.DocumentRows
             .FirstOrDefaultAsync(r => r.Id == existingRowId && !r.IsDeleted, cancellationToken);
 
-        if (rowEntity == null)
+        if (rowEntity is null)
             throw new InvalidOperationException($"Row {existingRowId} not found");
 
         rowEntity.Quantity = newQuantity;
@@ -486,7 +454,7 @@ public class WarehouseFacade : IWarehouseFacade
         rowEntity.ModifiedAt = DateTime.UtcNow;
         rowEntity.ModifiedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         return new DocumentRowDto
         {
@@ -505,11 +473,11 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<bool> UpdateDocumentHeaderFieldsAsync(Guid documentId, DateTime date, Guid? warehouseId, string? notes, string currentUser, CancellationToken cancellationToken = default)
     {
-        var documentHeader = await _context.DocumentHeaders
+        var documentHeader = await context.DocumentHeaders
             .Include(dh => dh.Rows)
             .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
 
-        if (documentHeader == null)
+        if (documentHeader is null)
             return false;
 
         documentHeader.Date = date;
@@ -518,26 +486,26 @@ public class WarehouseFacade : IWarehouseFacade
         documentHeader.ModifiedBy = currentUser;
         documentHeader.ModifiedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<bool> UpdateInventoryRowAsync(Guid rowId, Guid? productId, decimal quantity, Guid? locationId, string? notes, string currentUser, CancellationToken cancellationToken = default)
     {
-        var rowEntity = await _context.DocumentRows
+        var rowEntity = await context.DocumentRows
             .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
-        if (rowEntity == null)
+        if (rowEntity is null)
             return false;
 
         if (productId.HasValue)
         {
             rowEntity.ProductId = productId.Value;
 
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == productId.Value && !p.IsDeleted, cancellationToken);
 
-            if (product != null)
+            if (product is not null)
             {
                 rowEntity.ProductCode = product.Code;
                 rowEntity.Description = product.Name;
@@ -555,29 +523,29 @@ public class WarehouseFacade : IWarehouseFacade
         rowEntity.ModifiedAt = DateTime.UtcNow;
         rowEntity.ModifiedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<bool> DeleteInventoryRowAsync(Guid rowId, string currentUser, CancellationToken cancellationToken = default)
     {
-        var rowEntity = await _context.DocumentRows
+        var rowEntity = await context.DocumentRows
             .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
 
-        if (rowEntity == null)
+        if (rowEntity is null)
             return false;
 
         rowEntity.IsDeleted = true;
         rowEntity.DeletedAt = DateTime.UtcNow;
         rowEntity.DeletedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<List<Guid>> ValidateProductsExistAsync(List<Guid> productIds, CancellationToken cancellationToken = default)
     {
-        var existingProducts = await _context.Products
+        var existingProducts = await context.Products
             .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
             .Select(p => p.Id)
             .ToListAsync(cancellationToken);
@@ -587,7 +555,7 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<List<Guid>> ValidateLocationsExistAsync(List<Guid> locationIds, CancellationToken cancellationToken = default)
     {
-        var existingLocations = await _context.StorageLocations
+        var existingLocations = await context.StorageLocations
             .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
             .Select(l => l.Id)
             .ToListAsync(cancellationToken);
@@ -597,29 +565,29 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<bool> CancelInventoryDocumentAsync(Guid documentId, string currentUser, CancellationToken cancellationToken = default)
     {
-        var documentEntity = await _context.DocumentHeaders
+        var documentEntity = await context.DocumentHeaders
             .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
 
-        if (documentEntity == null)
+        if (documentEntity is null)
             return false;
 
         documentEntity.Status = DocumentStatus.Cancelled;
         documentEntity.ModifiedAt = DateTime.UtcNow;
         documentEntity.ModifiedBy = currentUser;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
     public async Task<(List<DocumentRowDto> Rows, int TotalCount)> GetDocumentRowsPagedAsync(Guid documentId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var totalCount = await _context.DocumentRows
+        var totalCount = await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
             .CountAsync(cancellationToken);
 
         var skip = (page - 1) * pageSize;
-        var documentRows = await _context.DocumentRows
+        var documentRows = await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
             .OrderBy(r => r.CreatedAt)
@@ -645,7 +613,7 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<int> CancelInventoryDocumentsBatchAsync(List<Guid> documentIds, string currentUser, CancellationToken cancellationToken = default)
     {
-        var documentEntities = await _context.DocumentHeaders
+        var documentEntities = await context.DocumentHeaders
             .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -660,13 +628,13 @@ public class WarehouseFacade : IWarehouseFacade
             cancelledCount++;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         return cancelledCount;
     }
 
     public async Task<List<(Guid Id, DocumentStatus Status, Guid? SourceWarehouseId, List<DocumentRowDto> Rows, string Number, string? Notes)>> LoadDocumentsForMergeAsync(List<Guid> documentIds, CancellationToken cancellationToken = default)
     {
-        var documents = await _context.DocumentHeaders
+        var documents = await context.DocumentHeaders
             .Include(d => d.Rows)
             .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -696,7 +664,7 @@ public class WarehouseFacade : IWarehouseFacade
     public async Task UpdateDocumentStatusesBatchAsync(List<(Guid DocumentId, DocumentStatus Status, string Notes)> updates, string currentUser, CancellationToken cancellationToken = default)
     {
         var documentIds = updates.Select(u => u.DocumentId).ToList();
-        var documents = await _context.DocumentHeaders
+        var documents = await context.DocumentHeaders
             .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
             .ToListAsync(cancellationToken);
 
@@ -714,14 +682,14 @@ public class WarehouseFacade : IWarehouseFacade
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<MergeInventoryDocumentsPreviewDto> PreviewMergeInventoryDocumentsAsync(
         List<Guid> documentIds,
         CancellationToken cancellationToken = default)
     {
-        var documents = await _context.DocumentHeaders
+        var documents = await context.DocumentHeaders
             .Include(d => d.Rows)
             .Include(d => d.SourceWarehouse)
             .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
@@ -789,14 +757,14 @@ public class WarehouseFacade : IWarehouseFacade
 
             // Load document headers WITHOUT rows to avoid tracking potentially thousands of
             // source rows in the EF change tracker, which was causing SaveChangesAsync timeouts.
-            var documents = await _context.DocumentHeaders
+            var documents = await context.DocumentHeaders
                 .Where(d => mergeDto.SourceDocumentIds.Contains(d.Id) && !d.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             // Determine target document
             var targetId = mergeDto.TargetDocumentId ?? mergeDto.SourceDocumentIds.First();
             var targetDocument = documents.FirstOrDefault(d => d.Id == targetId);
-            if (targetDocument == null)
+            if (targetDocument is null)
                 throw new InvalidOperationException($"Target document {targetId} not found.");
 
             var sourceDocs = documents.Where(d => d.Id != targetId).ToList();
@@ -814,7 +782,7 @@ public class WarehouseFacade : IWarehouseFacade
             var warnings = new List<string>();
 
             // Load ONLY target rows WITH change tracking (these may be updated).
-            var targetRows = await _context.DocumentRows
+            var targetRows = await context.DocumentRows
                 .Where(r => r.DocumentHeaderId == targetId && !r.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -828,7 +796,7 @@ public class WarehouseFacade : IWarehouseFacade
             if (sourceDocIds.Count > 0)
             {
                 // Load ALL source rows in one query WITHOUT tracking (read-only input).
-                var sourceRows = await _context.DocumentRows
+                var sourceRows = await context.DocumentRows
                     .AsNoTracking()
                     .Where(r => sourceDocIds.Contains(r.DocumentHeaderId) && !r.IsDeleted)
                     .ToListAsync(cancellationToken);
@@ -880,7 +848,7 @@ public class WarehouseFacade : IWarehouseFacade
             }
 
             if (newRows.Count > 0)
-                _context.DocumentRows.AddRange(newRows);
+                context.DocumentRows.AddRange(newRows);
 
             // Append optional notes to target document
             if (!string.IsNullOrWhiteSpace(mergeDto.Notes))
@@ -911,7 +879,7 @@ public class WarehouseFacade : IWarehouseFacade
                 softDeletedIds.Add(sourceDoc.Id);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
             result.TotalRows = targetRows.Count;
@@ -938,7 +906,7 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<int> CountDocumentRowsAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        return await _context.DocumentRows
+        return await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
             .CountAsync(cancellationToken);
@@ -946,7 +914,7 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<List<(Guid Id, Guid? ProductId, Guid? LocationId)>> GetRowsWithNullDataAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        return await _context.DocumentRows
+        return await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted &&
                        (r.ProductId == null || r.LocationId == null))
@@ -956,14 +924,14 @@ public class WarehouseFacade : IWarehouseFacade
 
     public async Task<(List<Guid> ProductIds, List<Guid> LocationIds)> GetUniqueProductAndLocationIdsAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var productIds = await _context.DocumentRows
+        var productIds = await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.ProductId != null)
             .Select(r => r.ProductId!.Value)
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var locationIds = await _context.DocumentRows
+        var locationIds = await context.DocumentRows
             .AsNoTracking()
             .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.LocationId != null)
             .Select(r => r.LocationId!.Value)
@@ -979,7 +947,7 @@ public class WarehouseFacade : IWarehouseFacade
 
     public Task<IDbContextTransaction> BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
     {
-        return _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+        return context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
     }
 
     #endregion
@@ -1001,21 +969,21 @@ public class WarehouseFacade : IWarehouseFacade
             throw new ArgumentException("Maximum 500 items can be transferred at once.");
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             // Validate facilities exist
-            var sourceFacility = await _storageFacilityService.GetStorageFacilityByIdAsync(
+            var sourceFacility = await storageFacilityService.GetStorageFacilityByIdAsync(
                 bulkTransferDto.SourceFacilityId, cancellationToken);
-            var destFacility = await _storageFacilityService.GetStorageFacilityByIdAsync(
+            var destFacility = await storageFacilityService.GetStorageFacilityByIdAsync(
                 bulkTransferDto.DestinationFacilityId, cancellationToken);
 
-            if (sourceFacility == null)
+            if (sourceFacility is null)
             {
                 throw new ArgumentException($"Source facility {bulkTransferDto.SourceFacilityId} not found.");
             }
 
-            if (destFacility == null)
+            if (destFacility is null)
             {
                 throw new ArgumentException($"Destination facility {bulkTransferDto.DestinationFacilityId} not found.");
             }
@@ -1023,9 +991,9 @@ public class WarehouseFacade : IWarehouseFacade
             // Validate locations if specified
             if (bulkTransferDto.SourceLocationId.HasValue)
             {
-                var sourceLocation = await _storageLocationService.GetStorageLocationByIdAsync(
+                var sourceLocation = await storageLocationService.GetStorageLocationByIdAsync(
                     bulkTransferDto.SourceLocationId.Value, cancellationToken);
-                if (sourceLocation == null)
+                if (sourceLocation is null)
                 {
                     throw new ArgumentException($"Source location {bulkTransferDto.SourceLocationId} not found.");
                 }
@@ -1033,9 +1001,9 @@ public class WarehouseFacade : IWarehouseFacade
 
             if (bulkTransferDto.DestinationLocationId.HasValue)
             {
-                var destLocation = await _storageLocationService.GetStorageLocationByIdAsync(
+                var destLocation = await storageLocationService.GetStorageLocationByIdAsync(
                     bulkTransferDto.DestinationLocationId.Value, cancellationToken);
-                if (destLocation == null)
+                if (destLocation is null)
                 {
                     throw new ArgumentException($"Destination location {bulkTransferDto.DestinationLocationId} not found.");
                 }
@@ -1063,10 +1031,10 @@ public class WarehouseFacade : IWarehouseFacade
                         Reference = "BulkTransfer"
                     };
 
-                    await _stockMovementService.CreateMovementAsync(createMovementDto, currentUser, cancellationToken);
+                    await stockMovementService.CreateMovementAsync(createMovementDto, currentUser, cancellationToken);
                     successCount++;
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Bulk transfer: Product {ProductId} transferred {Quantity} units from location {SourceLocation} to {DestLocation}",
                         item.ProductId, item.Quantity, bulkTransferDto.SourceLocationId, bulkTransferDto.DestinationLocationId);
                 }
@@ -1080,10 +1048,10 @@ public class WarehouseFacade : IWarehouseFacade
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk transfer completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
@@ -1104,7 +1072,7 @@ public class WarehouseFacade : IWarehouseFacade
             // the original token is cancelled (e.g. client disconnect), so we must not pass the
             // already-cancelled token or RollbackAsync will itself throw TaskCanceledException.
             await transaction.RollbackAsync(CancellationToken.None);
-            _logger.LogError(ex, "Bulk transfer failed and was rolled back");
+            logger.LogError(ex, "Bulk transfer failed and was rolled back");
 
             return new EventForge.DTOs.Bulk.BulkTransferResultDto
             {
@@ -1127,4 +1095,5 @@ public class WarehouseFacade : IWarehouseFacade
     }
 
     #endregion
+
 }

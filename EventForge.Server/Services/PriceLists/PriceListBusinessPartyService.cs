@@ -5,55 +5,45 @@ using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.P
 
 namespace EventForge.Server.Services.PriceLists;
 
-public class PriceListBusinessPartyService : IPriceListBusinessPartyService
+public class PriceListBusinessPartyService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<PriceListBusinessPartyService> logger) : IPriceListBusinessPartyService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<PriceListBusinessPartyService> _logger;
-
-    public PriceListBusinessPartyService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<PriceListBusinessPartyService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region Phase 2A/2B - BusinessParty Assignment Methods
 
     public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Assigning BusinessParty {BusinessPartyId} to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
+        logger.LogInformation("Assigning BusinessParty {BusinessPartyId} to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
 
         // Validate PriceList exists
-        var priceList = await _context.PriceLists
+        var priceList = await context.PriceLists
             .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
-        if (priceList == null)
+        if (priceList is null)
         {
-            _logger.LogWarning("PriceList {PriceListId} not found", priceListId);
+            logger.LogWarning("PriceList {PriceListId} not found", priceListId);
             throw new InvalidOperationException($"PriceList with ID {priceListId} not found");
         }
 
         // Validate BusinessParty exists
-        var businessParty = await _context.BusinessParties
+        var businessParty = await context.BusinessParties
             .FirstOrDefaultAsync(bp => bp.Id == dto.BusinessPartyId && !bp.IsDeleted, cancellationToken);
 
-        if (businessParty == null)
+        if (businessParty is null)
         {
-            _logger.LogWarning("BusinessParty {BusinessPartyId} not found", dto.BusinessPartyId);
+            logger.LogWarning("BusinessParty {BusinessPartyId} not found", dto.BusinessPartyId);
             throw new InvalidOperationException($"BusinessParty with ID {dto.BusinessPartyId} not found");
         }
 
         // Check if already assigned
-        var existingAssignment = await _context.PriceListBusinessParties
+        var existingAssignment = await context.PriceListBusinessParties
             .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == dto.BusinessPartyId && !plbp.IsDeleted, cancellationToken);
 
-        if (existingAssignment != null)
+        if (existingAssignment is not null)
         {
-            _logger.LogWarning("BusinessParty {BusinessPartyId} is already assigned to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
+            logger.LogWarning("BusinessParty {BusinessPartyId} is already assigned to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
             throw new InvalidOperationException($"BusinessParty is already assigned to this PriceList");
         }
 
@@ -75,11 +65,11 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
             IsDeleted = false
         };
 
-        _context.PriceListBusinessParties.Add(assignment);
-        await _context.SaveChangesAsync(cancellationToken);
+        context.PriceListBusinessParties.Add(assignment);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceListBusinessParty",
             assignment.Id,
             "Assignment",
@@ -90,7 +80,7 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
             $"{businessParty.Name} -> {priceList.Name}",
             cancellationToken);
 
-        _logger.LogInformation("BusinessParty {BusinessPartyId} successfully assigned to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
+        logger.LogInformation("BusinessParty {BusinessPartyId} successfully assigned to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
 
         // Return mapped DTO
         return MapToDto(assignment, businessParty);
@@ -98,17 +88,17 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
 
     public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}", businessPartyId, priceListId);
+        logger.LogInformation("Removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}", businessPartyId, priceListId);
 
         // Find existing assignment
-        var assignment = await _context.PriceListBusinessParties
+        var assignment = await context.PriceListBusinessParties
             .Include(plbp => plbp.BusinessParty)
             .Include(plbp => plbp.PriceList)
             .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted, cancellationToken);
 
-        if (assignment == null)
+        if (assignment is null)
         {
-            _logger.LogWarning("PriceListBusinessParty assignment not found for PriceList {PriceListId} and BusinessParty {BusinessPartyId}", priceListId, businessPartyId);
+            logger.LogWarning("PriceListBusinessParty assignment not found for PriceList {PriceListId} and BusinessParty {BusinessPartyId}", priceListId, businessPartyId);
             return false;
         }
 
@@ -120,16 +110,16 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
 
         try
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogWarning(ex, "Concurrency conflict removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}.", businessPartyId, priceListId);
+            logger.LogWarning(ex, "Concurrency conflict removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}.", businessPartyId, priceListId);
             throw new InvalidOperationException("L'associazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
 
         // Log audit trail
-        await _auditLogService.LogEntityChangeAsync(
+        await auditLogService.LogEntityChangeAsync(
             "PriceListBusinessParty",
             assignment.Id,
             "Assignment",
@@ -140,30 +130,30 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
             $"{assignment.BusinessParty?.Name} -> {assignment.PriceList?.Name}",
             cancellationToken);
 
-        _logger.LogInformation("BusinessParty {BusinessPartyId} successfully removed from PriceList {PriceListId}", businessPartyId, priceListId);
+        logger.LogInformation("BusinessParty {BusinessPartyId} successfully removed from PriceList {PriceListId}", businessPartyId, priceListId);
 
         return true;
     }
 
     public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting BusinessParties for PriceList {PriceListId}", priceListId);
+        logger.LogInformation("Getting BusinessParties for PriceList {PriceListId}", priceListId);
 
-        var assignments = await _context.PriceListBusinessParties
+        var assignments = await context.PriceListBusinessParties
             .Include(plbp => plbp.BusinessParty)
             .Where(plbp => plbp.PriceListId == priceListId && !plbp.IsDeleted)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("Found {Count} BusinessParties for PriceList {PriceListId}", assignments.Count, priceListId);
+        logger.LogInformation("Found {Count} BusinessParties for PriceList {PriceListId}", assignments.Count, priceListId);
 
         return assignments.Select(a => MapToDto(a, a.BusinessParty)).ToList();
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting PriceLists for BusinessParty {BusinessPartyId} with type filter: {Type}", businessPartyId, type?.ToString() ?? "None");
+        logger.LogInformation("Getting PriceLists for BusinessParty {BusinessPartyId} with type filter: {Type}", businessPartyId, type?.ToString() ?? "None");
 
-        var query = _context.PriceListBusinessParties
+        var query = context.PriceListBusinessParties
             .Include(plbp => plbp.PriceList)
             .ThenInclude(pl => pl.Event)
             .Where(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted);
@@ -176,7 +166,7 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
 
         var assignments = await query.ToListAsync(cancellationToken);
 
-        _logger.LogInformation("Found {Count} PriceLists for BusinessParty {BusinessPartyId}", assignments.Count, businessPartyId);
+        logger.LogInformation("Found {Count} PriceLists for BusinessParty {BusinessPartyId}", assignments.Count, businessPartyId);
 
         return assignments
             .Where(a => a.PriceList != null && !a.PriceList.IsDeleted)
@@ -232,4 +222,5 @@ public class PriceListBusinessPartyService : IPriceListBusinessPartyService
     }
 
     #endregion
+
 }

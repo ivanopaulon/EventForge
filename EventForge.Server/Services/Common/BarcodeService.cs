@@ -7,20 +7,14 @@ using System.Text.RegularExpressions;
 
 namespace EventForge.Server.Services.Common;
 
-public class BarcodeService : IBarcodeService
+public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
 {
-    private readonly ILogger<BarcodeService> _logger;
-
-    public BarcodeService(ILogger<BarcodeService> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request, CancellationToken ct = default)
     {
         try
         {
-            _logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}",
+            logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}",
                 request.BarcodeType, request.Data.Length);
 
             // Validate data for barcode type
@@ -57,7 +51,7 @@ public class BarcodeService : IBarcodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating barcode for data: {Data}", request.Data);
+            logger.LogError(ex, "Error generating barcode for data: {Data}", request.Data);
             throw;
         }
     }
@@ -139,13 +133,13 @@ public class BarcodeService : IBarcodeService
             else
             {
                 // On Linux/macOS, provide a fallback that explains the limitation
-                _logger.LogWarning("Running on non-Windows platform. Barcode generation requires Windows environment for full functionality.");
+                logger.LogWarning("Running on non-Windows platform. Barcode generation requires Windows environment for full functionality.");
                 return await CreatePlaceholderImageAsync(data, format, width, height, ct);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to generate barcode image using platform-specific method. Creating placeholder.");
+            logger.LogWarning(ex, "Failed to generate barcode image using platform-specific method. Creating placeholder.");
             // Fallback to placeholder
             return await CreatePlaceholderImageAsync(data, format, width, height, ct);
         }
@@ -231,7 +225,7 @@ public class BarcodeService : IBarcodeService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate placeholder barcode using SkiaSharp");
+            logger.LogError(ex, "Failed to generate placeholder barcode using SkiaSharp");
             throw new InvalidOperationException("Failed to generate barcode on this platform. SkiaSharp dependencies may be missing.", ex);
         }
     }
@@ -364,4 +358,5 @@ public class BarcodeService : IBarcodeService
     }
 
     #endregion
+
 }

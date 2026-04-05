@@ -7,23 +7,17 @@ namespace EventForge.Server.Services;
 /// <summary>
 /// WebSocket client for communicating with QZ Tray
 /// </summary>
-public class QzWebSocketClient : IDisposable
+public class QzWebSocketClient(
+    ILogger<QzWebSocketClient> logger,
+    QzSigner signer,
+    IConfiguration configuration) : IDisposable
 {
-    private readonly ILogger<QzWebSocketClient> _logger;
-    private readonly QzSigner _signer;
-    private readonly string _wsUri;
-    private readonly string _certificatePath;
+
+    private readonly string _wsUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181";
+    private readonly string _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH")
+            ?? Path.Combine(AppContext.BaseDirectory, "digital-certificate.txt");
     private ClientWebSocket? _webSocket;
     private bool _disposed = false;
-
-    public QzWebSocketClient(ILogger<QzWebSocketClient> logger, QzSigner signer, IConfiguration configuration)
-    {
-        _logger = logger;
-        _signer = signer;
-        _wsUri = Environment.GetEnvironmentVariable("QZ_WS_URI") ?? "ws://localhost:8181";
-        _certificatePath = Environment.GetEnvironmentVariable("QZ_PUBLIC_CERT_PATH")
-            ?? Path.Combine(AppContext.BaseDirectory, "digital-certificate.txt");
-    }
 
     /// <summary>
     /// Connects to QZ Tray WebSocket and sends initial certificate message
@@ -37,22 +31,22 @@ public class QzWebSocketClient : IDisposable
             _webSocket = new ClientWebSocket();
             var uri = new Uri(_wsUri);
 
-            _logger.LogInformation("Connecting to QZ Tray at {Uri}", _wsUri);
+            logger.LogInformation("Connecting to QZ Tray at {Uri}", _wsUri);
             await _webSocket.ConnectAsync(uri, cancellationToken);
 
             if (_webSocket.State == WebSocketState.Open)
             {
-                _logger.LogInformation("Successfully connected to QZ Tray");
+                logger.LogInformation("Successfully connected to QZ Tray");
                 await SendCertificateAsync(cancellationToken);
                 return true;
             }
 
-            _logger.LogWarning("Failed to connect to QZ Tray - WebSocket state: {State}", _webSocket.State);
+            logger.LogWarning("Failed to connect to QZ Tray - WebSocket state: {State}", _webSocket.State);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error connecting to QZ Tray at {Uri}", _wsUri);
+            logger.LogError(ex, "Error connecting to QZ Tray at {Uri}", _wsUri);
             return false;
         }
     }
@@ -70,7 +64,7 @@ public class QzWebSocketClient : IDisposable
         {
             if (_webSocket?.State != WebSocketState.Open)
             {
-                _logger.LogWarning("WebSocket is not open. Current state: {State}", _webSocket?.State);
+                logger.LogWarning("WebSocket is not open. Current state: {State}", _webSocket?.State);
                 return null;
             }
 
@@ -78,7 +72,7 @@ public class QzWebSocketClient : IDisposable
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             // Sign the request
-            var signature = await _signer.Sign(callName, parameters, timestamp);
+            var signature = await signer.Sign(callName, parameters, timestamp);
 
             // Create the request message
             var request = new
@@ -92,7 +86,7 @@ public class QzWebSocketClient : IDisposable
             var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = false });
             var requestBytes = Encoding.UTF8.GetBytes(requestJson);
 
-            _logger.LogDebug("Sending signed request to QZ Tray: {Call}", callName);
+            logger.LogDebug("Sending signed request to QZ Tray: {Call}", callName);
 
             // Send the request
             await _webSocket.SendAsync(
@@ -108,16 +102,16 @@ public class QzWebSocketClient : IDisposable
             if (response.MessageType == WebSocketMessageType.Text)
             {
                 var responseText = Encoding.UTF8.GetString(responseBuffer, 0, response.Count);
-                _logger.LogDebug("Received response from QZ Tray: {Response}", responseText);
+                logger.LogDebug("Received response from QZ Tray: {Response}", responseText);
                 return responseText;
             }
 
-            _logger.LogWarning("Received non-text response from QZ Tray: {MessageType}", response.MessageType);
+            logger.LogWarning("Received non-text response from QZ Tray: {MessageType}", response.MessageType);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending request to QZ Tray");
+            logger.LogError(ex, "Error sending request to QZ Tray");
             return null;
         }
     }
@@ -138,7 +132,7 @@ public class QzWebSocketClient : IDisposable
             var messageJson = JsonSerializer.Serialize(certificateMessage, new JsonSerializerOptions { WriteIndented = false });
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
 
-            _logger.LogDebug("Sending certificate to QZ Tray");
+            logger.LogDebug("Sending certificate to QZ Tray");
 
             await _webSocket!.SendAsync(
                 new ArraySegment<byte>(messageBytes),
@@ -146,11 +140,11 @@ public class QzWebSocketClient : IDisposable
                 true,
                 cancellationToken);
 
-            _logger.LogInformation("Certificate sent to QZ Tray successfully");
+            logger.LogInformation("Certificate sent to QZ Tray successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending certificate to QZ Tray");
+            logger.LogError(ex, "Error sending certificate to QZ Tray");
             throw;
         }
     }
@@ -169,12 +163,12 @@ public class QzWebSocketClient : IDisposable
             }
 
             var certificate = await File.ReadAllTextAsync(resolvedPath);
-            _logger.LogDebug("Successfully loaded certificate from {Path}", resolvedPath);
+            logger.LogDebug("Successfully loaded certificate from {Path}", resolvedPath);
             return certificate.Trim();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading certificate from {Path}", _certificatePath);
+            logger.LogError(ex, "Error loading certificate from {Path}", _certificatePath);
             throw;
         }
     }
@@ -190,12 +184,12 @@ public class QzWebSocketClient : IDisposable
             if (_webSocket?.State == WebSocketState.Open)
             {
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", cancellationToken);
-                _logger.LogInformation("QZ Tray WebSocket connection closed");
+                logger.LogInformation("QZ Tray WebSocket connection closed");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error closing QZ Tray WebSocket connection");
+            logger.LogError(ex, "Error closing QZ Tray WebSocket connection");
         }
     }
 
@@ -207,4 +201,5 @@ public class QzWebSocketClient : IDisposable
             _disposed = true;
         }
     }
+
 }

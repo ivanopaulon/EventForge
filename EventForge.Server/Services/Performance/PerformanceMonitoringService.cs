@@ -119,22 +119,16 @@ public class PerformanceMonitoringOptions
 /// <summary>
 /// Implementation of performance monitoring service.
 /// </summary>
-public class PerformanceMonitoringService : IPerformanceMonitoringService
+public class PerformanceMonitoringService(IConfiguration configuration, ILogger<PerformanceMonitoringService> logger) : IPerformanceMonitoringService
 {
-    private readonly ILogger<PerformanceMonitoringService> _logger;
-    private readonly PerformanceMonitoringOptions _options;
+
+    private readonly PerformanceMonitoringOptions _options = configuration.GetSection("Performance:Monitoring").Get<PerformanceMonitoringOptions>() ?? new PerformanceMonitoringOptions();
     private readonly List<SlowQueryInfo> _slowQueries = new();
     private long _totalQueries = 0;
     private long _slowQueryCount = 0;
     private TimeSpan _totalDuration = TimeSpan.Zero;
     private TimeSpan _slowestDuration = TimeSpan.Zero;
     private readonly object _lock = new();
-
-    public PerformanceMonitoringService(IConfiguration configuration, ILogger<PerformanceMonitoringService> logger)
-    {
-        _logger = logger;
-        _options = configuration.GetSection("Performance:Monitoring").Get<PerformanceMonitoringOptions>() ?? new PerformanceMonitoringOptions();
-    }
 
     public void LogSlowQuery(string query, TimeSpan duration, object? parameters = null)
     {
@@ -171,12 +165,12 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
                 }
 
                 // Log slow query
-                _logger.LogWarning("Slow query detected: {Duration}ms - {Query}",
+                logger.LogWarning("Slow query detected: {Duration}ms - {Query}",
                     duration.TotalMilliseconds, SanitizeQuery(query, 200));
             }
             else if (_options.LogAllQueries)
             {
-                _logger.LogDebug("Query executed: {Duration}ms - {Query}",
+                logger.LogDebug("Query executed: {Duration}ms - {Query}",
                     duration.TotalMilliseconds, SanitizeQuery(query, 200));
             }
         }
@@ -228,6 +222,7 @@ public class PerformanceMonitoringService : IPerformanceMonitoringService
 
         return sanitized.Trim();
     }
+
 }
 
 /// <summary>

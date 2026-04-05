@@ -5,33 +5,25 @@ namespace EventForge.Server.Services.Common;
 /// <summary>
 /// Service implementation for managing contacts.
 /// </summary>
-public class ContactService : IContactService
+public class ContactService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<ContactService> logger) : IContactService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ContactService> _logger;
-
-    public ContactService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<ContactService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<ContactDto>> GetContactsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for contact operations.");
             }
 
-            var query = _context.Contacts
+            var query = context.Contacts
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
@@ -56,7 +48,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving contacts.");
+            logger.LogError(ex, "Error retrieving contacts.");
             throw;
         }
     }
@@ -65,13 +57,13 @@ public class ContactService : IContactService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for contact operations.");
             }
 
-            var contacts = await _context.Contacts
+            var contacts = await context.Contacts
                 .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                 .OrderBy(c => c.ContactType)
@@ -82,7 +74,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving contacts for owner {OwnerId}.", ownerId);
+            logger.LogError(ex, "Error retrieving contacts for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -91,16 +83,16 @@ public class ContactService : IContactService
     {
         try
         {
-            var contact = await _context.Contacts
+            var contact = await context.Contacts
                 .AsNoTracking()
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return contact == null ? null : MapToContactDto(contact);
+            return contact is null ? null : MapToContactDto(contact);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving contact {ContactId}.", id);
+            logger.LogError(ex, "Error retrieving contact {ContactId}.", id);
             throw;
         }
     }
@@ -112,7 +104,7 @@ public class ContactService : IContactService
             ArgumentNullException.ThrowIfNull(createContactDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for contact operations.");
@@ -132,18 +124,18 @@ public class ContactService : IContactService
                 IsActive = true
             };
 
-            _ = _context.Contacts.Add(contact);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Contacts.Add(contact);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Contact {ContactId} created by {User}.", contact.Id, currentUser);
+            logger.LogInformation("Contact {ContactId} created by {User}.", contact.Id, currentUser);
 
             return MapToContactDto(contact);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating contact.");
+            logger.LogError(ex, "Error creating contact.");
             throw;
         }
     }
@@ -155,14 +147,14 @@ public class ContactService : IContactService
             ArgumentNullException.ThrowIfNull(updateContactDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var contact = await _context.Contacts
+            var contact = await context.Contacts
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (contact == null) return null;
+            if (contact is null) return null;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(contact).CurrentValues.Clone();
+            var originalValues = context.Entry(contact).CurrentValues.Clone();
             var originalContact = (Contact)originalValues.ToObject();
 
             contact.ContactType = updateContactDto.ContactType.ToEntity();
@@ -173,17 +165,17 @@ public class ContactService : IContactService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Contact {ContactId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Contact {ContactId}.", id);
                 throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
 
-            _logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
+            logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
 
             return MapToContactDto(contact);
         }
@@ -193,7 +185,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating contact {ContactId}.", id);
+            logger.LogError(ex, "Error updating contact {ContactId}.", id);
             throw;
         }
     }
@@ -204,14 +196,14 @@ public class ContactService : IContactService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var contact = await _context.Contacts
+            var contact = await context.Contacts
                 .Where(c => c.Id == id && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (contact == null) return false;
+            if (contact is null) return false;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(contact).CurrentValues.Clone();
+            var originalValues = context.Entry(contact).CurrentValues.Clone();
             var originalContact = (Contact)originalValues.ToObject();
 
             contact.IsDeleted = true;
@@ -222,17 +214,17 @@ public class ContactService : IContactService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Contact {ContactId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Contact {ContactId}.", id);
                 throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
 
-            _logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
+            logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
 
             return true;
         }
@@ -242,7 +234,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting contact {ContactId}.", id);
+            logger.LogError(ex, "Error deleting contact {ContactId}.", id);
             throw;
         }
     }
@@ -251,13 +243,13 @@ public class ContactService : IContactService
     {
         try
         {
-            return await _context.Contacts
+            return await context.Contacts
                 .AsNoTracking()
                 .AnyAsync(c => c.Id == contactId && !c.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if contact {ContactId} exists.", contactId);
+            logger.LogError(ex, "Error checking if contact {ContactId} exists.", contactId);
             throw;
         }
     }
@@ -266,7 +258,7 @@ public class ContactService : IContactService
     {
         try
         {
-            var contacts = await _context.Contacts
+            var contacts = await context.Contacts
                 .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && c.Purpose == purpose && !c.IsDeleted)
                 .OrderBy(c => c.ContactType)
@@ -277,7 +269,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving contacts for owner {OwnerId} of type {OwnerType} with purpose {Purpose}.", ownerId, ownerType, purpose);
+            logger.LogError(ex, "Error retrieving contacts for owner {OwnerId} of type {OwnerType} with purpose {Purpose}.", ownerId, ownerType, purpose);
             throw;
         }
     }
@@ -286,17 +278,17 @@ public class ContactService : IContactService
     {
         try
         {
-            var contact = await _context.Contacts
+            var contact = await context.Contacts
                 .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType &&
                            c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return contact != null ? MapToContactDto(contact) : null;
+            return contact is not null ? MapToContactDto(contact) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving primary contact for owner {OwnerId} of type {OwnerType} with contact type {ContactType}.", ownerId, ownerType, contactType);
+            logger.LogError(ex, "Error retrieving primary contact for owner {OwnerId} of type {OwnerType} with contact type {ContactType}.", ownerId, ownerType, contactType);
             throw;
         }
     }
@@ -312,7 +304,7 @@ public class ContactService : IContactService
             }
 
             // Check if there's at least one emergency contact
-            var hasEmergencyContact = await _context.Contacts
+            var hasEmergencyContact = await context.Contacts
                 .AsNoTracking()
                 .AnyAsync(c => c.OwnerId == ownerId && c.Purpose == ContactPurpose.Emergency && !c.IsDeleted, cancellationToken);
 
@@ -320,7 +312,7 @@ public class ContactService : IContactService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating emergency contact requirements for owner {OwnerId}.", ownerId);
+            logger.LogError(ex, "Error validating emergency contact requirements for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -341,4 +333,5 @@ public class ContactService : IContactService
             ModifiedBy = contact.ModifiedBy
         };
     }
+
 }

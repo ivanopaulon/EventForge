@@ -6,36 +6,24 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service implementation for managing product brands.
 /// </summary>
-public class BrandService : IBrandService
+public class BrandService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<BrandService> logger) : IBrandService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<BrandService> _logger;
-
-    public BrandService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<BrandService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<BrandDto>> GetBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            var query = _context.Brands
+            var query = context.Brands
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
@@ -66,7 +54,7 @@ public class BrandService : IBrandService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving brands.");
+            logger.LogError(ex, "Error retrieving brands.");
             throw;
         }
     }
@@ -75,21 +63,21 @@ public class BrandService : IBrandService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            var brand = await _context.Brands
+            var brand = await context.Brands
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return brand != null ? MapToBrandDto(brand) : null;
+            return brand is not null ? MapToBrandDto(brand) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving brand {BrandId}.", id);
+            logger.LogError(ex, "Error retrieving brand {BrandId}.", id);
             throw;
         }
     }
@@ -101,7 +89,7 @@ public class BrandService : IBrandService
             ArgumentNullException.ThrowIfNull(createBrandDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
@@ -119,18 +107,18 @@ public class BrandService : IBrandService
                 CreatedBy = currentUser
             };
 
-            _ = _context.Brands.Add(brand);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Brands.Add(brand);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Brand {BrandId} created by {User}.", brand.Id, currentUser);
+            logger.LogInformation("Brand {BrandId} created by {User}.", brand.Id, currentUser);
 
             return MapToBrandDto(brand);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating brand.");
+            logger.LogError(ex, "Error creating brand.");
             throw;
         }
     }
@@ -142,24 +130,24 @@ public class BrandService : IBrandService
             ArgumentNullException.ThrowIfNull(updateBrandDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            var originalBrand = await _context.Brands
+            var originalBrand = await context.Brands
                 .AsNoTracking()
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBrand == null) return null;
+            if (originalBrand is null) return null;
 
-            var brand = await _context.Brands
+            var brand = await context.Brands
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (brand == null) return null;
+            if (brand is null) return null;
 
             brand.Name = updateBrandDto.Name;
             brand.Description = updateBrandDto.Description;
@@ -170,17 +158,17 @@ public class BrandService : IBrandService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Brand {BrandId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Brand {BrandId}.", id);
                 throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
 
-            _logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
+            logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
 
             return MapToBrandDto(brand);
         }
@@ -190,7 +178,7 @@ public class BrandService : IBrandService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating brand {BrandId}.", id);
+            logger.LogError(ex, "Error updating brand {BrandId}.", id);
             throw;
         }
     }
@@ -201,24 +189,24 @@ public class BrandService : IBrandService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            var originalBrand = await _context.Brands
+            var originalBrand = await context.Brands
                 .AsNoTracking()
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalBrand == null) return false;
+            if (originalBrand is null) return false;
 
-            var brand = await _context.Brands
+            var brand = await context.Brands
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (brand == null) return false;
+            if (brand is null) return false;
 
             brand.IsDeleted = true;
             brand.ModifiedAt = DateTime.UtcNow;
@@ -226,17 +214,17 @@ public class BrandService : IBrandService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Brand {BrandId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Brand {BrandId}.", id);
                 throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
 
-            _logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
+            logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
 
             return true;
         }
@@ -246,7 +234,7 @@ public class BrandService : IBrandService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting brand {BrandId}.", id);
+            logger.LogError(ex, "Error deleting brand {BrandId}.", id);
             throw;
         }
     }
@@ -255,19 +243,19 @@ public class BrandService : IBrandService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            return await _context.Brands
+            return await context.Brands
                 .Where(b => b.Id == brandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if brand {BrandId} exists.", brandId);
+            logger.LogError(ex, "Error checking if brand {BrandId} exists.", brandId);
             throw;
         }
     }
@@ -290,13 +278,13 @@ public class BrandService : IBrandService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for brand operations.");
             }
 
-            var query = _context.Brands
+            var query = context.Brands
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(b => b.IsActive);
@@ -328,8 +316,9 @@ public class BrandService : IBrandService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving active brands.");
+            logger.LogError(ex, "Error retrieving active brands.");
             throw;
         }
     }
+
 }

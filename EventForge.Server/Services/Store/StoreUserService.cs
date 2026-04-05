@@ -6,24 +6,12 @@ namespace EventForge.Server.Services.Store;
 /// <summary>
 /// Service implementation for managing store users, groups, and privileges.
 /// </summary>
-public class StoreUserService : IStoreUserService
+public class StoreUserService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<StoreUserService> logger) : IStoreUserService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<StoreUserService> _logger;
-
-    public StoreUserService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<StoreUserService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     #region StoreUser Operations
 
@@ -32,13 +20,13 @@ public class StoreUserService : IStoreUserService
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var query = _context.StoreUsers
+            var query = context.StoreUsers
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
@@ -63,7 +51,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store users");
+            logger.LogError(ex, "Error retrieving store users");
             throw;
         }
     }
@@ -72,21 +60,21 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
-                _logger.LogWarning("Store user with ID {StoreUserId} not found.", id);
+                logger.LogWarning("Store user with ID {StoreUserId} not found.", id);
                 return null;
             }
 
@@ -94,7 +82,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user with ID {StoreUserId}", id);
+            logger.LogError(ex, "Error retrieving store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -103,21 +91,21 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .Where(su => su.Username == username && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
-                _logger.LogWarning("Store user with username {Username} not found.", username);
+                logger.LogWarning("Store user with username {Username} not found.", username);
                 return null;
             }
 
@@ -125,7 +113,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user with username {Username}", username);
+            logger.LogError(ex, "Error retrieving store user with username {Username}", username);
             throw;
         }
     }
@@ -134,13 +122,13 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUsers = await _context.StoreUsers
+            var storeUsers = await context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Where(su => su.CashierGroupId == groupId && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .OrderBy(su => su.Name)
@@ -150,7 +138,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store users for group {GroupId}", groupId);
+            logger.LogError(ex, "Error retrieving store users for group {GroupId}", groupId);
             throw;
         }
     }
@@ -159,7 +147,7 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
@@ -173,7 +161,7 @@ public class StoreUserService : IStoreUserService
 
             if (createStoreUserDto.CashierGroupId.HasValue)
             {
-                var groupExists = await _context.StoreUserGroups
+                var groupExists = await context.StoreUserGroups
                     .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value
                                 && g.TenantId == currentTenantId.Value
                                 && !g.IsDeleted,
@@ -204,16 +192,16 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _ = _context.StoreUsers.Add(storeUser);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.StoreUsers.Add(storeUser);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
+            logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
                 storeUser.Name, storeUser.Id, currentUser);
 
             // Reload with includes
-            var createdStoreUser = await _context.StoreUsers
+            var createdStoreUser = await context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == storeUser.Id, cancellationToken);
@@ -222,7 +210,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user");
+            logger.LogError(ex, "Error creating store user");
             throw;
         }
     }
@@ -231,24 +219,24 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
-                _logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(storeUser).CurrentValues.Clone();
+            var originalValues = context.Entry(storeUser).CurrentValues.Clone();
             var originalStoreUser = (StoreUser)originalValues.ToObject();
 
             storeUser.Name = updateStoreUserDto.Name;
@@ -266,20 +254,20 @@ public class StoreUserService : IStoreUserService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating StoreUser {StoreUserId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating StoreUser {StoreUserId}.", id);
                 throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserId} updated by {User}", id, currentUser);
+            logger.LogInformation("Store user {StoreUserId} updated by {User}", id, currentUser);
 
             // Reload with includes
-            var updatedStoreUser = await _context.StoreUsers
+            var updatedStoreUser = await context.StoreUsers
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == id, cancellationToken);
@@ -292,7 +280,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user with ID {StoreUserId}", id);
+            logger.LogError(ex, "Error updating store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -301,24 +289,24 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
-                _logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(storeUser).CurrentValues.Clone();
+            var originalValues = context.Entry(storeUser).CurrentValues.Clone();
             var originalStoreUser = (StoreUser)originalValues.ToObject();
 
             storeUser.IsDeleted = true;
@@ -329,17 +317,17 @@ public class StoreUserService : IStoreUserService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting StoreUser {StoreUserId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting StoreUser {StoreUserId}.", id);
                 throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
+            logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
 
             return true;
         }
@@ -349,7 +337,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user with ID {StoreUserId}", id);
+            logger.LogError(ex, "Error deleting store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -362,13 +350,13 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var query = _context.StoreUserGroups
+            var query = context.StoreUserGroups
                 .Include(sug => sug.LogoDocument)
                 .Where(sug => !sug.IsDeleted && sug.TenantId == currentTenantId.Value);
 
@@ -382,9 +370,9 @@ public class StoreUserService : IStoreUserService
             var storeUserGroupDtos = new List<StoreUserGroupDto>();
             foreach (var group in storeUserGroups)
             {
-                var cashierCount = await _context.StoreUsers
+                var cashierCount = await context.StoreUsers
                     .CountAsync(su => su.CashierGroupId == group.Id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
-                var privilegeCount = await _context.StoreUserPrivileges
+                var privilegeCount = await context.StoreUserPrivileges
                     .CountAsync(sup => sup.Groups.Any(g => g.Id == group.Id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserGroupDtos.Add(MapToStoreUserGroupDto(group, cashierCount, privilegeCount));
@@ -400,7 +388,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user groups");
+            logger.LogError(ex, "Error retrieving store user groups");
             throw;
         }
     }
@@ -409,33 +397,33 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var storeUserGroup = await _context.StoreUserGroups
+            var storeUserGroup = await context.StoreUserGroups
                 .Include(sug => sug.LogoDocument)
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserGroup == null)
+            if (storeUserGroup is null)
             {
-                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found.", id);
+                logger.LogWarning("Store user group with ID {StoreUserGroupId} not found.", id);
                 return null;
             }
 
-            var cashierCount = await _context.StoreUsers
+            var cashierCount = await context.StoreUsers
                 .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
-            var privilegeCount = await _context.StoreUserPrivileges
+            var privilegeCount = await context.StoreUserPrivileges
                 .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user group with ID {StoreUserGroupId}", id);
+            logger.LogError(ex, "Error retrieving store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -444,7 +432,7 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
@@ -465,19 +453,19 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _ = _context.StoreUserGroups.Add(storeUserGroup);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.StoreUserGroups.Add(storeUserGroup);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
+            logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
                 storeUserGroup.Name, storeUserGroup.Id, currentUser);
 
             return MapToStoreUserGroupDto(storeUserGroup, 0, 0);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user group");
+            logger.LogError(ex, "Error creating store user group");
             throw;
         }
     }
@@ -486,30 +474,30 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var originalStoreUserGroup = await _context.StoreUserGroups
+            var originalStoreUserGroup = await context.StoreUserGroups
                 .AsNoTracking()
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalStoreUserGroup == null)
+            if (originalStoreUserGroup is null)
             {
-                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var storeUserGroup = await _context.StoreUserGroups
+            var storeUserGroup = await context.StoreUserGroups
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserGroup == null)
+            if (storeUserGroup is null)
             {
-                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -524,21 +512,21 @@ public class StoreUserService : IStoreUserService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating StoreUserGroup {StoreUserGroupId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating StoreUserGroup {StoreUserGroupId}.", id);
                 throw new InvalidOperationException("Il gruppo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Update", currentUser, originalStoreUserGroup, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserGroup, "Update", currentUser, originalStoreUserGroup, cancellationToken);
 
-            _logger.LogInformation("Store user group {StoreUserGroupId} updated by {User}", id, currentUser);
+            logger.LogInformation("Store user group {StoreUserGroupId} updated by {User}", id, currentUser);
 
-            var cashierCount = await _context.StoreUsers
+            var cashierCount = await context.StoreUsers
                 .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
-            var privilegeCount = await _context.StoreUserPrivileges
+            var privilegeCount = await context.StoreUserPrivileges
                 .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
@@ -549,7 +537,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user group with ID {StoreUserGroupId}", id);
+            logger.LogError(ex, "Error updating store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -558,30 +546,30 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var originalStoreUserGroup = await _context.StoreUserGroups
+            var originalStoreUserGroup = await context.StoreUserGroups
                 .AsNoTracking()
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalStoreUserGroup == null)
+            if (originalStoreUserGroup is null)
             {
-                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var storeUserGroup = await _context.StoreUserGroups
+            var storeUserGroup = await context.StoreUserGroups
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserGroup == null)
+            if (storeUserGroup is null)
             {
-                _logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Store user group with ID {StoreUserGroupId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -593,17 +581,17 @@ public class StoreUserService : IStoreUserService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting StoreUserGroup {StoreUserGroupId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting StoreUserGroup {StoreUserGroupId}.", id);
                 throw new InvalidOperationException("Il gruppo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserGroup, "Delete", currentUser, originalStoreUserGroup, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserGroup, "Delete", currentUser, originalStoreUserGroup, cancellationToken);
 
-            _logger.LogInformation("Store user group {StoreUserGroupId} deleted by {User}", id, currentUser);
+            logger.LogInformation("Store user group {StoreUserGroupId} deleted by {User}", id, currentUser);
 
             return true;
         }
@@ -613,7 +601,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user group with ID {StoreUserGroupId}", id);
+            logger.LogError(ex, "Error deleting store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -626,13 +614,13 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
             }
 
-            var query = _context.StoreUserPrivileges
+            var query = context.StoreUserPrivileges
                 .Where(sup => !sup.IsDeleted && sup.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -646,7 +634,7 @@ public class StoreUserService : IStoreUserService
             var storeUserPrivilegeDtos = new List<StoreUserPrivilegeDto>();
             foreach (var privilege in storeUserPrivileges)
             {
-                var groupCount = await _context.StoreUserGroups
+                var groupCount = await context.StoreUserGroups
                     .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
@@ -662,7 +650,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user privileges");
+            logger.LogError(ex, "Error retrieving store user privileges");
             throw;
         }
     }
@@ -671,30 +659,30 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
             }
 
-            var storeUserPrivilege = await _context.StoreUserPrivileges
+            var storeUserPrivilege = await context.StoreUserPrivileges
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserPrivilege == null)
+            if (storeUserPrivilege is null)
             {
-                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found.", id);
+                logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found.", id);
                 return null;
             }
 
-            var groupCount = await _context.StoreUserGroups
+            var groupCount = await context.StoreUserGroups
                 .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user privilege with ID {StoreUserPrivilegeId}", id);
+            logger.LogError(ex, "Error retrieving store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -703,13 +691,13 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
             }
 
-            var storeUserPrivileges = await _context.StoreUserPrivileges
+            var storeUserPrivileges = await context.StoreUserPrivileges
                 .Where(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .OrderBy(sup => sup.SortOrder)
                 .ThenBy(sup => sup.Name)
@@ -718,7 +706,7 @@ public class StoreUserService : IStoreUserService
             var storeUserPrivilegeDtos = new List<StoreUserPrivilegeDto>();
             foreach (var privilege in storeUserPrivileges)
             {
-                var groupCount = await _context.StoreUserGroups
+                var groupCount = await context.StoreUserGroups
                     .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
@@ -728,7 +716,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store user privileges for group {GroupId}", groupId);
+            logger.LogError(ex, "Error retrieving store user privileges for group {GroupId}", groupId);
             throw;
         }
     }
@@ -737,7 +725,7 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
@@ -762,19 +750,19 @@ public class StoreUserService : IStoreUserService
                 ModifiedBy = currentUser
             };
 
-            _ = _context.StoreUserPrivileges.Add(storeUserPrivilege);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.StoreUserPrivileges.Add(storeUserPrivilege);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
+            logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
                 storeUserPrivilege.Name, storeUserPrivilege.Id, currentUser);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, 0);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store user privilege");
+            logger.LogError(ex, "Error creating store user privilege");
             throw;
         }
     }
@@ -783,30 +771,30 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
             }
 
-            var originalStoreUserPrivilege = await _context.StoreUserPrivileges
+            var originalStoreUserPrivilege = await context.StoreUserPrivileges
                 .AsNoTracking()
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalStoreUserPrivilege == null)
+            if (originalStoreUserPrivilege is null)
             {
-                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
-            var storeUserPrivilege = await _context.StoreUserPrivileges
+            var storeUserPrivilege = await context.StoreUserPrivileges
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserPrivilege == null)
+            if (storeUserPrivilege is null)
             {
-                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -823,20 +811,20 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Update", currentUser, originalStoreUserPrivilege, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Update", currentUser, originalStoreUserPrivilege, cancellationToken);
 
-            _logger.LogInformation("Store user privilege {StoreUserPrivilegeId} updated by {User}", id, currentUser);
+            logger.LogInformation("Store user privilege {StoreUserPrivilegeId} updated by {User}", id, currentUser);
 
-            var groupCount = await _context.StoreUserGroups
+            var groupCount = await context.StoreUserGroups
                 .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store user privilege with ID {StoreUserPrivilegeId}", id);
+            logger.LogError(ex, "Error updating store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -845,30 +833,30 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user privilege operations.");
             }
 
-            var originalStoreUserPrivilege = await _context.StoreUserPrivileges
+            var originalStoreUserPrivilege = await context.StoreUserPrivileges
                 .AsNoTracking()
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (originalStoreUserPrivilege == null)
+            if (originalStoreUserPrivilege is null)
             {
-                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
-            var storeUserPrivilege = await _context.StoreUserPrivileges
+            var storeUserPrivilege = await context.StoreUserPrivileges
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (storeUserPrivilege == null)
+            if (storeUserPrivilege is null)
             {
-                _logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Store user privilege with ID {StoreUserPrivilegeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -878,17 +866,17 @@ public class StoreUserService : IStoreUserService
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Delete", currentUser, originalStoreUserPrivilege, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Delete", currentUser, originalStoreUserPrivilege, cancellationToken);
 
-            _logger.LogInformation("Store user privilege {StoreUserPrivilegeId} deleted by {User}", id, currentUser);
+            logger.LogInformation("Store user privilege {StoreUserPrivilegeId} deleted by {User}", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store user privilege with ID {StoreUserPrivilegeId}", id);
+            logger.LogError(ex, "Error deleting store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -899,22 +887,22 @@ public class StoreUserService : IStoreUserService
 
     public async Task<bool> StoreUserExistsAsync(Guid storeUserId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for store user operations.");
         }
 
-        return await _context.StoreUsers
+        return await context.StoreUsers
             .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
     }
 
     public async Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue) return Enumerable.Empty<StoreUserDto>();
 
-        var storeUsers = await _context.StoreUsers
+        var storeUsers = await context.StoreUsers
             .Where(su => !su.IsDeleted && su.DateOfBirth.HasValue && su.TenantId == currentTenantId.Value)
             .OrderBy(su => su.Name)
             .ToListAsync(cancellationToken);
@@ -924,13 +912,13 @@ public class StoreUserService : IStoreUserService
 
     public async Task<bool> StoreUserGroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for store user group operations.");
         }
 
-        return await _context.StoreUserGroups
+        return await context.StoreUserGroups
             .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
     }
 
@@ -1026,21 +1014,21 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            _logger.LogDebug("Querying store POS terminals for tenant {TenantId}", currentTenantId.Value);
+            logger.LogDebug("Querying store POS terminals for tenant {TenantId}", currentTenantId.Value);
 
-            var query = _context.StorePoses
+            var query = context.StorePoses
                 .Where(sp => !sp.IsDeleted && sp.TenantId == currentTenantId.Value)
                 .OrderBy(sp => sp.Name);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
-            _logger.LogDebug("Found {Count} store POS terminals for tenant {TenantId}", totalCount, currentTenantId.Value);
+            logger.LogDebug("Found {Count} store POS terminals for tenant {TenantId}", totalCount, currentTenantId.Value);
 
             var items = await query
                 .Skip((page - 1) * pageSize)
@@ -1059,7 +1047,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId} (page: {Page}, pageSize: {PageSize})", _tenantContext.CurrentTenantId, page, pageSize);
+            logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId} (page: {Page}, pageSize: {PageSize})", tenantContext.CurrentTenantId, page, pageSize);
             throw;
         }
     }
@@ -1068,21 +1056,21 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            return storePos != null ? MapToStorePosDto(storePos) : null;
+            return storePos is not null ? MapToStorePosDto(storePos) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving store POS {Id}.", id);
+            logger.LogError(ex, "Error retrieving store POS {Id}.", id);
             throw;
         }
     }
@@ -1091,7 +1079,7 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
@@ -1117,15 +1105,15 @@ public class StoreUserService : IStoreUserService
                 IsDeleted = false
             };
 
-            _context.StorePoses.Add(storePos);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.StorePoses.Add(storePos);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store POS {Name} created successfully by {User}.", storePos.Name, currentUser);
+            logger.LogInformation("Store POS {Name} created successfully by {User}.", storePos.Name, currentUser);
             return MapToStorePosDto(storePos);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating store POS.");
+            logger.LogError(ex, "Error creating store POS.");
             throw;
         }
     }
@@ -1134,18 +1122,18 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storePos == null)
+            if (storePos is null)
             {
-                _logger.LogWarning("Store POS {Id} not found for update in tenant {TenantId}.", id, currentTenantId.Value);
+                logger.LogWarning("Store POS {Id} not found for update in tenant {TenantId}.", id, currentTenantId.Value);
                 return null;
             }
 
@@ -1160,14 +1148,14 @@ public class StoreUserService : IStoreUserService
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store POS {Id} updated successfully by {User}.", id, currentUser);
+            logger.LogInformation("Store POS {Id} updated successfully by {User}.", id, currentUser);
             return MapToStorePosDto(storePos);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating store POS {Id}.", id);
+            logger.LogError(ex, "Error updating store POS {Id}.", id);
             throw;
         }
     }
@@ -1176,18 +1164,18 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storePos == null)
+            if (storePos is null)
             {
-                _logger.LogWarning("Store POS {Id} not found for deletion in tenant {TenantId}.", id, currentTenantId.Value);
+                logger.LogWarning("Store POS {Id} not found for deletion in tenant {TenantId}.", id, currentTenantId.Value);
                 return false;
             }
 
@@ -1195,14 +1183,14 @@ public class StoreUserService : IStoreUserService
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = currentUser;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store POS {Id} deleted successfully by {User}.", id, currentUser);
+            logger.LogInformation("Store POS {Id} deleted successfully by {User}.", id, currentUser);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting store POS {Id}.", id);
+            logger.LogError(ex, "Error deleting store POS {Id}.", id);
             throw;
         }
     }
@@ -1215,20 +1203,20 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Include(su => su.PhotoDocument)
                 .Include(su => su.CashierGroup)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storeUser == null)
+            if (storeUser is null)
             {
-                _logger.LogWarning("Store user {StoreUserId} not found for photo upload in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                logger.LogWarning("Store user {StoreUserId} not found for photo upload in tenant {TenantId}.", storeUserId, currentTenantId.Value);
                 return null;
             }
 
@@ -1275,10 +1263,10 @@ public class StoreUserService : IStoreUserService
             // If store user already has a photo, delete the old one first
             if (storeUser.PhotoDocumentId.HasValue)
             {
-                var oldDocument = await _context.DocumentReferences
+                var oldDocument = await context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == storeUser.PhotoDocumentId.Value, cancellationToken);
 
-                if (oldDocument != null)
+                if (oldDocument is not null)
                 {
                     // Delete old physical file
                     var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
@@ -1287,21 +1275,21 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _ = _context.DocumentReferences.Remove(oldDocument);
+                    _ = context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _ = _context.DocumentReferences.Add(documentReference);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentReferences.Add(documentReference);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update store user with new DocumentReference ID
             storeUser.PhotoDocumentId = documentReference.Id;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserId} photo uploaded successfully as DocumentReference {DocumentId}.", storeUserId, documentReference.Id);
+            logger.LogInformation("Store user {StoreUserId} photo uploaded successfully as DocumentReference {DocumentId}.", storeUserId, documentReference.Id);
 
             // Reload to get the document reference
             storeUser.PhotoDocument = documentReference;
@@ -1309,7 +1297,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading photo for store user {StoreUserId}.", storeUserId);
+            logger.LogError(ex, "Error uploading photo for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1318,19 +1306,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Include(su => su.PhotoDocument)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storeUser?.PhotoDocument == null)
+            if (storeUser?.PhotoDocument is null)
             {
-                _logger.LogWarning("Store user {StoreUserId} not found or has no photo in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                logger.LogWarning("Store user {StoreUserId} not found or has no photo in tenant {TenantId}.", storeUserId, currentTenantId.Value);
                 return null;
             }
 
@@ -1338,7 +1326,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving photo document for store user {StoreUserId}.", storeUserId);
+            logger.LogError(ex, "Error retrieving photo document for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1347,19 +1335,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user operations.");
             }
 
-            var storeUser = await _context.StoreUsers
+            var storeUser = await context.StoreUsers
                 .Include(su => su.PhotoDocument)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storeUser?.PhotoDocument == null)
+            if (storeUser?.PhotoDocument is null)
             {
-                _logger.LogWarning("Store user {StoreUserId} not found or has no photo to delete in tenant {TenantId}.", storeUserId, currentTenantId.Value);
+                logger.LogWarning("Store user {StoreUserId} not found or has no photo to delete in tenant {TenantId}.", storeUserId, currentTenantId.Value);
                 return false;
             }
 
@@ -1371,21 +1359,21 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _ = _context.DocumentReferences.Remove(storeUser.PhotoDocument);
+            _ = context.DocumentReferences.Remove(storeUser.PhotoDocument);
 
             // Update store user
             storeUser.PhotoDocumentId = null;
             storeUser.ModifiedAt = DateTime.UtcNow;
             storeUser.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store user {StoreUserId} photo deleted successfully.", storeUserId);
+            logger.LogInformation("Store user {StoreUserId} photo deleted successfully.", storeUserId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting photo for store user {StoreUserId}.", storeUserId);
+            logger.LogError(ex, "Error deleting photo for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1394,19 +1382,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var group = await _context.StoreUserGroups
+            var group = await context.StoreUserGroups
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (group == null)
+            if (group is null)
             {
-                _logger.LogWarning("Store user group {GroupId} not found for logo upload in tenant {TenantId}.", groupId, currentTenantId.Value);
+                logger.LogWarning("Store user group {GroupId} not found for logo upload in tenant {TenantId}.", groupId, currentTenantId.Value);
                 return null;
             }
 
@@ -1447,10 +1435,10 @@ public class StoreUserService : IStoreUserService
             // If group already has a logo, delete the old one first
             if (group.LogoDocumentId.HasValue)
             {
-                var oldDocument = await _context.DocumentReferences
+                var oldDocument = await context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == group.LogoDocumentId.Value, cancellationToken);
 
-                if (oldDocument != null)
+                if (oldDocument is not null)
                 {
                     // Delete old physical file
                     var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
@@ -1459,34 +1447,34 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _ = _context.DocumentReferences.Remove(oldDocument);
+                    _ = context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _ = _context.DocumentReferences.Add(documentReference);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentReferences.Add(documentReference);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update group with new DocumentReference ID
             group.LogoDocumentId = documentReference.Id;
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store user group {GroupId} logo uploaded successfully as DocumentReference {DocumentId}.", groupId, documentReference.Id);
+            logger.LogInformation("Store user group {GroupId} logo uploaded successfully as DocumentReference {DocumentId}.", groupId, documentReference.Id);
 
             // Reload to get the document reference
             group.LogoDocument = documentReference;
 
             // Get counts for DTO
-            var cashierCount = await _context.StoreUsers.CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
+            var cashierCount = await context.StoreUsers.CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
             var privilegeCount = 0; // Placeholder - would need StoreUserGroupPrivilege relationship
 
             return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading logo for store user group {GroupId}.", groupId);
+            logger.LogError(ex, "Error uploading logo for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1495,19 +1483,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var group = await _context.StoreUserGroups
+            var group = await context.StoreUserGroups
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (group?.LogoDocument == null)
+            if (group?.LogoDocument is null)
             {
-                _logger.LogWarning("Store user group {GroupId} not found or has no logo in tenant {TenantId}.", groupId, currentTenantId.Value);
+                logger.LogWarning("Store user group {GroupId} not found or has no logo in tenant {TenantId}.", groupId, currentTenantId.Value);
                 return null;
             }
 
@@ -1515,7 +1503,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving logo document for store user group {GroupId}.", groupId);
+            logger.LogError(ex, "Error retrieving logo document for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1524,19 +1512,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store user group operations.");
             }
 
-            var group = await _context.StoreUserGroups
+            var group = await context.StoreUserGroups
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (group?.LogoDocument == null)
+            if (group?.LogoDocument is null)
             {
-                _logger.LogWarning("Store user group {GroupId} not found or has no logo to delete in tenant {TenantId}.", groupId, currentTenantId.Value);
+                logger.LogWarning("Store user group {GroupId} not found or has no logo to delete in tenant {TenantId}.", groupId, currentTenantId.Value);
                 return false;
             }
 
@@ -1548,21 +1536,21 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _ = _context.DocumentReferences.Remove(group.LogoDocument);
+            _ = context.DocumentReferences.Remove(group.LogoDocument);
 
             // Update group
             group.LogoDocumentId = null;
             group.ModifiedAt = DateTime.UtcNow;
             group.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store user group {GroupId} logo deleted successfully.", groupId);
+            logger.LogInformation("Store user group {GroupId} logo deleted successfully.", groupId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting logo for store user group {GroupId}.", groupId);
+            logger.LogError(ex, "Error deleting logo for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1571,19 +1559,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storePos == null)
+            if (storePos is null)
             {
-                _logger.LogWarning("Store POS {StorePosId} not found for image upload in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                logger.LogWarning("Store POS {StorePosId} not found for image upload in tenant {TenantId}.", storePosId, currentTenantId.Value);
                 return null;
             }
 
@@ -1624,10 +1612,10 @@ public class StoreUserService : IStoreUserService
             // If store POS already has an image, delete the old one first
             if (storePos.ImageDocumentId.HasValue)
             {
-                var oldDocument = await _context.DocumentReferences
+                var oldDocument = await context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == storePos.ImageDocumentId.Value, cancellationToken);
 
-                if (oldDocument != null)
+                if (oldDocument is not null)
                 {
                     // Delete old physical file
                     var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
@@ -1636,21 +1624,21 @@ public class StoreUserService : IStoreUserService
                         File.Delete(oldFilePath);
                     }
 
-                    _ = _context.DocumentReferences.Remove(oldDocument);
+                    _ = context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _ = _context.DocumentReferences.Add(documentReference);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentReferences.Add(documentReference);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update store POS with new DocumentReference ID
             storePos.ImageDocumentId = documentReference.Id;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store POS {StorePosId} image uploaded successfully as DocumentReference {DocumentId}.", storePosId, documentReference.Id);
+            logger.LogInformation("Store POS {StorePosId} image uploaded successfully as DocumentReference {DocumentId}.", storePosId, documentReference.Id);
 
             // Reload to get the document reference
             storePos.ImageDocument = documentReference;
@@ -1658,7 +1646,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading image for store POS {StorePosId}.", storePosId);
+            logger.LogError(ex, "Error uploading image for store POS {StorePosId}.", storePosId);
             throw;
         }
     }
@@ -1667,19 +1655,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storePos?.ImageDocument == null)
+            if (storePos?.ImageDocument is null)
             {
-                _logger.LogWarning("Store POS {StorePosId} not found or has no image in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                logger.LogWarning("Store POS {StorePosId} not found or has no image in tenant {TenantId}.", storePosId, currentTenantId.Value);
                 return null;
             }
 
@@ -1687,7 +1675,7 @@ public class StoreUserService : IStoreUserService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving image document for store POS {StorePosId}.", storePosId);
+            logger.LogError(ex, "Error retrieving image document for store POS {StorePosId}.", storePosId);
             throw;
         }
     }
@@ -1696,19 +1684,19 @@ public class StoreUserService : IStoreUserService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for store POS operations.");
             }
 
-            var storePos = await _context.StorePoses
+            var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (storePos?.ImageDocument == null)
+            if (storePos?.ImageDocument is null)
             {
-                _logger.LogWarning("Store POS {StorePosId} not found or has no image to delete in tenant {TenantId}.", storePosId, currentTenantId.Value);
+                logger.LogWarning("Store POS {StorePosId} not found or has no image to delete in tenant {TenantId}.", storePosId, currentTenantId.Value);
                 return false;
             }
 
@@ -1720,21 +1708,21 @@ public class StoreUserService : IStoreUserService
             }
 
             // Remove DocumentReference
-            _ = _context.DocumentReferences.Remove(storePos.ImageDocument);
+            _ = context.DocumentReferences.Remove(storePos.ImageDocument);
 
             // Update store POS
             storePos.ImageDocumentId = null;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Store POS {StorePosId} image deleted successfully.", storePosId);
+            logger.LogInformation("Store POS {StorePosId} image deleted successfully.", storePosId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting image for store POS {StorePosId}.", storePosId);
+            logger.LogError(ex, "Error deleting image for store POS {StorePosId}.", storePosId);
             throw;
         }
     }
@@ -1795,4 +1783,5 @@ public class StoreUserService : IStoreUserService
     }
 
     #endregion
+
 }

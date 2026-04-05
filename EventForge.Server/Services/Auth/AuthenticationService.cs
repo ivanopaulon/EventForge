@@ -84,31 +84,19 @@ public class AccountLockoutOptions
 /// <summary>
 /// Implementation of authentication service.
 /// </summary>
-public class AuthenticationService : IAuthenticationService
+public class AuthenticationService(
+    EventForgeDbContext dbContext,
+    IPasswordService passwordService,
+    IJwtTokenService jwtTokenService,
+    IConfiguration configuration,
+    ILogger<AuthenticationService> logger) : IAuthenticationService
 {
-    private readonly EventForgeDbContext _dbContext;
-    private readonly IPasswordService _passwordService;
-    private readonly IJwtTokenService _jwtTokenService;
-    private readonly ILogger<AuthenticationService> _logger;
-    private readonly AccountLockoutOptions _lockoutOptions;
 
-    public AuthenticationService(
-        EventForgeDbContext dbContext,
-        IPasswordService passwordService,
-        IJwtTokenService jwtTokenService,
-        IConfiguration configuration,
-        ILogger<AuthenticationService> logger)
-    {
-        _dbContext = dbContext;
-        _passwordService = passwordService;
-        _jwtTokenService = jwtTokenService;
-        _logger = logger;
-        _lockoutOptions = configuration.GetSection("Authentication:AccountLockout").Get<AccountLockoutOptions>() ?? new AccountLockoutOptions();
-    }
+    private readonly AccountLockoutOptions _lockoutOptions = configuration.GetSection("Authentication:AccountLockout").Get<AccountLockoutOptions>() ?? new AccountLockoutOptions();
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, string? ipAddress, string? userAgent, CancellationToken cancellationToken = default)
     {
-        if (request == null)
+        if (request is null)
             throw new ArgumentNullException(nameof(request));
 
         var loginAudit = new LoginAudit
@@ -129,29 +117,29 @@ public class AuthenticationService : IAuthenticationService
             if (!string.IsNullOrEmpty(tenantCode) && Guid.TryParse(tenantCode, out var tenantId))
             {
                 // TenantCode � un GUID: cerca per Id
-                tenant = await _dbContext.Tenants
+                tenant = await dbContext.Tenants
                     .FirstOrDefaultAsync(t => t.Id == tenantId && t.IsActive, cancellationToken);
             }
             else
             {
                 // TenantCode non � un GUID: prova a cercare per Code
-                tenant = await _dbContext.Tenants
+                tenant = await dbContext.Tenants
                     .FirstOrDefaultAsync(t => t.Code == tenantCode && t.IsActive, cancellationToken);
             }
 
-            if (tenant == null)
+            if (tenant is null)
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid tenant code";
-                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Invalid tenant code {TenantCode} from {IpAddress}", request.TenantCode, ipAddress);
+                logger.LogWarning("Login attempt failed: Invalid tenant code {TenantCode} from {IpAddress}", request.TenantCode, ipAddress);
                 return null;
             }
 
             // Find user by username within the tenant
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
@@ -159,14 +147,14 @@ public class AuthenticationService : IAuthenticationService
                 .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Username == request.Username && u.TenantId == tenant.Id && u.IsActive, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid username";
-                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}",
+                logger.LogWarning("Login attempt failed: Invalid username {Username} for tenant {TenantCode} from {IpAddress}",
                     request.Username, request.TenantCode, ipAddress);
                 return null;
             }
@@ -178,15 +166,15 @@ public class AuthenticationService : IAuthenticationService
             {
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Account locked";
-                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Account locked for user {Username}", request.Username);
+                logger.LogWarning("Login attempt failed: Account locked for user {Username}", request.Username);
                 return null;
             }
 
             // Verify password
-            if (!_passwordService.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
+            if (!passwordService.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
             {
                 // Increment failed attempts
                 user.FailedLoginAttempts++;
@@ -196,16 +184,16 @@ public class AuthenticationService : IAuthenticationService
                 if (user.FailedLoginAttempts >= _lockoutOptions.MaxFailedAttempts)
                 {
                     user.LockedUntil = DateTime.UtcNow.AddMinutes(_lockoutOptions.LockoutDurationMinutes);
-                    _logger.LogWarning("Account locked for user {Username} after {FailedAttempts} failed attempts",
+                    logger.LogWarning("Account locked for user {Username} after {FailedAttempts} failed attempts",
                         request.Username, user.FailedLoginAttempts);
                 }
 
                 loginAudit.Success = false;
                 loginAudit.FailureReason = "Invalid password";
-                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-                _logger.LogWarning("Login attempt failed: Invalid password for user {Username}", request.Username);
+                logger.LogWarning("Login attempt failed: Invalid password for user {Username}", request.Username);
                 return null;
             }
 
@@ -230,23 +218,23 @@ public class AuthenticationService : IAuthenticationService
                 .ToList();
 
             // Generate JWT token
-            var token = _jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
+            var token = jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
 
             loginAudit.Success = true;
             loginAudit.SessionId = Guid.NewGuid().ToString();
-            _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
             var userDto = UserMapper.ToDto(user, roles, permissions);
             var tenantDto = TenantMapper.ToDto(user.Tenant);
 
-            _logger.LogInformation("User {Username} logged in successfully for tenant {TenantCode} from {IpAddress}",
+            logger.LogInformation("User {Username} logged in successfully for tenant {TenantCode} from {IpAddress}",
                 request.Username, request.TenantCode, ipAddress);
 
             return new LoginResponseDto
             {
                 AccessToken = token,
-                ExpiresIn = _jwtTokenService.TokenExpirationSeconds,
+                ExpiresIn = jwtTokenService.TokenExpirationSeconds,
                 User = userDto,
                 Tenant = tenantDto,
                 MustChangePassword = user.MustChangePassword
@@ -254,18 +242,18 @@ public class AuthenticationService : IAuthenticationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login for user {Username}", request.Username);
+            logger.LogError(ex, "Error during login for user {Username}", request.Username);
 
             loginAudit.Success = false;
             loginAudit.FailureReason = "Internal error";
             try
             {
-                _ = await _dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
-                _ = await _dbContext.SaveChangesAsync(cancellationToken);
+                _ = await dbContext.LoginAudits.AddAsync(loginAudit, cancellationToken);
+                _ = await dbContext.SaveChangesAsync(cancellationToken);
             }
             catch (Exception saveEx)
             {
-                _logger.LogError(saveEx, "Failed to save login audit");
+                logger.LogError(saveEx, "Failed to save login audit");
             }
 
             return null;
@@ -274,51 +262,51 @@ public class AuthenticationService : IAuthenticationService
 
     public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordRequestDto request, CancellationToken cancellationToken = default)
     {
-        if (request == null)
+        if (request is null)
             throw new ArgumentNullException(nameof(request));
 
         try
         {
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
-            if (user == null)
+            if (user is null)
             {
-                _logger.LogWarning("Password change attempt for non-existent user {UserId}", userId);
+                logger.LogWarning("Password change attempt for non-existent user {UserId}", userId);
                 return false;
             }
 
             // Verify current password
-            if (!_passwordService.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
+            if (!passwordService.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
             {
-                _logger.LogWarning("Password change failed: Invalid current password for user {Username}", user.Username);
+                logger.LogWarning("Password change failed: Invalid current password for user {Username}", user.Username);
                 return false;
             }
 
             // Validate new password
-            var validation = _passwordService.ValidatePassword(request.NewPassword);
+            var validation = passwordService.ValidatePassword(request.NewPassword);
             if (!validation.IsValid)
             {
-                _logger.LogWarning("Password change failed: New password validation failed for user {Username}: {Errors}",
+                logger.LogWarning("Password change failed: New password validation failed for user {Username}: {Errors}",
                     user.Username, string.Join(", ", validation.Errors));
                 return false;
             }
 
             // Hash new password
-            var (hash, salt) = _passwordService.HashPassword(request.NewPassword);
+            var (hash, salt) = passwordService.HashPassword(request.NewPassword);
             user.PasswordHash = hash;
             user.PasswordSalt = salt;
             user.PasswordChangedAt = DateTime.UtcNow;
             user.MustChangePassword = false;
 
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Password changed successfully for user {Username}", user.Username);
+            logger.LogInformation("Password changed successfully for user {Username}", user.Username);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error changing password for user {UserId}", userId);
+            logger.LogError(ex, "Error changing password for user {UserId}", userId);
             return false;
         }
     }
@@ -328,7 +316,7 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             var now = DateTime.UtcNow;
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .Include(u => u.UserRoles.Where(ur => ur.ExpiresAt == null || ur.ExpiresAt > now))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
@@ -336,7 +324,7 @@ public class AuthenticationService : IAuthenticationService
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
-            if (user == null)
+            if (user is null)
                 return null;
 
             var roles = user.UserRoles
@@ -355,7 +343,7 @@ public class AuthenticationService : IAuthenticationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting user {UserId}", userId);
+            logger.LogError(ex, "Error getting user {UserId}", userId);
             return null;
         }
     }
@@ -364,7 +352,7 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
@@ -372,7 +360,7 @@ public class AuthenticationService : IAuthenticationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if account is locked for user {UserId}", userId);
+            logger.LogError(ex, "Error checking if account is locked for user {UserId}", userId);
             return false;
         }
     }
@@ -381,23 +369,23 @@ public class AuthenticationService : IAuthenticationService
     {
         try
         {
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-            if (user == null)
+            if (user is null)
                 return false;
 
             user.FailedLoginAttempts = 0;
             user.LockedUntil = null;
 
-            _ = await _dbContext.SaveChangesAsync(cancellationToken);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Account unlocked for user {Username}", user.Username);
+            logger.LogInformation("Account unlocked for user {Username}", user.Username);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unlocking account for user {UserId}", userId);
+            logger.LogError(ex, "Error unlocking account for user {UserId}", userId);
             return false;
         }
     }
@@ -410,7 +398,7 @@ public class AuthenticationService : IAuthenticationService
             // Note: IsCurrentlyValid is a computed C# property and cannot be translated to SQL by EF Core.
             // We replicate its logic inline: a role assignment is valid if it has no expiration or has not yet expired.
             var now = DateTime.UtcNow;
-            var user = await _dbContext.Users
+            var user = await dbContext.Users
                 .Include(u => u.UserRoles.Where(ur => ur.ExpiresAt == null || ur.ExpiresAt > now))
                     .ThenInclude(ur => ur.Role)
                         .ThenInclude(r => r.RolePermissions)
@@ -419,16 +407,16 @@ public class AuthenticationService : IAuthenticationService
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
-            if (user == null || user.Tenant == null || !user.Tenant.IsActive)
+            if (user is null || user.Tenant is null || !user.Tenant.IsActive)
             {
-                _logger.LogWarning("Cannot refresh token: User {UserId} not found or inactive", userId);
+                logger.LogWarning("Cannot refresh token: User {UserId} not found or inactive", userId);
                 return null;
             }
 
             // Check if account is locked
             if (user.IsLockedOut)
             {
-                _logger.LogWarning("Cannot refresh token: Account locked for user {Username}", user.Username);
+                logger.LogWarning("Cannot refresh token: Account locked for user {Username}", user.Username);
                 return null;
             }
 
@@ -444,20 +432,21 @@ public class AuthenticationService : IAuthenticationService
                 .ToList();
 
             // Generate new JWT token
-            var token = _jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
+            var token = jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);
 
-            _logger.LogInformation("Token refreshed for user {Username}", user.Username);
+            logger.LogInformation("Token refreshed for user {Username}", user.Username);
 
             return new RefreshTokenResponseDto
             {
                 AccessToken = token,
-                ExpiresIn = _jwtTokenService.TokenExpirationSeconds
+                ExpiresIn = jwtTokenService.TokenExpirationSeconds
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error refreshing token for user {UserId}", userId);
+            logger.LogError(ex, "Error refreshing token for user {UserId}", userId);
             return null;
         }
     }
+
 }

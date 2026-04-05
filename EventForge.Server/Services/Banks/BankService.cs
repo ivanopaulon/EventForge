@@ -6,33 +6,25 @@ namespace EventForge.Server.Services.Banks;
 /// <summary>
 /// Service implementation for managing banks.
 /// </summary>
-public class BankService : IBankService
+public class BankService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<BankService> logger) : IBankService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<BankService> _logger;
-
-    public BankService(EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<BankService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<BankDto>> GetBanksAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
         try
         {
             // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for bank operations.");
             }
 
-            var query = _context.Banks
+            var query = context.Banks
                 .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(b => b.Addresses.Where(a => !a.IsDeleted && a.TenantId == currentTenantId.Value))
@@ -57,7 +49,7 @@ public class BankService : IBankService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving banks.");
+            logger.LogError(ex, "Error retrieving banks.");
             throw;
         }
     }
@@ -66,15 +58,15 @@ public class BankService : IBankService
     {
         try
         {
-            var bank = await _context.Banks
+            var bank = await context.Banks
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return bank != null ? MapToBankDto(bank) : null;
+            return bank is not null ? MapToBankDto(bank) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving bank {BankId}.", id);
+            logger.LogError(ex, "Error retrieving bank {BankId}.", id);
             throw;
         }
     }
@@ -102,18 +94,18 @@ public class BankService : IBankService
                 CreatedBy = currentUser
             };
 
-            _ = _context.Banks.Add(bank);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Banks.Add(bank);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Bank {BankId} created by {User}.", bank.Id, currentUser);
+            logger.LogInformation("Bank {BankId} created by {User}.", bank.Id, currentUser);
 
             return MapToBankDto(bank);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating bank.");
+            logger.LogError(ex, "Error creating bank.");
             throw;
         }
     }
@@ -125,14 +117,14 @@ public class BankService : IBankService
             ArgumentNullException.ThrowIfNull(updateBankDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var bank = await _context.Banks
+            var bank = await context.Banks
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (bank == null) return null;
+            if (bank is null) return null;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(bank).CurrentValues.Clone();
+            var originalValues = context.Entry(bank).CurrentValues.Clone();
             var originalBank = (Bank)originalValues.ToObject();
 
             bank.Name = updateBankDto.Name;
@@ -148,17 +140,17 @@ public class BankService : IBankService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Bank {BankId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Bank {BankId}.", id);
                 throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
 
-            _logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
+            logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
 
             return MapToBankDto(bank);
         }
@@ -168,7 +160,7 @@ public class BankService : IBankService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating bank {BankId}.", id);
+            logger.LogError(ex, "Error updating bank {BankId}.", id);
             throw;
         }
     }
@@ -179,14 +171,14 @@ public class BankService : IBankService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var bank = await _context.Banks
+            var bank = await context.Banks
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (bank == null) return false;
+            if (bank is null) return false;
 
             // Create snapshot of original state before modifications
-            var originalValues = _context.Entry(bank).CurrentValues.Clone();
+            var originalValues = context.Entry(bank).CurrentValues.Clone();
             var originalBank = (Bank)originalValues.ToObject();
 
             bank.IsDeleted = true;
@@ -195,17 +187,17 @@ public class BankService : IBankService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Bank {BankId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Bank {BankId}.", id);
                 throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await _auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
 
-            _logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
+            logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
 
             return true;
         }
@@ -215,7 +207,7 @@ public class BankService : IBankService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting bank {BankId}.", id);
+            logger.LogError(ex, "Error deleting bank {BankId}.", id);
             throw;
         }
     }
@@ -224,12 +216,12 @@ public class BankService : IBankService
     {
         try
         {
-            return await _context.Banks
+            return await context.Banks
                 .AnyAsync(b => b.Id == bankId && !b.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if bank {BankId} exists.", bankId);
+            logger.LogError(ex, "Error checking if bank {BankId} exists.", bankId);
             throw;
         }
     }
@@ -254,4 +246,5 @@ public class BankService : IBankService
             ModifiedBy = bank.ModifiedBy
         };
     }
+
 }

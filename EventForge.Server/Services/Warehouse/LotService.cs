@@ -7,24 +7,12 @@ namespace EventForge.Server.Services.Warehouse;
 /// <summary>
 /// Service implementation for managing lots and traceability.
 /// </summary>
-public class LotService : ILotService
+public class LotService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<LotService> logger) : ILotService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<LotService> _logger;
-
-    public LotService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<LotService> logger)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<LotDto>> GetLotsAsync(
         PaginationParameters pagination,
@@ -35,13 +23,13 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Lots
+            var query = context.Lots
                 .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
@@ -86,7 +74,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lots for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving lots for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -95,22 +83,22 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            return lot != null ? LotMapper.ToDto(lot) : null;
+            return lot is not null ? LotMapper.ToDto(lot) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lot {LotId} for tenant {TenantId}", id, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -119,22 +107,22 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .FirstOrDefaultAsync(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            return lot != null ? LotMapper.ToDto(lot) : null;
+            return lot is not null ? LotMapper.ToDto(lot) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lot by code {Code} for tenant {TenantId}", code, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving lot by code {Code} for tenant {TenantId}", code, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -143,13 +131,13 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lots = await _context.Lots
+            var lots = await context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => l.ProductId == productId && l.TenantId == currentTenantId.Value && !l.IsDeleted)
@@ -160,7 +148,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lots for product {ProductId} and tenant {TenantId}", productId, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving lots for product {ProductId} and tenant {TenantId}", productId, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -169,7 +157,7 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -177,7 +165,7 @@ public class LotService : ILotService
 
             var expiryThreshold = DateTime.UtcNow.AddDays(daysAhead);
 
-            var lots = await _context.Lots
+            var lots = await context.Lots
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => l.TenantId == currentTenantId.Value &&
@@ -192,7 +180,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving expiring lots for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving expiring lots for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -201,37 +189,37 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
             // Check if lot code is unique
-            var existingLot = await _context.Lots
+            var existingLot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Code == createDto.Code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (existingLot != null)
+            if (existingLot is not null)
             {
                 throw new InvalidOperationException($"A lot with code '{createDto.Code}' already exists.");
             }
 
             // Verify product exists
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == createDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
                 throw new InvalidOperationException($"Product with ID '{createDto.ProductId}' not found.");
             }
 
             var lot = LotMapper.ToEntity(createDto, currentTenantId.Value, currentUser);
 
-            _ = _context.Lots.Add(lot);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.Lots.Add(lot);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Create",
@@ -240,7 +228,7 @@ public class LotService : ILotService
                 $"Created lot {lot.Code} for product {product.Name}",
                 currentUser);
 
-            _logger.LogInformation("Created lot {LotId} with code {Code} for tenant {TenantId}", lot.Id, lot.Code, currentTenantId.Value);
+            logger.LogInformation("Created lot {LotId} with code {Code} for tenant {TenantId}", lot.Id, lot.Code, currentTenantId.Value);
 
             // Return with loaded navigation properties
             var createdLot = await GetLotByIdAsync(lot.Id, cancellationToken);
@@ -248,7 +236,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating lot with code {Code} for tenant {TenantId}", createDto.Code, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error creating lot with code {Code} for tenant {TenantId}", createDto.Code, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -257,25 +245,25 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (lot == null)
+            if (lot is null)
             {
                 return null;
             }
 
             // Check if lot code is unique (excluding current lot)
-            var existingLot = await _context.Lots
+            var existingLot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Code == updateDto.Code && l.Id != id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (existingLot != null)
+            if (existingLot is not null)
             {
                 throw new InvalidOperationException($"A lot with code '{updateDto.Code}' already exists.");
             }
@@ -285,16 +273,16 @@ public class LotService : ILotService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating Lot {LotId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating Lot {LotId}.", id);
                 throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Update",
@@ -303,7 +291,7 @@ public class LotService : ILotService
                 $"Updated lot from {originalCode} to {lot.Code}",
                 currentUser);
 
-            _logger.LogInformation("Updated lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
+            logger.LogInformation("Updated lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
 
             return await GetLotByIdAsync(lot.Id, cancellationToken);
         }
@@ -313,7 +301,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating lot {LotId} for tenant {TenantId}", id, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error updating lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -322,22 +310,22 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (lot == null)
+            if (lot is null)
             {
                 return false;
             }
 
             // Check if lot has stock movements
-            var hasMovements = await _context.StockMovements
+            var hasMovements = await context.StockMovements
                 .AnyAsync(sm => sm.LotId == id && sm.TenantId == currentTenantId.Value, cancellationToken);
 
             if (hasMovements)
@@ -352,16 +340,16 @@ public class LotService : ILotService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting Lot {LotId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting Lot {LotId}.", id);
                 throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Delete",
@@ -370,7 +358,7 @@ public class LotService : ILotService
                 "Deleted",
                 currentUser);
 
-            _logger.LogInformation("Deleted lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
+            logger.LogInformation("Deleted lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
             return true;
         }
         catch (DbUpdateConcurrencyException)
@@ -379,7 +367,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting lot {LotId} for tenant {TenantId}", id, _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error deleting lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -388,7 +376,7 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -399,10 +387,10 @@ public class LotService : ILotService
                 throw new ArgumentException($"Invalid quality status: {qualityStatus}");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (lot == null)
+            if (lot is null)
             {
                 return false;
             }
@@ -417,10 +405,10 @@ public class LotService : ILotService
                 lot.Notes = notes;
             }
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "QualityStatus",
@@ -429,14 +417,14 @@ public class LotService : ILotService
                 status.ToString(),
                 currentUser);
 
-            _logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}",
+            logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}",
                 lot.Id, originalStatus, status);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating quality status for lot {LotId}", id);
+            logger.LogError(ex, "Error updating quality status for lot {LotId}", id);
             throw;
         }
     }
@@ -445,16 +433,16 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (lot == null)
+            if (lot is null)
             {
                 return false;
             }
@@ -464,10 +452,10 @@ public class LotService : ILotService
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Status",
@@ -476,12 +464,12 @@ public class LotService : ILotService
                 "Blocked",
                 currentUser);
 
-            _logger.LogWarning("Blocked lot {LotId} ({Code}). Reason: {Reason}", lot.Id, lot.Code, reason);
+            logger.LogWarning("Blocked lot {LotId} ({Code}). Reason: {Reason}", lot.Id, lot.Code, reason);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error blocking lot {LotId}", id);
+            logger.LogError(ex, "Error blocking lot {LotId}", id);
             throw;
         }
     }
@@ -490,16 +478,16 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var lot = await _context.Lots
+            var lot = await context.Lots
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (lot == null)
+            if (lot is null)
             {
                 return false;
             }
@@ -509,10 +497,10 @@ public class LotService : ILotService
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit event
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "Lot",
                 lot.Id,
                 "Status",
@@ -521,12 +509,12 @@ public class LotService : ILotService
                 "Active",
                 currentUser);
 
-            _logger.LogInformation("Unblocked lot {LotId} ({Code})", lot.Id, lot.Code);
+            logger.LogInformation("Unblocked lot {LotId} ({Code})", lot.Id, lot.Code);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unblocking lot {LotId}", id);
+            logger.LogError(ex, "Error unblocking lot {LotId}", id);
             throw;
         }
     }
@@ -535,13 +523,13 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var totalQuantity = await _context.Stocks
+            var totalQuantity = await context.Stocks
                 .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
                 .SumAsync(s => s.AvailableQuantity, cancellationToken);
 
@@ -549,7 +537,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting available quantity for lot {LotId}", lotId);
+            logger.LogError(ex, "Error getting available quantity for lot {LotId}", lotId);
             throw;
         }
     }
@@ -558,13 +546,13 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Lots
+            var query = context.Lots
                 .Where(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted);
 
             if (excludeId.HasValue)
@@ -577,7 +565,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking lot code uniqueness for {Code}", code);
+            logger.LogError(ex, "Error checking lot code uniqueness for {Code}", code);
             throw;
         }
     }
@@ -589,13 +577,13 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            var query = _context.Lots
+            var query = context.Lots
                 .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
@@ -624,7 +612,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lots for product {ProductId}", productId);
+            logger.LogError(ex, "Error retrieving lots for product {ProductId}", productId);
             throw;
         }
     }
@@ -636,7 +624,7 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -645,7 +633,7 @@ public class LotService : ILotService
             // Note: Lots don't have a direct StorageLocation relationship
             // This returns all lots for the tenant as the warehouse filter
             // would require joining through inventory/stock records
-            var query = _context.Lots
+            var query = context.Lots
                 .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
@@ -673,7 +661,7 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving lots for warehouse {WarehouseId}", warehouseId);
+            logger.LogError(ex, "Error retrieving lots for warehouse {WarehouseId}", warehouseId);
             throw;
         }
     }
@@ -685,7 +673,7 @@ public class LotService : ILotService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -693,7 +681,7 @@ public class LotService : ILotService
 
             var expiryDate = threshold ?? DateTime.UtcNow;
 
-            var query = _context.Lots
+            var query = context.Lots
                 .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
@@ -723,8 +711,9 @@ public class LotService : ILotService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving expired lots");
+            logger.LogError(ex, "Error retrieving expired lots");
             throw;
         }
     }
+
 }

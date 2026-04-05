@@ -29,27 +29,13 @@ namespace EventForge.Server.Services.Chat;
 /// - External chat platform integrations
 /// - Advanced search and analytics
 /// </summary>
-public class ChatService : IChatService
+public class ChatService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ILogger<ChatService> logger,
+    IHubContext<ChatHub> hubContext,
+    IOnlineUserTracker onlineUserTracker) : IChatService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<ChatService> _logger;
-    private readonly IHubContext<ChatHub> _hubContext;
-    private readonly IOnlineUserTracker _onlineUserTracker;
-
-    public ChatService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ILogger<ChatService> logger,
-        IHubContext<ChatHub> hubContext,
-        IOnlineUserTracker onlineUserTracker)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
-        _onlineUserTracker = onlineUserTracker ?? throw new ArgumentNullException(nameof(onlineUserTracker));
-    }
 
     #region Chat Thread Management
 
@@ -132,12 +118,12 @@ public class ChatService : IChatService
             }
 
             // Save to database
-            _ = _context.ChatThreads.Add(chatThread);
-            _context.ChatMembers.AddRange(members);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ChatThreads.Add(chatThread);
+            context.ChatMembers.AddRange(members);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit trail for chat creation
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "ChatThread",
                 entityId: chatId,
                 propertyName: "Create",
@@ -148,13 +134,13 @@ public class ChatService : IChatService
                 entityDisplayName: $"Chat: {chatName}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Chat {ChatId} created by user {UserId} for tenant {TenantId} with {MemberCount} participants in {ElapsedMs}ms",
                 chatId, createChatDto.CreatedBy, createChatDto.TenantId, createChatDto.ParticipantIds.Count, stopwatch.ElapsedMilliseconds);
 
             // Resolve user display names from the database
             var memberUserIds = members.Select(m => m.UserId).ToList();
-            var memberUsers = await _context.Users
+            var memberUsers = await context.Users
                 .AsNoTracking()
                 .Where(u => memberUserIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.Username, FullName = u.FirstName + " " + u.LastName })
@@ -173,7 +159,7 @@ public class ChatService : IChatService
                         : userInfo?.Username ?? member.UserId.ToString("N"),
                     Role = member.Role,
                     JoinedAt = member.JoinedAt,
-                    IsOnline = _onlineUserTracker.IsOnline(member.UserId),
+                    IsOnline = onlineUserTracker.IsOnline(member.UserId),
                     IsMuted = false
                 };
             }).ToList();
@@ -206,7 +192,7 @@ public class ChatService : IChatService
             // Send real-time notifications to all participants via SignalR
             foreach (var participantId in createChatDto.ParticipantIds)
             {
-                await _hubContext.Clients.Group($"user_{participantId}")
+                await hubContext.Clients.Group($"user_{participantId}")
                     .SendAsync("ChatCreated", responseDto);
             }
 
@@ -215,7 +201,7 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create chat for tenant {TenantId}", createChatDto.TenantId);
+            logger.LogError(ex, "Failed to create chat for tenant {TenantId}", createChatDto.TenantId);
             throw new InvalidOperationException("Failed to create chat", ex);
         }
     }
@@ -230,11 +216,11 @@ public class ChatService : IChatService
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving chat {ChatId} for user {UserId} in tenant {TenantId}",
             chatId, userId, tenantId);
 
-        var thread = await _context.ChatThreads
+        var thread = await context.ChatThreads
             .AsNoTracking()
             .Where(ct => ct.Id == chatId
                       && !ct.IsDeleted
@@ -242,13 +228,13 @@ public class ChatService : IChatService
                       && (tenantId == null || ct.TenantId == tenantId.Value))
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (thread == null)
+        if (thread is null)
             return null;
 
         // Verify the requesting user is a member (skip check when userId is empty – server-side call)
         if (userId != Guid.Empty)
         {
-            var isMember = await _context.ChatMembers
+            var isMember = await context.ChatMembers
                 .AnyAsync(cm => cm.ChatThreadId == chatId
                              && cm.UserId == userId
                              && !cm.IsDeleted, cancellationToken);
@@ -259,11 +245,11 @@ public class ChatService : IChatService
 
         var members = await BuildMemberDtosAsync(chatId, cancellationToken);
 
-        var lastMessage = await _context.ChatMessages
+        var lastMessage = await context.ChatMessages
             .AsNoTracking()
             .Where(m => m.ChatThreadId == chatId && !m.IsDeleted)
             .OrderByDescending(m => m.SentAt)
-            .Join(_context.Users,
+            .Join(context.Users,
                 m => m.SenderId,
                 u => u.Id,
                 (m, u) => new
@@ -288,11 +274,11 @@ public class ChatService : IChatService
             .FirstOrDefaultAsync(cancellationToken);
 
         var unreadCount = userId != Guid.Empty
-            ? await _context.ChatMessages
+            ? await context.ChatMessages
                 .CountAsync(m => m.ChatThreadId == chatId
                               && !m.IsDeleted
                               && m.SenderId != userId
-                              && !_context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == userId),
+                              && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == userId),
                              cancellationToken)
             : 0;
 
@@ -308,7 +294,7 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         // Base query: threads where the user is an active member
-        var query = _context.ChatThreads
+        var query = context.ChatThreads
             .AsNoTracking()
             .Where(ct => !ct.IsDeleted && ct.IsActive);
 
@@ -317,7 +303,7 @@ public class ChatService : IChatService
 
         if (searchDto.UserId.HasValue)
             query = query.Where(ct =>
-                _context.ChatMembers.Any(cm =>
+                context.ChatMembers.Any(cm =>
                     cm.ChatThreadId == ct.Id
                     && cm.UserId == searchDto.UserId.Value
                     && !cm.IsDeleted));
@@ -339,11 +325,11 @@ public class ChatService : IChatService
         {
             var uid = searchDto.UserId.Value;
             query = query.Where(ct =>
-                _context.ChatMessages.Any(m =>
+                context.ChatMessages.Any(m =>
                     m.ChatThreadId == ct.Id
                     && !m.IsDeleted
                     && m.SenderId != uid
-                    && !_context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)));
+                    && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)));
         }
 
         // Sorting
@@ -371,7 +357,7 @@ public class ChatService : IChatService
         {
             return new PagedResult<ChatResponseDto>
             {
-                Items = new List<ChatResponseDto>(),
+                Items = [],
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
@@ -381,10 +367,10 @@ public class ChatService : IChatService
         var threadIds = threads.Select(t => t.Id).ToList();
 
         // ── Batch load members for all threads in one query ──────────────────
-        var rawMembers = await _context.ChatMembers
+        var rawMembers = await context.ChatMembers
             .AsNoTracking()
             .Where(cm => threadIds.Contains(cm.ChatThreadId) && !cm.IsDeleted)
-            .Join(_context.Users,
+            .Join(context.Users,
                 cm => cm.UserId,
                 u => u.Id,
                 (cm, u) => new
@@ -412,17 +398,17 @@ public class ChatService : IChatService
                     Role = m.Role,
                     JoinedAt = m.JoinedAt,
                     LastSeenAt = m.LastSeenAt,
-                    IsOnline = _onlineUserTracker.IsOnline(m.UserId),
+                    IsOnline = onlineUserTracker.IsOnline(m.UserId),
                     IsMuted = m.IsMuted
                 }).ToList());
 
         // ── Batch load last message per thread ───────────────────────────────
         // Load all messages for these threads (ordered), group in memory
-        var allMessages = await _context.ChatMessages
+        var allMessages = await context.ChatMessages
             .AsNoTracking()
             .Where(m => threadIds.Contains(m.ChatThreadId) && !m.IsDeleted)
             .OrderByDescending(m => m.SentAt)
-            .Join(_context.Users,
+            .Join(context.Users,
                 m => m.SenderId,
                 u => u.Id,
                 (m, u) => new
@@ -461,7 +447,7 @@ public class ChatService : IChatService
         if (searchDto.UserId.HasValue)
         {
             var uid = searchDto.UserId.Value;
-            var unreadCounts = await _context.ChatMessages
+            var unreadCounts = await context.ChatMessages
                 .AsNoTracking()
                 .Where(m => threadIds.Contains(m.ChatThreadId)
                           && !m.IsDeleted
@@ -469,7 +455,7 @@ public class ChatService : IChatService
                 .Select(m => new
                 {
                     m.ChatThreadId,
-                    IsRead = _context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)
+                    IsRead = context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)
                 })
                 .GroupBy(m => m.ChatThreadId)
                 .Select(g => new { ChatId = g.Key, UnreadCount = g.Count(m => !m.IsRead) })
@@ -481,7 +467,7 @@ public class ChatService : IChatService
         // ── Assemble result DTOs ─────────────────────────────────────────────
         var items = threads.Select(thread => MapToChatResponseDto(
             thread,
-            membersByThread.GetValueOrDefault(thread.Id, new List<ChatMemberDto>()),
+            membersByThread.GetValueOrDefault(thread.Id, []),
             lastMessageByThread.GetValueOrDefault(thread.Id),
             unreadByThread.GetValueOrDefault(thread.Id, 0)
         )).ToList();
@@ -505,7 +491,7 @@ public class ChatService : IChatService
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
             propertyName: "Update",
@@ -516,7 +502,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Chat Update: {chatId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} updated chat {ChatId}: Name={Name}",
             userId, chatId, updateDto.Name);
 
@@ -543,7 +529,7 @@ public class ChatService : IChatService
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
             propertyName: softDelete ? "SoftDelete" : "HardDelete",
@@ -554,7 +540,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Chat Deletion: {chatId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} {DeleteType} chat {ChatId} with reason: {Reason}",
             userId, softDelete ? "soft deleted" : "hard deleted", chatId, reason ?? "No reason provided");
 
@@ -605,7 +591,7 @@ public class ChatService : IChatService
                 Status = MessageStatus.Pending,
                 SentAt = now,
                 Locale = messageDto.Locale,
-                MetadataJson = messageDto.Metadata != null
+                MetadataJson = messageDto.Metadata is not null
                     ? System.Text.Json.JsonSerializer.Serialize(messageDto.Metadata)
                     : null,
                 CreatedAt = now,
@@ -613,11 +599,11 @@ public class ChatService : IChatService
             };
 
             // Get tenant from chat
-            var chat = await _context.ChatThreads
+            var chat = await context.ChatThreads
                 .Where(ct => ct.Id == messageDto.ChatId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (chat == null)
+            if (chat is null)
             {
                 throw new InvalidOperationException($"Chat {messageDto.ChatId} not found");
             }
@@ -625,13 +611,13 @@ public class ChatService : IChatService
             message.TenantId = chat.TenantId;
 
             // Save message to database
-            _ = _context.ChatMessages.Add(message);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ChatMessages.Add(message);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update status to sent
             message.Status = MessageStatus.Sent;
             message.ModifiedAt = DateTime.UtcNow;
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Create attachments if provided
             var attachmentDtos = new List<MessageAttachmentDto>();
@@ -650,8 +636,8 @@ public class ChatService : IChatService
                     ModifiedAt = now
                 }).ToList();
 
-                _context.MessageAttachments.AddRange(attachments);
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                context.MessageAttachments.AddRange(attachments);
+                _ = await context.SaveChangesAsync(cancellationToken);
 
                 attachmentDtos = attachments.Select(att => new MessageAttachmentDto
                 {
@@ -664,7 +650,7 @@ public class ChatService : IChatService
             }
 
             // Log audit trail for message sending
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "ChatMessage",
                 entityId: messageId,
                 propertyName: "Send",
@@ -675,7 +661,7 @@ public class ChatService : IChatService
                 entityDisplayName: $"Message: {messageId}",
                 cancellationToken: cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "User {UserId} sent message {MessageId} in chat {ChatId} with {AttachmentCount} attachments in {ElapsedMs}ms",
                 messageDto.SenderId, messageId, messageDto.ChatId, messageDto.Attachments?.Count ?? 0, stopwatch.ElapsedMilliseconds);
 
@@ -698,11 +684,11 @@ public class ChatService : IChatService
             };
 
             // Send real-time message via SignalR to all chat participants
-            await _hubContext.Clients.Group($"chat_{messageDto.ChatId}")
+            await hubContext.Clients.Group($"chat_{messageDto.ChatId}")
                 .SendAsync("MessageReceived", responseDto);
 
             // Update chat's last activity
-            await _hubContext.Clients.Group($"chat_{messageDto.ChatId}")
+            await hubContext.Clients.Group($"chat_{messageDto.ChatId}")
                 .SendAsync("ChatUpdated", new { ChatId = messageDto.ChatId, LastActivity = now });
 
             // Return response DTO
@@ -710,7 +696,7 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send message in chat {ChatId}", messageDto.ChatId);
+            logger.LogError(ex, "Failed to send message in chat {ChatId}", messageDto.ChatId);
             throw new InvalidOperationException("Failed to send message", ex);
         }
     }
@@ -723,12 +709,12 @@ public class ChatService : IChatService
         MessageSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
             searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
 
         // 1. Build query from ChatMessages DbSet
-        var query = _context.ChatMessages
+        var query = context.ChatMessages
             .AsNoTracking()
             .Where(m => !m.IsDeleted || searchDto.IncludeDeleted)
             .AsQueryable();
@@ -809,9 +795,9 @@ public class ChatService : IChatService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
+        logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
 
-        var query = _context.ChatMessages
+        var query = context.ChatMessages
             .AsNoTracking()
             .Where(m => !m.IsDeleted)
             .Include(m => m.ChatThread)
@@ -845,11 +831,11 @@ public class ChatService : IChatService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving messages for conversation {ConversationId} - Page {Page}",
             conversationId, pagination.Page);
 
-        var query = _context.ChatMessages
+        var query = context.ChatMessages
             .AsNoTracking()
             .Where(m => !m.IsDeleted && m.ChatThreadId == conversationId)
             .Include(m => m.Attachments)
@@ -882,7 +868,7 @@ public class ChatService : IChatService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
+        logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
 
         // NOTE: This is a simplified implementation.
         // In a full implementation, you would need to:
@@ -890,7 +876,7 @@ public class ChatService : IChatService
         // 2. Query messages where ReadReceipts don't contain current user's read receipt
         // For now, we'll return messages with no read receipts
 
-        var query = _context.ChatMessages
+        var query = context.ChatMessages
             .AsNoTracking()
             .Where(m => !m.IsDeleted && m.ReadAt == null)
             .Include(m => m.ChatThread)
@@ -925,40 +911,40 @@ public class ChatService : IChatService
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving message {MessageId} for user {UserId} in tenant {TenantId}",
             messageId, userId, tenantId);
 
         // 1. Query ChatMessages by messageId with related entities
-        var message = await _context.ChatMessages
+        var message = await context.ChatMessages
             .Include(m => m.ChatThread)
             .Include(m => m.Attachments)
             .Include(m => m.ReadReceipts)
             .Include(m => m.ReplyToMessage)
             .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
-        if (message == null)
+        if (message is null)
         {
-            _logger.LogWarning("Message {MessageId} not found", messageId);
+            logger.LogWarning("Message {MessageId} not found", messageId);
             return null;
         }
 
         // 2. Validate tenant access
         if (tenantId.HasValue && message.TenantId != tenantId.Value)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Access denied: Message {MessageId} belongs to tenant {MessageTenantId}, but requested by tenant {RequestTenantId}",
                 messageId, message.TenantId, tenantId.Value);
             return null;
         }
 
         // 3. Validate user is member of chat
-        var isMember = await _context.ChatMembers
+        var isMember = await context.ChatMembers
             .AnyAsync(cm => cm.ChatThreadId == message.ChatThreadId && cm.UserId == userId, cancellationToken);
 
         if (!isMember)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Access denied: User {UserId} is not a member of chat {ChatId}",
                 userId, message.ChatThreadId);
             return null;
@@ -967,7 +953,7 @@ public class ChatService : IChatService
         // 4. Check if message is deleted
         if (message.IsDeleted)
         {
-            _logger.LogWarning("Message {MessageId} is deleted", messageId);
+            logger.LogWarning("Message {MessageId} is deleted", messageId);
             return null;
         }
 
@@ -983,13 +969,13 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         // 1. Find message by editDto.MessageId
-        var message = await _context.ChatMessages
+        var message = await context.ChatMessages
             .Include(m => m.Attachments)
             .Include(m => m.ReadReceipts)
             .Include(m => m.ReplyToMessage)
             .FirstOrDefaultAsync(m => m.Id == editDto.MessageId, cancellationToken);
 
-        if (message == null)
+        if (message is null)
         {
             throw new InvalidOperationException($"Message {editDto.MessageId} not found");
         }
@@ -1034,10 +1020,10 @@ public class ChatService : IChatService
         message.ModifiedAt = DateTime.UtcNow;
 
         // 7. Save to database
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // 8. Log audit trail with old and new content
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: editDto.MessageId,
             propertyName: "Content",
@@ -1048,7 +1034,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Message Edit: {editDto.MessageId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} edited message {MessageId} with reason: {Reason}",
             editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
 
@@ -1056,7 +1042,7 @@ public class ChatService : IChatService
         var mappedDto = MapToChatMessageDto(message);
 
         // 10. Send SignalR notification to chat members
-        await _hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+        await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
             .SendAsync("MessageEdited", mappedDto, cancellationToken);
 
         // 11. Return updated ChatMessageDto
@@ -1074,19 +1060,19 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         // 1. Find message by messageId
-        var message = await _context.ChatMessages
+        var message = await context.ChatMessages
             .Include(m => m.ChatThread)
                 .ThenInclude(ct => ct.Members)
             .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
-        if (message == null)
+        if (message is null)
         {
             throw new InvalidOperationException($"Message {messageId} not found");
         }
 
         // 2. Validate user is sender OR chat owner/admin
         var isSender = message.SenderId == userId;
-        var isOwnerOrAdmin = await _context.ChatMembers
+        var isOwnerOrAdmin = await context.ChatMembers
             .AnyAsync(cm =>
                 cm.ChatThreadId == message.ChatThreadId &&
                 cm.UserId == userId &&
@@ -1125,14 +1111,14 @@ public class ChatService : IChatService
         else
         {
             // 4. Hard delete: Remove from database (only SuperAdmin should do this - validation should be done at controller level)
-            _context.ChatMessages.Remove(message);
+            context.ChatMessages.Remove(message);
         }
 
         // 5. Save changes
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // 6. Log audit trail
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: messageId,
             propertyName: softDelete ? "SoftDelete" : "HardDelete",
@@ -1143,14 +1129,14 @@ public class ChatService : IChatService
             entityDisplayName: $"Message Deletion: {messageId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} {DeleteType} message {MessageId} with reason: {Reason}",
             userId, softDelete ? "soft deleted" : "hard deleted", messageId, reason ?? "No reason provided");
 
         // 7. Send SignalR notification
         if (softDelete)
         {
-            await _hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+            await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
                 .SendAsync("MessageDeleted", new { MessageId = messageId, DeletedAt = DateTime.UtcNow }, cancellationToken);
         }
 
@@ -1179,7 +1165,7 @@ public class ChatService : IChatService
         Dictionary<string, object>? metadata = null,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatMessage",
             entityId: messageId,
             propertyName: "Status",
@@ -1190,7 +1176,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Message Status Update: {messageId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Message {MessageId} status updated to {Status} by user {UserId}",
             messageId, status, userId);
 
@@ -1215,7 +1201,7 @@ public class ChatService : IChatService
     {
         var readTimestamp = readAt ?? DateTime.UtcNow;
 
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "MessageReadReceipt",
             entityId: messageId,
             propertyName: "ReadAt",
@@ -1226,7 +1212,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Message Read: {messageId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogDebug(
+        logger.LogDebug(
             "User {UserId} marked message {MessageId} as read at {ReadAt}",
             userId, messageId, readTimestamp);
 
@@ -1247,14 +1233,14 @@ public class ChatService : IChatService
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug(
+        logger.LogDebug(
             "Retrieving read receipts for message {MessageId} requested by user {UserId}",
             messageId, requestingUserId);
 
         // TODO: Implement database query for read receipts
         await Task.Delay(5, cancellationToken); // Simulate async operation
 
-        return new List<MessageReadReceiptDto>();
+        return [];
     }
 
     /// <summary>
@@ -1270,7 +1256,7 @@ public class ChatService : IChatService
         var processedIds = new List<Guid>();
         var errors = new List<string>();
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} bulk marking {Count} messages as read",
             userId, messageIds.Count);
 
@@ -1285,7 +1271,7 @@ public class ChatService : IChatService
             catch (Exception ex)
             {
                 errors.Add($"Failed to mark message {messageId} as read: {ex.Message}");
-                _logger.LogWarning(ex, "Failed to mark message {MessageId} as read for user {UserId}", messageId, userId);
+                logger.LogWarning(ex, "Failed to mark message {MessageId} as read for user {UserId}", messageId, userId);
             }
         }
 
@@ -1328,7 +1314,7 @@ public class ChatService : IChatService
             // - File optimization and compression
             // - Metadata extraction
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "MessageAttachment",
                 entityId: attachmentId,
                 propertyName: "Upload",
@@ -1342,7 +1328,7 @@ public class ChatService : IChatService
             // Simulate file processing delay
             await Task.Delay(100, cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "User {UserId} uploaded file {FileName} ({FileSize} bytes) to chat {ChatId} in {ElapsedMs}ms",
                 uploadDto.UploadedBy, uploadDto.FileName, uploadDto.FileSize, uploadDto.ChatId, stopwatch.ElapsedMilliseconds);
 
@@ -1362,7 +1348,7 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file {FileName} for user {UserId}", uploadDto.FileName, uploadDto.UploadedBy);
+            logger.LogError(ex, "Failed to upload file {FileName} for user {UserId}", uploadDto.FileName, uploadDto.UploadedBy);
 
             return new FileUploadResultDto
             {
@@ -1383,7 +1369,7 @@ public class ChatService : IChatService
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} requesting download info for attachment {AttachmentId} in tenant {TenantId}",
             userId, attachmentId, tenantId);
 
@@ -1411,7 +1397,7 @@ public class ChatService : IChatService
         MediaProcessingOptionsDto processingOptions,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Processing media {AttachmentId} with options: Thumbnails={GenerateThumbnails}, Optimize={OptimizeForWeb}",
             attachmentId, processingOptions.GenerateThumbnails, processingOptions.OptimizeForWeb);
 
@@ -1471,7 +1457,7 @@ public class ChatService : IChatService
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "MessageAttachment",
             entityId: attachmentId,
             propertyName: "Delete",
@@ -1482,7 +1468,7 @@ public class ChatService : IChatService
             entityDisplayName: $"File Deletion: {attachmentId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} deleted file attachment {AttachmentId} with reason: {Reason}",
             userId, attachmentId, reason ?? "No reason provided");
 
@@ -1515,7 +1501,7 @@ public class ChatService : IChatService
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {AddedBy} adding {Count} members to chat {ChatId} with role {Role}",
             addedBy, userIds.Count, chatId, defaultRole);
 
@@ -1523,7 +1509,7 @@ public class ChatService : IChatService
         {
             try
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "AddMember",
@@ -1542,7 +1528,7 @@ public class ChatService : IChatService
                 });
                 successCount++;
 
-                _logger.LogDebug("Added user {UserId} to chat {ChatId} with role {Role}", userId, chatId, defaultRole);
+                logger.LogDebug("Added user {UserId} to chat {ChatId} with role {Role}", userId, chatId, defaultRole);
             }
             catch (Exception ex)
             {
@@ -1553,7 +1539,7 @@ public class ChatService : IChatService
                     ErrorMessage = ex.Message
                 });
 
-                _logger.LogWarning(ex, "Failed to add user {UserId} to chat {ChatId}", userId, chatId);
+                logger.LogWarning(ex, "Failed to add user {UserId} to chat {ChatId}", userId, chatId);
             }
         }
 
@@ -1581,7 +1567,7 @@ public class ChatService : IChatService
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {RemovedBy} removing {Count} members from chat {ChatId} with reason: {Reason}",
             removedBy, userIds.Count, chatId, reason ?? "No reason provided");
 
@@ -1589,7 +1575,7 @@ public class ChatService : IChatService
         {
             try
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "RemoveMember",
@@ -1607,7 +1593,7 @@ public class ChatService : IChatService
                 });
                 successCount++;
 
-                _logger.LogDebug("Removed user {UserId} from chat {ChatId}", userId, chatId);
+                logger.LogDebug("Removed user {UserId} from chat {ChatId}", userId, chatId);
             }
             catch (Exception ex)
             {
@@ -1618,7 +1604,7 @@ public class ChatService : IChatService
                     ErrorMessage = ex.Message
                 });
 
-                _logger.LogWarning(ex, "Failed to remove user {UserId} from chat {ChatId}", userId, chatId);
+                logger.LogWarning(ex, "Failed to remove user {UserId} from chat {ChatId}", userId, chatId);
             }
         }
 
@@ -1645,7 +1631,7 @@ public class ChatService : IChatService
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UpdatedBy} updating roles for {Count} members in chat {ChatId}",
             updatedBy, roleUpdates.Count, chatId);
 
@@ -1653,7 +1639,7 @@ public class ChatService : IChatService
         {
             try
             {
-                _ = await _auditLogService.LogEntityChangeAsync(
+                _ = await auditLogService.LogEntityChangeAsync(
                     entityName: "ChatMember",
                     entityId: chatId,
                     propertyName: "Role",
@@ -1672,7 +1658,7 @@ public class ChatService : IChatService
                 });
                 successCount++;
 
-                _logger.LogDebug("Updated role for user {UserId} in chat {ChatId} to {Role}", userId, chatId, newRole);
+                logger.LogDebug("Updated role for user {UserId} in chat {ChatId} to {Role}", userId, chatId, newRole);
             }
             catch (Exception ex)
             {
@@ -1683,7 +1669,7 @@ public class ChatService : IChatService
                     ErrorMessage = ex.Message
                 });
 
-                _logger.LogWarning(ex, "Failed to update role for user {UserId} in chat {ChatId}", userId, chatId);
+                logger.LogWarning(ex, "Failed to update role for user {UserId} in chat {ChatId}", userId, chatId);
             }
         }
 
@@ -1705,20 +1691,20 @@ public class ChatService : IChatService
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "User {UserId} requesting members for chat {ChatId}",
             requestingUserId, chatId);
 
         // Verify the requesting user is a member (unless it is a server-side call)
         if (requestingUserId != Guid.Empty)
         {
-            var isMember = await _context.ChatMembers
+            var isMember = await context.ChatMembers
                 .AnyAsync(cm => cm.ChatThreadId == chatId
                              && cm.UserId == requestingUserId
                              && !cm.IsDeleted, cancellationToken);
 
             if (!isMember)
-                return new List<ChatMemberDto>();
+                return [];
         }
 
         return await BuildMemberDtosAsync(chatId, cancellationToken);
@@ -1731,9 +1717,9 @@ public class ChatService : IChatService
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting available chat users for tenant {TenantId}", tenantId);
+        logger.LogInformation("Getting available chat users for tenant {TenantId}", tenantId);
 
-        var users = await _context.Users
+        var users = await context.Users
             .AsNoTracking()
             .Where(u => !u.IsDeleted && u.IsActive && u.TenantId == tenantId)
             .OrderBy(u => u.FirstName)
@@ -1751,7 +1737,7 @@ public class ChatService : IChatService
             Id = u.Id,
             Username = u.Username,
             DisplayName = u.FullName.Length > 0 ? u.FullName : u.Username,
-            IsOnline = _onlineUserTracker.IsOnline(u.Id)
+            IsOnline = onlineUserTracker.IsOnline(u.Id)
         }).ToList();
     }
 
@@ -1769,7 +1755,7 @@ public class ChatService : IChatService
         ChatOperationType operationType,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug(
+        logger.LogDebug(
             "Checking chat rate limit for tenant {TenantId}, user {UserId}, operation {Operation}",
             tenantId, userId, operationType);
 
@@ -1814,7 +1800,7 @@ public class ChatService : IChatService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to check chat rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
+            logger.LogError(ex, "Failed to check chat rate limit for tenant {TenantId}, user {UserId}", tenantId, userId);
 
             // On error, allow but log the issue
             return new ChatRateLimitStatusDto
@@ -1841,7 +1827,7 @@ public class ChatService : IChatService
         ChatRateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatRateLimitPolicy",
             entityId: tenantId,
             propertyName: "Update",
@@ -1852,7 +1838,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Chat Rate Limit Policy: {tenantId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Updated chat rate limit policy for tenant {TenantId}: MessageLimit={MessageLimit}",
             tenantId, rateLimitPolicy.GlobalMessageLimit);
 
@@ -1868,7 +1854,7 @@ public class ChatService : IChatService
         DateRange? dateRange = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving chat statistics for tenant {TenantId} from {StartDate} to {EndDate}",
             tenantId?.ToString() ?? "ALL",
             dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
@@ -1903,7 +1889,7 @@ public class ChatService : IChatService
         ChatModerationActionDto moderationAction,
         CancellationToken cancellationToken = default)
     {
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatModeration",
             entityId: moderationAction.ChatId,
             propertyName: "ModerateAction",
@@ -1914,7 +1900,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Chat Moderation: {moderationAction.ChatId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogWarning(
+        logger.LogWarning(
             "Moderator {ModeratorId} performed action '{Action}' on chat {ChatId} with reason: {Reason}",
             moderationAction.ModeratorId, moderationAction.Action, moderationAction.ChatId, moderationAction.Reason);
 
@@ -1944,7 +1930,7 @@ public class ChatService : IChatService
         ChatAuditQueryDto auditQuery,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Retrieving chat audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
             auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
 
@@ -1953,7 +1939,7 @@ public class ChatService : IChatService
 
         return new PagedResult<ChatAuditEntryDto>
         {
-            Items = new List<ChatAuditEntryDto>(),
+            Items = [],
             Page = auditQuery.PageNumber,
             PageSize = auditQuery.PageSize,
             TotalCount = 0
@@ -1967,7 +1953,7 @@ public class ChatService : IChatService
     public async Task<ChatSystemHealthDto> GetChatSystemHealthAsync(
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Checking chat system health");
+        logger.LogDebug("Checking chat system health");
 
         // TODO: Implement health checks
         await Task.Delay(10, cancellationToken);
@@ -2002,14 +1988,14 @@ public class ChatService : IChatService
         Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Localizing message {MessageId} to locale {Locale} for user {UserId}",
             message.Id, targetLocale, userId);
 
         // 1. Check if message.Locale == targetLocale (already localized)
         if (message.Locale == targetLocale)
         {
-            _logger.LogDebug("Message {MessageId} is already in locale {Locale}", message.Id, targetLocale);
+            logger.LogDebug("Message {MessageId} is already in locale {Locale}", message.Id, targetLocale);
             return message;
         }
 
@@ -2019,7 +2005,7 @@ public class ChatService : IChatService
         // 3. Store localized content in metadata
         // For Phase 1: Simple implementation - just update Locale field
         // Future: Integrate with translation service for actual content translation
-        if (message.Metadata == null)
+        if (message.Metadata is null)
         {
             message.Metadata = new Dictionary<string, object>();
         }
@@ -2047,10 +2033,10 @@ public class ChatService : IChatService
         CancellationToken cancellationToken = default)
     {
         // 1. Find user
-        var user = await _context.Users
+        var user = await context.Users
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        if (user == null)
+        if (user is null)
         {
             throw new InvalidOperationException($"User {userId} not found");
         }
@@ -2062,10 +2048,10 @@ public class ChatService : IChatService
         user.ModifiedAt = DateTime.UtcNow;
 
         // 3. Save to database
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         // 4. Log audit trail
-        _ = await _auditLogService.LogEntityChangeAsync(
+        _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatLocalizationPreferences",
             entityId: userId,
             propertyName: "PreferredLocale",
@@ -2076,7 +2062,7 @@ public class ChatService : IChatService
             entityDisplayName: $"Chat Localization: {userId}",
             cancellationToken: cancellationToken);
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Updated chat localization preferences for user {UserId}: Locale={Locale}, AutoTranslate={AutoTranslate}",
             userId, preferences.PreferredLocale, preferences.AutoTranslate);
 
@@ -2094,10 +2080,10 @@ public class ChatService : IChatService
     /// </summary>
     private async Task<List<ChatMemberDto>> BuildMemberDtosAsync(Guid chatId, CancellationToken cancellationToken)
     {
-        var membersWithUsers = await _context.ChatMembers
+        var membersWithUsers = await context.ChatMembers
             .AsNoTracking()
             .Where(cm => cm.ChatThreadId == chatId && !cm.IsDeleted)
-            .Join(_context.Users,
+            .Join(context.Users,
                 cm => cm.UserId,
                 u => u.Id,
                 (cm, u) => new
@@ -2120,7 +2106,7 @@ public class ChatService : IChatService
             Role = m.Role,
             JoinedAt = m.JoinedAt,
             LastSeenAt = m.LastSeenAt,
-            IsOnline = _onlineUserTracker.IsOnline(m.UserId),
+            IsOnline = onlineUserTracker.IsOnline(m.UserId),
             IsMuted = m.IsMuted
         }).ToList();
     }
@@ -2160,7 +2146,7 @@ public class ChatService : IChatService
     {
         if (tenantId.HasValue)
         {
-            _logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
+            logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
             // TODO: Validate tenant exists and is active
         }
         await Task.Delay(1, cancellationToken);
@@ -2230,7 +2216,7 @@ public class ChatService : IChatService
             SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
             Content = message.Content,
             ReplyToMessageId = message.ReplyToMessageId,
-            ReplyToMessage = message.ReplyToMessage != null ? new ChatMessageDto
+            ReplyToMessage = message.ReplyToMessage is not null ? new ChatMessageDto
             {
                 Id = message.ReplyToMessage.Id,
                 ChatId = message.ReplyToMessage.ChatThreadId,
@@ -2278,7 +2264,7 @@ public class ChatService : IChatService
         MessageReactionActionDto reactionDto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
+        logger.LogInformation(
             "Toggling reaction {Emoji} on message {MessageId} by user {UserId}",
             reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
 
@@ -2299,4 +2285,5 @@ public class ChatService : IChatService
     }
 
     #endregion
+
 }

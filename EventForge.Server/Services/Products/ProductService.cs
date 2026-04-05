@@ -13,14 +13,14 @@ namespace EventForge.Server.Services.Products;
 /// <summary>
 /// Service implementation for managing products and related entities.
 /// </summary>
-public class ProductService : IProductService
+public class ProductService(
+    EventForgeDbContext context,
+    IAuditLogService auditLogService,
+    ITenantContext tenantContext,
+    ILogger<ProductService> logger,
+    IDailyCodeGenerator codeGenerator,
+    ISupplierProductPriceHistoryService priceHistoryService) : IProductService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly IAuditLogService _auditLogService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<ProductService> _logger;
-    private readonly IDailyCodeGenerator _codeGenerator;
-    private readonly ISupplierProductPriceHistoryService _priceHistoryService;
 
     // Default currency for product transactions
     private const string DefaultCurrency = "EUR";
@@ -28,35 +28,19 @@ public class ProductService : IProductService
     // Maximum retry attempts for unique constraint violations
     private const int MaxRetryAttempts = 3;
 
-    public ProductService(
-        EventForgeDbContext context,
-        IAuditLogService auditLogService,
-        ITenantContext tenantContext,
-        ILogger<ProductService> logger,
-        IDailyCodeGenerator codeGenerator,
-        ISupplierProductPriceHistoryService priceHistoryService)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _codeGenerator = codeGenerator ?? throw new ArgumentNullException(nameof(codeGenerator));
-        _priceHistoryService = priceHistoryService ?? throw new ArgumentNullException(nameof(priceHistoryService));
-    }
-
     // Product CRUD operations
 
     public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var query = _context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
+            var query = context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
 
             // Apply search filter if provided (before includes to avoid type conversion issues)
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -93,7 +77,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products.");
+            logger.LogError(ex, "Error retrieving products.");
             throw;
         }
     }
@@ -102,7 +86,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _context.Products
+            var product = await context.Products
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -112,13 +96,13 @@ public class ProductService : IProductService
                 .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (product == null) return null;
+            if (product is null) return null;
 
             string? preferredSupplierName = null;
             if (product.PreferredSupplierId.HasValue)
             {
-                var currentTenantId = _tenantContext.CurrentTenantId;
-                preferredSupplierName = await _context.BusinessParties
+                var currentTenantId = tenantContext.CurrentTenantId;
+                preferredSupplierName = await context.BusinessParties
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -130,7 +114,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product {ProductId}.", id);
+            logger.LogError(ex, "Error retrieving product {ProductId}.", id);
             throw;
         }
     }
@@ -139,7 +123,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _context.Products
+            var product = await context.Products
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -149,13 +133,13 @@ public class ProductService : IProductService
                 .Include(p => p.Model)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (product == null) return null;
+            if (product is null) return null;
 
             string? preferredSupplierName = null;
             if (product.PreferredSupplierId.HasValue)
             {
-                var currentTenantId = _tenantContext.CurrentTenantId;
-                preferredSupplierName = await _context.BusinessParties
+                var currentTenantId = tenantContext.CurrentTenantId;
+                preferredSupplierName = await context.BusinessParties
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -167,7 +151,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product detail {ProductId}.", id);
+            logger.LogError(ex, "Error retrieving product detail {ProductId}.", id);
             throw;
         }
     }
@@ -179,7 +163,7 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createProductDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -188,8 +172,8 @@ public class ProductService : IProductService
             // Generate code if not provided
             if (string.IsNullOrWhiteSpace(createProductDto.Code))
             {
-                createProductDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
-                _logger.LogInformation("Auto-generated product code: {Code}", createProductDto.Code);
+                createProductDto.Code = await codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                logger.LogInformation("Auto-generated product code: {Code}", createProductDto.Code);
             }
 
             // Retry logic for unique constraint violations
@@ -229,13 +213,13 @@ public class ProductService : IProductService
                         CreatedAt = DateTime.UtcNow
                     };
 
-                    _ = _context.Products.Add(product);
-                    _ = await _context.SaveChangesAsync(cancellationToken);
+                    _ = context.Products.Add(product);
+                    _ = await context.SaveChangesAsync(cancellationToken);
 
                     // Audit log for the created product
-                    _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
+                    _ = await auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
-                    _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}. IsVatIncluded: {IsVatIncluded}",
+                    logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}. IsVatIncluded: {IsVatIncluded}",
                         product.Id, product.Code, currentUser, product.IsVatIncluded);
 
                     return MapToProductDto(product);
@@ -245,15 +229,15 @@ public class ProductService : IProductService
                     // Unique constraint violation - regenerate code and retry
                     if (attempt < MaxRetryAttempts)
                     {
-                        _logger.LogWarning("Unique constraint violation on attempt {Attempt} for code {Code}. Retrying...", attempt, createProductDto.Code);
-                        createProductDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                        logger.LogWarning("Unique constraint violation on attempt {Attempt} for code {Code}. Retrying...", attempt, createProductDto.Code);
+                        createProductDto.Code = await codeGenerator.GenerateDailyCodeAsync(cancellationToken);
 
                         // Reset the context to clear tracked entities
-                        _context.ChangeTracker.Clear();
+                        context.ChangeTracker.Clear();
                     }
                     else
                     {
-                        _logger.LogError(ex, "Failed to create product after {MaxRetryAttempts} attempts due to unique constraint violations.", MaxRetryAttempts);
+                        logger.LogError(ex, "Failed to create product after {MaxRetryAttempts} attempts due to unique constraint violations.", MaxRetryAttempts);
                         throw new InvalidOperationException($"Unable to generate a unique product code after {MaxRetryAttempts} attempts. Please try again.", ex);
                     }
                 }
@@ -264,7 +248,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating product for user {User}.", currentUser);
             throw;
         }
     }
@@ -276,7 +260,7 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -285,12 +269,12 @@ public class ProductService : IProductService
             // Generate code if not provided
             if (string.IsNullOrWhiteSpace(createDto.Code))
             {
-                createDto.Code = await _codeGenerator.GenerateDailyCodeAsync(cancellationToken);
-                _logger.LogInformation("Auto-generated product code: {Code}", createDto.Code);
+                createDto.Code = await codeGenerator.GenerateDailyCodeAsync(cancellationToken);
+                logger.LogInformation("Auto-generated product code: {Code}", createDto.Code);
             }
 
             // Use transaction to ensure atomicity
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -317,13 +301,13 @@ public class ProductService : IProductService
                     CreatedAt = DateTime.UtcNow
                 };
 
-                _ = _context.Products.Add(product);
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = context.Products.Add(product);
+                _ = await context.SaveChangesAsync(cancellationToken);
 
                 // Audit log for the created product
-                _ = await _auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
+                _ = await auditLogService.TrackEntityChangesAsync(product, "Create", currentUser, null, cancellationToken);
 
-                _logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}.", product.Id, product.Code, currentUser);
+                logger.LogInformation("Product created with ID {ProductId} and Code {Code} by user {User}.", product.Id, product.Code, currentUser);
 
                 // Track created units and codes for the response
                 var createdUnits = new List<ProductUnit>();
@@ -338,14 +322,14 @@ public class ProductService : IProductService
                     if (codeWithUnit.UnitOfMeasureId.HasValue)
                     {
                         // Check if a ProductUnit already exists for this product and UoM
-                        productUnit = await _context.ProductUnits
+                        productUnit = await context.ProductUnits
                             .Where(pu => pu.ProductId == product.Id &&
                                    pu.UnitOfMeasureId == codeWithUnit.UnitOfMeasureId.Value &&
                                    !pu.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
                         // Create new ProductUnit if it doesn't exist
-                        if (productUnit == null)
+                        if (productUnit is null)
                         {
                             productUnit = new ProductUnit
                             {
@@ -360,14 +344,14 @@ public class ProductService : IProductService
                                 CreatedAt = DateTime.UtcNow
                             };
 
-                            _ = _context.ProductUnits.Add(productUnit);
-                            _ = await _context.SaveChangesAsync(cancellationToken);
+                            _ = context.ProductUnits.Add(productUnit);
+                            _ = await context.SaveChangesAsync(cancellationToken);
 
                             // Audit log for the created product unit
-                            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
+                            _ = await auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
 
                             createdUnits.Add(productUnit);
-                            _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} with conversion factor {ConversionFactor}.",
+                            logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} with conversion factor {ConversionFactor}.",
                                 productUnit.Id, product.Id, productUnit.ConversionFactor);
                         }
                     }
@@ -386,14 +370,14 @@ public class ProductService : IProductService
                         CreatedAt = DateTime.UtcNow
                     };
 
-                    _ = _context.ProductCodes.Add(productCode);
-                    _ = await _context.SaveChangesAsync(cancellationToken);
+                    _ = context.ProductCodes.Add(productCode);
+                    _ = await context.SaveChangesAsync(cancellationToken);
 
                     // Audit log for the created product code
-                    _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
+                    _ = await auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
 
                     createdCodes.Add(productCode);
-                    _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} with code {Code}.",
+                    logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} with code {Code}.",
                         productCode.Id, product.Id, productCode.Code);
                 }
 
@@ -401,7 +385,7 @@ public class ProductService : IProductService
                 await transaction.CommitAsync(cancellationToken);
 
                 // Reload product with all related entities for the response
-                var createdProduct = await _context.Products
+                var createdProduct = await context.Products
                     .Where(p => p.Id == product.Id && !p.IsDeleted)
                     .Include(p => p.Codes.Where(c => !c.IsDeleted))
                     .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -410,7 +394,7 @@ public class ProductService : IProductService
                     .Include(p => p.Model)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                _logger.LogInformation("Product created successfully with {CodeCount} codes and {UnitCount} units.",
+                logger.LogInformation("Product created successfully with {CodeCount} codes and {UnitCount} units.",
                     createdCodes.Count, createdUnits.Count);
 
                 return MapToProductDetailDto(createdProduct!);
@@ -423,7 +407,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product with codes and units for user {User}.", currentUser);
+            logger.LogError(ex, "Error creating product with codes and units for user {User}.", currentUser);
             throw;
         }
     }
@@ -435,16 +419,16 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(updateProductDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var product = await _context.Products
+            var product = await context.Products
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
-                _logger.LogWarning("Product with ID {ProductId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Product with ID {ProductId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -483,7 +467,7 @@ public class ProductService : IProductService
             };
 
             // Log incoming DTO values for diagnostic purposes
-            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}",
+            logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}",
                 id, updateProductDto.IsVatIncluded, originalProduct.IsVatIncluded);
 
             // Update properties
@@ -515,23 +499,23 @@ public class ProductService : IProductService
             product.ModifiedAt = DateTime.UtcNow;
 
             // Log product entity value before SaveChanges for diagnostic purposes
-            _logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
+            logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
                 id, product.IsVatIncluded);
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict updating product {ProductId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict updating product {ProductId}.", id);
                 throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log for the updated product
-            _ = await _auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}",
+            logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}",
                 id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
 
             return MapToProductDto(product);
@@ -542,7 +526,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product {ProductId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating product {ProductId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -553,16 +537,16 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var product = await _context.Products
+            var product = await context.Products
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
-                _logger.LogWarning("Product with ID {ProductId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Product with ID {ProductId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -626,18 +610,18 @@ public class ProductService : IProductService
 
             try
             {
-                _ = await _context.SaveChangesAsync(cancellationToken);
+                _ = await context.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogWarning(ex, "Concurrency conflict deleting product {ProductId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict deleting product {ProductId}.", id);
                 throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
             // Audit log for the deleted product
-            _ = await _auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
@@ -647,7 +631,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product {ProductId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting product {ProductId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -658,7 +642,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var codes = await _context.ProductCodes
+            var codes = await context.ProductCodes
                 .Where(pc => pc.ProductId == productId && !pc.IsDeleted)
                 .OrderBy(pc => pc.CodeType)
                 .ThenBy(pc => pc.Code)
@@ -668,7 +652,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product codes for product {ProductId}.", productId);
+            logger.LogError(ex, "Error retrieving product codes for product {ProductId}.", productId);
             throw;
         }
     }
@@ -677,15 +661,15 @@ public class ProductService : IProductService
     {
         try
         {
-            var code = await _context.ProductCodes
+            var code = await context.ProductCodes
                 .Where(pc => pc.Id == id && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return code != null ? MapToProductCodeDto(code) : null;
+            return code is not null ? MapToProductCodeDto(code) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product code {ProductCodeId}.", id);
+            logger.LogError(ex, "Error retrieving product code {ProductCodeId}.", id);
             throw;
         }
     }
@@ -696,12 +680,12 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
-            var productCode = await _context.ProductCodes
+            var productCode = await context.ProductCodes
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productCode?.Product == null || productCode.Product.IsDeleted)
+            if (productCode?.Product is null || productCode.Product.IsDeleted)
             {
                 return null;
             }
@@ -710,7 +694,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product by code {CodeValue}.", codeValue);
+            logger.LogError(ex, "Error retrieving product by code {CodeValue}.", codeValue);
             throw;
         }
     }
@@ -721,7 +705,7 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
-            var productCode = await _context.ProductCodes
+            var productCode = await context.ProductCodes
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.VatRate)       // ✅ Include VatRate for continuous scan
@@ -733,7 +717,7 @@ public class ProductService : IProductService
                     .ThenInclude(p => p!.ImageDocument) // Include image document for thumbnails
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productCode?.Product == null || productCode.Product.IsDeleted)
+            if (productCode?.Product is null || productCode.Product.IsDeleted)
             {
                 return null;
             }
@@ -746,7 +730,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product with code by code {CodeValue}.", codeValue);
+            logger.LogError(ex, "Error retrieving product with code by code {CodeValue}.", codeValue);
             throw;
         }
     }
@@ -759,7 +743,7 @@ public class ProductService : IProductService
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
             // Validate tenant context
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -784,20 +768,20 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.ProductCodes.Add(productCode);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ProductCodes.Add(productCode);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created product code
-            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productCode, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} by user {User}.",
+            logger.LogInformation("Product code created with ID {ProductCodeId} for product {ProductId} by user {User}.",
                 productCode.Id, createProductCodeDto.ProductId, currentUser);
 
             return MapToProductCodeDto(productCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product code for product {ProductId} by user {User}.",
+            logger.LogError(ex, "Error creating product code for product {ProductId} by user {User}.",
                 createProductCodeDto.ProductId, currentUser);
             throw;
         }
@@ -810,13 +794,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(updateProductCodeDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var productCode = await _context.ProductCodes
+            var productCode = await context.ProductCodes
                 .Where(pc => pc.Id == id && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productCode == null)
+            if (productCode is null)
             {
-                _logger.LogWarning("Product code with ID {ProductCodeId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Product code with ID {ProductCodeId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -843,18 +827,18 @@ public class ProductService : IProductService
             productCode.ModifiedBy = currentUser;
             productCode.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated product code
-            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Update", currentUser, originalProductCode, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productCode, "Update", currentUser, originalProductCode, cancellationToken);
 
-            _logger.LogInformation("Product code {ProductCodeId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Product code {ProductCodeId} updated by user {User}.", id, currentUser);
 
             return MapToProductCodeDto(productCode);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product code {ProductCodeId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating product code {ProductCodeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -865,13 +849,13 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var productCode = await _context.ProductCodes
+            var productCode = await context.ProductCodes
                 .Where(pc => pc.Id == id && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productCode == null)
+            if (productCode is null)
             {
-                _logger.LogWarning("Product code with ID {ProductCodeId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Product code with ID {ProductCodeId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -897,18 +881,18 @@ public class ProductService : IProductService
             productCode.DeletedBy = currentUser;
             productCode.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted product code
-            _ = await _auditLogService.TrackEntityChangesAsync(productCode, "Delete", currentUser, originalProductCode, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productCode, "Delete", currentUser, originalProductCode, cancellationToken);
 
-            _logger.LogInformation("Product code {ProductCodeId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Product code {ProductCodeId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product code {ProductCodeId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting product code {ProductCodeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -919,7 +903,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var units = await _context.ProductUnits
+            var units = await context.ProductUnits
                 .Where(pu => pu.ProductId == productId && !pu.IsDeleted)
                 .OrderBy(pu => pu.UnitType)
                 .ThenBy(pu => pu.ConversionFactor)
@@ -929,7 +913,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product units for product {ProductId}.", productId);
+            logger.LogError(ex, "Error retrieving product units for product {ProductId}.", productId);
             throw;
         }
     }
@@ -938,15 +922,15 @@ public class ProductService : IProductService
     {
         try
         {
-            var unit = await _context.ProductUnits
+            var unit = await context.ProductUnits
                 .Where(pu => pu.Id == id && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return unit != null ? MapToProductUnitDto(unit) : null;
+            return unit is not null ? MapToProductUnitDto(unit) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product unit {ProductUnitId}.", id);
+            logger.LogError(ex, "Error retrieving product unit {ProductUnitId}.", id);
             throw;
         }
     }
@@ -959,7 +943,7 @@ public class ProductService : IProductService
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
             // Validate tenant context
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Current tenant ID is not available.");
@@ -984,20 +968,20 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.ProductUnits.Add(productUnit);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ProductUnits.Add(productUnit);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created product unit
-            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productUnit, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} by user {User}.",
+            logger.LogInformation("Product unit created with ID {ProductUnitId} for product {ProductId} by user {User}.",
                 productUnit.Id, createProductUnitDto.ProductId, currentUser);
 
             return MapToProductUnitDto(productUnit);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating product unit for product {ProductId} by user {User}.",
+            logger.LogError(ex, "Error creating product unit for product {ProductId} by user {User}.",
                 createProductUnitDto.ProductId, currentUser);
             throw;
         }
@@ -1010,13 +994,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(updateProductUnitDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var productUnit = await _context.ProductUnits
+            var productUnit = await context.ProductUnits
                 .Where(pu => pu.Id == id && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productUnit == null)
+            if (productUnit is null)
             {
-                _logger.LogWarning("Product unit with ID {ProductUnitId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Product unit with ID {ProductUnitId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -1044,18 +1028,18 @@ public class ProductService : IProductService
             productUnit.ModifiedBy = currentUser;
             productUnit.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated product unit
-            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Update", currentUser, originalProductUnit, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productUnit, "Update", currentUser, originalProductUnit, cancellationToken);
 
-            _logger.LogInformation("Product unit {ProductUnitId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Product unit {ProductUnitId} updated by user {User}.", id, currentUser);
 
             return MapToProductUnitDto(productUnit);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product unit {ProductUnitId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating product unit {ProductUnitId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1066,13 +1050,13 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var productUnit = await _context.ProductUnits
+            var productUnit = await context.ProductUnits
                 .Where(pu => pu.Id == id && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (productUnit == null)
+            if (productUnit is null)
             {
-                _logger.LogWarning("Product unit with ID {ProductUnitId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Product unit with ID {ProductUnitId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -1099,18 +1083,18 @@ public class ProductService : IProductService
             productUnit.DeletedBy = currentUser;
             productUnit.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted product unit
-            _ = await _auditLogService.TrackEntityChangesAsync(productUnit, "Delete", currentUser, originalProductUnit, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(productUnit, "Delete", currentUser, originalProductUnit, cancellationToken);
 
-            _logger.LogInformation("Product unit {ProductUnitId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Product unit {ProductUnitId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting product unit {ProductUnitId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting product unit {ProductUnitId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1121,7 +1105,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var bundleItems = await _context.ProductBundleItems
+            var bundleItems = await context.ProductBundleItems
                 .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
                 .OrderBy(pbi => pbi.ComponentProductId)
                 .ToListAsync(cancellationToken);
@@ -1130,7 +1114,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving bundle items for bundle {BundleProductId}.", bundleProductId);
+            logger.LogError(ex, "Error retrieving bundle items for bundle {BundleProductId}.", bundleProductId);
             throw;
         }
     }
@@ -1139,15 +1123,15 @@ public class ProductService : IProductService
     {
         try
         {
-            var bundleItem = await _context.ProductBundleItems
+            var bundleItem = await context.ProductBundleItems
                 .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return bundleItem != null ? MapToProductBundleItemDto(bundleItem) : null;
+            return bundleItem is not null ? MapToProductBundleItemDto(bundleItem) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving bundle item {BundleItemId}.", id);
+            logger.LogError(ex, "Error retrieving bundle item {BundleItemId}.", id);
             throw;
         }
     }
@@ -1180,20 +1164,20 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.ProductBundleItems.Add(bundleItem);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ProductBundleItems.Add(bundleItem);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the created bundle item
-            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Create", currentUser, null, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bundleItem, "Create", currentUser, null, cancellationToken);
 
-            _logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
+            logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
                 bundleItem.Id, createProductBundleItemDto.BundleProductId, currentUser);
 
             return MapToProductBundleItemDto(bundleItem);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating bundle item for bundle {BundleProductId} by user {User}.",
+            logger.LogError(ex, "Error creating bundle item for bundle {BundleProductId} by user {User}.",
                 createProductBundleItemDto.BundleProductId, currentUser);
             throw;
         }
@@ -1206,13 +1190,13 @@ public class ProductService : IProductService
             ArgumentNullException.ThrowIfNull(updateProductBundleItemDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var bundleItem = await _context.ProductBundleItems
+            var bundleItem = await context.ProductBundleItems
                 .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (bundleItem == null)
+            if (bundleItem is null)
             {
-                _logger.LogWarning("Bundle item with ID {BundleItemId} not found for update by user {User}.", id, currentUser);
+                logger.LogWarning("Bundle item with ID {BundleItemId} not found for update by user {User}.", id, currentUser);
                 return null;
             }
 
@@ -1241,18 +1225,18 @@ public class ProductService : IProductService
             bundleItem.ModifiedBy = currentUser;
             bundleItem.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the updated bundle item
-            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Update", currentUser, originalBundleItem, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bundleItem, "Update", currentUser, originalBundleItem, cancellationToken);
 
-            _logger.LogInformation("Bundle item {BundleItemId} updated by user {User}.", id, currentUser);
+            logger.LogInformation("Bundle item {BundleItemId} updated by user {User}.", id, currentUser);
 
             return MapToProductBundleItemDto(bundleItem);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating bundle item {BundleItemId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error updating bundle item {BundleItemId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1263,13 +1247,13 @@ public class ProductService : IProductService
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var bundleItem = await _context.ProductBundleItems
+            var bundleItem = await context.ProductBundleItems
                 .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (bundleItem == null)
+            if (bundleItem is null)
             {
-                _logger.LogWarning("Bundle item with ID {BundleItemId} not found for deletion by user {User}.", id, currentUser);
+                logger.LogWarning("Bundle item with ID {BundleItemId} not found for deletion by user {User}.", id, currentUser);
                 return false;
             }
 
@@ -1294,18 +1278,18 @@ public class ProductService : IProductService
             bundleItem.DeletedBy = currentUser;
             bundleItem.DeletedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Audit log for the deleted bundle item
-            _ = await _auditLogService.TrackEntityChangesAsync(bundleItem, "Delete", currentUser, originalBundleItem, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(bundleItem, "Delete", currentUser, originalBundleItem, cancellationToken);
 
-            _logger.LogInformation("Bundle item {BundleItemId} deleted by user {User}.", id, currentUser);
+            logger.LogInformation("Bundle item {BundleItemId} deleted by user {User}.", id, currentUser);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting bundle item {BundleItemId} for user {User}.", id, currentUser);
+            logger.LogError(ex, "Error deleting bundle item {BundleItemId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1314,16 +1298,16 @@ public class ProductService : IProductService
     {
         try
         {
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
-                _logger.LogWarning("Product {ProductId} not found for image update by user {User}.", productId, currentUser);
+                logger.LogWarning("Product {ProductId} not found for image update by user {User}.", productId, currentUser);
                 return null;
             }
 
@@ -1333,14 +1317,14 @@ public class ProductService : IProductService
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = currentUser;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
+            logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
             return MapToProductDto(product);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating image for product {ProductId} by user {User}.", productId, currentUser);
+            logger.LogError(ex, "Error updating image for product {ProductId} by user {User}.", productId, currentUser);
             throw;
         }
     }
@@ -1349,22 +1333,22 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
-                _logger.LogWarning("Product {ProductId} not found for image upload in tenant {TenantId}.", productId, currentTenantId.Value);
+                logger.LogWarning("Product {ProductId} not found for image upload in tenant {TenantId}.", productId, currentTenantId.Value);
                 return null;
             }
 
@@ -1406,10 +1390,10 @@ public class ProductService : IProductService
             // If product already has an image, delete the old one first
             if (product.ImageDocumentId.HasValue)
             {
-                var oldDocument = await _context.DocumentReferences
+                var oldDocument = await context.DocumentReferences
                     .FirstOrDefaultAsync(d => d.Id == product.ImageDocumentId.Value, cancellationToken);
 
-                if (oldDocument != null)
+                if (oldDocument is not null)
                 {
                     // Delete old physical file
                     var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", oldDocument.StorageKey.TrimStart('/'));
@@ -1418,21 +1402,21 @@ public class ProductService : IProductService
                         File.Delete(oldFilePath);
                     }
 
-                    _ = _context.DocumentReferences.Remove(oldDocument);
+                    _ = context.DocumentReferences.Remove(oldDocument);
                 }
             }
 
-            _ = _context.DocumentReferences.Add(documentReference);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.DocumentReferences.Add(documentReference);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Update product with new DocumentReference ID
             product.ImageDocumentId = documentReference.Id;
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} image uploaded successfully as DocumentReference {DocumentId}.", productId, documentReference.Id);
+            logger.LogInformation("Product {ProductId} image uploaded successfully as DocumentReference {DocumentId}.", productId, documentReference.Id);
 
             // Reload to get the document reference
             product.ImageDocument = documentReference;
@@ -1440,7 +1424,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading image for product {ProductId}.", productId);
+            logger.LogError(ex, "Error uploading image for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1449,19 +1433,19 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (product?.ImageDocument == null)
+            if (product?.ImageDocument is null)
             {
-                _logger.LogWarning("Product {ProductId} not found or has no image in tenant {TenantId}.", productId, currentTenantId.Value);
+                logger.LogWarning("Product {ProductId} not found or has no image in tenant {TenantId}.", productId, currentTenantId.Value);
                 return null;
             }
 
@@ -1469,7 +1453,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving image document for product {ProductId}.", productId);
+            logger.LogError(ex, "Error retrieving image document for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1478,19 +1462,19 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var product = await _context.Products
+            var product = await context.Products
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (product?.ImageDocument == null)
+            if (product?.ImageDocument is null)
             {
-                _logger.LogWarning("Product {ProductId} not found or has no image to delete in tenant {TenantId}.", productId, currentTenantId.Value);
+                logger.LogWarning("Product {ProductId} not found or has no image to delete in tenant {TenantId}.", productId, currentTenantId.Value);
                 return false;
             }
 
@@ -1502,21 +1486,21 @@ public class ProductService : IProductService
             }
 
             // Remove DocumentReference
-            _ = _context.DocumentReferences.Remove(product.ImageDocument);
+            _ = context.DocumentReferences.Remove(product.ImageDocument);
 
             // Update product
             product.ImageDocumentId = null;
             product.ModifiedAt = DateTime.UtcNow;
             product.ModifiedBy = "System";
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Product {ProductId} image deleted successfully.", productId);
+            logger.LogInformation("Product {ProductId} image deleted successfully.", productId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting image for product {ProductId}.", productId);
+            logger.LogError(ex, "Error deleting image for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1670,12 +1654,12 @@ public class ProductService : IProductService
     {
         try
         {
-            return await _context.Products
+            return await context.Products
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
+            logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
             throw;
         }
     }
@@ -1711,13 +1695,13 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product supplier operations.");
             }
 
-            var suppliers = await _context.ProductSuppliers
+            var suppliers = await context.ProductSuppliers
                 .Where(ps => ps.ProductId == productId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)
@@ -1729,7 +1713,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving suppliers for product {ProductId}.", productId);
+            logger.LogError(ex, "Error retrieving suppliers for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1738,23 +1722,23 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product supplier operations.");
             }
 
-            var supplier = await _context.ProductSuppliers
+            var supplier = await context.ProductSuppliers
                 .Where(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return supplier != null ? MapToProductSupplierDto(supplier) : null;
+            return supplier is not null ? MapToProductSupplierDto(supplier) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving product supplier {Id}.", id);
+            logger.LogError(ex, "Error retrieving product supplier {Id}.", id);
             throw;
         }
     }
@@ -1763,17 +1747,17 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product supplier operations.");
             }
 
             // Validate product exists
-            var product = await _context.Products
+            var product = await context.Products
                 .FirstOrDefaultAsync(p => p.Id == createProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (product == null)
+            if (product is null)
             {
                 throw new InvalidOperationException($"Product with ID {createProductSupplierDto.ProductId} not found.");
             }
@@ -1785,10 +1769,10 @@ public class ProductService : IProductService
             }
 
             // Validate supplier exists and is a supplier type
-            var supplier = await _context.BusinessParties
+            var supplier = await context.BusinessParties
                 .FirstOrDefaultAsync(bp => bp.Id == createProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (supplier == null)
+            if (supplier is null)
             {
                 throw new InvalidOperationException($"Supplier with ID {createProductSupplierDto.SupplierId} not found.");
             }
@@ -1801,7 +1785,7 @@ public class ProductService : IProductService
             // If this is preferred, unset any other preferred suppliers for this product
             if (createProductSupplierDto.Preferred)
             {
-                var existingPreferred = await _context.ProductSuppliers
+                var existingPreferred = await context.ProductSuppliers
                     .Where(ps => ps.ProductId == createProductSupplierDto.ProductId && ps.Preferred && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                     .ToListAsync(cancellationToken);
 
@@ -1833,10 +1817,10 @@ public class ProductService : IProductService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _ = _context.ProductSuppliers.Add(productSupplier);
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = context.ProductSuppliers.Add(productSupplier);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "SupplierId",
@@ -1849,14 +1833,14 @@ public class ProductService : IProductService
             );
 
             // Reload with navigation properties
-            await _context.Entry(productSupplier).Reference(ps => ps.Supplier).LoadAsync(cancellationToken);
-            await _context.Entry(productSupplier).Reference(ps => ps.Product).LoadAsync(cancellationToken);
+            await context.Entry(productSupplier).Reference(ps => ps.Supplier).LoadAsync(cancellationToken);
+            await context.Entry(productSupplier).Reference(ps => ps.Product).LoadAsync(cancellationToken);
 
             return MapToProductSupplierDto(productSupplier);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding supplier to product.");
+            logger.LogError(ex, "Error adding supplier to product.");
             throw;
         }
     }
@@ -1865,18 +1849,18 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product supplier operations.");
             }
 
-            var productSupplier = await _context.ProductSuppliers
+            var productSupplier = await context.ProductSuppliers
                 .Include(ps => ps.Product)
                 .Include(ps => ps.Supplier)
                 .FirstOrDefaultAsync(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (productSupplier == null)
+            if (productSupplier is null)
             {
                 return null;
             }
@@ -1884,10 +1868,10 @@ public class ProductService : IProductService
             // Validate product exists if changed
             if (productSupplier.ProductId != updateProductSupplierDto.ProductId)
             {
-                var product = await _context.Products
+                var product = await context.Products
                     .FirstOrDefaultAsync(p => p.Id == updateProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
-                if (product == null)
+                if (product is null)
                 {
                     throw new InvalidOperationException($"Product with ID {updateProductSupplierDto.ProductId} not found.");
                 }
@@ -1901,10 +1885,10 @@ public class ProductService : IProductService
             // Validate supplier exists and is a supplier type if changed
             if (productSupplier.SupplierId != updateProductSupplierDto.SupplierId)
             {
-                var supplier = await _context.BusinessParties
+                var supplier = await context.BusinessParties
                     .FirstOrDefaultAsync(bp => bp.Id == updateProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
-                if (supplier == null)
+                if (supplier is null)
                 {
                     throw new InvalidOperationException($"Supplier with ID {updateProductSupplierDto.SupplierId} not found.");
                 }
@@ -1918,7 +1902,7 @@ public class ProductService : IProductService
             // If this is being set as preferred, unset any other preferred suppliers for this product
             if (updateProductSupplierDto.Preferred && !productSupplier.Preferred)
             {
-                var existingPreferred = await _context.ProductSuppliers
+                var existingPreferred = await context.ProductSuppliers
                     .Where(ps => ps.ProductId == updateProductSupplierDto.ProductId && ps.Preferred && ps.Id != id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                     .ToListAsync(cancellationToken);
 
@@ -1954,14 +1938,14 @@ public class ProductService : IProductService
             productSupplier.ModifiedBy = currentUser;
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log price change if price has changed
-            if (oldUnitCost != newUnitCost && _tenantContext.CurrentUserId.HasValue)
+            if (oldUnitCost != newUnitCost && tenantContext.CurrentUserId.HasValue)
             {
                 try
                 {
-                    await _priceHistoryService.LogPriceChangeAsync(new PriceChangeLogRequest
+                    await priceHistoryService.LogPriceChangeAsync(new PriceChangeLogRequest
                     {
                         ProductSupplierId = productSupplier.Id,
                         SupplierId = productSupplier.SupplierId,
@@ -1972,17 +1956,17 @@ public class ProductService : IProductService
                         OldLeadTimeDays = oldLeadTimeDays,
                         NewLeadTimeDays = newLeadTimeDays,
                         ChangeSource = "Manual",
-                        UserId = _tenantContext.CurrentUserId.Value
+                        UserId = tenantContext.CurrentUserId.Value
                     }, cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     // Log but don't fail the update if price history logging fails
-                    _logger.LogWarning(ex, "Failed to log price history for ProductSupplier {Id}", id);
+                    logger.LogWarning(ex, "Failed to log price history for ProductSupplier {Id}", id);
                 }
             }
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "ProductSupplier",
@@ -1998,7 +1982,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating product supplier {Id}.", id);
+            logger.LogError(ex, "Error updating product supplier {Id}.", id);
             throw;
         }
     }
@@ -2007,16 +1991,16 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product supplier operations.");
             }
 
-            var productSupplier = await _context.ProductSuppliers
+            var productSupplier = await context.ProductSuppliers
                 .FirstOrDefaultAsync(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value, cancellationToken);
 
-            if (productSupplier == null)
+            if (productSupplier is null)
             {
                 return false;
             }
@@ -2025,9 +2009,9 @@ public class ProductService : IProductService
             productSupplier.ModifiedBy = currentUser;
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
-            _ = await _context.SaveChangesAsync(cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await _auditLogService.LogEntityChangeAsync(
+            _ = await auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",
                 productSupplier.Id,
                 "IsDeleted",
@@ -2043,7 +2027,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing product supplier {Id}.", id);
+            logger.LogError(ex, "Error removing product supplier {Id}.", id);
             throw;
         }
     }
@@ -2076,20 +2060,20 @@ public class ProductService : IProductService
     public async Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
         // Ensure tenant context available for association filtering
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for product supplier operations.");
         }
 
         // Get all products (preserve previous behaviour: products may be global)
-        var products = await _context.Products
+        var products = await context.Products
             .Where(p => !p.IsDeleted)
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
 
         // Get all existing associations for this supplier within the current tenant
-        var associations = await _context.ProductSuppliers
+        var associations = await context.ProductSuppliers
             .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
             .ToListAsync(cancellationToken);
 
@@ -2121,14 +2105,14 @@ public class ProductService : IProductService
         var productIdList = productIds.ToList();
         var now = DateTime.UtcNow;
 
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for product supplier operations.");
         }
 
         // Get existing associations for this supplier within the tenant
-        var existingAssociations = await _context.ProductSuppliers
+        var existingAssociations = await context.ProductSuppliers
             .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
             .ToListAsync(cancellationToken);
 
@@ -2158,7 +2142,7 @@ public class ProductService : IProductService
                 IsDeleted = false,
                 TenantId = currentTenantId.Value
             };
-            _context.ProductSuppliers.Add(newAssociation);
+            context.ProductSuppliers.Add(newAssociation);
         }
 
         // Soft delete removed associations (already scoped to tenant)
@@ -2169,7 +2153,7 @@ public class ProductService : IProductService
             association.ModifiedBy = currentUser;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
 
         return productIdsToAdd.Count;
     }
@@ -2179,7 +2163,7 @@ public class ProductService : IProductService
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for product supplier operations.");
@@ -2188,7 +2172,7 @@ public class ProductService : IProductService
         try
         {
             // Query product suppliers for this supplier
-            var query = _context.ProductSuppliers
+            var query = context.ProductSuppliers
                 .AsNoTracking()
                 .Where(ps => ps.SupplierId == supplierId &&
                             !ps.IsDeleted &&
@@ -2209,7 +2193,7 @@ public class ProductService : IProductService
             var productIds = productSuppliers.Select(ps => ps.ProductId).ToList();
 
             // Get latest purchase prices from approved document rows
-            var latestPurchases = await _context.DocumentRows
+            var latestPurchases = await context.DocumentRows
                 .Where(dr => dr.ProductId.HasValue &&
                             productIds.Contains(dr.ProductId.Value) &&
                             !dr.IsDeleted &&
@@ -2281,7 +2265,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting products by supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Error getting products by supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -2295,7 +2279,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product operations.");
@@ -2305,7 +2289,7 @@ public class ProductService : IProductService
             bool isStockIncrease = type.Equals("purchase", StringComparison.OrdinalIgnoreCase);
 
             // Query document rows with all necessary joins
-            var query = _context.DocumentRows
+            var query = context.DocumentRows
                 .Where(r => r.ProductId == productId &&
                             !r.IsDeleted &&
                             r.TenantId == currentTenantId.Value)
@@ -2387,7 +2371,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving recent product transactions for product {ProductId}", productId);
+            logger.LogError(ex, "Error retrieving recent product transactions for product {ProductId}", productId);
             throw;
         }
     }
@@ -2396,7 +2380,7 @@ public class ProductService : IProductService
     {
         try
         {
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for product search operations.");
@@ -2412,7 +2396,7 @@ public class ProductService : IProductService
             var queryTrimmed = query.Trim();
 
             // Step 1: Try exact match on ProductCodes.Code (case-insensitive)
-            var productCode = await _context.ProductCodes
+            var productCode = await context.ProductCodes
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.Brand)
@@ -2422,7 +2406,7 @@ public class ProductService : IProductService
                     .ThenInclude(pu => pu!.UnitOfMeasure)
                 .FirstOrDefaultAsync(pc => pc.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
 
-            if (productCode?.Product != null && productCode.Product.Status == EntityProductStatus.Active)
+            if (productCode?.Product is not null && productCode.Product.Status == EntityProductStatus.Active)
             {
                 result.IsExactCodeMatch = true;
                 result.ExactMatch = new ProductWithCodeDto
@@ -2435,13 +2419,13 @@ public class ProductService : IProductService
             }
 
             // Step 2: Try exact match on Product.Code (case-insensitive)
-            var productByCode = await _context.Products
+            var productByCode = await context.Products
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Code != null && p.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
 
-            if (productByCode != null && productByCode.Status == EntityProductStatus.Active)
+            if (productByCode is not null && productByCode.Status == EntityProductStatus.Active)
             {
                 result.IsExactCodeMatch = true;
                 result.ExactMatch = new ProductWithCodeDto
@@ -2456,7 +2440,7 @@ public class ProductService : IProductService
             // Step 3: Text search in Name, ShortDescription, Description, Brand.Name (case-insensitive, multi-word AND logic)
             var searchWords = queryTrimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            var textQuery = _context.Products
+            var textQuery = context.Products
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
@@ -2483,7 +2467,7 @@ public class ProductService : IProductService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing unified product search for query {Query}", query);
+            logger.LogError(ex, "Error performing unified product search for query {Query}", query);
             throw;
         }
     }
@@ -2494,13 +2478,13 @@ public class ProductService : IProductService
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = _tenantContext.CurrentTenantId;
+        var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
             throw new InvalidOperationException("Tenant context is required for product operations.");
         }
 
-        var query = _context.Products
+        var query = context.Products
             .Include(p => p.Brand)
             .Include(p => p.Model)
             .Include(p => p.UnitOfMeasure)
@@ -2510,12 +2494,12 @@ public class ProductService : IProductService
 
         var totalCount = await query.CountAsync(ct);
 
-        _logger.LogInformation("Export requested for {Count} products", totalCount);
+        logger.LogInformation("Export requested for {Count} products", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
         {
-            _logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
             return await GetProductsInBatchesAsync(query, ct);
         }
 
@@ -2580,7 +2564,7 @@ public class ProductService : IProductService
 
             skip += batchSize;
 
-            _logger.LogInformation("Batch export progress: {Processed}/{Total}",
+            logger.LogInformation("Batch export progress: {Processed}/{Total}",
                 Math.Min(skip, results.Count), results.Count);
         }
 
@@ -2630,17 +2614,17 @@ public class ProductService : IProductService
                 break;
         }
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             // Fetch all products in one query
-            var currentTenantId = _tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
                 throw new InvalidOperationException("Tenant context is required for bulk update operations.");
             }
 
-            var products = await _context.Products
+            var products = await context.Products
                 .Where(p => bulkUpdateDto.ProductIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
                 .ToListAsync(cancellationToken);
 
@@ -2679,7 +2663,7 @@ public class ProductService : IProductService
                     product.ModifiedBy = currentUser;
                     successCount++;
 
-                    _logger.LogInformation(
+                    logger.LogInformation(
                         "Bulk price update: Product {ProductId} price changed to {NewPrice}. Reason: {Reason}",
                         product.Id, newPrice, bulkUpdateDto.Reason ?? "N/A");
                 }
@@ -2694,10 +2678,10 @@ public class ProductService : IProductService
                 }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Bulk price update completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
@@ -2715,7 +2699,7 @@ public class ProductService : IProductService
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            _logger.LogError(ex, "Bulk price update failed and was rolled back");
+            logger.LogError(ex, "Bulk price update failed and was rolled back");
 
             return new EventForge.DTOs.Bulk.BulkUpdateResultDto
             {
@@ -2755,4 +2739,5 @@ public class ProductService : IProductService
     }
 
     #endregion
+
 }

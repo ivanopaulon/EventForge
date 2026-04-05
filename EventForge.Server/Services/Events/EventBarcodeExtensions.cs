@@ -6,18 +6,10 @@ namespace EventForge.Server.Services.Events;
 /// Example extension showing how to integrate barcode generation with existing services
 /// This is a demonstration of best practices for extending EventService with barcode functionality
 /// </summary>
-public class EventBarcodeExtensions
+public class EventBarcodeExtensions(
+    IBarcodeService barcodeService,
+    ILogger<EventBarcodeExtensions> logger)
 {
-    private readonly IBarcodeService _barcodeService;
-    private readonly ILogger<EventBarcodeExtensions> _logger;
-
-    public EventBarcodeExtensions(
-        IBarcodeService barcodeService,
-        ILogger<EventBarcodeExtensions> logger)
-    {
-        _barcodeService = barcodeService ?? throw new ArgumentNullException(nameof(barcodeService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Generates a QR code for an event containing event details
@@ -54,11 +46,11 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request, ct);
+            return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate QR code for event {EventId}", eventDto.Id);
+            logger.LogError(ex, "Failed to generate QR code for event {EventId}", eventDto.Id);
             throw;
         }
     }
@@ -87,11 +79,11 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request, ct);
+            return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate ticket barcode for event {EventId}, ticket {TicketId}", eventId, ticketId);
+            logger.LogError(ex, "Failed to generate ticket barcode for event {EventId}, ticket {TicketId}", eventId, ticketId);
             throw;
         }
     }
@@ -118,11 +110,11 @@ public class EventBarcodeExtensions
                 ImageFormat = ImageFormat.PNG
             };
 
-            return await _barcodeService.GenerateBarcodeAsync(request, ct);
+            return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate tracking barcode for event {EventId}", eventId);
+            logger.LogError(ex, "Failed to generate tracking barcode for event {EventId}", eventId);
             throw;
         }
     }
@@ -135,8 +127,9 @@ public class EventBarcodeExtensions
     /// <returns>True if data is valid for the barcode type</returns>
     public bool ValidateEventDataForBarcode(string eventData, BarcodeType barcodeType)
     {
-        return _barcodeService.ValidateDataForBarcodeType(eventData, barcodeType);
+        return barcodeService.ValidateDataForBarcodeType(eventData, barcodeType);
     }
+
 }
 
 /// <summary>

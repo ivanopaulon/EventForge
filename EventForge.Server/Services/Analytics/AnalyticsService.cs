@@ -8,29 +8,15 @@ namespace EventForge.Server.Services.Analytics;
 /// <summary>
 /// Service implementation for retrieving aggregated analytics data.
 /// </summary>
-public class AnalyticsService : IAnalyticsService
+public class AnalyticsService(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    ILogger<AnalyticsService> logger,
+    IMemoryCache cache,
+    IMonitoringMetricsService monitoringMetrics) : IAnalyticsService
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<AnalyticsService> _logger;
-    private readonly IMemoryCache _cache;
-    private readonly IMonitoringMetricsService _monitoringMetrics;
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
-
-    public AnalyticsService(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        ILogger<AnalyticsService> logger,
-        IMemoryCache cache,
-        IMonitoringMetricsService monitoringMetrics)
-    {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _monitoringMetrics = monitoringMetrics ?? throw new ArgumentNullException(nameof(monitoringMetrics));
-    }
 
     /// <inheritdoc/>
     public async Task<PromotionAnalyticsDashboardDto> GetPromotionAnalyticsAsync(
@@ -39,23 +25,23 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
             var cacheKey = $"analytics_promotions_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
-            if (_cache.TryGetValue(cacheKey, out PromotionAnalyticsDashboardDto? cached) && cached is not null)
+            if (cache.TryGetValue(cacheKey, out PromotionAnalyticsDashboardDto? cached) && cached is not null)
             {
-                _monitoringMetrics.RecordCacheLookup(true);
+                monitoringMetrics.RecordCacheLookup(true);
                 return cached;
             }
-            _monitoringMetrics.RecordCacheLookup(false);
+            monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
 
             // Top promotions by CurrentUses
-            var topPromotions = await _context.Promotions
+            var topPromotions = await context.Promotions
                 .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderByDescending(p => p.CurrentUses)
                 .Take(top)
@@ -66,7 +52,7 @@ public class AnalyticsService : IAnalyticsService
             var dateFrom = filter.DateFrom ?? now.AddMonths(-12);
             var dateTo = filter.DateTo ?? now;
 
-            var trendRaw = await _context.DocumentRows
+            var trendRaw = await context.DocumentRows
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.AppliedPromotionsJSON != null
@@ -108,7 +94,7 @@ public class AnalyticsService : IAnalyticsService
                 .ToList();
 
             // Active promotions
-            var activeCount = await _context.Promotions
+            var activeCount = await context.Promotions
                 .CountAsync(p => !p.IsDeleted
                     && p.TenantId == tenantId.Value
                     && p.StartDate <= now
@@ -127,12 +113,12 @@ public class AnalyticsService : IAnalyticsService
                 TotalDiscountThisMonth = thisMonthRows.Sum(r => r.DiscountValue)
             };
 
-            _cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheTtl);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving promotion analytics for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving promotion analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -144,17 +130,17 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
             var cacheKey = $"analytics_pricing_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
-            if (_cache.TryGetValue(cacheKey, out PricingAnalyticsDashboardDto? cached) && cached is not null)
+            if (cache.TryGetValue(cacheKey, out PricingAnalyticsDashboardDto? cached) && cached is not null)
             {
-                _monitoringMetrics.RecordCacheLookup(true);
+                monitoringMetrics.RecordCacheLookup(true);
                 return cached;
             }
-            _monitoringMetrics.RecordCacheLookup(false);
+            monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
@@ -162,7 +148,7 @@ public class AnalyticsService : IAnalyticsService
             var dateTo = filter.DateTo ?? now;
 
             // Top price lists by usage
-            var priceListUsage = await _context.DocumentRows
+            var priceListUsage = await context.DocumentRows
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.AppliedPriceListId.HasValue
@@ -182,7 +168,7 @@ public class AnalyticsService : IAnalyticsService
                 .ToListAsync(ct);
 
             var priceListIds = priceListUsage.Select(x => x.PriceListId).ToList();
-            var priceListNames = await _context.PriceLists
+            var priceListNames = await context.PriceLists
                 .Where(pl => priceListIds.Contains(pl.Id))
                 .Select(pl => new { pl.Id, pl.Name })
                 .ToDictionaryAsync(pl => pl.Id, pl => pl.Name, ct);
@@ -199,7 +185,7 @@ public class AnalyticsService : IAnalyticsService
                 .ToList();
 
             // Manual price overrides trend
-            var manualRaw = await _context.DocumentRows
+            var manualRaw = await context.DocumentRows
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.IsPriceManual
@@ -224,7 +210,7 @@ public class AnalyticsService : IAnalyticsService
                 .ToList();
 
             // Total rows vs manual rows for automatic pricing percentage
-            var totalRows = await _context.DocumentRows
+            var totalRows = await context.DocumentRows
                 .CountAsync(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.DocumentHeader != null
@@ -244,12 +230,12 @@ public class AnalyticsService : IAnalyticsService
                 AutomaticPricingPercentage = automaticPct
             };
 
-            _cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheTtl);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving pricing analytics for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving pricing analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -261,17 +247,17 @@ public class AnalyticsService : IAnalyticsService
     {
         try
         {
-            var tenantId = _tenantContext.CurrentTenantId;
+            var tenantId = tenantContext.CurrentTenantId;
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
             var cacheKey = $"analytics_sales_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
-            if (_cache.TryGetValue(cacheKey, out SalesAnalyticsDashboardDto? cached) && cached is not null)
+            if (cache.TryGetValue(cacheKey, out SalesAnalyticsDashboardDto? cached) && cached is not null)
             {
-                _monitoringMetrics.RecordCacheLookup(true);
+                monitoringMetrics.RecordCacheLookup(true);
                 return cached;
             }
-            _monitoringMetrics.RecordCacheLookup(false);
+            monitoringMetrics.RecordCacheLookup(false);
 
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
@@ -279,7 +265,7 @@ public class AnalyticsService : IAnalyticsService
             var dateTo = (filter.DateTo ?? now).Date.AddDays(1).AddTicks(-1);
 
             // Sales trend from DocumentHeaders (exclude cancelled)
-            var headersRaw = await _context.DocumentHeaders
+            var headersRaw = await context.DocumentHeaders
                 .Where(h => !h.IsDeleted
                     && h.TenantId == tenantId.Value
                     && h.Status != DocumentStatus.Cancelled
@@ -293,22 +279,22 @@ public class AnalyticsService : IAnalyticsService
                 .ToListAsync(ct);
 
             // Debug: log before-filter count only when debug logging is enabled to avoid extra DB round-trip in production
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (logger.IsEnabled(LogLevel.Debug))
             {
-                var totalDocsInRange = await _context.DocumentHeaders
+                var totalDocsInRange = await context.DocumentHeaders
                     .CountAsync(h => !h.IsDeleted && h.TenantId == tenantId.Value && h.Date >= dateFrom && h.Date <= dateTo, ct);
-                _logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
+                logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
                     totalDocsInRange, dateFrom, dateTo, headersRaw.Count, headersRaw.Sum(h => h.Amount));
             }
 
             if (!headersRaw.Any())
             {
-                _logger.LogInformation("Sales analytics: no documents found for tenant {TenantId} in range [{DateFrom}, {DateTo}]",
+                logger.LogInformation("Sales analytics: no documents found for tenant {TenantId} in range [{DateFrom}, {DateTo}]",
                     tenantId, dateFrom, dateTo);
                 return new SalesAnalyticsDashboardDto
                 {
-                    SalesTrend = new List<SalesTrendDto>(),
-                    TopProducts = new List<TopProductDto>(),
+                    SalesTrend = [],
+                    TopProducts = [],
                     TotalRevenue = 0m,
                     TotalDocuments = 0,
                     AverageOrderValue = 0m,
@@ -323,9 +309,9 @@ public class AnalyticsService : IAnalyticsService
             var totalRevenue = headersRaw.Sum(h => h.Amount);
             if (totalRevenue == 0m)
             {
-                _logger.LogInformation("Sales analytics: TotalNetAmount is 0 on all {Count} headers for tenant {TenantId}, falling back to DocumentRows sum",
+                logger.LogInformation("Sales analytics: TotalNetAmount is 0 on all {Count} headers for tenant {TenantId}, falling back to DocumentRows sum",
                     headersRaw.Count, tenantId);
-                var rowsRevenue = await _context.DocumentRows
+                var rowsRevenue = await context.DocumentRows
                     .Where(r => !r.IsDeleted
                         && r.TenantId == tenantId.Value
                         && r.DocumentHeader != null
@@ -347,7 +333,7 @@ public class AnalyticsService : IAnalyticsService
                 .ToList();
 
             // Top products by revenue
-            var productRows = await _context.DocumentRows
+            var productRows = await context.DocumentRows
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.ProductId.HasValue
@@ -401,12 +387,12 @@ public class AnalyticsService : IAnalyticsService
                 DateTo = dateTo
             };
 
-            _cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheTtl);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving sales analytics for tenant {TenantId}", _tenantContext.CurrentTenantId);
+            logger.LogError(ex, "Error retrieving sales analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -463,4 +449,5 @@ public class AnalyticsService : IAnalyticsService
             DayOfWeek.Monday);
         return $"{date.Year}-W{week:D2}";
     }
+
 }

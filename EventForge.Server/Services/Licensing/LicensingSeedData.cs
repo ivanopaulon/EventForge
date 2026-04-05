@@ -260,7 +260,7 @@ public static class LicensingSeedData
         var existingLicense = await context.TenantLicenses
             .FirstOrDefaultAsync(tl => tl.TargetTenantId == tenantId && tl.IsAssignmentActive);
 
-        if (existingLicense != null)
+        if (existingLicense is not null)
         {
             return; // Tenant already has a license
         }
@@ -269,7 +269,7 @@ public static class LicensingSeedData
         var basicLicense = await context.Licenses
             .FirstOrDefaultAsync(l => l.Name == "basic");
 
-        if (basicLicense == null)
+        if (basicLicense is null)
         {
             return; // Basic license not found
         }
@@ -278,7 +278,7 @@ public static class LicensingSeedData
         var tenant = await context.Tenants
             .FirstOrDefaultAsync(t => t.Id == tenantId);
 
-        if (tenant == null)
+        if (tenant is null)
         {
             return; // Tenant not found
         }

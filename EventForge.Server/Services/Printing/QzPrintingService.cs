@@ -9,27 +9,18 @@ namespace EventForge.Server.Services.Printing;
 /// <summary>
 /// Implementation of QZ Tray printing service using WebSocket communication with digital signature support
 /// </summary>
-public class QzPrintingService : IQzPrintingService
+public class QzPrintingService(ILogger<QzPrintingService> logger, QzDigitalSignatureService signatureService) : IQzPrintingService
 {
-    private readonly ILogger<QzPrintingService> _logger;
-    private readonly QzDigitalSignatureService _signatureService;
-    private readonly Dictionary<Guid, PrintJobDto> _printJobs;
-    private readonly SemaphoreSlim _semaphore;
 
-    public QzPrintingService(ILogger<QzPrintingService> logger, QzDigitalSignatureService signatureService)
-    {
-        _logger = logger;
-        _signatureService = signatureService;
-        _printJobs = new Dictionary<Guid, PrintJobDto>();
-        _semaphore = new SemaphoreSlim(1, 1);
-    }
+    private readonly Dictionary<Guid, PrintJobDto> _printJobs = new Dictionary<Guid, PrintJobDto>();
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     /// <inheritdoc />
     public async Task<PrinterDiscoveryResponseDto> DiscoverPrintersAsync(PrinterDiscoveryRequestDto request, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Starting printer discovery with QZ URL: {QzUrl}", request.QzUrl ?? "ws://localhost:8182");
+            logger.LogInformation("Starting printer discovery with QZ URL: {QzUrl}", request.QzUrl ?? "ws://localhost:8182");
 
             var qzUrl = request.QzUrl ?? "ws://localhost:8182";
             using var client = new ClientWebSocket();
@@ -64,7 +55,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error discovering printers from QZ Tray");
+            logger.LogError(ex, "Error discovering printers from QZ Tray");
             return new PrinterDiscoveryResponseDto
             {
                 Success = false,
@@ -79,7 +70,7 @@ public class QzPrintingService : IQzPrintingService
     {
         try
         {
-            _logger.LogInformation("Checking status for printer: {PrinterId}", request.PrinterId);
+            logger.LogInformation("Checking status for printer: {PrinterId}", request.PrinterId);
 
             using var client = new ClientWebSocket();
             var uri = new Uri("ws://localhost:8182");
@@ -110,7 +101,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking printer status");
+            logger.LogError(ex, "Error checking printer status");
             return new PrinterStatusResponseDto
             {
                 Success = false,
@@ -125,7 +116,7 @@ public class QzPrintingService : IQzPrintingService
     {
         try
         {
-            _logger.LogInformation("Submitting print job: {JobTitle} to printer: {PrinterId}",
+            logger.LogInformation("Submitting print job: {JobTitle} to printer: {PrinterId}",
                 request.PrintJob.Title, request.PrintJob.PrinterId);
 
             // Store print job
@@ -149,12 +140,12 @@ public class QzPrintingService : IQzPrintingService
             var printCommand = CreatePrintCommand(request.PrintJob);
 
             // Sign the payload with digital signature
-            var signedCommand = await _signatureService.SignPayloadAsync(printCommand);
+            var signedCommand = await signatureService.SignPayloadAsync(printCommand);
 
             var commandJson = JsonSerializer.Serialize(signedCommand);
             var commandBytes = Encoding.UTF8.GetBytes(commandJson);
 
-            _logger.LogDebug("Sending signed payload to QZ Tray: {PayloadLength} bytes", commandBytes.Length);
+            logger.LogDebug("Sending signed payload to QZ Tray: {PayloadLength} bytes", commandBytes.Length);
 
             await client.SendAsync(new ArraySegment<byte>(commandBytes), WebSocketMessageType.Text, true, cancellationToken);
 
@@ -187,7 +178,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error submitting print job");
+            logger.LogError(ex, "Error submitting print job");
 
             // Update job status to failed
             await _semaphore.WaitAsync(cancellationToken);
@@ -237,7 +228,7 @@ public class QzPrintingService : IQzPrintingService
             {
                 job.Status = PrintJobStatus.Cancelled;
                 job.CompletedAt = DateTime.UtcNow;
-                _logger.LogInformation("Print job {JobId} cancelled", jobId);
+                logger.LogInformation("Print job {JobId} cancelled", jobId);
                 return true;
             }
             return false;
@@ -261,7 +252,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "QZ connection test failed for URL: {QzUrl}", qzUrl);
+            logger.LogWarning(ex, "QZ connection test failed for URL: {QzUrl}", qzUrl);
             return false;
         }
     }
@@ -292,7 +283,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting QZ version");
+            logger.LogError(ex, "Error getting QZ version");
             return null;
         }
     }
@@ -305,11 +296,11 @@ public class QzPrintingService : IQzPrintingService
     {
         try
         {
-            return await _signatureService.ValidateSigningConfigurationAsync();
+            return await signatureService.ValidateSigningConfigurationAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating QZ Tray signature configuration");
+            logger.LogError(ex, "Error validating QZ Tray signature configuration");
             return false;
         }
     }
@@ -354,8 +345,8 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing printers from QZ response: {Response}", response);
-            return new List<PrinterDto>();
+            logger.LogError(ex, "Error parsing printers from QZ response: {Response}", response);
+            return [];
         }
     }
 
@@ -378,7 +369,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing status from QZ response: {Response}", response);
+            logger.LogError(ex, "Error parsing status from QZ response: {Response}", response);
             return EventForge.DTOs.Printing.PrinterOperationalStatus.Error;
         }
     }
@@ -398,7 +389,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing job ID from QZ response: {Response}", response);
+            logger.LogError(ex, "Error parsing job ID from QZ response: {Response}", response);
             return null;
         }
     }
@@ -418,7 +409,7 @@ public class QzPrintingService : IQzPrintingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing version from QZ response: {Response}", response);
+            logger.LogError(ex, "Error parsing version from QZ response: {Response}", response);
             return null;
         }
     }
@@ -486,4 +477,5 @@ public class QzPrintingService : IQzPrintingService
             }
         };
     }
+
 }
