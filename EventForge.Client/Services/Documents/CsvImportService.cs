@@ -41,10 +41,10 @@ public class CsvImportService : ICsvImportService
 
             int rowNumber = 1; // Start from 1 (header is row 0)
 
-            while (!reader.EndOfStream)
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null)
             {
                 rowNumber++;
-                var line = await reader.ReadLineAsync();
 
                 if (string.IsNullOrWhiteSpace(line))
                     continue;

@@ -95,7 +95,7 @@
         // to avoid synchronization issues between KeyDown event and data binding
         if (e.Key == "Enter")
         {
-            var currentValue = _barcodeInput?.Value;
+            var currentValue = _barcode;
             if (!string.IsNullOrWhiteSpace(currentValue))
             {
                 await SearchBarcodeAsync();

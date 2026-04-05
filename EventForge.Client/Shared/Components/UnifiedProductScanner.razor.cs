@@ -239,7 +239,7 @@ namespace EventForge.Client.Shared.Components
         {
             if (e.Key == "Enter" && SearchMode.HasFlag(ProductSearchMode.Barcode))
             {
-                var currentText = _autocomplete?.Text;
+                var currentText = _searchText;
                 if (!string.IsNullOrWhiteSpace(currentText))
                     await SearchByBarcode(currentText);
             }
@@ -419,7 +419,6 @@ namespace EventForge.Client.Shared.Components
                     break;
 
                 case ProductEditMode.Inline:
-                    _isEditMode = true;
                     StateHasChanged();
                     break;
 
