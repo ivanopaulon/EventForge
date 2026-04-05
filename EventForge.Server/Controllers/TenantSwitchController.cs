@@ -12,27 +12,13 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "SuperAdmin")]
-public class TenantSwitchController : BaseApiController
+public class TenantSwitchController(
+    EventForgeDbContext context,
+    ITenantContext tenantContext,
+    IAuditLogService auditLogService,
+    IHubContext<AuditLogHub> hubContext,
+    ILogger<TenantSwitchController> logger) : BaseApiController
 {
-    private readonly EventForgeDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly IAuditLogService _auditLogService;
-    private readonly IHubContext<AuditLogHub> _hubContext;
-    private readonly ILogger<TenantSwitchController> _logger;
-
-    public TenantSwitchController(
-        EventForgeDbContext context,
-        ITenantContext tenantContext,
-        IAuditLogService auditLogService,
-        IHubContext<AuditLogHub> hubContext,
-        ILogger<TenantSwitchController> logger)
-    {
-        _context = context;
-        _tenantContext = tenantContext;
-        _auditLogService = auditLogService;
-        _hubContext = hubContext;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Gets current context information for the SuperAdmin.
@@ -51,25 +37,25 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
                 return CreateValidationProblemDetails("No current user context");
             }
 
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == currentUserId.Value);
 
-            if (user == null)
+            if (user is null)
             {
                 return CreateNotFoundProblem("Current user not found");
             }
 
-            var currentTenant = await _context.Tenants.FindAsync(user.TenantId);
+            var currentTenant = await context.Tenants.FindAsync(user.TenantId);
 
-            var context = new CurrentContextDto
+            var contextDto = new CurrentContextDto
             {
                 UserId = user.Id,
                 Username = user.Username,
@@ -91,7 +77,7 @@ public class TenantSwitchController : BaseApiController
                 ActiveSessions = new List<string> { HttpContext.Session.Id }
             };
 
-            return Ok(context);
+            return Ok(contextDto);
         }
         catch (Exception ex)
         {
@@ -116,7 +102,7 @@ public class TenantSwitchController : BaseApiController
             };
 
             // Basic validation checks
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
                 result.IsValid = false;
@@ -125,12 +111,12 @@ public class TenantSwitchController : BaseApiController
             }
 
             // Check if user is SuperAdmin
-            var user = await _context.Users
+            var user = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == currentUserId.Value);
 
-            if (user == null || !user.UserRoles.Any(ur => ur.Role.Name == "SuperAdmin"))
+            if (user is null || !user.UserRoles.Any(ur => ur.Role.Name == "SuperAdmin"))
             {
                 result.IsValid = false;
                 result.ValidationMessage = "SuperAdmin privileges required";
@@ -143,8 +129,8 @@ public class TenantSwitchController : BaseApiController
                 case "switch":
                     if (validationDto.TargetTenantId.HasValue)
                     {
-                        var tenant = await _context.Tenants.FindAsync(validationDto.TargetTenantId.Value);
-                        if (tenant == null)
+                        var tenant = await context.Tenants.FindAsync(validationDto.TargetTenantId.Value);
+                        if (tenant is null)
                         {
                             result.IsValid = false;
                             result.ValidationMessage = "Target tenant not found";
@@ -159,8 +145,8 @@ public class TenantSwitchController : BaseApiController
                 case "impersonate":
                     if (validationDto.TargetUserId.HasValue)
                     {
-                        var targetUser = await _context.Users.FindAsync(validationDto.TargetUserId.Value);
-                        if (targetUser == null)
+                        var targetUser = await context.Users.FindAsync(validationDto.TargetUserId.Value);
+                        if (targetUser is null)
                         {
                             result.IsValid = false;
                             result.ValidationMessage = "Target user not found";
@@ -200,21 +186,21 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
                 return CreateValidationProblemDetails("No current user context");
             }
 
             // Validate target tenant
-            var targetTenant = await _context.Tenants.FindAsync(switchDto.TenantId);
-            if (targetTenant == null)
+            var targetTenant = await context.Tenants.FindAsync(switchDto.TenantId);
+            if (targetTenant is null)
             {
                 return CreateNotFoundProblem("Target tenant not found");
             }
 
-            var currentUser = await _context.Users.FindAsync(currentUserId.Value);
-            if (currentUser == null)
+            var currentUser = await context.Users.FindAsync(currentUserId.Value);
+            if (currentUser is null)
             {
                 return CreateNotFoundProblem("Current user not found");
             }
@@ -240,18 +226,18 @@ public class TenantSwitchController : BaseApiController
                     CreatedBy = currentUser.Username
                 };
 
-                _ = _context.AuditTrails.Add(auditTrail);
+                _ = context.AuditTrails.Add(auditTrail);
             }
 
             // In a real implementation, you would update session state or token claims here
             // For now, we'll just log the switch
-            _logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}",
+            logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}",
                 currentUser.Username, targetTenant.Name);
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
-            await _hubContext.Clients.Group("SuperAdminUpdates")
+            await hubContext.Clients.Group("SuperAdminUpdates")
                 .SendAsync("TenantSwitched", new
                 {
                     UserId = currentUserId.Value,
@@ -263,7 +249,7 @@ public class TenantSwitchController : BaseApiController
                 });
 
             // Return updated context
-            var context = new CurrentContextDto
+            var contextDto = new CurrentContextDto
             {
                 UserId = currentUser.Id,
                 Username = currentUser.Username,
@@ -282,7 +268,7 @@ public class TenantSwitchController : BaseApiController
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
             };
 
-            return Ok(context);
+            return Ok(contextDto);
         }
         catch (Exception ex)
         {
@@ -298,25 +284,25 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
                 return CreateValidationProblemDetails("No current user context");
             }
 
             // Validate target user
-            var targetUser = await _context.Users
+            var targetUser = await context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == impersonationDto.UserId);
 
-            if (targetUser == null)
+            if (targetUser is null)
             {
                 return CreateNotFoundProblem("Target user not found");
             }
 
-            var currentUser = await _context.Users.FindAsync(currentUserId.Value);
-            if (currentUser == null)
+            var currentUser = await context.Users.FindAsync(currentUserId.Value);
+            if (currentUser is null)
             {
                 return CreateNotFoundProblem("Current user not found");
             }
@@ -341,17 +327,17 @@ public class TenantSwitchController : BaseApiController
                     CreatedBy = currentUser.Username
                 };
 
-                _ = _context.AuditTrails.Add(auditTrail);
+                _ = context.AuditTrails.Add(auditTrail);
             }
 
             // In a real implementation, you would update session state or token claims here
-            _logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}",
+            logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}",
                 currentUser.Username, targetUser.Username);
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
-            await _hubContext.Clients.Group("SuperAdminUpdates")
+            await hubContext.Clients.Group("SuperAdminUpdates")
                 .SendAsync("ImpersonationStarted", new
                 {
                     SuperAdminId = currentUserId.Value,
@@ -363,9 +349,9 @@ public class TenantSwitchController : BaseApiController
 
             // Return context as impersonated user
             var targetTenant = targetUser.TenantId != Guid.Empty ?
-                await _context.Tenants.FindAsync(targetUser.TenantId) : null;
+                await context.Tenants.FindAsync(targetUser.TenantId) : null;
 
-            var context = new CurrentContextDto
+            var contextDto = new CurrentContextDto
             {
                 UserId = targetUser.Id,
                 Username = targetUser.Username,
@@ -386,7 +372,7 @@ public class TenantSwitchController : BaseApiController
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
             };
 
-            return Ok(context);
+            return Ok(contextDto);
         }
         catch (Exception ex)
         {
@@ -402,14 +388,14 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var currentUserId = _tenantContext.CurrentUserId;
+            var currentUserId = tenantContext.CurrentUserId;
             if (!currentUserId.HasValue)
             {
                 return CreateValidationProblemDetails("No current user context");
             }
 
-            var currentUser = await _context.Users.FindAsync(currentUserId.Value);
-            if (currentUser == null)
+            var currentUser = await context.Users.FindAsync(currentUserId.Value);
+            if (currentUser is null)
             {
                 return CreateNotFoundProblem("Current user not found");
             }
@@ -430,14 +416,14 @@ public class TenantSwitchController : BaseApiController
                 CreatedBy = currentUser.Username
             };
 
-            _ = _context.AuditTrails.Add(auditTrail);
+            _ = context.AuditTrails.Add(auditTrail);
 
-            _logger.LogInformation("SuperAdmin {Username} ended impersonation", currentUser.Username);
+            logger.LogInformation("SuperAdmin {Username} ended impersonation", currentUser.Username);
 
-            _ = await _context.SaveChangesAsync();
+            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
-            await _hubContext.Clients.Group("SuperAdminUpdates")
+            await hubContext.Clients.Group("SuperAdminUpdates")
                 .SendAsync("ImpersonationEnded", new
                 {
                     SuperAdminId = currentUserId.Value,
@@ -446,7 +432,7 @@ public class TenantSwitchController : BaseApiController
                 });
 
             // Return to SuperAdmin context
-            var context = new CurrentContextDto
+            var contextDto = new CurrentContextDto
             {
                 UserId = currentUser.Id,
                 Username = currentUser.Username,
@@ -467,7 +453,7 @@ public class TenantSwitchController : BaseApiController
                 IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
             };
 
-            return Ok(context);
+            return Ok(contextDto);
         }
         catch (Exception ex)
         {
@@ -483,7 +469,7 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var query = _context.AuditTrails
+            var query = context.AuditTrails
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .AsQueryable();
 
@@ -530,9 +516,9 @@ public class TenantSwitchController : BaseApiController
             var results = new List<TenantSwitchHistoryDto>();
             foreach (var audit in auditTrails)
             {
-                var user = await _context.Users.FindAsync(audit.PerformedByUserId);
-                var fromTenant = audit.SourceTenantId.HasValue ? await _context.Tenants.FindAsync(audit.SourceTenantId.Value) : null;
-                var toTenant = audit.TargetTenantId.HasValue ? await _context.Tenants.FindAsync(audit.TargetTenantId.Value) : null;
+                var user = await context.Users.FindAsync(audit.PerformedByUserId);
+                var fromTenant = audit.SourceTenantId.HasValue ? await context.Tenants.FindAsync(audit.SourceTenantId.Value) : null;
+                var toTenant = audit.TargetTenantId.HasValue ? await context.Tenants.FindAsync(audit.TargetTenantId.Value) : null;
 
                 results.Add(new TenantSwitchHistoryDto
                 {
@@ -576,7 +562,7 @@ public class TenantSwitchController : BaseApiController
     {
         try
         {
-            var query = _context.AuditTrails
+            var query = context.AuditTrails
                 .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart || a.OperationType == AuthAuditOperationType.ImpersonationEnd)
                 .AsQueryable();
 
@@ -612,13 +598,13 @@ public class TenantSwitchController : BaseApiController
                 var startOperation = group.FirstOrDefault(a => a.OperationType == AuthAuditOperationType.ImpersonationStart);
                 var endOperation = group.FirstOrDefault(a => a.OperationType == AuthAuditOperationType.ImpersonationEnd);
 
-                if (startOperation != null)
+                if (startOperation is not null)
                 {
-                    var impersonator = await _context.Users.FindAsync(startOperation.PerformedByUserId);
+                    var impersonator = await context.Users.FindAsync(startOperation.PerformedByUserId);
                     var impersonated = startOperation.TargetUserId.HasValue ?
-                        await _context.Users.FindAsync(startOperation.TargetUserId.Value) : null;
+                        await context.Users.FindAsync(startOperation.TargetUserId.Value) : null;
                     var tenant = startOperation.TargetTenantId.HasValue ?
-                        await _context.Tenants.FindAsync(startOperation.TargetTenantId.Value) : null;
+                        await context.Tenants.FindAsync(startOperation.TargetTenantId.Value) : null;
 
                     results.Add(new ImpersonationHistoryDto
                     {
@@ -632,7 +618,7 @@ public class TenantSwitchController : BaseApiController
                         Reason = ExtractReasonFromDetails(startOperation.Details),
                         StartedAt = startOperation.PerformedAt,
                         EndedAt = endOperation?.PerformedAt,
-                        IsActive = endOperation == null,
+                        IsActive = endOperation is null,
                         SessionId = startOperation.SessionId,
                         IpAddress = startOperation.IpAddress,
                         ActionsPerformed = new List<string>() // Would need to track this separately
@@ -668,11 +654,11 @@ public class TenantSwitchController : BaseApiController
             var oneWeekAgo = today.AddDays(-7);
             var oneMonthAgo = today.AddMonths(-1);
 
-            var tenantSwitches = await _context.AuditTrails
+            var tenantSwitches = await context.AuditTrails
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .ToListAsync();
 
-            var impersonations = await _context.AuditTrails
+            var impersonations = await context.AuditTrails
                 .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart)
                 .ToListAsync();
 
@@ -688,7 +674,7 @@ public class TenantSwitchController : BaseApiController
             };
 
             // Get recent operations
-            var recentOperations = await _context.AuditTrails
+            var recentOperations = await context.AuditTrails
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch ||
                            a.OperationType == AuthAuditOperationType.ImpersonationStart ||
                            a.OperationType == AuthAuditOperationType.ImpersonationEnd)
