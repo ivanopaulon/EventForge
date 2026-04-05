@@ -8,7 +8,7 @@ public class BrandingConfigurationDto
     /// <summary>
     /// Logo URL for the application.
     /// </summary>
-    public string LogoUrl { get; set; } = "/eventforgetitle.svg";
+    public string LogoUrl { get; set; } = "/logoWhite.svg";
 
     /// <summary>
     /// Logo height in pixels.

@@ -200,7 +200,7 @@ public class BrandingService : IBrandingService
     {
         return new BrandingConfigurationDto
         {
-            LogoUrl = "/eventforgetitle.svg",
+            LogoUrl = "/logoWhite.svg",
             LogoHeight = 40,
             ApplicationName = "PRYM",
             FaviconUrl = "/trace.svg",
