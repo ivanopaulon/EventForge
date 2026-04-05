@@ -1,0 +1,103 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Shared Overlay Styles
+   Base layout shared by ConnectionLostOverlay and PageLoadingOverlay.
+   Each component keeps its own inline <style> for component-specific rules.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Card container ── */
+.ov-card {
+    /* Force dark theme variables so MudBlazor components render correctly on dark background */
+    --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+    --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+    --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+    --mud-palette-background:           #12121f;
+    --mud-palette-surface:              #1c1c30;
+    --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+    --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+    --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+    --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+    --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+    --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.87);
+
+    background: rgba(18, 18, 32, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    width: 420px;
+    max-width: 95vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Fixed header: icon left + logo right, always at top ── */
+.ov-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--mud-palette-divider);
+    flex-shrink: 0;
+}
+
+.ov-header-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    object-fit: contain;
+    display: block;
+}
+
+.ov-header-logo {
+    height: 26px;
+    width: auto;
+    max-width: 160px;
+    display: block;
+    background: transparent;
+    margin-left: auto;
+}
+
+/* ── Body: content area below header ── */
+.ov-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 20px;
+}
+
+/* ── Shared text styles ── */
+.ov-message {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.ov-elapsed {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.72rem;
+    margin-top: 2px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+    .ov-card {
+        width: 92vw;
+    }
+
+    .ov-header {
+        padding: 10px 16px;
+    }
+
+    .ov-body {
+        padding: 14px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ov-header-icon {
+        animation: none !important;
+    }
+}

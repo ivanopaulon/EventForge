@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NuGetAudit>True</NuGetAudit>
-    <ApplicationIcon>wwwroot\EventForge.ico</ApplicationIcon>
+    <ApplicationIcon>wwwroot\icons\favicon.ico</ApplicationIcon>
     <!-- InvariantGlobalization must be false: Syncfusion components (SfSchedule) use
          System.Globalization for date/time formatting, culture-specific calendar rendering
          and JS interop. Setting this to true removes all ICU culture data from the WASM bundle
@@ -37,9 +37,6 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
   <ItemGroup>
-    <Content Update="wwwroot\EventForge.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Update="wwwroot\trace.svg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

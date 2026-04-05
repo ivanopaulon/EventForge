@@ -232,8 +232,14 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (allowedOrigins == null || allowedOrigins.Length == 0)
+        {
+            // Default to localhost dev ports when no origins are configured
+            allowedOrigins = ["https://localhost:7241", "http://localhost:7240", "https://localhost:5000", "https://localhost:7009"];
+        }
         _ = policy
-            .WithOrigins("https://localhost:7241", "http://localhost:7240", "https://localhost:5000", "https://localhost:7009") // aggiungi qui le porte del client Blazor se diverse
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR WebSocket connections
@@ -384,15 +390,18 @@ app.UseStartupPerformanceMonitoring();
 // Setup wizard redirect (before routing) - check if first run
 app.UseMiddleware<EventForge.Server.Middleware.SetupWizardMiddleware>();
 
-// Configure environment-aware Swagger behavior with protection in production
-_ = app.UseSwagger();
-_ = app.UseSwaggerUI(c =>
+// Swagger is only enabled in Development or when explicitly enabled via Swagger:Enabled = true
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled", false))
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PRYM API v1.0.0");
-    c.RoutePrefix = "swagger"; // Swagger available at /swagger
-    c.DocumentTitle = "PRYM API Documentation";
-    c.DisplayRequestDuration();
-});
+    _ = app.UseSwagger();
+    _ = app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "PRYM API v1.0.0");
+        c.RoutePrefix = "swagger"; // Swagger available at /swagger
+        c.DocumentTitle = "PRYM API Documentation";
+        c.DisplayRequestDuration();
+    });
+}
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())

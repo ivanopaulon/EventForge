@@ -9,27 +9,24 @@
     <MudOverlay Visible="true" DarkBackground="true" AutoClose="false"
                 Style="backdrop-filter: blur(3px); z-index: 9999;">
 
-        <div class="clo-card">
+        <div class="ov-card">
 
-            @* Top color bar *@
+            @* 4px status color strip *@
             <div class="clo-topbar @_topBarClass"></div>
 
-            <div class="clo-body">
+            @* Header: icon + logo on the same row *@
+            <div class="ov-header">
+                <img src="trace.svg"
+                     width="48" height="48"
+                     class="ov-header-icon @_logoAnimClass"
+                     alt="" />
+                <img src="logoWhite.svg"
+                     height="26"
+                     alt="PRYM" class="ov-header-logo" />
+            </div>
 
-                @* Left: logo *@
-                <div class="clo-logo-col">
-                    <img src="trace.svg"
-                         width="96"
-                         height="96"
-                         class="clo-logo @_logoAnimClass"
-                         alt="PRYM logo" />
-                </div>
-
-                @* Right: title + status rows + message + timer + retry *@
-                <div class="clo-content-col">
-
-                    <div class="clo-title">PRYM</div>
-                    <div class="clo-divider"></div>
+            @* Body: status content *@
+            <div class="ov-body">
 
                     @* API status row *@
                     <div class="clo-status-row">
@@ -55,13 +52,13 @@
                     }
                     else if (!string.IsNullOrEmpty(_statusMessage))
                     {
-                        <div class="clo-message">@_statusMessage</div>
+                        <div class="ov-message">@_statusMessage</div>
                     }
 
                     @if (_disconnectedSince.HasValue && !_restored)
                     {
                         var elapsed = (int)(DateTimeOffset.UtcNow - _disconnectedSince.Value).TotalSeconds;
-                        <div class="clo-elapsed">⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")</div>
+                        <div class="ov-elapsed">⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")</div>
                     }
 
                     @if (!_restored)
@@ -79,11 +76,10 @@
                         </div>
                     }
 
-                </div>
-            </div>
-        </div>
-    </MudOverlay>
-}
+                                                    </div>
+                                                </div>
+                                            </MudOverlay>
+                                        }
 
 @code {
     private bool _showOverlay = false;
@@ -263,60 +259,18 @@
 }
 
 <style>
-    /* ── Card container ── */
-    .clo-card {
-        background: rgba(18, 18, 32, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        min-width: 340px;
-        max-width: 540px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* ── Color bar on top ── */
+    /* ── Status color strip ── */
     .clo-topbar {
         height: 4px;
         width: 100%;
-    }
-
-    .clo-topbar-red {
-        background: #ef5350;
-    }
-
-    .clo-topbar-orange {
-        background: #ff9800;
-    }
-
-    .clo-topbar-green {
-        background: #66bb6a;
-    }
-
-    /* ── Body: logo left + content right ── */
-    .clo-body {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 20px;
-        padding: 20px 24px 20px 20px;
-    }
-
-    /* ── Logo column ── */
-    .clo-logo-col {
         flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
 
-    .clo-logo {
-        display: block;
-        object-fit: contain;
-    }
+    .clo-topbar-red    { background: #ef5350; }
+    .clo-topbar-orange { background: #ff9800; }
+    .clo-topbar-green  { background: #66bb6a; }
 
+    /* ── Icon animations ── */
     .clo-logo-pulse-red {
         animation: clo-pulse-red 1.8s infinite ease-in-out;
     }
@@ -326,39 +280,15 @@
     }
 
     @@keyframes clo-pulse-red {
-        0%   { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3)); transform: scale(1); }
+        0%   { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3));  transform: scale(1);    }
         50%  { filter: drop-shadow(0 0 20px rgba(239, 83, 80, 0.7)); transform: scale(1.06); }
-        100% { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3)); transform: scale(1); }
+        100% { filter: drop-shadow(0 0 8px rgba(239, 83, 80, 0.3));  transform: scale(1);    }
     }
 
     @@keyframes clo-pulse-green {
-        0%   { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3)); transform: scale(1); }
+        0%   { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3));  transform: scale(1);    }
         50%  { filter: drop-shadow(0 0 24px rgba(102, 187, 106, 0.8)); transform: scale(1.08); }
-        100% { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3)); transform: scale(1); }
-    }
-
-    /* ── Content column ── */
-    .clo-content-col {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .clo-title {
-        color: white;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        line-height: 1.2;
-    }
-
-    .clo-divider {
-        height: 1px;
-        background: rgba(255, 255, 255, 0.15);
-        margin: 2px 0;
+        100% { filter: drop-shadow(0 0 8px rgba(102, 187, 106, 0.3));  transform: scale(1);    }
     }
 
     /* ── Status rows ── */
@@ -376,42 +306,16 @@
         flex-shrink: 0;
     }
 
-    .clo-dot-green {
-        background: #66bb6a;
-        box-shadow: 0 0 6px rgba(102, 187, 106, 0.7);
-    }
+    .clo-dot-green { background: #66bb6a; box-shadow: 0 0 6px rgba(102, 187, 106, 0.7); }
+    .clo-dot-red   { background: #ef5350; box-shadow: 0 0 6px rgba(239, 83, 80, 0.7); }
 
-    .clo-dot-red {
-        background: #ef5350;
-        box-shadow: 0 0 6px rgba(239, 83, 80, 0.7);
-    }
+    .clo-status-label { color: rgba(255, 255, 255, 0.55); min-width: 60px; }
+    .clo-status-value { font-weight: 600; }
 
-    .clo-status-label {
-        color: rgba(255, 255, 255, 0.55);
-        min-width: 60px;
-    }
+    .clo-ok  { color: #66bb6a; }
+    .clo-err { color: #ef5350; }
 
-    .clo-status-value {
-        font-weight: 600;
-    }
-
-    .clo-ok {
-        color: #66bb6a;
-    }
-
-    .clo-err {
-        color: #ef5350;
-    }
-
-    /* ── Message ── */
-    .clo-message {
-        color: rgba(255, 255, 255, 0.82);
-        font-size: 0.9rem;
-        font-weight: 500;
-        line-height: 1.4;
-    }
-
-    /* ── Restored message ── */
+    /* ── Restored / retry ── */
     .clo-restored-msg {
         color: #66bb6a;
         font-size: 0.95rem;
@@ -419,47 +323,10 @@
         margin-top: 2px;
     }
 
-    /* ── Elapsed ── */
-    .clo-elapsed {
-        color: rgba(255, 255, 255, 0.45);
-        font-size: 0.72rem;
-        margin-top: 2px;
-    }
+    .clo-retry-row { margin-top: 6px; }
+    .clo-retry-btn { font-size: 0.8rem !important; }
 
-    /* ── Retry row ── */
-    .clo-retry-row {
-        margin-top: 6px;
-    }
-
-    .clo-retry-btn {
-        font-size: 0.8rem !important;
-    }
-
-    /* ── Mobile: stack vertically ── */
     @@media (max-width: 480px) {
-        .clo-card {
-            min-width: unset;
-            max-width: 92vw;
-            width: 92vw;
-        }
-
-        .clo-body {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 12px;
-            padding: 16px;
-        }
-
-        .clo-status-row {
-            justify-content: center;
-        }
-    }
-
-    @@media (prefers-reduced-motion: reduce) {
-        .clo-logo-pulse-red,
-        .clo-logo-pulse-green {
-            animation: none !important;
-        }
+        .clo-status-row { justify-content: center; }
     }
 </style>

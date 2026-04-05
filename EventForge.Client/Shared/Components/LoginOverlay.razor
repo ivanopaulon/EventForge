@@ -30,7 +30,7 @@
                          class="lov-logo anim-pulse" alt="PRYM logo" />
                 </div>
                 <div class="lov-title-col">
-                    <div class="lov-title">PRYM</div>
+                    <img src="logoWhite.svg" alt="PRYM" class="lov-brand-logo" />
                     <div class="lov-divider"></div>
                     @if (!string.IsNullOrEmpty(_subtitle))
                     {
@@ -427,13 +427,12 @@
 
     .lov-title-col { flex: 1; min-width: 0; }
 
-    .lov-title {
-        color: white;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        line-height: 1.2;
+    .lov-brand-logo {
+        max-height: 2rem;
+        width: auto;
+        max-width: 100%;
+        display: block;
+        background: transparent;
     }
 
     .lov-divider {

@@ -6,9 +6,9 @@
     <MudOverlay Visible="@Visible" DarkBackground="true" AutoClose="false"
                 Style="backdrop-filter: blur(3px);">
 
-        <div class="plo-card">
+        <div class="ov-card">
 
-            @* Progress bar on top of the card *@
+            @* Progress bar strip at very top *@
             <div class="plo-progress">
                 <MudProgressLinear Color="@ProgressColor"
                                    Indeterminate="@(ProgressValue == null)"
@@ -17,26 +17,23 @@
                                    Style="height:3px; border-radius: 4px 4px 0 0; margin:0;" />
             </div>
 
-            <div class="plo-body">
+            @* Header: icon + logo on the same row *@
+            <div class="ov-header">
+                <img src="@IconPath"
+                     width="48" height="48"
+                     class="ov-header-icon plo-icon @AnimationClass"
+                     alt="" />
+                <img src="logoWhite.svg"
+                     height="26"
+                     alt="PRYM" class="ov-header-logo" />
+            </div>
 
-                @* Left: logo *@
-                <div class="plo-logo-col">
-                    <img src="@IconPath"
-                         width="@Size"
-                         height="@Size"
-                         class="plo-logo @AnimationClass"
-                         alt="PRYM logo" />
-                </div>
-
-                @* Right: title + message + log *@
-                <div class="plo-content-col">
-
-                    <div class="plo-title">PRYM</div>
-                    <div class="plo-divider"></div>
+            @* Body: loading content *@
+            <div class="ov-body">
 
                     @if (!string.IsNullOrEmpty(Message))
                     {
-                        <div class="plo-message">@Message</div>
+                        <div class="ov-message">@Message</div>
                     }
 
                     @if (ShowProgressLog && _progressLog.Count > 0)
@@ -75,16 +72,15 @@
                     @if (ShowElapsedTime)
                     {
                         var elapsed = (int)(DateTimeOffset.UtcNow - _startTime).TotalSeconds;
-                        <div class="plo-elapsed">
+                        <div class="ov-elapsed">
                             ⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")
                         </div>
                     }
 
-                </div>
-            </div>
-        </div>
-    </MudOverlay>
-}
+                                                    </div>
+                                                </div>
+                                            </MudOverlay>
+                                        }
 
 @code {
     // ── Parametri backward-compatible ──
@@ -212,78 +208,16 @@
 }
 
 <style>
-    /* ── Card container ── */
-    .plo-card {
-        background: rgba(18, 18, 32, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
-        min-width: 340px;
-        max-width: 540px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* ── Progress bar strip on top ── */
+    /* ── Progress bar strip (above header) ── */
     .plo-progress {
         line-height: 0;
         font-size: 0;
-    }
-
-    /* ── Body: logo left + content right ── */
-    .plo-body {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 20px;
-        padding: 20px 24px 20px 20px;
-    }
-
-    /* ── Logo column ── */
-    .plo-logo-col {
         flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
 
-    .plo-logo {
-        display: block;
-        object-fit: contain;
+    /* ── Icon drop shadow ── */
+    .plo-icon {
         filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
-    }
-
-    /* ── Content column ── */
-    .plo-content-col {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .plo-title {
-        color: white;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        line-height: 1.2;
-    }
-
-    .plo-divider {
-        height: 1px;
-        background: rgba(255, 255, 255, 0.15);
-        margin: 2px 0;
-    }
-
-    .plo-message {
-        color: rgba(255, 255, 255, 0.82);
-        font-size: 0.9rem;
-        font-weight: 500;
-        line-height: 1.4;
     }
 
     /* ── Log panel ── */
@@ -329,13 +263,6 @@
         font-weight: 600;
     }
 
-    /* ── Elapsed ── */
-    .plo-elapsed {
-        color: rgba(255, 255, 255, 0.45);
-        font-size: 0.72rem;
-        margin-top: 4px;
-    }
-
     /* ── Animations ── */
     .anim-blink {
         animation: plo-blink 1.2s infinite ease-in-out;
@@ -356,22 +283,7 @@
         100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100,160,255,0.3)); }
     }
 
-    /* ── Mobile: stack vertically ── */
     @@media (max-width: 480px) {
-        .plo-card {
-            min-width: unset;
-            max-width: 92vw;
-            width: 92vw;
-        }
-
-        .plo-body {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 12px;
-            padding: 16px;
-        }
-
         .plo-log-active {
             border-left: none;
             padding-left: 0;
