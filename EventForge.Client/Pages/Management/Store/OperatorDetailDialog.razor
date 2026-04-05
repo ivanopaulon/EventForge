@@ -15,7 +15,8 @@
           Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperator", "Nuovo Operatore") : (ViewModel.Entity?.Name ?? string.Empty))"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthSimple">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
@@ -31,151 +32,155 @@
         }
         else if (ViewModel.Entity != null)
         {
-            @if (!ViewModel.IsNewEntity)
-            {
-                <div class="d-flex align-center gap-4 flex-wrap mb-3">
-                    <div class="d-flex align-center gap-2">
-                        <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                            <MudIcon Icon="@Icons.Material.Outlined.Person" />
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                @@@ViewModel.Entity.Username - ID: @ViewModel.Entity.Id.ToString()[..8]...
-                            </MudText>
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    @if (!ViewModel.IsNewEntity)
+                    {
+                        <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @@@ViewModel.Entity.Username - ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                            @if (ViewModel.Entity.IsOnShift)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
+                                    @TranslationService.GetTranslation("status.onShift", "In Turno")
+                                </MudChip>
+                            }
                         </div>
-                    </div>
-                    <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
-                        @GetStatusText(ViewModel.Entity.Status)
-                    </MudChip>
-                    @if (ViewModel.Entity.IsOnShift)
-                    {
-                        <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
-                            @TranslationService.GetTranslation("status.onShift", "In Turno")
-                        </MudChip>
-                    }
-                </div>
-                <MudDivider Class="mb-3" />
-            }
-
-            <MudForm @ref="_form" Model="@ViewModel.Entity">
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.Name"
-                                      Label="@TranslationService.GetTranslation("field.name", "Nome")"
-                                      Required="true"
-                                      MaxLength="100"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Username"
-                                      Label="@TranslationService.GetTranslation("field.username", "Username")"
-                                      Required="@ViewModel.IsNewEntity"
-                                      MaxLength="50"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      Disabled="@(!ViewModel.IsNewEntity)"
-                                      HelperText="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-
-                    @if (ViewModel.IsNewEntity)
-                    {
-                        <MudItem xs="12" md="6">
-                            <MudTextField @bind-Value="ViewModel.Password"
-                                          Label="@TranslationService.GetTranslation("field.password", "Password")"
-                                          InputType="InputType.Password"
-                                          Required="true"
-                                          Variant="Variant.Outlined"
-                                          Class="ef-input"
-                                          HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
-                                          @bind-Value:after="HandleEntityChanged" />
-                        </MudItem>
+                        <MudDivider Class="mb-3" />
                     }
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.Email"
-                                      Label="@TranslationService.GetTranslation("field.email", "Email")"
-                                      MaxLength="100"
-                                      InputType="InputType.Email"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.Name"
+                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                              Required="true"
+                                              MaxLength="100"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.Role"
-                                      Label="@TranslationService.GetTranslation("field.role", "Ruolo")"
-                                      MaxLength="50"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Username"
+                                              Label="@TranslationService.GetTranslation("field.username", "Username")"
+                                              Required="@ViewModel.IsNewEntity"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              Disabled="@(!ViewModel.IsNewEntity)"
+                                              HelperText="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="ViewModel.Entity.Status"
-                                   Label="@TranslationService.GetTranslation("field.status", "Status")"
-                                   Variant="Variant.Outlined"
-                                   Class="ef-select"
-                                   @bind-Value:after="HandleEntityChanged">
-                            @foreach (CashierStatus status in Enum.GetValues(typeof(CashierStatus)))
+                            @if (ViewModel.IsNewEntity)
                             {
-                                <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField @bind-Value="ViewModel.Password"
+                                                  Label="@TranslationService.GetTranslation("field.password", "Password")"
+                                                  InputType="InputType.Password"
+                                                  Required="true"
+                                                  Variant="Variant.Outlined"
+                                                  Class="ef-input"
+                                                  HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
+                                                  @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
                             }
-                        </MudSelect>
-                    </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="ViewModel.Entity.CashierGroupId"
-                                   Label="@TranslationService.GetTranslation("field.cashierGroup", "Gruppo Cassieri")"
-                                   Variant="Variant.Outlined"
-                                   Class="ef-select"
-                                   T="Guid?"
-                                   Clearable="true"
-                                   @bind-Value:after="HandleEntityChanged">
-                            <MudSelectItem Value="@((Guid?)null)">
-                                @TranslationService.GetTranslation("common.none", "None")
-                            </MudSelectItem>
-                            @foreach (var group in ViewModel.AvailableGroups)
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.Email"
+                                              Label="@TranslationService.GetTranslation("field.email", "Email")"
+                                              MaxLength="100"
+                                              InputType="InputType.Email"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.Role"
+                                              Label="@TranslationService.GetTranslation("field.role", "Ruolo")"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.Status"
+                                           Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                           Variant="Variant.Outlined"
+                                           Class="ef-select"
+                                           @bind-Value:after="HandleEntityChanged">
+                                    @foreach (CashierStatus status in Enum.GetValues(typeof(CashierStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.CashierGroupId"
+                                           Label="@TranslationService.GetTranslation("field.cashierGroup", "Gruppo Cassieri")"
+                                           Variant="Variant.Outlined"
+                                           Class="ef-select"
+                                           T="Guid?"
+                                           Clearable="true"
+                                           @bind-Value:after="HandleEntityChanged">
+                                    <MudSelectItem Value="@((Guid?)null)">
+                                        @TranslationService.GetTranslation("common.none", "None")
+                                    </MudSelectItem>
+                                    @foreach (var group in ViewModel.AvailableGroups)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.PhoneNumber"
+                                              Label="@TranslationService.GetTranslation("field.phoneNumber", "Numero di Telefono")"
+                                              MaxLength="20"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            @if (ViewModel.IsNewEntity)
                             {
-                                <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="ViewModel.PhotoConsent"
+                                               Label="@TranslationService.GetTranslation("field.photoConsent", "Consenso per la Foto (GDPR)")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
                             }
-                        </MudSelect>
-                    </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.PhoneNumber"
-                                      Label="@TranslationService.GetTranslation("field.phoneNumber", "Numero di Telefono")"
-                                      MaxLength="20"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-
-                    @if (ViewModel.IsNewEntity)
-                    {
-                        <MudItem xs="12" md="6">
-                            <MudSwitch @bind-Value="ViewModel.PhotoConsent"
-                                       Label="@TranslationService.GetTranslation("field.photoConsent", "Consenso per la Foto (GDPR)")"
-                                       Color="Color.Primary"
-                                       @bind-Value:after="HandleEntityChanged" />
-                        </MudItem>
-                    }
-
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="ViewModel.Entity.Notes"
-                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                                      Lines="3"
-                                      MaxLength="200"
-                                      Variant="Variant.Outlined"
-                                      Class="ef-input"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-                </MudGrid>
-            </MudForm>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="ViewModel.Entity.Notes"
+                                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                              Lines="3"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+            </MudTabs>
         }
     </ChildContent>
     <DialogActions>

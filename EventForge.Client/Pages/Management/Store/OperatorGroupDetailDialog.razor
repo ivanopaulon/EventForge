@@ -7,14 +7,15 @@
 @inject IDialogService DialogService
 @inject OperatorGroupDetailViewModel ViewModel
 @inject ILogger<OperatorGroupDetailDialog> Logger
-@inject ISnackbar Snackbar
+@inject IAppNotificationService AppNotification
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Groups"
           Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperatorGroup", "Nuovo Gruppo Operatori") : ViewModel.Entity?.Name ?? string.Empty)"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthSimple">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
@@ -30,158 +31,196 @@
         }
         else
         {
-            @if (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-4">
-                    @TranslationService.GetTranslation("store.systemGroupReadOnly", "Questo è un gruppo di sistema e non può essere modificato.")
-                </MudAlert>
-            }
-
-            @if (!ViewModel.IsNewEntity)
-            {
-                <div class="d-flex align-center gap-4 flex-wrap mb-4">
-                    <div class="d-flex align-center gap-2">
-                        <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                            <MudIcon Icon="@Icons.Material.Outlined.Groups" />
-                        </MudAvatar>
-                        <div>
-                            <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                Code: @ViewModel.Entity.Code - ID: @ViewModel.Entity.Id.ToString()[..8]...
-                            </MudText>
-                        </div>
-                    </div>
-                    <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
-                        @GetStatusText(ViewModel.Entity.Status)
-                    </MudChip>
-                    @if (ViewModel.Entity.IsSystemGroup)
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    @if (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)
                     {
-                        <MudChip T="string" Size="Size.Medium" Color="Color.Default" Icon="@Icons.Material.Outlined.Lock">
-                            @TranslationService.GetTranslation("status.systemGroup", "Gruppo di Sistema")
-                        </MudChip>
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            @TranslationService.GetTranslation("store.systemGroupReadOnly", "Questo è un gruppo di sistema e non può essere modificato.")
+                        </MudAlert>
                     }
-                    @if (ViewModel.Entity.IsDefault)
-                    {
-                        <MudChip T="string" Size="Size.Medium" Color="Color.Warning" Icon="@Icons.Material.Outlined.Star">
-                            @TranslationService.GetTranslation("status.default", "Default")
-                        </MudChip>
-                    }
-                </div>
-            }
-
-            <MudForm @ref="_form" Model="@ViewModel.Entity">
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.Code"
-                                      Label="@TranslationService.GetTranslation("field.code", "Codice")"
-                                      Required="true"
-                                      MaxLength="50"
-                                      Variant="Variant.Outlined"
-                                      Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.Name"
-                                      Label="@TranslationService.GetTranslation("field.name", "Nome")"
-                                      Required="true"
-                                      MaxLength="50"
-                                      Variant="Variant.Outlined"
-                                      Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="ViewModel.Entity.Status"
-                                   Label="@TranslationService.GetTranslation("field.status", "Status")"
-                                   Variant="Variant.Outlined"
-                                   Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
-                                   @bind-Value:after="HandleEntityChanged">
-                            @foreach (CashierGroupStatus status in Enum.GetValues(typeof(CashierGroupStatus)))
-                            {
-                                <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="ViewModel.Entity.ColorHex"
-                                      Label="@TranslationService.GetTranslation("field.colorHex", "Colore (Hex)")"
-                                      MaxLength="7"
-                                      Placeholder="#FF5733"
-                                      Variant="Variant.Outlined"
-                                      Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
-                                      Pattern="^#([A-Fa-f0-9]{6})$"
-                                      @bind-Value:after="HandleEntityChanged"
-                                      HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
-                    </MudItem>
-
-                    @if (ViewModel.IsNewEntity)
-                    {
-                        <MudItem xs="12" md="6">
-                            <MudSwitch @bind-Value="ViewModel.Entity.IsSystemGroup"
-                                       Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")"
-                                       Color="Color.Primary"
-                                       @bind-Value:after="HandleEntityChanged" />
-                        </MudItem>
-
-                        <MudItem xs="12" md="6">
-                            <MudSwitch @bind-Value="ViewModel.Entity.IsDefault"
-                                       Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")"
-                                       Color="Color.Primary"
-                                       @bind-Value:after="HandleEntityChanged" />
-                        </MudItem>
-                    }
-
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="ViewModel.Entity.Description"
-                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                      Lines="3"
-                                      MaxLength="200"
-                                      Variant="Variant.Outlined"
-                                      Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
-                                      @bind-Value:after="HandleEntityChanged" />
-                    </MudItem>
 
                     @if (!ViewModel.IsNewEntity)
                     {
-                        <MudItem xs="12">
-                            <MudDivider Class="my-4" />
-                            <MudText Typo="Typo.h6" Class="mb-2">
-                                @TranslationService.GetTranslation("store.groupStatistics", "Statistiche Gruppo")
-                            </MudText>
-                            <MudGrid>
-                                <MudItem xs="12" sm="6" md="4">
-                                    <MudPaper Elevation="1" Class="pa-4">
-                                        <div class="d-flex align-center gap-2">
-                                            <MudIcon Icon="@Icons.Material.Outlined.People" Color="Color.Primary" />
-                                            <div>
-                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                                    @TranslationService.GetTranslation("field.operatorsCount", "Operatori")
-                                                </MudText>
-                                                <MudText Typo="Typo.h6">@ViewModel.Entity.CashierCount</MudText>
-                                            </div>
-                                        </div>
-                                    </MudPaper>
-                                </MudItem>
-                                <MudItem xs="12" sm="6" md="4">
-                                    <MudPaper Elevation="1" Class="pa-4">
-                                        <div class="d-flex align-center gap-2">
-                                            <MudIcon Icon="@Icons.Material.Outlined.Security" Color="Color.Primary" />
-                                            <div>
-                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                                    @TranslationService.GetTranslation("field.privilegesCount", "Privilegi")
-                                                </MudText>
-                                                <MudText Typo="Typo.h6">@ViewModel.Entity.PrivilegeCount</MudText>
-                                            </div>
-                                        </div>
-                                    </MudPaper>
-                                </MudItem>
-                            </MudGrid>
-                        </MudItem>
+                        <div class="d-flex align-center gap-4 flex-wrap mb-4">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Groups" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        Code: @ViewModel.Entity.Code - ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                            @if (ViewModel.Entity.IsSystemGroup)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Default" Icon="@Icons.Material.Outlined.Lock">
+                                    @TranslationService.GetTranslation("status.systemGroup", "Gruppo di Sistema")
+                                </MudChip>
+                            }
+                            @if (ViewModel.Entity.IsDefault)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Warning" Icon="@Icons.Material.Outlined.Star">
+                                    @TranslationService.GetTranslation("status.default", "Default")
+                                </MudChip>
+                            }
+                        </div>
                     }
-                </MudGrid>
-            </MudForm>
+
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.Code"
+                                              Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                              Required="true"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.Name"
+                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                              Required="true"
+                                              MaxLength="50"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.Status"
+                                           Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                           Variant="Variant.Outlined"
+                                           Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                           @bind-Value:after="HandleEntityChanged">
+                                    @foreach (CashierGroupStatus status in Enum.GetValues(typeof(CashierGroupStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField @bind-Value="ViewModel.Entity.ColorHex"
+                                              Label="@TranslationService.GetTranslation("field.colorHex", "Colore (Hex)")"
+                                              MaxLength="7"
+                                              Placeholder="#FF5733"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              Pattern="^#([A-Fa-f0-9]{6})$"
+                                              @bind-Value:after="HandleEntityChanged"
+                                              HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
+                            </MudItem>
+
+                            @if (ViewModel.IsNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="ViewModel.Entity.IsSystemGroup"
+                                               Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
+
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="ViewModel.Entity.IsDefault"
+                                               Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="ViewModel.Entity.Description"
+                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                              Lines="3"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            @if (!ViewModel.IsNewEntity)
+                            {
+                                <MudItem xs="12">
+                                    <MudDivider Class="my-4" />
+                                    <MudText Typo="Typo.h6" Class="mb-2">
+                                        @TranslationService.GetTranslation("store.groupStatistics", "Statistiche Gruppo")
+                                    </MudText>
+                                    <MudGrid>
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudPaper Elevation="1" Class="pa-4">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.People" Color="Color.Primary" />
+                                                    <div>
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                            @TranslationService.GetTranslation("field.operatorsCount", "Operatori")
+                                                        </MudText>
+                                                        <MudText Typo="Typo.h6">@ViewModel.Entity.CashierCount</MudText>
+                                                    </div>
+                                                </div>
+                                            </MudPaper>
+                                        </MudItem>
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <MudPaper Elevation="1" Class="pa-4">
+                                                <div class="d-flex align-center gap-2">
+                                                    <MudIcon Icon="@Icons.Material.Outlined.Security" Color="Color.Primary" />
+                                                    <div>
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                            @TranslationService.GetTranslation("field.privilegesCount", "Privilegi")
+                                                        </MudText>
+                                                        <MudText Typo="Typo.h6">@ViewModel.Entity.PrivilegeCount</MudText>
+                                                    </div>
+                                                </div>
+                                            </MudPaper>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+                <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@ViewModel.IsNewEntity">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(ViewModel.Entity.Id.ToString())"
+                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm"))"
+                                          Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? string.Empty)"
+                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                          Variant="Variant.Outlined"
+                                          ReadOnly="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+            </MudTabs>
         }
     </ChildContent>
     <DialogActions>
@@ -232,14 +271,14 @@
         {
             if (ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)
             {
-                Snackbar.Add(TranslationService.GetTranslation("store.cannotModifySystemGroup", "Non è possibile modificare un gruppo di sistema"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("store.cannotModifySystemGroup", "Non è possibile modificare un gruppo di sistema"));
                 return;
             }
 
             await _form.ValidateAsync();
             if (!_form.IsValid)
             {
-                Snackbar.Add(TranslationService.GetTranslation("common.validationErrors", "Correggere gli errori di validazione"), Severity.Warning);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("common.validationErrors", "Correggere gli errori di validazione"));
                 return;
             }
 
@@ -249,7 +288,7 @@
                 var message = ViewModel.IsNewEntity
                     ? TranslationService.GetTranslation("store.operatorGroupCreated", "Gruppo creato con successo")
                     : TranslationService.GetTranslation("store.operatorGroupSaved", "Gruppo salvato con successo");
-                Snackbar.Add(message, Severity.Success);
+                AppNotification.ShowSuccess(message);
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else
@@ -257,13 +296,13 @@
                 var message = ViewModel.IsNewEntity
                     ? TranslationService.GetTranslation("store.createError", "Errore nella creazione")
                     : TranslationService.GetTranslation("store.saveError", "Errore nel salvataggio");
-                Snackbar.Add(message, Severity.Error);
+                AppNotification.ShowError(message);
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving operator group");
-            Snackbar.Add(ex.Message, Severity.Error);
+            AppNotification.ShowError(ex.Message, exception: ex);
         }
     }
 
