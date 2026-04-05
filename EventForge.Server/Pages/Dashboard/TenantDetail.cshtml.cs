@@ -6,6 +6,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Pages.Dashboard;
 
+/// <summary>
+/// Tenant detail page — create and edit tenant configurations.
+/// Accesses <see cref="EventForgeDbContext"/> directly (intentional for SuperAdmin panel):
+/// bypasses service-layer caching and audit trail to allow unrestricted administrative access.
+/// All endpoints require the <c>SuperAdmin</c> role.
+/// </summary>
 [Authorize(Roles = "SuperAdmin")]
 public class TenantDetailModel : PageModel
 {
