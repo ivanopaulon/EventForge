@@ -8,7 +8,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for SuperAdmin advanced operations.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/super-admin")]
 [Authorize(Roles = "SuperAdmin")]
 public class SuperAdminController(
     IConfigurationService configurationService,

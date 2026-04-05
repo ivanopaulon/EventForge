@@ -9,7 +9,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for application log operations with standardized pagination.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/application-logs")]
 [Authorize(Roles = "Admin,SuperAdmin")]
 public class ApplicationLogsController(
     IApplicationLogService service) : BaseApiController

@@ -8,7 +8,7 @@ namespace EventForge.Server.Controllers;
 /// Controller for audit log operations with standardized pagination.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/audit-logs")]
 [Authorize(Roles = "Admin,SuperAdmin")]
 public class AuditLogsController(
     IAuditLogService service,

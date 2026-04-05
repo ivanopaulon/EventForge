@@ -11,7 +11,7 @@ namespace EventForge.Server.Controllers;
 /// Anonymous access is required to capture errors during login/startup and authentication failures.
 /// </summary>
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/client-logs")]
 [AllowAnonymous]
 [Produces("application/json")]
 public class ClientLogsController(

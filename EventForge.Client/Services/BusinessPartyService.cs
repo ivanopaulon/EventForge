@@ -60,7 +60,7 @@ namespace EventForge.Client.Services
 
     public class BusinessPartyService : IBusinessPartyService
     {
-        private const string BaseUrl = "api/v1/business-parties";
+        private const string BaseUrl = "api/v1/businessparties";
         private readonly IHttpClientService _httpClientService;
         private readonly ILogger<BusinessPartyService> _logger;
         private readonly ILoadingDialogService _loadingDialogService; // kept for DI compatibility

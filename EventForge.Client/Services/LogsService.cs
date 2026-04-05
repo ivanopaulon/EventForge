@@ -26,7 +26,7 @@ namespace EventForge.Client.Services
 
     public class LogsService : ILogsService
     {
-        private const string BaseUrl = "api/v1/logs";
+        private const string BaseUrl = "api/v1/logs"; // unused - kept for future consolidation
         private readonly IHttpClientService _httpClientService;
         private readonly IRealtimeService _realtimeService;
         private readonly ILogger<LogsService> _logger;

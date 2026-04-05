@@ -37,7 +37,7 @@ namespace EventForge.Client.Services
     /// </summary>
     public class ClientLogService : IClientLogService, IDisposable
     {
-        private const string BaseUrl = "api/v1/logs/client";
+        private const string BaseUrl = "api/v1/client-logs";
         private readonly HttpClient _httpClient;
         private readonly IJSRuntime _jsRuntime;
         private readonly IAuthService _authService;
@@ -340,9 +340,9 @@ namespace EventForge.Client.Services
                 var httpClient = await GetAuthenticatedHttpClientAsync();
 
                 // Log the request details for debugging
-                _logger?.LogTrace("Sending client log to api/ClientLogs");
+                _logger?.LogTrace("Sending client log to api/v1/client-logs");
 
-                var response = await httpClient.PostAsJsonAsync("api/ClientLogs", clientLog);
+                var response = await httpClient.PostAsJsonAsync("api/v1/client-logs", clientLog);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -377,7 +377,7 @@ namespace EventForge.Client.Services
                 // Log the request details for debugging
                 _logger?.LogTrace("Sending batch of {Count} client logs to server", logs.Count);
 
-                var response = await httpClient.PostAsJsonAsync("api/ClientLogs/batch", batchRequest);
+                var response = await httpClient.PostAsJsonAsync("api/v1/client-logs/batch", batchRequest);
 
                 if (!response.IsSuccessStatusCode)
                 {
