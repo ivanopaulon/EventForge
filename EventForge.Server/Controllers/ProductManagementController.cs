@@ -37,7 +37,6 @@ public class ProductManagementController(
     IPriceListGenerationService priceListGenerationService,
     IPriceCalculationService priceCalculationService,
     IPriceListBusinessPartyService priceListBusinessPartyService,
-    IPriceListBulkOperationsService priceListBulkOperationsService,
     IPromotionService promotionService,
     IBarcodeService barcodeService,
     IDocumentHeaderService documentHeaderService,

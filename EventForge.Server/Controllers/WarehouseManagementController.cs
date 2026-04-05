@@ -21,8 +21,7 @@ namespace EventForge.Server.Controllers;
 public class WarehouseManagementController(
     IWarehouseFacade warehouseFacade,
     ITenantContext tenantContext,
-    ILogger<WarehouseManagementController> logger,
-    ICacheInvalidationService cacheInvalidation) : BaseApiController
+    ILogger<WarehouseManagementController> logger) : BaseApiController
 {
     // PERFORMANCE PROTECTION: Maximum page size for bulk operations to prevent performance issues
     // Large page sizes can cause:

@@ -12,8 +12,7 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize(Roles = "Admin,SuperAdmin")]
 public class ApplicationLogsController(
-    IApplicationLogService service,
-    ILogger<ApplicationLogsController> logger) : BaseApiController
+    IApplicationLogService service) : BaseApiController
 {
 
     /// <summary>

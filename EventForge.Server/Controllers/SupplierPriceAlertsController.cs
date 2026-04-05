@@ -15,8 +15,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("ProductManagement")]
 public class SupplierPriceAlertsController(
     ISupplierPriceAlertService alertService,
-    ITenantContext tenantContext,
-    ILogger<SupplierPriceAlertsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

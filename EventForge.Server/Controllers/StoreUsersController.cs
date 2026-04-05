@@ -14,7 +14,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
-public class StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext, ILogger<StoreUsersController> logger) : BaseApiController
+public class StoreUsersController(IStoreUserService storeUserService, ITenantContext tenantContext) : BaseApiController
 {
 
     #region StoreUser Endpoints

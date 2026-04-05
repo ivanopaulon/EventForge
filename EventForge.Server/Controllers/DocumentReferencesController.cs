@@ -13,8 +13,7 @@ namespace EventForge.Server.Controllers;
 [Authorize]
 public class DocumentReferencesController(
     ITeamService teamService,
-    ITenantContext tenantContext,
-    ILogger<DocumentReferencesController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

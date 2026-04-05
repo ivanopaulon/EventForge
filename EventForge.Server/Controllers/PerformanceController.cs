@@ -8,8 +8,7 @@ namespace EventForge.Server.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize(Policy = "RequireAdmin")]
-public class PerformanceController(IPerformanceMonitoringService performanceService, ILogger<PerformanceController> logger,
-    ITenantContext tenantContext) : BaseApiController
+public class PerformanceController(IPerformanceMonitoringService performanceService) : BaseApiController
 {
 
     /// <summary>

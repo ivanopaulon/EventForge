@@ -15,7 +15,6 @@ namespace EventForge.Server.Controllers;
 public class TenantSwitchController(
     EventForgeDbContext context,
     ITenantContext tenantContext,
-    IAuditLogService auditLogService,
     IHubContext<AuditLogHub> hubContext,
     ILogger<TenantSwitchController> logger) : BaseApiController
 {

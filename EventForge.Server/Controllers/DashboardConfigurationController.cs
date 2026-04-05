@@ -11,8 +11,7 @@ namespace EventForge.Server.Controllers;
 [Authorize]
 [Route("api/v1/[controller]")]
 public class DashboardConfigurationController(
-    IDashboardConfigurationService service,
-    ILogger<DashboardConfigurationController> logger) : BaseApiController
+    IDashboardConfigurationService service) : BaseApiController
 {
 
     /// <summary>

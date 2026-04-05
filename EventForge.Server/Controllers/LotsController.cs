@@ -15,8 +15,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("InventoryManagement")]
 public class LotsController(
     ILotService service,
-    ITenantContext tenantContext,
-    ILogger<LotsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

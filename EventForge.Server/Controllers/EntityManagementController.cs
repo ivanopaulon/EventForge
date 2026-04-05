@@ -22,7 +22,6 @@ public class EntityManagementController(
     IReferenceService referenceService,
     IClassificationNodeService classificationNodeService,
     ITenantContext tenantContext,
-    ILogger<EntityManagementController> logger,
     ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
 

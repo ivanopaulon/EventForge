@@ -15,8 +15,7 @@ namespace EventForge.Server.Controllers;
 [Authorize(Roles = "SuperAdmin,Admin")]
 public class LogManagementController(
     ILogManagementService logManagementService,
-    ILogger<LogManagementController> logger,
-    ITenantContext tenantContext) : BaseApiController
+    ILogger<LogManagementController> logger) : BaseApiController
 {
 
     #region Application Logs

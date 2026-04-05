@@ -13,8 +13,7 @@ namespace EventForge.Server.Controllers;
 [Authorize]
 public class MembershipCardsController(
     ITeamService teamService,
-    ITenantContext tenantContext,
-    ILogger<MembershipCardsController> logger) : BaseApiController
+    ITenantContext tenantContext) : BaseApiController
 {
 
     /// <summary>

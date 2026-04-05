@@ -36,7 +36,6 @@ public class PrintingController(
     IQzPrintingService qzPrintingService,
     QzDigitalSignatureService signatureService,
     QzSigner qzSigner,
-    QzWebSocketClient qzWebSocketClient,
     ILogger<PrintingController> logger) : BaseApiController
 {
 

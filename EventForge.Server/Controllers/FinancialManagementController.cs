@@ -26,7 +26,6 @@ public class FinancialManagementController(
     IVatRateService vatRateService,
     IVatNatureService vatNatureService,
     ITenantContext tenantContext,
-    ILogger<FinancialManagementController> logger,
     ICacheInvalidationService cacheInvalidation) : BaseApiController
 {
 
