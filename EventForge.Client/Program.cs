@@ -107,6 +107,10 @@ builder.Services.AddMemoryCache(options =>
 // Add centralized HTTP client service
 builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 
+// Add server configuration services
+builder.Services.AddScoped<IServerConfigService, ServerConfigService>();
+builder.Services.AddSingleton<IServerConfigOverlayService, ServerConfigOverlayService>();
+
 // Add custom services
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

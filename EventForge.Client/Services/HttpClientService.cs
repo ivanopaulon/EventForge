@@ -80,12 +80,14 @@ public class HttpClientService : IHttpClientService
     private readonly IClientLogService? _clientLogService;
     private readonly ISnackbar? _snackbar;
     private readonly IAppNotificationService? _appNotification;
+    private readonly IServerConfigService _serverConfigService;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public HttpClientService(
         IHttpClientFactory httpClientFactory,
         IAuthService authService,
         ILogger<HttpClientService> logger,
+        IServerConfigService serverConfigService,
         IClientLogService? clientLogService = null,
         ISnackbar? snackbar = null,
         IAppNotificationService? appNotification = null)
@@ -93,6 +95,7 @@ public class HttpClientService : IHttpClientService
         _httpClientFactory = httpClientFactory;
         _authService = authService;
         _logger = logger;
+        _serverConfigService = serverConfigService;
         _clientLogService = clientLogService;
         _snackbar = snackbar;
         _appNotification = appNotification;
@@ -314,6 +317,15 @@ public class HttpClientService : IHttpClientService
     private async Task<HttpClient> GetConfiguredHttpClientAsync(string clientName = "ApiClient")
     {
         var httpClient = _httpClientFactory.CreateClient(clientName);
+
+        // IHttpClientFactory.CreateClient() returns a NEW HttpClient instance on every call
+        // (the underlying handler is pooled for connection reuse, but the wrapper is not shared).
+        // Setting BaseAddress here is therefore safe and does not affect other callers.
+        var serverUrl = await _serverConfigService.GetServerUrlAsync();
+        if (!string.IsNullOrWhiteSpace(serverUrl))
+        {
+            httpClient.BaseAddress = new Uri(serverUrl);
+        }
 
         // Ensure authentication header is set
         var token = await _authService.GetAccessTokenAsync();

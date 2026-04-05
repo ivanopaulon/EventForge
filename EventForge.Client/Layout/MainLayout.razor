@@ -14,6 +14,7 @@
 @inject ILogger<MainLayout> Logger
 @inject IDialogService DialogService
 @inject IBrandingService BrandingService
+@inject IServerConfigOverlayService ServerConfigOverlayService
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -94,6 +95,9 @@
 
 <!-- Login Overlay - fullscreen login card replacing MudDialog -->
 <LoginOverlay />
+
+<!-- Server Config Overlay - allows runtime server URL configuration -->
+<ServerConfigOverlay />
 
 @code {
     private bool _drawerOpen = true;

@@ -2,6 +2,7 @@
 @using MudBlazor
 @using EventForge.Client.Services
 @inject IConnectionMonitorService ConnectionMonitor
+@inject IServerConfigOverlayService ServerConfigOverlayService
 @implements IDisposable
 
 @if (_showOverlay)
@@ -76,6 +77,14 @@
                                        Class="clo-retry-btn">
                                 @(_retrying ? "Verifica in corso…" : "Riprova ora")
                             </MudButton>
+                            <MudTooltip Text="Configura URL Server">
+                                <MudIconButton Icon="@Icons.Material.Outlined.Settings"
+                                               Size="Size.Small"
+                                               Color="Color.Default"
+                                               OnClick="@OpenServerConfig"
+                                               Class="clo-settings-btn"
+                                               aria-label="Configura URL Server" />
+                            </MudTooltip>
                         </div>
                     }
 
@@ -255,6 +264,11 @@
         StateHasChanged();
     }
 
+    private void OpenServerConfig()
+    {
+        ServerConfigOverlayService.Show();
+    }
+
     public void Dispose()
     {
         ConnectionMonitor.StatusChanged -= OnStatusChanged;
@@ -429,10 +443,21 @@
     /* ── Retry row ── */
     .clo-retry-row {
         margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
     .clo-retry-btn {
         font-size: 0.8rem !important;
+    }
+
+    .clo-settings-btn {
+        opacity: 0.65;
+    }
+
+    .clo-settings-btn:hover {
+        opacity: 1;
     }
 
     /* ── Mobile: stack vertically ── */
