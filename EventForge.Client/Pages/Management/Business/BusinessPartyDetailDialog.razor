@@ -16,7 +16,8 @@
           Title="@(_isCreateMode ? $"{GetEntityTypeName()} - {TranslationService.GetTranslation("common.create", "Crea")}" : (_party?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isLoading)
         {

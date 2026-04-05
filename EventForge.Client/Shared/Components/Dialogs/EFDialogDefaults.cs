@@ -11,12 +11,23 @@ public static class EFDialogDefaults
     /// <summary>
     /// MinWidth for simple form dialogs (no tabs).
     /// </summary>
-    public const string MinWidthSimple = "min(720px, 95vw)";
+    public const string MinWidthSimple = "min(860px, 95vw)";
 
     /// <summary>
     /// MinWidth for complex dialogs with vertical tabs.
     /// </summary>
-    public const string MinWidthTabbed = "min(980px, 95vw)";
+    public const string MinWidthTabbed = "min(1120px, 95vw)";
+
+    /// <summary>
+    /// MinHeight for the scrollable body of tabbed dialogs.
+    /// Keeps the dialog height stable when switching between tabs.
+    /// </summary>
+    public const string MinHeightTabbed = "520px";
+
+    /// <summary>
+    /// MinHeight for the scrollable body of simple (no-tab) dialogs.
+    /// </summary>
+    public const string MinHeightSimple = "260px";
 
     /// <summary>
     /// Standard DialogOptions for all detail dialogs opened from management pages.
@@ -26,6 +37,7 @@ public static class EFDialogDefaults
     public static DialogOptions Options => new()
     {
         BackdropClick = false,
-        CloseButton = false
+        CloseButton = false,
+        Position = DialogPosition.Center,
     };
 }

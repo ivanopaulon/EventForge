@@ -12,7 +12,6 @@
 @using MudBlazor
 @attribute [Authorize]
 @inject IBusinessPartyService BusinessPartyService
-@inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
@@ -339,30 +338,13 @@
             : _quickFilters.FirstOrDefault(f => f.Id == filterId)?.Predicate;
     }
 
-    private Task CreateBusinessPartyAsync()
+    private async Task CreateBusinessPartyAsync()
     {
-        // Navigate based on the URL-driven filter type (mirrors the original logic
-        // that used _activeQuickFilter to pick the creation route).
-        var filterId = FilterType?.ToLower() switch
-        {
-            "suppliers" or "fornitori" => "suppliers",
-            _ => null
-        };
-
-        var route = filterId == "suppliers"
-            ? "/business/suppliers/new"
-            : "/business/customers/new";
-
-        NavigationManager.NavigateTo(route);
-        return Task.CompletedTask;
-    }
-
-    private async Task OpenDetailDialogAsync(Guid id)
-    {
+        var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
         var parameters = new DialogParameters
         {
-            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)id,
-            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = false
+            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)null,
+            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
         };
         var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
@@ -370,16 +352,23 @@
             await _entityPage.RefreshAsync();
     }
 
-    private void EditBusinessParty(BusinessPartyDto businessParty)
+    private async Task OpenDetailDialogAsync(Guid id)
     {
-        // Navigate to the appropriate edit page based on party type
-        var route = businessParty.PartyType switch
+        var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
+        var parameters = new DialogParameters
         {
-            BusinessPartyType.Supplier => $"/business/suppliers/{businessParty.Id}",
-            _ => $"/business/customers/{businessParty.Id}"
+            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)id,
+            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
         };
+        var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage.RefreshAsync();
+    }
 
-        NavigationManager.NavigateTo(route);
+    private async Task EditBusinessParty(BusinessPartyDto businessParty)
+    {
+        await OpenDetailDialogAsync(businessParty.Id);
     }
 
     private async Task ManageSupplierProductsAsync(BusinessPartyDto supplier)

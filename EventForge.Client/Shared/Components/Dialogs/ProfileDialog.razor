@@ -10,7 +10,8 @@
           Title="@(_profile?.FullName ?? TranslationService.GetTranslation("profile.title", "Profilo"))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Close"
-          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isLoading)
         {

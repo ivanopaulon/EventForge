@@ -15,7 +15,8 @@
           Title="@(_isCreateMode ? "Nuovo Gruppo" : (_group?.Name ?? "Gruppo Business Party"))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isLoading)
         {

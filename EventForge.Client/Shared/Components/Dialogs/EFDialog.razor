@@ -3,9 +3,10 @@
 <MudDialog CloseButton="false"
            CloseOnEscapeKey="@(!IsProcessing)"
            Class="efd-dialog-root"
+           Position="DialogPosition.Center"
            Style="background:transparent !important; box-shadow:none !important; padding:0 !important; overflow:visible !important;">
     <DialogContent>
-        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight;">
+        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight; width:@MinWidth;">
 
             @* Barra progress 3px in cima *@
             <div class="efd-progress">
@@ -41,7 +42,7 @@
             </div>
 
             @* Body *@
-            <div class="efd-body">
+            <div class="efd-body" style="min-height:@MinHeight;">
                 @ChildContent
             </div>
 
@@ -63,6 +64,7 @@
     [Parameter] public bool IsProcessing { get; set; } = false;
     [Parameter] public string MinWidth { get; set; } = "min(600px, 95vw)";
     [Parameter] public string MaxHeight { get; set; } = "calc(100vh - 48px)";
+    [Parameter] public string MinHeight { get; set; } = EFDialogDefaults.MinHeightSimple;
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? DialogActions { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
@@ -80,6 +82,14 @@
     /* ═══════════════════════════════════════════════════════════
        EFDialog — Dark card wrapper
        ═══════════════════════════════════════════════════════════ */
+
+    /* Ensure the MudDialog overlay centres its child */
+    .efd-dialog-root,
+    .mud-dialog.efd-dialog-root {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
 
     /* Dark card */
     .efd-card {
@@ -107,6 +117,7 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        box-sizing: border-box;
     }
 
     /* Progress bar strip */
@@ -131,8 +142,75 @@
         color: rgba(255, 255, 255, 0.87);
         --mud-palette-surface: transparent;
         overflow-y: auto;
+        overflow-x: hidden;
         flex: 1 1 auto;
         min-height: 0;
+        box-sizing: border-box;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       VERTICAL TABS — unified style inside EFDialog
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Left-tab strip: narrower, no border between panel and tab strip */
+    .efd-body .mud-tabs.mud-tabs-left .mud-tab-slider {
+        background-color: var(--efd-color-primary-light) !important;
+    }
+
+    /* Tab panel content: remove default internal padding that can cause horizontal scroll */
+    .efd-body .mud-tabs .mud-tab-panel {
+        padding: 0 16px;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Tab label: left-aligned, lighter weight */
+    .efd-body .mud-tabs .mud-tab {
+        text-align: left;
+        justify-content: flex-start !important;
+        font-weight: 400;
+        font-size: 0.85rem;
+        letter-spacing: 0;
+        opacity: 0.75;
+        padding: 10px 14px !important;
+        min-height: 40px;
+        border-radius: 6px;
+        margin: 2px 4px;
+        transition: background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .efd-body .mud-tabs .mud-tab:hover {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        opacity: 0.90;
+    }
+
+    .efd-body .mud-tabs .mud-tab.mud-tab-active {
+        opacity: 1;
+        font-weight: 600;
+        background-color: rgba(100, 160, 255, 0.10) !important;
+        color: var(--efd-color-primary-light) !important;
+    }
+
+    /* Tab icon: align nicely with label */
+    .efd-body .mud-tabs .mud-tab .mud-icon-root {
+        font-size: 1.1rem;
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+
+    /* Tab panel text: ensure it fills available width */
+    .efd-body .mud-tab-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    /* MudGrid inside tab: prevent overflow */
+    .efd-body .mud-grid {
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -255,6 +333,7 @@
     @@media (max-width: 480px) {
         .efd-card {
             min-width: 92vw !important;
+            width: 92vw !important;
         }
 
         .efd-title {
@@ -283,3 +362,4 @@
         }
     }
 </style>
+

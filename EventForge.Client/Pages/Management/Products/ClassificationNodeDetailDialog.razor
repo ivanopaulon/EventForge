@@ -13,7 +13,8 @@
           Title="@(_isCreateMode ? TranslationService.GetTranslation("classificationNode.create", "Crea Nodo di Classificazione") : (_node?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isLoading)
         {

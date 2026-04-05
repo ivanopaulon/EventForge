@@ -17,7 +17,8 @@
           Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : (ViewModel.Entity?.Name ?? string.Empty))"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthTabbed">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
