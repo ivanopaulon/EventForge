@@ -89,12 +89,12 @@ public interface ITranslationService
 /// - ApiClient is pre-configured for server API communication
 /// - Dynamic language switching is supported without creating new HttpClient instances
 /// </summary>
-public class TranslationService : ITranslationService
+public class TranslationService(
+    IHttpClientFactory httpClientFactory,
+    IJSRuntime jsRuntime,
+    ILogger<TranslationService> logger) : ITranslationService
 {
     private const string BaseUrl = "i18n";
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IJSRuntime _jsRuntime;
-    private readonly ILogger<TranslationService> _logger;
 
     private Dictionary<string, object> _translations = new();
     private Dictionary<string, object> _defaultLanguageTranslations = new();
@@ -113,32 +113,13 @@ public class TranslationService : ITranslationService
     public string? LastMissingKey { get; private set; }
 
     /// <summary>
-    /// Initializes the TranslationService with pre-configured HttpClient instances.
-    /// HttpClient configuration (including BaseAddress) is handled in Program.cs.
-    /// </summary>
-    /// <param name="httpClientFactory">Factory for creating configured HttpClient instances</param>
-    /// <param name="jsRuntime">JavaScript runtime for local storage operations</param>
-    /// <param name="logger">Logger for debugging and warning messages</param>
-    public TranslationService(
-        IHttpClientFactory httpClientFactory,
-        IJSRuntime jsRuntime,
-        ILogger<TranslationService> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _jsRuntime = jsRuntime;
-        _logger = logger;
-    }
-
-    /// <summary>
     /// Initializes the translation service and loads the user's preferred language.
-    /// Note: HttpClient configuration (including BaseAddress) is handled in Program.cs
-    /// following Blazor and .NET best practices.
     /// </summary>
     public async Task InitializeAsync()
     {
         try
         {
-            _logger.LogDebug("Initializing TranslationService with default language: {DefaultLanguage}", DEFAULT_LANGUAGE);
+            logger.LogDebug("Initializing TranslationService with default language: {DefaultLanguage}", DEFAULT_LANGUAGE);
 
             // Load default language translations first for fallback
             // This ensures we always have some translations available
@@ -149,32 +130,32 @@ public class TranslationService : ITranslationService
             if (!string.IsNullOrEmpty(savedLanguage) && _availableLanguages.ContainsKey(savedLanguage))
             {
                 CurrentLanguage = savedLanguage;
-                _logger.LogDebug("Using saved language preference: {Language}", savedLanguage);
+                logger.LogDebug("Using saved language preference: {Language}", savedLanguage);
             }
             else
             {
-                _logger.LogDebug("No valid saved language found, using default: {Language}", DEFAULT_LANGUAGE);
+                logger.LogDebug("No valid saved language found, using default: {Language}", DEFAULT_LANGUAGE);
             }
 
             // Load translations for current language
             await LoadTranslationsAsync(CurrentLanguage);
 
-            _logger.LogInformation("TranslationService initialized successfully. Current language: {Language}", CurrentLanguage);
+            logger.LogInformation("TranslationService initialized successfully. Current language: {Language}", CurrentLanguage);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing translation service");
+            logger.LogError(ex, "Error initializing translation service");
 
             // Fallback to default language with error recovery
             CurrentLanguage = DEFAULT_LANGUAGE;
             try
             {
                 await LoadTranslationsAsync(CurrentLanguage);
-                _logger.LogWarning("Successfully recovered using default language: {Language}", CurrentLanguage);
+                logger.LogWarning("Successfully recovered using default language: {Language}", CurrentLanguage);
             }
             catch (Exception fallbackEx)
             {
-                _logger.LogError(fallbackEx, "Critical error: Cannot load fallback language {Language}. Translation service may not work properly.", CurrentLanguage);
+                logger.LogError(fallbackEx, "Critical error: Cannot load fallback language {Language}. Translation service may not work properly.", CurrentLanguage);
 
                 // Create empty translations to prevent further errors
                 _translations.Clear();
@@ -202,7 +183,7 @@ public class TranslationService : ITranslationService
     {
         if (!_availableLanguages.ContainsKey(language))
         {
-            _logger.LogWarning("Attempt to set unsupported language: {Language}. Available languages: {AvailableLanguages}",
+            logger.LogWarning("Attempt to set unsupported language: {Language}. Available languages: {AvailableLanguages}",
                 language, string.Join(", ", _availableLanguages.Keys));
             return;
         }
@@ -212,7 +193,7 @@ public class TranslationService : ITranslationService
 
         try
         {
-            _logger.LogDebug("Changing language from {PreviousLanguage} to {NewLanguage}", previousLanguage, language);
+            logger.LogDebug("Changing language from {PreviousLanguage} to {NewLanguage}", previousLanguage, language);
 
             // Load new translations using existing HttpClient configuration
             // No need to create new HttpClient instances or modify BaseAddress
@@ -224,11 +205,11 @@ public class TranslationService : ITranslationService
             // Notify components about language change
             LanguageChanged?.Invoke(this, language);
 
-            _logger.LogInformation("Language successfully changed from {PreviousLanguage} to {NewLanguage}", previousLanguage, language);
+            logger.LogInformation("Language successfully changed from {PreviousLanguage} to {NewLanguage}", previousLanguage, language);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error changing language from {PreviousLanguage} to {NewLanguage}. Rolling back to previous language.",
+            logger.LogError(ex, "Error changing language from {PreviousLanguage} to {NewLanguage}. Rolling back to previous language.",
                 previousLanguage, language);
 
             // Revert to previous language on error
@@ -251,7 +232,7 @@ public class TranslationService : ITranslationService
 
             // Try to get translation from current language
             var translation = GetNestedValue(_translations, key);
-            if (translation != null)
+            if (translation is not null)
             {
                 var translationString = translation.ToString();
                 if (!string.IsNullOrWhiteSpace(translationString))
@@ -264,7 +245,7 @@ public class TranslationService : ITranslationService
             if (CurrentLanguage != DEFAULT_LANGUAGE)
             {
                 var defaultTranslation = GetNestedValue(_defaultLanguageTranslations, key);
-                if (defaultTranslation != null)
+                if (defaultTranslation is not null)
                 {
                     var defaultTranslationString = defaultTranslation.ToString();
                     if (!string.IsNullOrWhiteSpace(defaultTranslationString))
@@ -283,7 +264,7 @@ public class TranslationService : ITranslationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting translation for key: {Key}", key);
+            logger.LogError(ex, "Error getting translation for key: {Key}", key);
             var errorFallback = !string.IsNullOrWhiteSpace(fallback) ? fallback : $"[{key}]";
             Console.WriteLine($"[TranslationService] ERROR getting translation for key '{key}': {ex.Message}. Using: {errorFallback}");
             return errorFallback;
@@ -321,7 +302,7 @@ public class TranslationService : ITranslationService
         Console.WriteLine(message);
 
         // Structured logging for production monitoring
-        _logger.LogWarning("Missing translation key detected. Key: {TranslationKey}, Language: {Language}, " +
+        logger.LogWarning("Missing translation key detected. Key: {TranslationKey}, Language: {Language}, " +
                           "File: {TranslationFile}, Reason: {Reason}, Suggestion: {Suggestion}",
             key,
             currentLanguage,
@@ -343,7 +324,7 @@ public class TranslationService : ITranslationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error formatting translation for key: {Key}", key);
+            logger.LogError(ex, "Error formatting translation for key: {Key}", key);
             return translation;
         }
     }
@@ -365,7 +346,7 @@ public class TranslationService : ITranslationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error formatting translation for key: {Key} with template: {Template}", key, defaultTemplate);
+            logger.LogError(ex, "Error formatting translation for key: {Key} with template: {Template}", key, defaultTemplate);
             // Fallback to safe string formatting with default template
             try
             {
@@ -397,10 +378,10 @@ public class TranslationService : ITranslationService
     {
         try
         {
-            _logger.LogDebug("Attempting to load translations from API for language: {Language}", CurrentLanguage);
+            logger.LogDebug("Attempting to load translations from API for language: {Language}", CurrentLanguage);
 
             // Use pre-configured ApiClient with BaseAddress already set in Program.cs
-            using var apiClient = _httpClientFactory.CreateClient("ApiClient");
+            using var apiClient = httpClientFactory.CreateClient("ApiClient");
 
             // Use relative URL since BaseAddress is pre-configured
             var apiEndpoint = $"api/translations/{CurrentLanguage}";
@@ -414,51 +395,51 @@ public class TranslationService : ITranslationService
                 using var document = JsonDocument.Parse(json);
                 var apiTranslations = ConvertJsonElementToDictionary(document.RootElement);
 
-                if (apiTranslations != null && apiTranslations.Count > 0)
+                if (apiTranslations is not null && apiTranslations.Count > 0)
                 {
                     _translations = apiTranslations;
                     LanguageChanged?.Invoke(this, CurrentLanguage);
-                    _logger.LogInformation("Successfully loaded {Count} translation groups from API for language {Language}",
+                    logger.LogInformation("Successfully loaded {Count} translation groups from API for language {Language}",
                         apiTranslations.Count, CurrentLanguage);
                 }
                 else
                 {
-                    _logger.LogWarning("API returned empty or invalid translations for language {Language}, falling back to local files", CurrentLanguage);
+                    logger.LogWarning("API returned empty or invalid translations for language {Language}, falling back to local files", CurrentLanguage);
                     await LoadTranslationsAsync(CurrentLanguage);
                 }
             }
             else
             {
-                _logger.LogWarning("API request failed with status {StatusCode} for language {Language}, falling back to local files",
+                logger.LogWarning("API request failed with status {StatusCode} for language {Language}, falling back to local files",
                     response.StatusCode, CurrentLanguage);
                 await LoadTranslationsAsync(CurrentLanguage);
             }
         }
         catch (HttpRequestException httpEx)
         {
-            _logger.LogWarning(httpEx, "Network error loading translations from API for language {Language}, using local files", CurrentLanguage);
+            logger.LogWarning(httpEx, "Network error loading translations from API for language {Language}, using local files", CurrentLanguage);
             await LoadTranslationsAsync(CurrentLanguage);
         }
         catch (TaskCanceledException timeoutEx) when (timeoutEx.InnerException is TimeoutException)
         {
-            _logger.LogWarning(timeoutEx, "Timeout loading translations from API for language {Language}, using local files", CurrentLanguage);
+            logger.LogWarning(timeoutEx, "Timeout loading translations from API for language {Language}, using local files", CurrentLanguage);
             await LoadTranslationsAsync(CurrentLanguage);
         }
         catch (JsonException jsonEx)
         {
-            _logger.LogWarning(jsonEx, "JSON parsing error for API translations in language {Language}, using local files", CurrentLanguage);
+            logger.LogWarning(jsonEx, "JSON parsing error for API translations in language {Language}, using local files", CurrentLanguage);
             await LoadTranslationsAsync(CurrentLanguage);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Unexpected error loading translations from API for language {Language}, using local files", CurrentLanguage);
+            logger.LogWarning(ex, "Unexpected error loading translations from API for language {Language}, using local files", CurrentLanguage);
             await LoadTranslationsAsync(CurrentLanguage);
         }
     }
 
     public bool HasTranslation(string key)
     {
-        return GetNestedValue(_translations, key) != null;
+        return GetNestedValue(_translations, key) is not null;
     }
 
     /// <summary>
@@ -487,12 +468,12 @@ public class TranslationService : ITranslationService
         try
         {
             // Use pre-configured StaticClient with BaseAddress already set
-            using var staticClient = _httpClientFactory.CreateClient("StaticClient");
+            using var staticClient = httpClientFactory.CreateClient("StaticClient");
 
             // Use relative URL - BaseAddress is already configured in Program.cs
             var translationUrl = $"i18n/{language}.json";
 
-            _logger.LogDebug("Loading translations for language {Language} from: {Url}", language, translationUrl);
+            logger.LogDebug("Loading translations for language {Language} from: {Url}", language, translationUrl);
 
             var response = await staticClient.GetAsync(translationUrl);
             if (response.IsSuccessStatusCode)
@@ -503,7 +484,7 @@ public class TranslationService : ITranslationService
                 using var document = JsonDocument.Parse(json);
                 var translations = ConvertJsonElementToDictionary(document.RootElement);
 
-                if (translations != null && translations.Count > 0)
+                if (translations is not null && translations.Count > 0)
                 {
                     // Clear and update the target dictionary
                     targetDictionary.Clear();
@@ -511,39 +492,39 @@ public class TranslationService : ITranslationService
                     {
                         targetDictionary[kvp.Key] = kvp.Value;
                     }
-                    _logger.LogDebug("Successfully loaded {Count} translation groups for language {Language}", translations.Count, language);
+                    logger.LogDebug("Successfully loaded {Count} translation groups for language {Language}", translations.Count, language);
                 }
                 else
                 {
-                    _logger.LogWarning("Translation file for language {Language} is empty or invalid JSON format", language);
+                    logger.LogWarning("Translation file for language {Language} is empty or invalid JSON format", language);
                     await HandleTranslationLoadError(language, targetDictionary, "Empty or invalid JSON");
                 }
             }
             else
             {
-                _logger.LogWarning("Failed to load translations for language {Language}: HTTP {StatusCode} {ReasonPhrase}",
+                logger.LogWarning("Failed to load translations for language {Language}: HTTP {StatusCode} {ReasonPhrase}",
                     language, response.StatusCode, response.ReasonPhrase);
                 await HandleTranslationLoadError(language, targetDictionary, $"HTTP {response.StatusCode}");
             }
         }
         catch (HttpRequestException httpEx)
         {
-            _logger.LogError(httpEx, "Network error loading translations for language {Language}", language);
+            logger.LogError(httpEx, "Network error loading translations for language {Language}", language);
             await HandleTranslationLoadError(language, targetDictionary, "Network error");
         }
         catch (TaskCanceledException timeoutEx) when (timeoutEx.InnerException is TimeoutException)
         {
-            _logger.LogError(timeoutEx, "Timeout loading translations for language {Language}", language);
+            logger.LogError(timeoutEx, "Timeout loading translations for language {Language}", language);
             await HandleTranslationLoadError(language, targetDictionary, "Timeout");
         }
         catch (JsonException jsonEx)
         {
-            _logger.LogError(jsonEx, "JSON parsing error for translations in language {Language}", language);
+            logger.LogError(jsonEx, "JSON parsing error for translations in language {Language}", language);
             await HandleTranslationLoadError(language, targetDictionary, "JSON parsing error");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error loading translations for language {Language}", language);
+            logger.LogError(ex, "Unexpected error loading translations for language {Language}", language);
             await HandleTranslationLoadError(language, targetDictionary, "Unexpected error");
         }
     }
@@ -606,7 +587,7 @@ public class TranslationService : ITranslationService
         // 2. We're loading into the main translations dictionary (not the default language dictionary)
         if (language != DEFAULT_LANGUAGE && targetDictionary == _translations)
         {
-            _logger.LogWarning("Attempting fallback to default language {DefaultLanguage} due to error loading {Language}: {Error}",
+            logger.LogWarning("Attempting fallback to default language {DefaultLanguage} due to error loading {Language}: {Error}",
                 DEFAULT_LANGUAGE, language, errorReason);
 
             try
@@ -616,7 +597,7 @@ public class TranslationService : ITranslationService
             }
             catch (Exception fallbackEx)
             {
-                _logger.LogError(fallbackEx, "Critical error: Fallback to default language {DefaultLanguage} also failed", DEFAULT_LANGUAGE);
+                logger.LogError(fallbackEx, "Critical error: Fallback to default language {DefaultLanguage} also failed", DEFAULT_LANGUAGE);
             }
         }
     }
@@ -652,11 +633,11 @@ public class TranslationService : ITranslationService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", LANGUAGE_PREFERENCE_KEY, language);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", LANGUAGE_PREFERENCE_KEY, language);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving language preference");
+            logger.LogError(ex, "Error saving language preference");
         }
     }
 
@@ -667,11 +648,11 @@ public class TranslationService : ITranslationService
     {
         try
         {
-            return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", LANGUAGE_PREFERENCE_KEY);
+            return await jsRuntime.InvokeAsync<string?>("localStorage.getItem", LANGUAGE_PREFERENCE_KEY);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting saved language preference");
+            logger.LogError(ex, "Error getting saved language preference");
             return null;
         }
     }

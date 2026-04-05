@@ -6,22 +6,12 @@ namespace EventForge.Client.Services
     /// <summary>
     /// Implementation of ITablePreferencesService for managing table preferences in localStorage.
     /// </summary>
-    public class TablePreferencesService : ITablePreferencesService
+    public class TablePreferencesService(
+        IJSRuntime jsRuntime,
+        IAuthService authService,
+        ILogger<TablePreferencesService> logger) : ITablePreferencesService
     {
-        private readonly IJSRuntime _jsRuntime;
-        private readonly IAuthService _authService;
-        private readonly ILogger<TablePreferencesService> _logger;
         private const string PREFIX = "ef.tableprefs";
-
-        public TablePreferencesService(
-            IJSRuntime jsRuntime,
-            IAuthService authService,
-            ILogger<TablePreferencesService> logger)
-        {
-            _jsRuntime = jsRuntime;
-            _authService = authService;
-            _logger = logger;
-        }
 
         /// <inheritdoc />
         public async Task<T?> GetPreferencesAsync<T>(string componentKey) where T : class
@@ -29,11 +19,11 @@ namespace EventForge.Client.Services
             try
             {
                 var storageKey = await BuildStorageKeyAsync(componentKey);
-                var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", storageKey);
+                var json = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", storageKey);
 
                 if (string.IsNullOrWhiteSpace(json))
                 {
-                    _logger.LogDebug("No preferences found for key: {StorageKey}", storageKey);
+                    logger.LogDebug("No preferences found for key: {StorageKey}", storageKey);
                     return null;
                 }
 
@@ -42,12 +32,12 @@ namespace EventForge.Client.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                _logger.LogDebug("Retrieved preferences for key: {StorageKey}", storageKey);
+                logger.LogDebug("Retrieved preferences for key: {StorageKey}", storageKey);
                 return preferences;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving preferences for component: {ComponentKey}", componentKey);
+                logger.LogError(ex, "Error retrieving preferences for component: {ComponentKey}", componentKey);
                 return null;
             }
         }
@@ -63,12 +53,12 @@ namespace EventForge.Client.Services
                     WriteIndented = false
                 });
 
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
-                _logger.LogDebug("Saved preferences for key: {StorageKey}", storageKey);
+                await jsRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
+                logger.LogDebug("Saved preferences for key: {StorageKey}", storageKey);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving preferences for component: {ComponentKey}", componentKey);
+                logger.LogError(ex, "Error saving preferences for component: {ComponentKey}", componentKey);
                 throw;
             }
         }
@@ -79,12 +69,12 @@ namespace EventForge.Client.Services
             try
             {
                 var storageKey = await BuildStorageKeyAsync(componentKey);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", storageKey);
-                _logger.LogDebug("Cleared preferences for key: {StorageKey}", storageKey);
+                await jsRuntime.InvokeVoidAsync("localStorage.removeItem", storageKey);
+                logger.LogDebug("Cleared preferences for key: {StorageKey}", storageKey);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error clearing preferences for component: {ComponentKey}", componentKey);
+                logger.LogError(ex, "Error clearing preferences for component: {ComponentKey}", componentKey);
                 throw;
             }
         }
@@ -99,15 +89,15 @@ namespace EventForge.Client.Services
 
             try
             {
-                var currentUser = await _authService.GetCurrentUserAsync();
-                if (currentUser?.Id != null && currentUser.Id != Guid.Empty)
+                var currentUser = await authService.GetCurrentUserAsync();
+                if (currentUser?.Id is not null && currentUser.Id != Guid.Empty)
                 {
                     userId = currentUser.Id.ToString();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error getting current user for storage key, using anonymous");
+                logger.LogWarning(ex, "Error getting current user for storage key, using anonymous");
             }
 
             return $"{PREFIX}.{userId}.{componentKey}";

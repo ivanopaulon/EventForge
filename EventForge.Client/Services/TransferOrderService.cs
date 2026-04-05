@@ -6,17 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of transfer order service using HTTP client.
 /// </summary>
-public class TransferOrderService : ITransferOrderService
+public class TransferOrderService(
+    IHttpClientService httpClientService,
+    ILogger<TransferOrderService> logger) : ITransferOrderService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<TransferOrderService> _logger;
     private const string BaseUrl = "api/v1/transferorder";
-
-    public TransferOrderService(IHttpClientService httpClientService, ILogger<TransferOrderService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<TransferOrderDto>?> GetTransferOrdersAsync(
         int page = 1,
@@ -43,11 +37,11 @@ public class TransferOrderService : ITransferOrderService
             if (!string.IsNullOrWhiteSpace(searchTerm))
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
 
-            return await _httpClientService.GetAsync<PagedResult<TransferOrderDto>>(url, cancellationToken);
+            return await httpClientService.GetAsync<PagedResult<TransferOrderDto>>(url, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer orders");
+            logger.LogError(ex, "Error retrieving transfer orders");
             return null;
         }
     }
@@ -56,11 +50,11 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            return await _httpClientService.GetAsync<TransferOrderDto>($"{BaseUrl}/{id}", ct);
+            return await httpClientService.GetAsync<TransferOrderDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}", id);
+            logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}", id);
             return null;
         }
     }
@@ -69,11 +63,11 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateTransferOrderDto, TransferOrderDto>(BaseUrl, dto, ct);
+            return await httpClientService.PostAsync<CreateTransferOrderDto, TransferOrderDto>(BaseUrl, dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating transfer order");
+            logger.LogError(ex, "Error creating transfer order");
             return null;
         }
     }
@@ -82,11 +76,11 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            return await _httpClientService.PostAsync<ShipTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/ship", dto, ct);
+            return await httpClientService.PostAsync<ShipTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/ship", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error shipping transfer order {TransferOrderId}", id);
+            logger.LogError(ex, "Error shipping transfer order {TransferOrderId}", id);
             return null;
         }
     }
@@ -95,11 +89,11 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            return await _httpClientService.PostAsync<ReceiveTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/receive", dto, ct);
+            return await httpClientService.PostAsync<ReceiveTransferOrderDto, TransferOrderDto>($"{BaseUrl}/{id}/receive", dto, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error receiving transfer order {TransferOrderId}", id);
+            logger.LogError(ex, "Error receiving transfer order {TransferOrderId}", id);
             return null;
         }
     }
@@ -108,12 +102,12 @@ public class TransferOrderService : ITransferOrderService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}/cancel", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}/cancel", ct);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}", id);
+            logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}", id);
             return false;
         }
     }

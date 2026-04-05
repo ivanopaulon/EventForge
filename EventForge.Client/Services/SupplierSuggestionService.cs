@@ -5,28 +5,20 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of supplier suggestion service.
 /// </summary>
-public class SupplierSuggestionService : ISupplierSuggestionService
+public class SupplierSuggestionService(
+    IHttpClientService httpClientService,
+    ILogger<SupplierSuggestionService> logger) : ISupplierSuggestionService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<SupplierSuggestionService> _logger;
-
-    public SupplierSuggestionService(
-        IHttpClientService httpClientService,
-        ILogger<SupplierSuggestionService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId)
     {
         try
         {
-            return await _httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}");
+            return await httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
+            logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
             return null;
         }
     }
@@ -42,13 +34,13 @@ public class SupplierSuggestionService : ISupplierSuggestionService
                 Reason = reason
             };
 
-            await _httpClientService.PostAsync<ApplySuggestionRequest, object>(
+            await httpClientService.PostAsync<ApplySuggestionRequest, object>(
                 $"api/v1/supplier-suggestions/products/{productId}/apply", request);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
+            logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
                 supplierId, productId);
             return false;
         }
@@ -58,11 +50,11 @@ public class SupplierSuggestionService : ISupplierSuggestionService
     {
         try
         {
-            return await _httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
+            return await httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
+            logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
             return null;
         }
     }

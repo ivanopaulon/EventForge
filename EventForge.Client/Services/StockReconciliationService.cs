@@ -5,28 +5,22 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of stock reconciliation service using HTTP client.
 /// </summary>
-public class StockReconciliationService : IStockReconciliationService
+public class StockReconciliationService(
+    IHttpClientService httpClientService,
+    ILogger<StockReconciliationService> logger) : IStockReconciliationService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<StockReconciliationService> _logger;
     private const string BaseUrl = "api/v1/warehouse/stock-reconciliation";
-
-    public StockReconciliationService(IHttpClientService httpClientService, ILogger<StockReconciliationService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default)
     {
         try
         {
-            return await _httpClientService.PostAsync<StockReconciliationRequestDto, StockReconciliationResultDto>(
+            return await httpClientService.PostAsync<StockReconciliationRequestDto, StockReconciliationResultDto>(
                 $"{BaseUrl}/calculate", request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calculating stock reconciliation");
+            logger.LogError(ex, "Error calculating stock reconciliation");
             return null;
         }
     }
@@ -35,12 +29,12 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            return await _httpClientService.PostAsync<StockReconciliationApplyRequestDto, StockReconciliationApplyResultDto>(
+            return await httpClientService.PostAsync<StockReconciliationApplyRequestDto, StockReconciliationApplyResultDto>(
                 $"{BaseUrl}/apply", request, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying stock reconciliation corrections");
+            logger.LogError(ex, "Error applying stock reconciliation corrections");
             return null;
         }
     }
@@ -49,7 +43,7 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            var queryParams = new List<string>();
+            List<string> queryParams = [];
 
             if (request.FromDate.HasValue)
                 queryParams.Add($"fromDate={request.FromDate.Value:O}");
@@ -72,11 +66,11 @@ public class StockReconciliationService : IStockReconciliationService
             var query = string.Join("&", queryParams);
             var url = queryParams.Count > 0 ? $"{BaseUrl}/export?{query}" : $"{BaseUrl}/export";
 
-            return await _httpClientService.GetAsync<byte[]>(url, ct);
+            return await httpClientService.GetAsync<byte[]>(url, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error exporting stock reconciliation data");
+            logger.LogError(ex, "Error exporting stock reconciliation data");
             return null;
         }
     }
@@ -85,12 +79,12 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            return await _httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
+            return await httpClientService.PostAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
                 $"{BaseUrl}/rebuild-movements/preview", request, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error previewing rebuild of missing stock movements");
+            logger.LogError(ex, "Error previewing rebuild of missing stock movements");
             return null;
         }
     }
@@ -99,12 +93,12 @@ public class StockReconciliationService : IStockReconciliationService
     {
         try
         {
-            return await _httpClientService.PostLongRunningAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
+            return await httpClientService.PostLongRunningAsync<RebuildMovementsRequestDto, RebuildMovementsResultDto>(
                 $"{BaseUrl}/rebuild-movements/execute", request, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing rebuild of missing stock movements");
+            logger.LogError(ex, "Error executing rebuild of missing stock movements");
             return null;
         }
     }

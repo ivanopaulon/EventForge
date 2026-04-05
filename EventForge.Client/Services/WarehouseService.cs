@@ -6,27 +6,21 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of warehouse management service using HTTP client.
 /// </summary>
-public class WarehouseService : IWarehouseService
+public class WarehouseService(
+    IHttpClientService httpClientService,
+    ILogger<WarehouseService> logger) : IWarehouseService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<WarehouseService> _logger;
     private const string BaseUrl = "api/v1/warehouse/facilities";
-
-    public WarehouseService(IHttpClientService httpClientService, ILogger<WarehouseService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100)
     {
         try
         {
-            return await _httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage facilities");
+            logger.LogError(ex, "Error retrieving storage facilities");
             return null;
         }
     }
@@ -35,11 +29,11 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            return await _httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving storage facility {FacilityId}", id);
+            logger.LogError(ex, "Error retrieving storage facility {FacilityId}", id);
             return null;
         }
     }
@@ -48,11 +42,11 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto);
+            return await httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating storage facility");
+            logger.LogError(ex, "Error creating storage facility");
             return null;
         }
     }
@@ -61,11 +55,11 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            return await _httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto);
+            return await httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating storage facility {FacilityId}", id);
+            logger.LogError(ex, "Error updating storage facility {FacilityId}", id);
             return null;
         }
     }
@@ -74,12 +68,12 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting storage facility {FacilityId}", id);
+            logger.LogError(ex, "Error deleting storage facility {FacilityId}", id);
             return false;
         }
     }
@@ -88,16 +82,16 @@ public class WarehouseService : IWarehouseService
     {
         try
         {
-            _logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}",
+            logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}",
                 bulkTransferDto.Items.Count, bulkTransferDto.SourceFacilityId, bulkTransferDto.DestinationFacilityId);
-            var result = await _httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkTransferDto, EventForge.DTOs.Bulk.BulkTransferResultDto>(
+            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkTransferDto, EventForge.DTOs.Bulk.BulkTransferResultDto>(
                 "api/v1/warehouse/bulk-transfer",
                 bulkTransferDto,
                 ct);
 
-            if (result != null)
+            if (result is not null)
             {
-                _logger.LogInformation("Bulk transfer completed. Success: {SuccessCount}, Failed: {FailedCount}",
+                logger.LogInformation("Bulk transfer completed. Success: {SuccessCount}, Failed: {FailedCount}",
                     result.SuccessCount, result.FailedCount);
             }
 
@@ -105,7 +99,7 @@ public class WarehouseService : IWarehouseService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error performing bulk transfer");
+            logger.LogError(ex, "Error performing bulk transfer");
             return null;
         }
     }

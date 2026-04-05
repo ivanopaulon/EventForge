@@ -6,17 +6,11 @@ namespace EventForge.Client.Services;
 /// <summary>
 /// Implementation of stock management service using HTTP client.
 /// </summary>
-public class StockService : IStockService
+public class StockService(
+    IHttpClientService httpClientService,
+    ILogger<StockService> logger) : IStockService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<StockService> _logger;
     private const string BaseUrl = "api/v1/warehouse/stock";
-
-    public StockService(IHttpClientService httpClientService, ILogger<StockService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<PagedResult<StockDto>?> GetStockAsync(
         int page = 1,
@@ -28,11 +22,11 @@ public class StockService : IStockService
     {
         try
         {
-            var queryParams = new List<string>
-            {
+            List<string> queryParams =
+            [
                 $"page={page}",
                 $"pageSize={pageSize}"
-            };
+            ];
 
             if (productId.HasValue)
                 queryParams.Add($"productId={productId.Value}");
@@ -44,11 +38,11 @@ public class StockService : IStockService
                 queryParams.Add($"lowStock={lowStock.Value}");
 
             var query = string.Join("&", queryParams);
-            return await _httpClientService.GetAsync<PagedResult<StockDto>>($"{BaseUrl}?{query}");
+            return await httpClientService.GetAsync<PagedResult<StockDto>>($"{BaseUrl}?{query}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving stock entries");
+            logger.LogError(ex, "Error retrieving stock entries");
             return null;
         }
     }
@@ -57,11 +51,11 @@ public class StockService : IStockService
     {
         try
         {
-            return await _httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving stock entry by ID: {StockId}", id);
+            logger.LogError(ex, "Error retrieving stock entry by ID: {StockId}", id);
             return null;
         }
     }
@@ -71,12 +65,12 @@ public class StockService : IStockService
         try
         {
             // Usa il nuovo endpoint dedicato creato nel server
-            var stocks = await _httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}");
+            var stocks = await httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}");
             return stocks ?? Enumerable.Empty<StockDto>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving stock entries by product ID: {ProductId}", productId);
+            logger.LogError(ex, "Error retrieving stock entries by product ID: {ProductId}", productId);
             return Enumerable.Empty<StockDto>();
         }
     }
@@ -97,12 +91,12 @@ public class StockService : IStockService
     {
         try
         {
-            var queryParams = new List<string>
-            {
+            List<string> queryParams =
+            [
                 $"page={page}",
                 $"pageSize={pageSize}",
                 $"detailedView={detailedView.ToString().ToLower()}"
-            };
+            ];
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
                 queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
@@ -124,11 +118,11 @@ public class StockService : IStockService
                 queryParams.Add($"showAllProducts={showAllProducts.Value}");
 
             var query = string.Join("&", queryParams);
-            return await _httpClientService.GetAsync<PagedResult<StockLocationDetail>>($"{BaseUrl}/overview?{query}");
+            return await httpClientService.GetAsync<PagedResult<StockLocationDetail>>($"{BaseUrl}/overview?{query}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving stock overview");
+            logger.LogError(ex, "Error retrieving stock overview");
             return null;
         }
     }
@@ -137,11 +131,11 @@ public class StockService : IStockService
     {
         try
         {
-            return await _httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto);
+            return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adjusting stock for StockId: {StockId}", dto.StockId);
+            logger.LogError(ex, "Error adjusting stock for StockId: {StockId}", dto.StockId);
             return null;
         }
     }
@@ -150,11 +144,11 @@ public class StockService : IStockService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto);
+            return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating stock for ProductId: {ProductId}", dto.ProductId);
+            logger.LogError(ex, "Error creating/updating stock for ProductId: {ProductId}", dto.ProductId);
             return null;
         }
     }
@@ -163,11 +157,11 @@ public class StockService : IStockService
     {
         try
         {
-            return await _httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto);
+            return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}", dto.StockId, dto.ProductId);
+            logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}", dto.StockId, dto.ProductId);
             return null;
         }
     }

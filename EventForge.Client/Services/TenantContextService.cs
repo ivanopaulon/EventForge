@@ -46,21 +46,15 @@ public interface ITenantContextService
 /// This service tracks the currently selected tenant in management pages
 /// and provides it to drawers and other components that need pre-selection.
 /// </summary>
-public class TenantContextService : ITenantContextService
+public class TenantContextService(
+    IJSRuntime jsRuntime,
+    ILogger<TenantContextService> logger) : ITenantContextService
 {
-    private readonly IJSRuntime _jsRuntime;
-    private readonly ILogger<TenantContextService> _logger;
     private const string TENANT_STORAGE_KEY = "eventforge_current_tenant";
 
     public Guid? CurrentTenantId { get; private set; }
     public TenantResponseDto? CurrentTenant { get; private set; }
     public event EventHandler<Guid?>? TenantChanged;
-
-    public TenantContextService(IJSRuntime jsRuntime, ILogger<TenantContextService> logger)
-    {
-        _jsRuntime = jsRuntime;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Initializes the service and loads any persisted tenant selection from browser storage.
@@ -73,12 +67,12 @@ public class TenantContextService : ITenantContextService
             if (savedTenantId.HasValue)
             {
                 CurrentTenantId = savedTenantId;
-                _logger.LogDebug("Loaded saved tenant context: {TenantId}", savedTenantId);
+                logger.LogDebug("Loaded saved tenant context: {TenantId}", savedTenantId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing tenant context service");
+            logger.LogError(ex, "Error initializing tenant context service");
         }
     }
 
@@ -109,13 +103,13 @@ public class TenantContextService : ITenantContextService
             if (previousTenantId != tenantId)
             {
                 TenantChanged?.Invoke(this, tenantId);
-                _logger.LogDebug("Tenant context changed from {PreviousTenant} to {NewTenant}",
+                logger.LogDebug("Tenant context changed from {PreviousTenant} to {NewTenant}",
                     previousTenantId, tenantId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting tenant context to {TenantId}", tenantId);
+            logger.LogError(ex, "Error setting tenant context to {TenantId}", tenantId);
         }
     }
 
@@ -134,11 +128,11 @@ public class TenantContextService : ITenantContextService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TENANT_STORAGE_KEY, tenantId.ToString());
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", TENANT_STORAGE_KEY, tenantId.ToString());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving tenant preference");
+            logger.LogError(ex, "Error saving tenant preference");
         }
     }
 
@@ -149,7 +143,7 @@ public class TenantContextService : ITenantContextService
     {
         try
         {
-            var savedValue = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TENANT_STORAGE_KEY);
+            var savedValue = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", TENANT_STORAGE_KEY);
             if (!string.IsNullOrEmpty(savedValue) && Guid.TryParse(savedValue, out var tenantId))
             {
                 return tenantId;
@@ -157,7 +151,7 @@ public class TenantContextService : ITenantContextService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting saved tenant preference");
+            logger.LogError(ex, "Error getting saved tenant preference");
         }
         return null;
     }
@@ -169,11 +163,11 @@ public class TenantContextService : ITenantContextService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TENANT_STORAGE_KEY);
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", TENANT_STORAGE_KEY);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing saved tenant preference");
+            logger.LogError(ex, "Error clearing saved tenant preference");
         }
     }
 }
