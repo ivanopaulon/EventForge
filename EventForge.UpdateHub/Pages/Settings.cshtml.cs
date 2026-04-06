@@ -1,10 +1,16 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.Json;
 using EventForge.UpdateHub.Configuration;
 
 namespace EventForge.UpdateHub.Pages;
 
+/// <summary>
+/// Settings page model for the Hub web UI.
+/// Displays and saves all <see cref="UpdateHubOptions"/> settings.
+/// Changes are written to <c>appsettings.json</c> and applied in-memory immediately
+/// (no restart required for most parameters).
+/// </summary>
 public class SettingsModel(
     UpdateHubOptions hubOptions,
     IWebHostEnvironment env,

@@ -120,8 +120,8 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
     {
         var installation = await db.Installations.FindAsync([id], ct);
         if (installation is null) return null;
-        var newKey = Convert.ToHexString(
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLower();
+        var newKey = Convert.ToHexStringLower(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         installation.ApiKey = newKey;
         installation.IsRevoked = false;
         installation.RevokedAt = null;

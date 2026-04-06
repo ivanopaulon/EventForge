@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.UpdateHub.Pages;
 
+/// <summary>
+/// API Keys management page model for the Hub web UI.
+/// Displays all registered installations with their masked API keys,
+/// online status, and allows revoke / reinstate / reissue operations.
+/// </summary>
 public class ApiKeysModel(
     IInstallationService installationService,
     IConnectionTracker connectionTracker,

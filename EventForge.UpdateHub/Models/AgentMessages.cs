@@ -18,7 +18,6 @@ public record RegisterInstallationMessage(
     string? DotNetVersion     = null,
     string? AgentVersion      = null);
 
-/// <summary>Sent periodically to confirm the agent is alive.</summary>
 /// <summary>Sent periodically to confirm the agent is alive and propagate mutable config (Location, Tags).</summary>
 public record HeartbeatMessage(
     string InstallationId,

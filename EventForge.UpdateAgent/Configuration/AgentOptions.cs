@@ -5,9 +5,16 @@ public class AgentOptions
     public const string SectionName = "UpdateAgent";
 
     // ── Identity ─────────────────────────────────────────────────────────
+    /// <summary>SignalR endpoint URL of the UpdateHub (e.g. "https://updatehub.example.com/hubs/update").</summary>
     public string HubUrl { get; set; } = string.Empty;
+
+    /// <summary>API key issued by the Hub to authenticate this agent. Set automatically after successful enrollment.</summary>
     public string ApiKey { get; set; } = string.Empty;
+
+    /// <summary>Stable GUID assigned by the Hub when this installation was enrolled. Persisted after first enrollment.</summary>
     public string InstallationId { get; set; } = string.Empty;
+
+    /// <summary>Human-readable display name for this installation (e.g. "Magazzino Nord – Server").</summary>
     public string InstallationName { get; set; } = string.Empty;
 
     /// <summary>Free-text physical location (e.g. "Magazzino Nord – PC-03").</summary>
@@ -33,7 +40,10 @@ public class AgentOptions
     public string InstallationCode { get; set; } = string.Empty;
 
     // ── Hub connection ────────────────────────────────────────────────────
-    /// <summary>Base URL used to build package download URLs.</summary>
+    /// <summary>
+    /// Base URL of the UpdateHub used to build package download URLs (e.g. "https://updatehub.example.com").
+    /// If empty, the Hub URL is derived from <see cref="HubUrl"/> by stripping the SignalR path.
+    /// </summary>
     public string HubBaseUrl { get; set; } = string.Empty;
 
     /// <summary>Seconds between heartbeat messages sent to the Hub.</summary>
@@ -57,7 +67,10 @@ public class AgentOptions
     public List<MaintenanceWindowOptions> MaintenanceWindows { get; set; } = [];
 
     // ── Nested option groups ──────────────────────────────────────────────
+    /// <summary>Per-component deployment configuration (Server and Client).</summary>
     public ComponentsOptions Components { get; set; } = new();
+
+    /// <summary>Install-time behaviour (health check retries, IIS warm-up, SQL timeout, etc.).</summary>
     public InstallOptions Install { get; set; } = new();
     public BackupAgentOptions Backup { get; set; } = new();
     public LoggingAgentOptions Logging { get; set; } = new();
@@ -68,30 +81,51 @@ public class AgentOptions
 
 // ── Components ────────────────────────────────────────────────────────────
 
+/// <summary>Groups the Server and Client component configuration sections.</summary>
 public class ComponentsOptions
 {
+    /// <summary>Configuration for the EventForge Server component.</summary>
     public ServerComponentOptions Server { get; set; } = new();
+
+    /// <summary>Configuration for the EventForge Client component.</summary>
     public ClientComponentOptions Client { get; set; } = new();
 }
 
+/// <summary>Deployment settings for the EventForge Server component.</summary>
 public class ServerComponentOptions
 {
+    /// <summary>When <see langword="true"/>, the Server component is managed by this agent.</summary>
     public bool Enabled { get; set; }
+
+    /// <summary>Name of the IIS site to stop/start during deployment.</summary>
     public string IISSiteName { get; set; } = string.Empty;
+
+    /// <summary>Name of the IIS application pool to stop/start during deployment.</summary>
     public string AppPoolName { get; set; } = string.Empty;
+
+    /// <summary>Absolute path to the Server deployment directory on disk.</summary>
     public string DeployPath { get; set; } = string.Empty;
+
+    /// <summary>URL polled by the post-deploy health check (e.g. "http://localhost/api/v1/health").</summary>
     public string HealthCheckUrl { get; set; } = string.Empty;
+
+    /// <summary>SQL Server connection string used to execute pre/post migration scripts.</summary>
     public string ConnectionString { get; set; } = string.Empty;
 }
 
+/// <summary>Deployment settings for the EventForge Client (Blazor WebAssembly) component.</summary>
 public class ClientComponentOptions
 {
+    /// <summary>When <see langword="true"/>, the Client component is managed by this agent.</summary>
     public bool Enabled { get; set; }
+
+    /// <summary>Absolute path to the Client deployment directory on disk.</summary>
     public string DeployPath { get; set; } = string.Empty;
 }
 
 // ── Install behaviour ─────────────────────────────────────────────────────
 
+/// <summary>Controls the behaviour of the installation and post-deploy verification steps.</summary>
 public class InstallOptions
 {
     /// <summary>Maximum attempts for the post-deploy health check.</summary>

@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EventForge.UpdateHub.Pages;
 
+/// <summary>
+/// Dashboard page model for the Hub web UI.
+/// Displays KPI cards (totals/online/offline), the list of registered installations,
+/// and the packages that are ready to deploy.
+/// </summary>
 public class IndexModel(
     IInstallationService installationService,
     IPackageService packageService,

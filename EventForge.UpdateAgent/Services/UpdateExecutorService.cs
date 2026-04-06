@@ -17,7 +17,6 @@ public class UpdateExecutorService(
     BackupService backupService,
     IisManagerService iisManagerService,
     MigrationRunnerService migrationRunner,
-    VersionDetectorService versionDetector,
     DownloadProgressService downloadProgress,
     ILogger<UpdateExecutorService> logger)
 {
