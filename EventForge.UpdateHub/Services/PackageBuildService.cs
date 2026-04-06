@@ -73,7 +73,7 @@ public class PackageBuildService(
                 if (plusIdx >= 0)
                 {
                     var suffix = raw[(plusIdx + 1)..].TrimStart('g');
-                    commit = suffix.Length > 8 ? suffix[..8] : (suffix.Length > 0 ? suffix : null);
+                    commit = TruncateCommit(suffix);
                 }
                 return (ver, commit);
             }
@@ -103,7 +103,7 @@ public class PackageBuildService(
                 if (plusIdx >= 0)
                 {
                     var suffix = infoVer[(plusIdx + 1)..].TrimStart('g');
-                    commit = suffix.Length > 8 ? suffix[..8] : (suffix.Length > 0 ? suffix : null);
+                    commit = TruncateCommit(suffix);
                 }
                 if (!string.IsNullOrWhiteSpace(ver))
                     return (ver, commit);
@@ -116,6 +116,10 @@ public class PackageBuildService(
 
         return (null, null);
     }
+
+    /// <summary>Returns the first 8 characters of a commit hash, or null if empty.</summary>
+    private static string? TruncateCommit(string suffix) =>
+        suffix.Length > 8 ? suffix[..8] : (suffix.Length > 0 ? suffix : null);
 
     // ── Build ─────────────────────────────────────────────────────────────
 
@@ -196,7 +200,7 @@ public class PackageBuildService(
         string? gitCommit,
         CancellationToken ct)
     {
-        var rootLen = folderPath.TrimEnd(Path.DirectorySeparatorChar, '/').Length + 1;
+        var rootLen = folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Length + 1;
 
         await using var fs = File.Create(zipPath);
         using var zip = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);

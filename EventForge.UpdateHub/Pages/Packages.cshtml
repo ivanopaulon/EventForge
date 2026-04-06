@@ -1,5 +1,6 @@
 @page
 @model EventForge.UpdateHub.Pages.PackagesModel
+@using System.Text.Json
 @using EventForge.UpdateHub.Data.Entities
 @{
     ViewData["Title"] = "Pacchetti";
@@ -376,8 +377,8 @@
 <script>
 // ── Build-from-folder: auto-fill defaults on component change ─────────────
 const defaultPaths = {
-    'Server': '@Html.Raw(Model.DefaultServerDeployPath?.Replace("\\", "\\\\") ?? "")',
-    'Client': '@Html.Raw(Model.DefaultClientDeployPath?.Replace("\\", "\\\\") ?? "")'
+    'Server': @Html.Raw(JsonSerializer.Serialize(Model.DefaultServerDeployPath ?? string.Empty)),
+    'Client': @Html.Raw(JsonSerializer.Serialize(Model.DefaultClientDeployPath ?? string.Empty))
 };
 
 function onBuildComponentChange() {
@@ -455,7 +456,8 @@ function showDetectResult(type, html) {
 }
 
 function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── Packages table filter ─────────────────────────────────────────────────
