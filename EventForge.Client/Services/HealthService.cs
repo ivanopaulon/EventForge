@@ -24,25 +24,43 @@ namespace EventForge.Client.Services
 
     public class HealthService(
         IHttpClientFactory httpClientFactory,
+        IHttpClientService httpClientService,
         ILogger<HealthService> logger) : IHealthService
     {
         public Task<HealthStatusDto?> GetHealthAsync()
-            => GetAsync<HealthStatusDto>("api/v1/health");
+            => GetAnonymousAsync<HealthStatusDto>("api/v1/health");
 
         public Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
-            => GetAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
+            => GetAnonymousAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
 
-        public Task<AgentStatusClientDto?> GetAgentStatusAsync()
-            => GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
+        /// <summary>
+        /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
+        /// is included — required because <c>GET api/v1/system/agent-status</c> has [Authorize].
+        /// </summary>
+        public async Task<AgentStatusClientDto?> GetAgentStatusAsync()
+        {
+            try
+            {
+                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Agent status request failed");
+                return null;
+            }
+        }
 
+        /// <summary>
+        /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
+        /// is included — required because <c>POST api/v1/system/agent-status/restart</c> has [Authorize(Roles="SuperAdmin")].
+        /// </summary>
         public async Task<(bool Success, string Message)> RestartAgentAsync()
         {
             try
             {
-                var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.PostAsync("api/v1/system/agent-status/restart", null);
-                var body = await response.Content.ReadFromJsonAsync<AgentRestartResultClientDto>();
-                return (body?.Success == true, body?.Message ?? response.ReasonPhrase ?? "Risposta sconosciuta");
+                var result = await httpClientService.PostAsync<object?, AgentRestartResultClientDto>(
+                    "api/v1/system/agent-status/restart", null);
+                return (result?.Success == true, result?.Message ?? "Risposta sconosciuta");
             }
             catch (Exception ex)
             {
@@ -51,9 +69,9 @@ namespace EventForge.Client.Services
             }
         }
 
-        // ── Helper ───────────────────────────────────────────────────────────
+        // ── Anonymous helper — for public [AllowAnonymous] health endpoints ───────
 
-        private async Task<T?> GetAsync<T>(string relativeUrl) where T : class
+        private async Task<T?> GetAnonymousAsync<T>(string relativeUrl) where T : class
         {
             try
             {
