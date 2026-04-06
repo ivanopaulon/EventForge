@@ -135,7 +135,7 @@ builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogSer
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
-builder.Services.AddSingleton<IUpdateNotificationService, UpdateNotificationService>();
+builder.Services.AddScoped<IUpdateNotificationService, UpdateNotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
