@@ -727,7 +727,9 @@ else
 
         if (result is { Canceled: false } && result.Data is POSTouchLineEditDialog.EditResult editResult)
         {
-            item.Quantity = editResult.Qty;
+            // Direct mutation + QueueItemUpdate is the established optimistic-update pattern
+            // used throughout this page (see also ApplyKeypadToSelectedItemAsync).
+            item.Quantity = editResult.Quantity;
             item.UnitPrice = editResult.UnitPrice;
             item.DiscountPercent = editResult.DiscountPercent;
             ViewModel.QueueItemUpdate(item);

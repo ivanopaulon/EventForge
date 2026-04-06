@@ -121,7 +121,8 @@
                    Variant="Variant.Filled"
                    Size="Size.Large"
                    StartIcon="@Icons.Material.Filled.Check"
-                   OnClick="Submit">
+                   OnClick="Submit"
+                   Disabled="@(!_isValid)">
             @TranslationService.GetTranslation("common.apply", "Applica")
         </MudButton>
     </DialogActions>
@@ -133,7 +134,7 @@
 
     [Parameter] public SaleItemDto? Item { get; set; }
 
-    public record EditResult(decimal Qty, decimal UnitPrice, decimal DiscountPercent);
+    public record EditResult(decimal Quantity, decimal UnitPrice, decimal DiscountPercent);
 
     private decimal _qty;
     private decimal _unitPrice;
@@ -143,6 +144,9 @@
 
     private decimal _lineTotal =>
         _qty * _unitPrice * (1m - _discountPercent / 100m);
+
+    private bool _isValid =>
+        _qty > 0 && _unitPrice >= 0 && _discountPercent >= 0 && _discountPercent <= 100;
 
     protected override void OnParametersSet()
     {
@@ -163,8 +167,7 @@
 
     private void Submit()
     {
-        if (_qty <= 0) return;
-        if (_discountPercent is < 0 or > 100) return;
+        if (!_isValid) return;
         MudDialog.Close(DialogResult.Ok(new EditResult(_qty, _unitPrice, _discountPercent)));
     }
 
