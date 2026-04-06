@@ -11,18 +11,25 @@ namespace EventForge.Server.Services.FiscalPrinting;
 /// <summary>
 /// Implementation of <see cref="IFiscalPrinterService"/> for Custom fiscal printers.
 /// Resolves the printer configuration from the database, builds the appropriate
-/// communication channel (TCP or serial), executes the command sequence, and
-/// parses the printer responses.
+/// communication channel (TCP, serial, or USB-via-Agent proxy), executes the command
+/// sequence, and parses the printer responses.
 /// </summary>
 /// <remarks>
 /// Protocol type "Custom" is the only protocol currently supported.
-/// The service detects whether to use TCP or serial based on the presence of
-/// <c>Printer.Address</c> + <c>Printer.Port</c> vs <c>Printer.SerialPortName</c>.
+/// The service selects the channel based on <see cref="Printer.ConnectionType"/>:
+/// <list type="bullet">
+///   <item><term>TCP</term><description>Uses <see cref="CustomTcpCommunication"/> (Address + Port).</description></item>
+///   <item><term>Serial</term><description>Uses <see cref="CustomSerialCommunication"/> (SerialPortName).</description></item>
+///   <item><term>UsbViaAgent</term><description>Uses <see cref="AgentProxyCommunication"/> (AgentId → URL from configuration, UsbDeviceId).</description></item>
+/// </list>
+/// Agent base URLs are resolved from <c>AgentProxies:{agentId}</c> in application configuration.
 /// </remarks>
 public class CustomFiscalPrinterService(
     EventForgeDbContext context,
     ILoggerFactory loggerFactory,
-    ILogger<CustomFiscalPrinterService> logger) : IFiscalPrinterService
+    ILogger<CustomFiscalPrinterService> logger,
+    IConfiguration configuration,
+    IHttpClientFactory httpClientFactory) : IFiscalPrinterService
 {
     private readonly FiscalReceiptBuilder _builder = new();
 
@@ -223,6 +230,31 @@ public class CustomFiscalPrinterService(
             throw new InvalidOperationException(
                 $"Printer '{printer.Name}' (ID: {printerId}) is not configured as a fiscal printer.");
 
+        // USB-via-Agent channel: requires AgentId + UsbDeviceId
+        if (printer.ConnectionType == PrinterConnectionType.UsbViaAgent)
+        {
+            if (printer.AgentId is null)
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as UsbViaAgent but has no AgentId.");
+
+            if (string.IsNullOrWhiteSpace(printer.UsbDeviceId))
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as UsbViaAgent but has no UsbDeviceId.");
+
+            var agentUrl = GetAgentBaseUrl(printer.AgentId.Value);
+
+            logger.LogDebug(
+                "Creating agent-proxy channel for printer {Name} (agent={AgentId} device={DeviceId} url={Url})",
+                printer.Name, printer.AgentId, printer.UsbDeviceId, agentUrl);
+
+            return new AgentProxyCommunication(
+                agentUrl,
+                printer.UsbDeviceId,
+                timeoutMs: 30_000,
+                loggerFactory.CreateLogger<AgentProxyCommunication>(),
+                httpClientFactory);
+        }
+
         // TCP channel: requires Address + Port
         if (!string.IsNullOrWhiteSpace(printer.Address) && printer.Port > 0)
         {
@@ -251,7 +283,37 @@ public class CustomFiscalPrinterService(
 
         throw new InvalidOperationException(
             $"Printer '{printer.Name}' (ID: {printerId}) has no valid connection configuration. " +
-            "Set Address+Port for TCP or SerialPortName for serial communication.");
+            "Set Address+Port for TCP, SerialPortName for serial, or AgentId+UsbDeviceId for USB-via-Agent.");
+    }
+
+    /// <summary>
+    /// Resolves the base URL of an agent from configuration key <c>AgentProxies:{agentId}</c>.
+    /// </summary>
+    /// <param name="agentId">The agent's stable GUID.</param>
+    /// <returns>The base URL (e.g. <c>http://localhost:5780</c>) of the agent's HTTP endpoint.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no URL is configured for the given <paramref name="agentId"/>.
+    /// </exception>
+    /// <remarks>
+    /// Configure agent URLs in <c>appsettings.json</c> (or environment variables) using the pattern:
+    /// <code>
+    /// "AgentProxies": {
+    ///   "11111111-2222-3333-4444-555555555555": "http://localhost:5780",
+    ///   "aaaabbbb-cccc-dddd-eeee-ffffffffffff": "http://192.168.1.50:5780"
+    /// }
+    /// </code>
+    /// Each key is a Guid matching <see cref="Printer.AgentId"/>; the value is the agent's HTTP base URL.
+    /// </remarks>
+    private string GetAgentBaseUrl(Guid agentId)
+    {
+        var url = configuration[$"AgentProxies:{agentId}"];
+
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException(
+                $"No base URL configured for agent '{agentId}'. " +
+                $"Add 'AgentProxies:{agentId}' to application configuration.");
+
+        return url.TrimEnd('/');
     }
 
     /// <summary>
