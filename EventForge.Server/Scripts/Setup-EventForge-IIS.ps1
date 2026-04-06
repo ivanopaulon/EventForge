@@ -46,6 +46,23 @@ Write-Host "  EventForge IIS Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" 
 Write-Host "  Transcript: $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 
+# Read HTTPS port from appsettings.json if already deployed at $DEPLOY_PATH.
+# Keeps the IIS binding in sync with Environments:Production:HttpClient:Port in appsettings.json
+# without requiring manual script edits (same pattern used by Setup-EventForge-UpdateHub.ps1).
+$appSettingsEarly = Join-Path $DEPLOY_PATH "appsettings.json"
+if (Test-Path $appSettingsEarly) {
+    try {
+        $earlyJson   = Get-Content $appSettingsEarly -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cfgSitePort = $earlyJson.Environments.Production.HttpClient.Port
+        if ($cfgSitePort -and [int]$cfgSitePort -gt 0) {
+            $SITE_PORT = [int]$cfgSitePort
+            Write-Host "  [    ] HTTPS port letto da appsettings.json (Environments.Production.HttpClient.Port): $SITE_PORT" -ForegroundColor White
+        }
+    } catch {
+        Write-Host "  [WARN] Impossibile leggere la porta da appsettings.json, uso default: $SITE_PORT" -ForegroundColor Yellow
+    }
+}
+
 Write-Step "CONFIGURAZIONE"
 Write-INFO "Deploy path : $DEPLOY_PATH"
 Write-INFO "Pool        : $POOL_NAME"
@@ -688,17 +705,39 @@ if (Test-Path $appSettingsPath) {
             )
             Write-OK "Sezione Cors aggiunta con origine: $clientOrigin"
         } else {
-            $origins = @($json.Cors.AllowedOrigins)
-            if ($origins -notcontains $clientOrigin) {
-                $json.Cors.AllowedOrigins = @($origins) + $clientOrigin
-                Write-OK "Aggiunta origine CORS: $clientOrigin"
-            } else {
-                Write-INFO "Origine CORS gia presente: $clientOrigin"
-            }
+            # Produzione: sostituisce l'intero array rimuovendo eventuali origini di sviluppo
+            $json.Cors.AllowedOrigins = @($clientOrigin)
+            Write-OK "AllowedOrigins impostato per produzione: $clientOrigin"
         }
 
         $json | ConvertTo-Json -Depth 10 | Set-Content $appSettingsPath -Encoding UTF8
         Write-OK "appsettings.json aggiornato"
+
+        # Verifica UpdateHub.MaintenanceSecret
+        if ($json.PSObject.Properties['UpdateHub']) {
+            $maintSecret = $json.UpdateHub.MaintenanceSecret
+            if ([string]::IsNullOrWhiteSpace($maintSecret) -or $maintSecret -eq "REPLACE_WITH_STRONG_SECRET") {
+                Write-WARN "============================================================"
+                Write-WARN "ATTENZIONE: UpdateHub.MaintenanceSecret non configurato!"
+                Write-WARN "Imposta un segreto sicuro in: $appSettingsPath"
+                Write-WARN "  Sezione: UpdateHub -> MaintenanceSecret"
+                Write-WARN "Deve corrispondere a UpdateAgent:Components:Server/Client:MaintenanceSecret"
+                Write-WARN "============================================================"
+            } else {
+                Write-OK "UpdateHub.MaintenanceSecret configurato"
+            }
+        }
+
+        # Verifica Agent.Password (deve corrispondere a UpdateAgent.UI.Password nell'agent)
+        if ($json.PSObject.Properties['Agent']) {
+            $agentPwd = $json.Agent.Password
+            if ([string]::IsNullOrWhiteSpace($agentPwd) -or $agentPwd -eq "Admin#123!") {
+                Write-WARN "Agent.Password e ancora il valore di default ('Admin#123!')."
+                Write-WARN "Deve corrispondere a UpdateAgent.UI.Password in appsettings.json dell'agent."
+            } else {
+                Write-OK "Agent.Password configurata"
+            }
+        }
     } catch {
         Write-WARN "Impossibile aggiornare CORS in appsettings.json: $_"
         Write-WARN "Aggiungi manualmente la sezione Cors in $appSettingsPath"
