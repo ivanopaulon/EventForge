@@ -86,6 +86,9 @@ try
     builder.Services.AddSingleton<UpdateExecutorService>();
     builder.Services.AddSingleton<CommandTrackingService>();
 
+    // ── Printer proxy ─────────────────────────────────────────────────────
+    builder.Services.AddSingleton<IAgentPrinterService, AgentPrinterService>();
+
     // ── Background workers ────────────────────────────────────────────────
     builder.Services.AddHostedService<AgentWorker>();
     builder.Services.AddHostedService<ScheduledInstallWorker>();
@@ -93,6 +96,7 @@ try
     // ── Web UI ────────────────────────────────────────────────────────────
     builder.Services.AddRazorPages();
     builder.Services.AddAntiforgery();
+    builder.Services.AddControllers();
 
     // Bind only to localhost on the configured port
     builder.WebHost.UseUrls($"http://localhost:{earlyAgent.UI.Port}");
@@ -107,6 +111,7 @@ try
     app.UseRouting();
     app.UseAntiforgery();
     app.MapRazorPages();
+    app.MapControllers();
 
     // ── Minimal API endpoints ─────────────────────────────────────────────
     // Hub connection + download status (used by sidebar.js and dashboard polling)

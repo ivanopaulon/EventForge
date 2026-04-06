@@ -55,6 +55,31 @@ public class Station : AuditableEntity
     /// </summary>
     [Display(Name = "Printers", Description = "Printers assigned to the station.")]
     public ICollection<Printer> Printers { get; set; } = new List<Printer>();
+
+    // --- Printing & KDS Configuration ---
+
+    /// <summary>
+    /// Type of station (e.g. Kitchen, Bar, Cocktail, POS).
+    /// </summary>
+    [Display(Name = "Station Type", Description = "Functional type of the station.")]
+    public StationType StationType { get; set; } = StationType.KDS;
+
+    /// <summary>
+    /// Printer assigned to this station for order printing / KDS output.
+    /// </summary>
+    [Display(Name = "Assigned Printer", Description = "Printer used for order/KDS printing at this station.")]
+    public Guid? AssignedPrinterId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the assigned printer.
+    /// </summary>
+    public Printer? AssignedPrinter { get; set; }
+
+    /// <summary>
+    /// If true, items routed to this station also appear on the fiscal receipt.
+    /// </summary>
+    [Display(Name = "Prints Receipt Copy", Description = "Include items from this station on the fiscal receipt.")]
+    public bool PrintsReceiptCopy { get; set; }
 }
 
 /// <summary>
@@ -66,4 +91,19 @@ public enum StationStatus
     Suspended,      // Temporarily suspended
     Maintenance,    // Under maintenance
     Disabled        // Disabled/not usable
+}
+
+/// <summary>
+/// Functional type of a station.
+/// </summary>
+public enum StationType
+{
+    KDS,          // Generic Kitchen Display Station
+    Kitchen,      // Main kitchen
+    Bar,          // Bar station
+    Cocktail,     // Cocktail/mixology bar
+    Pizza,        // Pizza station
+    Takeaway,     // Takeaway/delivery counter
+    Counter,      // Service counter
+    POS           // Point of Sale station
 }

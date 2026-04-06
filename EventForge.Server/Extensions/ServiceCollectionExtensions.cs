@@ -286,6 +286,10 @@ public static class ServiceCollectionExtensions
 
         // Register fiscal printing services
         _ = services.AddScoped<IFiscalMappingService, FiscalMappingService>();
+        _ = services.AddScoped<IFiscalPrinterService, CustomFiscalPrinterService>();
+        _ = services.AddSingleton<FiscalPrinterStatusCache>();
+        _ = services.AddHostedService<EventForge.Server.HostedServices.FiscalPrinterMonitorService>();
+        _ = services.AddHostedService<EventForge.Server.HostedServices.DailyClosureReminderService>();
 
         // Register code generation services
         _ = services.AddScoped<IDailyCodeGenerator, DailySequentialCodeGenerator>();
@@ -608,6 +612,8 @@ public static class ServiceCollectionExtensions
                 policy.RequireRole("Admin", "SuperAdmin")) // SuperAdmin can also access Admin content
             .AddPolicy("RequireManager", policy =>
                 policy.RequireRole("Admin", "Manager", "SuperAdmin")) // SuperAdmin can access Manager content too
+            .AddPolicy("RequireStoreConfig", policy =>
+                policy.RequireRole("Admin", "Manager", "StoreManager", "SuperAdmin"))
             .AddPolicy("RequireSuperAdmin", policy =>
                 policy.RequireRole("SuperAdmin"))
             .AddPolicy("CanManageUsers", policy =>

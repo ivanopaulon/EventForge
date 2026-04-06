@@ -389,6 +389,19 @@ public class StationService(
                 Location = createPrinterDto.Location,
                 Address = createPrinterDto.Address,
                 StationId = createPrinterDto.StationId,
+                IsFiscalPrinter = createPrinterDto.IsFiscalPrinter,
+                ProtocolType = createPrinterDto.ProtocolType,
+                Port = createPrinterDto.Port,
+                BaudRate = createPrinterDto.BaudRate,
+                SerialPortName = createPrinterDto.SerialPortName,
+                ConnectionType = createPrinterDto.ConnectionType,
+                AgentId = createPrinterDto.AgentId,
+                UsbDeviceId = createPrinterDto.UsbDeviceId,
+                Category = createPrinterDto.Category,
+                IsThermal = createPrinterDto.IsThermal,
+                PrinterWidth = createPrinterDto.PrinterWidth,
+                PaperWidth = createPrinterDto.PaperWidth,
+                PrintLanguage = createPrinterDto.PrintLanguage,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -453,6 +466,19 @@ public class StationService(
             printer.Location = updatePrinterDto.Location;
             printer.Address = updatePrinterDto.Address;
             printer.StationId = updatePrinterDto.StationId;
+            printer.IsFiscalPrinter = updatePrinterDto.IsFiscalPrinter;
+            printer.ProtocolType = updatePrinterDto.ProtocolType;
+            printer.Port = updatePrinterDto.Port;
+            printer.BaudRate = updatePrinterDto.BaudRate;
+            printer.SerialPortName = updatePrinterDto.SerialPortName;
+            printer.ConnectionType = updatePrinterDto.ConnectionType;
+            printer.AgentId = updatePrinterDto.AgentId;
+            printer.UsbDeviceId = updatePrinterDto.UsbDeviceId;
+            printer.Category = updatePrinterDto.Category;
+            printer.IsThermal = updatePrinterDto.IsThermal;
+            printer.PrinterWidth = updatePrinterDto.PrinterWidth;
+            printer.PaperWidth = updatePrinterDto.PaperWidth;
+            printer.PrintLanguage = updatePrinterDto.PrintLanguage;
             printer.ModifiedAt = DateTime.UtcNow;
             printer.ModifiedBy = currentUser;
 
@@ -578,7 +604,22 @@ public class StationService(
             CreatedAt = printer.CreatedAt,
             CreatedBy = printer.CreatedBy,
             ModifiedAt = printer.ModifiedAt,
-            ModifiedBy = printer.ModifiedBy
+            ModifiedBy = printer.ModifiedBy,
+            IsFiscalPrinter = printer.IsFiscalPrinter,
+            ProtocolType = printer.ProtocolType,
+            ConnectionString = printer.ConnectionString,
+            Port = printer.Port,
+            BaudRate = printer.BaudRate,
+            SerialPortName = printer.SerialPortName,
+            Status = printer.Status,
+            ConnectionType = printer.ConnectionType,
+            AgentId = printer.AgentId,
+            UsbDeviceId = printer.UsbDeviceId,
+            Category = printer.Category,
+            IsThermal = printer.IsThermal,
+            PrinterWidth = printer.PrinterWidth,
+            PaperWidth = printer.PaperWidth,
+            PrintLanguage = printer.PrintLanguage
         };
     }
 
