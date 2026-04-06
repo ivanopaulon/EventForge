@@ -362,18 +362,21 @@ public class AgentWorker(
             if (isServer && !options.Components.Server.Enabled)
             {
                 logger.LogDebug("UpdateAvailable: Server component not managed by this agent — skipping.");
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
                 return;
             }
 
             if (isClient && !options.Components.Client.Enabled)
             {
                 logger.LogDebug("UpdateAvailable: Client component not managed by this agent — skipping.");
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
                 return;
             }
 
             if (!isServer && !isClient)
             {
                 logger.LogWarning("UpdateAvailable: Unknown component '{Component}' — skipping.", msg.Component);
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
                 return;
             }
 
@@ -387,6 +390,7 @@ public class AgentWorker(
                 logger.LogInformation(
                     "UpdateAvailable: Already up-to-date (installed={Installed}, offered={Offered}) — skipping.",
                     installedVersion ?? "none", msg.Version);
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
                 return;
             }
 
@@ -397,10 +401,12 @@ public class AgentWorker(
             try
             {
                 await _connection.InvokeAsync("RequestStartUpdate", msg.PackageId, ct);
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: true);
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
                 logger.LogError(ex, "UpdateAvailable: Failed to invoke RequestStartUpdate on Hub.");
+                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: true);
             }
         });
 

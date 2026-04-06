@@ -21,12 +21,25 @@ public record TrackedCommand(
     DateTime? StateChangedAt);
 
 /// <summary>
+/// Represents a package announced by the Hub via the UpdateAvailable signal.
+/// </summary>
+public record NotifiedPackage(
+    Guid PackageId,
+    string Component,
+    string Version,
+    string? ReleaseNotes,
+    DateTime ReceivedAt,
+    /// <summary>true = version was newer and agent called RequestStartUpdate; false = already up-to-date or component not managed.</summary>
+    bool WasNewer);
+
+/// <summary>
 /// Thread-safe singleton that tracks every <see cref="StartUpdateCommand"/> received
-/// with its full lifecycle state.
+/// with its full lifecycle state, and every UpdateAvailable notification.
 /// </summary>
 public class CommandTrackingService
 {
     private readonly List<TrackedCommand> _commands = [];
+    private readonly List<NotifiedPackage> _notified = [];
     private readonly Lock _lock = new();
     private const int MaxEntries = 50;
 
@@ -68,6 +81,28 @@ public class CommandTrackingService
     {
         lock (_lock)
             _commands.RemoveAll(c => c.PackageId == packageId);
+    }
+
+    public void TrackNotified(Guid packageId, string component, string version, string? releaseNotes, bool wasNewer)
+    {
+        lock (_lock)
+        {
+            _notified.RemoveAll(n => n.PackageId == packageId);
+            _notified.Add(new NotifiedPackage(packageId, component, version, releaseNotes, DateTime.UtcNow, wasNewer));
+            TrimOldestNotified();
+        }
+    }
+
+    public IReadOnlyList<NotifiedPackage> GetNotified()
+    {
+        lock (_lock)
+            return [.. _notified.OrderByDescending(n => n.ReceivedAt)];
+    }
+
+    private void TrimOldestNotified()
+    {
+        while (_notified.Count > MaxEntries)
+            _notified.RemoveAt(0);
     }
 
     private void TrimOldest()

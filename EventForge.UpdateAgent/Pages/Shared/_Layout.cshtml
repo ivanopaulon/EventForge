@@ -42,6 +42,10 @@
                    class="sidebar-item @(Context.Request.Path.Equals("/", StringComparison.OrdinalIgnoreCase) || Context.Request.Path.Equals("/index", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-grid-1x2-fill"></i>Dashboard
                 </a>
+                <a href="/packages"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/packages", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-box-seam"></i>Pacchetti
+                </a>
                 <a href="/schedule"
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/schedule", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-calendar-check-fill"></i>Schedule
