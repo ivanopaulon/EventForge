@@ -203,6 +203,7 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.BusinessPartyDetailViewM
 builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorGroupDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.PosDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.StationDetailViewModel>();
 
 // POS ViewModel
 builder.Services.AddScoped<EventForge.Client.ViewModels.POSViewModel>();
@@ -269,6 +270,14 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
+
+builder.Services.AddHttpClient<EventForge.Client.Services.Station.IStationService, EventForge.Client.Services.Station.StationService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);

@@ -10,7 +10,8 @@ namespace EventForge.Tests.Integration;
 /// Integration tests for Dashboard Configuration API endpoints.
 /// </summary>
 [Trait("Category", "Integration")]
-public class DashboardConfigurationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class DashboardConfigurationIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;

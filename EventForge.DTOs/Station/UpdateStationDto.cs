@@ -49,5 +49,23 @@ namespace EventForge.DTOs.Station
         [MaxLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
         [Display(Name = "Notes", Description = "Additional notes for the station.")]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Functional type of the station (KDS, Kitchen, Bar, POS, etc.).
+        /// </summary>
+        [Display(Name = "Station Type", Description = "Functional type of the station.")]
+        public StationType StationType { get; set; } = StationType.KDS;
+
+        /// <summary>
+        /// ID of the printer assigned to this station for order/KDS output.
+        /// </summary>
+        [Display(Name = "Assigned Printer", Description = "Printer used for order/KDS printing at this station.")]
+        public Guid? AssignedPrinterId { get; set; }
+
+        /// <summary>
+        /// If true, items routed to this station also appear on the fiscal receipt.
+        /// </summary>
+        [Display(Name = "Prints Receipt Copy", Description = "Include items from this station on the fiscal receipt.")]
+        public bool PrintsReceiptCopy { get; set; }
     }
 }

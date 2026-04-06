@@ -2445,7 +2445,13 @@
     "registries": "Registries",
     "commercial": "Commercial",
     "events": "Calendar Management",
-    "eventCalendar": "Calendar & Reminders"
+    "eventCalendar": "Calendar & Reminders",
+    "profile": "Profile",
+    "help": "Help",
+    "notifications": "Notifications",
+    "chat": "Chat",
+    "administration": "Administration",
+    "superAdmin": "Super Admin"
   },
   "tour": {
     "chat": "Chat Tour",

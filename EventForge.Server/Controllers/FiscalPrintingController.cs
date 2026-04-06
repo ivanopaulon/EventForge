@@ -363,7 +363,7 @@ public class FiscalPrintingController(
     /// <param name="timeoutMs">Per-host timeout in milliseconds (default 300).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("scan-network")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(typeof(List<NetworkScanResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -503,7 +503,7 @@ public class FiscalPrintingController(
     /// <param name="setup">Complete wizard configuration payload.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("setup")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(typeof(PrinterDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -608,7 +608,7 @@ public class FiscalPrintingController(
     /// <param name="printerId">Printer identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("setup/{printerId:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(typeof(FiscalPrinterSetupDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -653,6 +653,13 @@ public class FiscalPrintingController(
                 PrintLanguage = printer.PrintLanguage
             };
 
+            // Populate stations already associated with this printer
+            var allStations = await stationService.GetStationsAsync(1, 200, cancellationToken);
+            setupDto.AssociatedStationIds = allStations.Items?
+                .Where(s => s.AssignedPrinterId == printerId)
+                .Select(s => s.Id)
+                .ToList() ?? new List<Guid>();
+
             return Ok(setupDto);
         }
         catch (Exception ex)
@@ -669,7 +676,7 @@ public class FiscalPrintingController(
     /// <param name="setup">Updated wizard configuration payload.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPut("setup/{printerId:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [ProducesResponseType(typeof(PrinterDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

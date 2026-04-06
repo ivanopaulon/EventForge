@@ -1,18 +1,18 @@
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.Store
+@using EventForge.DTOs.Station
 @using EventForge.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.ViewModels
 @attribute [Authorize]
-@inject OperatorDetailViewModel ViewModel
+@inject StationDetailViewModel ViewModel
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
-@inject ILogger<OperatorDetailDialog> Logger
+@inject ILogger<StationDetailDialog> Logger
 @implements IDisposable
 
-<EFDialog Icon="@Icons.Material.Outlined.Person"
-          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperator", "Nuovo Operatore") : (ViewModel.Entity?.Name ?? string.Empty))"
+<EFDialog Icon="@Icons.Material.Outlined.Kitchen"
+          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("station.newStation", "Nuova Stazione") : (ViewModel.Entity?.Name ?? string.Empty))"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
@@ -27,7 +27,7 @@
         else if (!ViewModel.IsNewEntity && ViewModel.Entity == null)
         {
             <MudAlert Severity="Severity.Error">
-                @TranslationService.GetTranslation("store.operatorNotFound", "Operatore non trovato")
+                @TranslationService.GetTranslation("station.notFound", "Stazione non trovata")
             </MudAlert>
         }
         else if (ViewModel.Entity != null)
@@ -39,24 +39,18 @@
                         <div class="d-flex align-center gap-4 flex-wrap mb-3">
                             <div class="d-flex align-center gap-2">
                                 <MudAvatar Color="Color.Primary" Size="Size.Medium">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                    <MudIcon Icon="@Icons.Material.Outlined.Kitchen" />
                                 </MudAvatar>
                                 <div>
                                     <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        @@@ViewModel.Entity.Username - ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                        ID: @ViewModel.Entity.Id.ToString()[..8]... · @ViewModel.Entity.StationType
                                     </MudText>
                                 </div>
                             </div>
                             <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
                                 @GetStatusText(ViewModel.Entity.Status)
                             </MudChip>
-                            @if (ViewModel.Entity.IsOnShift)
-                            {
-                                <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
-                                    @TranslationService.GetTranslation("status.onShift", "In Turno")
-                                </MudChip>
-                            }
                         </div>
                         <MudDivider Class="mb-3" />
                     }
@@ -74,57 +68,12 @@
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="ViewModel.Username"
-                                              Label="@TranslationService.GetTranslation("field.username", "Username")"
-                                              Required="@ViewModel.IsNewEntity"
-                                              MaxLength="50"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              Disabled="@(!ViewModel.IsNewEntity)"
-                                              HelperText="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
-                                              @bind-Value:after="HandleEntityChanged" />
-                            </MudItem>
-
-                            @if (ViewModel.IsNewEntity)
-                            {
-                                <MudItem xs="12" md="6">
-                                    <MudTextField @bind-Value="ViewModel.Password"
-                                                  Label="@TranslationService.GetTranslation("field.password", "Password")"
-                                                  InputType="InputType.Password"
-                                                  Required="true"
-                                                  Variant="Variant.Outlined"
-                                                  Class="ef-input"
-                                                  HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
-                                                  @bind-Value:after="HandleEntityChanged" />
-                                </MudItem>
-                            }
-
-                            <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.Email"
-                                              Label="@TranslationService.GetTranslation("field.email", "Email")"
-                                              MaxLength="100"
-                                              InputType="InputType.Email"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
-                            </MudItem>
-
-                            <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.Role"
-                                              Label="@TranslationService.GetTranslation("field.role", "Ruolo")"
-                                              MaxLength="50"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
-                            </MudItem>
-
-                            <MudItem xs="12" md="6">
                                 <MudSelect @bind-Value="ViewModel.Entity.Status"
                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
                                            Variant="Variant.Outlined"
                                            Class="ef-select"
                                            @bind-Value:after="HandleEntityChanged">
-                                    @foreach (CashierStatus status in Enum.GetValues(typeof(CashierStatus)))
+                                    @foreach (StationStatus status in Enum.GetValues(typeof(StationStatus)))
                                     {
                                         <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
                                     }
@@ -132,50 +81,53 @@
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudSelect @bind-Value="ViewModel.Entity.CashierGroupId"
-                                           Label="@TranslationService.GetTranslation("field.cashierGroup", "Gruppo Cassieri")"
+                                <MudSelect @bind-Value="ViewModel.Entity.StationType"
+                                           Label="@TranslationService.GetTranslation("field.stationType", "Tipo Stazione")"
                                            Variant="Variant.Outlined"
                                            Class="ef-select"
-                                           T="Guid?"
-                                           Clearable="true"
                                            @bind-Value:after="HandleEntityChanged">
-                                    <MudSelectItem Value="@((Guid?)null)">
-                                        @TranslationService.GetTranslation("common.none", "None")
-                                    </MudSelectItem>
-                                    @foreach (var group in ViewModel.AvailableGroups)
+                                    @foreach (StationType type in Enum.GetValues(typeof(StationType)))
                                     {
-                                        <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
+                                        <MudSelectItem Value="@type">@GetTypeText(type)</MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.PhoneNumber"
-                                              Label="@TranslationService.GetTranslation("field.phoneNumber", "Numero di Telefono")"
-                                              MaxLength="20"
+                                <MudTextField @bind-Value="ViewModel.Entity.Location"
+                                              Label="@TranslationService.GetTranslation("field.location", "Posizione")"
+                                              MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudDatePicker @bind-Date="ViewModel.DateOfBirth"
-                                               Label="@TranslationService.GetTranslation("field.dateOfBirth", "Data di Nascita")"
-                                               Variant="Variant.Outlined"
-                                               Class="ef-input"
-                                               DateFormat="dd/MM/yyyy"
-                                               @bind-Date:after="HandleEntityChanged" />
+                                <MudNumericField @bind-Value="ViewModel.Entity.SortOrder"
+                                                 Label="@TranslationService.GetTranslation("field.sortOrder", "Ordine")"
+                                                 Variant="Variant.Outlined"
+                                                 Min="0"
+                                                 @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
-                            @if (ViewModel.IsNewEntity)
-                            {
-                                <MudItem xs="12" md="6">
-                                    <MudSwitch @bind-Value="ViewModel.PhotoConsent"
-                                               Label="@TranslationService.GetTranslation("field.photoConsent", "Consenso per la Foto (GDPR)")"
-                                               Color="Color.Primary"
-                                               @bind-Value:after="HandleEntityChanged" />
-                                </MudItem>
-                            }
+                            <MudItem xs="12" md="6">
+                                <MudField Label="@TranslationService.GetTranslation("field.printsReceiptCopy", "Copia Scontrino")" Variant="Variant.Outlined">
+                                    <MudCheckBox T="bool" @bind-Value="ViewModel.Entity.PrintsReceiptCopy"
+                                                 Label="Includi su scontrino fiscale"
+                                                 Color="Color.Primary"
+                                                 @bind-Value:after="HandleEntityChanged" />
+                                </MudField>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="ViewModel.Entity.Description"
+                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                              Lines="2"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
 
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="ViewModel.Entity.Notes"
@@ -256,20 +208,35 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private Color GetStatusColor(CashierStatus status) => status switch
+    private Color GetStatusColor(StationStatus status) => status switch
     {
-        CashierStatus.Active => Color.Success,
-        CashierStatus.Suspended => Color.Warning,
-        CashierStatus.Deleted => Color.Error,
+        StationStatus.Active => Color.Success,
+        StationStatus.Suspended => Color.Warning,
+        StationStatus.Maintenance => Color.Info,
+        StationStatus.Disabled => Color.Error,
         _ => Color.Default
     };
 
-    private string GetStatusText(CashierStatus status) => status switch
+    private string GetStatusText(StationStatus status) => status switch
     {
-        CashierStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
-        CashierStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
-        CashierStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        StationStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        StationStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        StationStatus.Maintenance => TranslationService.GetTranslation("status.maintenance", "Manutenzione"),
+        StationStatus.Disabled => TranslationService.GetTranslation("status.disabled", "Disabilitato"),
         _ => status.ToString()
+    };
+
+    private string GetTypeText(StationType type) => type switch
+    {
+        StationType.KDS => "KDS – Display Cucina",
+        StationType.Kitchen => "Cucina",
+        StationType.Bar => "Bar",
+        StationType.Cocktail => "Cocktail / Mixology",
+        StationType.Pizza => "Pizza",
+        StationType.Takeaway => "Takeaway / Consegna",
+        StationType.Counter => "Banco",
+        StationType.POS => "POS – Cassa",
+        _ => type.ToString()
     };
 
     public void Dispose()

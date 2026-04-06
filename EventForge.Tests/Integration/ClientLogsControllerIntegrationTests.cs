@@ -10,7 +10,8 @@ using System.Net.Http.Json;
 namespace EventForge.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class ClientLogsControllerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class ClientLogsControllerIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 
@@ -57,7 +58,7 @@ public class ClientLogsControllerIntegrationTests : IClassFixture<WebApplication
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/ClientLogs", clientLog);
+        var response = await client.PostAsJsonAsync("/api/v1/client-logs", clientLog);
 
         // Assert
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -110,7 +111,7 @@ public class ClientLogsControllerIntegrationTests : IClassFixture<WebApplication
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/ClientLogs/batch", batchRequest);
+        var response = await client.PostAsJsonAsync("/api/v1/client-logs/batch", batchRequest);
 
         // Assert
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -150,7 +151,7 @@ public class ClientLogsControllerIntegrationTests : IClassFixture<WebApplication
         };
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/ClientLogs", clientLog);
+        var response = await client.PostAsJsonAsync("/api/v1/client-logs", clientLog);
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

@@ -11,8 +11,10 @@ using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -34,11 +36,17 @@ public class PriceListService_DuplicationTests
     {
         var mockAudit = new MockAuditLogService();
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
-        var mockGenerationService = new MockPriceListGenerationService();
+
+        // Use real PriceListGenerationService so duplication logic (NewType, rounding, filters, etc.) runs correctly.
+        // DuplicatePriceListAsync does not use ITenantContext, so we pass a null-returning mock.
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.CurrentTenantId).Returns((Guid?)null);
+        var realGenerationService = new PriceListGenerationService(context, mockAudit, NullLogger<PriceListGenerationService>.Instance, mockTenantContext.Object);
+
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, realGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
     private static Tenant CreateTenant() => new()

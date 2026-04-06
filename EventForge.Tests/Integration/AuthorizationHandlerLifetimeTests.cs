@@ -14,7 +14,8 @@ namespace EventForge.Tests.Integration;
 /// This prevents runtime errors like "Cannot consume scoped service from singleton".
 /// </summary>
 [Trait("Category", "Integration")]
-public class AuthorizationHandlerLifetimeTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class AuthorizationHandlerLifetimeTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 

@@ -6,7 +6,8 @@ using System.Net.Http.Json;
 namespace EventForge.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class GlobalExceptionHandlerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class GlobalExceptionHandlerIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 
