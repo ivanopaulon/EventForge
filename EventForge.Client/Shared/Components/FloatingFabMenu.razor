@@ -1,9 +1,11 @@
 @namespace EventForge.Client.Shared.Components
 @using EventForge.DTOs.Chat
 @using EventForge.DTOs.Notifications
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IChatService ChatService
 @inject INotificationService NotificationService
 @inject IDialogService DialogService
+@inject IUpdateNotificationService UpdateNotification
 @inject NavigationManager NavigationManager
 @implements IDisposable
 
@@ -84,6 +86,26 @@
                         aria-label="Stato salute sistema" />
             </MudTooltip>
         </div>
+
+        @* Aggiornamenti — solo SuperAdmin *@
+        @if (_profileRef?.IsSuperAdmin == true)
+        {
+            <div class="ef-speed-dial-action">
+                <MudTooltip Text="Aggiornamenti" Placement="Placement.Left">
+                    <MudBadge Content="@UpdateNotification.AvailableUpdatesCount"
+                              Color="Color.Warning"
+                              Overlap="true"
+                              Visible="@(UpdateNotification.AvailableUpdatesCount > 0)"
+                              Max="99">
+                        <MudFab Color="Color.Secondary"
+                                StartIcon="@Icons.Material.Filled.SystemUpdate"
+                                Size="Size.Small"
+                                OnClick="OnUpdatesClick"
+                                aria-label="Gestione aggiornamenti" />
+                    </MudBadge>
+                </MudTooltip>
+            </div>
+        }
 
     </div>
 
@@ -175,6 +197,7 @@
         ChatService.MessageReceived += OnChatMessageReceived;
         ChatService.ChatCreated += OnChatCreated;
         NotificationService.StatsUpdated += OnNotificationStatsUpdated;
+        UpdateNotification.StateChanged += OnUpdateStateChanged;
         try
         {
             var stats = await NotificationService.GetNotificationStatsAsync();
@@ -218,6 +241,18 @@
         if (_healthRef != null)
             await _healthRef.OpenHealthDialog();
     }
+
+    private async Task OnUpdatesClick()
+    {
+        _isOpen = false;
+        _profileMenuOpen = false;
+        await DialogService.ShowAsync<UpdatesDialog>(
+            string.Empty,
+            EFDialogDefaults.Options);
+    }
+
+    private void OnUpdateStateChanged()
+        => InvokeAsync(StateHasChanged);
 
     private async Task OnNotificationsClick()
     {
@@ -282,6 +317,7 @@
         ChatService.MessageReceived -= OnChatMessageReceived;
         ChatService.ChatCreated -= OnChatCreated;
         NotificationService.StatsUpdated -= OnNotificationStatsUpdated;
+        UpdateNotification.StateChanged -= OnUpdateStateChanged;
     }
 }
 

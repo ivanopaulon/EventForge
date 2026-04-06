@@ -1,3 +1,4 @@
+using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Health;
 using System.Net.Http.Json;
 
@@ -7,6 +8,18 @@ namespace EventForge.Client.Services
     {
         Task<HealthStatusDto?> GetHealthAsync();
         Task<DetailedHealthStatusDto?> GetDetailedHealthAsync();
+
+        /// <summary>
+        /// Fetches the status of the co-located UpdateAgent from the Server proxy.
+        /// Returns null if unauthenticated or if the endpoint is unreachable.
+        /// </summary>
+        Task<AgentStatusClientDto?> GetAgentStatusAsync();
+
+        /// <summary>
+        /// Asks the Server to restart the co-located UpdateAgent Windows Service.
+        /// Requires SuperAdmin. Returns (Success, Message).
+        /// </summary>
+        Task<(bool Success, string Message)> RestartAgentAsync();
     }
 
     public class HealthService(
@@ -70,5 +83,40 @@ namespace EventForge.Client.Services
                 return null;
             }
         }
+
+        public async Task<AgentStatusClientDto?> GetAgentStatusAsync()
+        {
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
+                var response = await httpClient.GetAsync("api/v1/system/agent-status");
+                if (!response.IsSuccessStatusCode) return null;
+                return await response.Content.ReadFromJsonAsync<AgentStatusClientDto>();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Agent status fetch failed: {Message}", ex.Message);
+                return null;
+            }
+        }
+
+        public async Task<(bool Success, string Message)> RestartAgentAsync()
+        {
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
+                var response = await httpClient.PostAsync("api/v1/system/agent-status/restart", null);
+                var body = await response.Content.ReadFromJsonAsync<AgentRestartResultClientDto>();
+                return (body?.Success == true, body?.Message ?? response.ReasonPhrase ?? "Risposta sconosciuta");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Agent restart request failed");
+                return (false, ex.Message);
+            }
+        }
     }
+
+    // Mirror of AgentRestartResultDto from the Server
+    internal record AgentRestartResultClientDto(bool Success, string Message);
 }
