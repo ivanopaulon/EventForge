@@ -1,5 +1,6 @@
 using EventForge.DTOs.FiscalPrinting;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Tenants;
@@ -21,6 +22,7 @@ public class FiscalPrintingControllerTests
     private readonly Mock<ILogger<FiscalPrintingController>> _mockLogger;
     private readonly Mock<IStationService> _mockStationService;
     private readonly Mock<ITenantContext> _mockTenantContext;
+    private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly FiscalPrinterStatusCache _statusCache;
     private readonly FiscalPrintingController _controller;
 
@@ -30,6 +32,7 @@ public class FiscalPrintingControllerTests
         _mockLogger = new Mock<ILogger<FiscalPrintingController>>();
         _mockStationService = new Mock<IStationService>();
         _mockTenantContext = new Mock<ITenantContext>();
+        _mockAuditLogService = new Mock<IAuditLogService>();
         _statusCache = new FiscalPrinterStatusCache();
 
         var mockHttpContext = new Mock<HttpContext>();
@@ -50,6 +53,7 @@ public class FiscalPrintingControllerTests
             _statusCache,
             _mockStationService.Object,
             _mockTenantContext.Object,
+            _mockAuditLogService.Object,
             _mockLogger.Object)
         {
             ControllerContext = new ControllerContext
