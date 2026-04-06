@@ -15,6 +15,7 @@ $ErrorActionPreference = "Continue"
 # Config
 # ------------------------------------------------------------------------------
 $DEPLOY_PATH        = "C:\Prym\Client"
+$SITE_PATH          = "$DEPLOY_PATH\wwwroot"
 $LOG_DIR            = "C:\Prym\SetupLogs"
 $TRANSCRIPT         = "$LOG_DIR\setup_client_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $TEMP_DIR           = "C:\Prym\_tmp"
@@ -45,7 +46,8 @@ Write-Host "  Transcript: $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 
 Write-Step "CONFIGURAZIONE"
-Write-INFO "Deploy path : $DEPLOY_PATH"
+Write-INFO "Publish dir : $DEPLOY_PATH"
+Write-INFO "Sito IIS    : $SITE_PATH"
 Write-INFO "Pool        : $POOL_NAME"
 Write-INFO "Sito        : $SITE_NAME"
 Write-INFO "Porta       : $SITE_PORT (HTTPS)"
@@ -72,7 +74,7 @@ if ($isAdmin) {
 # ==============================================================================
 Write-Step "STEP 2 - Creazione cartelle"
 
-$folders = @($DEPLOY_PATH, "$DEPLOY_PATH\logs")
+$folders = @($DEPLOY_PATH, $SITE_PATH, "$DEPLOY_PATH\logs")
 
 foreach ($f in $folders) {
     if (!(Test-Path $f)) {
@@ -342,18 +344,18 @@ if (Test-Path "IIS:\Sites\$SITE_NAME") {
     Write-OK "Sito precedente rimosso"
 }
 
-if (!(Test-Path $DEPLOY_PATH)) {
-    Write-FAIL "Percorso deploy non trovato: $DEPLOY_PATH"
-    Write-FAIL "Esegui prima il publish del client e copia i file wwwroot su questa cartella:"
-    Write-FAIL "  dotnet publish EventForge.Client -c Release -o C:\Prym\_tmp_client"
-    Write-FAIL "  xcopy C:\Prym\_tmp_client\wwwroot\* $DEPLOY_PATH\ /E /I /H /Y"
+if (!(Test-Path $SITE_PATH)) {
+    Write-FAIL "Cartella sito non trovata: $SITE_PATH"
+    Write-FAIL "Esegui prima il publish del client:"
+    Write-FAIL "  dotnet publish EventForge.Client -c Release -o $DEPLOY_PATH"
+    Write-FAIL "Il publish crea automaticamente la cartella wwwroot con tutti i file statici."
     Stop-Transcript
     exit 1
 }
 
 # Creazione sito (binding HTTP temporaneo, sostituito da HTTPS sotto)
 try {
-    New-WebSite -Name $SITE_NAME -PhysicalPath $DEPLOY_PATH -ApplicationPool $POOL_NAME -Port $SITE_PORT -IPAddress "*" -Force | Out-Null
+    New-WebSite -Name $SITE_NAME -PhysicalPath $SITE_PATH -ApplicationPool $POOL_NAME -Port $SITE_PORT -IPAddress "*" -Force | Out-Null
     Write-OK "Sito '$SITE_NAME' creato"
 } catch {
     Write-FAIL "Impossibile creare il sito: $_"
@@ -410,8 +412,8 @@ Write-Step "STEP 10 - Permessi filesystem"
 $poolIdentity = "IIS AppPool\$POOL_NAME"
 
 try {
-    icacls $DEPLOY_PATH /grant "${poolIdentity}:(OI)(CI)RX" /T /Q
-    Write-OK "RX concessi a '$poolIdentity' su $DEPLOY_PATH"
+    icacls $SITE_PATH /grant "${poolIdentity}:(OI)(CI)RX" /T /Q
+    Write-OK "RX concessi a '$poolIdentity' su $SITE_PATH"
 } catch {
     Write-WARN "Errore permessi RX: $_"
 }
@@ -426,8 +428,8 @@ try {
 }
 
 try {
-    icacls $DEPLOY_PATH /grant "IUSR:(OI)(CI)R" /T /Q
-    Write-OK "Lettura concessa a IUSR su $DEPLOY_PATH"
+    icacls $SITE_PATH /grant "IUSR:(OI)(CI)R" /T /Q
+    Write-OK "Lettura concessa a IUSR su $SITE_PATH"
 } catch {
     Write-WARN "Errore permessi IUSR: $_"
 }
@@ -488,13 +490,13 @@ if ($netFx -and $netFx.Release -ge 533320) {
 # ==============================================================================
 # STEP 13 - Verifica file deploy
 # ==============================================================================
-Write-Step "STEP 13 - Verifica file deploy in $DEPLOY_PATH"
+Write-Step "STEP 13 - Verifica file deploy in $SITE_PATH"
 
 $requiredFiles = @("index.html", "web.config")
 $deployOk      = $true
 
 foreach ($file in $requiredFiles) {
-    $fullPath = Join-Path $DEPLOY_PATH $file
+    $fullPath = Join-Path $SITE_PATH $file
     if (Test-Path $fullPath) {
         $size = (Get-Item $fullPath).Length
         Write-OK "PRESENTE  -> $file ($([math]::Round($size/1KB,1)) KB)"
@@ -505,7 +507,7 @@ foreach ($file in $requiredFiles) {
 }
 
 # Verifica cartella _framework (contenuto core Blazor WASM)
-$frameworkDir = Join-Path $DEPLOY_PATH "_framework"
+$frameworkDir = Join-Path $SITE_PATH "_framework"
 if (Test-Path $frameworkDir) {
     $frameworkFiles = (Get-ChildItem $frameworkDir -Recurse -File -ErrorAction SilentlyContinue).Count
     Write-OK "PRESENTE  -> _framework\ ($frameworkFiles file)"
@@ -517,20 +519,20 @@ if (Test-Path $frameworkDir) {
 if (!$deployOk) {
     Write-WARN "======================================================"
     Write-WARN "Alcuni file mancano. Esegui il publish del client:"
-    Write-WARN "  dotnet publish EventForge.Client -c Release -o C:\Prym\_tmp_client"
-    Write-WARN "  xcopy C:\Prym\_tmp_client\wwwroot\* `"$DEPLOY_PATH\`" /E /I /H /Y"
+    Write-WARN "  dotnet publish EventForge.Client -c Release -o $DEPLOY_PATH"
+    Write-WARN "I file statici verranno creati automaticamente in $SITE_PATH"
     Write-WARN "======================================================"
 }
 
-$totalFiles = (Get-ChildItem $DEPLOY_PATH -Recurse -File -ErrorAction SilentlyContinue).Count
-Write-INFO "File totali nella cartella deploy: $totalFiles"
+$totalFiles = (Get-ChildItem $SITE_PATH -Recurse -File -ErrorAction SilentlyContinue).Count
+Write-INFO "File totali nella cartella sito: $totalFiles"
 
 # ==============================================================================
 # STEP 14 - Verifica web.config Blazor WASM
 # ==============================================================================
 Write-Step "STEP 14 - Verifica web.config Blazor WASM"
 
-$webConfigPath = Join-Path $DEPLOY_PATH "web.config"
+$webConfigPath = Join-Path $SITE_PATH "web.config"
 if (Test-Path $webConfigPath) {
     try {
         [xml]$wc = Get-Content $webConfigPath -Encoding UTF8
@@ -670,8 +672,8 @@ Write-Host "  Certificato : Self-signed (trusted in LocalMachine\Root)" -Foregro
 Write-Host "  Log setup   : $TRANSCRIPT" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  NOTA: Per deploy o update dei file client eseguire:" -ForegroundColor Cyan
-Write-Host "    dotnet publish EventForge.Client -c Release -o C:\Prym\_tmp_client" -ForegroundColor Cyan
-Write-Host "    xcopy C:\Prym\_tmp_client\wwwroot\* `"$DEPLOY_PATH\`" /E /I /H /Y" -ForegroundColor Cyan
+Write-Host "    dotnet publish EventForge.Client -c Release -o $DEPLOY_PATH" -ForegroundColor Cyan
+Write-Host "    (i file statici vengono creati automaticamente in $SITE_PATH)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  NOTA: Il server API (porta 7242) deve essere raggiungibile dal client." -ForegroundColor Cyan
 Write-Host "  Verifica che il server consenta CORS per https://localhost:$SITE_PORT" -ForegroundColor Cyan
