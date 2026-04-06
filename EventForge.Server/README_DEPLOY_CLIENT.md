@@ -521,8 +521,8 @@ Understanding the differences between development and production environments is
 |--------|-------------|------------------|
 | **Port Configuration** | `launchSettings.json` or `ASPNETCORE_URLS` environment variable | IIS Site Bindings (configured in IIS Manager) |
 | **Configuration Location** | `EventForge.Server/Properties/launchSettings.json` | IIS Manager → Site → Bindings |
-| **Typical Ports** | 7241 (HTTPS), 7240 (HTTP) | 443 (HTTPS), 80 (HTTP) |
-| **Multiple Ports** | Semicolon-separated: `https://localhost:7241;http://localhost:7240` | Multiple bindings in IIS (add each separately) |
+| **Typical Ports** | 7241 (HTTPS), 5240 (HTTP) | 443 (HTTPS), 80 (HTTP) |
+| **Multiple Ports** | Semicolon-separated: `https://localhost:7241;http://localhost:5240` | Multiple bindings in IIS (add each separately) |
 | **Environment Variable** | `ASPNETCORE_URLS` can be set | **DO NOT SET** `ASPNETCORE_URLS` in IIS |
 | **Who Manages** | Kestrel web server | IIS (HTTP.SYS) → ANCM → Application |
 
@@ -578,7 +578,7 @@ Understanding the differences between development and production environments is
 #### Development Startup:
 ```bash
 cd EventForge.Server
-dotnet run --urls "https://localhost:7241;http://localhost:7240"
+dotnet run --urls "https://localhost:7241;http://localhost:5240"
 ```
 - Kestrel listens on specified ports
 - Application starts immediately

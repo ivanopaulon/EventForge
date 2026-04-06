@@ -6,7 +6,7 @@ EventForge utilizza un sistema di configurazione flessibile per le porte di comu
 
 **Porte predefinite:**
 - **HTTPS**: 7241
-- **HTTP**: 7240
+- **HTTP**: 5240
 
 ## Configurazione Server (EventForge.Server)
 
@@ -21,7 +21,7 @@ Edita il file `EventForge.Server/Properties/launchSettings.json`:
   "profiles": {
     "https": {
       "commandName": "Project",
-      "applicationUrl": "https://localhost:7241;http://localhost:7240",
+      "applicationUrl": "https://localhost:7241;http://localhost:5240",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -33,26 +33,26 @@ Edita il file `EventForge.Server/Properties/launchSettings.json`:
 #### Metodo 2: Parametro da riga di comando
 
 ```bash
-dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:7240"
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
 #### Metodo 3: Variabile d'ambiente
 
 **Linux/macOS:**
 ```bash
-export ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+export ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 dotnet run --project EventForge.Server
 ```
 
 **Windows PowerShell:**
 ```powershell
-$env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+$env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 dotnet run --project EventForge.Server
 ```
 
 **Windows CMD:**
 ```cmd
-set ASPNETCORE_URLS=https://localhost:7241;http://localhost:7240
+set ASPNETCORE_URLS=https://localhost:7241;http://localhost:5240
 dotnet run --project EventForge.Server
 ```
 
@@ -73,10 +73,10 @@ Nel `Dockerfile` o `docker-compose.yml`:
 
 ```yaml
 environment:
-  - ASPNETCORE_URLS=https://+:7241;http://+:7240
+  - ASPNETCORE_URLS=https://+:7241;http://+:5240
 ports:
   - "7241:7241"
-  - "7240:7240"
+  - "5240:5240"
 ```
 
 #### Servizio systemd (Linux)
@@ -85,7 +85,7 @@ Crea un file di override per il servizio:
 
 ```ini
 [Service]
-Environment="ASPNETCORE_URLS=https://+:7241;http://+:7240"
+Environment="ASPNETCORE_URLS=https://+:7241;http://+:5240"
 ```
 
 ## Configurazione Client (EventForge.Client)
@@ -140,35 +140,27 @@ L'ambiente è determinato dalla proprietà `HostEnvironment.Environment` durante
 
 ## Configurazione CORS
 
-Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `EventForge.Server/Program.cs`:
+Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `EventForge.Server/appsettings.json` (oppure nel file `appsettings.{Ambiente}.json`):
 
-```csharp
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        _ = policy
-            .WithOrigins(
-                "https://localhost:7241",  // Porta HTTPS
-                "http://localhost:7240",    // Porta HTTP
-                "https://localhost:5000",   // Porta legacy
-                "https://localhost:7009"    // Altre porte se necessarie
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
+```json
+"Cors": {
+  "AllowedOrigins": [
+    "https://localhost:7009",  // Client dev HTTPS
+    "http://localhost:5048"    // Client dev HTTP
+  ]
+}
 ```
+
+In produzione IIS il setup script aggiorna automaticamente `AllowedOrigins` con l'origine del sito Client (es. `https://localhost:5240`).
 
 ## Profili Disponibili
 
 ### Profilo "https" (Predefinito)
-Porte: 7241 (HTTPS) + 7240 (HTTP)
+Porte: 7241 (HTTPS) + 5240 (HTTP)
 - Configurazione raccomandata per nuovi sviluppi
 
 ### Profilo "http"
-Porta: 7240 (solo HTTP)
+Porta: 5240 (solo HTTP)
 - Utile per test senza certificati SSL
 
 ### Profilo "Legacy"
@@ -186,10 +178,10 @@ dotnet run
 
 # In un altro terminale, verifica le porte in ascolto
 # Linux/macOS:
-netstat -an | grep -E "7241|7240"
+netstat -an | grep -E "7241|5240"
 
 # Windows:
-netstat -an | findstr "7241 7240"
+netstat -an | findstr "7241 5240"
 ```
 
 ### Verifica Connessione Client-Server
@@ -206,7 +198,7 @@ netstat -an | findstr "7241 7240"
 curl -k https://localhost:7241/health
 
 # Test endpoint HTTP
-curl http://localhost:7240/health
+curl http://localhost:5240/health
 ```
 
 ## Risoluzione Problemi Comuni
@@ -256,7 +248,7 @@ dotnet dev-certs https --trust
 ## Esempi di Configurazione
 
 ### Scenario 1: Sviluppo Locale Standard
-- Server: 7241 (HTTPS), 7240 (HTTP)
+- Server: 7241 (HTTPS), 5240 (HTTP)
 - Client: legge da appsettings.Development.json → "https://localhost:7241/"
 - Nessuna modifica necessaria
 
@@ -288,10 +280,10 @@ dotnet dev-certs https --trust
    services:
      eventforge-server:
        environment:
-         - ASPNETCORE_URLS=https://+:7241;http://+:7240
+         - ASPNETCORE_URLS=https://+:7241;http://+:5240
        ports:
          - "7241:7241"
-         - "7240:7240"
+         - "5240:5240"
    ```
 2. Client si connette all'IP/dominio del container
 

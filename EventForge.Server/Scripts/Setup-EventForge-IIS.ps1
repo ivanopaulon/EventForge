@@ -21,7 +21,7 @@ $TEMP_DIR    = "C:\Prym\_tmp"
 $SITE_NAME   = "EventForge"
 $POOL_NAME   = "EventForge"
 $SITE_PORT          = 7242
-$CLIENT_PORT        = 7240
+$CLIENT_PORT        = 5240
 $SITE_CERT_FRIENDLY = "EventForge IIS"
 $APP_DLL            = "EventForge.Server.dll"
 

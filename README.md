@@ -205,7 +205,7 @@ Always provide translated tooltips for better accessibility:
 1. **Prerequisites**: .NET 8.0 SDK
 2. **Build**: `dotnet build`
 3. **Run**: `dotnet run --project EventForge.Server`
-4. **Browse**: Navigate to `https://localhost:7241` (HTTPS) or `http://localhost:7240` (HTTP)
+4. **Browse**: Navigate to `https://localhost:7241` (HTTPS) or `http://localhost:5240` (HTTP)
 
 ### SQL Server Configuration
 
@@ -254,7 +254,7 @@ Edit your `EventForge.Server/appsettings.json` (or `appsettings.overrides.json` 
 
 Il server EventForge è configurato per ascoltare su:
 - **HTTPS**: `https://localhost:7241` (porta predefinita)
-- **HTTP**: `http://localhost:7240` (porta predefinita)
+- **HTTP**: `http://localhost:5240` (porta predefinita)
 
 #### Modifica Porte in Sviluppo
 
@@ -277,18 +277,18 @@ Per configurare le porte in produzione o con IIS, utilizza una delle seguenti op
 **Opzione 1 - Variabile d'ambiente:**
 ```bash
 # Linux/macOS
-export ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+export ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 
 # Windows PowerShell
-$env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+$env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 
 # Windows CMD
-set ASPNETCORE_URLS=https://localhost:7241;http://localhost:7240
+set ASPNETCORE_URLS=https://localhost:7241;http://localhost:5240
 ```
 
 **Opzione 2 - Parametro da riga di comando:**
 ```bash
-dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:7240"
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
 **Opzione 3 - Configurazione IIS:**
@@ -627,7 +627,7 @@ POST /api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 1: Modalità Fixed (quantità fissa)
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -641,7 +641,7 @@ curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 2: Modalità Random
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -656,7 +656,7 @@ curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 3: Modalità From Product (usa dati prodotto)
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{

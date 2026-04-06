@@ -245,7 +245,7 @@ builder.Services.AddCors(options =>
         if (allowedOrigins == null || allowedOrigins.Length == 0)
         {
             // Default to localhost dev ports when no origins are configured
-            allowedOrigins = ["https://localhost:7241", "http://localhost:7240", "https://localhost:5000", "https://localhost:7009"];
+            allowedOrigins = ["https://localhost:7009", "http://localhost:5048"];
         }
         _ = policy
             .WithOrigins(allowedOrigins)
