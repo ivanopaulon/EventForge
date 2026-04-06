@@ -13,6 +13,7 @@ namespace EventForge.UpdateAgent.Workers;
 public class ScheduledInstallWorker(
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
+    CommandTrackingService commandTracking,
     AgentOptions options,
     ILogger<ScheduledInstallWorker> logger) : BackgroundService
 {
@@ -23,9 +24,29 @@ public class ScheduledInstallWorker(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            bool bypassMaintenanceWindow = false;
             try
             {
-                await TryInstallNextAsync(stoppingToken);
+                using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                delayCts.CancelAfter(TimeSpan.FromSeconds(options.Install.ScheduledCheckIntervalSeconds));
+
+                // Wait for the scheduled interval OR an operator-triggered immediate install.
+                await pendingInstallService.WaitForInstallTriggerAsync(delayCts.Token);
+                bypassMaintenanceWindow = true;
+                logger.LogInformation("Immediate install triggered — bypassing maintenance window check.");
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal scheduled interval elapsed — proceed with window check.
+            }
+
+            try
+            {
+                await TryInstallNextAsync(stoppingToken, bypassMaintenanceWindow);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -35,23 +56,21 @@ public class ScheduledInstallWorker(
             {
                 logger.LogError(ex, "Unexpected error in ScheduledInstallWorker loop.");
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(options.Install.ScheduledCheckIntervalSeconds), stoppingToken);
         }
 
         logger.LogInformation("ScheduledInstallWorker stopped.");
     }
 
-    private async Task TryInstallNextAsync(CancellationToken ct)
+    private async Task TryInstallNextAsync(CancellationToken ct, bool bypassMaintenanceWindow = false)
     {
         if (pendingInstallService.IsBlocked)
         {
-            logger.LogDebug("Install queue is blocked — skipping scheduled check. Reason: {Reason}",
+            logger.LogDebug("Install queue is blocked — skipping. Reason: {Reason}",
                 pendingInstallService.BlockedReason);
             return;
         }
 
-        if (!pendingInstallService.IsInMaintenanceWindow())
+        if (!bypassMaintenanceWindow && !pendingInstallService.IsInMaintenanceWindow())
         {
             logger.LogDebug("Outside maintenance window — skipping scheduled check.");
             return;
@@ -78,20 +97,26 @@ public class ScheduledInstallWorker(
 
         try
         {
+            commandTracking.SetState(next.PackageId, CommandState.Installing);
             await updateExecutor.InstallFromZipAsync(next.Command, next.LocalZipPath, ct);
             // Success: remove from queue so the next entry becomes the head.
             pendingInstallService.Remove(next.PackageId);
+            commandTracking.SetState(next.PackageId, CommandState.Installed);
             logger.LogInformation("Scheduled install succeeded: {Component} {Version}", next.Command.Component, next.Command.Version);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             // Service is shutting down; leave the entry in the queue for the next run.
+            // Reset state to Downloaded: the zip is still on disk and the entry is still queued,
+            // so on next startup ScheduledInstallWorker will pick it up and retry.
+            commandTracking.SetState(next.PackageId, CommandState.Downloaded);
             logger.LogWarning("Install cancelled (shutdown) for {Component} {Version} — entry remains in queue.",
                 next.Command.Component, next.Command.Version);
             throw;
         }
         catch (Exception ex)
         {
+            commandTracking.SetState(next.PackageId, CommandState.Failed, ex.Message);
             // Block the queue so no subsequent updates (with potentially dependent migrations) run.
             pendingInstallService.Block(next.PackageId,
                 $"Install failed for {next.Command.Component} {next.Command.Version}: {ex.Message}");

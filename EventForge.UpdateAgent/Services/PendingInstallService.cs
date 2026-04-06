@@ -37,6 +37,24 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     public string? BlockedReason { get; private set; }
     public Guid? BlockedByPackageId { get; private set; }
 
+    // ── Install trigger (HTTP-initiated bypass of maintenance window) ────────
+    private readonly System.Threading.Channels.Channel<Guid> _triggerChannel =
+        System.Threading.Channels.Channel.CreateBounded<Guid>(
+            new System.Threading.Channels.BoundedChannelOptions(1)
+            { FullMode = System.Threading.Channels.BoundedChannelFullMode.DropNewest });
+
+    /// <summary>
+    /// Signals the <see cref="ScheduledInstallWorker"/> to immediately install the specified
+    /// queued package, bypassing the maintenance-window check.
+    /// Returns <see langword="false"/> if a trigger is already pending (silently dropped).
+    /// </summary>
+    public bool TriggerImmediateInstall(Guid packageId) =>
+        _triggerChannel.Writer.TryWrite(packageId);
+
+    /// <summary>Waits until an immediate-install trigger arrives or <paramref name="ct"/> fires.</summary>
+    public ValueTask<Guid> WaitForInstallTriggerAsync(CancellationToken ct) =>
+        _triggerChannel.Reader.ReadAsync(ct);
+
     // ── Initialisation ───────────────────────────────────────────────────────
 
     /// <summary>Call once at startup to restore the queue from disk.</summary>

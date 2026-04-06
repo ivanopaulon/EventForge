@@ -25,6 +25,9 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private UpdateProgressPayload? _currentProgress;
 
     public bool IsServerMaintenance => _isServerMaintenance;
+    public bool IsActiveUpdate =>
+        _currentProgress is not null &&
+        !string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
     public string? MaintenanceComponent => _maintenanceComponent;
     public string? MaintenanceVersion => _maintenanceVersion;
     public bool HasPendingClientUpdate => _hasPendingClientUpdate;
@@ -74,6 +77,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     {
         _hasPendingClientUpdate = true;
         _clientUpdateVersion = payload.Version;
+        _currentProgress = null;
         _logger.LogInformation("Client update deployed: v{Version}", payload.Version);
         StateChanged?.Invoke();
     }
@@ -114,11 +118,17 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         }
     }
 
-    public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-        => await _http.PostAsync<object>(
-            $"api/v1/updatehub-proxy/installations/{installationId}/update",
-            new { PackageId = packageId },
-            ct);
+    public async Task<IReadOnlyList<PendingInstallClientDto>> GetPendingInstallsAsync(CancellationToken ct = default)
+    {
+        try { return await _http.GetAsync<List<PendingInstallClientDto>>("api/v1/agent-proxy/pending-installs", ct) ?? []; }
+        catch (Exception ex) { _logger.LogWarning(ex, "Failed to fetch pending installs from Agent proxy"); return []; }
+    }
+
+    public async Task TriggerInstallNowAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
+        => await _http.PostAsync<object>("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
+
+    public async Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default)
+        => await _http.PostAsync<object>("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
 
     public async Task RefreshAvailableUpdatesCountAsync()
     {

@@ -232,6 +232,125 @@
                 </MudStack>
             </MudTabPanel>
 
+            <!-- Tab 3: In attesa di installazione -->
+            <MudTabPanel Text="In attesa"
+                         Icon="@Icons.Material.Outlined.HourglassBottom"
+                         BadgeData="@(_pendingInstalls.Count > 0 ? _pendingInstalls.Count.ToString() : null)"
+                         BadgeColor="Color.Warning">
+                <MudStack Spacing="3" Class="pa-3">
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle1">Pacchetti in attesa di installazione</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Size="Size.Small"
+                                       OnClick="LoadDataAsync"
+                                       Disabled="@_isLoading"
+                                       Title="Aggiorna" />
+                    </MudStack>
+
+                    @if (_isLoading)
+                    {
+                        <div class="text-center pa-4">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                    }
+                    else if (_pendingInstalls.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Outlined.CheckCircle">
+                            Nessun pacchetto in attesa di approvazione.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            I pacchetti seguenti sono stati scaricati dagli agenti e attendono l'approvazione dell'operatore per l'installazione.
+                        </MudAlert>
+
+                        <MudTable Items="@_pendingInstalls"
+                                  Hover="true"
+                                  Striped="true"
+                                  Dense="true"
+                                  Elevation="1">
+                            <HeaderContent>
+                                <MudTh>Installazione</MudTh>
+                                <MudTh>Componente</MudTh>
+                                <MudTh>Versione</MudTh>
+                                <MudTh>Modalità</MudTh>
+                                <MudTh>In coda dal</MudTh>
+                                <MudTh>Stato</MudTh>
+                                <MudTh>Azioni</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Installazione">
+                                    <MudText Typo="Typo.body2">@context.InstallationName</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Componente">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(context.Component == "Server" ? Color.Primary : Color.Info)"
+                                             Text="@(context.Component ?? "—")" />
+                                </MudTd>
+                                <MudTd DataLabel="Versione">
+                                    <MudText Typo="Typo.body2"><strong>v@context.Version</strong></MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Modalità">
+                                    @if (context.IsManualInstall)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                                 Icon="@Icons.Material.Outlined.PanTool"
+                                                 Text="Manuale" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                                 Icon="@Icons.Material.Outlined.FlashOn"
+                                                 Text="Automatico" />
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="In coda dal">
+                                    <MudText Typo="Typo.body2">@context.QueuedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Stato">
+                                    @if (context.IsConnected)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Text="Online" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="Offline" />
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Azioni">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Size="Size.Small"
+                                                   Color="Color.Success"
+                                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                                   Disabled="@(!context.IsConnected || _isActioning)"
+                                                   OnClick="@(() => ConfirmInstallNowAsync(context))"
+                                                   Title="@(!context.IsConnected ? "Agente offline" : "Installa immediatamente")">
+                                            Installa ora
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Outlined"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   StartIcon="@Icons.Material.Filled.SkipNext"
+                                                   Disabled="@(!context.IsConnected || _isActioning)"
+                                                   OnClick="@(() => ConfirmSkipAsync(context))"
+                                                   Title="@(!context.IsConnected ? "Agente offline" : "Salta e rimuovi dalla coda")">
+                                            Salta
+                                        </MudButton>
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudTabPanel>
+
         </MudTabs>
     </ChildContent>
 </EFDialog>
@@ -249,10 +368,12 @@
 
     private bool _isLoading = false;
     private bool _isSendingUpdate = false;
+    private bool _isActioning = false;
     private string? _errorMessage;
 
     private List<PackageSummaryClientDto> _packages = [];
     private List<InstallationSummaryClientDto> _installations = [];
+    private List<PendingInstallClientDto> _pendingInstalls = [];
 
     private PackageSummaryClientDto? _selectedPackage;
     private PackageSummaryClientDto? _packageDetails;
@@ -270,13 +391,15 @@
         {
             var packagesTask = UpdateNotification.GetPackagesAsync();
             var installationsTask = UpdateNotification.GetInstallationsAsync();
-            await Task.WhenAll(packagesTask, installationsTask);
+            var pendingTask = UpdateNotification.GetPendingInstallsAsync();
+            await Task.WhenAll(packagesTask, installationsTask, pendingTask);
             _packages = (await packagesTask).ToList();
             _installations = (await installationsTask).ToList();
+            _pendingInstalls = (await pendingTask).ToList();
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Impossibile caricare i dati dall'UpdateHub: {ex.Message}";
+            _errorMessage = $"Impossibile caricare i dati: {ex.Message}";
         }
         finally
         {
@@ -325,6 +448,42 @@
     }
 
     private void Close() => MudDialog.Close();
+
+    private async Task ConfirmInstallNowAsync(PendingInstallClientDto item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Conferma installazione",
+            $"Installare {item.Component} v{item.Version} su \"{item.InstallationName}\" ora?",
+            yesText: "Installa ora", cancelText: "Annulla");
+        if (confirmed != true) return;
+        _isActioning = true;
+        try
+        {
+            await UpdateNotification.TriggerInstallNowAsync(default, item.PackageId);
+            AppNotification.ShowSuccess($"Installazione avviata per {item.Component} v{item.Version}.");
+            await LoadDataAsync();
+        }
+        catch (Exception ex) { AppNotification.ShowError($"Errore: {ex.Message}"); }
+        finally { _isActioning = false; }
+    }
+
+    private async Task ConfirmSkipAsync(PendingInstallClientDto item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Salta pacchetto",
+            $"Rimuovere {item.Component} v{item.Version} dalla coda?",
+            yesText: "Salta e rimuovi", cancelText: "Annulla");
+        if (confirmed != true) return;
+        _isActioning = true;
+        try
+        {
+            await UpdateNotification.TriggerUnblockQueueAsync(default, item.PackageId, skipAndRemove: true);
+            AppNotification.ShowSuccess($"Pacchetto {item.Component} v{item.Version} rimosso dalla coda.");
+            await LoadDataAsync();
+        }
+        catch (Exception ex) { AppNotification.ShowError($"Errore: {ex.Message}"); }
+        finally { _isActioning = false; }
+    }
 
     private static string FormatBytes(long bytes)
     {

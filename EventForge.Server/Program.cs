@@ -138,6 +138,7 @@ builder.Services.AddScoped<EventForge.Server.Services.Configuration.IBrandingSer
 
 // Register Update services
 builder.Services.AddSingleton<EventForge.Server.Services.Updates.IUpdateHubProxyService, EventForge.Server.Services.Updates.UpdateHubProxyService>();
+builder.Services.AddSingleton<EventForge.Server.Services.Updates.IAgentUpdateProxyService, EventForge.Server.Services.Updates.AgentUpdateProxyService>();
 
 // Agent monitor — singleton background service (probes Agent, auto-restarts if unreachable > threshold)
 builder.Services.AddSingleton<EventForge.Server.Services.AgentMonitorService>();

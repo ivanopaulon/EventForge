@@ -32,7 +32,6 @@ public class PackagesModel(
     public void OnGet()
     {
         var allTracked = commandTracking.GetAll();
-        NotifiedPackages = commandTracking.GetNotified();
         DownloadingPackages = allTracked
             .Where(c => c.State == CommandState.Downloading ||
                         c.State == CommandState.Received ||
@@ -44,6 +43,18 @@ public class PackagesModel(
                         c.State == CommandState.Installing ||
                         c.State == CommandState.Failed)
             .ToList();
+
+        // Exclude notified packages that have already progressed to a tracked lifecycle state
+        // (downloading, ready to install, or installed) so they don't appear as "available"
+        // after the agent has already acted on them.
+        var actionedIds = new HashSet<Guid>(
+            DownloadingPackages.Select(c => c.PackageId)
+                .Concat(ReadyPackages.Select(p => p.PackageId))
+                .Concat(InstalledPackages.Select(c => c.PackageId)));
+        NotifiedPackages = commandTracking.GetNotified()
+            .Where(n => !actionedIds.Contains(n.PackageId))
+            .ToList();
+
         ServerVersion = versionDetector.GetServerVersion();
         ClientVersion = versionDetector.GetClientVersion();
     }

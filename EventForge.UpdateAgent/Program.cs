@@ -155,6 +155,64 @@ try
         });
     });
 
+    // ── Update queue management (called by EventForge.Server agent-proxy) ────
+    // These endpoints are localhost-only and unauthenticated (same trust model
+    // as the health endpoint above — the Agent binds to localhost only).
+
+    app.MapGet("/api/agent/pending-installs", (
+        PendingInstallService pendingSvc,
+        AgentOptions opts) =>
+    {
+        var all = pendingSvc.GetAll();
+        var headId = pendingSvc.GetNext()?.PackageId;
+        return Results.Ok(all.Select(p => new
+        {
+            InstallationId   = opts.InstallationId,
+            InstallationName = opts.InstallationName,
+            p.PackageId,
+            Component        = p.Command.Component,
+            Version          = p.Command.Version,
+            p.IsManualInstall,
+            p.QueuedAt,
+            IsQueueHead      = p.PackageId == headId,
+            pendingSvc.IsBlocked,
+            BlockedReason    = pendingSvc.IsBlocked ? pendingSvc.BlockedReason : null,
+            FileExists       = File.Exists(p.LocalZipPath)
+        }));
+    });
+
+    app.MapPost("/api/agent/install-now", (
+        AgentInstallNowRequest req,
+        PendingInstallService pendingSvc) =>
+    {
+        var pending = pendingSvc.GetByPackageId(req.PackageId);
+        if (pending is null)
+            return Results.NotFound(new { Error = "Package not found in queue." });
+
+        var head = pendingSvc.GetNext();
+        if (head?.PackageId != req.PackageId)
+            return Results.Conflict(new { Error = "Package is not head of queue — install must be sequential." });
+
+        if (pendingSvc.IsBlocked)
+            return Results.Conflict(new { Error = $"Queue is blocked: {pendingSvc.BlockedReason}" });
+
+        if (!File.Exists(pending.LocalZipPath))
+            return Results.UnprocessableEntity(new { Error = "Package zip file not found on disk." });
+
+        if (!pendingSvc.TriggerImmediateInstall(req.PackageId))
+            return Results.Conflict(new { Error = "An install trigger is already pending." });
+
+        return Results.Accepted();
+    });
+
+    app.MapPost("/api/agent/unblock-queue", (
+        AgentUnblockQueueRequest req,
+        PendingInstallService pendingSvc) =>
+    {
+        pendingSvc.Unblock(req.SkipAndRemove);
+        return Results.Ok(new { Unblocked = true, req.SkipAndRemove });
+    });
+
     Log.Information("EventForge Update Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
 
     // ── Startup validation (folders + config checks) ──────────────────────
@@ -181,3 +239,6 @@ finally
 {
     await Log.CloseAndFlushAsync();
 }
+
+public record AgentInstallNowRequest(Guid PackageId);
+public record AgentUnblockQueueRequest(Guid PackageId, bool SkipAndRemove);

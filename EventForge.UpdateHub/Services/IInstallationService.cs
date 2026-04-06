@@ -30,8 +30,11 @@ public interface IInstallationService
     /// <summary>Creates an <see cref="UpdateHistory"/> record in <c>InProgress</c> state and returns it.</summary>
     Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default);
 
-    /// <summary>Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).</summary>
-    Task CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default);
+    /// <summary>
+    /// Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).
+    /// Returns the <see cref="UpdateHistory.PackageId"/> so the caller can update the package status.
+    /// </summary>
+    Task<Guid?> CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default);
 
     /// <summary>Updates the <see cref="UpdateHistory.PhaseDescription"/> for an in-progress update.</summary>
     Task UpdateProgressPhaseAsync(Guid historyId, string phase, CancellationToken ct = default);
@@ -61,6 +64,12 @@ public interface IInstallationService
     /// </summary>
     Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
         IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
+    /// <summary>
+    /// Returns all <see cref="UpdateHistory"/> records that are currently pending installation
+    /// (Status = InProgress, Phase = AwaitingMaintenanceWindow), across all installations,
+    /// ordered by start time ascending (oldest = head of queue first).
+    /// </summary>
+    Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default);
 }
 
 /// <summary>Summary of a single update history record, used in the Installations UI.</summary>
@@ -73,6 +82,21 @@ public record UpdateHistorySummary(
     string? PhaseDescription,
     DateTime StartedAt,
     DateTime? CompletedAt);
+
+/// <summary>
+/// A package that has been downloaded by an agent and is waiting for operator approval
+/// (phase = AwaitingMaintenanceWindow). Used to surface manual installs in the client UI.
+/// </summary>
+public record PendingInstallSummary(
+    Guid InstallationId,
+    string InstallationName,
+    bool IsConnected,
+    Guid HistoryId,
+    Guid PackageId,
+    string? Component,
+    string? Version,
+    bool IsManualInstall,
+    DateTime QueuedAt);
 
 /// <summary>Rich identity payload sent by the agent on every SignalR connect.</summary>
 public record RegistrationInfo(

@@ -7,12 +7,84 @@
                 Subtitle="@_subtitle"
                 TopBar="@_topBar"
                 LogoAnim="EFSystemDialog.EFLogoAnim.Pulse"
-                ShowProgressBar="@UpdateNotification.IsServerMaintenance"
-                CardWidth="400px">
+                ShowProgressBar="@_showProgressBar"
+                ProgressIndeterminate="@_progressIndeterminate"
+                ProgressValue="@_progressValue"
+                ProgressColor="@_progressColor"
+                CardWidth="420px">
 
+    @* ── Active download / install progress ── *@
+    @if (UpdateNotification.IsActiveUpdate)
+    {
+        var p = UpdateNotification.CurrentProgress!;
+
+        <div class="umsd-status-row">
+            <MudIcon Icon="@Icons.Material.Filled.SystemUpdate"
+                     Size="Size.Small"
+                     Style="color:#247BFF" />
+            <span class="umsd-label">Componente</span>
+            <span class="umsd-value" style="color:#64aaff">@(p.Component ?? "—")</span>
+            @if (!string.IsNullOrEmpty(p.Version))
+            {
+                <span class="umsd-version">v@p.Version</span>
+            }
+        </div>
+
+        <div class="umsd-status-row">
+            <MudIcon Icon="@Icons.Material.Outlined.Pending"
+                     Size="Size.Small"
+                     Style="color:#247BFF" />
+            <span class="umsd-label">Fase</span>
+            <span class="umsd-value" style="color:#64aaff">@TranslatePhase(p.Phase)</span>
+        </div>
+
+        @if (p.FormattedTotal != null || p.FormattedDownloaded != null)
+        {
+            <div class="umsd-status-row">
+                <MudIcon Icon="@Icons.Material.Outlined.CloudDownload"
+                         Size="Size.Small"
+                         Style="color:rgba(255,255,255,0.45)" />
+                <span class="umsd-label">Download</span>
+                <span class="umsd-value" style="color:rgba(255,255,255,0.80)">
+                    @if (p.FormattedTotal != null)
+                    { @($"{p.FormattedDownloaded} / {p.FormattedTotal}") }
+                    else
+                    { @p.FormattedDownloaded }
+                    @if (p.FormattedSpeed != null) { <span class="umsd-speed"> — @p.FormattedSpeed</span> }
+                </span>
+            </div>
+        }
+
+        <div class="umsd-progress-section">
+            <MudProgressLinear Color="Color.Primary"
+                               Value="@(p.PercentComplete ?? 0)"
+                               Max="100"
+                               Indeterminate="@(p.PercentComplete == null)"
+                               Rounded="true"
+                               Size="Size.Small"
+                               Class="umsd-inline-progress" />
+            @if (p.PercentComplete != null)
+            {
+                <span class="umsd-pct">@p.PercentComplete%</span>
+            }
+            @if (p.Eta != null)
+            {
+                <span class="umsd-eta">ETA @p.Eta</span>
+            }
+        </div>
+
+        @if (!UpdateNotification.IsServerMaintenance)
+        {
+            <div class="umsd-message">
+                Aggiornamento in corso. Non chiudere il browser e non navigare via da questa pagina.
+            </div>
+        }
+    }
+
+    @* ── Server maintenance (IIS restarting) ── *@
     @if (UpdateNotification.IsServerMaintenance)
     {
-        @* Server maintenance rows *@
+        <div class="umsd-divider-row"></div>
         <div class="umsd-status-row">
             <MudIcon Icon="@Icons.Material.Filled.SystemUpdate"
                      Size="Size.Small"
@@ -38,8 +110,10 @@
         </div>
     }
 
+    @* ── Client update deployed — needs browser refresh ── *@
     @if (UpdateNotification.HasPendingClientUpdate)
     {
+        <div class="umsd-divider-row"></div>
         <div class="umsd-client-update">
             <MudIcon Icon="@Icons.Material.Filled.BrowserUpdated"
                      Size="Size.Small"
@@ -64,39 +138,78 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
-    private EFSystemDialog.EFTopBar _topBar =>
-        UpdateNotification.HasPendingClientUpdate && !UpdateNotification.IsServerMaintenance
-            ? EFSystemDialog.EFTopBar.Success
-            : EFSystemDialog.EFTopBar.Warning;
+    private bool _showProgressBar =>
+        UpdateNotification.IsActiveUpdate || UpdateNotification.IsServerMaintenance;
 
-    private string _subtitle =>
-        UpdateNotification.IsServerMaintenance
-            ? "Aggiornamento in corso — attendere prego"
-            : "Nuovo client disponibile";
+    private bool _progressIndeterminate =>
+        UpdateNotification.CurrentProgress?.PercentComplete == null;
+
+    private double _progressValue =>
+        UpdateNotification.CurrentProgress?.PercentComplete ?? 0;
+
+    private Color _progressColor =>
+        UpdateNotification.IsServerMaintenance ? Color.Warning : Color.Primary;
+
+    private EFSystemDialog.EFTopBar _topBar
+    {
+        get
+        {
+            if (UpdateNotification.HasPendingClientUpdate && !UpdateNotification.IsActiveUpdate && !UpdateNotification.IsServerMaintenance)
+                return EFSystemDialog.EFTopBar.Success;
+            if (UpdateNotification.IsServerMaintenance)
+                return EFSystemDialog.EFTopBar.Warning;
+            return EFSystemDialog.EFTopBar.Primary;
+        }
+    }
+
+    private string _subtitle
+    {
+        get
+        {
+            if (UpdateNotification.IsActiveUpdate)
+            {
+                var phase = UpdateNotification.CurrentProgress?.Phase;
+                return string.IsNullOrEmpty(phase) || phase == "Downloading"
+                    ? "Download aggiornamento in corso…"
+                    : "Installazione aggiornamento in corso…";
+            }
+            if (UpdateNotification.IsServerMaintenance)
+                return "Aggiornamento server — attendere prego";
+            return "Nuovo client disponibile";
+        }
+    }
 
     protected override void OnInitialized()
     {
         UpdateNotification.StateChanged += OnStateChanged;
     }
 
-    private void OnStateChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
 
-    private void ReloadPage()
-    {
-        // Force a full browser reload so the new Blazor WASM bundle is fetched.
+    private void ReloadPage() =>
         NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
-    }
 
-    public void Dispose()
-    {
+    public void Dispose() =>
         UpdateNotification.StateChanged -= OnStateChanged;
-    }
 
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    private static string TranslatePhase(string? phase) => phase switch
+    {
+        "Downloading"               => "Download in corso",
+        "VerifyingChecksum"         => "Verifica integrità",
+        "BackingUp"                 => "Backup in corso",
+        "RunningPreMigrations"      => "Migrazioni pre-deploy",
+        "StoppingService"           => "Arresto servizio",
+        "DeployingBinaries"         => "Deploy file",
+        "StartingService"           => "Avvio servizio",
+        "RunningPostMigrations"     => "Migrazioni post-deploy",
+        "VerifyingHealth"           => "Verifica salute",
+        "Completed"                 => "Completato",
+        "Rollback"                  => "Ripristino backup",
+        "AwaitingMaintenanceWindow" => "In attesa finestra manutenzione",
+        _                           => "Operazione in corso"
+    };
 }
 
 <style>
@@ -112,14 +225,48 @@
         min-width: 80px;
     }
 
-    .umsd-value { font-weight: 600; }
-    .umsd-warn  { color: #ffa726; }
+    .umsd-value  { font-weight: 600; }
+    .umsd-warn   { color: #ffa726; }
+    .umsd-version {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.45);
+    }
+    .umsd-speed {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.55);
+    }
+
+    .umsd-progress-section {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+    }
+    .umsd-inline-progress { flex: 1; }
+    .umsd-pct {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.70);
+        min-width: 36px;
+        text-align: right;
+    }
+    .umsd-eta {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.45);
+        white-space: nowrap;
+    }
 
     .umsd-message {
         color: rgba(255, 255, 255, 0.75);
         font-size: 0.82rem;
         line-height: 1.45;
         font-style: italic;
+    }
+
+    .umsd-divider-row {
+        height: 1px;
+        background: rgba(255,255,255,0.10);
+        margin: 4px 0;
     }
 
     .umsd-client-update {

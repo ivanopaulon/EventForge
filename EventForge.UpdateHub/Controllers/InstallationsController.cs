@@ -151,9 +151,59 @@ public class InstallationsController(
         logger.LogInformation("Installation reinstated: Id={Id}", id);
         return Ok(new { InstallationId = id, Reinstated = true });
     }
+
+    /// <summary>
+    /// Returns all packages that are downloaded and awaiting manual operator approval
+    /// (UpdateHistory Status=InProgress, Phase=AwaitingMaintenanceWindow), across all installations.
+    /// </summary>
+    [HttpGet("pending")]
+    public async Task<IActionResult> GetPendingInstalls()
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+        var pending = await installationService.GetPendingInstallsAsync();
+        return Ok(pending.Select(p => new
+        {
+            p.InstallationId, p.InstallationName, p.IsConnected,
+            p.HistoryId, p.PackageId, p.Component, p.Version,
+            p.IsManualInstall, p.QueuedAt
+        }));
+    }
+
+    /// <summary>Sends an InstallNow command to the agent for the specified queued package.</summary>
+    [HttpPost("{id:guid}/install-now")]
+    public async Task<IActionResult> TriggerInstallNow(Guid id, [FromBody] TriggerInstallNowRequest request)
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+
+        var connectionId = connectionTracker.GetConnectionId(id);
+        if (connectionId is null)
+            return Conflict("Installation is not currently connected.");
+
+        await hubContext.Clients.Client(connectionId).SendAsync("InstallNow", new InstallNowCommand(request.PackageId));
+        logger.LogInformation("InstallNow sent to Installation={InstallationId} Package={PackageId}", id, request.PackageId);
+        return Accepted();
+    }
+
+    /// <summary>Sends an UnblockQueue command to the agent to retry or skip the blocking entry.</summary>
+    [HttpPost("{id:guid}/unblock-queue")]
+    public async Task<IActionResult> TriggerUnblockQueue(Guid id, [FromBody] TriggerUnblockQueueRequest request)
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+
+        var connectionId = connectionTracker.GetConnectionId(id);
+        if (connectionId is null)
+            return Conflict("Installation is not currently connected.");
+
+        await hubContext.Clients.Client(connectionId).SendAsync("UnblockQueue", new UnblockQueueCommand(request.PackageId, request.SkipAndRemove));
+        logger.LogInformation("UnblockQueue sent to Installation={InstallationId} Package={PackageId} Skip={Skip}",
+            id, request.PackageId, request.SkipAndRemove);
+        return Accepted();
+    }
 }
 
 public record RegisterInstallationRequest(string Name, string? Location, InstallationComponents Components, string? Notes);
 public record SendUpdateRequest(Guid PackageId);
 public record BroadcastUpdateRequest(Guid PackageId);
 public record RevokeInstallationRequest(string? Reason);
+public record TriggerInstallNowRequest(Guid PackageId);
+public record TriggerUnblockQueueRequest(Guid PackageId, bool SkipAndRemove);
