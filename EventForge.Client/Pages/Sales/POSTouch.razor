@@ -67,6 +67,18 @@
 else if (!ViewModel.SelectedPosId.HasValue)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+
+        <!-- Selected operator reminder -->
+        <div class="d-flex justify-center mb-3">
+            <MudChip T="string"
+                     Icon="@Icons.Material.Filled.Person"
+                     Color="Color.Primary"
+                     Size="Size.Small"
+                     Variant="Variant.Outlined">
+                @(ViewModel.AvailableOperators.FirstOrDefault(o => o.Id == ViewModel.SelectedOperatorId)?.Name ?? "—")
+            </MudChip>
+        </div>
+
         <div class="d-flex flex-column align-center mb-5">
             <MudText Typo="Typo.h5" Class="mb-1">
                 @TranslationService.GetTranslation("sales.selectPos", "Seleziona Cassa")
@@ -223,8 +235,8 @@ else
 
                     <!-- Mode toggle -->
                     <MudButtonGroup Variant="Variant.Outlined"
-                                    Size="Size.Small"
-                                    Class="mb-2 d-flex">
+                                    Size="Size.Medium"
+                                    Class="mb-3 d-flex">
                         <MudButton Color="@(_keypadMode == KeypadMode.Quantity ? Color.Primary : Color.Default)"
                                    Variant="@(_keypadMode == KeypadMode.Quantity ? Variant.Filled : Variant.Outlined)"
                                    FullWidth="true"
@@ -246,15 +258,10 @@ else
                     </MudButtonGroup>
 
                     <!-- Keypad label (shows selected item context) -->
-                    @{
-                        var keypadLabel = _selectedCartItem != null
-                            ? $"{_selectedCartItem.ProductName} — {GetKeypadModeLabel()}"
-                            : GetKeypadModeLabel();
-                    }
                     <POSTouchNumericKeypad @ref="_numericKeypad"
                                            Value="@_keypadValue"
                                            ValueChanged="@OnKeypadValueChanged"
-                                           Label="@keypadLabel"
+                                           Label="@KeypadLabel"
                                            AllowDecimal="@(_keypadMode != KeypadMode.Quantity)" />
 
                     <!-- Apply / Add buttons -->
@@ -671,6 +678,11 @@ else
         KeypadMode.Discount => TranslationService.GetTranslation("sales.discount", "Sconto (%)"),
         _                   => string.Empty
     };
+
+    private string KeypadLabel =>
+        _selectedCartItem != null
+            ? $"{_selectedCartItem.ProductName} — {GetKeypadModeLabel()}"
+            : GetKeypadModeLabel();
 
     private void ResetKeypad()
     {
