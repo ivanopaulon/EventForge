@@ -42,8 +42,48 @@ public static class CustomProtocolCommands
     /// <summary>Prints a single item (vendita base) on the receipt. Fields: description, quantity, unit price, VAT code, department.</summary>
     public const string CMD_PRINT_ITEM = "02";
 
-    /// <summary>Prints the receipt subtotal. Optionally triggers a discount or surcharge.</summary>
+    /// <summary>
+    /// Prints an item with a discount (sconto su riga).
+    /// Fields: description, quantity, unit price, VAT code, department, discount value, discount type (P or A).
+    /// Use <see cref="DISCOUNT_TYPE_PERCENTAGE"/> or <see cref="DISCOUNT_TYPE_AMOUNT"/> for the discount type field.
+    /// </summary>
+    public const string CMD_PRINT_ITEM_WITH_DISCOUNT = "02S";
+
+    /// <summary>
+    /// Prints an item with a surcharge (maggiorazione su riga).
+    /// Fields: description, quantity, unit price, VAT code, department, surcharge value, surcharge type (P or A).
+    /// Use <see cref="DISCOUNT_TYPE_PERCENTAGE"/> or <see cref="DISCOUNT_TYPE_AMOUNT"/> for the surcharge type field.
+    /// </summary>
+    public const string CMD_PRINT_ITEM_WITH_SURCHARGE = "02M";
+
+    /// <summary>
+    /// Prints a free item (omaggio / gift).
+    /// The item is printed at zero price with the ITEM_FLAG_FREE flag.
+    /// Fields: description, quantity, unit price (original), VAT code, department.
+    /// </summary>
+    public const string CMD_PRINT_ITEM_FREE = "02G";
+
+    /// <summary>
+    /// Prints the receipt subtotal.
+    /// Can be sent before payment commands to display the running total.
+    /// </summary>
     public const string CMD_SUBTOTAL = "03";
+
+    /// <summary>
+    /// Applies a global discount to the entire receipt (sconto globale scontrino).
+    /// Must be sent after the last item and before CMD_PAYMENT.
+    /// Fields: discount value, discount type (P or A), description.
+    /// Use <see cref="DISCOUNT_TYPE_PERCENTAGE"/> or <see cref="DISCOUNT_TYPE_AMOUNT"/> for the type field.
+    /// </summary>
+    public const string CMD_GLOBAL_DISCOUNT = "03S";
+
+    /// <summary>
+    /// Applies a global surcharge to the entire receipt (maggiorazione globale – e.g., cover charge).
+    /// Must be sent after the last item and before CMD_PAYMENT.
+    /// Fields: surcharge value, surcharge type (P or A), description, VAT code.
+    /// Use <see cref="DISCOUNT_TYPE_PERCENTAGE"/> or <see cref="DISCOUNT_TYPE_AMOUNT"/> for the type field.
+    /// </summary>
+    public const string CMD_GLOBAL_SURCHARGE = "03M";
 
     /// <summary>Registers a payment method and amount. Repeat for multiple payment methods.</summary>
     public const string CMD_PAYMENT = "04";
@@ -111,6 +151,51 @@ public static class CustomProtocolCommands
 
     /// <summary>Non-food department (reparto non-alimentari).</summary>
     public const int DEPT_NON_FOOD = 4;
+
+    // -------------------------------------------------------------------------
+    //  Discount / surcharge type flags
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Discount or surcharge expressed as a percentage of the item or receipt total.
+    /// Used as the "type" field in <see cref="CMD_PRINT_ITEM_WITH_DISCOUNT"/>,
+    /// <see cref="CMD_PRINT_ITEM_WITH_SURCHARGE"/>, <see cref="CMD_GLOBAL_DISCOUNT"/>,
+    /// and <see cref="CMD_GLOBAL_SURCHARGE"/>.
+    /// Example: value "1000" with type "P" means -10.00%.
+    /// </summary>
+    public const string DISCOUNT_TYPE_PERCENTAGE = "P";
+
+    /// <summary>
+    /// Discount or surcharge expressed as a fixed monetary amount.
+    /// Used as the "type" field in <see cref="CMD_PRINT_ITEM_WITH_DISCOUNT"/>,
+    /// <see cref="CMD_PRINT_ITEM_WITH_SURCHARGE"/>, <see cref="CMD_GLOBAL_DISCOUNT"/>,
+    /// and <see cref="CMD_GLOBAL_SURCHARGE"/>.
+    /// Example: value "500" with type "A" means -€5.00.
+    /// </summary>
+    public const string DISCOUNT_TYPE_AMOUNT = "A";
+
+    // -------------------------------------------------------------------------
+    //  Item flags
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Normal item flag. Used for regular sales with <see cref="CMD_PRINT_ITEM"/>
+    /// and discount/surcharge variants.
+    /// </summary>
+    public const string ITEM_FLAG_NORMAL = "0";
+
+    /// <summary>
+    /// Free/gift item flag (omaggio). Used with <see cref="CMD_PRINT_ITEM_FREE"/>
+    /// to indicate the item is given at no charge.
+    /// The original price is printed but the amount is not added to the total.
+    /// </summary>
+    public const string ITEM_FLAG_FREE = "1";
+
+    /// <summary>
+    /// Return/refund item flag (reso). Used for return transactions where the
+    /// quantity is negative and the amount is credited back.
+    /// </summary>
+    public const string ITEM_FLAG_RETURN = "2";
 
     // -------------------------------------------------------------------------
     //  Error codes
