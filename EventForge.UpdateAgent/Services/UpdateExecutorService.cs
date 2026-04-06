@@ -1,11 +1,16 @@
 using System.IO.Compression;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace EventForge.UpdateAgent.Services;
 
 /// <summary>
-/// Orchestrates the full update sequence: Download → Backup → Stop → Migrate → Deploy → Start → Verify → Report.
+/// Orchestrates the full update sequence: Download → Verify → Backup → Stop → Migrate → Deploy → Start → Verify → Report.
+///
+/// The sequence is split into two independently callable phases:
+///   1. <see cref="DownloadAndVerifyAsync"/> — resilient download + checksum gate (runs immediately on command).
+///   2. <see cref="InstallFromZipAsync"/>    — everything from Extract onward (deferred to a maintenance window).
 /// </summary>
 public class UpdateExecutorService(
     AgentOptions options,
@@ -15,28 +20,49 @@ public class UpdateExecutorService(
     VersionDetectorService versionDetector,
     ILogger<UpdateExecutorService> logger)
 {
-    private static readonly HttpClient _http = new();
+    // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
+    private readonly HttpClient _http = new(new SocketsHttpHandler
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(30)
+    })
+    { Timeout = Timeout.InfiniteTimeSpan };
 
+    /// <summary>Fired after each phase to push progress to the Hub via SignalR.</summary>
     public event Func<UpdateProgressMessage, Task>? OnProgress;
 
-    public async Task ExecuteAsync(StartUpdateCommand command, CancellationToken ct)
+    // Exponential backoff delays (seconds) between successive download attempts.
+    private static readonly int[] DownloadDelays = [5, 15, 30, 60, 120];
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Phase 1 + 2: resilient download with retry/resume, followed by SHA-256 checksum verification.
+    /// Returns the local path to the verified zip file.
+    /// </summary>
+    public async Task<string> DownloadAndVerifyAsync(StartUpdateCommand command, CancellationToken ct)
+    {
+        await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
+        var zipPath = await DownloadPackageAsync(command.DownloadUrl, command.PackageId.ToString("N"), ct);
+
+        await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
+        await VerifyChecksumAsync(zipPath, command.Checksum, ct);
+
+        return zipPath;
+    }
+
+    /// <summary>
+    /// Phase 3–11: extract, backup, migrate, stop IIS, deploy, start IIS, post-migrate, health-check.
+    /// Performs rollback on failure. The <paramref name="zipPath"/> is deleted in the finally block.
+    /// </summary>
+    public async Task InstallFromZipAsync(StartUpdateCommand command, string zipPath, CancellationToken ct)
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
         var tempDir = Path.Combine(AppContext.BaseDirectory, "updates", $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
-        string? zipPath = null;
 
         try
         {
-            // ── Phase 1: Download ──
-            await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
-            zipPath = await DownloadPackageAsync(command.DownloadUrl, ct);
-
-            // ── Phase 2: Verify Checksum ──
-            await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
-            await VerifyChecksumAsync(zipPath, command.Checksum, ct);
-
             // ── Phase 3: Extract ──
             Directory.CreateDirectory(tempDir);
             ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
@@ -94,9 +120,8 @@ public class UpdateExecutorService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Update failed at component={Component} version={Version}", command.Component, command.Version);
+            logger.LogError(ex, "Update failed: component={Component} version={Version}", command.Component, command.Version);
 
-            // Rollback attempt
             var rollbackSucceeded = false;
             if (backupPath is not null)
             {
@@ -108,7 +133,6 @@ public class UpdateExecutorService(
                     if (isServer)
                     {
                         await iisManagerService.StartSiteAsync(CancellationToken.None);
-                        // Only load rollback scripts if tempDir still exists and has the manifest
                         if (Directory.Exists(tempDir))
                         {
                             var manifest2 = await LoadManifestAsync(tempDir);
@@ -124,13 +148,14 @@ public class UpdateExecutorService(
                 }
             }
 
-            // Use Rollback phase for final message when rollback completed so the hub can detect it
             var finalPhase = rollbackSucceeded ? UpdatePhase.Rollback : UpdatePhase.Completed;
             await ReportAsync(command, finalPhase, true, false, ex.Message, CancellationToken.None);
+
+            // Re-throw so the caller (AgentWorker / ScheduledInstallWorker) can block the queue.
+            throw;
         }
         finally
         {
-            // Cleanup temp files
             if (zipPath is not null && File.Exists(zipPath))
                 try { File.Delete(zipPath); } catch { /* best effort */ }
             if (Directory.Exists(tempDir))
@@ -138,21 +163,95 @@ public class UpdateExecutorService(
         }
     }
 
-    private async Task<string> DownloadPackageAsync(string downloadUrl, CancellationToken ct)
+    // ── Download (resilient) ─────────────────────────────────────────────────
+
+    private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, CancellationToken ct)
     {
         var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
         Directory.CreateDirectory(downloadDir);
-        var zipPath = Path.Combine(downloadDir, $"ef-pkg-{Guid.NewGuid():N}.zip");
 
-        _http.DefaultRequestHeaders.Remove("X-Api-Key");
-        _http.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+        var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
+        var tmpPath = zipPath + ".tmp";
 
-        logger.LogInformation("Downloading package from {Url}", downloadUrl);
-        await using var response = await _http.GetStreamAsync(downloadUrl, ct);
-        await using var file = File.Create(zipPath);
-        await response.CopyToAsync(file, ct);
-        return zipPath;
+        var maxAttempts = options.DownloadMaxRetries + 1; // e.g. 5 retries → 6 total attempts
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            if (attempt > 0)
+            {
+                var delaySec = DownloadDelays[Math.Min(attempt - 1, DownloadDelays.Length - 1)];
+                logger.LogWarning("Download retry {Attempt}/{Max} in {Delay}s...", attempt, maxAttempts - 1, delaySec);
+                await Task.Delay(TimeSpan.FromSeconds(delaySec), ct);
+            }
+
+            try
+            {
+                // Best-effort range resume: if a .tmp already exists, request the missing tail.
+                long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                request.Headers.Add("X-Api-Key", options.ApiKey);
+                if (resumeFrom > 0)
+                    request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+
+                // 416 = server doesn't support the requested range (file changed or no range support): restart.
+                if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+                {
+                    logger.LogWarning("Server returned 416 — restarting download from byte 0.");
+                    try { File.Delete(tmpPath); } catch { /* best effort */ }
+                    resumeFrom = 0;
+
+                    // Redo the request without the Range header.
+                    using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                    request2.Headers.Add("X-Api-Key", options.ApiKey);
+                    using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                    response2.EnsureSuccessStatusCode();
+                    await WriteResponseToFileAsync(response2, tmpPath, append: false, linkedCts.Token);
+                }
+                else
+                {
+                    response.EnsureSuccessStatusCode();
+                    await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, linkedCts.Token);
+                }
+
+                // Atomic rename: only commit when the full file is on disk.
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                File.Move(tmpPath, zipPath);
+
+                logger.LogInformation("Package downloaded to {Path}", zipPath);
+                return zipPath;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Propagate host-shutdown / explicit cancellation immediately.
+                throw;
+            }
+            catch (Exception ex) when (attempt < maxAttempts - 1)
+            {
+                logger.LogWarning(ex, "Download attempt {Attempt}/{Max} failed", attempt + 1, maxAttempts);
+                // Leave .tmp on disk so the next attempt can resume.
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Package download failed after {maxAttempts} attempt(s). URL: {downloadUrl}");
     }
+
+    private static async Task WriteResponseToFileAsync(
+        HttpResponseMessage response, string tmpPath, bool append, CancellationToken ct)
+    {
+        await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+        var fileMode = append ? FileMode.Append : FileMode.Create;
+        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await responseStream.CopyToAsync(fileStream, ct);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static async Task VerifyChecksumAsync(string zipPath, string expectedChecksum, CancellationToken ct)
     {
@@ -179,7 +278,6 @@ public class UpdateExecutorService(
 
         Directory.CreateDirectory(deployPath);
 
-        // Normalize preserve list to lower-case for case-insensitive comparison on Windows
         var preserveSet = manifest.PreserveFiles
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
@@ -190,7 +288,6 @@ public class UpdateExecutorService(
             var relative = Path.GetRelativePath(binariesPath, file);
             var dest = Path.Combine(deployPath, relative);
 
-            // Skip if the file is in the preserve list AND already exists at the destination
             if (preserveSet.Count > 0 && File.Exists(dest) &&
                 preserveSet.Contains(relative.ToLowerInvariant()))
                 continue;

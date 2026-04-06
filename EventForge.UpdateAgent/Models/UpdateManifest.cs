@@ -40,6 +40,8 @@ public enum UpdatePhase
 {
     Downloading,
     VerifyingChecksum,
+    /// <summary>Download completed; waiting for an allowed maintenance window before installing.</summary>
+    AwaitingMaintenanceWindow,
     BackingUp,
     RunningPreMigrations,
     StoppingService,

@@ -1,0 +1,85 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace EventForge.UpdateAgent.Pages;
+
+public class IndexModel(
+    AgentStatusService agentStatus,
+    PendingInstallService pendingInstallService,
+    UpdateExecutorService updateExecutor,
+    VersionDetectorService versionDetector,
+    ILogger<IndexModel> logger) : PageModel
+{
+    public string HubState { get; private set; } = "Disconnected";
+    public DateTime? LastHeartbeat { get; private set; }
+    public string? ServerVersion { get; private set; }
+    public string? ClientVersion { get; private set; }
+    public bool QueueBlocked { get; private set; }
+    public string? BlockedReason { get; private set; }
+    public int PendingCount { get; private set; }
+    public List<PendingUpdate> PendingUpdates { get; private set; } = [];
+    public DateTime? NextWindow { get; private set; }
+
+    public void OnGet()
+    {
+        HubState = agentStatus.HubConnectionState;
+        LastHeartbeat = agentStatus.LastHeartbeatAt;
+        ServerVersion = versionDetector.GetServerVersion();
+        ClientVersion = versionDetector.GetClientVersion();
+        QueueBlocked = pendingInstallService.IsBlocked;
+        BlockedReason = pendingInstallService.BlockedReason;
+        PendingUpdates = [.. pendingInstallService.GetAll()];
+        PendingCount = PendingUpdates.Count;
+        NextWindow = pendingInstallService.GetNextWindowStart();
+    }
+
+    public IActionResult OnPostInstallNow(Guid packageId)
+    {
+        var pending = pendingInstallService.GetByPackageId(packageId);
+        if (pending is null)
+        {
+            TempData["Error"] = $"Package {packageId} not found in queue.";
+            return RedirectToPage();
+        }
+
+        var head = pendingInstallService.GetNext();
+        if (head is null || head.PackageId != packageId)
+        {
+            TempData["Error"] = "Only the first item in the queue can be installed out-of-schedule. Sequential order must be preserved.";
+            return RedirectToPage();
+        }
+
+        // Fire-and-forget on a background thread; the page returns immediately.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await updateExecutor.InstallFromZipAsync(pending.Command, pending.LocalZipPath, CancellationToken.None);
+                pendingInstallService.Remove(packageId);
+            }
+            catch (Exception ex)
+            {
+                pendingInstallService.Block(packageId,
+                    $"InstallNow (UI) failed for {pending.Command.Component} {pending.Command.Version}: {ex.Message}");
+                logger.LogError(ex, "InstallNow from UI failed for {PackageId}", packageId);
+            }
+        });
+
+        TempData["Info"] = $"Installation of {pending.Command.Component} {pending.Command.Version} started in background.";
+        return RedirectToPage();
+    }
+
+    public IActionResult OnPostUnblockQueue()
+    {
+        pendingInstallService.Unblock(skipAndRemove: false);
+        TempData["Info"] = "Queue unblocked. The failed update will be retried on the next maintenance window.";
+        return RedirectToPage();
+    }
+
+    public IActionResult OnPostUnblockSkip()
+    {
+        pendingInstallService.Unblock(skipAndRemove: true);
+        TempData["Warning"] = "Queue unblocked and the failed update was SKIPPED. Dependent migrations will not run.";
+        return RedirectToPage();
+    }
+}

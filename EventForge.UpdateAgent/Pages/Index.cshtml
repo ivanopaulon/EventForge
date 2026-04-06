@@ -1,0 +1,131 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-3 mb-4">
+    <!-- Hub connection -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2"><i class="bi bi-cloud me-1"></i>Hub Connection</h6>
+                @{
+                    var stateColor = Model.HubState switch {
+                        "Connected" => "success",
+                        "Reconnecting" => "warning",
+                        _ => "danger"
+                    };
+                }
+                <span class="badge bg-@stateColor fs-6">@Model.HubState</span>
+                @if (Model.LastHeartbeat.HasValue)
+                {
+                    <p class="text-muted small mt-2 mb-0">Last heartbeat: @Model.LastHeartbeat.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Versions -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2"><i class="bi bi-layers me-1"></i>Installed Versions</h6>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="text-muted">Server</td><td><code>@(Model.ServerVersion ?? "—")</code></td></tr>
+                    <tr><td class="text-muted">Client</td><td><code>@(Model.ClientVersion ?? "—")</code></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue status -->
+    <div class="col-md-4">
+        <div class="card h-100 @(Model.QueueBlocked ? "queue-blocked" : "")">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2"><i class="bi bi-list-ol me-1"></i>Install Queue</h6>
+                @if (Model.QueueBlocked)
+                {
+                    <span class="badge bg-danger">BLOCKED</span>
+                    <p class="text-danger small mt-1 mb-0">@Model.BlockedReason</p>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">@Model.PendingCount pending</span>
+                }
+                @if (Model.NextWindow.HasValue)
+                {
+                    <p class="text-muted small mt-2 mb-0">Next window: @Model.NextWindow.Value.ToLocalTime().ToString("ddd HH:mm")</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending updates table -->
+@if (Model.PendingUpdates.Count > 0)
+{
+    <div class="card @(Model.QueueBlocked ? "queue-blocked" : "queue-pending")">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clock-history me-1"></i>Pending Updates <span class="badge bg-warning text-dark">@Model.PendingUpdates.Count</span></span>
+            @if (Model.QueueBlocked)
+            {
+                <form method="post" asp-page-handler="UnblockQueue">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Unblock queue WITHOUT skipping the failed update?\nThis retries the same install on the next maintenance window.')">
+                        <i class="bi bi-unlock me-1"></i>Unblock (retry)
+                    </button>
+                </form>
+                <form method="post" asp-page-handler="UnblockSkip" class="ms-2">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            onclick="return confirm('WARNING: This SKIPS the failed update and removes it from the queue.\nDependent migrations will NOT run. Only do this if you know what you are doing.')">
+                        <i class="bi bi-skip-forward me-1"></i>Unblock + Skip
+                    </button>
+                </form>
+            }
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Component</th>
+                        <th>Version</th>
+                        <th>Queued</th>
+                        <th>Zip</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var (item, idx) in Model.PendingUpdates.Select((p, i) => (p, i)))
+                    {
+                        var isHead = idx == 0;
+                        <tr class="@(isHead && Model.QueueBlocked ? "table-danger" : isHead ? "table-warning" : "")">
+                            <td><span class="badge bg-secondary">@(idx + 1)</span></td>
+                            <td>@item.Command.Component</td>
+                            <td><code>@item.Command.Version</code></td>
+                            <td class="text-muted small">@item.QueuedAt.ToLocalTime().ToString("MM-dd HH:mm")</td>
+                            <td class="text-muted small">@(File.Exists(item.LocalZipPath) ? "✓ on disk" : "✗ missing")</td>
+                            <td>
+                                @if (isHead && !Model.QueueBlocked && File.Exists(item.LocalZipPath))
+                                {
+                                    <form method="post" asp-page-handler="InstallNow">
+                                        <input type="hidden" name="packageId" value="@item.PackageId" />
+                                        <button type="submit" class="btn btn-sm btn-success"
+                                                onclick="return confirm('Install @item.Command.Component @item.Command.Version NOW (bypassing the maintenance window)?')">
+                                            <i class="bi bi-lightning me-1"></i>Install Now
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-secondary"><i class="bi bi-check-circle me-1"></i>No pending updates.</div>
+}

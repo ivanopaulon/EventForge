@@ -41,3 +41,9 @@ public record StartUpdateCommand(
 
 public record RequestStatusCommand(string Reason);
 public record InstallationComponentsDto(bool Server, bool Client);
+
+/// <summary>Hub → Agent: install a queued package immediately, bypassing the maintenance window.</summary>
+public record InstallNowCommand(Guid PackageId);
+
+/// <summary>Hub → Agent: unblock the install queue after a failed update (operator-confirmed).</summary>
+public record UnblockQueueCommand(Guid PackageId, bool SkipAndRemove);
