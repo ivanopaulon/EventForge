@@ -47,6 +47,7 @@ try
         sp.GetRequiredService<IOptions<AgentOptions>>().Value);
 
     // ── Core services ─────────────────────────────────────────────────────
+    builder.Services.AddSingleton<InstallationCodeGenerator>();
     builder.Services.AddSingleton<AgentStatusService>();
     builder.Services.AddSingleton<DownloadProgressService>();
     builder.Services.AddSingleton<PendingInstallService>();
@@ -103,6 +104,13 @@ try
     });
 
     Log.Information("EventForge Update Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
+
+    // ── Generate InstallationCode on first startup (before workers start) ──
+    using (var scope = app.Services.CreateScope())
+    {
+        scope.ServiceProvider.GetRequiredService<InstallationCodeGenerator>().EnsureInstallationCode();
+    }
+
     await app.RunAsync();
 }
 catch (Exception ex)

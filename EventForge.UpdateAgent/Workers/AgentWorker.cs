@@ -76,11 +76,18 @@ public class AgentWorker(
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(options.InstallationCode))
+        {
+            logger.LogError("InstallationCode is not set. Cannot enroll without a stable identity. " +
+                            "Ensure InstallationCodeGenerator ran before enrollment.");
+            return;
+        }
+
         var baseUrl = string.IsNullOrWhiteSpace(options.HubBaseUrl) ? options.HubUrl : options.HubBaseUrl;
-        // Strip SignalR hub path suffix if present
         var enrollUrl = baseUrl.TrimEnd('/').Replace("/hubs/update", "") + "/api/v1/enrollments";
 
-        logger.LogInformation("ApiKey not set — requesting enrollment from {Url}", enrollUrl);
+        logger.LogInformation("ApiKey not set — requesting enrollment from {Url} (Code={Code})",
+            enrollUrl, options.InstallationCode);
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         try
@@ -88,9 +95,10 @@ public class AgentWorker(
             var body = new
             {
                 EnrollmentToken = options.EnrollmentToken,
+                InstallationCode = options.InstallationCode,
                 InstallationName = options.InstallationName,
-                InstallationId = string.IsNullOrWhiteSpace(options.InstallationId) ||
-                                 options.InstallationId == "00000000-0000-0000-0000-000000000000"
+                HintInstallationId = string.IsNullOrWhiteSpace(options.InstallationId) ||
+                                     options.InstallationId == "00000000-0000-0000-0000-000000000000"
                     ? (Guid?)null
                     : Guid.Parse(options.InstallationId),
                 Location = options.Location,
@@ -120,7 +128,8 @@ public class AgentWorker(
             // Persist to appsettings.json so the key survives restarts
             await PersistEnrollmentAsync(result.ApiKey, result.InstallationId);
 
-            logger.LogInformation("Enrollment successful. InstallationId={Id}", result.InstallationId);
+            logger.LogInformation("Enrollment successful. InstallationId={Id} Code={Code}",
+                result.InstallationId, options.InstallationCode);
             agentStatus.EnrollmentStatus = "Enrolled";
         }
         catch (Exception ex)
@@ -154,18 +163,14 @@ public class AgentWorker(
                         foreach (var agentProp in prop.Value.EnumerateObject())
                         {
                             if (agentProp.Name == "ApiKey")
-                            {
                                 writer.WriteString("ApiKey", apiKey);
-                            }
                             else if (agentProp.Name == "InstallationId")
-                            {
                                 writer.WriteString("InstallationId", installationId.ToString());
-                            }
                             else
-                            {
                                 agentProp.WriteTo(writer);
-                            }
                         }
+                        // Ensure EnrollmentToken is cleared after successful enrollment
+                        // (keeps it only if it was already absent — we don't clear it so re-enrollment stays possible)
                         writer.WriteEndObject();
                     }
                     else
@@ -198,7 +203,7 @@ public class AgentWorker(
         };
     }
 
-    private record EnrollmentResult(Guid InstallationId, string ApiKey);
+    private record EnrollmentResult(Guid InstallationId, string InstallationCode, string ApiKey);
 
     private async Task ConnectAndRunAsync(CancellationToken ct)
     {

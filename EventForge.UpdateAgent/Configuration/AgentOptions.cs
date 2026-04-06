@@ -25,6 +25,13 @@ public class AgentOptions
     /// </summary>
     public string EnrollmentToken { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Unique code identifying this installation, generated on first startup.
+    /// Format: EF-{hostname8}-{yyyyMMddHHmmss}-{32hexrandom}
+    /// Once generated it is stable and persisted to appsettings.json.
+    /// </summary>
+    public string InstallationCode { get; set; } = string.Empty;
+
     // ── Hub connection ────────────────────────────────────────────────────
     /// <summary>Base URL used to build package download URLs.</summary>
     public string HubBaseUrl { get; set; } = string.Empty;

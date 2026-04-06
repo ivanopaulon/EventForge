@@ -63,6 +63,10 @@
                 <div class="sidebar-section-title">
                     <i class="bi bi-sliders"></i>Sistema
                 </div>
+                <a href="/apikeys"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/apikeys", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-key-fill"></i>Chiavi API
+                </a>
                 <a href="/logs"
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-file-text"></i>Log

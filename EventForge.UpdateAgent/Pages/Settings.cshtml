@@ -54,6 +54,12 @@
                 <input class="form-control" readonly value="@Model.Options.InstallationId" />
             </div>
             <div class="col-md-6">
+                <label class="form-label">Installation Code <span class="ef-badge ef-badge-neutral">sola lettura</span></label>
+                <input class="form-control font-monospace" readonly value="@Model.Options.InstallationCode"
+                       placeholder="Generato al primo avvio" style="font-size:.8rem" />
+                <div class="form-text">Identificativo univoco permanente <code>EF-{host}-{timestamp}-{random}</code>. Usato per l'auto-enrollment Hub.</div>
+            </div>
+            <div class="col-md-6">
                 <label class="form-label">Nome installazione</label>
                 <input class="form-control" name="InstallationName" value="@Model.Options.InstallationName" />
             </div>
