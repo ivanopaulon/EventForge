@@ -105,4 +105,59 @@ public class Printer : AuditableEntity
     [MaxLength(20, ErrorMessage = "The serial port name cannot exceed 20 characters.")]
     [Display(Name = "Serial Port Name", Description = "Serial port identifier.")]
     public string? SerialPortName { get; set; }
+
+    // --- Connection Type (Fase B: USB via Agent) ---
+
+    /// <summary>
+    /// Type of connection to the printer.
+    /// </summary>
+    [Display(Name = "Connection Type", Description = "How the printer is connected (TCP, Serial, USB via Agent, etc).")]
+    public PrinterConnectionType ConnectionType { get; set; } = PrinterConnectionType.Tcp;
+
+    /// <summary>
+    /// Agent identifier for USB-via-Agent printers (references registered Agent).
+    /// </summary>
+    [Display(Name = "Agent ID", Description = "Agent used for USB-via-Agent connection.")]
+    public Guid? AgentId { get; set; }
+
+    /// <summary>
+    /// USB device identifier (e.g. VID:PID or friendly name) for USB printers.
+    /// </summary>
+    [MaxLength(100, ErrorMessage = "USB device ID cannot exceed 100 characters.")]
+    [Display(Name = "USB Device ID", Description = "USB device identifier.")]
+    public string? UsbDeviceId { get; set; }
+
+    // --- Non-Fiscal Printer Classification ---
+
+    /// <summary>
+    /// Category of printer: Fiscal, Receipt, KDS, Label, or Report.
+    /// </summary>
+    [Display(Name = "Printer Category", Description = "Functional category of the printer.")]
+    public PrinterCategory Category { get; set; } = PrinterCategory.Receipt;
+
+    /// <summary>
+    /// Indicates if this is a thermal printer (direct thermal or thermal transfer).
+    /// </summary>
+    [Display(Name = "Is Thermal", Description = "Thermal printing technology.")]
+    public bool IsThermal { get; set; }
+
+    /// <summary>
+    /// Print width in characters per line (e.g. 42, 58, 80).
+    /// </summary>
+    [Range(10, 200, ErrorMessage = "Printer width must be between 10 and 200 characters.")]
+    [Display(Name = "Printer Width", Description = "Characters per line (e.g. 42, 58, 80).")]
+    public int? PrinterWidth { get; set; }
+
+    /// <summary>
+    /// Paper width in millimeters.
+    /// </summary>
+    [Display(Name = "Paper Width", Description = "Paper width in mm.")]
+    public PaperWidth? PaperWidth { get; set; }
+
+    /// <summary>
+    /// Print language / command language used by the printer.
+    /// </summary>
+    [Display(Name = "Print Language", Description = "Command language (ESC/POS, STAR, ZPL, etc).")]
+    public PrintLanguage? PrintLanguage { get; set; }
 }
+

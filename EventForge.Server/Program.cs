@@ -543,6 +543,7 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<AlertHub>("/hubs/alerts");
 app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
+app.MapHub<EventForge.Server.Hubs.FiscalPrinterHub>("/hubs/fiscal-printer");
 app.MapHub<EventForge.Server.Hubs.UpdateNotificationHub>("/hubs/update-notifications");
 
 app.Run();

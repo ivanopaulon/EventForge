@@ -103,5 +103,33 @@ namespace EventForge.DTOs.Station
         /// Serial port name (e.g., COM1, /dev/ttyUSB0).
         /// </summary>
         public string? SerialPortName { get; set; }
+
+        // --- Connection Type & USB-via-Agent ---
+
+        /// <summary>How the printer is connected (TCP, Serial, USB via Agent, etc).</summary>
+        public PrinterConnectionType ConnectionType { get; set; } = PrinterConnectionType.Tcp;
+
+        /// <summary>Agent used for UsbViaAgent connection.</summary>
+        public Guid? AgentId { get; set; }
+
+        /// <summary>USB device identifier (e.g. VID:PID or friendly name).</summary>
+        public string? UsbDeviceId { get; set; }
+
+        // --- Non-Fiscal Printer Classification ---
+
+        /// <summary>Functional category of the printer.</summary>
+        public PrinterCategory Category { get; set; } = PrinterCategory.Receipt;
+
+        /// <summary>Indicates if this is a thermal printer.</summary>
+        public bool IsThermal { get; set; }
+
+        /// <summary>Print width in characters per line (e.g. 42, 58, 80).</summary>
+        public int? PrinterWidth { get; set; }
+
+        /// <summary>Paper width in millimeters.</summary>
+        public PaperWidth? PaperWidth { get; set; }
+
+        /// <summary>Command language used by the printer.</summary>
+        public PrintLanguage? PrintLanguage { get; set; }
     }
 }

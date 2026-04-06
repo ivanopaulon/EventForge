@@ -52,6 +52,7 @@
     <!-- Setup Wizard and Background Services -->
     <PackageReference Include="ncrontab" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="System.IO.Ports" />
     <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
   <ItemGroup>

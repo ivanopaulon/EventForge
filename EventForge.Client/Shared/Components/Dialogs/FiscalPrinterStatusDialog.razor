@@ -1,0 +1,122 @@
+@namespace EventForge.Client.Shared.Components.Dialogs
+@using EventForge.DTOs.FiscalPrinting
+@using MudBlazor
+
+<EFDialog Icon="@Icons.Material.Outlined.Print"
+          Title="@($"Stampante: {PrinterName}")"
+          IsProcessing="false"
+          OnClose="Close">
+    <ChildContent>
+        @if (Status is null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                Nessuno stato disponibile. La stampante non è ancora stata interrogata.
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid>
+                @* Connection status *@
+                <MudItem xs="12">
+                    <MudAlert Severity="@ConnectionSeverity" Variant="Variant.Filled" Dense="true">
+                        @(Status.IsOnline ? "Stampante ONLINE" : $"Stampante OFFLINE – {Status.LastError ?? "nessun dettaglio"}")
+                    </MudAlert>
+                </MudItem>
+
+                @* Paper status *@
+                <MudItem xs="12" sm="6">
+                    <MudField Label="Stato carta" Variant="Variant.Outlined">
+                        <MudChip T="string" Size="Size.Small" Color="@PaperStatusColor" Icon="@PaperStatusIcon">
+                            @Status.PaperStatus
+                        </MudChip>
+                    </MudField>
+                </MudItem>
+
+                @* Fiscal memory *@
+                <MudItem xs="12" sm="6">
+                    <MudField Label="Memoria fiscale" Variant="Variant.Outlined">
+                        @if (Status.IsFiscalMemoryFull)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Error">PIENA</MudChip>
+                        }
+                        else if (Status.IsFiscalMemoryAlmostFull)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Warning">&gt;90%</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">OK</MudChip>
+                        }
+                    </MudField>
+                </MudItem>
+
+                @* Flags *@
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Condizioni attive</MudText>
+                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                        @FlagChip(Status.IsCoverOpen, "Coperchio aperto", Icons.Material.Filled.FolderOpen)
+                        @FlagChip(Status.IsHeadError, "Errore testina", Icons.Material.Filled.Error)
+                        @FlagChip(Status.IsCutterError, "Errore taglierina", Icons.Material.Filled.ContentCut)
+                        @FlagChip(Status.IsDrawerOpen, "Cassetto aperto", Icons.Material.Filled.OpenInNew, Color.Info)
+                        @FlagChip(Status.IsHeadOverheat, "Testina surriscaldata", Icons.Material.Filled.Thermostat, Color.Warning)
+                        @FlagChip(Status.IsReceiptOpen, "Scontrino aperto", Icons.Material.Filled.ReceiptLong, Color.Info)
+                        @FlagChip(Status.IsDailyClosureRequired, "Chiusura giornaliera richiesta", Icons.Material.Filled.EventNote, Color.Warning)
+                        @if (!Status.IsCoverOpen && !Status.IsHeadError && !Status.IsCutterError
+                            && !Status.IsDrawerOpen && !Status.IsHeadOverheat
+                            && !Status.IsReceiptOpen && !Status.IsDailyClosureRequired)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Nessun problema</MudChip>
+                        }
+                    </MudStack>
+                </MudItem>
+
+                @* Last check *@
+                @if (Status.LastCheck.HasValue)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                            Ultimo aggiornamento: @Status.LastCheck.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                        </MudText>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">Chiudi</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid PrinterId { get; set; }
+    [Parameter] public string PrinterName { get; set; } = "Stampante Fiscale";
+    [Parameter] public FiscalPrinterStatus? Status { get; set; }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private Severity ConnectionSeverity =>
+        Status?.IsOnline == true ? Severity.Success : Severity.Error;
+
+    private Color PaperStatusColor => Status?.PaperStatus switch
+    {
+        "OK" => Color.Success,
+        "LOW" => Color.Warning,
+        "OUT" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string PaperStatusIcon => Status?.PaperStatus switch
+    {
+        "OK" => Icons.Material.Filled.CheckCircle,
+        "LOW" => Icons.Material.Filled.Warning,
+        "OUT" => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private RenderFragment FlagChip(bool active, string label, string icon,
+        Color color = Color.Error) => active
+        ? @<MudChip T="string" Size="Size.Small" Color="@color" Icon="@icon">@label</MudChip>
+        : @<text />;
+}

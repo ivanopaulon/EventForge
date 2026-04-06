@@ -242,6 +242,9 @@ builder.Services.AddScoped<EventForge.Client.Services.Sales.IPaymentMethodServic
 builder.Services.AddScoped<EventForge.Client.Services.Sales.INoteFlagService, EventForge.Client.Services.Sales.NoteFlagService>();
 builder.Services.AddScoped<EventForge.Client.Services.Sales.ITableManagementService, EventForge.Client.Services.Sales.TableManagementService>();
 
+// Fiscal printing services
+builder.Services.AddScoped<IFiscalPrintingService, FiscalPrintingService>();
+
 // Add Mock services (client-side only, no backend)
 builder.Services.AddSingleton<EventForge.Client.Services.Mock.IMockFidelityService, EventForge.Client.Services.Mock.MockFidelityService>();
 
