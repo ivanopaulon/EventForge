@@ -58,6 +58,23 @@
 
             <div class="sidebar-divider"></div>
 
+            <!-- Sistema -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <i class="bi bi-sliders"></i>Sistema
+                </div>
+                <a href="/logs"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-file-text"></i>Log
+                </a>
+                <a href="/settings"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-gear-fill"></i>Impostazioni
+                </a>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
             <!-- Developer -->
             <div class="sidebar-section">
                 <div class="sidebar-section-title">

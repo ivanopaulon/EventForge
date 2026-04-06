@@ -1,10 +1,17 @@
 using EventForge.UpdateHub.Auth;
+using EventForge.UpdateHub.Configuration;
 using EventForge.UpdateHub.Hubs;
 using EventForge.UpdateHub.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── HubOptions ──
+var hubOptions = builder.Configuration
+    .GetSection(HubOptions.SectionName)
+    .Get<HubOptions>() ?? new HubOptions();
+builder.Services.AddSingleton(hubOptions);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -46,6 +53,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Basic auth protects Razor Pages UI; API/SignalR endpoints use their own auth
+app.UseMiddleware<HubBasicAuthMiddleware>();
 app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
