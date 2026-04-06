@@ -1005,9 +1005,11 @@ else
     //  Fiscal Printing (same as POS.razor)
     // =====================================================================
 
-    private Guid? _fiscalPrinterId;
+    private Guid? _fiscalPrinterId = null;
     private FiscalPrinterStatus? _fiscalPrinterStatus;
     private HubConnection? _fiscalHubConnection;
+
+    private const string FiscalPrinterHubUrl = "/hubs/fiscal-printer";
 
     private async Task ConnectFiscalHubAsync()
     {
@@ -1015,7 +1017,7 @@ else
         try
         {
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(FiscalPrinterHubUrl)
                 .WithAutomaticReconnect()
                 .Build();
 
