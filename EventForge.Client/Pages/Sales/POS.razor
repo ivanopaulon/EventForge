@@ -388,9 +388,12 @@
         }
     }
 
-    private async Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
+    private Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
     {
-        await OnProductSelectedAsync(productWithCode.Product);
+        // SelectedProductChanged has already been fired by UnifiedProductScanner before
+        // OnProductWithCodeFound, so OnProductSelectedAsync was already called and the
+        // product has been added to the cart. Do NOT call it again here to prevent double-add.
+        return Task.CompletedTask;
     }
 
     private async Task HandleProductNotFoundAsync(string barcode)

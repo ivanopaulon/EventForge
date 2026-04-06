@@ -43,29 +43,33 @@
 
                     <!-- Center: Quantity controls -->
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
-                                       Size="Size.Medium"
-                                       Color="@(isSelected ? Color.Primary : Color.Default)"
-                                       Variant="Variant.Outlined"
-                                       Style="min-width: 40px; height: 40px;"
-                                       OnClick="@(() => DecreaseQty(item))"
-                                       Disabled="@(IsDisabled || item.Quantity <= 1)" />
+                        <div @onclick:stopPropagation="true">
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                           Size="Size.Medium"
+                                           Color="@(isSelected ? Color.Primary : Color.Default)"
+                                           Variant="Variant.Outlined"
+                                           Style="min-width: 44px; height: 44px;"
+                                           OnClick="@(() => DecreaseQty(item))"
+                                           Disabled="@(IsDisabled || item.Quantity <= 1)" />
+                        </div>
 
                         <MudText Typo="Typo.h6"
                                  Style="min-width: 36px; text-align: center; font-weight: 700;">
                             @FormatQty(item.Quantity)
                         </MudText>
 
-                        <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                       Size="Size.Medium"
-                                       Color="@(isSelected ? Color.Primary : Color.Default)"
-                                       Variant="Variant.Outlined"
-                                       Style="min-width: 40px; height: 40px;"
-                                       OnClick="@(() => IncreaseQty(item))"
-                                       Disabled="@IsDisabled" />
+                        <div @onclick:stopPropagation="true">
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Size="Size.Medium"
+                                           Color="@(isSelected ? Color.Primary : Color.Default)"
+                                           Variant="Variant.Outlined"
+                                           Style="min-width: 44px; height: 44px;"
+                                           OnClick="@(() => IncreaseQty(item))"
+                                           Disabled="@IsDisabled" />
+                        </div>
                     </MudStack>
 
-                    <!-- Right: Prices + Delete -->
+                    <!-- Right: Prices -->
                     <MudStack AlignItems="AlignItems.End" Spacing="0" Style="min-width: 80px;">
                         <MudText Typo="Typo.h6" Style="font-weight: 700;">
                             @item.TotalAmount.ToString("C")
@@ -75,14 +79,29 @@
                         </MudText>
                     </MudStack>
 
+                    <!-- Edit/Discount button -->
+                    <MudTooltip Text="@TranslationService.GetTranslation("sales.editLine", "Modifica / Sconto riga")">
+                        <div @onclick:stopPropagation="true">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Discount"
+                                           Size="Size.Medium"
+                                           Color="Color.Warning"
+                                           Variant="Variant.Text"
+                                           Style="min-width: 44px; height: 44px;"
+                                           OnClick="@(() => RequestEditItem(item))"
+                                           Disabled="@IsDisabled" />
+                        </div>
+                    </MudTooltip>
+
                     <!-- Delete -->
-                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                   Size="Size.Medium"
-                                   Color="Color.Error"
-                                   Variant="Variant.Text"
-                                   Style="min-width: 44px; height: 44px;"
-                                   OnClick="@(() => DeleteItem(item))"
-                                   Disabled="@IsDisabled" />
+                    <div @onclick:stopPropagation="true">
+                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                       Size="Size.Medium"
+                                       Color="Color.Error"
+                                       Variant="Variant.Text"
+                                       Style="min-width: 44px; height: 44px;"
+                                       OnClick="@(() => DeleteItem(item))"
+                                       Disabled="@IsDisabled" />
+                    </div>
 
                 </MudStack>
 
@@ -136,6 +155,7 @@ else
     [Parameter] public List<SaleItemDto>? Items { get; set; }
     [Parameter] public SaleItemDto? SelectedItem { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnItemSelected { get; set; }
+    [Parameter] public EventCallback<SaleItemDto> OnItemEditRequested { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnIncreaseQuantity { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnDecreaseQuantity { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnRemoveItem { get; set; }
@@ -144,6 +164,12 @@ else
     private async Task SelectItem(SaleItemDto item)
     {
         await OnItemSelected.InvokeAsync(item);
+    }
+
+    private async Task RequestEditItem(SaleItemDto item)
+    {
+        if (IsDisabled) return;
+        await OnItemEditRequested.InvokeAsync(item);
     }
 
     private async Task IncreaseQty(SaleItemDto item)
