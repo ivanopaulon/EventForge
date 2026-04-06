@@ -89,7 +89,8 @@ public class ScheduledInstallWorker(
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             // Service is shutting down; leave the entry in the queue for the next run.
-            // Reset state back to Downloaded so the package remains visible as pending.
+            // Reset state to Downloaded: the zip is still on disk and the entry is still queued,
+            // so on next startup ScheduledInstallWorker will pick it up and retry.
             commandTracking.SetState(next.PackageId, CommandState.Downloaded);
             logger.LogWarning("Install cancelled (shutdown) for {Component} {Version} — entry remains in queue.",
                 next.Command.Component, next.Command.Version);
