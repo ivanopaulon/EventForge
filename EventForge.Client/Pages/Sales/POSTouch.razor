@@ -175,21 +175,25 @@ else
 
             <!-- Park -->
             <MudTooltip Text="@TranslationService.GetTranslation("sales.parkTooltip", "Sospendi sessione")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Pause"
-                               Color="Color.Warning"
-                               Variant="Variant.Outlined"
-                               Size="Size.Medium"
-                               OnClick="@ParkSessionAsync"
-                               Disabled="@(!ViewModel.HasActiveSession)" />
+                <MudButton StartIcon="@Icons.Material.Outlined.Pause"
+                           Color="Color.Warning"
+                           Variant="Variant.Outlined"
+                           Size="Size.Medium"
+                           OnClick="@ParkSessionAsync"
+                           Disabled="@(!ViewModel.HasActiveSession)">
+                    @TranslationService.GetTranslation("sales.park", "Sospendi")
+                </MudButton>
             </MudTooltip>
 
             <!-- Cancel / Change operator -->
             <MudTooltip Text="@TranslationService.GetTranslation("sales.changeOperator", "Cambia operatore / annulla")">
-                <MudIconButton Icon="@Icons.Material.Outlined.SwitchAccount"
-                               Color="Color.Default"
-                               Variant="Variant.Outlined"
-                               Size="Size.Medium"
-                               OnClick="@AskCancelOrChangeAsync" />
+                <MudButton StartIcon="@Icons.Material.Outlined.SwitchAccount"
+                           Color="Color.Default"
+                           Variant="Variant.Outlined"
+                           Size="Size.Medium"
+                           OnClick="@AskCancelOrChangeAsync">
+                    @TranslationService.GetTranslation("sales.change", "Cambia")
+                </MudButton>
             </MudTooltip>
 
         </MudStack>
@@ -245,7 +249,7 @@ else
                                    Variant="@(_keypadMode == KeypadMode.Discount ? Variant.Filled : Variant.Outlined)"
                                    FullWidth="true"
                                    OnClick="@(() => SetKeypadMode(KeypadMode.Discount))">
-                            @TranslationService.GetTranslation("sales.discount", "Sc.%")
+                            @TranslationService.GetTranslation("sales.discountMode", "Sc. %")
                         </MudButton>
                     </MudButtonGroup>
 
@@ -329,17 +333,21 @@ else
                                 @TranslationService.GetTranslation("sales.notes", "Note")
                             </MudButton>
 
-                            <MudIconButton Icon="@Icons.Material.Outlined.RemoveCircle"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="@RemoveLastItemAsync"
-                                           Title="@TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi ultimo")" />
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Outlined.RemoveCircle"
+                                       Size="Size.Small"
+                                       OnClick="@RemoveLastItemAsync">
+                                @TranslationService.GetTranslation("sales.removeLastItem", "Ult.")
+                            </MudButton>
 
-                            <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="@ClearCartAsync"
-                                           Title="@TranslationService.GetTranslation("sales.clearCart", "Svuota carrello")" />
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Outlined.DeleteSweep"
+                                       Size="Size.Small"
+                                       OnClick="@ClearCartAsync">
+                                @TranslationService.GetTranslation("sales.clearCart", "Svuota")
+                            </MudButton>
 
                         </MudStack>
                     </MudPaper>

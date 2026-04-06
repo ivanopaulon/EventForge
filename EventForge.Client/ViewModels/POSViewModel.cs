@@ -403,9 +403,11 @@ public class POSViewModel : IDisposable
 
             if (existingItem != null)
             {
-                // Increase quantity of existing item
+                // Increase quantity with immediate visual feedback via optimistic update.
+                // QueueItemUpdate recalculates item totals and session totals locally
+                // so the UI responds instantly; the API call happens after the debounce.
                 existingItem.Quantity++;
-                await UpdateItemInternalAsync(existingItem);
+                QueueItemUpdate(existingItem);
                 NotifySuccess($"Quantity increased: {product.Name}");
                 return (true, null);
             }
@@ -470,11 +472,18 @@ public class POSViewModel : IDisposable
     /// <summary>
     /// Queues an item update with debounce to batch rapid changes.
     /// Thread-safe with optimistic backup for rollback on errors.
+    /// Immediately recalculates item and session totals for responsive UI.
     /// </summary>
     public void QueueItemUpdate(SaleItemDto item)
     {
         // Set loading state
         IsUpdatingItems = true;
+
+        // Recalculate item totals immediately so the cart shows correct values
+        // before the debounced API call completes.
+        item.TotalAmount = item.Quantity * item.UnitPrice * (1m - item.DiscountPercent / 100m);
+        item.TaxAmount = item.TotalAmount * item.TaxRate / 100m;
+        RecalculateTotalsLocally();
 
         // Store backup of current item state for potential rollback
         if (!_itemBackups.ContainsKey(item.Id))
@@ -614,6 +623,10 @@ public class POSViewModel : IDisposable
 
             if (updatedSession != null)
             {
+                // Clean up any pending backup for this item
+                _itemBackups.Remove(item.Id);
+                _pendingItemUpdates.Remove(item.Id);
+
                 CurrentSession = updatedSession;
                 NotifyStateChanged();
                 NotifySuccess("Item removed");
@@ -1246,6 +1259,29 @@ public class POSViewModel : IDisposable
     private int CalculateBackoffDelayMs(int attempt)
     {
         return (int)Math.Pow(2, attempt) * 1000;
+    }
+
+    /// <summary>
+    /// Locally recalculates session totals (OriginalTotal, DiscountAmount, FinalTotal, TaxAmount)
+    /// from the current items. Called after each optimistic item update so the UI reflects
+    /// changes immediately, before the debounced API response replaces the session.
+    /// </summary>
+    private void RecalculateTotalsLocally()
+    {
+        if (CurrentSession == null) return;
+        var items = CurrentSession.Items;
+        var originalTotal = 0m;
+        var discountAmount = 0m;
+        foreach (var i in items)
+        {
+            var gross = i.Quantity * i.UnitPrice;
+            originalTotal += gross;
+            discountAmount += gross * i.DiscountPercent / 100m;
+        }
+        CurrentSession.OriginalTotal = originalTotal;
+        CurrentSession.DiscountAmount = discountAmount;
+        CurrentSession.FinalTotal = originalTotal - discountAmount;
+        CurrentSession.TaxAmount = items.Sum(i => i.TaxAmount);
     }
 
     /// <summary>
