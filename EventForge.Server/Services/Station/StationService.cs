@@ -110,9 +110,13 @@ public class StationService(
                 TenantId = tenantId.Value,
                 Name = createStationDto.Name,
                 Description = createStationDto.Description,
+                Status = createStationDto.Status,
                 Location = createStationDto.Location,
                 SortOrder = createStationDto.SortOrder,
                 Notes = createStationDto.Notes,
+                StationType = createStationDto.StationType,
+                AssignedPrinterId = createStationDto.AssignedPrinterId,
+                PrintsReceiptCopy = createStationDto.PrintsReceiptCopy,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -168,9 +172,13 @@ public class StationService(
 
             station.Name = updateStationDto.Name;
             station.Description = updateStationDto.Description;
+            station.Status = updateStationDto.Status;
             station.Location = updateStationDto.Location;
             station.SortOrder = updateStationDto.SortOrder;
             station.Notes = updateStationDto.Notes;
+            station.StationType = updateStationDto.StationType;
+            station.AssignedPrinterId = updateStationDto.AssignedPrinterId;
+            station.PrintsReceiptCopy = updateStationDto.PrintsReceiptCopy;
             station.ModifiedAt = DateTime.UtcNow;
             station.ModifiedBy = currentUser;
 
@@ -578,10 +586,14 @@ public class StationService(
             Id = station.Id,
             Name = station.Name,
             Description = station.Description,
+            Status = station.Status,
             Location = station.Location,
             SortOrder = station.SortOrder,
             Notes = station.Notes,
             PrinterCount = printerCount,
+            StationType = station.StationType,
+            AssignedPrinterId = station.AssignedPrinterId,
+            PrintsReceiptCopy = station.PrintsReceiptCopy,
             CreatedAt = station.CreatedAt,
             CreatedBy = station.CreatedBy,
             ModifiedAt = station.ModifiedAt,

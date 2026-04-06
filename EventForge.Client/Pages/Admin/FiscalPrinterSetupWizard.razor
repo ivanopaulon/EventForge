@@ -11,7 +11,7 @@
 @using EventForge.Client.Services.Sales
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "SuperAdmin,Admin")]
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IFinancialService FinancialService
 @inject IPaymentMethodService PaymentMethodService
@@ -656,6 +656,7 @@
                 <HeaderContent>
                     <MudTh>Seleziona</MudTh>
                     <MudTh>Nome</MudTh>
+                    <MudTh>Tipo</MudTh>
                     <MudTh>Posizione</MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -663,6 +664,7 @@
                         <MudCheckBox T="bool" @bind-Value="context.Selected" Color="Color.Primary" />
                     </MudTd>
                     <MudTd>@context.Name</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@context.StationType</MudChip></MudTd>
                     <MudTd>@(context.Location ?? "—")</MudTd>
                 </RowTemplate>
             </MudTable>
@@ -869,9 +871,11 @@
         var stationsTask = HttpClientService.GetAsync<PagedResult<StationDto>>(
             "api/v1/stations?page=1&pageSize=100");
 
+        Task<FiscalPrinterSetupDto?>? setupTask = null;
+
         if (_isEditMode)
         {
-            var setupTask = FiscalPrintingService.GetSetupAsync(PrinterId!.Value);
+            setupTask = FiscalPrintingService.GetSetupAsync(PrinterId!.Value);
             await Task.WhenAll(vatTask, paymentTask, stationsTask, setupTask);
             PopulateFromSetup(setupTask.Result);
             _savedPrinterId = PrinterId;
@@ -909,8 +913,17 @@
         {
             Id = s.Id,
             Name = s.Name,
-            Location = s.Location
+            Location = s.Location,
+            StationType = s.StationType
         }).ToList();
+
+        // In edit mode, pre-select stations already associated with this printer
+        if (_isEditMode && _savedPrinterId.HasValue)
+        {
+            var associatedIds = (setupTask?.Result?.AssociatedStationIds ?? new()).ToHashSet();
+            foreach (var row in _stationRows)
+                row.Selected = associatedIds.Contains(row.Id);
+        }
     }
 
     private void PopulateFromSetup(FiscalPrinterSetupDto? setup)
@@ -1230,6 +1243,7 @@
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Location { get; set; }
+        public StationType StationType { get; set; }
         public bool Selected { get; set; }
     }
 }

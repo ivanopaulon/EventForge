@@ -48,6 +48,21 @@ namespace EventForge.DTOs.Station
         public int PrinterCount { get; set; }
 
         /// <summary>
+        /// Functional type of the station (KDS, Kitchen, Bar, POS, etc.).
+        /// </summary>
+        public StationType StationType { get; set; }
+
+        /// <summary>
+        /// ID of the printer assigned to this station for order/KDS output.
+        /// </summary>
+        public Guid? AssignedPrinterId { get; set; }
+
+        /// <summary>
+        /// If true, items routed to this station also appear on the fiscal receipt.
+        /// </summary>
+        public bool PrintsReceiptCopy { get; set; }
+
+        /// <summary>
         /// Date and time when the station was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

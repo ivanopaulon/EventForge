@@ -8,7 +8,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
-@attribute [Authorize(Roles = "Admin,Manager")]
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IHttpClientService HttpClientService
 @inject IAppNotificationService AppNotification

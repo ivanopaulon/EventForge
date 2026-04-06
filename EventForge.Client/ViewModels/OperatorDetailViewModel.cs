@@ -30,13 +30,15 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
     public string? Password { get; set; }
     public bool PhotoConsent { get; set; }
 
+    // Additional property for both create and edit
+    public DateTime? DateOfBirth { get; set; }
+
     protected override StoreUserDto CreateNewEntity()
     {
         Username = string.Empty;
         Password = null;
         PhotoConsent = false;
-
-        // Note: AvailableGroups will be loaded asynchronously via a custom LoadEntityAsync override
+        DateOfBirth = null;
 
         return new StoreUserDto
         {
@@ -53,6 +55,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         if (entity != null)
         {
             Username = entity.Username;
+            DateOfBirth = entity.DateOfBirth;
         }
         return entity;
     }
@@ -94,7 +97,8 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
             Notes = entity.Notes,
             CashierGroupId = entity.CashierGroupId,
             PhoneNumber = entity.PhoneNumber,
-            PhotoConsent = PhotoConsent
+            PhotoConsent = PhotoConsent,
+            DateOfBirth = DateOfBirth
         };
     }
 
@@ -108,7 +112,8 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
             Status = entity.Status,
             Notes = entity.Notes,
             CashierGroupId = entity.CashierGroupId,
-            PhoneNumber = entity.PhoneNumber
+            PhoneNumber = entity.PhoneNumber,
+            DateOfBirth = DateOfBirth
         };
     }
 

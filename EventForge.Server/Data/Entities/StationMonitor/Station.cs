@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.StationMonitor;
 
@@ -80,30 +81,4 @@ public class Station : AuditableEntity
     /// </summary>
     [Display(Name = "Prints Receipt Copy", Description = "Include items from this station on the fiscal receipt.")]
     public bool PrintsReceiptCopy { get; set; }
-}
-
-/// <summary>
-/// Status for the station.
-/// </summary>
-public enum StationStatus
-{
-    Active,         // Station is active and operational
-    Suspended,      // Temporarily suspended
-    Maintenance,    // Under maintenance
-    Disabled        // Disabled/not usable
-}
-
-/// <summary>
-/// Functional type of a station.
-/// </summary>
-public enum StationType
-{
-    KDS,          // Generic Kitchen Display Station
-    Kitchen,      // Main kitchen
-    Bar,          // Bar station
-    Cocktail,     // Cocktail/mixology bar
-    Pizza,        // Pizza station
-    Takeaway,     // Takeaway/delivery counter
-    Counter,      // Service counter
-    POS           // Point of Sale station
 }
