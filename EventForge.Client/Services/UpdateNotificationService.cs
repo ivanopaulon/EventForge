@@ -25,6 +25,9 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private UpdateProgressPayload? _currentProgress;
 
     public bool IsServerMaintenance => _isServerMaintenance;
+    public bool IsActiveUpdate =>
+        _currentProgress is not null &&
+        !string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
     public string? MaintenanceComponent => _maintenanceComponent;
     public string? MaintenanceVersion => _maintenanceVersion;
     public bool HasPendingClientUpdate => _hasPendingClientUpdate;
@@ -74,6 +77,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     {
         _hasPendingClientUpdate = true;
         _clientUpdateVersion = payload.Version;
+        _currentProgress = null;
         _logger.LogInformation("Client update deployed: v{Version}", payload.Version);
         StateChanged?.Invoke();
     }

@@ -13,6 +13,7 @@ namespace EventForge.UpdateAgent.Workers;
 public class ScheduledInstallWorker(
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
+    CommandTrackingService commandTracking,
     AgentOptions options,
     ILogger<ScheduledInstallWorker> logger) : BackgroundService
 {
@@ -78,20 +79,25 @@ public class ScheduledInstallWorker(
 
         try
         {
+            commandTracking.SetState(next.PackageId, CommandState.Installing);
             await updateExecutor.InstallFromZipAsync(next.Command, next.LocalZipPath, ct);
             // Success: remove from queue so the next entry becomes the head.
             pendingInstallService.Remove(next.PackageId);
+            commandTracking.SetState(next.PackageId, CommandState.Installed);
             logger.LogInformation("Scheduled install succeeded: {Component} {Version}", next.Command.Component, next.Command.Version);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             // Service is shutting down; leave the entry in the queue for the next run.
+            // Reset state back to Downloaded so the package remains visible as pending.
+            commandTracking.SetState(next.PackageId, CommandState.Downloaded);
             logger.LogWarning("Install cancelled (shutdown) for {Component} {Version} — entry remains in queue.",
                 next.Command.Component, next.Command.Version);
             throw;
         }
         catch (Exception ex)
         {
+            commandTracking.SetState(next.PackageId, CommandState.Failed, ex.Message);
             // Block the queue so no subsequent updates (with potentially dependent migrations) run.
             pendingInstallService.Block(next.PackageId,
                 $"Install failed for {next.Command.Component} {next.Command.Version}: {ex.Message}");

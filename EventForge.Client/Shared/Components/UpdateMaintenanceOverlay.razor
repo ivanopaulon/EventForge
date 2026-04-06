@@ -23,7 +23,9 @@
     {
         InvokeAsync(async () =>
         {
-            var needsDialog = UpdateNotification.IsServerMaintenance || UpdateNotification.HasPendingClientUpdate;
+            var needsDialog = UpdateNotification.IsActiveUpdate ||
+                              UpdateNotification.IsServerMaintenance ||
+                              UpdateNotification.HasPendingClientUpdate;
 
             if (needsDialog && _dialogRef is null)
             {

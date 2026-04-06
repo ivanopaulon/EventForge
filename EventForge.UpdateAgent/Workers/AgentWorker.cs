@@ -252,6 +252,8 @@ public class AgentWorker(
                     pendingInstallService.Enqueue(command, zipPath);
                     logger.LogInformation("Manual mode: {Component} {Version} queued for operator approval.", command.Component, command.Version);
                     await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                    // Notify connected clients that the package is queued so the snackbar updates.
+                    await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
                 else if (pendingInstallService.IsInMaintenanceWindow())
                 {
@@ -264,7 +266,6 @@ public class AgentWorker(
                     {
                         await updateExecutor.InstallFromZipAsync(command, zipPath, ct);
                         commandTracking.SetState(command.PackageId, CommandState.Installed);
-                        commandTracking.Remove(command.PackageId);
                     }
                     catch (Exception ex)
                     {
@@ -286,6 +287,8 @@ public class AgentWorker(
 
                     await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow,
                         isCompleted: false, isSuccess: true, errorMessage: null, ct);
+                    // Notify connected clients that the package is queued so the snackbar updates.
+                    await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -330,11 +333,14 @@ public class AgentWorker(
 
             try
             {
+                commandTracking.SetState(command.PackageId, CommandState.Installing);
                 await updateExecutor.InstallFromZipAsync(pending.Command, pending.LocalZipPath, ct);
                 pendingInstallService.Remove(command.PackageId);
+                commandTracking.SetState(command.PackageId, CommandState.Installed);
             }
             catch (Exception ex)
             {
+                commandTracking.SetState(command.PackageId, CommandState.Failed, ex.Message);
                 pendingInstallService.Block(command.PackageId,
                     $"InstallNow failed for {pending.Command.Component} {pending.Command.Version}: {ex.Message}");
             }

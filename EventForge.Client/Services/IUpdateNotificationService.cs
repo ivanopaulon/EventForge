@@ -10,6 +10,13 @@ public interface IUpdateNotificationService
 {
     // ── Maintenance state ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// True while a download or install phase is actively running (i.e. <see cref="CurrentProgress"/>
+    /// is set and the phase is not <c>AwaitingMaintenanceWindow</c>, which only means the package
+    /// is queued but nothing is actively happening).
+    /// </summary>
+    bool IsActiveUpdate { get; }
+
     /// <summary>True while the Server component is going through a planned update.</summary>
     bool IsServerMaintenance { get; }
 
