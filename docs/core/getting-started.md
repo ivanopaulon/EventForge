@@ -58,7 +58,7 @@ dotnet run --project EventForge.Server
 
 # L'applicazione sarà disponibile su:
 # https://localhost:7241 (HTTPS - porta predefinita)
-# http://localhost:7240 (HTTP - porta predefinita)
+# http://localhost:5240 (HTTP - porta predefinita)
 ```
 
 ### 5. Configurazione Porte
@@ -67,7 +67,7 @@ dotnet run --project EventForge.Server
 
 **Porte predefinite:**
 - HTTPS: `7241`
-- HTTP: `7240`
+- HTTP: `5240`
 
 **Modifica porte in sviluppo:**
 Edita `EventForge.Server/Properties/launchSettings.json`:
@@ -75,7 +75,7 @@ Edita `EventForge.Server/Properties/launchSettings.json`:
 {
   "profiles": {
     "https": {
-      "applicationUrl": "https://localhost:7241;http://localhost:7240"
+      "applicationUrl": "https://localhost:7241;http://localhost:5240"
     }
   }
 }
@@ -84,10 +84,10 @@ Edita `EventForge.Server/Properties/launchSettings.json`:
 **Modifica porte in produzione/IIS:**
 ```bash
 # Variabile d'ambiente
-export ASPNETCORE_URLS="https://localhost:7241;http://localhost:7240"
+export ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 
 # Parametro da riga di comando
-dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:7240"
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
 #### Porte Client (EventForge.Client)
@@ -248,7 +248,7 @@ dotnet ef database update --project EventForge.Server
 ```
 
 ### Port Conflicts
-Se le porte predefinite (7241/7240) sono già in uso:
+Se le porte predefinite (7241/5240) sono già in uso:
 
 **Opzione 1 - Modifica launchSettings.json:**
 ```bash

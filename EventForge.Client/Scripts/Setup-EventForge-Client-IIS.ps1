@@ -3,7 +3,7 @@
 #  EventForge Client - IIS Full Setup Script
 #  Blazor WebAssembly (file statici — nessun runtime .NET richiesto sul server)
 #  Deploy path : C:\Prym\Client
-#  Port        : 7240  (HTTPS)
+#  Port        : 5240  (HTTPS)
 #  App Pool    : EventForgeClient
 #  IIS Site    : EventForgeClient
 # ==============================================================================
@@ -21,7 +21,7 @@ $TRANSCRIPT         = "$LOG_DIR\setup_client_$(Get-Date -Format 'yyyyMMdd_HHmmss
 $TEMP_DIR           = "C:\Prym\_tmp"
 $SITE_NAME          = "EventForgeClient"
 $POOL_NAME          = "EventForgeClient"
-$SITE_PORT          = 7240
+$SITE_PORT          = 5240
 $SITE_CERT_FRIENDLY = "EventForge Client IIS"
 
 # ------------------------------------------------------------------------------
@@ -667,7 +667,7 @@ Write-Host "  Log salvato in  : $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 Write-Host ""
 Write-Host "  URL client  : https://localhost:$SITE_PORT" -ForegroundColor Yellow
-Write-Host "  URL server  : https://localhost:7242  (EventForge Server)" -ForegroundColor Yellow
+Write-Host "  URL server  : https://localhost:7242  (EventForge Server, porta HTTPS)" -ForegroundColor Yellow
 Write-Host "  Certificato : Self-signed (trusted in LocalMachine\Root)" -ForegroundColor Yellow
 Write-Host "  Log setup   : $TRANSCRIPT" -ForegroundColor Yellow
 Write-Host ""
