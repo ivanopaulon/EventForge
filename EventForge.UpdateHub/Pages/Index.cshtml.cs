@@ -101,7 +101,7 @@ public class IndexModel(
                 pkg.Component.ToString(),
                 downloadUrl,
                 pkg.Checksum,
-                IsManualInstall: false);
+                IsManualInstall: installation?.UpdateMode == InstallationUpdateMode.Manual);
 
             await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
         }
