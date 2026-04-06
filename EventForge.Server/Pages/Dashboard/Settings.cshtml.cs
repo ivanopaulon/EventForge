@@ -8,6 +8,7 @@ namespace EventForge.Server.Pages.Dashboard;
 public class SettingsModel : PageModel
 {
     private readonly IConfigurationService _configService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SettingsModel> _logger;
 
     // ── SMTP ──────────────────────────────────────────────────────────
@@ -128,13 +129,43 @@ public class SettingsModel : PageModel
     [BindProperty] public int AgentPollIntervalSeconds { get; set; } = 30;
     [BindProperty] public int AgentAutoRestartAfterMinutes { get; set; } = 5;
 
+    // ── HttpClient (server self-reference) ────────────────────────────
+    [BindProperty] public string HttpClientBaseAddress { get; set; } = string.Empty;
+    [BindProperty] public int HttpClientPort { get; set; } = 7241;
+
+    // ── Syncfusion ────────────────────────────────────────────────────
+    [BindProperty] public string SyncfusionLicenseKey { get; set; } = string.Empty;
+
+    // ── Bootstrap ─────────────────────────────────────────────────────
+    [BindProperty] public string BootstrapDefaultAdminUsername { get; set; } = string.Empty;
+    [BindProperty] public string BootstrapDefaultAdminEmail { get; set; } = string.Empty;
+    [BindProperty] public bool BootstrapAutoCreateAdmin { get; set; } = false;
+    [BindProperty] public string BootstrapStoreOperatorPassword { get; set; } = string.Empty;
+
+    // ── QzSigning ─────────────────────────────────────────────────────
+    [BindProperty] public string QzSigningPrivateKeyPath { get; set; } = string.Empty;
+    [BindProperty] public string QzSigningCertificatePath { get; set; } = string.Empty;
+    [BindProperty] public string QzSigningIntermediateCertPath { get; set; } = string.Empty;
+
+    // ── Serilog (programmatic config parameters) ──────────────────────
+    [BindProperty] public bool SerilogEnableConsole { get; set; } = false;
+    [BindProperty] public string SerilogFilePath { get; set; } = "Logs/log-.log";
+    [BindProperty] public int SerilogFileRetention { get; set; } = 7;
+
+    // ── Read-only infrastructure info (from IConfiguration) ──────────
+    public string? InfoDatabaseProvider { get; set; }
+    public string? InfoConnectionStringDefault { get; set; }
+    public string? InfoConnectionStringLogDb { get; set; }
+    public string? InfoConnectionStringRedis { get; set; }
+
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
     public SmtpTestResultDto? SmtpTestResult { get; set; }
 
-    public SettingsModel(IConfigurationService configService, ILogger<SettingsModel> logger)
+    public SettingsModel(IConfigurationService configService, IConfiguration configuration, ILogger<SettingsModel> logger)
     {
         _configService = configService;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -566,6 +597,108 @@ public class SettingsModel : PageModel
         return RedirectToPage(new { tab = "integrazioni" });
     }
 
+    // ── HttpClient ────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateHttpClientAsync()
+    {
+        try
+        {
+            var ct = HttpContext.RequestAborted;
+            await _configService.SetValueAsync("HttpClient_BaseAddress", HttpClientBaseAddress, null, ct);
+            await _configService.SetValueAsync("HttpClient_Port", HttpClientPort.ToString(), null, ct);
+
+            _logger.LogInformation("HttpClient settings updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Impostazioni HttpClient salvate. Riavvio necessario per applicare le modifiche.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving HttpClient settings");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "avanzate" });
+    }
+
+    // ── Syncfusion ────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateSyncfusionAsync()
+    {
+        try
+        {
+            await _configService.SetValueAsync("Syncfusion_LicenseKey", SyncfusionLicenseKey, null, HttpContext.RequestAborted);
+            _logger.LogInformation("Syncfusion license key updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Chiave di licenza Syncfusion salvata. Riavvio necessario per applicare le modifiche.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving Syncfusion license key");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "avanzate" });
+    }
+
+    // ── Bootstrap ─────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateBootstrapAsync()
+    {
+        try
+        {
+            var ct = HttpContext.RequestAborted;
+            await _configService.SetValueAsync("Bootstrap_DefaultAdminUsername", BootstrapDefaultAdminUsername, null, ct);
+            await _configService.SetValueAsync("Bootstrap_DefaultAdminEmail", BootstrapDefaultAdminEmail, null, ct);
+            await _configService.SetValueAsync("Bootstrap_AutoCreateAdmin", BootstrapAutoCreateAdmin.ToString().ToLower(), null, ct);
+            if (!string.IsNullOrWhiteSpace(BootstrapStoreOperatorPassword))
+                await _configService.SetValueAsync("Bootstrap_StoreOperatorPassword", BootstrapStoreOperatorPassword, null, ct);
+
+            _logger.LogInformation("Bootstrap settings updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Impostazioni bootstrap salvate. Si applicano solo al prossimo avvio se il database non è già inizializzato.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving bootstrap settings");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "avanzate" });
+    }
+
+    // ── QzSigning ─────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateQzSigningAsync()
+    {
+        try
+        {
+            var ct = HttpContext.RequestAborted;
+            await _configService.SetValueAsync("QzSigning_PrivateKeyPath", QzSigningPrivateKeyPath, null, ct);
+            await _configService.SetValueAsync("QzSigning_CertificatePath", QzSigningCertificatePath, null, ct);
+            await _configService.SetValueAsync("QzSigning_IntermediateCertPath", QzSigningIntermediateCertPath, null, ct);
+
+            _logger.LogInformation("QzSigning settings updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Percorsi certificati QzSigning salvati. Riavvio necessario per applicare le modifiche.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving QzSigning settings");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "avanzate" });
+    }
+
+    // ── Serilog ───────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateSerilogAsync()
+    {
+        try
+        {
+            var ct = HttpContext.RequestAborted;
+            await _configService.SetValueAsync("Serilog_EnableConsole", SerilogEnableConsole.ToString().ToLower(), null, ct);
+            await _configService.SetValueAsync("Serilog_FilePath", SerilogFilePath, null, ct);
+            await _configService.SetValueAsync("Serilog_FileRetention", SerilogFileRetention.ToString(), null, ct);
+
+            _logger.LogInformation("Serilog settings updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Impostazioni Serilog salvate. Riavvio necessario per applicare le modifiche.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving Serilog settings");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "avanzate" });
+    }
+
     private async Task LoadAllSettingsAsync()
     {
         var ct = HttpContext.RequestAborted;
@@ -689,11 +822,52 @@ public class SettingsModel : PageModel
             // Password not loaded for security
             AgentPollIntervalSeconds = int.TryParse(await _configService.GetValueAsync("Agent_PollIntervalSeconds", "30", ct), out var aPoll) ? aPoll : 30;
             AgentAutoRestartAfterMinutes = int.TryParse(await _configService.GetValueAsync("Agent_AutoRestartAfterMinutes", "5", ct), out var aRestart) ? aRestart : 5;
+
+            // ── HttpClient ──
+            HttpClientBaseAddress = await _configService.GetValueAsync("HttpClient_BaseAddress", _configuration["HttpClient:BaseAddress"] ?? "https://localhost", ct);
+            HttpClientPort = int.TryParse(await _configService.GetValueAsync("HttpClient_Port", _configuration["HttpClient:Port"] ?? "7241", ct), out var hcPort) ? hcPort : 7241;
+
+            // ── Syncfusion ──
+            SyncfusionLicenseKey = await _configService.GetValueAsync("Syncfusion_LicenseKey", "", ct);
+
+            // ── Bootstrap ──
+            BootstrapDefaultAdminUsername = await _configService.GetValueAsync("Bootstrap_DefaultAdminUsername", _configuration["Bootstrap:DefaultAdminUsername"] ?? "superadmin", ct);
+            BootstrapDefaultAdminEmail = await _configService.GetValueAsync("Bootstrap_DefaultAdminEmail", _configuration["Bootstrap:DefaultAdminEmail"] ?? "superadmin@localhost", ct);
+            BootstrapAutoCreateAdmin = (await _configService.GetValueAsync("Bootstrap_AutoCreateAdmin", _configuration["Bootstrap:AutoCreateAdmin"] ?? "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            // Bootstrap passwords not loaded for security
+
+            // ── QzSigning ──
+            QzSigningPrivateKeyPath = await _configService.GetValueAsync("QzSigning_PrivateKeyPath", _configuration["QzSigning:PrivateKeyPath"] ?? "private-key.pem", ct);
+            QzSigningCertificatePath = await _configService.GetValueAsync("QzSigning_CertificatePath", _configuration["QzSigning:CertificatePath"] ?? "digital-certificate.txt", ct);
+            QzSigningIntermediateCertPath = await _configService.GetValueAsync("QzSigning_IntermediateCertPath", _configuration["QzSigning:IntermediateCertificatePath"] ?? "", ct);
+
+            // ── Serilog ──
+            SerilogEnableConsole = (await _configService.GetValueAsync("Serilog_EnableConsole", _configuration["Serilog:EnableConsole"] ?? "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            SerilogFilePath = await _configService.GetValueAsync("Serilog_FilePath", _configuration["Serilog:FilePath"] ?? "Logs/log-.log", ct);
+            SerilogFileRetention = int.TryParse(await _configService.GetValueAsync("Serilog_FileRetention", _configuration["Serilog:FileRetention"] ?? "7", ct), out var sRet) ? sRet : 7;
+
+            // ── Read-only infra info ──
+            InfoDatabaseProvider = _configuration["DatabaseProvider"];
+            InfoConnectionStringDefault = MaskConnectionString(_configuration.GetConnectionString("DefaultConnection"));
+            InfoConnectionStringLogDb = MaskConnectionString(_configuration.GetConnectionString("LogDb"));
+            InfoConnectionStringRedis = _configuration.GetConnectionString("Redis");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading settings from configuration service");
             ErrorMessage = "Impossibile caricare alcune impostazioni dal database.";
         }
+    }
+
+    /// <summary>Masks the password in a connection string for safe display.</summary>
+    private static string? MaskConnectionString(string? cs)
+    {
+        if (string.IsNullOrEmpty(cs)) return cs;
+        // Replace Password=... or PWD=... values with ****
+        return System.Text.RegularExpressions.Regex.Replace(
+            cs,
+            @"(Password|PWD)\s*=\s*[^;]+",
+            "$1=****",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
 }

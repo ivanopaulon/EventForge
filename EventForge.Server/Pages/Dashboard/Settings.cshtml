@@ -12,6 +12,7 @@
         "sicurezza"    => "sicurezza",
         "parametri"    => "parametri",
         "integrazioni" => "integrazioni",
+        "avanzate"     => "avanzate",
         _              => "config"
     };
 }
@@ -71,6 +72,12 @@
         <button class="nav-link @(activeTab == "integrazioni" ? "active" : "")"
                 data-bs-toggle="tab" data-bs-target="#integrazioni" type="button">
             <i class="bi bi-plug me-1"></i>Integrazioni
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "avanzate" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#avanzate" type="button">
+            <i class="bi bi-tools me-1"></i>Avanzate
         </button>
     </li>
 </ul>
@@ -887,6 +894,227 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- ── Avanzate Tab ──────────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "avanzate" ? "show active" : "")" id="avanzate">
+
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le impostazioni avanzate richiedono il <strong>riavvio del server</strong> per essere applicate.
+        </div>
+
+        <!-- Infrastruttura (read-only) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-database me-2 text-secondary"></i>Infrastruttura
+                <span class="badge bg-secondary ms-2 fw-normal" style="font-size:.7rem">sola lettura</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Questi parametri sono definiti in <code>appsettings.json</code> e richiedono la modifica diretta del file + riavvio.
+                    Le password nelle stringhe di connessione sono oscurate.
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Database provider</label>
+                        <input type="text" class="form-control" readonly value="@(Model.InfoDatabaseProvider ?? "—")" />
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label">Connection string principale</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringDefault ?? "—")" style="font-size:.78rem" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Connection string log (LogDb)</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringLogDb ?? "—")" style="font-size:.78rem" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Redis</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringRedis ?? "—")" style="font-size:.78rem" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HttpClient -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-hdd-network me-2 text-primary"></i>HttpClient — URL del server
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">URL base e porta con cui il server si riferisce a s&eacute; stesso per le chiamate interne.</p>
+                <form method="post" asp-page-handler="UpdateHttpClient">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Base address</label>
+                            <input type="text" asp-for="HttpClientBaseAddress" class="form-control"
+                                   placeholder="https://localhost" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Porta</label>
+                            <input type="number" asp-for="HttpClientPort" class="form-control" min="1" max="65535" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva HttpClient
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Syncfusion -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-key me-2 text-warning"></i>Licenza Syncfusion
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSyncfusion">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Chiave di licenza</label>
+                            <input type="text" asp-for="SyncfusionLicenseKey" class="form-control font-monospace"
+                                   placeholder="Ngo9BigBOggjHTQ..." style="font-size:.78rem" />
+                            <small class="text-muted">La chiave viene usata all'avvio per registrare Syncfusion. Richiede riavvio.</small>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva chiave Syncfusion
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- QzSigning -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-file-earmark-lock me-2 text-info"></i>QZ Tray &mdash; Percorsi certificati
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateQzSigning">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Chiave privata (.pem)</label>
+                            <input type="text" asp-for="QzSigningPrivateKeyPath" class="form-control font-monospace"
+                                   placeholder="private-key.pem" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Certificato (.txt/.pem)</label>
+                            <input type="text" asp-for="QzSigningCertificatePath" class="form-control font-monospace"
+                                   placeholder="digital-certificate.txt" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Certificato intermedio</label>
+                            <input type="text" asp-for="QzSigningIntermediateCertPath" class="form-control font-monospace"
+                                   placeholder="intermediate-certificate.txt" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva percorsi QzSigning
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bootstrap -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-person-fill-gear me-2 text-success"></i>Bootstrap &mdash; Inizializzazione DB
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 flex-shrink-0"></i>
+                    Questi parametri vengono usati <strong>solo al primo avvio</strong> per creare l'utente superadmin,
+                    se il database non &egrave; gi&agrave; inizializzato. Non influenzano un'installazione gi&agrave; in esecuzione.
+                </div>
+                <form method="post" asp-page-handler="UpdateBootstrap">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Username admin di default</label>
+                            <input type="text" asp-for="BootstrapDefaultAdminUsername" class="form-control"
+                                   placeholder="superadmin" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Email admin di default</label>
+                            <input type="email" asp-for="BootstrapDefaultAdminEmail" class="form-control"
+                                   placeholder="superadmin@localhost" />
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" asp-for="BootstrapAutoCreateAdmin" role="switch" />
+                                <label class="form-check-label">Auto-crea admin</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Password operatore store
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="BootstrapStoreOperatorPassword" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva bootstrap
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Serilog -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-journal-code me-2 text-danger"></i>Serilog &mdash; Log su file
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-secondary d-flex align-items-center mb-3" role="alert" style="font-size:.85rem">
+                    <i class="bi bi-info-circle me-2 flex-shrink-0"></i>
+                    Serilog &egrave; configurato programmaticamente all'avvio da <code>ServiceCollectionExtensions.cs</code>.
+                    Queste impostazioni override vengono salvate nel DB e lette all'avvio successivo.
+                </div>
+                <form method="post" asp-page-handler="UpdateSerilog">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="SerilogEnableConsole" role="switch" />
+                                <label class="form-check-label">Abilita output console</label>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Percorso file di log</label>
+                            <input type="text" asp-for="SerilogFilePath" class="form-control font-monospace"
+                                   placeholder="Logs/log-.log" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Retention file (giorni)</label>
+                            <input type="number" asp-for="SerilogFileRetention" class="form-control" min="1" max="365" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva Serilog
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 
 </div>
