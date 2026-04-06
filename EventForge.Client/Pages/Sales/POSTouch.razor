@@ -118,37 +118,29 @@ else if (!ViewModel.SelectedPosId.HasValue)
      ====================================================== -->
 else
 {
-    <!-- Compact top bar -->
-    <MudPaper Elevation="2" Class="pa-2 mb-3" Style="border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+    <!-- Compact top bar: operator + cassa (small) + customer + session actions -->
+    <MudPaper Elevation="3" Class="pa-2 mb-2" Style="border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
 
-            <!-- Operator & POS chip -->
+            <!-- Operator chip (small) -->
             <MudChip T="string"
                      Icon="@Icons.Material.Filled.Person"
                      Color="Color.Primary"
-                     Size="Size.Medium"
-                     Variant="Variant.Filled">
+                     Size="Size.Small"
+                     Variant="Variant.Filled"
+                     Style="font-size: 0.75rem;">
                 @(ViewModel.AvailableOperators.FirstOrDefault(o => o.Id == ViewModel.SelectedOperatorId)?.Name ?? "—")
             </MudChip>
 
+            <!-- POS / Cassa chip (small) -->
             <MudChip T="string"
                      Icon="@Icons.Material.Filled.PointOfSale"
                      Color="Color.Default"
-                     Size="Size.Medium"
-                     Variant="Variant.Outlined">
+                     Size="Size.Small"
+                     Variant="Variant.Outlined"
+                     Style="font-size: 0.75rem;">
                 @(ViewModel.AvailablePos.FirstOrDefault(p => p.Id == ViewModel.SelectedPosId)?.Name ?? "—")
             </MudChip>
-
-            @if (ViewModel.HasActiveSession && ViewModel.CurrentSession?.Id != null)
-            {
-                <MudChip T="string"
-                         Icon="@Icons.Material.Outlined.Receipt"
-                         Color="Color.Success"
-                         Size="Size.Small"
-                         Variant="Variant.Outlined">
-                    #@ViewModel.CurrentSession.Id.ToString("N")[..8]
-                </MudChip>
-            }
 
             @if (ViewModel.IsUpdatingItems)
             {
@@ -158,7 +150,7 @@ else
             <MudSpacer />
 
             <!-- Customer selector (compact) -->
-            <div style="max-width: 220px;">
+            <div style="max-width: 200px; min-width: 120px;">
                 <UnifiedBusinessPartySelector
                     SelectedBusinessParty="ViewModel.SelectedCustomer"
                     SelectedBusinessPartyChanged="@OnSelectedCustomerChangedAsync"
@@ -174,11 +166,11 @@ else
             </div>
 
             <!-- Park -->
-            <MudTooltip Text="@TranslationService.GetTranslation("sales.parkTooltip", "Sospendi sessione")">
+            <MudTooltip Text="@TranslationService.GetTranslation("sales.parkTooltip", "Sospendi sessione (F3)")">
                 <MudButton StartIcon="@Icons.Material.Outlined.Pause"
                            Color="Color.Warning"
                            Variant="Variant.Outlined"
-                           Size="Size.Medium"
+                           Size="Size.Large"
                            OnClick="@ParkSessionAsync"
                            Disabled="@(!ViewModel.HasActiveSession)">
                     @TranslationService.GetTranslation("sales.park", "Sospendi")
@@ -190,7 +182,7 @@ else
                 <MudButton StartIcon="@Icons.Material.Outlined.SwitchAccount"
                            Color="Color.Default"
                            Variant="Variant.Outlined"
-                           Size="Size.Medium"
+                           Size="Size.Large"
                            OnClick="@AskCancelOrChangeAsync">
                     @TranslationService.GetTranslation("sales.change", "Cambia")
                 </MudButton>
@@ -312,7 +304,7 @@ else
                             <MudButton Variant="Variant.Text"
                                        Color="Color.Warning"
                                        StartIcon="@Icons.Material.Outlined.Discount"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        OnClick="@ApplyGlobalDiscountAsync">
                                 @TranslationService.GetTranslation("sales.discountShort", "Sconto")
                             </MudButton>
@@ -320,7 +312,7 @@ else
                             <MudButton Variant="Variant.Text"
                                        Color="Color.Success"
                                        StartIcon="@Icons.Material.Outlined.LocalOffer"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        OnClick="@ApplyCouponAsync">
                                 @TranslationService.GetTranslation("sales.coupon", "Coupon")
                             </MudButton>
@@ -328,7 +320,7 @@ else
                             <MudButton Variant="Variant.Text"
                                        Color="Color.Info"
                                        StartIcon="@Icons.Material.Outlined.Note"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        OnClick="@AddSessionNoteAsync">
                                 @TranslationService.GetTranslation("sales.notes", "Note")
                             </MudButton>
@@ -336,15 +328,15 @@ else
                             <MudButton Variant="Variant.Text"
                                        Color="Color.Error"
                                        StartIcon="@Icons.Material.Outlined.RemoveCircle"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        OnClick="@RemoveLastItemAsync">
-                                @TranslationService.GetTranslation("sales.removeLastItem", "Ult.")
+                                @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi Ult.")
                             </MudButton>
 
                             <MudButton Variant="Variant.Text"
                                        Color="Color.Error"
                                        StartIcon="@Icons.Material.Outlined.DeleteSweep"
-                                       Size="Size.Small"
+                                       Size="Size.Medium"
                                        OnClick="@ClearCartAsync">
                                 @TranslationService.GetTranslation("sales.clearCart", "Svuota")
                             </MudButton>
@@ -376,6 +368,7 @@ else
                                       SelectedItem="@_selectedCartItem"
                                       IsDisabled="@ViewModel.IsUpdatingItems"
                                       OnItemSelected="@OnCartItemSelectedAsync"
+                                      OnItemEditRequested="@OpenLineEditDialogAsync"
                                       OnIncreaseQuantity="@IncreaseQuantityAsync"
                                       OnDecreaseQuantity="@DecreaseQuantityAsync"
                                       OnRemoveItem="@RemoveItemAsync" />
@@ -605,9 +598,12 @@ else
         }
     }
 
-    private async Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
+    private Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
     {
-        await OnProductSelectedAsync(productWithCode.Product);
+        // SelectedProductChanged has already been fired by UnifiedProductScanner before
+        // OnProductWithCodeFound, so OnProductSelectedAsync was already called and the
+        // product has been added to the cart. Do NOT call it again here to prevent double-add.
+        return Task.CompletedTask;
     }
 
     private async Task HandleProductNotFoundAsync(string barcode)
@@ -711,6 +707,31 @@ else
     {
         _selectedCartItem = null;
         ResetKeypad();
+    }
+
+    private async Task OpenLineEditDialogAsync(SaleItemDto item)
+    {
+        if (ViewModel.IsUpdatingItems) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(POSTouchLineEditDialog.Item)] = item
+        };
+
+        var dialog = await DialogService.ShowAsync<POSTouchLineEditDialog>(
+            string.Empty,
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = false, CloseButton = false });
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is POSTouchLineEditDialog.EditResult editResult)
+        {
+            item.Quantity = editResult.Qty;
+            item.UnitPrice = editResult.UnitPrice;
+            item.DiscountPercent = editResult.DiscountPercent;
+            ViewModel.QueueItemUpdate(item);
+        }
     }
 
     private async Task ApplyKeypadToSelectedItemAsync()

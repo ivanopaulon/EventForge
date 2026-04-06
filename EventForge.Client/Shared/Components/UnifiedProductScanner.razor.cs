@@ -255,6 +255,10 @@ namespace EventForge.Client.Shared.Components
             Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
                 product?.Id, product?.Name ?? "NULL");
 
+            // Track previous product BEFORE update so OnParametersSet can detect the
+            // parent-driven reset to null and restore focus for consecutive selections.
+            _previousSelectedProduct = product;
+
             // Update local property
             SelectedProduct = product;
 
@@ -283,11 +287,18 @@ namespace EventForge.Client.Shared.Components
 
                 if (productWithCode?.Product != null)
                 {
-                    // Product found - update binding
+                    // Product found - update binding.
+                    // Set _previousSelectedProduct BEFORE notifying the parent so that
+                    // OnParametersSet correctly detects the parent reset (SelectedProduct → null)
+                    // and schedules focus + text-clear for consecutive scans.
+                    _previousSelectedProduct = productWithCode.Product;
                     SelectedProduct = productWithCode.Product;
                     await SelectedProductChanged.InvokeAsync(SelectedProduct);
 
-                    // Notify parent with code context
+                    // Notify parent with code context (barcode-specific metadata).
+                    // NOTE: SelectedProductChanged has already handled adding the product to the cart.
+                    // OnProductWithCodeFound is for barcode-specific metadata only; the handler
+                    // must NOT call AddProductAsync again to avoid a double-add.
                     if (OnProductWithCodeFound.HasDelegate)
                     {
                         await OnProductWithCodeFound.InvokeAsync(productWithCode);
