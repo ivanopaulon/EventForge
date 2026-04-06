@@ -627,7 +627,7 @@ POST /api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 1: Modalità Fixed (quantità fissa)
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -641,7 +641,7 @@ curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 2: Modalità Random
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -656,7 +656,7 @@ curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all
 
 #### Esempio 3: Modalità From Product (usa dati prodotto)
 ```bash
-curl -X POST https://localhost:7009/api/v1/warehouse/inventory/document/seed-all \
+curl -X POST https://localhost:7241/api/v1/warehouse/inventory/document/seed-all \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{

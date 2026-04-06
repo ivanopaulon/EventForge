@@ -140,26 +140,18 @@ L'ambiente è determinato dalla proprietà `HostEnvironment.Environment` durante
 
 ## Configurazione CORS
 
-Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `EventForge.Server/Program.cs`:
+Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `EventForge.Server/appsettings.json` (oppure nel file `appsettings.{Ambiente}.json`):
 
-```csharp
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        _ = policy
-            .WithOrigins(
-                "https://localhost:7241",  // Porta HTTPS
-                "http://localhost:5240",    // Porta HTTP
-                "https://localhost:5000",   // Porta legacy
-                "https://localhost:7009"    // Altre porte se necessarie
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
+```json
+"Cors": {
+  "AllowedOrigins": [
+    "https://localhost:7009",  // Client dev HTTPS
+    "http://localhost:5048"    // Client dev HTTP
+  ]
+}
 ```
+
+In produzione IIS il setup script aggiorna automaticamente `AllowedOrigins` con l'origine del sito Client (es. `https://localhost:5240`).
 
 ## Profili Disponibili
 
