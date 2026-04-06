@@ -13,8 +13,10 @@ public record PendingUpdate(
     DateTime QueuedAt,
     /// <summary>Lower value = earlier position in the sequential install queue.</summary>
     int QueuePosition,
-    /// <summary>When true, this update was sent in manual mode and requires operator approval to install.</summary>
-    bool IsManualInstall = false);
+    /// <summary>When true, this update was sent in manual mode or has been downgraded after too many failures.</summary>
+    bool IsManualInstall = false,
+    /// <summary>How many times this package has failed to install. At <see cref="AgentOptions.Install.MaxAutoRetries"/> it is downgraded to manual.</summary>
+    int FailCount = 0);
 
 /// <summary>
 /// Manages the ordered, sequential queue of pending updates.
@@ -126,7 +128,24 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         lock (_lock)
         {
             if (IsBlocked || _queue.Count == 0) return null;
-            return _queue[0];
+            var head = _queue[0];
+            // Server-before-Client: if the head is a Client package and a Server package
+            // for the same version is still queued (e.g. downloaded faster), install Server first.
+            if (head.Command.Component.Equals("Client", StringComparison.OrdinalIgnoreCase))
+            {
+                var serverFirst = _queue.FirstOrDefault(p =>
+                    p.Command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase) &&
+                    p.Command.Version == head.Command.Version &&
+                    File.Exists(p.LocalZipPath));
+                if (serverFirst is not null)
+                {
+                    logger.LogInformation(
+                        "Deferring Client {Version} install — Server {Version} must be installed first.",
+                        head.Command.Version, serverFirst.Command.Version);
+                    return serverFirst;
+                }
+            }
+            return head;
         }
     }
 
@@ -147,18 +166,36 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
 
     // ── Blocked state ────────────────────────────────────────────────────────
 
-    /// <summary>Block the queue because an installation failed.</summary>
+    /// <summary>Block the queue because an installation failed. Increments FailCount and downgrades to manual after MaxAutoRetries.</summary>
     public void Block(Guid packageId, string reason)
     {
+        bool downgradedToManual = false;
         lock (_lock)
         {
             IsBlocked = true;
             BlockedReason = reason;
             BlockedByPackageId = packageId;
+
+            // Increment FailCount; downgrade to manual at threshold.
+            var idx = _queue.FindIndex(p => p.PackageId == packageId);
+            if (idx >= 0)
+            {
+                var entry = _queue[idx];
+                var newFail = entry.FailCount + 1;
+                var maxRetries = options.Install.MaxAutoRetries;
+                var becomeManual = !entry.IsManualInstall && maxRetries > 0 && newFail >= maxRetries;
+                _queue[idx] = entry with { FailCount = newFail, IsManualInstall = entry.IsManualInstall || becomeManual };
+                downgradedToManual = becomeManual;
+            }
+
             SaveToDisk();
         }
 
         logger.LogError("Install queue BLOCKED by failed update {PackageId}: {Reason}", packageId, reason);
+        if (downgradedToManual)
+            logger.LogWarning(
+                "Package {PackageId} downgraded to MANUAL after {Max} consecutive failures — operator approval required to retry.",
+                packageId, options.Install.MaxAutoRetries);
     }
 
     /// <summary>

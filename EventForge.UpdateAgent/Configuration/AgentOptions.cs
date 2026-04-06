@@ -182,6 +182,13 @@ public class InstallOptions
 
     /// <summary>How often (in seconds) the ScheduledInstallWorker checks the pending queue.</summary>
     public int ScheduledCheckIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Number of consecutive installation failures after which an automatic package is
+    /// downgraded to manual-install mode, requiring explicit operator approval to retry.
+    /// Set to 0 to disable auto-downgrade (not recommended).
+    /// </summary>
+    public int MaxAutoRetries { get; set; } = 3;
 }
 
 // ── Backup ────────────────────────────────────────────────────────────────

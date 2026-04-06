@@ -330,6 +330,12 @@ public class UpdateExecutorService(
                 await VerifyHealthAsync(options.Components.Server.HealthCheckUrl, ct);
             }
 
+            // ── Phase 12: Verify deploy on disk ──
+            await ReportAsync(command, UpdatePhase.VerifyingDeploy, false, true, null, ct);
+            NotifyPhaseBackground(command, UpdatePhase.VerifyingDeploy.ToString(),
+                detail: $"Verifica versione e file su disco: {deployPath}");
+            await VerifyDeployAsync(deployPath, command, ct);
+
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
             NotifyPhaseBackground(command, UpdatePhase.Completed.ToString(), percentComplete: 100,
@@ -634,6 +640,43 @@ public class UpdateExecutorService(
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             File.Copy(file, dest, overwrite: true);
         }
+    }
+
+    private async Task VerifyDeployAsync(string deployPath, StartUpdateCommand command, CancellationToken ct)
+    {
+        var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+
+        // 1. version.txt must match the expected version (strip NBGV +commit suffix).
+        var versionTxtPath = Path.Combine(deployPath, "version.txt");
+        if (File.Exists(versionTxtPath))
+        {
+            var raw = (await File.ReadAllTextAsync(versionTxtPath, ct)).Trim();
+            var plusIdx = raw.IndexOf('+');
+            var installed = plusIdx >= 0 ? raw[..plusIdx] : raw;
+            if (!installed.Equals(command.Version, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Verifica deploy fallita: atteso v{command.Version}, trovato '{installed}' in version.txt");
+            logger.LogInformation("Deploy verification: version.txt = {Version} ✓", installed);
+        }
+        else
+        {
+            logger.LogWarning("VerifyDeploy: version.txt non trovato in {DeployPath} — verifica versione saltata.", deployPath);
+        }
+
+        // 2. Key files / folders must exist.
+        var keyPaths = isServer
+            ? new[] { "EventForge.Server.dll" }
+            : new[] { "index.html", "_framework" };
+
+        foreach (var rel in keyPaths)
+        {
+            var full = Path.Combine(deployPath, rel);
+            if (!File.Exists(full) && !Directory.Exists(full))
+                throw new InvalidOperationException(
+                    $"Verifica deploy fallita: file/cartella atteso '{rel}' non trovato in {deployPath}");
+        }
+
+        logger.LogInformation("Deploy verification passed for {Component} v{Version}.", command.Component, command.Version);
     }
 
     private async Task VerifyHealthAsync(string healthCheckUrl, CancellationToken ct)

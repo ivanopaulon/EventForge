@@ -49,6 +49,8 @@ public enum UpdatePhase
     StartingService,
     RunningPostMigrations,
     VerifyingHealth,
+    /// <summary>Post-deploy check: version.txt and key files verified on disk.</summary>
+    VerifyingDeploy,
     Rollback,
     Completed
 }

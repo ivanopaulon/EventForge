@@ -27,6 +27,8 @@ public class IndexModel(
     public string? ClientVersion { get; private set; }
     public bool QueueBlocked { get; private set; }
     public string? BlockedReason { get; private set; }
+    public Guid? BlockedByPackageId { get; private set; }
+    public int MaxAutoRetries { get; private set; }
     public int PendingCount { get; private set; }
     public List<PendingUpdate> PendingUpdates { get; private set; } = [];
     public DateTime? NextWindow { get; private set; }
@@ -44,6 +46,8 @@ public class IndexModel(
         ClientVersion = versionDetector.GetClientVersion();
         QueueBlocked = pendingInstallService.IsBlocked;
         BlockedReason = pendingInstallService.BlockedReason;
+        BlockedByPackageId = pendingInstallService.BlockedByPackageId;
+        MaxAutoRetries = agentOptions.Install.MaxAutoRetries;
         PendingUpdates = [.. pendingInstallService.GetAll()];
         PendingCount = PendingUpdates.Count;
         NextWindow = pendingInstallService.GetNextWindowStart();
