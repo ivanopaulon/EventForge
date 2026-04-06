@@ -124,6 +124,9 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to fetch pending installs from Agent proxy"); return []; }
     }
 
+    public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
+        => await _http.PostAsync<object>($"api/v1/updatehub-proxy/installations/{installationId}/update", new { PackageId = packageId }, ct);
+
     public async Task TriggerInstallNowAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
         => await _http.PostAsync<object>("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
 
