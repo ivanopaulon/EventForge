@@ -56,6 +56,7 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<Reference> References { get; set; }
     public DbSet<ClassificationNode> ClassificationNodes { get; set; }
     public DbSet<Printer> Printers { get; set; }
+    public DbSet<EventForge.Server.Data.Entities.FiscalPrinting.DailyClosureRecord> DailyClosureRecords { get; set; }
     public DbSet<UM> UMs { get; set; }
     public DbSet<VatRate> VatRates { get; set; }
     public DbSet<VatNature> VatNatures { get; set; }
@@ -228,6 +229,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureCalendarReminderRelationships(modelBuilder);
         ConfigureEventTimeSlotRelationships(modelBuilder);
         ConfigureEntityChangeLog(modelBuilder);
+        ConfigureFiscalPrintingRelationships(modelBuilder);
     }
 
     /// <summary>
@@ -476,5 +478,24 @@ public partial class EventForgeDbContext : DbContext
         }
 
         return auditEntries;
+    }
+
+    // ── Fiscal printing configuration ─────────────────────────────────────────
+
+    private static void ConfigureFiscalPrintingRelationships(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Data.Entities.FiscalPrinting.DailyClosureRecord>(entity =>
+        {
+            entity.ToTable("DailyClosureRecords");
+
+            entity.HasIndex(e => e.PrinterId);
+            entity.HasIndex(e => e.ClosedAt);
+            entity.HasIndex(e => new { e.PrinterId, e.ClosedAt });
+
+            entity.HasOne(e => e.Printer)
+                .WithMany()
+                .HasForeignKey(e => e.PrinterId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

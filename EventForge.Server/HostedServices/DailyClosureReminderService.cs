@@ -1,6 +1,8 @@
+using EventForge.DTOs.Notifications;
 using EventForge.Server.Data;
 using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
+using EventForge.Server.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -137,7 +139,20 @@ public class DailyClosureReminderService : BackgroundService
         foreach (var printer in fiscalPrinters)
         {
             var status = statusCache.GetCachedStatus(printer.Id);
-            if (status is null || !status.IsDailyClosureRequired)
+
+            // Primary check: hardware flag from Custom status bitmap
+            bool closureRequired = status?.IsDailyClosureRequired == true;
+
+            // Secondary check: no closure record for today in DB (covers restart scenarios)
+            if (!closureRequired)
+            {
+                var todayStart = DateTime.UtcNow.Date;
+                closureRequired = !await context.DailyClosureRecords
+                    .AsNoTracking()
+                    .AnyAsync(r => r.PrinterId == printer.Id && !r.IsDeleted && r.ClosedAt >= todayStart, cancellationToken);
+            }
+
+            if (!closureRequired)
                 continue;
 
             if (isNotificationWindow)
@@ -169,9 +184,28 @@ public class DailyClosureReminderService : BackgroundService
             "DailyClosureReminderService: closure required notification | PrinterId={PrinterId} Name={Name}",
             printerId, printerName);
 
+        // 1. Push SignalR event to connected POS clients
         var group = FiscalPrinterHub.PrinterGroupName(printerId);
         await _hubContext.Clients.Group(group)
             .SendAsync(FiscalPrinterHub.ClosureRequired, printerId, printerName, cancellationToken);
+
+        // 2. Create a persistent in-app notification via INotificationService
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+        await TrySendNotificationAsync(notificationService, new CreateNotificationDto
+        {
+            Type = NotificationTypes.System,
+            Priority = NotificationPriority.High,
+            Payload = new NotificationPayloadDto
+            {
+                Title = $"Chiusura Giornaliera Richiesta – {printerName}",
+                Message = $"La stampante fiscale \"{printerName}\" richiede la chiusura giornaliera (Z-report). " +
+                          $"Eseguire la chiusura entro le 23:00 per evitare il blocco delle stampe.",
+                ActionUrl = $"/admin/fiscal-printers/{printerId}/closures"
+            },
+            ExpiresAt = now.Date.AddDays(1).AddHours(_criticalAlertTime.Hour)
+        });
 
         _lastNotificationSent[printerId] = now;
     }
@@ -197,10 +231,46 @@ public class DailyClosureReminderService : BackgroundService
             "DailyClosureReminderService: CRITICAL – closure missing | PrinterId={PrinterId} Name={Name}",
             printerId, printerName);
 
+        // 1. Push SignalR critical event to connected POS clients
         var group = FiscalPrinterHub.PrinterGroupName(printerId);
         await _hubContext.Clients.Group(group)
             .SendAsync(FiscalPrinterHub.CriticalClosureMissing, printerId, printerName, cancellationToken);
 
+        // 2. Create a critical persistent in-app notification
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+        await TrySendNotificationAsync(notificationService, new CreateNotificationDto
+        {
+            Type = NotificationTypes.System,
+            Priority = NotificationPriority.Critical,
+            Payload = new NotificationPayloadDto
+            {
+                Title = $"⛔ ALERT CRITICO – Chiusura Mancante: {printerName}",
+                Message = $"La stampante fiscale \"{printerName}\" non ha eseguito la chiusura giornaliera. " +
+                          $"Il protocollo Custom blocca TUTTE le stampe fiscali dopo 24h senza chiusura. " +
+                          $"Intervenire IMMEDIATAMENTE.",
+                ActionUrl = $"/admin/fiscal-printers/{printerId}/closures"
+            },
+            // Critical alerts expire at the notification time the following day to ensure
+            // they remain visible until the standard reminder fires on the next cycle.
+            ExpiresAt = now.Date.AddDays(1).AddHours(_notificationTime.Hour)
+        });
+
         _lastCriticalAlertSent[printerId] = now;
+    }
+
+    private async Task TrySendNotificationAsync(
+        INotificationService notificationService,
+        CreateNotificationDto dto)
+    {
+        try
+        {
+            await notificationService.CreateNotificationAsync(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DailyClosureReminderService: failed to create in-app notification");
+        }
     }
 }
