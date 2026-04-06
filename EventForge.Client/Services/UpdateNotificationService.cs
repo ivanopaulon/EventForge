@@ -92,36 +92,19 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
 
     public async Task<IReadOnlyList<PackageSummaryClientDto>> GetPackagesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            return await _http.GetAsync<List<PackageSummaryClientDto>>(
-                "api/v1/updatehub-proxy/packages", ct) ?? [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch packages from UpdateHub proxy");
-            return [];
-        }
+        return await _http.GetAsync<List<PackageSummaryClientDto>>(
+            "api/v1/updatehub-proxy/packages", ct) ?? [];
     }
 
     public async Task<IReadOnlyList<InstallationSummaryClientDto>> GetInstallationsAsync(CancellationToken ct = default)
     {
-        try
-        {
-            return await _http.GetAsync<List<InstallationSummaryClientDto>>(
-                "api/v1/updatehub-proxy/installations", ct) ?? [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch installations from UpdateHub proxy");
-            return [];
-        }
+        return await _http.GetAsync<List<InstallationSummaryClientDto>>(
+            "api/v1/updatehub-proxy/installations", ct) ?? [];
     }
 
     public async Task<IReadOnlyList<PendingInstallClientDto>> GetPendingInstallsAsync(CancellationToken ct = default)
     {
-        try { return await _http.GetAsync<List<PendingInstallClientDto>>("api/v1/agent-proxy/pending-installs", ct) ?? []; }
-        catch (Exception ex) { _logger.LogWarning(ex, "Failed to fetch pending installs from Agent proxy"); return []; }
+        return await _http.GetAsync<List<PendingInstallClientDto>>("api/v1/agent-proxy/pending-installs", ct) ?? [];
     }
 
     public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
