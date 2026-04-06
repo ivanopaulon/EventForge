@@ -52,8 +52,17 @@ public interface IUpdateNotificationService
     /// <summary>Fetches all installations from the UpdateHub via the Server proxy.</summary>
     Task<IReadOnlyList<InstallationSummaryClientDto>> GetInstallationsAsync(CancellationToken ct = default);
 
+    /// <summary>Fetches all packages currently awaiting manual install approval via the Server proxy.</summary>
+    Task<IReadOnlyList<PendingInstallClientDto>> GetPendingInstallsAsync(CancellationToken ct = default);
+
     /// <summary>Sends an update command to an installation via the Server proxy.</summary>
     Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default);
+
+    /// <summary>Sends an InstallNow command to the agent for the specified queued package.</summary>
+    Task TriggerInstallNowAsync(Guid installationId, Guid packageId, CancellationToken ct = default);
+
+    /// <summary>Sends an UnblockQueue command to the agent.</summary>
+    Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default);
 
     /// <summary>Refreshes <see cref="AvailableUpdatesCount"/> from the UpdateHub (SuperAdmin only).</summary>
     Task RefreshAvailableUpdatesCountAsync();

@@ -64,6 +64,12 @@ public interface IInstallationService
     /// </summary>
     Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
         IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
+    /// <summary>
+    /// Returns all <see cref="UpdateHistory"/> records that are currently pending installation
+    /// (Status = InProgress, Phase = AwaitingMaintenanceWindow), across all installations,
+    /// ordered by start time ascending (oldest = head of queue first).
+    /// </summary>
+    Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default);
 }
 
 /// <summary>Summary of a single update history record, used in the Installations UI.</summary>
@@ -76,6 +82,21 @@ public record UpdateHistorySummary(
     string? PhaseDescription,
     DateTime StartedAt,
     DateTime? CompletedAt);
+
+/// <summary>
+/// A package that has been downloaded by an agent and is waiting for operator approval
+/// (phase = AwaitingMaintenanceWindow). Used to surface manual installs in the client UI.
+/// </summary>
+public record PendingInstallSummary(
+    Guid InstallationId,
+    string InstallationName,
+    bool IsConnected,
+    Guid HistoryId,
+    Guid PackageId,
+    string? Component,
+    string? Version,
+    bool IsManualInstall,
+    DateTime QueuedAt);
 
 /// <summary>Rich identity payload sent by the agent on every SignalR connect.</summary>
 public record RegistrationInfo(

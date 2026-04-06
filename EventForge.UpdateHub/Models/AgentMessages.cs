@@ -59,6 +59,12 @@ public record StartUpdateCommand(
     string Checksum,
     bool IsManualInstall = false);
 
+/// <summary>Asks the agent to start installing a specific queued package immediately, bypassing the maintenance window.</summary>
+public record InstallNowCommand(Guid PackageId);
+
+/// <summary>Asks the agent to unblock its install queue. <see cref="SkipAndRemove"/> = true removes the head entry.</summary>
+public record UnblockQueueCommand(Guid PackageId, bool SkipAndRemove);
+
 /// <summary>Asks the agent to send its current status.</summary>
 public record RequestStatusCommand(string Reason);
 

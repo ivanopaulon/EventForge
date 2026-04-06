@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.UpdateHub.Services;
 
-public class InstallationService(UpdateHubDbContext db) : IInstallationService
+public class InstallationService(UpdateHubDbContext db, IConnectionTracker connectionTracker) : IInstallationService
 {
     public Task<Installation?> GetByApiKeyAsync(string apiKey, CancellationToken ct = default)
         => db.Installations.FirstOrDefaultAsync(x => x.ApiKey == apiKey, ct);
@@ -177,4 +177,28 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
     private static UpdateHistorySummary ToSummary(UpdateHistory h) =>
         new(h.Id, h.PackageId, h.Package?.Version, h.Package?.Component,
             h.Status, h.PhaseDescription, h.StartedAt, h.CompletedAt);
+
+    public async Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default)
+    {
+        var rows = await db.UpdateHistories
+            .Include(h => h.Package)
+            .Include(h => h.Installation)
+            .Where(h => h.Status == UpdateHistoryStatus.InProgress
+                        && h.PhaseDescription == "AwaitingMaintenanceWindow")
+            .OrderBy(h => h.StartedAt)
+            .ToListAsync(ct);
+
+        var onlineIds = connectionTracker.GetOnlineInstallationIds();
+
+        return rows.Select(h => new PendingInstallSummary(
+            InstallationId:  h.InstallationId,
+            InstallationName: h.Installation?.Name ?? h.InstallationId.ToString(),
+            IsConnected:     onlineIds.Contains(h.InstallationId),
+            HistoryId:       h.Id,
+            PackageId:       h.PackageId,
+            Component:       h.Package?.Component.ToString(),
+            Version:         h.Package?.Version,
+            IsManualInstall: h.Package?.IsManualInstall ?? false,
+            QueuedAt:        h.StartedAt)).ToList();
+    }
 }

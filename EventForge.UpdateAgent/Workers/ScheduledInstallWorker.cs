@@ -24,9 +24,29 @@ public class ScheduledInstallWorker(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            bool bypassMaintenanceWindow = false;
             try
             {
-                await TryInstallNextAsync(stoppingToken);
+                using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                delayCts.CancelAfter(TimeSpan.FromSeconds(options.Install.ScheduledCheckIntervalSeconds));
+
+                // Wait for the scheduled interval OR an operator-triggered immediate install.
+                await pendingInstallService.WaitForInstallTriggerAsync(delayCts.Token);
+                bypassMaintenanceWindow = true;
+                logger.LogInformation("Immediate install triggered — bypassing maintenance window check.");
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal scheduled interval elapsed — proceed with window check.
+            }
+
+            try
+            {
+                await TryInstallNextAsync(stoppingToken, bypassMaintenanceWindow);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -36,23 +56,21 @@ public class ScheduledInstallWorker(
             {
                 logger.LogError(ex, "Unexpected error in ScheduledInstallWorker loop.");
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(options.Install.ScheduledCheckIntervalSeconds), stoppingToken);
         }
 
         logger.LogInformation("ScheduledInstallWorker stopped.");
     }
 
-    private async Task TryInstallNextAsync(CancellationToken ct)
+    private async Task TryInstallNextAsync(CancellationToken ct, bool bypassMaintenanceWindow = false)
     {
         if (pendingInstallService.IsBlocked)
         {
-            logger.LogDebug("Install queue is blocked — skipping scheduled check. Reason: {Reason}",
+            logger.LogDebug("Install queue is blocked — skipping. Reason: {Reason}",
                 pendingInstallService.BlockedReason);
             return;
         }
 
-        if (!pendingInstallService.IsInMaintenanceWindow())
+        if (!bypassMaintenanceWindow && !pendingInstallService.IsInMaintenanceWindow())
         {
             logger.LogDebug("Outside maintenance window — skipping scheduled check.");
             return;

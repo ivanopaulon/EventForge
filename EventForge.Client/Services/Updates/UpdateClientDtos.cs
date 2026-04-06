@@ -25,6 +25,18 @@ public record InstallationSummaryClientDto(
     DateTime? LastSeen,
     bool IsConnected);
 
+/// <summary>A package queued on an agent, waiting for operator approval to install.</summary>
+public record PendingInstallClientDto(
+    Guid InstallationId,
+    string InstallationName,
+    bool IsConnected,
+    Guid HistoryId,
+    Guid PackageId,
+    string? Component,
+    string? Version,
+    bool IsManualInstall,
+    DateTime QueuedAt);
+
 public record MaintenanceStartedPayload(string? Component, string? Version, DateTime StartedAt);
 public record MaintenanceEndedPayload(string? Component, string? Version, DateTime EndedAt);
 public record ClientUpdateDeployedPayload(string? Component, string? Version, DateTime DeployedAt);
