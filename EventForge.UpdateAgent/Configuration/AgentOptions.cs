@@ -111,6 +111,19 @@ public class ServerComponentOptions
 
     /// <summary>SQL Server connection string used to execute pre/post migration scripts.</summary>
     public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Base URL of the running EventForge.Server (e.g. "http://localhost:5000") used to send
+    /// maintenance notifications before/after IIS stop/start.
+    /// Leave empty to skip notifications.
+    /// </summary>
+    public string NotificationBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Shared secret that must match <c>UpdateHub:MaintenanceSecret</c> on EventForge.Server.
+    /// Sent as the <c>X-Maintenance-Secret</c> request header.
+    /// </summary>
+    public string MaintenanceSecret { get; set; } = string.Empty;
 }
 
 /// <summary>Deployment settings for the EventForge Client (Blazor WebAssembly) component.</summary>
@@ -121,6 +134,18 @@ public class ClientComponentOptions
 
     /// <summary>Absolute path to the Client deployment directory on disk.</summary>
     public string DeployPath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Base URL of the running EventForge.Server (e.g. "http://localhost:5000") used to send
+    /// a client-deployed notification after the new static files have been deployed.
+    /// Leave empty to skip notifications.
+    /// </summary>
+    public string NotificationBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Shared secret that must match <c>UpdateHub:MaintenanceSecret</c> on EventForge.Server.
+    /// </summary>
+    public string MaintenanceSecret { get; set; } = string.Empty;
 }
 
 // ── Install behaviour ─────────────────────────────────────────────────────

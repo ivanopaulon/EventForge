@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Profile
 @using EventForge.DTOs.Auth
 @using EventForge.Client.Services
+@using EventForge.Client.Services.Updates
 @using EventForge.Client.Shared.Components.Dialogs
 @using System.IdentityModel.Tokens.Jwt
 @inject IHealthService HealthService
@@ -40,6 +41,7 @@
     [Parameter] public bool HideFab { get; set; }
 
     private DetailedHealthStatusDto? _healthData;
+    private AgentStatusClientDto? _agentStatusData;
     private DateTime? _lastUpdated;
     private Timer? _refreshTimer;
     private string? _errorMessage;
@@ -71,7 +73,8 @@
         {
             _errorMessage = null;
             _healthData = await HealthService.GetDetailedHealthAsync();
-            
+            _agentStatusData = await HealthService.GetAgentStatusAsync();
+
             if (_healthData == null)
             {
                 _errorMessage = "Unable to retrieve health status from server";
@@ -188,6 +191,13 @@
             _healthData.ApiStatus,
             _healthData.DatabaseStatus
         };
+
+        // Agent offline → warning (amber), but doesn't escalate to error
+        if (_agentStatusData is not null && !_agentStatusData.Reachable)
+        {
+            if (statuses.All(s => s?.ToLower() == "healthy"))
+                return Color.Warning;
+        }
 
         if (statuses.Any(s => s?.ToLower() == "unhealthy" || s?.ToLower() == "error"))
             return Color.Error;

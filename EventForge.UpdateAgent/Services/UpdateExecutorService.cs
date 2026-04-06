@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace EventForge.UpdateAgent.Services;
@@ -32,6 +33,35 @@ public class UpdateExecutorService(
 
     // Exponential backoff delays (seconds) between successive download attempts.
     private static readonly int[] DownloadDelays = [5, 15, 30, 60, 120];
+
+    // ── Maintenance notification helpers ────────────────────────────────────
+
+    /// <summary>
+    /// Fires a best-effort POST to EventForge.Server's maintenance endpoint so connected clients
+    /// are notified before/after an update. Never throws — failures are logged as warnings.
+    /// </summary>
+    private async Task NotifyServerAsync(string notificationBaseUrl, string maintenanceSecret, object payload)
+    {
+        if (string.IsNullOrWhiteSpace(notificationBaseUrl)) return;
+        try
+        {
+            var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
+            var json = JsonSerializer.Serialize(payload);
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var resp = await _http.SendAsync(request, cts.Token);
+            if (!resp.IsSuccessStatusCode)
+                logger.LogWarning("Maintenance notification returned {StatusCode}", resp.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Maintenance notification failed (best-effort, update continues)");
+        }
+    }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
@@ -82,6 +112,12 @@ public class UpdateExecutorService(
             // ── Phase 6: Stop IIS ──
             if (isServer)
             {
+                // Notify connected clients that the Server is going into maintenance before stopping IIS.
+                await NotifyServerAsync(
+                    options.Components.Server.NotificationBaseUrl,
+                    options.Components.Server.MaintenanceSecret,
+                    new { Phase = "Starting", Component = command.Component, Version = command.Version });
+
                 await ReportAsync(command, UpdatePhase.StoppingService, false, true, null, ct);
                 await iisManagerService.StopSiteAsync(ct);
             }
@@ -116,6 +152,24 @@ public class UpdateExecutorService(
 
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
+
+            // Notify clients that maintenance is over (Server back online).
+            if (isServer)
+            {
+                await NotifyServerAsync(
+                    options.Components.Server.NotificationBaseUrl,
+                    options.Components.Server.MaintenanceSecret,
+                    new { Phase = "Started", Component = command.Component, Version = command.Version });
+            }
+            else
+            {
+                // Client component deployed — tell the Server so browsers can refresh.
+                await NotifyServerAsync(
+                    options.Components.Client.NotificationBaseUrl,
+                    options.Components.Client.MaintenanceSecret,
+                    new { Phase = "ClientDeployed", Component = command.Component, Version = command.Version });
+            }
+
             logger.LogInformation("Update completed successfully: {Component} {Version}", command.Component, command.Version);
         }
         catch (Exception ex)
