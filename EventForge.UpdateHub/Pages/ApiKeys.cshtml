@@ -50,10 +50,10 @@
                 <thead>
                     <tr>
                         <th>Stato</th>
-                        <th>Nome</th>
+                        <th>Nome / Macchina</th>
                         <th>Installation Code</th>
-                        <th>Posizione</th>
-                        <th>Registrata</th>
+                        <th>Sistema</th>
+                        <th>Posizione / Tag</th>
                         <th>Ultima connessione</th>
                         <th>Chiave API</th>
                         <th>Azioni</th>
@@ -64,7 +64,7 @@
                 {
                     var i = row.Installation;
                     var rowCss = i.IsRevoked ? "table-danger opacity-75" : "";
-                    <tr class="@rowCss" data-search="@(i.Name + " " + i.InstallationCode + " " + i.Location)".ToLower()>
+                    <tr class="@rowCss" data-search="@((i.Name + " " + i.InstallationCode + " " + i.Location + " " + i.MachineName + " " + i.IpAddress + " " + i.Tags).ToLower())">
                         <td>
                             @if (i.IsRevoked)
                             {
@@ -81,27 +81,68 @@
                         </td>
                         <td>
                             <div class="fw-semibold">@i.Name</div>
+                            @if (!string.IsNullOrEmpty(i.MachineName))
+                            {
+                                <small class="text-muted"><i class="bi bi-pc me-1"></i>@i.MachineName</small>
+                            }
+                            @if (!string.IsNullOrEmpty(i.IpAddress))
+                            {
+                                <br /><small class="text-muted"><i class="bi bi-ethernet me-1"></i>@i.IpAddress</small>
+                            }
+                            <br /><small class="text-muted">
                             @if (i.Components == InstallationComponents.Both)
-                            {
-                                <small class="text-muted">Server + Client</small>
-                            }
+                            { <text>Server + Client</text> }
                             else
-                            {
-                                <small class="text-muted">@i.Components</small>
-                            }
+                            { @i.Components }
+                            </small>
                         </td>
                         <td>
                             @if (!string.IsNullOrEmpty(i.InstallationCode))
                             {
-                                <code class="small" title="@i.InstallationCode">@i.InstallationCode[..Math.Min(30, i.InstallationCode.Length)]…</code>
+                                <code class="small" title="@i.InstallationCode" style="cursor:help">
+                                    @i.InstallationCode[..Math.Min(28, i.InstallationCode.Length)]…
+                                </code>
                             }
                             else
                             {
                                 <span class="text-muted">—</span>
                             }
                         </td>
-                        <td class="text-muted small">@(i.Location ?? "—")</td>
-                        <td class="text-muted small">@i.RegisteredAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.OSVersion))
+                            {
+                                <div class="text-muted" title="@i.OSVersion">
+                                    <i class="bi bi-windows me-1"></i>@(i.OSVersion.Length > 35 ? i.OSVersion[..35] + "…" : i.OSVersion)
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.DotNetVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-braces me-1"></i>.NET @i.DotNetVersion</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.AgentVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-robot me-1"></i>Agent @i.AgentVersion</div>
+                            }
+                        </td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.Location))
+                            {
+                                <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>@i.Location</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.Tags))
+                            {
+                                <div class="mt-1">
+                                @foreach (var tag in i.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                {
+                                    <span class="ef-badge ef-badge-neutral me-1">@tag</span>
+                                }
+                                </div>
+                            }
+                            @if (string.IsNullOrEmpty(i.Location) && string.IsNullOrEmpty(i.Tags))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
                         <td class="text-muted small">
                             @if (i.LastSeen.HasValue)
                             {

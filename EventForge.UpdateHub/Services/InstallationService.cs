@@ -16,6 +16,28 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
     public async Task<IReadOnlyList<Installation>> GetAllAsync(CancellationToken ct = default)
         => await db.Installations.OrderBy(x => x.Name).ToListAsync(ct);
 
+    public async Task UpdateRegistrationInfoAsync(Guid id, RegistrationInfo info, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return;
+
+        installation.LastSeen = DateTime.UtcNow;
+        installation.Status = info.Status;
+
+        if (info.Name is not null)            installation.Name = info.Name;
+        if (info.Location is not null)        installation.Location = info.Location;
+        if (info.VersionServer is not null)   installation.InstalledVersionServer = info.VersionServer;
+        if (info.VersionClient is not null)   installation.InstalledVersionClient = info.VersionClient;
+        if (info.MachineName is not null)     installation.MachineName = info.MachineName;
+        if (info.OSVersion is not null)       installation.OSVersion = info.OSVersion;
+        if (info.DotNetVersion is not null)   installation.DotNetVersion = info.DotNetVersion;
+        if (info.AgentVersion is not null)    installation.AgentVersion = info.AgentVersion;
+        if (info.IpAddress is not null)       installation.IpAddress = info.IpAddress;
+        if (info.Tags is not null)            installation.Tags = info.Tags;
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task UpdateLastSeenAsync(Guid id, string? versionServer, string? versionClient, InstallationStatus status, CancellationToken ct = default)
     {
         var installation = await db.Installations.FindAsync([id], ct);

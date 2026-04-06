@@ -51,14 +51,26 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
-        await installationService.UpdateLastSeenAsync(
-            installationId.Value,
-            msg.VersionServer,
-            msg.VersionClient,
-            InstallationStatus.Online);
+        var ip = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
 
-        logger.LogInformation("Installation registered: {Name} Server={VersionServer} Client={VersionClient}",
-            msg.InstallationName, msg.VersionServer, msg.VersionClient);
+        await installationService.UpdateRegistrationInfoAsync(
+            installationId.Value,
+            new RegistrationInfo(
+                Name:          msg.InstallationName,
+                Location:      msg.Location,
+                VersionServer: msg.VersionServer,
+                VersionClient: msg.VersionClient,
+                MachineName:   msg.MachineName,
+                OSVersion:     msg.OSVersion,
+                DotNetVersion: msg.DotNetVersion,
+                AgentVersion:  msg.AgentVersion,
+                IpAddress:     ip,
+                Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                Status:        InstallationStatus.Online));
+
+        logger.LogInformation(
+            "Installation registered: {Name} Machine={Machine} OS={OS} Agent={AgentVer} IP={IP}",
+            msg.InstallationName, msg.MachineName, msg.OSVersion, msg.AgentVersion, ip);
 
         await Clients.Caller.SendAsync("RegistrationConfirmed", new { installationId });
     }
@@ -69,8 +81,23 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
+        var ip = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
         var status = Enum.TryParse<InstallationStatus>(msg.Status, true, out var s) ? s : InstallationStatus.Online;
-        await installationService.UpdateLastSeenAsync(installationId.Value, msg.VersionServer, msg.VersionClient, status);
+
+        await installationService.UpdateRegistrationInfoAsync(
+            installationId.Value,
+            new RegistrationInfo(
+                Name:          null,
+                Location:      null,
+                VersionServer: msg.VersionServer,
+                VersionClient: msg.VersionClient,
+                MachineName:   null,
+                OSVersion:     null,
+                DotNetVersion: null,
+                AgentVersion:  msg.AgentVersion,
+                IpAddress:     ip,
+                Tags:          null,
+                Status:        status));
 
         logger.LogDebug("Heartbeat from Installation={InstallationId} Status={Status}", installationId, msg.Status);
     }

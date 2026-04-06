@@ -45,6 +45,31 @@ public class Installation
     [Required, MaxLength(200)]
     public string ApiKey { get; set; } = string.Empty;
 
+    // ── Runtime identity (sent by Agent on every connect) ─────────────────
+    /// <summary>Hostname of the machine running this agent.</summary>
+    [MaxLength(200)]
+    public string? MachineName { get; set; }
+
+    /// <summary>Operating system version string (e.g. "Windows 11 Pro 22H2 Build 22621").</summary>
+    [MaxLength(300)]
+    public string? OSVersion { get; set; }
+
+    /// <summary>.NET runtime version the agent is running on (e.g. "10.0.0").</summary>
+    [MaxLength(50)]
+    public string? DotNetVersion { get; set; }
+
+    /// <summary>EventForge UpdateAgent version (Nerdbank.GitVersioning).</summary>
+    [MaxLength(50)]
+    public string? AgentVersion { get; set; }
+
+    /// <summary>Last known IP address of the agent (set by Hub from HTTP context).</summary>
+    [MaxLength(100)]
+    public string? IpAddress { get; set; }
+
+    /// <summary>Comma-separated classification tags sent by the agent (e.g. "production,milan").</summary>
+    [MaxLength(500)]
+    public string? Tags { get; set; }
+
     // ── Revocation ────────────────────────────────────────────────────────
     /// <summary>When true, the API key is blocked and the agent cannot connect.</summary>
     public bool IsRevoked { get; set; }

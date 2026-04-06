@@ -43,4 +43,19 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
         }
         return null;
     }
+
+    /// <summary>Returns the version of the running UpdateAgent process itself.</summary>
+    public string GetAgentVersion()
+    {
+        try
+        {
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var infoAttr = System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(asm);
+            return infoAttr?.InformationalVersion
+                   ?? asm.GetName().Version?.ToString()
+                   ?? "unknown";
+        }
+        catch { return "unknown"; }
+    }
 }

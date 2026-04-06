@@ -48,6 +48,7 @@ try
 
     // ── Core services ─────────────────────────────────────────────────────
     builder.Services.AddSingleton<InstallationCodeGenerator>();
+    builder.Services.AddSingleton<SystemInfoService>();
     builder.Services.AddSingleton<AgentStatusService>();
     builder.Services.AddSingleton<DownloadProgressService>();
     builder.Services.AddSingleton<PendingInstallService>();

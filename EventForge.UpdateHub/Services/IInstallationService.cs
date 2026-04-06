@@ -7,6 +7,8 @@ public interface IInstallationService
     Task<Installation?> GetByInstallationCodeAsync(string code, CancellationToken ct = default);
     Task<IReadOnlyList<Installation>> GetAllAsync(CancellationToken ct = default);
     Task UpdateLastSeenAsync(Guid id, string? versionServer, string? versionClient, InstallationStatus status, CancellationToken ct = default);
+    /// <summary>Updates full registration info sent by the agent on every SignalR connect.</summary>
+    Task UpdateRegistrationInfoAsync(Guid id, RegistrationInfo info, CancellationToken ct = default);
     Task<Installation> CreateAsync(Installation installation, CancellationToken ct = default);
     Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default);
     Task CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default);
@@ -18,3 +20,17 @@ public interface IInstallationService
     /// <summary>Re-issue a new API key for an installation (invalidates the old one).</summary>
     Task<string?> ReissueApiKeyAsync(Guid id, CancellationToken ct = default);
 }
+
+/// <summary>Rich identity payload sent by the agent on every SignalR connect.</summary>
+public record RegistrationInfo(
+    string? Name,
+    string? Location,
+    string? VersionServer,
+    string? VersionClient,
+    string? MachineName,
+    string? OSVersion,
+    string? DotNetVersion,
+    string? AgentVersion,
+    string? IpAddress,
+    string? Tags,
+    InstallationStatus Status = InstallationStatus.Online);

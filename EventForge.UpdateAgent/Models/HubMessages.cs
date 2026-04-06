@@ -6,14 +6,22 @@ public record RegisterInstallationMessage(
     string InstallationName,
     string? VersionServer,
     string? VersionClient,
-    InstallationComponentsDto Components);
+    InstallationComponentsDto Components,
+    string? InstallationCode  = null,
+    string? Location          = null,
+    IReadOnlyList<string>? Tags = null,
+    string? MachineName       = null,
+    string? OSVersion         = null,
+    string? DotNetVersion     = null,
+    string? AgentVersion      = null);
 
 public record HeartbeatMessage(
     string InstallationId,
     string? VersionServer,
     string? VersionClient,
     string Status,
-    DateTime Timestamp);
+    DateTime Timestamp,
+    string? AgentVersion = null);
 
 public record UpdateProgressMessage(
     string InstallationId,
@@ -42,8 +50,5 @@ public record StartUpdateCommand(
 public record RequestStatusCommand(string Reason);
 public record InstallationComponentsDto(bool Server, bool Client);
 
-/// <summary>Hub → Agent: install a queued package immediately, bypassing the maintenance window.</summary>
 public record InstallNowCommand(Guid PackageId);
-
-/// <summary>Hub → Agent: unblock the install queue after a failed update (operator-confirmed).</summary>
 public record UnblockQueueCommand(Guid PackageId, bool SkipAndRemove);

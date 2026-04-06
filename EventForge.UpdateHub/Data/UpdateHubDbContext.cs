@@ -50,7 +50,13 @@ public class UpdateHubDbContext(DbContextOptions<UpdateHubDbContext> options) : 
                 ("InstallationCode", "TEXT NULL"),
                 ("IsRevoked",        "INTEGER NOT NULL DEFAULT 0"),
                 ("RevokedAt",        "TEXT NULL"),
-                ("RevokedReason",    "TEXT NULL")
+                ("RevokedReason",    "TEXT NULL"),
+                ("MachineName",      "TEXT NULL"),
+                ("OSVersion",        "TEXT NULL"),
+                ("DotNetVersion",    "TEXT NULL"),
+                ("AgentVersion",     "TEXT NULL"),
+                ("IpAddress",        "TEXT NULL"),
+                ("Tags",             "TEXT NULL")
             })
             {
                 cmd.CommandText = $"ALTER TABLE Installations ADD COLUMN {col} {def}";

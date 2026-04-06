@@ -14,6 +14,7 @@ public class AgentWorker(
     PendingInstallService pendingInstallService,
     AgentStatusService agentStatus,
     VersionDetectorService versionDetector,
+    SystemInfoService systemInfo,
     ILogger<AgentWorker> logger) : BackgroundService
 {
     private HubConnection? _connection;
@@ -102,7 +103,12 @@ public class AgentWorker(
                     ? (Guid?)null
                     : Guid.Parse(options.InstallationId),
                 Location = options.Location,
-                Components = (int)MapComponents()
+                Components = (int)MapComponents(),
+                MachineName   = systemInfo.MachineName,
+                OSVersion     = systemInfo.OSVersion,
+                DotNetVersion = systemInfo.DotNetVersion,
+                AgentVersion  = versionDetector.GetAgentVersion(),
+                Tags          = options.Tags
             };
 
             var response = await http.PostAsJsonAsync(enrollUrl, body, ct);
@@ -350,15 +356,22 @@ public class AgentWorker(
         agentStatus.HubConnectionState = "Connected";
         logger.LogInformation("Connected to UpdateHub at {Url}", options.HubUrl);
 
-        // Register on connect
+        // Register on connect — send full identity so Hub stays up-to-date
         await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
-            options.InstallationId,
-            options.InstallationName,
-            versionDetector.GetServerVersion(),
-            versionDetector.GetClientVersion(),
-            new InstallationComponentsDto(
-                options.Components.Server.Enabled,
-                options.Components.Client.Enabled)),
+            InstallationId:   options.InstallationId,
+            InstallationName: options.InstallationName,
+            VersionServer:    versionDetector.GetServerVersion(),
+            VersionClient:    versionDetector.GetClientVersion(),
+            Components:       new InstallationComponentsDto(
+                                  options.Components.Server.Enabled,
+                                  options.Components.Client.Enabled),
+            InstallationCode: options.InstallationCode,
+            Location:         options.Location,
+            Tags:             options.Tags.Count > 0 ? options.Tags : null,
+            MachineName:      systemInfo.MachineName,
+            OSVersion:        systemInfo.OSVersion,
+            DotNetVersion:    systemInfo.DotNetVersion,
+            AgentVersion:     versionDetector.GetAgentVersion()),
             ct);
 
         // Heartbeat loop
@@ -374,11 +387,12 @@ public class AgentWorker(
         if (_connection?.State != HubConnectionState.Connected) return;
 
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
-            options.InstallationId,
-            versionDetector.GetServerVersion(),
-            versionDetector.GetClientVersion(),
-            "Online",
-            DateTime.UtcNow),
+            InstallationId: options.InstallationId,
+            VersionServer:  versionDetector.GetServerVersion(),
+            VersionClient:  versionDetector.GetClientVersion(),
+            Status:         "Online",
+            Timestamp:      DateTime.UtcNow,
+            AgentVersion:   versionDetector.GetAgentVersion()),
             ct);
 
         agentStatus.LastHeartbeatAt = DateTime.UtcNow;

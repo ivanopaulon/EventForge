@@ -76,6 +76,12 @@ public class EnrollmentsController(
             Location = request.Location,
             Components = request.Components,
             ApiKey = apiKey,
+            MachineName = request.MachineName,
+            OSVersion = request.OSVersion,
+            DotNetVersion = request.DotNetVersion,
+            AgentVersion = request.AgentVersion,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Tags = request.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
             Notes = $"Auto-enrolled via EnrollmentToken on {DateTime.UtcNow:u}"
         };
 
@@ -115,7 +121,12 @@ public record EnrollmentRequest(
     string InstallationName,
     Guid? HintInstallationId,
     string? Location,
-    InstallationComponents Components);
+    InstallationComponents Components,
+    string? MachineName       = null,
+    string? OSVersion         = null,
+    string? DotNetVersion     = null,
+    string? AgentVersion      = null,
+    IReadOnlyList<string>? Tags = null);
 
 // Response returned to the Agent on successful enrollment
 public record EnrollmentResponse(

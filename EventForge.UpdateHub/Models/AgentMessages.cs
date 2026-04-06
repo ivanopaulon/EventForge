@@ -8,7 +8,15 @@ public record RegisterInstallationMessage(
     string InstallationName,
     string? VersionServer,
     string? VersionClient,
-    InstallationComponentsDto Components);
+    InstallationComponentsDto Components,
+    // Rich identity fields — sent on every connect so Hub stays up-to-date
+    string? InstallationCode  = null,
+    string? Location          = null,
+    IReadOnlyList<string>? Tags = null,
+    string? MachineName       = null,
+    string? OSVersion         = null,
+    string? DotNetVersion     = null,
+    string? AgentVersion      = null);
 
 /// <summary>Sent periodically to confirm the agent is alive.</summary>
 public record HeartbeatMessage(
@@ -16,7 +24,8 @@ public record HeartbeatMessage(
     string? VersionServer,
     string? VersionClient,
     string Status,
-    DateTime Timestamp);
+    DateTime Timestamp,
+    string? AgentVersion = null);
 
 /// <summary>Sent during or after an update to report progress/result.</summary>
 public record UpdateProgressMessage(
