@@ -60,6 +60,7 @@ builder.Services.AddDbContext<UpdateHubDbContext>(options =>
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInstallationService, InstallationService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
+builder.Services.AddScoped<IPackageBuildService, PackageBuildService>();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
 builder.Services.AddHostedService<PackageWatcherService>();
 
