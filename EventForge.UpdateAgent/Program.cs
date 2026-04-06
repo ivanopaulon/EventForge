@@ -4,12 +4,26 @@ using Microsoft.Extensions.Options;
 using Serilog;
 
 // ── Read config early for Serilog + URL binding ───────────────────────────
-var earlyConfig = new ConfigurationBuilder()
+// Single-file config: base values from appsettings.json, then override with
+// "Environments:{env}" section — mirrors the same pattern used by EventForge.Client.
+var earlyEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+var baseConfig = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
     .AddEnvironmentVariables()
     .Build();
+
+var earlyEnvSection = baseConfig.GetSection($"Environments:{earlyEnv}");
+var earlyConfig = earlyEnvSection.Exists()
+    ? new ConfigurationBuilder()
+        .AddConfiguration(baseConfig)
+        .AddInMemoryCollection(
+            earlyEnvSection.AsEnumerable(makePathsRelative: true)
+                           .Where(kvp => kvp.Value is not null)
+                           .Select(kvp => new KeyValuePair<string, string?>(kvp.Key, kvp.Value)))
+        .Build()
+    : baseConfig;
 
 var earlyAgent = earlyConfig.GetSection(AgentOptions.SectionName).Get<AgentOptions>() ?? new AgentOptions();
 
@@ -30,6 +44,16 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // ── Apply environment-specific overrides from "Environments:{env}" in appsettings.json ──
+    var envSection = builder.Configuration.GetSection($"Environments:{builder.Environment.EnvironmentName}");
+    if (envSection.Exists())
+    {
+        builder.Configuration.AddInMemoryCollection(
+            envSection.AsEnumerable(makePathsRelative: true)
+                      .Where(kvp => kvp.Value is not null)
+                      .Select(kvp => new KeyValuePair<string, string?>(kvp.Key, kvp.Value)));
+    }
 
     // ── Windows Service support ───────────────────────────────────────────
     builder.Host.UseWindowsService(options =>
