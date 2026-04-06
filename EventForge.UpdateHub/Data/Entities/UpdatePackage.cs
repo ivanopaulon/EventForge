@@ -35,6 +35,13 @@ public class UpdatePackage
     /// <summary>Lifecycle status of this package.</summary>
     public PackageStatus Status { get; set; } = PackageStatus.ReadyToDeploy;
 
+    /// <summary>
+    /// When <see langword="true"/>, agents will download the package but never install it
+    /// automatically — they will always queue it and wait for operator approval,
+    /// regardless of the installation's own <c>UpdateMode</c>.
+    /// </summary>
+    public bool IsManualInstall { get; set; }
+
     /// <summary>Short git commit SHA embedded in the package manifest.</summary>
     [MaxLength(40)]
     public string? GitCommit { get; set; }

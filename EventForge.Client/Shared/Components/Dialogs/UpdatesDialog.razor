@@ -64,6 +64,7 @@
                                 <MudTh>Data caricamento</MudTh>
                                 <MudTh>Dimensione</MudTh>
                                 <MudTh>Stato</MudTh>
+                                <MudTh>Modalità</MudTh>
                                 <MudTh></MudTh>
                             </HeaderContent>
                             <RowTemplate>
@@ -84,7 +85,21 @@
                                 <MudTd DataLabel="Stato">
                                     <MudChip T="string" Size="Size.Small"
                                              Color="@GetPackageStatusColor(context.Status)"
-                                             Text="@context.Status" />
+                                             Text="@GetPackageStatusLabel(context.Status)" />
+                                </MudTd>
+                                <MudTd DataLabel="Modalità">
+                                    @if (context.IsManualInstall)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                                 Icon="@Icons.Material.Outlined.PanTool"
+                                                 Text="Manuale" />
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                                 Icon="@Icons.Material.Outlined.FlashOn"
+                                                 Text="Automatico" />
+                                    }
                                 </MudTd>
                                 <MudTd>
                                     <MudIconButton Icon="@Icons.Material.Outlined.Info"
@@ -183,8 +198,8 @@
                                 </MudTd>
                                 <MudTd DataLabel="Stato">
                                     <MudChip T="string" Size="Size.Small"
-                                             Color="@(context.IsConnected ? Color.Success : Color.Default)"
-                                             Text="@(context.IsConnected ? "Online" : "Offline")" />
+                                             Color="@GetInstallationStatusColor(context.Status, context.IsConnected)"
+                                             Text="@GetInstallationStatusLabel(context.Status, context.IsConnected)" />
                                 </MudTd>
                                 <MudTd DataLabel="Azioni">
                                     <MudButton Variant="Variant.Outlined"
@@ -321,8 +336,42 @@
     private static Color GetPackageStatusColor(string? status) => status?.ToLowerInvariant() switch
     {
         "readytodeploy" => Color.Success,
-        "pending"       => Color.Warning,
-        "error"         => Color.Error,
+        "deploying"     => Color.Warning,
+        "deployed"      => Color.Info,
+        "archived"      => Color.Default,
         _               => Color.Default
     };
+
+    private static string GetPackageStatusLabel(string? status) => status?.ToLowerInvariant() switch
+    {
+        "readytodeploy" => "Pronto",
+        "deploying"     => "In deploy",
+        "deployed"      => "Distribuito",
+        "archived"      => "Archiviato",
+        _               => status ?? "—"
+    };
+
+    private static Color GetInstallationStatusColor(string? status, bool isConnected)
+    {
+        if (!isConnected) return Color.Default;
+        return status?.ToLowerInvariant() switch
+        {
+            "online"   => Color.Success,
+            "updating" => Color.Warning,
+            "error"    => Color.Error,
+            _          => Color.Success
+        };
+    }
+
+    private static string GetInstallationStatusLabel(string? status, bool isConnected)
+    {
+        if (!isConnected) return "Offline";
+        return status?.ToLowerInvariant() switch
+        {
+            "online"   => "Online",
+            "updating" => "In aggiornamento",
+            "error"    => "Errore",
+            _          => "Online"
+        };
+    }
 }

@@ -97,6 +97,7 @@
                         <th>Componente</th>
                         <th>Versione</th>
                         <th>Stato</th>
+                        <th>Modalità</th>
                         <th>Note rilascio</th>
                         <th>Commit</th>
                         <th>Dimensione</th>
@@ -129,6 +130,20 @@
                         </td>
                         <td><code class="fw-semibold">@pkg.Version</code></td>
                         <td><span class="ef-badge @statusCss">@pkg.Status</span></td>
+                        <td>
+                            @if (pkg.IsManualInstall)
+                            {
+                                <span class="ef-badge ef-badge-warning" title="L'agent non installerà automaticamente">
+                                    <i class="bi bi-hand-index me-1"></i>Manuale
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="ef-badge ef-badge-success">
+                                    <i class="bi bi-lightning me-1"></i>Auto
+                                </span>
+                            }
+                        </td>
                         <td class="text-muted small" style="max-width:220px">
                             @if (!string.IsNullOrEmpty(pkg.ReleaseNotes))
                             {
@@ -224,7 +239,7 @@
                 @if (!Model.Packages.Any())
                 {
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-5">
+                        <td colspan="10" class="text-center text-muted py-5">
                             <i class="bi bi-box-seam fs-3 d-block mb-2"></i>
                             Nessun pacchetto presente.<br />
                             <button class="btn btn-primary btn-sm mt-2"
@@ -383,6 +398,17 @@
                                   placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
                     </div>
 
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="isManualInstall"
+                                   id="buildIsManualInstall" value="true" />
+                            <label class="form-check-label fw-semibold" for="buildIsManualInstall">
+                                Installazione manuale
+                            </label>
+                            <div class="form-text">Se attivo, l'agent scarica il pacchetto ma non lo installa automaticamente — attende sempre l'approvazione dell'operatore.</div>
+                        </div>
+                    </div>
+
                     <div class="alert alert-secondary py-2 small">
                         <i class="bi bi-info-circle me-1"></i>
                         Tutti i file della cartella vengono compressi in <code>binaries/</code>.
@@ -439,6 +465,16 @@
                         <label class="form-label fw-semibold">Note di rilascio</label>
                         <textarea name="releaseNotes" class="form-control" rows="3"
                                   placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="isManualInstall"
+                                   id="uploadIsManualInstall" value="true" />
+                            <label class="form-check-label fw-semibold" for="uploadIsManualInstall">
+                                Installazione manuale
+                            </label>
+                            <div class="form-text">Se attivo, l'agent scarica il pacchetto ma non lo installa automaticamente — attende sempre l'approvazione dell'operatore.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

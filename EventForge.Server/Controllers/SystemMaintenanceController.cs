@@ -76,7 +76,7 @@ public class SystemMaintenanceController(
                 {
                     request.Component,
                     request.Version,
-                    request.Phase,
+                    Phase = request.CurrentPhase ?? request.Phase,
                     request.PercentComplete,
                     request.FormattedDownloaded,
                     request.FormattedTotal,
@@ -111,4 +111,5 @@ public record MaintenanceNotificationRequest(
     string? FormattedDownloaded = null,
     string? FormattedTotal = null,
     string? FormattedSpeed = null,
-    string? Eta = null);
+    string? Eta = null,
+    string? CurrentPhase = null);

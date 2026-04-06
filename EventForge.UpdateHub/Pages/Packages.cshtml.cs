@@ -40,7 +40,8 @@ public class PackagesModel(
 
     // ── Carica pacchetto ──────────────────────────────────────────────────
     public async Task<IActionResult> OnPostUploadAsync(
-        string version, string component, string? releaseNotes, string? gitCommit, IFormFile? file)
+        string version, string component, string? releaseNotes, string? gitCommit,
+        bool isManualInstall, IFormFile? file)
     {
         if (string.IsNullOrWhiteSpace(version))
         {
@@ -95,11 +96,13 @@ public class PackagesModel(
             GitCommit = string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim(),
             Checksum = checksum,
             FilePath = fileName,
-            FileSizeBytes = file.Length
+            FileSizeBytes = file.Length,
+            IsManualInstall = isManualInstall
         };
 
         var created = await packageService.CreateAsync(package);
-        logger.LogInformation("Package uploaded via UI: {Version} {Component} Id={Id}", version, component, created.Id);
+        logger.LogInformation("Package uploaded via UI: {Version} {Component} Id={Id} Manual={Manual}",
+            version, component, created.Id, isManualInstall);
         TempData["Success"] = $"Pacchetto {comp} {version} caricato con successo.";
         return RedirectToPage();
     }
@@ -125,7 +128,8 @@ public class PackagesModel(
 
     // ── Crea pacchetto da cartella ────────────────────────────────────────
     public async Task<IActionResult> OnPostBuildFromFolderAsync(
-        string folderPath, string component, string version, string? releaseNotes, string? gitCommit)
+        string folderPath, string component, string version, string? releaseNotes,
+        string? gitCommit, bool isManualInstall)
     {
         if (string.IsNullOrWhiteSpace(folderPath))
         {
@@ -149,9 +153,11 @@ public class PackagesModel(
         {
             var created = await packageBuildService.BuildFromFolderAsync(
                 folderPath.Trim(), comp, version.Trim(),
-                releaseNotes, string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim());
+                releaseNotes, string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim(),
+                isManualInstall);
 
-            logger.LogInformation("Package built via UI: {Component} {Version} Id={Id}", comp, version, created.Id);
+            logger.LogInformation("Package built via UI: {Component} {Version} Id={Id} Manual={Manual}",
+                comp, version, created.Id, isManualInstall);
             TempData["Success"] = $"Pacchetto {comp} {version} creato con successo dalla cartella.";
         }
         catch (Exception ex)
@@ -211,7 +217,7 @@ public class PackagesModel(
             pkg.Component.ToString(),
             $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
             pkg.Checksum,
-            IsManualInstall: installation.UpdateMode == InstallationUpdateMode.Manual);
+            IsManualInstall: pkg.IsManualInstall || installation.UpdateMode == InstallationUpdateMode.Manual);
 
         await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
         await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);

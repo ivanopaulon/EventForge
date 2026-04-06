@@ -65,6 +65,17 @@ public class UpdateHubDbContext(DbContextOptions<UpdateHubDbContext> options) : 
                 catch { /* Column already exists — ignore */ }
             }
 
+            // Add new columns to UpdatePackages if they don't exist
+            foreach (var (col, def) in new[]
+            {
+                ("IsManualInstall", "INTEGER NOT NULL DEFAULT 0")
+            })
+            {
+                cmd.CommandText = $"ALTER TABLE UpdatePackages ADD COLUMN {col} {def}";
+                try { cmd.ExecuteNonQuery(); }
+                catch { /* Column already exists — ignore */ }
+            }
+
             // Unique index on InstallationCode (partial — only non-NULL rows)
             cmd.CommandText = """
                 CREATE UNIQUE INDEX IF NOT EXISTS IX_Installations_InstallationCode
