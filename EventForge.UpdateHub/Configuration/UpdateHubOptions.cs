@@ -58,6 +58,19 @@ public class UpdateHubOptions
     /// </summary>
     public int MaxConcurrentUpdates { get; set; } = 1;
 
+    // ── Build from folder ─────────────────────────────────────────────────
+    /// <summary>
+    /// Default local path to the Server publish/deploy folder shown in the
+    /// "Crea da cartella" UI form. Leave empty to show no default.
+    /// </summary>
+    public string? DefaultServerDeployPath { get; set; }
+
+    /// <summary>
+    /// Default local path to the Client publish/deploy folder shown in the
+    /// "Crea da cartella" UI form. Leave empty to show no default.
+    /// </summary>
+    public string? DefaultClientDeployPath { get; set; }
+
     // ── Package management ────────────────────────────────────────────────
     /// <summary>Maximum allowed upload size for a single package file, in megabytes.</summary>
     public int MaxUploadSizeMb { get; set; } = 500;
