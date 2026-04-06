@@ -20,6 +20,7 @@
 @inject IStockReconciliationService StockReconciliationService
 @implements IDisposable
 
+<PageTitle>@TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading || _isLoadingStock"
                     Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 

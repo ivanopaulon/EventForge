@@ -8,6 +8,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")</PageTitle>
 <EntityManagementPage TEntity="DocumentTypeDto"
                       @ref="_entityPage"
                       Config="_config"

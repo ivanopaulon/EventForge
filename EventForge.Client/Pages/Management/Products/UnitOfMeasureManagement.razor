@@ -7,6 +7,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")</PageTitle>
 <EntityManagementPage TEntity="UMDto"
                       @ref="_entityPage"
                       Config="_config"

@@ -9,6 +9,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("paymentMethod.management", "Gestione Metodi di Pagamento")</PageTitle>
 <EntityManagementPage TEntity="PaymentMethodDto"
                       @ref="_entityPage"
                       Config="_config"

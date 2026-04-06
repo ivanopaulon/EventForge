@@ -7,6 +7,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")</PageTitle>
 <EntityManagementPage TEntity="VatNatureDto"
                       @ref="_entityPage"
                       Config="_config"

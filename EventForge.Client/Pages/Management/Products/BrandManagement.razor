@@ -7,6 +7,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("brand.management", "Gestione Marchi")</PageTitle>
 <EntityManagementPage TEntity="BrandDto"
                       @ref="_entityPage"
                       Config="_config"
