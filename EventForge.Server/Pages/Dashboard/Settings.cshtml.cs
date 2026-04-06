@@ -440,6 +440,12 @@ public class SettingsModel : PageModel
     {
         try
         {
+            if (SuggestionConfidenceLow >= SuggestionConfidenceHigh)
+            {
+                TempData["ErrorMessage"] = "La soglia di confidenza bassa deve essere inferiore a quella alta.";
+                return RedirectToPage(new { tab = "parametri" });
+            }
+
             var ct = HttpContext.RequestAborted;
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             await _configService.SetValueAsync("SupplierSuggestion_WeightPrice", SuggestionWeightPrice.ToString(inv), null, ct);
@@ -632,7 +638,7 @@ public class SettingsModel : PageModel
 
             // ── CSV Import ──
             var csvMaxBytes = long.TryParse(await _configService.GetValueAsync("CsvImport_MaxFileSizeBytes", "10485760", ct), out var csvBytes) ? csvBytes : 10485760L;
-            CsvMaxFileSizeMb = (int)(csvMaxBytes / 1024 / 1024);
+            CsvMaxFileSizeMb = (int)Math.Clamp(csvMaxBytes / 1024 / 1024, 1, 2048);
             CsvBatchSize = int.TryParse(await _configService.GetValueAsync("CsvImport_BatchSize", "100", ct), out var csvBatch) ? csvBatch : 100;
             CsvDefaultCurrency = await _configService.GetValueAsync("CsvImport_DefaultCurrency", "EUR", ct);
             CsvMaxRowsPreview = int.TryParse(await _configService.GetValueAsync("CsvImport_MaxRowsPreview", "10", ct), out var csvPrev) ? csvPrev : 10;
