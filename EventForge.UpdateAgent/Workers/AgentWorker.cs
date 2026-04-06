@@ -276,8 +276,22 @@ public class AgentWorker(
                     {
                         commandTracking.SetState(command.PackageId, CommandState.Failed, ex.Message);
                         // Block the queue: a failed direct install is just as dangerous for ordered migrations.
-                        pendingInstallService.Block(command.PackageId,
+                        var downgradedToManual = pendingInstallService.Block(command.PackageId,
                             $"Direct install failed for {command.Component} {command.Version}: {ex.Message}");
+                        if (downgradedToManual)
+                        {
+                            var downgradedCommand = command with { IsManualInstall = true };
+                            _ = Task.Run(async () =>
+                            {
+                                try { await updateExecutor.NotifyAwaitingInstallAsync(downgradedCommand); }
+                                catch (Exception notifyEx)
+                                {
+                                    logger.LogWarning(notifyEx,
+                                        "Failed to notify clients of manual-downgrade for {Component} {Version}",
+                                        command.Component, command.Version);
+                                }
+                            });
+                        }
                     }
                 }
                 else

@@ -130,10 +130,29 @@ public class ScheduledInstallWorker(
         catch (Exception ex)
         {
             commandTracking.SetState(next.PackageId, CommandState.Failed, ex.Message);
+
             // Block the queue so no subsequent updates (with potentially dependent migrations) run.
-            pendingInstallService.Block(next.PackageId,
+            // Block() also increments FailCount and returns true if the package was downgraded to manual.
+            var downgradedToManual = pendingInstallService.Block(next.PackageId,
                 $"Install failed for {next.Command.Component} {next.Command.Version}: {ex.Message}");
-            // InstallFromZipAsync already reported the failure to the Hub via OnProgress.
+
+            // InstallFromZipAsync already reported the failure phase to the Hub via OnProgress.
+            // If the package was just downgraded to manual, re-notify clients so the snackbar
+            // updates from "automatic" to "manual — operator approval required".
+            if (downgradedToManual)
+            {
+                var downgradedCommand = next.Command with { IsManualInstall = true };
+                _ = Task.Run(async () =>
+                {
+                    try { await updateExecutor.NotifyAwaitingInstallAsync(downgradedCommand); }
+                    catch (Exception notifyEx)
+                    {
+                        logger.LogWarning(notifyEx,
+                            "Failed to notify clients of manual-downgrade for {Component} {Version}",
+                            next.Command.Component, next.Command.Version);
+                    }
+                });
+            }
         }
     }
 }
