@@ -5,8 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NuGetAudit>True</NuGetAudit>
     <ApplicationIcon>wwwroot\icons\favicon.ico</ApplicationIcon>
-    <!-- Assembly version -->
-    <Version>1.0.0</Version>
+    <!-- Assembly version — managed automatically by Nerdbank.GitVersioning via version.json -->
     <!-- InvariantGlobalization must be false: Syncfusion components (SfSchedule) use
          System.Globalization for date/time formatting, culture-specific calendar rendering
          and JS interop. Setting this to true removes all ICU culture data from the WASM bundle
@@ -17,6 +16,7 @@
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
     <PackageReference Include="Blazored.LocalStorage" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
