@@ -31,5 +31,6 @@ public interface IPackageBuildService
         string version,
         string? releaseNotes,
         string? gitCommit,
+        bool isManualInstall = false,
         CancellationToken ct = default);
 }

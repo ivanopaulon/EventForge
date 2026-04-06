@@ -12,7 +12,8 @@ public record PackageSummaryClientDto(
     string? Checksum,
     long FileSizeBytes,
     DateTime UploadedAt,
-    string Status);
+    string Status,
+    bool IsManualInstall = false);
 
 public record InstallationSummaryClientDto(
     Guid Id,

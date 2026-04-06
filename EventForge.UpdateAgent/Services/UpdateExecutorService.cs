@@ -37,6 +37,44 @@ public class UpdateExecutorService(
     // ── Maintenance notification helpers ────────────────────────────────────
 
     /// <summary>
+    /// Returns the <c>(notificationBaseUrl, maintenanceSecret)</c> pair for the given component name.
+    /// </summary>
+    private (string Url, string Secret) GetNotifConfig(string component)
+    {
+        var isServer = component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+        return isServer
+            ? (options.Components.Server.NotificationBaseUrl, options.Components.Server.MaintenanceSecret)
+            : (options.Components.Client.NotificationBaseUrl, options.Components.Client.MaintenanceSecret);
+    }
+
+    /// <summary>
+    /// Sends a best-effort "progress" notification to the Server so connected clients can see
+    /// the current phase + optional download stats in the <c>DownloadProgressSnackbar</c>.
+    /// Never throws — failures are logged as warnings.
+    /// </summary>
+    private Task NotifyPhaseAsync(StartUpdateCommand command, string currentPhase,
+        int? percentComplete = null,
+        string? formattedDownloaded = null,
+        string? formattedTotal = null,
+        string? formattedSpeed = null,
+        string? eta = null)
+    {
+        var (url, secret) = GetNotifConfig(command.Component);
+        return NotifyServerAsync(url, secret, new
+        {
+            Phase = "progress",
+            CurrentPhase = currentPhase,
+            command.Component,
+            command.Version,
+            PercentComplete = percentComplete,
+            FormattedDownloaded = formattedDownloaded,
+            FormattedTotal = formattedTotal,
+            FormattedSpeed = formattedSpeed,
+            Eta = eta
+        });
+    }
+
+    /// <summary>
     /// Fires a best-effort POST to EventForge.Server's maintenance endpoint so connected clients
     /// are notified before/after an update. Never throws — failures are logged as warnings.
     /// </summary>
@@ -72,9 +110,13 @@ public class UpdateExecutorService(
     public async Task<string> DownloadAndVerifyAsync(StartUpdateCommand command, CancellationToken ct)
     {
         await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
-        var zipPath = await DownloadPackageAsync(command.DownloadUrl, command.PackageId.ToString("N"), command.Component, command.Version, ct);
+        // Notify connected clients immediately so the snackbar appears.
+        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(), percentComplete: 0);
+
+        var zipPath = await DownloadPackageAsync(command, ct);
 
         await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
+        await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString());
         await VerifyChecksumAsync(zipPath, command.Checksum, ct);
 
         return zipPath;
@@ -100,12 +142,14 @@ public class UpdateExecutorService(
 
             // ── Phase 4: Backup ──
             await ReportAsync(command, UpdatePhase.BackingUp, false, true, null, ct);
+            await NotifyPhaseAsync(command, UpdatePhase.BackingUp.ToString());
             backupPath = await backupService.CreateBackupAsync(deployPath, command.Component, command.Version, ct);
 
             // ── Phase 5: Pre-migrations ──
             if (isServer && manifest.PreMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPreMigrations, false, true, null, ct);
+                await NotifyPhaseAsync(command, UpdatePhase.RunningPreMigrations.ToString());
                 await migrationRunner.RunScriptsAsync(tempDir, manifest.PreMigrationScripts, ct);
             }
 
@@ -119,11 +163,13 @@ public class UpdateExecutorService(
                     new { Phase = "Starting", Component = command.Component, Version = command.Version });
 
                 await ReportAsync(command, UpdatePhase.StoppingService, false, true, null, ct);
+                await NotifyPhaseAsync(command, UpdatePhase.StoppingService.ToString());
                 await iisManagerService.StopSiteAsync(ct);
             }
 
             // ── Phase 7: Deploy ──
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
+            await NotifyPhaseAsync(command, UpdatePhase.DeployingBinaries.ToString());
             await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
@@ -133,6 +179,7 @@ public class UpdateExecutorService(
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.StartingService, false, true, null, ct);
+                await NotifyPhaseAsync(command, UpdatePhase.StartingService.ToString());
                 await iisManagerService.StartSiteAsync(ct);
             }
 
@@ -140,6 +187,7 @@ public class UpdateExecutorService(
             if (isServer && manifest.PostMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPostMigrations, false, true, null, ct);
+                await NotifyPhaseAsync(command, UpdatePhase.RunningPostMigrations.ToString());
                 await migrationRunner.RunScriptsAsync(tempDir, manifest.PostMigrationScripts, ct);
             }
 
@@ -147,6 +195,7 @@ public class UpdateExecutorService(
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.VerifyingHealth, false, true, null, ct);
+                await NotifyPhaseAsync(command, UpdatePhase.VerifyingHealth.ToString());
                 await VerifyHealthAsync(options.Components.Server.HealthCheckUrl, ct);
             }
 
@@ -219,8 +268,13 @@ public class UpdateExecutorService(
 
     // ── Download (resilient) ─────────────────────────────────────────────────
 
-    private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, string component, string version, CancellationToken ct)
+    private async Task<string> DownloadPackageAsync(StartUpdateCommand command, CancellationToken ct)
     {
+        var downloadUrl = command.DownloadUrl;
+        var packageIdHex = command.PackageId.ToString("N");
+        var component = command.Component;
+        var version = command.Version;
+
         // Defensive fix: if Hub sent a relative URL, prepend the hub base URL
         if (downloadUrl.StartsWith('/'))
         {
@@ -276,12 +330,12 @@ public class UpdateExecutorService(
                         request2.Headers.Add("X-Api-Key", options.ApiKey);
                         using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                         response2.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, linkedCts.Token);
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, command, linkedCts.Token);
                     }
                     else
                     {
                         response.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, linkedCts.Token);
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, command, linkedCts.Token);
                     }
 
                     if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -309,7 +363,8 @@ public class UpdateExecutorService(
     }
 
     private async Task WriteResponseToFileAsync(
-        HttpResponseMessage response, string tmpPath, bool append, Guid packageId, CancellationToken ct)
+        HttpResponseMessage response, string tmpPath, bool append, Guid packageId,
+        StartUpdateCommand command, CancellationToken ct)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
@@ -319,7 +374,8 @@ public class UpdateExecutorService(
 
         var buffer    = new byte[81920];
         long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
-        var lastReport = DateTime.UtcNow;
+        var lastLocalReport  = DateTime.UtcNow;
+        var lastServerNotify = DateTime.UtcNow;
         int bytesRead;
 
         while ((bytesRead = await responseStream.ReadAsync(buffer, ct)) > 0)
@@ -327,15 +383,37 @@ public class UpdateExecutorService(
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
             written += bytesRead;
 
-            if ((DateTime.UtcNow - lastReport).TotalSeconds >= 1)
+            var now = DateTime.UtcNow;
+
+            if ((now - lastLocalReport).TotalSeconds >= 1)
             {
                 downloadProgress.Update(packageId, written, totalBytes);
-                lastReport = DateTime.UtcNow;
+                lastLocalReport = now;
+            }
+
+            // Forward progress to the Server every 2 s so the client snackbar stays updated.
+            if ((now - lastServerNotify).TotalSeconds >= 2)
+            {
+                lastServerNotify = now;
+                var snap = downloadProgress.Current;
+                if (snap is not null)
+                    await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                        percentComplete: snap.PercentComplete,
+                        formattedDownloaded: snap.FormattedDownloaded,
+                        formattedTotal: snap.TotalBytes.HasValue ? snap.FormattedTotal : null,
+                        formattedSpeed: snap.FormattedSpeed,
+                        eta: snap.Eta?.ToString(@"mm\:ss"));
             }
         }
 
-        // Final update
+        // Final local + server update
         downloadProgress.Update(packageId, written, totalBytes);
+        var finalSnap = downloadProgress.Current;
+        if (finalSnap is not null)
+            await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                percentComplete: 100,
+                formattedDownloaded: finalSnap.FormattedDownloaded,
+                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

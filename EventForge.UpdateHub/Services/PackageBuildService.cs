@@ -129,6 +129,7 @@ public class PackageBuildService(
         string version,
         string? releaseNotes,
         string? gitCommit,
+        bool isManualInstall = false,
         CancellationToken ct = default)
     {
         if (!Directory.Exists(folderPath))
@@ -173,6 +174,7 @@ public class PackageBuildService(
                 FileSizeBytes = fileSize,
                 GitCommit = gitCommit,
                 Status = PackageStatus.ReadyToDeploy,
+                IsManualInstall = isManualInstall,
                 UploadedBy = "build"
             };
 

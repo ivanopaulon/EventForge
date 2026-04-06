@@ -173,7 +173,7 @@ public class AgentHub(
             pkg.Component.ToString(),
             $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
             pkg.Checksum,
-            IsManualInstall: installation.UpdateMode == InstallationUpdateMode.Manual);
+            IsManualInstall: pkg.IsManualInstall || installation.UpdateMode == InstallationUpdateMode.Manual);
 
         await Clients.Caller.SendAsync("StartUpdate", command);
         await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);

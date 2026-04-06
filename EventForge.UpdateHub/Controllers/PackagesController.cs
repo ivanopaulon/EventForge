@@ -30,7 +30,7 @@ public class PackagesController(
         return Ok(packages.Select(p => new
         {
             p.Id, p.Version, p.Component, p.ReleaseNotes,
-            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status
+            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status, p.IsManualInstall
         }));
     }
 
