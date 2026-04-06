@@ -1,5 +1,7 @@
 using EventForge.Server.Data;
+using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.HostedServices;
@@ -22,6 +24,7 @@ public class FiscalPrinterMonitorService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly FiscalPrinterStatusCache _statusCache;
+    private readonly IHubContext<FiscalPrinterHub> _hubContext;
     private readonly ILogger<FiscalPrinterMonitorService> _logger;
     private readonly TimeSpan _pollingInterval;
 
@@ -31,11 +34,13 @@ public class FiscalPrinterMonitorService : BackgroundService
     public FiscalPrinterMonitorService(
         IServiceProvider serviceProvider,
         FiscalPrinterStatusCache statusCache,
+        IHubContext<FiscalPrinterHub> hubContext,
         ILogger<FiscalPrinterMonitorService> logger,
         IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _statusCache = statusCache;
+        _hubContext = hubContext;
         _logger = logger;
 
         int intervalSeconds = configuration
@@ -128,6 +133,14 @@ public class FiscalPrinterMonitorService : BackgroundService
 
             _statusCache.UpdateStatus(printerId, status);
 
+            // ── Notify all SignalR clients subscribed to this printer ──────────
+            var groupName = FiscalPrinterHub.PrinterGroupName(printerId);
+
+            await _hubContext.Clients.Group(groupName)
+                .SendAsync(FiscalPrinterHub.PrinterStatusUpdated, printerId, status, stoppingToken)
+                .ConfigureAwait(false);
+
+            // ── Log and emit specialised events ────────────────────────────────
             if (!status.IsOnline)
             {
                 _logger.LogWarning(
@@ -140,6 +153,10 @@ public class FiscalPrinterMonitorService : BackgroundService
                     "Fiscal printer {Name} ({Id}) – FISCAL MEMORY FULL. " +
                     "Printing is blocked. Requires authorised technical intervention.",
                     printerName, printerId);
+
+                await _hubContext.Clients.Group(groupName)
+                    .SendAsync(FiscalPrinterHub.CriticalClosureMissing, printerId, stoppingToken)
+                    .ConfigureAwait(false);
             }
             else if (status.IsFiscalMemoryAlmostFull)
             {
@@ -152,6 +169,10 @@ public class FiscalPrinterMonitorService : BackgroundService
                 _logger.LogWarning(
                     "Fiscal printer {Name} ({Id}) – daily fiscal closure required.",
                     printerName, printerId);
+
+                await _hubContext.Clients.Group(groupName)
+                    .SendAsync(FiscalPrinterHub.ClosureRequired, printerId, printerName, stoppingToken)
+                    .ConfigureAwait(false);
             }
             else if (status.IsPaperOut)
             {

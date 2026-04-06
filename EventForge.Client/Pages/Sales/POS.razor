@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Products
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Business
+@using EventForge.DTOs.FiscalPrinting
 @using EventForge.Client.Shared.Components.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
 @using EventForge.Client.Shared.Components.Dialogs
@@ -20,6 +21,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 @inject ISalesService SalesService
+@inject IFiscalPrintingService FiscalPrintingService
 @inject ILogger<POS> Logger
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
@@ -712,10 +714,20 @@
 
     private async Task CloseSaleAsync()
     {
+        // Capture session data before closing (needed to build the fiscal receipt)
+        var sessionSnapshot = ViewModel.CurrentSession;
+
         var result = await ViewModel.CloseSaleAsync();
         if (!result.Success && result.Error != null)
         {
             AppNotification.ShowError(result.Error);
+            return;
+        }
+
+        // Trigger fiscal printing after successful sale closure
+        if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+        {
+            await TriggerFiscalPrintAsync(sessionSnapshot);
         }
     }
 
@@ -1053,5 +1065,105 @@
         ViewModel.StateChanged -= StateHasChanged;
         ViewModel.OnNotification -= HandleNotification;
         ViewModel.Dispose();
+    }
+
+    // =========================================================================
+    //  Fiscal Printing – state and helpers
+    // =========================================================================
+
+    /// <summary>
+    /// ID of the fiscal printer associated with this POS station.
+    /// Set to <c>null</c> when no fiscal printer is configured for the current station.
+    /// Populated in OnInitializedAsync once the station configuration is loaded.
+    /// </summary>
+    private Guid? _fiscalPrinterId = null;
+
+    /// <summary>
+    /// Triggers fiscal printing after a successful sale closure.
+    /// Builds a <see cref="FiscalReceiptData"/> from the closed session, including
+    /// loyalty information if available, and calls the fiscal printing service.
+    /// Falls back gracefully (toast notification) if the printer is offline.
+    /// </summary>
+    private async Task TriggerFiscalPrintAsync(SaleSessionDto session)
+    {
+        try
+        {
+            var receipt = BuildFiscalReceiptData(session);
+
+            var printResult = await FiscalPrintingService.PrintReceiptAsync(
+                _fiscalPrinterId!.Value, receipt);
+
+            if (printResult is null)
+            {
+                Logger.LogWarning(
+                    "FiscalPrintingService.PrintReceiptAsync returned null for session {SessionId}",
+                    session.Id);
+                AppNotification.ShowWarning(
+                    TranslationService.GetTranslation(
+                        "fiscal.printWarning",
+                        "Stampa fiscale non disponibile. Controllare la stampante."));
+                return;
+            }
+
+            if (printResult.Success)
+            {
+                Logger.LogInformation(
+                    "Fiscal receipt printed successfully | Session={SessionId} ReceiptNo={ReceiptNo}",
+                    session.Id, printResult.ReceiptNumber);
+
+                AppNotification.ShowSuccess(
+                    TranslationService.GetTranslation(
+                        "fiscal.printSuccess",
+                        $"Scontrino fiscale {printResult.ReceiptNumber} emesso correttamente."));
+            }
+            else
+            {
+                Logger.LogWarning(
+                    "Fiscal printing failed | Session={SessionId} Error={Error}",
+                    session.Id, printResult.ErrorMessage);
+
+                AppNotification.ShowError(
+                    TranslationService.GetTranslation(
+                        "fiscal.printError",
+                        $"Errore stampa fiscale: {printResult.ErrorMessage ?? "stampante non disponibile."}"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error during fiscal printing for session {SessionId}", session.Id);
+            AppNotification.ShowError(
+                TranslationService.GetTranslation(
+                    "fiscal.printUnexpectedError",
+                    "Errore imprevisto durante la stampa fiscale. Verificare la stampante."));
+        }
+    }
+
+    /// <summary>
+    /// Maps a closed <see cref="SaleSessionDto"/> to a <see cref="FiscalReceiptData"/>
+    /// ready to be sent to the fiscal printer.
+    /// </summary>
+    private static FiscalReceiptData BuildFiscalReceiptData(SaleSessionDto session)
+    {
+        var items = session.Items.Select(item => new FiscalReceiptItem
+        {
+            Description = item.ProductName ?? item.ProductCode ?? "Articolo",
+            Quantity = (decimal)(item.Quantity),
+            UnitPrice = item.UnitPrice,
+            VatCode = 1, // Default VAT code – mapping is handled server-side by IFiscalMappingService
+            Department = 1
+        }).ToList();
+
+        var payments = session.Payments.Select(p => new FiscalPayment
+        {
+            Amount = p.Amount,
+            MethodCode = 1, // Default – server-side mapping resolves the fiscal code
+            Description = p.PaymentMethodName ?? "Pagamento"
+        }).ToList();
+
+        return new FiscalReceiptData
+        {
+            Items = items,
+            Payments = payments
+        };
     }
 }

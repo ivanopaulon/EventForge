@@ -1,0 +1,192 @@
+using EventForge.DTOs.FiscalPrinting;
+
+namespace EventForge.Client.Services;
+
+/// <summary>
+/// HTTP client wrapper for the fiscal printing API.
+/// Delegates all calls to <c>/api/v1/fiscal-printing/*</c> via
+/// <see cref="IHttpClientService"/>.
+/// </summary>
+/// <remarks>
+/// Registered as <b>Scoped</b> (see <c>Program.cs</c>).
+/// Each method returns <c>null</c> on non-critical HTTP errors (e.g., 404, 503)
+/// so the caller can decide whether to show a fallback UI or toast notification.
+/// </remarks>
+public class FiscalPrintingService(
+    IHttpClientService httpClientService,
+    ILogger<FiscalPrintingService> logger) : IFiscalPrintingService
+{
+    private const string BaseUrl = "api/v1/fiscal-printing";
+
+    // -------------------------------------------------------------------------
+    //  Print / cancel receipt
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> PrintReceiptAsync(
+        Guid printerId,
+        FiscalReceiptData receipt,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<FiscalReceiptData, FiscalPrintResult>(
+                $"{BaseUrl}/print-receipt?printerId={printerId}", receipt, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "PrintReceiptAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> CancelCurrentReceiptAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/cancel-receipt/{printerId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "CancelCurrentReceiptAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Refunds
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> PrintRefundReceiptAsync(
+        Guid printerId,
+        FiscalRefundData refund,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<FiscalRefundData, FiscalPrintResult>(
+                $"{BaseUrl}/print-refund?printerId={printerId}", refund, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "PrintRefundReceiptAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> PrintPartialRefundAsync(
+        Guid printerId,
+        FiscalRefundData refund,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<FiscalRefundData, FiscalPrintResult>(
+                $"{BaseUrl}/partial-refund?printerId={printerId}", refund, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "PrintPartialRefundAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Daily closure
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> DailyClosureAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/daily-closure/{printerId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "DailyClosureAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Status / health / test / drawer
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<FiscalPrinterStatus?> GetStatusAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<FiscalPrinterStatus>(
+                $"{BaseUrl}/status/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetStatusAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> TestConnectionAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/test/{printerId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "TestConnectionAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> OpenDrawerAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/open-drawer/{printerId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "OpenDrawerAsync failed for printer {PrinterId}", printerId);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrinterHealthDto?> GetHealthAsync(
+        Guid printerId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<FiscalPrinterHealthDto>(
+                $"{BaseUrl}/health/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetHealthAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+}
