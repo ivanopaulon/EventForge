@@ -21,6 +21,7 @@ $TEMP_DIR    = "C:\Prym\_tmp"
 $SITE_NAME   = "EventForge"
 $POOL_NAME   = "EventForge"
 $SITE_PORT          = 7242
+$CLIENT_PORT        = 7240
 $SITE_CERT_FRIENDLY = "EventForge IIS"
 $APP_DLL            = "EventForge.Server.dll"
 
@@ -671,9 +672,46 @@ if (Test-Path $webConfigPath) {
 }
 
 # ==============================================================================
-# STEP 17 - Test connessione HTTPS
+# STEP 17 - Configurazione CORS in appsettings.json (origine client)
 # ==============================================================================
-Write-Step "STEP 17 - Test connessione HTTPS"
+Write-Step "STEP 17 - Configurazione CORS (origine client https://localhost:$CLIENT_PORT)"
+
+$appSettingsPath = Join-Path $DEPLOY_PATH "appsettings.json"
+if (Test-Path $appSettingsPath) {
+    try {
+        $json         = Get-Content $appSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $clientOrigin = "https://localhost:$CLIENT_PORT"
+
+        if (-not $json.PSObject.Properties['Cors']) {
+            $json | Add-Member -MemberType NoteProperty -Name 'Cors' -Value (
+                [PSCustomObject]@{ AllowedOrigins = @($clientOrigin) }
+            )
+            Write-OK "Sezione Cors aggiunta con origine: $clientOrigin"
+        } else {
+            $origins = @($json.Cors.AllowedOrigins)
+            if ($origins -notcontains $clientOrigin) {
+                $json.Cors.AllowedOrigins = @($origins) + $clientOrigin
+                Write-OK "Aggiunta origine CORS: $clientOrigin"
+            } else {
+                Write-INFO "Origine CORS gia presente: $clientOrigin"
+            }
+        }
+
+        $json | ConvertTo-Json -Depth 10 | Set-Content $appSettingsPath -Encoding UTF8
+        Write-OK "appsettings.json aggiornato"
+    } catch {
+        Write-WARN "Impossibile aggiornare CORS in appsettings.json: $_"
+        Write-WARN "Aggiungi manualmente la sezione Cors in $appSettingsPath"
+    }
+} else {
+    Write-WARN "appsettings.json non trovato in $DEPLOY_PATH"
+    Write-WARN "Il client (https://localhost:$CLIENT_PORT) ricevera errori CORS finche non configurato."
+}
+
+# ==============================================================================
+# STEP 18 - Test connessione HTTPS
+# ==============================================================================
+Write-Step "STEP 18 - Test connessione HTTPS"
 
 try {
     Restart-WebAppPool -Name $POOL_NAME -ErrorAction SilentlyContinue
@@ -728,9 +766,9 @@ if ($httpStatus -ge 200 -and $httpStatus -lt 300) {
 }
 
 # ==============================================================================
-# STEP 18 - Riepilogo finale
+# STEP 19 - Riepilogo finale
 # ==============================================================================
-Write-Step "STEP 18 - Riepilogo stato IIS"
+Write-Step "STEP 19 - Riepilogo stato IIS"
 
 Write-Host ""
 Write-Host "  -- Application Pool --" -ForegroundColor DarkCyan
