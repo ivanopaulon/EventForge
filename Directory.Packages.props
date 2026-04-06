@@ -76,6 +76,12 @@
     <!-- Setup Wizard and Background Services -->
     <PackageVersion Include="ncrontab" Version="3.4.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.5" />
+    <!-- Automatic git-based versioning -->
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageVersion>
     <!-- Syncfusion Blazor Scheduler for calendar/event management -->
     <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="33.1.46" />
     <PackageVersion Include="Syncfusion.Blazor.Themes" Version="33.1.46" />

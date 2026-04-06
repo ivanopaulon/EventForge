@@ -1,0 +1,107 @@
+@page
+@model EventForge.UpdateHub.Pages.LogsModel
+@{
+    ViewData["Title"] = "Log";
+    ViewData["PageSection"] = "Diagnostica";
+}
+
+<div class="ef-page-header">
+    <div>
+        <h1 class="ef-page-title"><i class="bi bi-file-text me-2"></i>Log Hub</h1>
+        <p class="ef-page-subtitle">Ultimi @Model.Lines.Count messaggi di log — auto-refresh ogni 10 secondi</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="ef-badge ef-badge-info" id="refreshBadge">
+            <i class="bi bi-arrow-clockwise me-1"></i>Live
+        </span>
+        <div class="btn-group" role="group">
+            @foreach (var lv in new[] { "All", "Error", "Warning", "Information", "Debug" })
+            {
+                <a href="/logs?level=@lv"
+                   class="btn btn-sm @(Model.FilterLevel == lv ? "btn-primary" : "btn-outline-secondary")">
+                    @lv
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="ef-card">
+    <div class="ef-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>Righe log</span>
+        <small class="text-muted" id="lastRefresh">Caricato: @DateTime.Now.ToString("HH:mm:ss")</small>
+    </div>
+    <div class="ef-card-body p-0">
+        <div id="logContainer" style="max-height: 70vh; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.78rem;">
+            @if (Model.Lines.Count == 0)
+            {
+                <div class="p-3 text-muted text-center">
+                    <i class="bi bi-inbox me-2"></i>Nessun log trovato.
+                    Verifica che Serilog stia scrivendo file in <code>logs/</code>.
+                </div>
+            }
+            else
+            {
+                @foreach (var line in Model.Lines)
+                {
+                    var css = line.Level switch
+                    {
+                        "Error" or "Fatal" => "log-line-error",
+                        "Warning" => "log-line-warn",
+                        "Debug" or "Verbose" => "log-line-debug",
+                        _ => "log-line-info"
+                    };
+                    <div class="log-line @css px-3 py-1 border-bottom border-dark">@line.Text</div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+.log-line { white-space: pre-wrap; word-break: break-all; }
+.log-line-error { background: rgba(220,53,69,.08); color: #f87171; }
+.log-line-warn  { background: rgba(255,193,7,.08); color: #fbbf24; }
+.log-line-debug { color: #6c757d; }
+.log-line-info  { color: var(--ef-text, #e2e8f0); }
+</style>
+<script>
+(function () {
+    const container = document.getElementById('logContainer');
+    const badge = document.getElementById('refreshBadge');
+    const lastRefresh = document.getElementById('lastRefresh');
+    const level = '@Model.FilterLevel';
+
+    async function refresh() {
+        try {
+            badge.innerHTML = '<i class="bi bi-arrow-clockwise me-1 spin"></i>Aggiornamento…';
+            const res = await fetch('/logs?handler=Lines&level=' + encodeURIComponent(level));
+            if (!res.ok) return;
+            const lines = await res.json();
+            if (!lines.length) return;
+            container.innerHTML = lines.map(l => {
+                const css = l.level === 'Error' || l.level === 'Fatal' ? 'log-line-error'
+                    : l.level === 'Warning' ? 'log-line-warn'
+                    : l.level === 'Debug' || l.level === 'Verbose' ? 'log-line-debug'
+                    : 'log-line-info';
+                return `<div class="log-line ${css} px-3 py-1 border-bottom border-dark">${escHtml(l.text)}</div>`;
+            }).join('');
+            const now = new Date();
+            lastRefresh.textContent = 'Aggiornato: ' + now.toLocaleTimeString('it-IT');
+        } catch { /* ignore */ }
+        badge.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Live';
+    }
+
+    function escHtml(t) {
+        return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    setInterval(refresh, 10000);
+    // Add spin animation
+    const style = document.createElement('style');
+    style.textContent = '.spin { animation: spin 1s linear infinite; } @@keyframes spin { to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+})();
+</script>
+}
