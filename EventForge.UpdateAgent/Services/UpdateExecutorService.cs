@@ -97,6 +97,7 @@ public class UpdateExecutorService(
             logger.LogError(ex, "Update failed at component={Component} version={Version}", command.Component, command.Version);
 
             // Rollback attempt
+            var rollbackSucceeded = false;
             if (backupPath is not null)
             {
                 try
@@ -107,10 +108,15 @@ public class UpdateExecutorService(
                     if (isServer)
                     {
                         await iisManagerService.StartSiteAsync(CancellationToken.None);
-                        var manifest2 = await LoadManifestAsync(tempDir);
-                        if (manifest2.RollbackScripts.Count > 0)
-                            await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, CancellationToken.None);
+                        // Only load rollback scripts if tempDir still exists and has the manifest
+                        if (Directory.Exists(tempDir))
+                        {
+                            var manifest2 = await LoadManifestAsync(tempDir);
+                            if (manifest2.RollbackScripts.Count > 0)
+                                await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, CancellationToken.None);
+                        }
                     }
+                    rollbackSucceeded = true;
                 }
                 catch (Exception rollbackEx)
                 {
@@ -118,7 +124,9 @@ public class UpdateExecutorService(
                 }
             }
 
-            await ReportAsync(command, UpdatePhase.Completed, true, false, ex.Message, CancellationToken.None);
+            // Use Rollback phase for final message when rollback completed so the hub can detect it
+            var finalPhase = rollbackSucceeded ? UpdatePhase.Rollback : UpdatePhase.Completed;
+            await ReportAsync(command, finalPhase, true, false, ex.Message, CancellationToken.None);
         }
         finally
         {
