@@ -188,21 +188,43 @@
 <!-- Pending updates -->
 @if (Model.QueueBlocked)
 {
+    var blocked = Model.PendingUpdates.FirstOrDefault(p => p.PackageId == Model.BlockedByPackageId);
+    var maxRetries = Model.MaxAutoRetries;
+    var failCount = blocked?.FailCount ?? 0;
+    var isNowManual = blocked?.IsManualInstall ?? false;
+
     <div class="alert alert-danger d-flex align-items-start gap-2 mb-4">
         <i class="bi bi-exclamation-triangle-fill fs-5 mt-1 flex-shrink-0"></i>
         <div class="flex-grow-1">
             <strong>Coda bloccata</strong> — @Model.BlockedReason
+
+            @if (failCount > 0)
+            {
+                <div class="mt-1 small">
+                    <i class="bi bi-arrow-repeat me-1"></i>
+                    Tentativi falliti: <strong>@failCount</strong>
+                    @if (!isNowManual && maxRetries > 0)
+                    {
+                        <span class="text-warning ms-1">(diventa manuale dopo @maxRetries tentativi)</span>
+                    }
+                    @if (isNowManual && blocked?.Command.IsManualInstall == false)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">Degradato a manuale</span>
+                    }
+                </div>
+            }
+
             <div class="mt-2 d-flex gap-2 flex-wrap">
                 <form method="post" asp-page-handler="UnblockQueue">
-                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                            onclick="return confirm('Sblocca la coda senza saltare l\'aggiornamento fallito?\nVerrà ritentato alla prossima finestra di manutenzione.')">
-                        <i class="bi bi-unlock me-1"></i>Sblocca (riprova)
+                    <button type="submit" class="btn btn-sm btn-warning"
+                            onclick="return confirm('Riprova l\'aggiornamento fallito?\nRimane in coda e verrà ritentato alla prossima finestra di manutenzione.')">
+                        <i class="bi bi-arrow-repeat me-1"></i>🔄 Riprova
                     </button>
                 </form>
                 <form method="post" asp-page-handler="UnblockSkip">
                     <button type="submit" class="btn btn-sm btn-danger"
                             onclick="return confirm('ATTENZIONE: questo SALTA l\'aggiornamento fallito e lo rimuove dalla coda.\nLe migrazioni dipendenti NON verranno eseguite. Procedere solo se si conosce il rischio.')">
-                        <i class="bi bi-skip-forward me-1"></i>Sblocca + Salta
+                        <i class="bi bi-skip-forward me-1"></i>⚠️ Salta e rimuovi
                     </button>
                 </form>
             </div>

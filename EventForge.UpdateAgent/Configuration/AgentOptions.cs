@@ -59,6 +59,21 @@ public class AgentOptions
     /// <summary>Maximum number of retry attempts after the initial download fails.</summary>
     public int DownloadMaxRetries { get; set; } = 5;
 
+    /// <summary>
+    /// Directory (relative to the service exe or absolute) where package ZIP files are downloaded
+    /// and temporarily extracted during installation.
+    /// Defaults to <c>work</c> → resolves to <c>{ServiceExeDir}\work\</c>.
+    /// </summary>
+    public string WorkPath { get; set; } = "work";
+
+    /// <summary>
+    /// Directory (relative to the service exe or absolute) where successfully installed package
+    /// ZIP files are moved after installation, so they can be inspected or rolled back manually.
+    /// Defaults to <c>processed</c> → resolves to <c>{ServiceExeDir}\processed\</c>.
+    /// Set to empty string to skip archiving and delete immediately after install.
+    /// </summary>
+    public string ProcessedPackagesPath { get; set; } = "processed";
+
     // ── Maintenance windows ───────────────────────────────────────────────
     /// <summary>
     /// Time windows during which pending updates may be installed automatically.
@@ -167,6 +182,13 @@ public class InstallOptions
 
     /// <summary>How often (in seconds) the ScheduledInstallWorker checks the pending queue.</summary>
     public int ScheduledCheckIntervalSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// Number of consecutive installation failures after which an automatic package is
+    /// downgraded to manual-install mode, requiring explicit operator approval to retry.
+    /// Set to 0 to disable auto-downgrade (not recommended).
+    /// </summary>
+    public int MaxAutoRetries { get; set; } = 3;
 }
 
 // ── Backup ────────────────────────────────────────────────────────────────

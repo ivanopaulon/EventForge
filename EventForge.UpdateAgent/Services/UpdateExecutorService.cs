@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using EventForge.UpdateAgent.Extensions;
 
 namespace EventForge.UpdateAgent.Services;
 
@@ -34,6 +35,19 @@ public class UpdateExecutorService(
     // Exponential backoff delays (seconds) between successive download attempts.
     private static readonly int[] DownloadDelays = [5, 15, 30, 60, 120];
 
+    /// <summary>
+    /// Resolves a path that may be relative (to the service exe directory) or absolute.
+    /// Creates the directory if it does not yet exist.
+    /// </summary>
+    private static string ResolveAndEnsureDir(string path)
+    {
+        var full = Path.IsPathRooted(path)
+            ? path
+            : Path.Combine(AppContext.BaseDirectory, path);
+        Directory.CreateDirectory(full);
+        return full;
+    }
+
     // ── Maintenance notification helpers ────────────────────────────────────
 
     /// <summary>
@@ -49,7 +63,7 @@ public class UpdateExecutorService(
 
     /// <summary>
     /// Sends a best-effort "progress" notification to the Server so connected clients can see
-    /// the current phase + optional download stats in the <c>DownloadProgressSnackbar</c>.
+    /// the current phase + optional download stats in the <c>UpdateDownloadSnackbar</c>.
     /// Never throws — failures are logged as warnings.
     /// </summary>
     private Task NotifyPhaseAsync(StartUpdateCommand command, string currentPhase,
@@ -57,7 +71,11 @@ public class UpdateExecutorService(
         string? formattedDownloaded = null,
         string? formattedTotal = null,
         string? formattedSpeed = null,
-        string? eta = null)
+        string? eta = null,
+        bool? isManualInstall = null,
+        Guid? packageId = null,
+        string? nextWindowAt = null,
+        string? detail = null)
     {
         var (url, secret) = GetNotifConfig(command.Component);
         return NotifyServerAsync(url, secret, new
@@ -70,7 +88,11 @@ public class UpdateExecutorService(
             FormattedDownloaded = formattedDownloaded,
             FormattedTotal = formattedTotal,
             FormattedSpeed = formattedSpeed,
-            Eta = eta
+            Eta = eta,
+            IsManualInstall = isManualInstall,
+            PackageId = packageId,
+            NextWindowAt = nextWindowAt,
+            Detail = detail
         });
     }
 
@@ -90,7 +112,7 @@ public class UpdateExecutorService(
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var resp = await _http.SendAsync(request, cts.Token);
             if (!resp.IsSuccessStatusCode)
                 logger.LogWarning("Maintenance notification returned {StatusCode}", resp.StatusCode);
@@ -101,14 +123,85 @@ public class UpdateExecutorService(
         }
     }
 
+    /// <summary>
+    /// Same as <see cref="NotifyPhaseAsync"/> but never blocks the caller — the HTTP call
+    /// runs on a background thread. Used during install phases so the actual install work
+    /// is never delayed waiting for the notification round-trip.
+    /// </summary>
+    private void NotifyPhaseBackground(StartUpdateCommand command, string currentPhase,
+        string? detail = null,
+        int? percentComplete = null,
+        bool? isManualInstall = null,
+        Guid? packageId = null)
+    {
+        _ = Task.Run(() => NotifyPhaseAsync(command, currentPhase,
+            percentComplete: percentComplete,
+            isManualInstall: isManualInstall,
+            packageId: packageId,
+            detail: detail));
+    }
+
     // ── Public API ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sends a best-effort "PackageReceived" notification so connected clients see a snackbar
+    /// with the package details (component, version, auto/manual, next window) BEFORE download starts.
+    /// </summary>
+    public Task NotifyPackageReceivedAsync(StartUpdateCommand command, bool isInMaintenanceWindow)
+    {
+        var nextWindowAt = isInMaintenanceWindow
+            ? null
+            : GetNextWindowDescription();
+
+        return NotifyPhaseAsync(
+            command,
+            currentPhase: "PackageReceived",
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            nextWindowAt: nextWindowAt);
+    }
+
+    private string? GetNextWindowDescription()
+    {
+        var next = options.MaintenanceWindows.Count == 0 ? null : GetNextWindowStart();
+        return next?.ToString("dd/MM/yyyy HH:mm");
+    }
+
+    private DateTime? GetNextWindowStart()
+    {
+        if (options.MaintenanceWindows.Count == 0) return null;
+        var now = DateTime.Now;
+        var best = DateTime.MaxValue;
+        for (var d = 0; d <= 7; d++)
+        {
+            var candidate = now.Date.AddDays(d);
+            foreach (var window in options.MaintenanceWindows)
+            {
+                if (window.DaysOfWeek.Count > 0 && !window.DaysOfWeek.Contains(candidate.DayOfWeek))
+                    continue;
+                if (!TimeOnly.TryParse(window.StartTime, out var start)) continue;
+                var windowStart = candidate.Add(start.ToTimeSpan());
+                if (windowStart > now && windowStart < best)
+                    best = windowStart;
+            }
+        }
+        return best == DateTime.MaxValue ? null : best;
+    }
 
     /// <summary>
     /// Sends a best-effort "AwaitingMaintenanceWindow" progress notification so connected clients
     /// know a manual (or out-of-window) package has been downloaded and is queued for installation.
     /// </summary>
     public Task NotifyAwaitingInstallAsync(StartUpdateCommand command)
-        => NotifyPhaseAsync(command, UpdatePhase.AwaitingMaintenanceWindow.ToString());
+    {
+        var nextWindowAt = command.IsManualInstall ? null : GetNextWindowDescription();
+        return NotifyPhaseAsync(
+            command,
+            currentPhase: UpdatePhase.AwaitingMaintenanceWindow.ToString(),
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            nextWindowAt: nextWindowAt);
+    }
 
     /// <summary>
     /// Phase 1 + 2: resilient download with retry/resume, followed by SHA-256 checksum verification.
@@ -117,13 +210,20 @@ public class UpdateExecutorService(
     public async Task<string> DownloadAndVerifyAsync(StartUpdateCommand command, CancellationToken ct)
     {
         await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
-        // Notify connected clients immediately so the snackbar appears.
-        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(), percentComplete: 0);
+        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+            percentComplete: 0,
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            detail: $"Avvio download {command.Component} v{command.Version}…");
 
         var zipPath = await DownloadPackageAsync(command, ct);
 
         await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
-        await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString());
+        await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString(),
+            percentComplete: 100,
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            detail: "Verifica integrità SHA-256 del pacchetto…");
         await VerifyChecksumAsync(zipPath, command.Checksum, ct);
 
         return zipPath;
@@ -137,27 +237,39 @@ public class UpdateExecutorService(
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
-        var tempDir = Path.Combine(AppContext.BaseDirectory, "updates", $"ef-update-{command.PackageId:N}");
+        var workDir   = ResolveAndEnsureDir(options.WorkPath);
+        var tempDir   = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
 
         try
         {
             // ── Phase 3: Extract ──
             Directory.CreateDirectory(tempDir);
+            NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                detail: "Estrazione archivio ZIP…");
             ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
             var manifest = await LoadManifestAsync(tempDir);
 
             // ── Phase 4: Backup ──
             await ReportAsync(command, UpdatePhase.BackingUp, false, true, null, ct);
-            await NotifyPhaseAsync(command, UpdatePhase.BackingUp.ToString());
+            NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                detail: $"Backup cartella deploy: {deployPath}");
             backupPath = await backupService.CreateBackupAsync(deployPath, command.Component, command.Version, ct);
 
             // ── Phase 5: Pre-migrations ──
             if (isServer && manifest.PreMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPreMigrations, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.RunningPreMigrations.ToString());
-                await migrationRunner.RunScriptsAsync(tempDir, manifest.PreMigrationScripts, ct);
+                var total = manifest.PreMigrationScripts.Count;
+                var current = 0;
+                await migrationRunner.RunScriptsAsync(tempDir, manifest.PreMigrationScripts,
+                    scriptName =>
+                    {
+                        current++;
+                        NotifyPhaseBackground(command, UpdatePhase.RunningPreMigrations.ToString(),
+                            detail: $"Migrazione {current}/{total}: {Path.GetFileName(scriptName)}");
+                        return Task.CompletedTask;
+                    }, ct);
             }
 
             // ── Phase 6: Stop IIS ──
@@ -170,13 +282,15 @@ public class UpdateExecutorService(
                     new { Phase = "Starting", Component = command.Component, Version = command.Version });
 
                 await ReportAsync(command, UpdatePhase.StoppingService, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.StoppingService.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.StoppingService.ToString(),
+                    detail: "Arresto sito IIS e app pool…");
                 await iisManagerService.StopSiteAsync(ct);
             }
 
             // ── Phase 7: Deploy ──
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
-            await NotifyPhaseAsync(command, UpdatePhase.DeployingBinaries.ToString());
+            NotifyPhaseBackground(command, UpdatePhase.DeployingBinaries.ToString(),
+                detail: $"Copia file in: {deployPath}");
             await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
@@ -186,7 +300,8 @@ public class UpdateExecutorService(
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.StartingService, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.StartingService.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.StartingService.ToString(),
+                    detail: "Avvio sito IIS e app pool…");
                 await iisManagerService.StartSiteAsync(ct);
             }
 
@@ -194,23 +309,37 @@ public class UpdateExecutorService(
             if (isServer && manifest.PostMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPostMigrations, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.RunningPostMigrations.ToString());
-                await migrationRunner.RunScriptsAsync(tempDir, manifest.PostMigrationScripts, ct);
+                var total = manifest.PostMigrationScripts.Count;
+                var current = 0;
+                await migrationRunner.RunScriptsAsync(tempDir, manifest.PostMigrationScripts,
+                    scriptName =>
+                    {
+                        current++;
+                        NotifyPhaseBackground(command, UpdatePhase.RunningPostMigrations.ToString(),
+                            detail: $"Migrazione {current}/{total}: {Path.GetFileName(scriptName)}");
+                        return Task.CompletedTask;
+                    }, ct);
             }
 
             // ── Phase 11: Health check ──
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.VerifyingHealth, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.VerifyingHealth.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.VerifyingHealth.ToString(),
+                    detail: "Attesa risposta health-check del server…");
                 await VerifyHealthAsync(options.Components.Server.HealthCheckUrl, ct);
             }
 
+            // ── Phase 12: Verify deploy on disk ──
+            await ReportAsync(command, UpdatePhase.VerifyingDeploy, false, true, null, ct);
+            NotifyPhaseBackground(command, UpdatePhase.VerifyingDeploy.ToString(),
+                detail: $"Verifica versione e file su disco: {deployPath}");
+            await VerifyDeployAsync(deployPath, command, ct);
+
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
-
-            // Notify connected clients with 100 % so the snackbar briefly shows "Completato" before clearing.
-            await NotifyPhaseAsync(command, UpdatePhase.Completed.ToString(), percentComplete: 100);
+            NotifyPhaseBackground(command, UpdatePhase.Completed.ToString(), percentComplete: 100,
+                detail: $"{command.Component} v{command.Version} installato con successo.");
 
             // Notify clients that maintenance is over (Server back online).
             if (isServer)
@@ -241,6 +370,8 @@ public class UpdateExecutorService(
                 try
                 {
                     await ReportAsync(command, UpdatePhase.Rollback, false, false, ex.Message, CancellationToken.None);
+                    NotifyPhaseBackground(command, UpdatePhase.Rollback.ToString(),
+                        detail: $"Errore: {ex.Message.TruncateForDisplay(120)} — Ripristino backup in corso…");
                     if (isServer) await iisManagerService.StopSiteAsync(CancellationToken.None);
                     await backupService.RestoreBackupAsync(backupPath, deployPath, CancellationToken.None);
                     if (isServer)
@@ -250,7 +381,7 @@ public class UpdateExecutorService(
                         {
                             var manifest2 = await LoadManifestAsync(tempDir);
                             if (manifest2.RollbackScripts.Count > 0)
-                                await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, CancellationToken.None);
+                                await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, null, CancellationToken.None);
                         }
                     }
                     rollbackSucceeded = true;
@@ -269,8 +400,34 @@ public class UpdateExecutorService(
         }
         finally
         {
+            // Archive the zip (move to processed/) or delete it on failure / when archiving is disabled.
             if (zipPath is not null && File.Exists(zipPath))
-                try { File.Delete(zipPath); } catch { /* best effort */ }
+            {
+                try
+                {
+                    var archiveRoot = options.ProcessedPackagesPath;
+                    if (!string.IsNullOrWhiteSpace(archiveRoot))
+                    {
+                        var archiveDir = ResolveAndEnsureDir(archiveRoot);
+                        var destName = $"{command.Component}-{command.Version}-{command.PackageId:N}{Path.GetExtension(zipPath)}";
+                        var destPath = Path.Combine(archiveDir, destName);
+                        // If a file with the same name already exists (re-deploy), overwrite it.
+                        if (File.Exists(destPath)) File.Delete(destPath);
+                        File.Move(zipPath, destPath);
+                        logger.LogInformation("Installed package archived to {ArchivePath}", destPath);
+                    }
+                    else
+                    {
+                        File.Delete(zipPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Could not archive/delete zip {ZipPath} — best effort", zipPath);
+                    try { File.Delete(zipPath); } catch { /* last resort */ }
+                }
+            }
+
             if (Directory.Exists(tempDir))
                 try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
         }
@@ -296,8 +453,7 @@ public class UpdateExecutorService(
 
         var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
 
-        var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
-        Directory.CreateDirectory(downloadDir);
+        var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
         var tmpPath = zipPath + ".tmp";
@@ -395,24 +551,32 @@ public class UpdateExecutorService(
 
             var now = DateTime.UtcNow;
 
-            if ((now - lastLocalReport).TotalSeconds >= 1)
+            if ((now - lastLocalReport).TotalMilliseconds >= 300)
             {
                 downloadProgress.Update(packageId, written, totalBytes);
                 lastLocalReport = now;
             }
 
-            // Forward progress to the Server every 2 s so the client snackbar stays updated.
-            if ((now - lastServerNotify).TotalSeconds >= 2)
+            // Forward progress to the Server every 500 ms — near-real-time for the client dialog.
+            if ((now - lastServerNotify).TotalMilliseconds >= 500)
             {
                 lastServerNotify = now;
                 var snap = downloadProgress.Current;
                 if (snap is not null)
-                    await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                {
+                    var detail = snap.TotalBytes.HasValue
+                        ? $"{snap.FormattedDownloaded} / {snap.FormattedTotal}  {snap.FormattedSpeed}"
+                        : snap.FormattedDownloaded ?? string.Empty;
+                    _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
                         percentComplete: snap.PercentComplete,
                         formattedDownloaded: snap.FormattedDownloaded,
                         formattedTotal: snap.TotalBytes.HasValue ? snap.FormattedTotal : null,
                         formattedSpeed: snap.FormattedSpeed,
-                        eta: snap.Eta?.ToString(@"mm\:ss"));
+                        eta: snap.Eta?.ToString(@"mm\:ss"),
+                        isManualInstall: command.IsManualInstall,
+                        packageId: command.PackageId,
+                        detail: detail);
+                }
             }
         }
 
@@ -420,10 +584,16 @@ public class UpdateExecutorService(
         downloadProgress.Update(packageId, written, totalBytes);
         var finalSnap = downloadProgress.Current;
         if (finalSnap is not null)
-            await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+            _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
                 percentComplete: 100,
                 formattedDownloaded: finalSnap.FormattedDownloaded,
-                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null);
+                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null,
+                formattedSpeed: finalSnap.FormattedSpeed,
+                isManualInstall: command.IsManualInstall,
+                packageId: command.PackageId,
+                detail: finalSnap.TotalBytes.HasValue
+                    ? $"Download completato: {finalSnap.FormattedTotal}"
+                    : "Download completato");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -457,24 +627,156 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
+        var mergeSet = manifest.MergeConfigFiles
+            .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
+            .ToHashSet();
+
         foreach (var file in Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories))
         {
             ct.ThrowIfCancellationRequested();
             var relative = Path.GetRelativePath(binariesPath, file);
             var dest = Path.Combine(deployPath, relative);
+            var relLower = relative.ToLowerInvariant();
 
-            if (preserveSet.Count > 0 && File.Exists(dest) &&
-                preserveSet.Contains(relative.ToLowerInvariant()))
+            // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
+            if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
                 continue;
 
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+
+            // Deep-merge JSON config: new keys from template added, existing values kept
+            if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+            {
+                try
+                {
+                    await MergeJsonFilesAsync(file, dest, ct);
+                    continue;
+                }
+                catch
+                {
+                    // If merge fails (invalid JSON etc.), fall through to overwrite
+                }
+            }
+
             File.Copy(file, dest, overwrite: true);
         }
     }
 
+    /// <summary>
+    /// Deep-merges <paramref name="templatePath"/> into <paramref name="targetPath"/>.
+    /// Keys present in target are kept; keys present only in template are added.
+    /// Arrays are NOT merged — template arrays are ignored if the key already exists.
+    /// </summary>
+    private static async Task MergeJsonFilesAsync(string templatePath, string targetPath, CancellationToken ct)
+    {
+        var templateJson = await File.ReadAllTextAsync(templatePath, ct);
+        var targetJson   = await File.ReadAllTextAsync(targetPath, ct);
+
+        using var templateDoc = JsonDocument.Parse(templateJson);
+        using var targetDoc   = JsonDocument.Parse(targetJson);
+
+        var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
+
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        var mergedJson = JsonSerializer.Serialize(merged, options);
+        await File.WriteAllTextAsync(targetPath, mergedJson, ct);
+    }
+
+    /// <summary>
+    /// Recursively merges two JsonElements. Target values win; template adds missing keys.
+    /// </summary>
+    private static Dictionary<string, object?> MergeJsonElements(
+        JsonElement target, JsonElement template)
+    {
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+
+        // Start with all keys from target
+        if (target.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in target.EnumerateObject())
+                result[prop.Name] = JsonElementToObject(prop.Value);
+        }
+
+        // Add keys that exist only in template (new config keys from upgraded version)
+        if (template.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in template.EnumerateObject())
+            {
+                if (!result.ContainsKey(prop.Name))
+                {
+                    result[prop.Name] = JsonElementToObject(prop.Value);
+                }
+                else if (prop.Value.ValueKind == JsonValueKind.Object &&
+                         target.TryGetProperty(prop.Name, out var existingProp) &&
+                         existingProp.ValueKind == JsonValueKind.Object)
+                {
+                    // Recurse into nested objects
+                    result[prop.Name] = MergeJsonElements(existingProp, prop.Value);
+                }
+                // Otherwise keep the target value as-is
+            }
+        }
+
+        return result;
+    }
+
+    private static object? JsonElementToObject(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Object  => element.EnumerateObject()
+                                        .ToDictionary(p => p.Name, p => JsonElementToObject(p.Value),
+                                                      StringComparer.Ordinal),
+        JsonValueKind.Array   => element.EnumerateArray().Select(JsonElementToObject).ToList(),
+        JsonValueKind.String  => element.GetString(),
+        JsonValueKind.Number  => element.TryGetInt64(out var l) ? (object?)l : element.GetDouble(),
+        JsonValueKind.True    => true,
+        JsonValueKind.False   => false,
+        _                     => null
+    };
+
+    private async Task VerifyDeployAsync(string deployPath, StartUpdateCommand command, CancellationToken ct)
+    {
+        var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+
+        // 1. version.txt must match the expected version (strip NBGV +commit suffix).
+        var versionTxtPath = Path.Combine(deployPath, "version.txt");
+        if (File.Exists(versionTxtPath))
+        {
+            var raw = (await File.ReadAllTextAsync(versionTxtPath, ct)).Trim();
+            var plusIdx = raw.IndexOf('+');
+            var installed = plusIdx >= 0 ? raw[..plusIdx] : raw;
+            if (!installed.Equals(command.Version, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Verifica deploy fallita: atteso v{command.Version}, trovato '{installed}' in version.txt");
+            logger.LogInformation("Deploy verification: version.txt = {Version} ✓", installed);
+        }
+        else
+        {
+            logger.LogWarning("VerifyDeploy: version.txt non trovato in {DeployPath} — verifica versione saltata.", deployPath);
+        }
+
+        // 2. Key files / folders must exist.
+        var keyPaths = isServer
+            ? new[] { "EventForge.Server.dll" }
+            : new[] { "index.html", "_framework" };
+
+        foreach (var rel in keyPaths)
+        {
+            var full = Path.Combine(deployPath, rel);
+            if (!File.Exists(full) && !Directory.Exists(full))
+                throw new InvalidOperationException(
+                    $"Verifica deploy fallita: file/cartella atteso '{rel}' non trovato in {deployPath}");
+        }
+
+        logger.LogInformation("Deploy verification passed for {Component} v{Version}.", command.Component, command.Version);
+    }
+
     private async Task VerifyHealthAsync(string healthCheckUrl, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(healthCheckUrl)) return;
+        if (string.IsNullOrWhiteSpace(healthCheckUrl))
+        {
+            logger.LogWarning("HealthCheckUrl is empty — post-deploy health check skipped (dev/no-IIS environment).");
+            return;
+        }
 
         var maxAttempts   = options.Install.HealthCheckMaxAttempts;
         var delayMs       = options.Install.HealthCheckDelaySeconds * 1_000;

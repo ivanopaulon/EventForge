@@ -83,6 +83,19 @@ public class ScheduledInstallWorker(
             return;
         }
 
+        // Manual-install packages require explicit operator approval via TriggerImmediateInstall
+        // (which sets bypassMaintenanceWindow = true). If we reach here without a bypass it means
+        // the scheduler picked this up automatically — skip it and wait for operator action.
+        // This also guarantees that subsequent automatic packages in the queue cannot run while
+        // a manual package is at the head: they can never become the head until it is resolved.
+        if (next.IsManualInstall && !bypassMaintenanceWindow)
+        {
+            logger.LogDebug(
+                "Queue head {PackageId} ({Component} {Version}) requires operator approval — skipping auto-install.",
+                next.PackageId, next.Command.Component, next.Command.Version);
+            return;
+        }
+
         if (!File.Exists(next.LocalZipPath))
         {
             logger.LogWarning("Zip file missing for pending update {PackageId} ({Component} {Version}) — removing from queue.",
@@ -117,10 +130,29 @@ public class ScheduledInstallWorker(
         catch (Exception ex)
         {
             commandTracking.SetState(next.PackageId, CommandState.Failed, ex.Message);
+
             // Block the queue so no subsequent updates (with potentially dependent migrations) run.
-            pendingInstallService.Block(next.PackageId,
+            // Block() also increments FailCount and returns true if the package was downgraded to manual.
+            var downgradedToManual = pendingInstallService.Block(next.PackageId,
                 $"Install failed for {next.Command.Component} {next.Command.Version}: {ex.Message}");
-            // InstallFromZipAsync already reported the failure to the Hub via OnProgress.
+
+            // InstallFromZipAsync already reported the failure phase to the Hub via OnProgress.
+            // If the package was just downgraded to manual, re-notify clients so the snackbar
+            // updates from "automatic" to "manual — operator approval required".
+            if (downgradedToManual)
+            {
+                var downgradedCommand = next.Command with { IsManualInstall = true };
+                _ = Task.Run(async () =>
+                {
+                    try { await updateExecutor.NotifyAwaitingInstallAsync(downgradedCommand); }
+                    catch (Exception notifyEx)
+                    {
+                        logger.LogWarning(notifyEx,
+                            "Failed to notify clients of manual-downgrade for {Component} {Version}",
+                            next.Command.Component, next.Command.Version);
+                    }
+                });
+            }
         }
     }
 }

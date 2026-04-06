@@ -15,8 +15,14 @@ public class PackageBuildService(
     UpdateHubOptions hubOptions,
     ILogger<PackageBuildService> logger) : IPackageBuildService
 {
-    // Files that must not overwrite existing production config on the target machine.
+    // Files that must not overwrite existing production config (IIS-managed, ops-managed).
     private static readonly string[] DefaultPreserveFiles =
+    [
+        "web.config"
+    ];
+
+    // JSON config files that should be deep-merged (new keys added, existing values kept).
+    private static readonly string[] DefaultMergeConfigFiles =
     [
         "appsettings.json",
         "appsettings.Production.json"
@@ -204,32 +210,106 @@ public class PackageBuildService(
     {
         var rootLen = folderPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Length + 1;
 
+        // Detect an optional top-level migrations/ folder. Supported sub-structure:
+        //   migrations/pre/      → PreMigrationScripts  (ordered by name)
+        //   migrations/post/     → PostMigrationScripts (ordered by name)
+        //   migrations/rollback/ → RollbackScripts      (ordered by name)
+        //   migrations/*.sql     → PreMigrationScripts  (flat layout, all .sql ordered by name)
+        var migrationsRoot = Directory.Exists(Path.Combine(folderPath, "migrations"))
+            ? Path.Combine(folderPath, "migrations")
+            : Directory.Exists(Path.Combine(folderPath, "Migrations"))
+                ? Path.Combine(folderPath, "Migrations")
+                : null;
+
+        var preMigrationScripts    = new List<string>();
+        var postMigrationScripts   = new List<string>();
+        var rollbackScripts        = new List<string>();
+
+        if (migrationsRoot is not null)
+        {
+            // Sub-folder layout takes priority over flat layout.
+            var preDir      = Path.Combine(migrationsRoot, "pre");
+            var postDir     = Path.Combine(migrationsRoot, "post");
+            var rollbackDir = Path.Combine(migrationsRoot, "rollback");
+
+            if (Directory.Exists(preDir) || Directory.Exists(postDir) || Directory.Exists(rollbackDir))
+            {
+                if (Directory.Exists(preDir))
+                    preMigrationScripts.AddRange(
+                        Directory.EnumerateFiles(preDir, "*.sql", SearchOption.TopDirectoryOnly)
+                                 .OrderBy(f => f)
+                                 .Select(f => "migrations/pre/" + Path.GetFileName(f)));
+
+                if (Directory.Exists(postDir))
+                    postMigrationScripts.AddRange(
+                        Directory.EnumerateFiles(postDir, "*.sql", SearchOption.TopDirectoryOnly)
+                                 .OrderBy(f => f)
+                                 .Select(f => "migrations/post/" + Path.GetFileName(f)));
+
+                if (Directory.Exists(rollbackDir))
+                    rollbackScripts.AddRange(
+                        Directory.EnumerateFiles(rollbackDir, "*.sql", SearchOption.TopDirectoryOnly)
+                                 .OrderBy(f => f)
+                                 .Select(f => "migrations/rollback/" + Path.GetFileName(f)));
+            }
+            else
+            {
+                // Flat layout: all .sql files in migrations/ root → pre-migration scripts.
+                preMigrationScripts.AddRange(
+                    Directory.EnumerateFiles(migrationsRoot, "*.sql", SearchOption.TopDirectoryOnly)
+                             .OrderBy(f => f)
+                             .Select(f => "migrations/" + Path.GetFileName(f)));
+            }
+        }
+
         await using var fs = File.Create(zipPath);
         using var zip = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
 
-        // ── binaries/ — full publish folder contents ─────────────────────
+        // ── binaries/ — publish folder contents (migrations/ excluded from binaries) ──
         foreach (var file in Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories))
         {
             ct.ThrowIfCancellationRequested();
 
             var relative = file[rootLen..].Replace('\\', '/');
+
+            // Skip the migrations folder from binaries — it is included separately at the zip root.
+            if (migrationsRoot is not null &&
+                (relative.StartsWith("migrations/", StringComparison.OrdinalIgnoreCase) ||
+                 relative.StartsWith("Migrations/", StringComparison.OrdinalIgnoreCase)))
+                continue;
+
             var entry = zip.CreateEntry($"binaries/{relative}", CompressionLevel.Optimal);
             await using var entryStream = entry.Open();
             await using var fileStream = File.OpenRead(file);
             await fileStream.CopyToAsync(entryStream, ct);
         }
 
-        // ── manifest.json ────────────────────────────────────────────────
-        // checksum is left empty here; the actual SHA-256 is stored in the DB after the ZIP is finalised.
+        // ── migrations/ — placed at zip root so Agent can find them via manifest paths ──
+        if (migrationsRoot is not null)
+        {
+            foreach (var file in Directory.EnumerateFiles(migrationsRoot, "*", SearchOption.AllDirectories))
+            {
+                ct.ThrowIfCancellationRequested();
+                var migRootLen = migrationsRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Length + 1;
+                var relative = file[migRootLen..].Replace('\\', '/');
+                var entry = zip.CreateEntry($"migrations/{relative}", CompressionLevel.Optimal);
+                await using var entryStream = entry.Open();
+                await using var fileStream = File.OpenRead(file);
+                await fileStream.CopyToAsync(entryStream, ct);
+            }
+        }
+
+        // ── manifest.json ─────────────────────────────────────────────────────────────
         var manifest = new PackageManifest
         {
             Version = version,
             Component = component.ToString(),
             Checksum = string.Empty,
-            PreMigrationScripts = [],
-            PostMigrationScripts = [],
-            RollbackScripts = [],
+            PreMigrationScripts = [.. preMigrationScripts],
+            PostMigrationScripts = [.. postMigrationScripts],
+            RollbackScripts = [.. rollbackScripts],
             PreserveFiles = DefaultPreserveFiles,
+            MergeConfigFiles = DefaultMergeConfigFiles,
             ReleaseNotes = releaseNotes,
             BuiltAt = DateTime.UtcNow,
             GitCommit = gitCommit
@@ -249,6 +329,7 @@ public class PackageBuildService(
         public string[] PostMigrationScripts { get; init; } = [];
         public string[] RollbackScripts { get; init; } = [];
         public string[] PreserveFiles { get; init; } = [];
+        public string[] MergeConfigFiles { get; init; } = [];
         public string? ReleaseNotes { get; init; }
         public DateTime BuiltAt { get; init; }
         public string? GitCommit { get; init; }

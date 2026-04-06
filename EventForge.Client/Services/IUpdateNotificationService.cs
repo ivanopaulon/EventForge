@@ -12,8 +12,8 @@ public interface IUpdateNotificationService
 
     /// <summary>
     /// True while a download or install phase is actively running (i.e. <see cref="CurrentProgress"/>
-    /// is set and the phase is not <c>AwaitingMaintenanceWindow</c>, which only means the package
-    /// is queued but nothing is actively happening).
+    /// is set and the phase is not <c>PackageReceived</c> or <c>AwaitingMaintenanceWindow</c>,
+    /// which are shown as a non-blocking snackbar instead).
     /// </summary>
     bool IsActiveUpdate { get; }
 
@@ -22,6 +22,12 @@ public interface IUpdateNotificationService
 
     /// <summary>Latest download/install progress received from the Agent, or null when idle.</summary>
     UpdateProgressPayload? CurrentProgress { get; }
+
+    /// <summary>
+    /// True when a package notification snackbar should be shown
+    /// (phase is PackageReceived or AwaitingMaintenanceWindow).
+    /// </summary>
+    bool HasDownloadNotification { get; }
 
     /// <summary>Component being updated (e.g. "Server").</summary>
     string? MaintenanceComponent { get; }
@@ -41,8 +47,13 @@ public interface IUpdateNotificationService
     int AvailableUpdatesCount { get; }
 
     /// <summary>
-    /// Fired whenever <see cref="IsServerMaintenance"/>, <see cref="HasPendingClientUpdate"/>
-    /// or <see cref="AvailableUpdatesCount"/> changes.
+    /// Number of packages downloaded and awaiting operator approval to install (manual-install mode).
+    /// Used to show the pending badge on the updates FAB.
+    /// </summary>
+    int PendingManualInstallsCount { get; }
+
+    /// <summary>
+    /// Fired whenever any tracked state changes (maintenance, progress, available/pending counts).
     /// </summary>
     event Action? StateChanged;
 

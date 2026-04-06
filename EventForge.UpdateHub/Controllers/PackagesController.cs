@@ -145,4 +145,22 @@ public class PackagesController(
             p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status, p.GitCommit
         }));
     }
+
+    /// <summary>
+    /// Returns the suggested next version string for a component.
+    /// Finds the most recently uploaded package and increments major or minor.
+    /// </summary>
+    [HttpGet("suggest-version")]
+    public async Task<IActionResult> SuggestVersion([FromQuery] string component, [FromQuery] string type = "minor")
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+        if (!Enum.TryParse<PackageComponent>(component, true, out var comp))
+            return BadRequest($"Invalid component. Use 'Server' or 'Client'.");
+        if (!type.Equals("major", StringComparison.OrdinalIgnoreCase) &&
+            !type.Equals("minor", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("Invalid type. Use 'major' or 'minor'.");
+
+        var suggested = await packageService.GetSuggestedNextVersionAsync(comp, type);
+        return Ok(new { version = suggested, component = comp.ToString(), type });
+    }
 }

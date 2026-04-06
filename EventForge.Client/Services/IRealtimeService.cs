@@ -251,6 +251,9 @@ public interface IRealtimeService
     /// <summary>Fired periodically during an active download/install with current progress.</summary>
     event Action<UpdateProgressPayload>? UpdateProgressReceived;
 
+    /// <summary>Fired when the Server broadcasts the count of packages ready to deploy (SuperAdmin only).</summary>
+    event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
+
     #endregion
 
     #region Document Collaboration Events

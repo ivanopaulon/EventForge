@@ -26,4 +26,12 @@ public interface IPackageService
 
     /// <summary>Returns the absolute file path for the given package's zip file.</summary>
     Task<string> GetDownloadPathAsync(Guid packageId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns a suggested next version string for <paramref name="component"/> by finding the most
+    /// recently uploaded package (regardless of status), parsing its version and incrementing either
+    /// the major or minor part based on <paramref name="versionType"/> ("major" | "minor").
+    /// Returns a sensible default when no previous package exists.
+    /// </summary>
+    Task<string> GetSuggestedNextVersionAsync(PackageComponent component, string versionType, CancellationToken ct = default);
 }

@@ -72,7 +72,10 @@ Write-Step "STEP 2 - Creazione cartelle"
 
 $folders = @(
     $DEPLOY_PATH,
-    "$DEPLOY_PATH\logs"
+    "$DEPLOY_PATH\logs",
+    "$DEPLOY_PATH\work",        # Download zip + temp extract dir (WorkPath)
+    "$DEPLOY_PATH\processed",   # Installed packages archive (ProcessedPackagesPath)
+    "$DEPLOY_PATH\backups"      # Backup di sicurezza prima di ogni deploy
 )
 
 foreach ($f in $folders) {
@@ -515,6 +518,9 @@ Write-Host "  Servizio        : $SERVICE_NAME" -ForegroundColor Yellow
 Write-Host "  Deploy path     : $DEPLOY_PATH" -ForegroundColor Yellow
 Write-Host "  Configurazione  : $DEPLOY_PATH\$APP_SETTINGS" -ForegroundColor Yellow
 Write-Host "  Log agente      : $DEPLOY_PATH\logs\" -ForegroundColor Yellow
+Write-Host "  Download/work   : $DEPLOY_PATH\work\" -ForegroundColor Yellow
+Write-Host "  Pacchetti inst. : $DEPLOY_PATH\processed\" -ForegroundColor Yellow
+Write-Host "  Backup          : $DEPLOY_PATH\backups\" -ForegroundColor Yellow
 Write-Host "  Log setup       : $TRANSCRIPT" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Comandi utili:" -ForegroundColor DarkCyan
