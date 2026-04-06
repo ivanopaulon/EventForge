@@ -5,7 +5,18 @@ namespace EventForge.UpdateAgent.Services;
 /// <summary>Executes SQL migration scripts from an extracted package directory.</summary>
 public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunnerService> logger)
 {
-    public async Task RunScriptsAsync(string extractedPath, IEnumerable<string> scriptRelativePaths, CancellationToken ct)
+    /// <param name="extractedPath">Root directory of the extracted package ZIP.</param>
+    /// <param name="scriptRelativePaths">Script paths relative to <paramref name="extractedPath"/>.</param>
+    /// <param name="onBeforeScript">
+    /// Optional callback invoked <em>before</em> each script with its relative path.
+    /// Used to push live progress to connected clients.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task RunScriptsAsync(
+        string extractedPath,
+        IEnumerable<string> scriptRelativePaths,
+        Func<string, Task>? onBeforeScript,
+        CancellationToken ct)
     {
         var connectionString = options.Components.Server.ConnectionString;
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -17,6 +28,10 @@ public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunne
         foreach (var relativePath in scriptRelativePaths)
         {
             ct.ThrowIfCancellationRequested();
+
+            if (onBeforeScript is not null)
+                await onBeforeScript(relativePath);
+
             var fullPath = Path.Combine(extractedPath, relativePath);
             if (!File.Exists(fullPath))
             {

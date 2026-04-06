@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using EventForge.UpdateAgent.Extensions;
 
 namespace EventForge.UpdateAgent.Services;
 
@@ -33,6 +34,19 @@ public class UpdateExecutorService(
 
     // Exponential backoff delays (seconds) between successive download attempts.
     private static readonly int[] DownloadDelays = [5, 15, 30, 60, 120];
+
+    /// <summary>
+    /// Resolves a path that may be relative (to the service exe directory) or absolute.
+    /// Creates the directory if it does not yet exist.
+    /// </summary>
+    private static string ResolveAndEnsureDir(string path)
+    {
+        var full = Path.IsPathRooted(path)
+            ? path
+            : Path.Combine(AppContext.BaseDirectory, path);
+        Directory.CreateDirectory(full);
+        return full;
+    }
 
     // ── Maintenance notification helpers ────────────────────────────────────
 
@@ -223,7 +237,8 @@ public class UpdateExecutorService(
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
-        var tempDir = Path.Combine(AppContext.BaseDirectory, "updates", $"ef-update-{command.PackageId:N}");
+        var workDir   = ResolveAndEnsureDir(options.WorkPath);
+        var tempDir   = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
 
         try
@@ -379,8 +394,34 @@ public class UpdateExecutorService(
         }
         finally
         {
+            // Archive the zip (move to processed/) or delete it on failure / when archiving is disabled.
             if (zipPath is not null && File.Exists(zipPath))
-                try { File.Delete(zipPath); } catch { /* best effort */ }
+            {
+                try
+                {
+                    var archiveRoot = options.ProcessedPackagesPath;
+                    if (!string.IsNullOrWhiteSpace(archiveRoot))
+                    {
+                        var archiveDir = ResolveAndEnsureDir(archiveRoot);
+                        var destName = $"{command.Component}-{command.Version}-{command.PackageId:N}{Path.GetExtension(zipPath)}";
+                        var destPath = Path.Combine(archiveDir, destName);
+                        // If a file with the same name already exists (re-deploy), overwrite it.
+                        if (File.Exists(destPath)) File.Delete(destPath);
+                        File.Move(zipPath, destPath);
+                        logger.LogInformation("Installed package archived to {ArchivePath}", destPath);
+                    }
+                    else
+                    {
+                        File.Delete(zipPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Could not archive/delete zip {ZipPath} — best effort", zipPath);
+                    try { File.Delete(zipPath); } catch { /* last resort */ }
+                }
+            }
+
             if (Directory.Exists(tempDir))
                 try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
         }
@@ -406,8 +447,7 @@ public class UpdateExecutorService(
 
         var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
 
-        var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
-        Directory.CreateDirectory(downloadDir);
+        var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
         var tmpPath = zipPath + ".tmp";
@@ -505,24 +545,32 @@ public class UpdateExecutorService(
 
             var now = DateTime.UtcNow;
 
-            if ((now - lastLocalReport).TotalSeconds >= 1)
+            if ((now - lastLocalReport).TotalMilliseconds >= 300)
             {
                 downloadProgress.Update(packageId, written, totalBytes);
                 lastLocalReport = now;
             }
 
-            // Forward progress to the Server every 2 s so the client snackbar stays updated.
-            if ((now - lastServerNotify).TotalSeconds >= 2)
+            // Forward progress to the Server every 500 ms — near-real-time for the client dialog.
+            if ((now - lastServerNotify).TotalMilliseconds >= 500)
             {
                 lastServerNotify = now;
                 var snap = downloadProgress.Current;
                 if (snap is not null)
-                    await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                {
+                    var detail = snap.TotalBytes.HasValue
+                        ? $"{snap.FormattedDownloaded} / {snap.FormattedTotal}  {snap.FormattedSpeed}"
+                        : snap.FormattedDownloaded ?? string.Empty;
+                    _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
                         percentComplete: snap.PercentComplete,
                         formattedDownloaded: snap.FormattedDownloaded,
                         formattedTotal: snap.TotalBytes.HasValue ? snap.FormattedTotal : null,
                         formattedSpeed: snap.FormattedSpeed,
-                        eta: snap.Eta?.ToString(@"mm\:ss"));
+                        eta: snap.Eta?.ToString(@"mm\:ss"),
+                        isManualInstall: command.IsManualInstall,
+                        packageId: command.PackageId,
+                        detail: detail);
+                }
             }
         }
 
@@ -530,10 +578,16 @@ public class UpdateExecutorService(
         downloadProgress.Update(packageId, written, totalBytes);
         var finalSnap = downloadProgress.Current;
         if (finalSnap is not null)
-            await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+            _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
                 percentComplete: 100,
                 formattedDownloaded: finalSnap.FormattedDownloaded,
-                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null);
+                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null,
+                formattedSpeed: finalSnap.FormattedSpeed,
+                isManualInstall: command.IsManualInstall,
+                packageId: command.PackageId,
+                detail: finalSnap.TotalBytes.HasValue
+                    ? $"Download completato: {finalSnap.FormattedTotal}"
+                    : "Download completato");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
