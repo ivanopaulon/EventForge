@@ -1,3 +1,4 @@
+using EventForge.UpdateHub.Configuration;
 using EventForge.UpdateHub.Hubs;
 using EventForge.UpdateHub.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -13,15 +14,13 @@ public class InstallationsController(
     IPackageService packageService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> hubContext,
-    IConfiguration configuration,
+    UpdateHubOptions hubOptions,
     ILogger<InstallationsController> logger) : ControllerBase
 {
-    private string AdminApiKey => configuration["UpdateHub:AdminApiKey"] ?? string.Empty;
-
     private bool IsAdminAuthorized()
     {
         Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(AdminApiKey) && key == AdminApiKey;
+        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
     }
 
     /// <summary>List all registered installations.</summary>
@@ -47,7 +46,7 @@ public class InstallationsController(
     {
         if (!IsAdminAuthorized()) return Unauthorized();
 
-        var apiKey = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLower();
+        var apiKey = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         var installation = new Installation
         {
             Name = request.Name,

@@ -4,6 +4,11 @@ using EventForge.UpdateHub.Configuration;
 
 namespace EventForge.UpdateHub.Pages;
 
+/// <summary>
+/// Log viewer page model for the Hub web UI.
+/// Reads the tail of the current Serilog log file and parses log level,
+/// supporting level-based filtering (All / Error / Warning / Info / Debug).
+/// </summary>
 public class LogsModel(
     UpdateHubOptions hubOptions,
     IWebHostEnvironment env,

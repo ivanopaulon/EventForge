@@ -6,7 +6,7 @@ namespace EventForge.UpdateAgent.Services;
 /// Collects static system information once at startup and exposes it
 /// for inclusion in Hub registration and enrollment payloads.
 /// </summary>
-public class SystemInfoService(ILogger<SystemInfoService> logger)
+public class SystemInfoService
 {
     public string MachineName { get; } = GetMachineName();
     public string OSVersion { get; } = GetOSVersion();

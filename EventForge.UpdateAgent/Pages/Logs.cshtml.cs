@@ -2,6 +2,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.UpdateAgent.Pages;
 
+/// <summary>
+/// Log viewer page model for the Agent local web UI.
+/// Reads the tail of the current Serilog rolling log file and parses
+/// individual log entries, supporting level-based filtering.
+/// </summary>
 public class LogsModel(AgentOptions options, ILogger<LogsModel> logger) : PageModel
 {
     public record LogEntry(string Timestamp, string Level, string Message, string? Exception);

@@ -5,9 +5,13 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.UpdateAgent.Pages;
 
+/// <summary>
+/// Maintenance window management page model for the Agent local web UI.
+/// Allows operators to add or remove scheduled installation windows,
+/// shows the currently active window, and lists pending updates.
+/// </summary>
 public class ScheduleModel(
     AgentOptions options,
-    PendingInstallService pendingInstallService,
     ILogger<ScheduleModel> logger) : PageModel
 {
     private static readonly string AppSettingsPath =

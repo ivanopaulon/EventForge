@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.UpdateAgent.Pages;
 
+/// <summary>
+/// Dashboard page model for the Agent local web UI.
+/// Displays Hub connection state, installed component versions,
+/// the pending update queue, and maintenance window information.
+/// </summary>
 public class IndexModel(
     AgentStatusService agentStatus,
     AgentOptions agentOptions,

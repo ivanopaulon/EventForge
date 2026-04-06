@@ -6,7 +6,6 @@
     <RootNamespace>EventForge.UpdateAgent</RootNamespace>
     <GenerateAssemblyVersionAttribute>true</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>true</GenerateAssemblyInformationalVersionAttribute>
-    <NoWarn>$(NoWarn);CS9113</NoWarn>
     <!-- Publish as self-contained Windows executable -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>

@@ -13,10 +13,18 @@ var hubOptions = builder.Configuration
     .Get<UpdateHubOptions>() ?? new UpdateHubOptions();
 builder.Services.AddSingleton(hubOptions);
 
+var logDir = !string.IsNullOrWhiteSpace(hubOptions.Logging.DirectoryPath)
+    ? hubOptions.Logging.DirectoryPath
+    : Path.Combine(AppContext.BaseDirectory, "logs");
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
+    .WriteTo.File(
+        Path.Combine(logDir, "hub-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: hubOptions.Logging.RetentionDays)
     .CreateLogger();
 
 builder.Host.UseSerilog();

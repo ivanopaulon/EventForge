@@ -65,8 +65,8 @@ public class EnrollmentsController(
         }
 
         // ── New enrollment ───────────────────────────────────────────────
-        var apiKey = Convert.ToHexString(
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLower();
+        var apiKey = Convert.ToHexStringLower(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
         var installation = new Installation
         {

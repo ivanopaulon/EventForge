@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using EventForge.UpdateHub.Configuration;
 using EventForge.UpdateHub.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,16 +10,15 @@ namespace EventForge.UpdateHub.Controllers;
 [Route("api/v1/packages")]
 public class PackagesController(
     IPackageService packageService,
-    IConfiguration configuration,
+    UpdateHubOptions hubOptions,
     ILogger<PackagesController> logger) : ControllerBase
 {
-    private string PackageStorePath => configuration["UpdateHub:PackageStorePath"] ?? "packages";
-    private string AdminApiKey => configuration["UpdateHub:AdminApiKey"] ?? string.Empty;
+    private string PackageStorePath => hubOptions.PackageStorePath;
 
     private bool IsAdminAuthorized()
     {
         Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(AdminApiKey) && key == AdminApiKey;
+        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
     }
 
     /// <summary>Get all packages.</summary>
@@ -63,19 +63,23 @@ public class PackagesController(
         if (file is null || file.Length == 0) return BadRequest("File is required.");
 
         Directory.CreateDirectory(PackageStorePath);
-        var fileName = $"{comp.ToString().ToLower()}-{version}-{Guid.NewGuid():N}.zip";
+        var fileName = $"{comp.ToString().ToLowerInvariant()}-{version}-{Guid.NewGuid():N}.zip";
         var filePath = Path.Combine(PackageStorePath, fileName);
 
+        // Write the file and compute SHA-256 in a single stream pass for efficiency.
         string checksum;
-        using (var stream = System.IO.File.Create(filePath))
+        using (var fileStream = System.IO.File.Create(filePath))
+        using (var hashAlg = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
         {
-            await file.CopyToAsync(stream);
-        }
-
-        using (var stream = System.IO.File.OpenRead(filePath))
-        {
-            var hash = await SHA256.HashDataAsync(stream);
-            checksum = Convert.ToHexStringLower(hash);
+            var buffer = new byte[81920];
+            using var source = file.OpenReadStream();
+            int bytesRead;
+            while ((bytesRead = await source.ReadAsync(buffer)) > 0)
+            {
+                hashAlg.AppendData(buffer, 0, bytesRead);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+            }
+            checksum = Convert.ToHexStringLower(hashAlg.GetCurrentHash());
         }
 
         var package = new UpdatePackage

@@ -5,20 +5,15 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EventForge.UpdateAgent.Pages;
 
-public class SettingsModel : PageModel
+/// <summary>
+/// Settings page model for the Agent local web UI.
+/// Displays and saves all <see cref="AgentOptions"/> parameters.
+/// Most fields take effect immediately on the running process;
+/// connection and port settings require a restart.
+/// </summary>
+public class SettingsModel(AgentOptions options, AgentStatusService agentStatus, ILogger<SettingsModel> logger) : PageModel
 {
-    private readonly AgentOptions _options;
-    private readonly AgentStatusService _agentStatus;
-    private readonly ILogger<SettingsModel> _logger;
-
-    public SettingsModel(AgentOptions options, AgentStatusService agentStatus, ILogger<SettingsModel> logger)
-    {
-        _options     = options;
-        _agentStatus = agentStatus;
-        _logger      = logger;
-    }
-
-    public AgentOptions Options => _options;
+    public AgentOptions Options => options;
 
     public void OnGet() { }
 
@@ -52,46 +47,46 @@ public class SettingsModel : PageModel
                 .ToList();
 
             // Mutate in-memory singleton (immediate effect for what doesn't need restart)
-            _options.InstallationName                     = InstallationName;
-            _options.Location                             = string.IsNullOrWhiteSpace(Location) ? null : Location;
-            _options.Tags                                 = tagList;
-            _options.HubUrl                               = HubUrl;
-            _options.HubBaseUrl                           = HubBaseUrl;
-            _options.ApiKey                               = ApiKey;
-            _options.EnrollmentToken                      = EnrollmentToken ?? string.Empty;
-            _options.HeartbeatIntervalSeconds             = HeartbeatIntervalSeconds;
-            _options.ReconnectDelaySeconds                = ReconnectDelaySeconds;
-            _options.DownloadTimeoutMinutes               = DownloadTimeoutMinutes;
-            _options.DownloadMaxRetries                   = DownloadMaxRetries;
-            _options.Install.HealthCheckMaxAttempts       = Install_HealthCheckMaxAttempts;
-            _options.Install.HealthCheckDelaySeconds      = Install_HealthCheckDelaySeconds;
-            _options.Install.IisWarmupDelaySeconds        = Install_IisWarmupDelaySeconds;
-            _options.Install.SqlCommandTimeoutSeconds     = Install_SqlCommandTimeoutSeconds;
-            _options.Install.ScheduledCheckIntervalSeconds = Install_ScheduledCheckIntervalSeconds;
-            _options.Backup.MaxBackupsToKeep              = Backup_MaxBackupsToKeep;
-            _options.Backup.RootPath                      = string.IsNullOrWhiteSpace(Backup_RootPath) ? null : Backup_RootPath;
-            _options.Logging.RetentionDays                = Logging_RetentionDays;
-            _options.Logging.DirectoryPath                = string.IsNullOrWhiteSpace(Logging_DirectoryPath) ? null : Logging_DirectoryPath;
-            _options.UI.Port                              = UI_Port;
-            _options.UI.Username                          = UI_Username ?? string.Empty;
-            _options.UI.Password                          = UI_Password ?? string.Empty;
-            _options.Components.Server.Enabled            = Server_Enabled;
-            _options.Components.Server.DeployPath         = Server_DeployPath ?? string.Empty;
-            _options.Components.Server.HealthCheckUrl     = Server_HealthCheckUrl ?? string.Empty;
-            _options.Components.Server.IISSiteName        = Server_IISSiteName ?? string.Empty;
-            _options.Components.Server.AppPoolName        = Server_AppPoolName ?? string.Empty;
-            _options.Components.Server.ConnectionString   = Server_ConnectionString ?? string.Empty;
-            _options.Components.Client.Enabled            = Client_Enabled;
-            _options.Components.Client.DeployPath         = Client_DeployPath ?? string.Empty;
+            options.InstallationName                     = InstallationName;
+            options.Location                             = string.IsNullOrWhiteSpace(Location) ? null : Location;
+            options.Tags                                 = tagList;
+            options.HubUrl                               = HubUrl;
+            options.HubBaseUrl                           = HubBaseUrl;
+            options.ApiKey                               = ApiKey;
+            options.EnrollmentToken                      = EnrollmentToken ?? string.Empty;
+            options.HeartbeatIntervalSeconds             = HeartbeatIntervalSeconds;
+            options.ReconnectDelaySeconds                = ReconnectDelaySeconds;
+            options.DownloadTimeoutMinutes               = DownloadTimeoutMinutes;
+            options.DownloadMaxRetries                   = DownloadMaxRetries;
+            options.Install.HealthCheckMaxAttempts       = Install_HealthCheckMaxAttempts;
+            options.Install.HealthCheckDelaySeconds      = Install_HealthCheckDelaySeconds;
+            options.Install.IisWarmupDelaySeconds        = Install_IisWarmupDelaySeconds;
+            options.Install.SqlCommandTimeoutSeconds     = Install_SqlCommandTimeoutSeconds;
+            options.Install.ScheduledCheckIntervalSeconds = Install_ScheduledCheckIntervalSeconds;
+            options.Backup.MaxBackupsToKeep              = Backup_MaxBackupsToKeep;
+            options.Backup.RootPath                      = string.IsNullOrWhiteSpace(Backup_RootPath) ? null : Backup_RootPath;
+            options.Logging.RetentionDays                = Logging_RetentionDays;
+            options.Logging.DirectoryPath                = string.IsNullOrWhiteSpace(Logging_DirectoryPath) ? null : Logging_DirectoryPath;
+            options.UI.Port                              = UI_Port;
+            options.UI.Username                          = UI_Username ?? string.Empty;
+            options.UI.Password                          = UI_Password ?? string.Empty;
+            options.Components.Server.Enabled            = Server_Enabled;
+            options.Components.Server.DeployPath         = Server_DeployPath ?? string.Empty;
+            options.Components.Server.HealthCheckUrl     = Server_HealthCheckUrl ?? string.Empty;
+            options.Components.Server.IISSiteName        = Server_IISSiteName ?? string.Empty;
+            options.Components.Server.AppPoolName        = Server_AppPoolName ?? string.Empty;
+            options.Components.Server.ConnectionString   = Server_ConnectionString ?? string.Empty;
+            options.Components.Client.Enabled            = Client_Enabled;
+            options.Components.Client.DeployPath         = Client_DeployPath ?? string.Empty;
 
             // Persist to appsettings.json
-            PersistToAppSettings(_options);
+            PersistToAppSettings(options);
 
             TempData["Success"] = "Configurazione salvata. Riavvia il servizio per applicare i parametri che richiedono riavvio.";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to save settings");
+            logger.LogError(ex, "Failed to save settings");
             TempData["Error"] = $"Errore durante il salvataggio: {ex.Message}";
         }
 
@@ -101,7 +96,7 @@ public class SettingsModel : PageModel
     public IActionResult OnPostReRegister()
     {
         // Signal to AgentWorker to re-send RegisterInstallation
-        _agentStatus.RequestReRegister();
+        agentStatus.RequestReRegister();
         TempData["Info"] = "Ri-registrazione inviata. L'agent invierà RegisterInstallation al prossimo ciclo heartbeat.";
         return RedirectToPage();
     }
