@@ -42,9 +42,9 @@
                             <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                         </div>
                     }
-                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    else if (!string.IsNullOrEmpty(_packagesError))
                     {
-                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                        <MudAlert Severity="Severity.Error">@_packagesError</MudAlert>
                     }
                     else if (_packages.Count == 0)
                     {
@@ -160,9 +160,9 @@
                             <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                         </div>
                     }
-                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    else if (!string.IsNullOrEmpty(_installationsError))
                     {
-                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                        <MudAlert Severity="Severity.Error">@_installationsError</MudAlert>
                     }
                     else if (_installations.Count == 0)
                     {
@@ -254,9 +254,9 @@
                             <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                         </div>
                     }
-                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    else if (!string.IsNullOrEmpty(_pendingError))
                     {
-                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                        <MudAlert Severity="Severity.Error">@_pendingError</MudAlert>
                     }
                     else if (_pendingInstalls.Count == 0)
                     {
@@ -369,7 +369,9 @@
     private bool _isLoading = false;
     private bool _isSendingUpdate = false;
     private bool _isActioning = false;
-    private string? _errorMessage;
+    private string? _packagesError;
+    private string? _installationsError;
+    private string? _pendingError;
 
     private List<PackageSummaryClientDto> _packages = [];
     private List<InstallationSummaryClientDto> _installations = [];
@@ -386,24 +388,48 @@
     private async Task LoadDataAsync()
     {
         _isLoading = true;
-        _errorMessage = null;
+        _packagesError = null;
+        _installationsError = null;
+        _pendingError = null;
         try
         {
-            var packagesTask = UpdateNotification.GetPackagesAsync();
-            var installationsTask = UpdateNotification.GetInstallationsAsync();
-            var pendingTask = UpdateNotification.GetPendingInstallsAsync();
+            // Fetch packages and installations from UpdateHub independently so a partial failure
+            // does not hide the other dataset. Agent proxy (pending installs) is also independent.
+            var packagesTask = SafeFetchAsync(
+                () => UpdateNotification.GetPackagesAsync(),
+                result => _packages = result.ToList(),
+                ex => _packagesError = ex.Message);
+
+            var installationsTask = SafeFetchAsync(
+                () => UpdateNotification.GetInstallationsAsync(),
+                result => _installations = result.ToList(),
+                ex => _installationsError = ex.Message);
+
+            var pendingTask = SafeFetchAsync(
+                () => UpdateNotification.GetPendingInstallsAsync(),
+                result => _pendingInstalls = result.ToList(),
+                ex => _pendingError = ex.Message);
+
             await Task.WhenAll(packagesTask, installationsTask, pendingTask);
-            _packages = (await packagesTask).ToList();
-            _installations = (await installationsTask).ToList();
-            _pendingInstalls = (await pendingTask).ToList();
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = $"Impossibile caricare i dati: {ex.Message}";
         }
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private static async Task SafeFetchAsync<T>(
+        Func<Task<T>> fetch,
+        Action<T> onSuccess,
+        Action<Exception> onError)
+    {
+        try
+        {
+            onSuccess(await fetch());
+        }
+        catch (Exception ex)
+        {
+            onError(ex);
         }
     }
 
