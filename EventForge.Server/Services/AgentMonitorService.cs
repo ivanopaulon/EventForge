@@ -68,7 +68,7 @@ public sealed class AgentMonitorService(
 
         try
         {
-            using var http = httpFactory.CreateClient();
+            using var http = httpFactory.CreateClient("AgentClient");
             http.Timeout = TimeSpan.FromSeconds(3);
             var response = await http.GetAsync($"{agentUrl}/api/agent/health", ct);
 
