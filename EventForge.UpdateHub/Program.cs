@@ -7,6 +7,17 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Apply environment-specific overrides from "Environments:{env}" in appsettings.json ──
+// Mirrors the same single-file pattern used by EventForge.Client.
+var envSection = builder.Configuration.GetSection($"Environments:{builder.Environment.EnvironmentName}");
+if (envSection.Exists())
+{
+    builder.Configuration.AddInMemoryCollection(
+        envSection.AsEnumerable(makePathsRelative: true)
+                  .Where(kvp => kvp.Value is not null)
+                  .Select(kvp => new KeyValuePair<string, string?>(kvp.Key, kvp.Value)));
+}
+
 // ── UpdateHubOptions ──
 var hubOptions = builder.Configuration
     .GetSection(UpdateHubOptions.SectionName)
