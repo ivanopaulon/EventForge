@@ -114,8 +114,12 @@ public class AgentHub(
         if (msg.IsCompleted)
         {
             var historyStatus = msg.IsSuccess ? UpdateHistoryStatus.Succeeded : UpdateHistoryStatus.Failed;
-            await installationService.CompleteUpdateHistoryAsync(
+            var packageId = await installationService.CompleteUpdateHistoryAsync(
                 msg.UpdateHistoryId, historyStatus, msg.ErrorMessage, !msg.IsSuccess && msg.Phase == "Rollback");
+
+            // Mark the package as Deployed once any installation reports successful completion.
+            if (msg.IsSuccess && packageId.HasValue)
+                await packageService.SetStatusAsync(packageId.Value, PackageStatus.Deployed);
 
             var instStatus = msg.IsSuccess ? InstallationStatus.Online : InstallationStatus.Error;
             await installationService.UpdateLastSeenAsync(installationId.Value, null, null, instStatus);

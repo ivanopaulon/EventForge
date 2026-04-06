@@ -104,6 +104,13 @@ public class UpdateExecutorService(
     // ── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Sends a best-effort "AwaitingMaintenanceWindow" progress notification so connected clients
+    /// know a manual (or out-of-window) package has been downloaded and is queued for installation.
+    /// </summary>
+    public Task NotifyAwaitingInstallAsync(StartUpdateCommand command)
+        => NotifyPhaseAsync(command, UpdatePhase.AwaitingMaintenanceWindow.ToString());
+
+    /// <summary>
     /// Phase 1 + 2: resilient download with retry/resume, followed by SHA-256 checksum verification.
     /// Returns the local path to the verified zip file.
     /// </summary>
@@ -201,6 +208,9 @@ public class UpdateExecutorService(
 
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
+
+            // Notify connected clients with 100 % so the snackbar briefly shows "Completato" before clearing.
+            await NotifyPhaseAsync(command, UpdatePhase.Completed.ToString(), percentComplete: 100);
 
             // Notify clients that maintenance is over (Server back online).
             if (isServer)

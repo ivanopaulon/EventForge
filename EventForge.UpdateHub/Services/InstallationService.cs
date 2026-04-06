@@ -74,15 +74,16 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
         return history;
     }
 
-    public async Task CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default)
+    public async Task<Guid?> CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default)
     {
         var history = await db.UpdateHistories.FindAsync([historyId], ct);
-        if (history is null) return;
+        if (history is null) return null;
         history.Status = status;
         history.ErrorMessage = errorMessage;
         history.CompletedAt = DateTime.UtcNow;
         history.RolledBack = rolledBack;
         await db.SaveChangesAsync(ct);
+        return history.PackageId;
     }
 
     public async Task UpdateProgressPhaseAsync(Guid historyId, string phase, CancellationToken ct = default)

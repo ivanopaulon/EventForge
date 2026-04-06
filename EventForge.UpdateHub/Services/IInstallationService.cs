@@ -30,8 +30,11 @@ public interface IInstallationService
     /// <summary>Creates an <see cref="UpdateHistory"/> record in <c>InProgress</c> state and returns it.</summary>
     Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default);
 
-    /// <summary>Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).</summary>
-    Task CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default);
+    /// <summary>
+    /// Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).
+    /// Returns the <see cref="UpdateHistory.PackageId"/> so the caller can update the package status.
+    /// </summary>
+    Task<Guid?> CompleteUpdateHistoryAsync(Guid historyId, UpdateHistoryStatus status, string? errorMessage, bool rolledBack, CancellationToken ct = default);
 
     /// <summary>Updates the <see cref="UpdateHistory.PhaseDescription"/> for an in-progress update.</summary>
     Task UpdateProgressPhaseAsync(Guid historyId, string phase, CancellationToken ct = default);
