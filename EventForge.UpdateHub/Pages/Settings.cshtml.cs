@@ -6,16 +6,17 @@ using EventForge.UpdateHub.Configuration;
 namespace EventForge.UpdateHub.Pages;
 
 public class SettingsModel(
-    HubOptions hubOptions,
+    UpdateHubOptions hubOptions,
     IWebHostEnvironment env,
     ILogger<SettingsModel> logger) : PageModel
 {
-    public HubOptions Options { get; private set; } = hubOptions;
 
     // ── Bind properties ───────────────────────────────────────────────────
     [BindProperty] public string PackageStorePath { get; set; } = string.Empty;
     [BindProperty] public string IncomingPackagesPath { get; set; } = string.Empty;
     [BindProperty] public string AdminApiKey { get; set; } = string.Empty;
+    [BindProperty] public string EnrollmentToken { get; set; } = string.Empty;
+    [BindProperty] public bool AllowAutoEnrollment { get; set; }
     [BindProperty] public string? BaseUrl { get; set; }
     [BindProperty] public int HeartbeatTimeoutSeconds { get; set; }
     [BindProperty] public int AgentStatusCheckIntervalSeconds { get; set; }
@@ -58,6 +59,8 @@ public class SettingsModel(
             hubOptions.PackageStorePath = PackageStorePath;
             hubOptions.IncomingPackagesPath = IncomingPackagesPath;
             hubOptions.AdminApiKey = AdminApiKey;
+            hubOptions.EnrollmentToken = EnrollmentToken;
+            hubOptions.AllowAutoEnrollment = AllowAutoEnrollment;
             hubOptions.BaseUrl = string.IsNullOrWhiteSpace(BaseUrl) ? null : BaseUrl;
             hubOptions.HeartbeatTimeoutSeconds = HeartbeatTimeoutSeconds;
             hubOptions.AgentStatusCheckIntervalSeconds = AgentStatusCheckIntervalSeconds;
@@ -87,6 +90,8 @@ public class SettingsModel(
         PackageStorePath = hubOptions.PackageStorePath;
         IncomingPackagesPath = hubOptions.IncomingPackagesPath;
         AdminApiKey = hubOptions.AdminApiKey;
+        EnrollmentToken = hubOptions.EnrollmentToken;
+        AllowAutoEnrollment = hubOptions.AllowAutoEnrollment;
         BaseUrl = hubOptions.BaseUrl;
         HeartbeatTimeoutSeconds = hubOptions.HeartbeatTimeoutSeconds;
         AgentStatusCheckIntervalSeconds = hubOptions.AgentStatusCheckIntervalSeconds;
@@ -101,22 +106,24 @@ public class SettingsModel(
         IsDefaultCredentials = hubOptions.UI.Username == "admin" && hubOptions.UI.Password == "Admin#123!";
     }
 
-    private Dictionary<string, object?> MergeSection(JsonElement root, HubOptions opts)
+    private Dictionary<string, object?> MergeSection(JsonElement root, UpdateHubOptions opts)
     {
         var result = new Dictionary<string, object?>();
 
         foreach (var prop in root.EnumerateObject())
         {
-            if (prop.Name == HubOptions.SectionName)
+            if (prop.Name == UpdateHubOptions.SectionName)
                 continue;
             result[prop.Name] = JsonSerializer.Deserialize<object>(prop.Value.GetRawText());
         }
 
-        result[HubOptions.SectionName] = new Dictionary<string, object?>
+        result[UpdateHubOptions.SectionName] = new Dictionary<string, object?>
         {
             ["PackageStorePath"] = PackageStorePath,
             ["IncomingPackagesPath"] = IncomingPackagesPath,
             ["AdminApiKey"] = AdminApiKey,
+            ["EnrollmentToken"] = EnrollmentToken,
+            ["AllowAutoEnrollment"] = AllowAutoEnrollment,
             ["BaseUrl"] = string.IsNullOrWhiteSpace(BaseUrl) ? null : BaseUrl,
             ["HeartbeatTimeoutSeconds"] = HeartbeatTimeoutSeconds,
             ["AgentStatusCheckIntervalSeconds"] = AgentStatusCheckIntervalSeconds,

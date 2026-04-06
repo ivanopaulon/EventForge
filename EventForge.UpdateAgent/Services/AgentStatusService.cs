@@ -12,6 +12,9 @@ public class AgentStatusService
     public DateTime? LastHeartbeatAt { get; set; }
     public string? LastHeartbeatError { get; set; }
 
+    /// <summary>Enrollment status: null = not attempted, "Enrolled" = success, "Failed" = error.</summary>
+    public string? EnrollmentStatus { get; set; }
+
     /// <summary>
     /// Request that the AgentWorker re-sends a RegisterInstallation message to the Hub
     /// on the next heartbeat cycle. The flag is automatically cleared after the worker acts on it.

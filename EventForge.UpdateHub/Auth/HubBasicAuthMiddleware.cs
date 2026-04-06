@@ -6,14 +6,14 @@ namespace EventForge.UpdateHub.Auth;
 
 /// <summary>
 /// HTTP Basic Authentication middleware for the local Hub web UI (Razor Pages).
-/// Credentials are read from <see cref="HubOptions.UI"/> on every request so changes
+/// Credentials are read from <see cref="UpdateHubOptions.UI"/> on every request so changes
 /// made via the Settings page take effect immediately without a restart.
 /// Returns 503 if both username and password are empty (UI auth intentionally disabled).
 /// Returns 401 + WWW-Authenticate if the request is missing or has wrong credentials.
 /// Agent/admin API endpoints (/api/*, /hubs/*) are NOT affected by this middleware —
 /// they are protected separately by <see cref="ApiKeyAuthMiddleware"/> and admin API key validation.
 /// </summary>
-public class HubBasicAuthMiddleware(RequestDelegate next, HubOptions options)
+public class HubBasicAuthMiddleware(RequestDelegate next, UpdateHubOptions options)
 {
     public async Task InvokeAsync(HttpContext context)
     {

@@ -47,6 +47,24 @@
                                    placeholder="https://updatehub.example.com" />
                             <div class="form-text">URL base usato per costruire i link di download inviati agli agent. Lasciare vuoto per derivarlo dalla richiesta.</div>
                         </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Enrollment Token</label>
+                            <input asp-for="EnrollmentToken" class="form-control ef-form-input" type="password"
+                                   placeholder="Segreto condiviso per l'auto-registrazione Agent" autocomplete="new-password" />
+                            <div class="form-text">
+                                Token segreto che un nuovo Agent deve presentare per richiedere la propria API key automaticamente.
+                                Vuoto = auto-enrollment disabilitato (registrazione manuale obbligatoria).
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end pb-1">
+                            <div class="form-check form-switch">
+                                <input asp-for="AllowAutoEnrollment" class="form-check-input" type="checkbox" role="switch" />
+                                <label class="form-check-label fw-semibold" asp-for="AllowAutoEnrollment">
+                                    Abilita Auto-Enrollment
+                                </label>
+                                <div class="form-text">Consenti agli agent di auto-registrarsi presentando l'Enrollment Token.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

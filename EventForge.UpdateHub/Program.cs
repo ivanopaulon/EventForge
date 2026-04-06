@@ -7,10 +7,10 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── HubOptions ──
+// ── UpdateHubOptions ──
 var hubOptions = builder.Configuration
-    .GetSection(HubOptions.SectionName)
-    .Get<HubOptions>() ?? new HubOptions();
+    .GetSection(UpdateHubOptions.SectionName)
+    .Get<UpdateHubOptions>() ?? new UpdateHubOptions();
 builder.Services.AddSingleton(hubOptions);
 
 Log.Logger = new LoggerConfiguration()

@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace EventForge.UpdateAgent.Workers;
 
@@ -34,6 +36,13 @@ public class AgentWorker(
         {
             try
             {
+                // If ApiKey is missing, attempt self-enrollment before connecting.
+                if (string.IsNullOrWhiteSpace(options.ApiKey) ||
+                    options.ApiKey == "REPLACE_WITH_INSTALLATION_API_KEY")
+                {
+                    await TryEnrollAsync(stoppingToken);
+                }
+
                 await ConnectAndRunAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -52,6 +61,144 @@ public class AgentWorker(
         agentStatus.HubConnectionState = "Stopped";
         logger.LogInformation("EventForge UpdateAgent stopped.");
     }
+
+    /// <summary>
+    /// Calls POST {HubBaseUrl}/api/v1/enrollments to request a new API key.
+    /// On success the key and InstallationId are persisted to appsettings.json.
+    /// </summary>
+    private async Task TryEnrollAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(options.EnrollmentToken))
+        {
+            logger.LogWarning(
+                "ApiKey is not set and EnrollmentToken is empty. " +
+                "Configure UpdateAgent:ApiKey or set UpdateAgent:EnrollmentToken to enable auto-enrollment.");
+            return;
+        }
+
+        var baseUrl = string.IsNullOrWhiteSpace(options.HubBaseUrl) ? options.HubUrl : options.HubBaseUrl;
+        // Strip SignalR hub path suffix if present
+        var enrollUrl = baseUrl.TrimEnd('/').Replace("/hubs/update", "") + "/api/v1/enrollments";
+
+        logger.LogInformation("ApiKey not set — requesting enrollment from {Url}", enrollUrl);
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        try
+        {
+            var body = new
+            {
+                EnrollmentToken = options.EnrollmentToken,
+                InstallationName = options.InstallationName,
+                InstallationId = string.IsNullOrWhiteSpace(options.InstallationId) ||
+                                 options.InstallationId == "00000000-0000-0000-0000-000000000000"
+                    ? (Guid?)null
+                    : Guid.Parse(options.InstallationId),
+                Location = options.Location,
+                Components = (int)MapComponents()
+            };
+
+            var response = await http.PostAsJsonAsync(enrollUrl, body, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync(ct);
+                logger.LogError("Enrollment failed ({Status}): {Error}", response.StatusCode, err);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<EnrollmentResult>(cancellationToken: ct);
+            if (result is null || string.IsNullOrWhiteSpace(result.ApiKey))
+            {
+                logger.LogError("Enrollment response was empty or missing ApiKey.");
+                return;
+            }
+
+            // Apply in-memory immediately
+            options.ApiKey = result.ApiKey;
+            options.InstallationId = result.InstallationId.ToString();
+
+            // Persist to appsettings.json so the key survives restarts
+            await PersistEnrollmentAsync(result.ApiKey, result.InstallationId);
+
+            logger.LogInformation("Enrollment successful. InstallationId={Id}", result.InstallationId);
+            agentStatus.EnrollmentStatus = "Enrolled";
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Enrollment request failed.");
+        }
+    }
+
+    private async Task PersistEnrollmentAsync(string apiKey, Guid installationId)
+    {
+        try
+        {
+            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            if (!File.Exists(appSettingsPath)) return;
+
+            var json = await File.ReadAllTextAsync(appSettingsPath);
+            var doc = JsonDocument.Parse(json);
+
+            // Rebuild the JSON updating only ApiKey and InstallationId
+            using var stream = new MemoryStream();
+            var writerOpts = new JsonWriterOptions { Indented = true };
+            using (var writer = new Utf8JsonWriter(stream, writerOpts))
+            {
+                writer.WriteStartObject();
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    if (prop.Name == "UpdateAgent")
+                    {
+                        writer.WritePropertyName("UpdateAgent");
+                        writer.WriteStartObject();
+                        foreach (var agentProp in prop.Value.EnumerateObject())
+                        {
+                            if (agentProp.Name == "ApiKey")
+                            {
+                                writer.WriteString("ApiKey", apiKey);
+                            }
+                            else if (agentProp.Name == "InstallationId")
+                            {
+                                writer.WriteString("InstallationId", installationId.ToString());
+                            }
+                            else
+                            {
+                                agentProp.WriteTo(writer);
+                            }
+                        }
+                        writer.WriteEndObject();
+                    }
+                    else
+                    {
+                        prop.WriteTo(writer);
+                    }
+                }
+                writer.WriteEndObject();
+            }
+
+            await File.WriteAllBytesAsync(appSettingsPath, stream.ToArray());
+            logger.LogInformation("Enrollment credentials persisted to appsettings.json.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not persist enrollment credentials to appsettings.json.");
+        }
+    }
+
+    private int MapComponents()
+    {
+        var server = options.Components.Server.Enabled;
+        var client = options.Components.Client.Enabled;
+        return (server, client) switch
+        {
+            (true, true) => 3,   // Both
+            (true, false) => 1,  // Server
+            (false, true) => 2,  // Client
+            _ => 3               // default Both
+        };
+    }
+
+    private record EnrollmentResult(Guid InstallationId, string ApiKey);
 
     private async Task ConnectAndRunAsync(CancellationToken ct)
     {

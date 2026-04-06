@@ -89,7 +89,14 @@
             <div class="col-md-8">
                 <label class="form-label">API Key <span class="ef-badge ef-badge-warning">riavvio</span></label>
                 <input class="form-control" name="ApiKey" type="password" value="@Model.Options.ApiKey"
-                       autocomplete="off" />
+                       autocomplete="off" placeholder="Lasciare vuoto per auto-enrollment" />
+                <div class="form-text text-muted">Vuoto = l'agent richiederà automaticamente una chiave al prossimo avvio usando l'Enrollment Token.</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Enrollment Token <span class="ef-badge ef-badge-info">auto-registrazione</span></label>
+                <input class="form-control" name="EnrollmentToken" type="password" value="@Model.Options.EnrollmentToken"
+                       autocomplete="off" placeholder="Token condiviso con l'Hub" />
+                <div class="form-text text-muted">Segreto condiviso. Se API Key è vuota, l'agent chiama <code>POST /api/v1/enrollments</code> e salva la chiave ricevuta.</div>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Heartbeat (sec)</label>

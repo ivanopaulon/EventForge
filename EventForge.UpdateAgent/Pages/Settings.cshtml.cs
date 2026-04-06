@@ -26,7 +26,7 @@ public class SettingsModel : PageModel
         // Identity
         string InstallationName, string? Location, string? Tags,
         // Hub
-        string HubUrl, string HubBaseUrl, string ApiKey,
+        string HubUrl, string HubBaseUrl, string ApiKey, string? EnrollmentToken,
         int HeartbeatIntervalSeconds, int ReconnectDelaySeconds,
         // Download
         int DownloadTimeoutMinutes, int DownloadMaxRetries,
@@ -58,6 +58,7 @@ public class SettingsModel : PageModel
             _options.HubUrl                               = HubUrl;
             _options.HubBaseUrl                           = HubBaseUrl;
             _options.ApiKey                               = ApiKey;
+            _options.EnrollmentToken                      = EnrollmentToken ?? string.Empty;
             _options.HeartbeatIntervalSeconds             = HeartbeatIntervalSeconds;
             _options.ReconnectDelaySeconds                = ReconnectDelaySeconds;
             _options.DownloadTimeoutMinutes               = DownloadTimeoutMinutes;
@@ -125,6 +126,7 @@ public class SettingsModel : PageModel
 
         section["HubUrl"]               = opts.HubUrl;
         section["ApiKey"]               = opts.ApiKey;
+        section["EnrollmentToken"]      = opts.EnrollmentToken;
         section["InstallationName"]     = opts.InstallationName;
         section["Location"]             = opts.Location;
         section["HubBaseUrl"]           = opts.HubBaseUrl;

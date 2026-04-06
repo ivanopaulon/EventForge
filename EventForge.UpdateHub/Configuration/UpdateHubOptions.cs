@@ -4,7 +4,7 @@ namespace EventForge.UpdateHub.Configuration;
 /// Strongly-typed configuration for EventForge UpdateHub.
 /// Bound from the "UpdateHub" section of appsettings.json.
 /// </summary>
-public class HubOptions
+public class UpdateHubOptions
 {
     public const string SectionName = "UpdateHub";
 
@@ -21,6 +21,18 @@ public class HubOptions
     /// Leave empty to disable admin API access.
     /// </summary>
     public string AdminApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Shared secret that an Agent must present to request a new API key automatically.
+    /// Empty = auto-enrollment disabled (agents must be registered manually by an admin).
+    /// </summary>
+    public string EnrollmentToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When true, a new Agent may self-register by presenting the correct EnrollmentToken.
+    /// Requires <see cref="EnrollmentToken"/> to be non-empty.
+    /// </summary>
+    public bool AllowAutoEnrollment { get; set; } = false;
 
     // ── Hub identity ──────────────────────────────────────────────────────
     /// <summary>

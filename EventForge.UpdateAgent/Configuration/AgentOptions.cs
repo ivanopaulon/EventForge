@@ -16,6 +16,15 @@ public class AgentOptions
     /// <summary>Optional classification tags (e.g. ["production", "milan"]).</summary>
     public List<string> Tags { get; set; } = [];
 
+    // ── Auto-enrollment ───────────────────────────────────────────────────
+    /// <summary>
+    /// Shared secret used to request a new API key from the Hub automatically.
+    /// Must match the EnrollmentToken configured on the Hub.
+    /// If ApiKey is empty and this token is set, the Agent will call
+    /// POST {HubBaseUrl}/api/v1/enrollments on startup and save the received key.
+    /// </summary>
+    public string EnrollmentToken { get; set; } = string.Empty;
+
     // ── Hub connection ────────────────────────────────────────────────────
     /// <summary>Base URL used to build package download URLs.</summary>
     public string HubBaseUrl { get; set; } = string.Empty;

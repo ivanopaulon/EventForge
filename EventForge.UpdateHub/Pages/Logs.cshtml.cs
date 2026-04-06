@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using EventForge.UpdateHub.Configuration;
 
 namespace EventForge.UpdateHub.Pages;
 
 public class LogsModel(
-    HubOptions hubOptions,
+    UpdateHubOptions hubOptions,
     IWebHostEnvironment env,
     ILogger<LogsModel> logger) : PageModel
 {
