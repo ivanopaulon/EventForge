@@ -76,6 +76,7 @@
     <!-- Setup Wizard and Background Services -->
     <PackageVersion Include="ncrontab" Version="3.4.0" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.5" />
     <!-- Automatic git-based versioning -->
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50">
       <PrivateAssets>all</PrivateAssets>

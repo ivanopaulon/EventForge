@@ -1,0 +1,79 @@
+@page
+@model EventForge.UpdateHub.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+<h2 class="mb-4">📊 Dashboard</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Installations</h5>
+                <p class="display-6">@Model.TotalInstallations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Online</h5>
+                <p class="display-6">@Model.OnlineCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Offline</h5>
+                <p class="display-6">@Model.OfflineCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Packages</h5>
+                <p class="display-6">@Model.PackageCount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4>Installations</h4>
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Components</th>
+            <th>Server Version</th>
+            <th>Client Version</th>
+            <th>Status</th>
+            <th>Last Seen</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var inst in Model.Installations)
+        {
+            var badgeClass = inst.Status switch
+            {
+                InstallationStatus.Online => "bg-success",
+                InstallationStatus.Offline => "bg-secondary",
+                InstallationStatus.Updating => "bg-warning text-dark",
+                InstallationStatus.Error => "bg-danger",
+                _ => "bg-light text-dark"
+            };
+            <tr>
+                <td>@inst.Name</td>
+                <td>@(inst.Location ?? "—")</td>
+                <td>@inst.Components</td>
+                <td>@(inst.InstalledVersionServer ?? "—")</td>
+                <td>@(inst.InstalledVersionClient ?? "—")</td>
+                <td><span class="badge @badgeClass">@inst.Status</span></td>
+                <td>@(inst.LastSeen?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never")</td>
+            </tr>
+        }
+    </tbody>
+</table>

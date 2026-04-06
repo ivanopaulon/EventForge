@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Client", "EventF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Tests", "EventForge.Tests\EventForge.Tests.csproj", "{F8DD045F-F3EC-44A1-91E9-F25348E2F894}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.UpdateHub", "EventForge.UpdateHub\EventForge.UpdateHub.csproj", "{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.UpdateAgent", "EventForge.UpdateAgent\EventForge.UpdateAgent.csproj", "{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +73,14 @@ Global
 		{F8DD045F-F3EC-44A1-91E9-F25348E2F894}.Release|x64.Build.0 = Release|Any CPU
 		{F8DD045F-F3EC-44A1-91E9-F25348E2F894}.Release|x86.ActiveCfg = Release|Any CPU
 		{F8DD045F-F3EC-44A1-91E9-F25348E2F894}.Release|x86.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
