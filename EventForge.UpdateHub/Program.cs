@@ -28,6 +28,9 @@ var logDir = !string.IsNullOrWhiteSpace(hubOptions.Logging.DirectoryPath)
     ? hubOptions.Logging.DirectoryPath
     : Path.Combine(AppContext.BaseDirectory, "logs");
 
+// Ensure the log directory exists before Serilog tries to write to it.
+Directory.CreateDirectory(logDir);
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
@@ -65,6 +68,10 @@ builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
 builder.Services.AddHostedService<PackageWatcherService>();
 
 var app = builder.Build();
+
+// ── Startup validation (folders + config checks) ──────────────────────────
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+StartupValidator.Run(hubOptions, startupLogger);
 
 // ── Database migration ──
 using (var scope = app.Services.CreateScope())

@@ -28,6 +28,18 @@ public record MaintenanceStartedPayload(string? Component, string? Version, Date
 public record MaintenanceEndedPayload(string? Component, string? Version, DateTime EndedAt);
 public record ClientUpdateDeployedPayload(string? Component, string? Version, DateTime DeployedAt);
 
+/// <summary>Real-time download/install progress forwarded by the Agent through the Server.</summary>
+public record UpdateProgressPayload(
+    string? Component,
+    string? Version,
+    string? Phase,
+    int? PercentComplete,
+    string? FormattedDownloaded,
+    string? FormattedTotal,
+    string? FormattedSpeed,
+    string? Eta,
+    DateTime SentAt);
+
 /// <summary>Agent status as returned by GET /api/v1/system/agent-status.</summary>
 public record AgentStatusClientDto(
     bool Reachable,
