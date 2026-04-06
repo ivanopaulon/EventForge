@@ -29,6 +29,13 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// ── Kestrel endpoint binding (standalone / non-IIS) ──────────────────────
+// Under IIS in-process, UseUrls is overridden by the IIS module — safe to call unconditionally.
+var urls = new List<string>();
+if (hubOptions.UI.HttpPort > 0)  urls.Add($"http://*:{hubOptions.UI.HttpPort}");
+if (hubOptions.UI.HttpsPort > 0) urls.Add($"https://*:{hubOptions.UI.HttpsPort}");
+if (urls.Count > 0) builder.WebHost.UseUrls([.. urls]);
+
 // ── Services ──
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
@@ -70,5 +77,8 @@ app.UseRouting();
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/update");
+
+Log.Information("EventForge UpdateHub starting. Endpoints: {Urls}",
+    urls.Count > 0 ? string.Join(", ", urls) : "(managed by IIS/reverse-proxy)");
 
 app.Run();

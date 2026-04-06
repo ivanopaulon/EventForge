@@ -20,7 +20,7 @@ $TRANSCRIPT         = "$LOG_DIR\setup_updatehub_$(Get-Date -Format 'yyyyMMdd_HHm
 $TEMP_DIR           = "C:\Prym\_tmp"
 $SITE_NAME          = "EventForge UpdateHub"
 $POOL_NAME          = "EventForgeHub"
-$SITE_PORT          = 7244
+$SITE_PORT          = 7244   # HTTPS IIS port; overridden below from UpdateHub.UI.HttpsPort in appsettings.json
 $SITE_CERT_FRIENDLY = "EventForge UpdateHub IIS"
 $APP_DLL            = "EventForge.UpdateHub.dll"
 $PACKAGES_PATH      = "$DEPLOY_PATH\packages"
@@ -46,6 +46,24 @@ Write-Host "================================================================" -F
 Write-Host "  EventForge UpdateHub IIS Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Magenta
 Write-Host "  Transcript: $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
+
+# ------------------------------------------------------------------------------
+# Read HTTPS port from appsettings.json if already present at deploy path.
+# Keeps the IIS binding in sync with UpdateHub.UI.HttpsPort without manual edits.
+# ------------------------------------------------------------------------------
+$appSettingsEarly = Join-Path $DEPLOY_PATH "appsettings.json"
+if (Test-Path $appSettingsEarly) {
+    try {
+        $earlyJson = Get-Content $appSettingsEarly -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cfgHttpsPort = $earlyJson.UpdateHub.UI.HttpsPort
+        if ($cfgHttpsPort -and [int]$cfgHttpsPort -gt 0) {
+            $SITE_PORT = [int]$cfgHttpsPort
+            Write-Host "  [    ] HttpsPort letto da appsettings.json: $SITE_PORT" -ForegroundColor White
+        }
+    } catch {
+        Write-Host "  [WARN] Impossibile leggere HttpsPort da appsettings.json, uso default: $SITE_PORT" -ForegroundColor Yellow
+    }
+}
 
 Write-Step "CONFIGURAZIONE"
 Write-INFO "Deploy path : $DEPLOY_PATH"
@@ -554,6 +572,33 @@ if ($existingRule) {
         Write-OK "Regola firewall creata: porta $SITE_PORT TCP inbound (HTTPS)"
     } catch {
         Write-WARN "Impossibile creare regola firewall: $_"
+    }
+}
+
+# Standalone HTTP port (UpdateHub.UI.HttpPort) — open only if configured and different from HTTPS port
+$standaloneHttpPort = 0
+if (Test-Path $appSettingsEarly) {
+    try {
+        $earlyJsonFw = Get-Content $appSettingsEarly -Raw -Encoding UTF8 | ConvertFrom-Json
+        $cfgHttpPort = $earlyJsonFw.UpdateHub.UI.HttpPort
+        if ($cfgHttpPort -and [int]$cfgHttpPort -gt 0 -and [int]$cfgHttpPort -ne $SITE_PORT) {
+            $standaloneHttpPort = [int]$cfgHttpPort
+        }
+    } catch { }
+}
+
+if ($standaloneHttpPort -gt 0) {
+    $httpRuleName     = "EventForge UpdateHub HTTP $standaloneHttpPort"
+    $existingHttpRule = Get-NetFirewallRule -DisplayName $httpRuleName -ErrorAction SilentlyContinue
+    if ($existingHttpRule) {
+        Write-INFO "Regola firewall HTTP gia presente: '$httpRuleName'"
+    } else {
+        try {
+            New-NetFirewallRule -DisplayName $httpRuleName -Direction Inbound -Protocol TCP -LocalPort $standaloneHttpPort -Action Allow -Profile Any -Enabled True | Out-Null
+            Write-OK "Regola firewall creata: porta $standaloneHttpPort TCP inbound (HTTP standalone)"
+        } catch {
+            Write-WARN "Impossibile creare regola firewall HTTP: $_"
+        }
     }
 }
 
