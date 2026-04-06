@@ -23,5 +23,20 @@
         "DebugTarget": "EventForge.UpdateAgent"
       }
     ]
+  },
+  {
+    "Name": "Hub + Agent",
+    "Projects": [
+      {
+        "Path": "EventForge.UpdateHub\\EventForge.UpdateHub.csproj",
+        "Action": "Start",
+        "DebugTarget": "EventForge.UpdateHub"
+      },
+      {
+        "Path": "EventForge.UpdateAgent\\EventForge.UpdateAgent.csproj",
+        "Action": "Start",
+        "DebugTarget": "EventForge.UpdateAgent"
+      }
+    ]
   }
 ]

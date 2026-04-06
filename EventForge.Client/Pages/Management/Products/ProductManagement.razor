@@ -10,6 +10,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 
+<PageTitle>@TranslationService.GetTranslation("product.management", "Gestione Prodotti")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
                       TEntity="ProductDto"
                       Config="_config"

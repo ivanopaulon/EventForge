@@ -16,6 +16,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
 
+<PageTitle>@TranslationService.GetTranslation("businessparty.management", "Gestione Business Party")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
                       TEntity="BusinessPartyDto"
                       Config="_config"
