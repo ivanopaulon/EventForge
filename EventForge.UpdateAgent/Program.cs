@@ -84,6 +84,7 @@ try
     builder.Services.AddSingleton<IisManagerService>();
     builder.Services.AddSingleton<MigrationRunnerService>();
     builder.Services.AddSingleton<UpdateExecutorService>();
+    builder.Services.AddSingleton<CommandTrackingService>();
 
     // ── Background workers ────────────────────────────────────────────────
     builder.Services.AddHostedService<AgentWorker>();

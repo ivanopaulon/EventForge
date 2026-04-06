@@ -12,7 +12,9 @@ public record PendingUpdate(
     string LocalZipPath,
     DateTime QueuedAt,
     /// <summary>Lower value = earlier position in the sequential install queue.</summary>
-    int QueuePosition);
+    int QueuePosition,
+    /// <summary>When true, this update was sent in manual mode and requires operator approval to install.</summary>
+    bool IsManualInstall = false);
 
 /// <summary>
 /// Manages the ordered, sequential queue of pending updates.
@@ -85,7 +87,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         {
             // Replace if same PackageId already present (re-queued after a transient error)
             _queue.RemoveAll(p => p.PackageId == command.PackageId);
-            _queue.Add(new PendingUpdate(command.PackageId, command, zipPath, DateTime.UtcNow, _nextPosition++));
+            _queue.Add(new PendingUpdate(command.PackageId, command, zipPath, DateTime.UtcNow, _nextPosition++, command.IsManualInstall));
             _queue.Sort((a, b) => a.QueuePosition.CompareTo(b.QueuePosition));
             SaveToDisk();
         }

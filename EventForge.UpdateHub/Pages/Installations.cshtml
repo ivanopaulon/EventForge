@@ -112,6 +112,7 @@
                         <th>Sistema</th>
                         <th>Posizione / Tag</th>
                         <th>Ultimo contatto</th>
+                        <th>Modalità</th>
                         <th>Azioni</th>
                     </tr>
                 </thead>
@@ -217,6 +218,34 @@
                             }
                         </td>
                         <td>
+                            <div class="d-flex flex-column gap-1 align-items-start">
+                                @if (i.UpdateMode == InstallationUpdateMode.Manual)
+                                {
+                                    <span class="ef-badge ef-badge-warning">Manuale</span>
+                                }
+                                else
+                                {
+                                    <span class="ef-badge ef-badge-success">Auto</span>
+                                }
+                                <form method="post" asp-page-handler="SetUpdateMode" class="d-flex gap-1 align-items-center mt-1">
+                                    <input type="hidden" name="installationId" value="@i.Id" />
+                                    <select name="mode" class="form-select form-select-sm" style="font-size:.72rem;padding:2px 4px;max-width:90px"
+                                            onchange="this.form.submit()">
+                                        @if (i.UpdateMode == InstallationUpdateMode.Automatic)
+                                        {
+                                            <option value="Automatic" selected>Auto</option>
+                                            <option value="Manual">Manuale</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="Automatic">Auto</option>
+                                            <option value="Manual" selected>Manuale</option>
+                                        }
+                                    </select>
+                                </form>
+                            </div>
+                        </td>
+                        <td>
                             @if (!i.IsRevoked && row.IsOnline && Model.ReadyPackages.Count > 0)
                             {
                                 <div class="d-flex gap-1 flex-wrap">
@@ -226,9 +255,13 @@
                                             <input type="hidden" name="installationId" value="@i.Id" />
                                             <input type="hidden" name="packageId" value="@pkg.Id" />
                                             <button type="submit" class="btn btn-sm btn-outline-primary"
-                                                    title="Invia @pkg.Component @pkg.Version"
-                                                    onclick="return confirm('Inviare @pkg.Component @pkg.Version a @i.Name?')">
+                                                    title="Invia @pkg.Component @pkg.Version (@(i.UpdateMode == InstallationUpdateMode.Manual ? "Manuale" : "Auto"))"
+                                                    onclick="return confirm('Inviare @pkg.Component @pkg.Version a @i.Name?\nModalità: @(i.UpdateMode == InstallationUpdateMode.Manual ? "Manuale 🔒" : "Automatica")')">
                                                 <i class="bi bi-upload me-1"></i>@pkg.Component @pkg.Version
+                                                @if (i.UpdateMode == InstallationUpdateMode.Manual)
+                                                {
+                                                    <i class="bi bi-lock-fill ms-1"></i>
+                                                }
                                             </button>
                                         </form>
                                     }
@@ -244,7 +277,7 @@
                 @if (!Model.Installations.Any())
                 {
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-5">
+                        <td colspan="10" class="text-center text-muted py-5">
                             <i class="bi bi-pc-display fs-3 d-block mb-2"></i>
                             Nessuna installazione registrata.<br />
                             <button class="btn btn-primary btn-sm mt-2"

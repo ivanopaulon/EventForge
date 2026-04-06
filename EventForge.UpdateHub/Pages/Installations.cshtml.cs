@@ -77,17 +77,27 @@ public class InstallationsModel(
             installation?.InstalledVersionServer,
             installation?.InstalledVersionClient);
 
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
             history.Id, pkg.Id, pkg.Version,
             pkg.Component.ToString(),
-            $"/api/v1/packages/{pkg.Id}/download",
-            pkg.Checksum);
+            $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
+            pkg.Checksum,
+            IsManualInstall: installation?.UpdateMode == InstallationUpdateMode.Manual);
 
         await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
         await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);
 
         logger.LogInformation("StartUpdate sent via UI: Package={PackageId} Installation={InstallationId}", packageId, installationId);
         TempData["Success"] = $"Aggiornamento {pkg.Component} {pkg.Version} inviato all'installazione.";
+        return RedirectToPage();
+    }
+
+    // ── Imposta modalità aggiornamento ────────────────────────────────────
+    public async Task<IActionResult> OnPostSetUpdateModeAsync(Guid installationId, InstallationUpdateMode mode)
+    {
+        await installationService.SetUpdateModeAsync(installationId, mode);
+        TempData["Success"] = $"Modalità aggiornamento aggiornata.";
         return RedirectToPage();
     }
 

@@ -221,6 +221,15 @@ public class UpdateExecutorService(
 
     private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, string component, string version, CancellationToken ct)
     {
+        // Defensive fix: if Hub sent a relative URL, prepend the hub base URL
+        if (downloadUrl.StartsWith('/'))
+        {
+            var hubBase = string.IsNullOrWhiteSpace(options.HubBaseUrl)
+                ? options.HubUrl.Replace("/hubs/update", "").TrimEnd('/')
+                : options.HubBaseUrl.TrimEnd('/');
+            downloadUrl = hubBase + downloadUrl;
+        }
+
         var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
 
         var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");

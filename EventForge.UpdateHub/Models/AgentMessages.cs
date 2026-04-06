@@ -56,7 +56,8 @@ public record StartUpdateCommand(
     string Version,
     string Component,
     string DownloadUrl,
-    string Checksum);
+    string Checksum,
+    bool IsManualInstall = false);
 
 /// <summary>Asks the agent to send its current status.</summary>
 public record RequestStatusCommand(string Reason);

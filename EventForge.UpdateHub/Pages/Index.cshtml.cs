@@ -1,3 +1,4 @@
+using EventForge.UpdateHub.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,14 +47,19 @@ public class IndexModel(
             return RedirectToPage();
         }
 
-        var command = new
-        {
-            PackageId = pkg.Id,
-            Version = pkg.Version,
-            Component = pkg.Component.ToString(),
-            DownloadUrl = $"/api/v1/packages/{pkg.Id}/download",
-            Checksum = pkg.Checksum
-        };
+        var installation = await installationService.GetByIdAsync(installationId);
+        var history = await installationService.StartUpdateHistoryAsync(
+            installationId, packageId,
+            installation?.InstalledVersionServer,
+            installation?.InstalledVersionClient);
+
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var command = new StartUpdateCommand(
+            history.Id, pkg.Id, pkg.Version,
+            pkg.Component.ToString(),
+            $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
+            pkg.Checksum,
+            IsManualInstall: installation?.UpdateMode == InstallationUpdateMode.Manual);
 
         await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
         await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);
@@ -76,16 +82,30 @@ public class IndexModel(
             return RedirectToPage();
         }
 
-        var command = new
-        {
-            PackageId = pkg.Id,
-            Version = pkg.Version,
-            Component = pkg.Component.ToString(),
-            DownloadUrl = $"/api/v1/packages/{pkg.Id}/download",
-            Checksum = pkg.Checksum
-        };
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var downloadUrl = $"{baseUrl}/api/v1/packages/{pkg.Id}/download";
 
-        await agentHubContext.Clients.All.SendAsync("StartUpdate", command);
+        foreach (var id in onlineIds)
+        {
+            var connectionId = connectionTracker.GetConnectionId(id);
+            if (connectionId is null) continue;
+
+            var installation = await installationService.GetByIdAsync(id);
+            var history = await installationService.StartUpdateHistoryAsync(
+                id, packageId,
+                installation?.InstalledVersionServer,
+                installation?.InstalledVersionClient);
+
+            var command = new StartUpdateCommand(
+                history.Id, pkg.Id, pkg.Version,
+                pkg.Component.ToString(),
+                downloadUrl,
+                pkg.Checksum,
+                IsManualInstall: false);
+
+            await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+        }
+
         await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);
 
         logger.LogInformation("Broadcast StartUpdate: Package={PackageId} to {Count} installations", packageId, onlineIds.Count);

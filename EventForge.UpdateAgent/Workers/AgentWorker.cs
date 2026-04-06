@@ -15,6 +15,7 @@ public class AgentWorker(
     AgentStatusService agentStatus,
     VersionDetectorService versionDetector,
     SystemInfoService systemInfo,
+    CommandTrackingService commandTracking,
     ILogger<AgentWorker> logger) : BackgroundService
 {
     private HubConnection? _connection;
@@ -227,23 +228,47 @@ public class AgentWorker(
             logger.LogInformation("Received StartUpdate command: {Component} {Version} (PackageId={PackageId})",
                 command.Component, command.Version, command.PackageId);
 
+            commandTracking.Track(command);
+
             try
             {
                 // Phase 1+2 always run immediately, regardless of maintenance window.
-                var zipPath = await updateExecutor.DownloadAndVerifyAsync(command, ct);
-
-                if (pendingInstallService.IsInMaintenanceWindow())
+                commandTracking.SetState(command.PackageId, CommandState.Downloading);
+                string zipPath;
+                try
                 {
-                    // Install right now in the current window.
+                    zipPath = await updateExecutor.DownloadAndVerifyAsync(command, ct);
+                    commandTracking.SetState(command.PackageId, CommandState.Downloaded);
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    commandTracking.SetState(command.PackageId, CommandState.DownloadFailed, ex.Message);
+                    throw;
+                }
+
+                if (command.IsManualInstall)
+                {
+                    // Manual mode: always enqueue, never auto-install
+                    pendingInstallService.Enqueue(command, zipPath);
+                    logger.LogInformation("Manual mode: {Component} {Version} queued for operator approval.", command.Component, command.Version);
+                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                }
+                else if (pendingInstallService.IsInMaintenanceWindow())
+                {
+                    // Auto mode within window: install immediately
                     logger.LogInformation("Maintenance window active — installing {Component} {Version} immediately.",
                         command.Component, command.Version);
 
+                    commandTracking.SetState(command.PackageId, CommandState.Installing);
                     try
                     {
                         await updateExecutor.InstallFromZipAsync(command, zipPath, ct);
+                        commandTracking.SetState(command.PackageId, CommandState.Installed);
+                        commandTracking.Remove(command.PackageId);
                     }
                     catch (Exception ex)
                     {
+                        commandTracking.SetState(command.PackageId, CommandState.Failed, ex.Message);
                         // Block the queue: a failed direct install is just as dangerous for ordered migrations.
                         pendingInstallService.Block(command.PackageId,
                             $"Direct install failed for {command.Component} {command.Version}: {ex.Message}");
@@ -251,7 +276,7 @@ public class AgentWorker(
                 }
                 else
                 {
-                    // Enqueue for the next maintenance window.
+                    // Auto mode outside window: enqueue
                     pendingInstallService.Enqueue(command, zipPath);
 
                     var nextWindow = pendingInstallService.GetNextWindowStart();
