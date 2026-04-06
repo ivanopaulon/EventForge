@@ -14,6 +14,7 @@ public class IndexModel(
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
     VersionDetectorService versionDetector,
+    CommandTrackingService commandTracking,
     ILogger<IndexModel> logger) : PageModel
 {
     public string InstallationId { get; private set; } = string.Empty;
@@ -29,6 +30,7 @@ public class IndexModel(
     public int PendingCount { get; private set; }
     public List<PendingUpdate> PendingUpdates { get; private set; } = [];
     public DateTime? NextWindow { get; private set; }
+    public IReadOnlyList<TrackedCommand> TrackedCommands { get; private set; } = [];
 
     public void OnGet()
     {
@@ -45,6 +47,7 @@ public class IndexModel(
         PendingUpdates = [.. pendingInstallService.GetAll()];
         PendingCount = PendingUpdates.Count;
         NextWindow = pendingInstallService.GetNextWindowStart();
+        TrackedCommands = commandTracking.GetAll();
     }
 
     public IActionResult OnPostInstallNow(Guid packageId)

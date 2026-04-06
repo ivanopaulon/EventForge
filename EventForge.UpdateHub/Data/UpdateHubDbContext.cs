@@ -56,7 +56,8 @@ public class UpdateHubDbContext(DbContextOptions<UpdateHubDbContext> options) : 
                 ("DotNetVersion",    "TEXT NULL"),
                 ("AgentVersion",     "TEXT NULL"),
                 ("IpAddress",        "TEXT NULL"),
-                ("Tags",             "TEXT NULL")
+                ("Tags",             "TEXT NULL"),
+                ("UpdateMode",       "INTEGER NOT NULL DEFAULT 0")
             })
             {
                 cmd.CommandText = $"ALTER TABLE Installations ADD COLUMN {col} {def}";

@@ -12,7 +12,9 @@ public record PendingUpdate(
     string LocalZipPath,
     DateTime QueuedAt,
     /// <summary>Lower value = earlier position in the sequential install queue.</summary>
-    int QueuePosition);
+    int QueuePosition,
+    /// <summary>When true, this update was sent in manual mode and requires operator approval to install.</summary>
+    bool IsManualInstall = false);
 
 /// <summary>
 /// Manages the ordered, sequential queue of pending updates.
@@ -85,7 +87,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         {
             // Replace if same PackageId already present (re-queued after a transient error)
             _queue.RemoveAll(p => p.PackageId == command.PackageId);
-            _queue.Add(new PendingUpdate(command.PackageId, command, zipPath, DateTime.UtcNow, _nextPosition++));
+            _queue.Add(new PendingUpdate(command.PackageId, command, zipPath, DateTime.UtcNow, _nextPosition++, command.IsManualInstall));
             _queue.Sort((a, b) => a.QueuePosition.CompareTo(b.QueuePosition));
             SaveToDisk();
         }
@@ -240,7 +242,10 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         {
             var state = new PersistentState(_queue.ToList(), IsBlocked, BlockedReason, BlockedByPackageId);
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_persistPath, json);
+            // Write to a temp file first, then atomically rename to avoid corruption on crash.
+            var tmpPath = _persistPath + ".tmp";
+            File.WriteAllText(tmpPath, json);
+            File.Move(tmpPath, _persistPath, overwrite: true);
         }
         catch (Exception ex)
         {

@@ -47,7 +47,8 @@ public record StartUpdateCommand(
     string Version,
     string Component,
     string DownloadUrl,
-    string Checksum);
+    string Checksum,
+    bool IsManualInstall = false);
 
 public record RequestStatusCommand(string Reason);
 public record InstallationComponentsDto(bool Server, bool Client);

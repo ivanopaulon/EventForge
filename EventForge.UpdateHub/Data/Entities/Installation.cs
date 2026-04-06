@@ -81,9 +81,14 @@ public class Installation
     [MaxLength(500)]
     public string? RevokedReason { get; set; }
 
+    /// <summary>Controls whether updates are installed automatically or require manual operator approval.</summary>
+    public InstallationUpdateMode UpdateMode { get; set; } = InstallationUpdateMode.Automatic;
+
     public ICollection<UpdateHistory> UpdateHistory { get; set; } = [];
 }
 
 public enum InstallationComponents { Server = 1, Client = 2, Both = 3 }
 
 public enum InstallationStatus { Unknown, Online, Offline, Updating, Error }
+
+public enum InstallationUpdateMode { Automatic = 0, Manual = 1 }

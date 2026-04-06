@@ -6,24 +6,35 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
     public string? GetServerVersion()
     {
         if (!options.Components.Server.Enabled) return null;
+        var deployPath = options.Components.Server.DeployPath;
+        if (string.IsNullOrWhiteSpace(deployPath) || !Directory.Exists(deployPath))
+        {
+            logger.LogDebug("Server deploy path not found or empty: '{Path}'", deployPath);
+            return null;
+        }
         try
         {
             // Look for version.txt written by the publish process
-            var versionFile = Path.Combine(options.Components.Server.DeployPath, "version.txt");
+            var versionFile = Path.Combine(deployPath, "version.txt");
             if (File.Exists(versionFile))
-                return File.ReadAllText(versionFile).Trim();
+            {
+                var v = File.ReadAllText(versionFile).Trim();
+                if (!string.IsNullOrEmpty(v)) return v;
+                logger.LogDebug("version.txt at {Path} is empty, falling back to assembly", versionFile);
+            }
 
             // Fallback: read from assembly in deploy path
-            var exeFiles = Directory.GetFiles(options.Components.Server.DeployPath, "EventForge.Server.exe", SearchOption.TopDirectoryOnly);
+            var exeFiles = Directory.GetFiles(deployPath, "EventForge.Server.exe", SearchOption.TopDirectoryOnly);
             if (exeFiles.Length > 0)
             {
-                var version = System.Diagnostics.FileVersionInfo.GetVersionInfo(exeFiles[0]).FileVersion;
-                return version;
+                var fileVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(exeFiles[0]).FileVersion;
+                if (!string.IsNullOrWhiteSpace(fileVersion)) return fileVersion;
+                logger.LogDebug("FileVersion is empty for {Exe}", exeFiles[0]);
             }
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to detect server version from {Path}", options.Components.Server.DeployPath);
+            logger.LogWarning(ex, "Failed to detect server version from {Path}", deployPath);
         }
         return null;
     }
@@ -31,15 +42,25 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
     public string? GetClientVersion()
     {
         if (!options.Components.Client.Enabled) return null;
+        var deployPath = options.Components.Client.DeployPath;
+        if (string.IsNullOrWhiteSpace(deployPath) || !Directory.Exists(deployPath))
+        {
+            logger.LogDebug("Client deploy path not found or empty: '{Path}'", deployPath);
+            return null;
+        }
         try
         {
-            var versionFile = Path.Combine(options.Components.Client.DeployPath, "version.txt");
+            var versionFile = Path.Combine(deployPath, "version.txt");
             if (File.Exists(versionFile))
-                return File.ReadAllText(versionFile).Trim();
+            {
+                var v = File.ReadAllText(versionFile).Trim();
+                if (!string.IsNullOrEmpty(v)) return v;
+                logger.LogDebug("version.txt at {Path} is empty", versionFile);
+            }
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to detect client version from {Path}", options.Components.Client.DeployPath);
+            logger.LogWarning(ex, "Failed to detect client version from {Path}", deployPath);
         }
         return null;
     }

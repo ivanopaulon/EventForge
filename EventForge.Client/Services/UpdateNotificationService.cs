@@ -22,6 +22,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private bool _hasPendingClientUpdate;
     private string? _clientUpdateVersion;
     private int _availableUpdatesCount;
+    private UpdateProgressPayload? _currentProgress;
 
     public bool IsServerMaintenance => _isServerMaintenance;
     public string? MaintenanceComponent => _maintenanceComponent;
@@ -29,6 +30,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     public bool HasPendingClientUpdate => _hasPendingClientUpdate;
     public string? ClientUpdateVersion => _clientUpdateVersion;
     public int AvailableUpdatesCount => _availableUpdatesCount;
+    public UpdateProgressPayload? CurrentProgress => _currentProgress;
 
     public event Action? StateChanged;
 
@@ -44,6 +46,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _realtime.ServerMaintenanceStarted += OnMaintenanceStarted;
         _realtime.ServerMaintenanceEnded += OnMaintenanceEnded;
         _realtime.ClientUpdateDeployed += OnClientUpdateDeployed;
+        _realtime.UpdateProgressReceived += OnUpdateProgress;
     }
 
     // ── SignalR event handlers ───────────────────────────────────────────────
@@ -62,6 +65,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _isServerMaintenance = false;
         _maintenanceComponent = null;
         _maintenanceVersion = null;
+        _currentProgress = null;
         _logger.LogInformation("Maintenance ended: {Component} v{Version}", payload.Component, payload.Version);
         StateChanged?.Invoke();
     }
@@ -71,6 +75,12 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _hasPendingClientUpdate = true;
         _clientUpdateVersion = payload.Version;
         _logger.LogInformation("Client update deployed: v{Version}", payload.Version);
+        StateChanged?.Invoke();
+    }
+
+    private void OnUpdateProgress(UpdateProgressPayload payload)
+    {
+        _currentProgress = payload;
         StateChanged?.Invoke();
     }
 
@@ -130,5 +140,6 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _realtime.ServerMaintenanceStarted -= OnMaintenanceStarted;
         _realtime.ServerMaintenanceEnded -= OnMaintenanceEnded;
         _realtime.ClientUpdateDeployed -= OnClientUpdateDeployed;
+        _realtime.UpdateProgressReceived -= OnUpdateProgress;
     }
 }

@@ -221,6 +221,15 @@ public class UpdateExecutorService(
 
     private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, string component, string version, CancellationToken ct)
     {
+        // Defensive fix: if Hub sent a relative URL, prepend the hub base URL
+        if (downloadUrl.StartsWith('/'))
+        {
+            var hubBase = string.IsNullOrWhiteSpace(options.HubBaseUrl)
+                ? options.HubUrl.Replace("/hubs/update", "").TrimEnd('/')
+                : options.HubBaseUrl.TrimEnd('/');
+            downloadUrl = hubBase + downloadUrl;
+        }
+
         var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
 
         var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
@@ -379,14 +388,18 @@ public class UpdateExecutorService(
     {
         if (string.IsNullOrWhiteSpace(healthCheckUrl)) return;
 
-        var maxAttempts = options.Install.HealthCheckMaxAttempts;
-        var delayMs     = options.Install.HealthCheckDelaySeconds * 1_000;
+        var maxAttempts   = options.Install.HealthCheckMaxAttempts;
+        var delayMs       = options.Install.HealthCheckDelaySeconds * 1_000;
+        // Cap individual health-check requests to the configured delay + 5 s to avoid hanging forever.
+        var requestTimeout = TimeSpan.FromMilliseconds(delayMs + 5_000);
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
-                var response = await _http.GetAsync(healthCheckUrl, ct);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(requestTimeout);
+                var response = await _http.GetAsync(healthCheckUrl, cts.Token);
                 if (response.IsSuccessStatusCode) return;
                 logger.LogWarning("Health check attempt {Attempt}/{Max} failed: {Status}", attempt, maxAttempts, response.StatusCode);
             }

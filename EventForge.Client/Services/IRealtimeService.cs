@@ -248,6 +248,9 @@ public interface IRealtimeService
     /// <summary>Fired when a new Client version has been deployed to disk.</summary>
     event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
 
+    /// <summary>Fired periodically during an active download/install with current progress.</summary>
+    event Action<UpdateProgressPayload>? UpdateProgressReceived;
+
     #endregion
 
     #region Document Collaboration Events

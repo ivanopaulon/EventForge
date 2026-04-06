@@ -71,6 +71,21 @@ public class SystemMaintenanceController(
                 });
                 break;
 
+            case "progress":
+                await hub.Clients.Group("all_clients").SendAsync("UpdateProgress", new
+                {
+                    request.Component,
+                    request.Version,
+                    request.Phase,
+                    request.PercentComplete,
+                    request.FormattedDownloaded,
+                    request.FormattedTotal,
+                    request.FormattedSpeed,
+                    request.Eta,
+                    SentAt = DateTime.UtcNow
+                });
+                break;
+
             default:
                 logger.LogWarning("Unknown maintenance phase: {Phase}", request.Phase);
                 return BadRequest($"Unknown phase: {request.Phase}");
@@ -88,4 +103,12 @@ public class SystemMaintenanceController(
     }
 }
 
-public record MaintenanceNotificationRequest(string? Phase, string? Component, string? Version);
+public record MaintenanceNotificationRequest(
+    string? Phase,
+    string? Component,
+    string? Version,
+    int? PercentComplete = null,
+    string? FormattedDownloaded = null,
+    string? FormattedTotal = null,
+    string? FormattedSpeed = null,
+    string? Eta = null);
