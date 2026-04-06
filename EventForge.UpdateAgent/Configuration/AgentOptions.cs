@@ -150,8 +150,8 @@ public class UiOptions
     public int Port { get; set; } = 5780;
 
     /// <summary>HTTP Basic auth username. Empty = UI disabled (returns 503).</summary>
-    public string Username { get; set; } = string.Empty;
+    public string Username { get; set; } = "admin";
 
-    /// <summary>HTTP Basic auth password.</summary>
-    public string Password { get; set; } = string.Empty;
+    /// <summary>HTTP Basic auth password. Change this before deploying.</summary>
+    public string Password { get; set; } = "Admin#123!";
 }

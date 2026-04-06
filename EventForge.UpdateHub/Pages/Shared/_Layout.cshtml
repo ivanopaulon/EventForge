@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] — EventForge Agent</title>
+    <title>@ViewData["Title"] — EventForge Update Hub</title>
     <link rel="icon" type="image/svg+xml" href="~/images/trace.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,7 +25,7 @@
                 <img src="~/images/trace.svg" class="sidebar-logo-trace" alt="EventForge" />
                 <img src="~/images/logoWhite.svg" class="sidebar-logo-wordmark" alt="EventForge" />
             </div>
-            <div class="sidebar-brand-product">Update Agent</div>
+            <div class="sidebar-brand-product">Update Hub</div>
             <button class="sidebar-brand-close d-lg-none" id="sidebarToggle" aria-label="Chiudi menu">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -33,43 +33,57 @@
 
         <div class="sidebar-nav">
 
-            <!-- Agent -->
+            <!-- Hub -->
             <div class="sidebar-section">
                 <div class="sidebar-section-title">
-                    <i class="bi bi-display"></i>Agent
+                    <i class="bi bi-display"></i>Hub
                 </div>
                 <a href="/"
                    class="sidebar-item @(Context.Request.Path.Equals("/", StringComparison.OrdinalIgnoreCase) || Context.Request.Path.Equals("/index", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-grid-1x2-fill"></i>Dashboard
                 </a>
-                <a href="/schedule"
-                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/schedule", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-calendar-check-fill"></i>Schedule
+                <a href="/installations"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/installations", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-pc-display-horizontal"></i>Installazioni
                 </a>
-                <a href="/logs"
-                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-journals"></i>Log
+                <a href="/packages"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/packages", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-box-seam-fill"></i>Pacchetti
                 </a>
-                <a href="/settings"
-                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                    <i class="bi bi-sliders"></i>Impostazioni
+                <a href="/history"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/history", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-clock-history"></i>Cronologia
+                </a>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Developer -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <i class="bi bi-terminal"></i>Developer
+                </div>
+                <a href="/swagger" target="_blank" class="sidebar-item">
+                    <i class="bi bi-braces-asterisk"></i>Swagger API
+                    <i class="bi bi-box-arrow-up-right sidebar-item-ext"></i>
+                </a>
+                <a href="/health" target="_blank" class="sidebar-item">
+                    <i class="bi bi-activity"></i>Health JSON
+                    <i class="bi bi-box-arrow-up-right sidebar-item-ext"></i>
                 </a>
             </div>
 
         </div>
 
-        <!-- Installation footer -->
-        @{
-            var _instId   = ViewData["InstallationId"]?.ToString() ?? "";
-            var _instName = ViewData["InstallationName"]?.ToString() ?? "Agent";
-            var _initials = _instName.Length >= 2 ? _instName[..2].ToUpper() : _instName.ToUpper();
-        }
+        <!-- Footer -->
         <div class="sidebar-footer">
             <div class="sidebar-user">
-                <div class="sidebar-avatar">@_initials</div>
+                <div class="sidebar-avatar"><i class="bi bi-cloud-upload-fill" style="font-size:.85rem"></i></div>
                 <div class="sidebar-user-info">
-                    <div class="sidebar-user-name">@_instName</div>
-                    <div class="sidebar-user-role">@_instId[..Math.Min(8, _instId.Length)]&hellip;</div>
+                    <div class="sidebar-user-name">Update Hub</div>
+                    <div class="sidebar-user-role">
+                        v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—")
+                    </div>
                 </div>
             </div>
         </div>
@@ -85,7 +99,7 @@
             </button>
 
             <nav class="ef-breadcrumb" aria-label="breadcrumb">
-                <a href="/"><i class="bi bi-box-arrow-in-down-right me-1"></i>Agent</a>
+                <a href="/"><i class="bi bi-cloud-upload me-1"></i>Update Hub</a>
                 @if (!string.IsNullOrEmpty(ViewData["PageSection"]?.ToString()))
                 {
                     <i class="bi bi-chevron-right ef-breadcrumb-sep"></i>
@@ -99,7 +113,7 @@
             </nav>
 
             <div class="ef-topbar-meta">
-                <div class="ef-status-dot" title="Hub connection" id="topStatusDot"></div>
+                <div class="ef-status-dot" title="Sistema operativo" id="topStatusDot"></div>
                 <span class="ef-version-badge">
                     v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—")
                 </span>
@@ -120,13 +134,6 @@
                 <i class="bi bi-exclamation-circle-fill me-2"></i>@warnMsg
             </div>
         }
-        @if (TempData["Info"] is string infoMsg)
-        {
-            <div class="alert alert-info alert-dismissible mx-3 mt-3 mb-0">
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                <i class="bi bi-info-circle-fill me-2"></i>@infoMsg
-            </div>
-        }
         @if (TempData["Success"] is string okMsg)
         {
             <div class="alert alert-success alert-dismissible mx-3 mt-3 mb-0">
@@ -142,8 +149,8 @@
 
         <!-- Footer -->
         <footer class="ef-footer">
-            <span>EventForge Update Agent &copy; @DateTime.Now.Year</span>
-            <span>Pannello di amministrazione locale</span>
+            <span>EventForge Update Hub &copy; @DateTime.Now.Year</span>
+            <span>Pannello di distribuzione aggiornamenti</span>
         </footer>
 
     </div>
@@ -154,4 +161,3 @@
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

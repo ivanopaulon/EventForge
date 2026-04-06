@@ -18,6 +18,7 @@ public class UpdateExecutorService(
     IisManagerService iisManagerService,
     MigrationRunnerService migrationRunner,
     VersionDetectorService versionDetector,
+    DownloadProgressService downloadProgress,
     ILogger<UpdateExecutorService> logger)
 {
     // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
@@ -42,7 +43,7 @@ public class UpdateExecutorService(
     public async Task<string> DownloadAndVerifyAsync(StartUpdateCommand command, CancellationToken ct)
     {
         await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
-        var zipPath = await DownloadPackageAsync(command.DownloadUrl, command.PackageId.ToString("N"), ct);
+        var zipPath = await DownloadPackageAsync(command.DownloadUrl, command.PackageId.ToString("N"), command.Component, command.Version, ct);
 
         await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
         await VerifyChecksumAsync(zipPath, command.Checksum, ct);
@@ -165,90 +166,114 @@ public class UpdateExecutorService(
 
     // ── Download (resilient) ─────────────────────────────────────────────────
 
-    private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, CancellationToken ct)
+    private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, string component, string version, CancellationToken ct)
     {
+        var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
+
         var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
         Directory.CreateDirectory(downloadDir);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
         var tmpPath = zipPath + ".tmp";
 
-        var maxAttempts = options.DownloadMaxRetries + 1; // e.g. 5 retries → 6 total attempts
+        var maxAttempts = options.DownloadMaxRetries + 1;
 
-        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        downloadProgress.Start(packageId, component, version);
+        try
         {
-            if (attempt > 0)
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
             {
-                var delaySec = DownloadDelays[Math.Min(attempt - 1, DownloadDelays.Length - 1)];
-                logger.LogWarning("Download retry {Attempt}/{Max} in {Delay}s...", attempt, maxAttempts - 1, delaySec);
-                await Task.Delay(TimeSpan.FromSeconds(delaySec), ct);
-            }
-
-            try
-            {
-                // Best-effort range resume: if a .tmp already exists, request the missing tail.
-                long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                request.Headers.Add("X-Api-Key", options.ApiKey);
-                if (resumeFrom > 0)
-                    request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
-
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
-
-                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
-
-                // 416 = server doesn't support the requested range (file changed or no range support): restart.
-                if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+                if (attempt > 0)
                 {
-                    logger.LogWarning("Server returned 416 — restarting download from byte 0.");
-                    try { File.Delete(tmpPath); } catch { /* best effort */ }
-                    resumeFrom = 0;
-
-                    // Redo the request without the Range header.
-                    using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                    request2.Headers.Add("X-Api-Key", options.ApiKey);
-                    using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
-                    response2.EnsureSuccessStatusCode();
-                    await WriteResponseToFileAsync(response2, tmpPath, append: false, linkedCts.Token);
-                }
-                else
-                {
-                    response.EnsureSuccessStatusCode();
-                    await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, linkedCts.Token);
+                    var delaySec = DownloadDelays[Math.Min(attempt - 1, DownloadDelays.Length - 1)];
+                    logger.LogWarning("Download retry {Attempt}/{Max} in {Delay}s...", attempt, maxAttempts - 1, delaySec);
+                    await Task.Delay(TimeSpan.FromSeconds(delaySec), ct);
                 }
 
-                // Atomic rename: only commit when the full file is on disk.
-                if (File.Exists(zipPath)) File.Delete(zipPath);
-                File.Move(tmpPath, zipPath);
+                try
+                {
+                    long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
 
-                logger.LogInformation("Package downloaded to {Path}", zipPath);
-                return zipPath;
+                    using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                    request.Headers.Add("X-Api-Key", options.ApiKey);
+                    if (resumeFrom > 0)
+                        request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
+
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
+                    using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+
+                    using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+
+                    if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
+                    {
+                        logger.LogWarning("Server returned 416 — restarting download from byte 0.");
+                        try { File.Delete(tmpPath); } catch { /* best effort */ }
+                        resumeFrom = 0;
+
+                        using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                        request2.Headers.Add("X-Api-Key", options.ApiKey);
+                        using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                        response2.EnsureSuccessStatusCode();
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, linkedCts.Token);
+                    }
+                    else
+                    {
+                        response.EnsureSuccessStatusCode();
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, linkedCts.Token);
+                    }
+
+                    if (File.Exists(zipPath)) File.Delete(zipPath);
+                    File.Move(tmpPath, zipPath);
+
+                    logger.LogInformation("Package downloaded to {Path}", zipPath);
+                    return zipPath;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex) when (attempt < maxAttempts - 1)
+                {
+                    logger.LogWarning(ex, "Download attempt {Attempt}/{Max} failed", attempt + 1, maxAttempts);
+                }
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+
+            throw new InvalidOperationException($"Package download failed after {maxAttempts} attempt(s). URL: {downloadUrl}");
+        }
+        finally
+        {
+            downloadProgress.Complete(packageId);
+        }
+    }
+
+    private async Task WriteResponseToFileAsync(
+        HttpResponseMessage response, string tmpPath, bool append, Guid packageId, CancellationToken ct)
+    {
+        var totalBytes = response.Content.Headers.ContentLength;
+        await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+
+        var fileMode = append ? FileMode.Append : FileMode.Create;
+        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+
+        var buffer    = new byte[81920];
+        long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
+        var lastReport = DateTime.UtcNow;
+        int bytesRead;
+
+        while ((bytesRead = await responseStream.ReadAsync(buffer, ct)) > 0)
+        {
+            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
+            written += bytesRead;
+
+            if ((DateTime.UtcNow - lastReport).TotalSeconds >= 1)
             {
-                // Propagate host-shutdown / explicit cancellation immediately.
-                throw;
-            }
-            catch (Exception ex) when (attempt < maxAttempts - 1)
-            {
-                logger.LogWarning(ex, "Download attempt {Attempt}/{Max} failed", attempt + 1, maxAttempts);
-                // Leave .tmp on disk so the next attempt can resume.
+                downloadProgress.Update(packageId, written, totalBytes);
+                lastReport = DateTime.UtcNow;
             }
         }
 
-        throw new InvalidOperationException(
-            $"Package download failed after {maxAttempts} attempt(s). URL: {downloadUrl}");
-    }
-
-    private static async Task WriteResponseToFileAsync(
-        HttpResponseMessage response, string tmpPath, bool append, CancellationToken ct)
-    {
-        await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
-        var fileMode = append ? FileMode.Append : FileMode.Create;
-        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
-        await responseStream.CopyToAsync(fileStream, ct);
+        // Final update
+        downloadProgress.Update(packageId, written, totalBytes);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

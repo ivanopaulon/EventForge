@@ -36,6 +36,30 @@
     </a>
 </div>
 
+<!-- ── Download in progress (real-time, polling) ──────────────────────── -->
+<div id="downloadWidget" style="display:none" class="ef-card mb-4 border-top border-primary border-3">
+    <div class="ef-card-header">
+        <i class="bi bi-cloud-download-fill text-primary"></i>
+        <span>Download in corso</span>
+        <span id="dl-component" class="ef-badge ef-badge-blue ms-1"></span>
+        <span id="dl-version" class="ef-badge ef-badge-neutral ms-1"></span>
+        <span id="dl-speed" class="ms-auto" style="font-size:.75rem;color:var(--ef-text-muted)"></span>
+    </div>
+    <div class="ef-card-body">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem;color:var(--ef-text-muted)">
+            <span id="dl-bytes"></span>
+            <span id="dl-eta"></span>
+        </div>
+        <div class="progress" style="height:8px">
+            <div id="dl-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                 role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="mt-1" style="font-size:.72rem;color:var(--ef-text-subtle)">
+            <span id="dl-pct"></span>
+        </div>
+    </div>
+</div>
+
 <!-- Hub status banner -->
 <div class="alert alert-@stateColor d-flex align-items-center gap-2 mb-4">
     <i class="bi @stateIcon fs-5"></i>
@@ -164,7 +188,7 @@
                                 <td><code>@item.Command.Version</code></td>
                                 <td class="text-muted">@item.QueuedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
                                 <td>
-                                    @if (File.Exists(item.LocalZipPath))
+                                    @if (System.IO.File.Exists(item.LocalZipPath))
                                     {
                                         <span class="ef-badge ef-badge-success"><i class="bi bi-check"></i>Su disco</span>
                                     }
@@ -174,7 +198,7 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (isHead && !Model.QueueBlocked && File.Exists(item.LocalZipPath))
+                                    @if (isHead && !Model.QueueBlocked && System.IO.File.Exists(item.LocalZipPath))
                                     {
                                         <form method="post" asp-page-handler="InstallNow">
                                             <input type="hidden" name="packageId" value="@item.PackageId" />
@@ -199,4 +223,67 @@ else if (!Model.QueueBlocked)
         <i class="bi bi-check-circle-fill fs-5"></i>
         <span>Nessun aggiornamento in attesa.</span>
     </div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const widget    = document.getElementById('downloadWidget');
+    const dlComp    = document.getElementById('dl-component');
+    const dlVer     = document.getElementById('dl-version');
+    const dlSpeed   = document.getElementById('dl-speed');
+    const dlBytes   = document.getElementById('dl-bytes');
+    const dlEta     = document.getElementById('dl-eta');
+    const dlBar     = document.getElementById('dl-bar');
+    const dlPct     = document.getElementById('dl-pct');
+
+    function fmtEta(sec) {
+        if (!sec || sec <= 0) return '';
+        if (sec < 60)  return `ETA: ${Math.round(sec)}s`;
+        if (sec < 3600) return `ETA: ${Math.floor(sec/60)}m ${Math.round(sec%60)}s`;
+        return `ETA: ${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+    }
+
+    function poll() {
+        fetch('/api/agent/download-status', { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) {
+                    widget.style.display = 'none';
+                    return;
+                }
+                widget.style.display = '';
+                dlComp.textContent  = data.component  ?? '';
+                dlVer.textContent   = data.version    ?? '';
+                dlSpeed.textContent = data.formattedSpeed ?? '';
+                dlBytes.textContent = data.totalBytes
+                    ? `${data.formattedDownloaded} / ${data.formattedTotal}`
+                    : data.formattedDownloaded;
+
+                const pct = data.percentComplete;
+                if (pct != null) {
+                    dlBar.style.width      = pct + '%';
+                    dlBar.setAttribute('aria-valuenow', pct);
+                    dlPct.textContent      = pct + '%';
+                } else {
+                    dlBar.style.width = '100%'; // indeterminate look
+                    dlPct.textContent = 'Calcolo dimensione…';
+                }
+
+                const eta = data.eta;
+                dlEta.textContent = eta ? fmtEta(
+                    parseInt(eta.split(':')[0])*3600 +
+                    parseInt(eta.split(':')[1])*60   +
+                    parseInt(eta.split(':')[2])
+                ) : '';
+            })
+            .catch(() => { widget.style.display = 'none'; });
+    }
+
+    poll();
+    setInterval(poll, 1000);
+})();
+</script>
 }
