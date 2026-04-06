@@ -62,7 +62,7 @@ public class UpdateExecutorService(
 
             // ── Phase 7: Deploy ──
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
-            await DeployBinariesAsync(tempDir, deployPath, ct);
+            await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
             await File.WriteAllTextAsync(Path.Combine(deployPath, "version.txt"), command.Version, ct);
@@ -172,17 +172,29 @@ public class UpdateExecutorService(
                ?? new UpdateManifest();
     }
 
-    private static async Task DeployBinariesAsync(string extractedPath, string deployPath, CancellationToken ct)
+    private static async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct)
     {
         var binariesPath = Path.Combine(extractedPath, "binaries");
         if (!Directory.Exists(binariesPath)) binariesPath = extractedPath;
 
         Directory.CreateDirectory(deployPath);
+
+        // Normalize preserve list to lower-case for case-insensitive comparison on Windows
+        var preserveSet = manifest.PreserveFiles
+            .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
+            .ToHashSet();
+
         foreach (var file in Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories))
         {
             ct.ThrowIfCancellationRequested();
             var relative = Path.GetRelativePath(binariesPath, file);
             var dest = Path.Combine(deployPath, relative);
+
+            // Skip if the file is in the preserve list AND already exists at the destination
+            if (preserveSet.Count > 0 && File.Exists(dest) &&
+                preserveSet.Contains(relative.ToLowerInvariant()))
+                continue;
+
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             File.Copy(file, dest, overwrite: true);
         }
