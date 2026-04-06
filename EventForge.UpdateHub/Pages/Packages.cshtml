@@ -275,7 +275,7 @@
                                 <option value="">— seleziona —</option>
                                 @foreach (var inst in Model.OnlineInstallations)
                                 {
-                                    var comp = (inst.HasServer ? "server" : "") + (inst.HasServer && inst.HasClient ? " " : "") + (inst.HasClient ? "client" : "");
+                                    var comp = inst.HasServer && inst.HasClient ? "server client" : inst.HasServer ? "server" : "client";
                                     <option value="@inst.Id"
                                             class="deploy-inst-row"
                                             data-component="@comp">
