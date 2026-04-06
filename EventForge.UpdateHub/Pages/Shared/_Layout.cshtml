@@ -81,9 +81,10 @@
                 <div class="sidebar-avatar"><i class="bi bi-cloud-upload-fill" style="font-size:.85rem"></i></div>
                 <div class="sidebar-user-info">
                     <div class="sidebar-user-name">Update Hub</div>
-                    <div class="sidebar-user-role">
-                        v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—")
-                    </div>
+                    @{
+                        var _hubVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—";
+                    }
+                    <div class="sidebar-user-role">v@_hubVersion</div>
                 </div>
             </div>
         </div>
@@ -114,9 +115,7 @@
 
             <div class="ef-topbar-meta">
                 <div class="ef-status-dot" title="Sistema operativo" id="topStatusDot"></div>
-                <span class="ef-version-badge">
-                    v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—")
-                </span>
+                <span class="ef-version-badge">v@_hubVersion</span>
             </div>
         </header>
 
