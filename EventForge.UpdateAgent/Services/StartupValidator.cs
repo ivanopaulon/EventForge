@@ -21,9 +21,20 @@ public static class StartupValidator
             ? options.Backup.RootPath
             : Path.Combine(AppContext.BaseDirectory, "backups");
 
+        // ── Resolve work / processed dirs (same logic as UpdateExecutorService) ──
+        var workPath = string.IsNullOrWhiteSpace(options.WorkPath) ? "work" : options.WorkPath;
+        var workDir  = Path.IsPathRooted(workPath) ? workPath : Path.Combine(AppContext.BaseDirectory, workPath);
+
+        var processedPath = string.IsNullOrWhiteSpace(options.ProcessedPackagesPath) ? "" : options.ProcessedPackagesPath;
+        var processedDir  = !string.IsNullOrEmpty(processedPath)
+            ? (Path.IsPathRooted(processedPath) ? processedPath : Path.Combine(AppContext.BaseDirectory, processedPath))
+            : null;
+
         // ── Required directories (always created) ─────────────────────────────
         ok &= EnsureDirectory(backupRoot, "Backup.RootPath", logger);
-        ok &= EnsureDirectory(Path.Combine(AppContext.BaseDirectory, "updates"), "updates (temp download)", logger);
+        ok &= EnsureDirectory(workDir, "WorkPath (download + temp extract)", logger);
+        if (processedDir is not null)
+            ok &= EnsureDirectory(processedDir, "ProcessedPackagesPath (installed archive)", logger);
 
         if (!string.IsNullOrWhiteSpace(options.Logging.DirectoryPath))
             ok &= EnsureDirectory(options.Logging.DirectoryPath, "Logging.DirectoryPath", logger);
@@ -88,7 +99,13 @@ public static class StartupValidator
                 Environment.GetFolderPath(Environment.SpecialFolder.System),
                 @"inetsrv\appcmd.exe");
             if (!File.Exists(appcmd))
-                logger.LogWarning("[StartupValidator] appcmd.exe not found at {Path}. IIS management will fail during updates.", appcmd);
+                logger.LogWarning("[StartupValidator] appcmd.exe not found at {Path}. " +
+                    "IIS stop/start will be skipped during updates (dev/non-IIS environment).", appcmd);
+        }
+        else if (options.Components.Server.Enabled && string.IsNullOrWhiteSpace(options.Components.Server.IISSiteName))
+        {
+            logger.LogInformation("[StartupValidator] IISSiteName not set — IIS management disabled " +
+                "(dev mode or non-IIS hosting). Updates will deploy files without stopping/starting a site.");
         }
 
         logger.LogInformation("[StartupValidator] Agent startup validation complete. Issues found: {Issues}",

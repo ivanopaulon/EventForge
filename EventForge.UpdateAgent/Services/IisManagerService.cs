@@ -34,7 +34,7 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
     {
         if (!File.Exists(AppCmdPath))
         {
-            logger.LogWarning("appcmd.exe not found at {Path}. IIS management unavailable.", AppCmdPath);
+            logger.LogWarning("appcmd.exe not found at {Path}. IIS management skipped (dev/non-IIS environment).", AppCmdPath);
             return;
         }
 
@@ -57,6 +57,8 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
         await process.WaitForExitAsync(ct);
 
         if (process.ExitCode != 0)
+            // Non-zero exit is a warning, not an exception — the site may already be in the desired
+            // state (e.g. already stopped), or may not exist in dev. Never let IIS errors abort the update.
             logger.LogWarning("appcmd {Args} exited {Code}: {Error}", arguments, process.ExitCode, error);
         else
             logger.LogDebug("appcmd {Args}: {Output}", arguments, output.Trim());

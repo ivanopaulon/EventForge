@@ -638,7 +638,11 @@ public class UpdateExecutorService(
 
     private async Task VerifyHealthAsync(string healthCheckUrl, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(healthCheckUrl)) return;
+        if (string.IsNullOrWhiteSpace(healthCheckUrl))
+        {
+            logger.LogWarning("HealthCheckUrl is empty — post-deploy health check skipped (dev/no-IIS environment).");
+            return;
+        }
 
         var maxAttempts   = options.Install.HealthCheckMaxAttempts;
         var delayMs       = options.Install.HealthCheckDelaySeconds * 1_000;
