@@ -26,6 +26,11 @@ public class CustomFiscalPrinterService(
 {
     private readonly FiscalReceiptBuilder _builder = new();
 
+    // Payment method codes recognised as "cash" for POS aggregation
+    private const int CashFiscalCode = 1;
+    private static readonly HashSet<string> CashPaymentCodes =
+        new(StringComparer.OrdinalIgnoreCase) { "CASH", "CONTANTE" };
+
     // -------------------------------------------------------------------------
     //  IFiscalPrinterService
     // -------------------------------------------------------------------------
@@ -566,7 +571,8 @@ public class CustomFiscalPrinterService(
                 {
                     var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
                     // FiscalCode 1 = cash; any other recognised code = card/electronic
-                    if (payment.PaymentMethod?.FiscalCode == 1 || code == "CASH" || code == "CONTANTE")
+                    if (payment.PaymentMethod?.FiscalCode == CashFiscalCode
+                        || CashPaymentCodes.Contains(code))
                         cashAmount += payment.Amount;
                     else
                         cardAmount += payment.Amount;

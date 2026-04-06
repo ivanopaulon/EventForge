@@ -113,7 +113,7 @@ internal sealed class ZReportDocument : IDocument
             col.Item().PaddingTop(4).Row(row =>
             {
                 row.RelativeItem().Text(
-                    $"Generato: {DateTime.Now:dd/MM/yyyy HH:mm}")
+                    $"Generato: {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC")
                     .FontSize(8).FontColor(Colors.Grey.Darken2);
 
                 row.RelativeItem().AlignRight().Text(ctx =>
