@@ -357,11 +357,16 @@
                             <option value="">— seleziona —</option>
                             <option value="Server">Server</option>
                             <option value="Client">Client</option>
+                            <option value="Both">🔗 Server + Client</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Percorso cartella publish/deploy <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold" id="buildFolderLabel">
+                            Percorso cartella publish/deploy
+                            <span id="buildFolderLabelSuffix"> (Server)</span>
+                            <span class="text-danger">*</span>
+                        </label>
                         <div class="input-group">
                             <input type="text" name="folderPath" id="buildFolderPath"
                                    class="form-control font-monospace" required
@@ -373,6 +378,20 @@
                             </button>
                         </div>
                         <div class="form-text">Percorso locale accessibile dall'Hub al contenuto del publish.</div>
+                    </div>
+
+                    @* ── Second folder (Client) — visible only when component=Both ── *@
+                    <div class="mb-3 d-none" id="buildClientFolderGroup">
+                        <label class="form-label fw-semibold">
+                            Percorso cartella publish/deploy (Client) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" name="clientFolderPath" id="buildClientFolderPath"
+                                   class="form-control font-monospace"
+                                   placeholder="es. C:\inetpub\wwwroot\EventForge\Client"
+                                   oninput="saveClientFolder()" />
+                        </div>
+                        <div class="form-text">Cartella del Client (wwwroot) — usata solo con Server + Client.</div>
                     </div>
 
                     <div id="detectResult" class="d-none mb-3">
@@ -535,33 +554,75 @@ const defaultPaths = {
 };
 
 const FOLDER_STORAGE_KEY = 'hub_last_folder_';
+const CLIENT_FOLDER_KEY  = 'hub_last_folder_client_both';
 
 function saveFolderForCurrentComponent() {
     const comp = document.getElementById('buildComponent').value;
     if (!comp) return;
     const path = document.getElementById('buildFolderPath').value.trim();
-    if (path) localStorage.setItem(FOLDER_STORAGE_KEY + comp.toLowerCase(), path);
+    if (path) {
+        // For "Both", the main folder is the Server folder
+        const key = comp === 'Both' ? FOLDER_STORAGE_KEY + 'server' : FOLDER_STORAGE_KEY + comp.toLowerCase();
+        localStorage.setItem(key, path);
+    }
+}
+
+function saveClientFolder() {
+    const path = document.getElementById('buildClientFolderPath').value.trim();
+    if (path) localStorage.setItem(CLIENT_FOLDER_KEY, path);
 }
 
 function loadFolderForComponent(comp) {
     if (!comp) return '';
-    return localStorage.getItem(FOLDER_STORAGE_KEY + comp.toLowerCase()) || '';
+    const key = comp === 'Both' ? FOLDER_STORAGE_KEY + 'server' : FOLDER_STORAGE_KEY + comp.toLowerCase();
+    return localStorage.getItem(key) || '';
+}
+
+function loadClientFolder() {
+    return localStorage.getItem(CLIENT_FOLDER_KEY) || '';
 }
 
 function onBuildComponentChange() {
-    const comp = document.getElementById('buildComponent').value;
-    const pathInput = document.getElementById('buildFolderPath');
+    const comp       = document.getElementById('buildComponent').value;
+    const pathInput  = document.getElementById('buildFolderPath');
+    const isBoth     = comp === 'Both';
+    const clientGroup = document.getElementById('buildClientFolderGroup');
+    const folderLabel = document.getElementById('buildFolderLabelSuffix');
+
+    // Show/hide second folder and update label
+    if (isBoth) {
+        clientGroup.classList.remove('d-none');
+        document.getElementById('buildClientFolderPath').required = true;
+        folderLabel.textContent = ' (Server)';
+    } else {
+        clientGroup.classList.add('d-none');
+        document.getElementById('buildClientFolderPath').required = false;
+        folderLabel.textContent = '';
+    }
 
     // 1. Restore last used folder for this component from localStorage
     const lastFolder = loadFolderForComponent(comp);
     if (lastFolder) {
         pathInput.value = lastFolder;
-    } else if (comp && defaultPaths[comp] && !pathInput.value.trim()) {
-        // Fall back to configured default only if no previous value and no localStorage entry
-        pathInput.value = defaultPaths[comp];
+    } else {
+        // Fall back to configured default only if no previous value
+        const defaultKey = isBoth ? 'Server' : comp;
+        if (defaultKey && defaultPaths[defaultKey] && !pathInput.value.trim())
+            pathInput.value = defaultPaths[defaultKey];
     }
 
-    // 2. Suggest next version automatically
+    // 2. Restore client folder when Both is selected
+    if (isBoth) {
+        const lastClient = loadClientFolder();
+        const clientInput = document.getElementById('buildClientFolderPath');
+        if (lastClient) {
+            clientInput.value = lastClient;
+        } else if (defaultPaths['Client'] && !clientInput.value.trim()) {
+            clientInput.value = defaultPaths['Client'];
+        }
+    }
+
+    // 3. Suggest next version automatically
     suggestVersion();
 }
 
@@ -578,15 +639,17 @@ async function suggestVersion() {
     }
 
     try {
-        const token = document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value;
-        // Call the API endpoint — no CSRF needed for GET, but pass admin key via existing session cookie
-        const resp = await fetch(`/api/v1/packages/suggest-version?component=${encodeURIComponent(comp)}&type=${encodeURIComponent(versionType)}`);
+        const formData = new FormData();
+        formData.append('component', comp);
+        formData.append('versionType', versionType);
+        formData.append('__RequestVerificationToken',
+            document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value);
+
+        const resp = await fetch('?handler=SuggestVersion', { method: 'POST', body: formData });
         if (!resp.ok) return;
         const data = await resp.json();
         if (data.version) {
             const versionInput = document.getElementById('buildVersion');
-            // Only auto-fill if the field is empty or was previously auto-filled
-            // (don't overwrite a value the user manually typed)
             if (!versionInput.dataset.userEdited) {
                 versionInput.value = data.version;
             }
