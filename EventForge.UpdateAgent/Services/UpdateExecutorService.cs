@@ -49,7 +49,7 @@ public class UpdateExecutorService(
 
     /// <summary>
     /// Sends a best-effort "progress" notification to the Server so connected clients can see
-    /// the current phase + optional download stats in the <c>DownloadProgressSnackbar</c>.
+    /// the current phase + optional download stats in the <c>UpdateDownloadSnackbar</c>.
     /// Never throws — failures are logged as warnings.
     /// </summary>
     private Task NotifyPhaseAsync(StartUpdateCommand command, string currentPhase,
@@ -57,7 +57,10 @@ public class UpdateExecutorService(
         string? formattedDownloaded = null,
         string? formattedTotal = null,
         string? formattedSpeed = null,
-        string? eta = null)
+        string? eta = null,
+        bool? isManualInstall = null,
+        Guid? packageId = null,
+        string? nextWindowAt = null)
     {
         var (url, secret) = GetNotifConfig(command.Component);
         return NotifyServerAsync(url, secret, new
@@ -70,7 +73,10 @@ public class UpdateExecutorService(
             FormattedDownloaded = formattedDownloaded,
             FormattedTotal = formattedTotal,
             FormattedSpeed = formattedSpeed,
-            Eta = eta
+            Eta = eta,
+            IsManualInstall = isManualInstall,
+            PackageId = packageId,
+            NextWindowAt = nextWindowAt
         });
     }
 
@@ -104,11 +110,64 @@ public class UpdateExecutorService(
     // ── Public API ───────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Sends a best-effort "PackageReceived" notification so connected clients see a snackbar
+    /// with the package details (component, version, auto/manual, next window) BEFORE download starts.
+    /// </summary>
+    public Task NotifyPackageReceivedAsync(StartUpdateCommand command, bool isInMaintenanceWindow)
+    {
+        var nextWindowAt = isInMaintenanceWindow
+            ? null
+            : GetNextWindowDescription();
+
+        return NotifyPhaseAsync(
+            command,
+            currentPhase: "PackageReceived",
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            nextWindowAt: nextWindowAt);
+    }
+
+    private string? GetNextWindowDescription()
+    {
+        var next = options.MaintenanceWindows.Count == 0 ? null : GetNextWindowStart();
+        return next?.ToString("dd/MM/yyyy HH:mm");
+    }
+
+    private DateTime? GetNextWindowStart()
+    {
+        if (options.MaintenanceWindows.Count == 0) return null;
+        var now = DateTime.Now;
+        var best = DateTime.MaxValue;
+        for (var d = 0; d <= 7; d++)
+        {
+            var candidate = now.Date.AddDays(d);
+            foreach (var window in options.MaintenanceWindows)
+            {
+                if (window.DaysOfWeek.Count > 0 && !window.DaysOfWeek.Contains(candidate.DayOfWeek))
+                    continue;
+                if (!TimeOnly.TryParse(window.StartTime, out var start)) continue;
+                var windowStart = candidate.Add(start.ToTimeSpan());
+                if (windowStart > now && windowStart < best)
+                    best = windowStart;
+            }
+        }
+        return best == DateTime.MaxValue ? null : best;
+    }
+
+    /// <summary>
     /// Sends a best-effort "AwaitingMaintenanceWindow" progress notification so connected clients
     /// know a manual (or out-of-window) package has been downloaded and is queued for installation.
     /// </summary>
     public Task NotifyAwaitingInstallAsync(StartUpdateCommand command)
-        => NotifyPhaseAsync(command, UpdatePhase.AwaitingMaintenanceWindow.ToString());
+    {
+        var nextWindowAt = command.IsManualInstall ? null : GetNextWindowDescription();
+        return NotifyPhaseAsync(
+            command,
+            currentPhase: UpdatePhase.AwaitingMaintenanceWindow.ToString(),
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            nextWindowAt: nextWindowAt);
+    }
 
     /// <summary>
     /// Phase 1 + 2: resilient download with retry/resume, followed by SHA-256 checksum verification.
@@ -118,12 +177,14 @@ public class UpdateExecutorService(
     {
         await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
         // Notify connected clients immediately so the snackbar appears.
-        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(), percentComplete: 0);
+        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(), percentComplete: 0,
+            isManualInstall: command.IsManualInstall, packageId: command.PackageId);
 
         var zipPath = await DownloadPackageAsync(command, ct);
 
         await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
-        await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString());
+        await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString(),
+            isManualInstall: command.IsManualInstall, packageId: command.PackageId);
         await VerifyChecksumAsync(zipPath, command.Checksum, ct);
 
         return zipPath;

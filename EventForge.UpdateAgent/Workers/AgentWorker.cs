@@ -234,6 +234,11 @@ public class AgentWorker(
             {
                 // Phase 1+2 always run immediately, regardless of maintenance window.
                 commandTracking.SetState(command.PackageId, CommandState.Downloading);
+
+                // Notify connected clients BEFORE download so the snackbar shows what's incoming.
+                var isInWindow = pendingInstallService.IsInMaintenanceWindow();
+                await updateExecutor.NotifyPackageReceivedAsync(command, isInWindow);
+
                 string zipPath;
                 try
                 {

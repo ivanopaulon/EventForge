@@ -83,6 +83,19 @@ public class ScheduledInstallWorker(
             return;
         }
 
+        // Manual-install packages require explicit operator approval via TriggerImmediateInstall
+        // (which sets bypassMaintenanceWindow = true). If we reach here without a bypass it means
+        // the scheduler picked this up automatically — skip it and wait for operator action.
+        // This also guarantees that subsequent automatic packages in the queue cannot run while
+        // a manual package is at the head: they can never become the head until it is resolved.
+        if (next.IsManualInstall && !bypassMaintenanceWindow)
+        {
+            logger.LogDebug(
+                "Queue head {PackageId} ({Component} {Version}) requires operator approval — skipping auto-install.",
+                next.PackageId, next.Command.Component, next.Command.Version);
+            return;
+        }
+
         if (!File.Exists(next.LocalZipPath))
         {
             logger.LogWarning("Zip file missing for pending update {PackageId} ({Component} {Version}) — removing from queue.",

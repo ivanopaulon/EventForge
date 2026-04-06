@@ -51,7 +51,13 @@ public record UpdateProgressPayload(
     string? FormattedTotal,
     string? FormattedSpeed,
     string? Eta,
-    DateTime SentAt);
+    DateTime SentAt,
+    bool? IsManualInstall = null,
+    Guid? PackageId = null,
+    string? NextWindowAt = null);
+
+/// <summary>Count of ReadyToDeploy packages pushed periodically to SuperAdmin clients.</summary>
+public record UpdatesAvailablePayload(int Count);
 
 /// <summary>Agent status as returned by GET /api/v1/system/agent-status.</summary>
 public record AgentStatusClientDto(

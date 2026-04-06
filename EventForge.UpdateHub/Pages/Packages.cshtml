@@ -365,7 +365,8 @@
                         <div class="input-group">
                             <input type="text" name="folderPath" id="buildFolderPath"
                                    class="form-control font-monospace" required
-                                   placeholder="es. C:\inetpub\wwwroot\EventForge\Server" />
+                                   placeholder="es. C:\inetpub\wwwroot\EventForge\Server"
+                                   oninput="saveFolderForCurrentComponent()" />
                             <button type="button" class="btn btn-outline-secondary" onclick="detectFolder()"
                                     id="detectBtn" title="Rileva versione, componente e commit dalla cartella">
                                 <i class="bi bi-search me-1"></i>Rileva
@@ -381,8 +382,27 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Versione <span class="text-danger">*</span></label>
-                            <input type="text" name="version" id="buildVersion" class="form-control"
-                                   placeholder="es. 1.2.3" maxlength="50" required />
+                            <div class="input-group">
+                                <input type="text" name="version" id="buildVersion" class="form-control"
+                                       placeholder="es. 1.2.3" maxlength="50" required />
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="suggestVersion()" id="suggestVersionBtn"
+                                        title="Suggerisci prossima versione in base all'ultimo pacchetto">
+                                    <i class="bi bi-magic me-1"></i>Auto
+                                </button>
+                            </div>
+                            <div class="mt-2 d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="versionType"
+                                           id="versionMinor" value="minor" checked />
+                                    <label class="form-check-label small" for="versionMinor">Minor (+0.1.0)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="versionType"
+                                           id="versionMajor" value="major" />
+                                    <label class="form-check-label small" for="versionMajor">Major (+1.0.0)</label>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Commit Git</label>
@@ -508,19 +528,105 @@ function openDeployModal(btn) {
     });
 }
 
-// ── Build-from-folder: auto-fill defaults on component change ─────────────
+// ── Build-from-folder: auto-fill defaults + restore last folder on component change ─────────
 const defaultPaths = {
     'Server': @Html.Raw(JsonSerializer.Serialize(Model.DefaultServerDeployPath ?? string.Empty)),
     'Client': @Html.Raw(JsonSerializer.Serialize(Model.DefaultClientDeployPath ?? string.Empty))
 };
 
+const FOLDER_STORAGE_KEY = 'hub_last_folder_';
+
+function saveFolderForCurrentComponent() {
+    const comp = document.getElementById('buildComponent').value;
+    if (!comp) return;
+    const path = document.getElementById('buildFolderPath').value.trim();
+    if (path) localStorage.setItem(FOLDER_STORAGE_KEY + comp.toLowerCase(), path);
+}
+
+function loadFolderForComponent(comp) {
+    if (!comp) return '';
+    return localStorage.getItem(FOLDER_STORAGE_KEY + comp.toLowerCase()) || '';
+}
+
 function onBuildComponentChange() {
     const comp = document.getElementById('buildComponent').value;
     const pathInput = document.getElementById('buildFolderPath');
-    if (comp && defaultPaths[comp] && !pathInput.value.trim()) {
+
+    // 1. Restore last used folder for this component from localStorage
+    const lastFolder = loadFolderForComponent(comp);
+    if (lastFolder) {
+        pathInput.value = lastFolder;
+    } else if (comp && defaultPaths[comp] && !pathInput.value.trim()) {
+        // Fall back to configured default only if no previous value and no localStorage entry
         pathInput.value = defaultPaths[comp];
     }
+
+    // 2. Suggest next version automatically
+    suggestVersion();
 }
+
+// ── Version suggestion via API ────────────────────────────────────────────
+async function suggestVersion() {
+    const comp = document.getElementById('buildComponent').value;
+    if (!comp) return;
+
+    const versionType = document.querySelector('input[name="versionType"]:checked')?.value || 'minor';
+    const btn = document.getElementById('suggestVersionBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    }
+
+    try {
+        const token = document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value;
+        // Call the API endpoint — no CSRF needed for GET, but pass admin key via existing session cookie
+        const resp = await fetch(`/api/v1/packages/suggest-version?component=${encodeURIComponent(comp)}&type=${encodeURIComponent(versionType)}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.version) {
+            const versionInput = document.getElementById('buildVersion');
+            // Only auto-fill if the field is empty or was previously auto-filled
+            // (don't overwrite a value the user manually typed)
+            if (!versionInput.dataset.userEdited) {
+                versionInput.value = data.version;
+            }
+        }
+    } catch (e) {
+        // Ignore — user can fill in manually
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-magic me-1"></i>Auto';
+        }
+    }
+}
+
+// Track manual edits to the version field so auto-suggest doesn't overwrite them
+document.addEventListener('DOMContentLoaded', () => {
+    const buildModal = document.getElementById('buildModal');
+    const versionInput = document.getElementById('buildVersion');
+
+    if (versionInput) {
+        versionInput.addEventListener('input', () => { versionInput.dataset.userEdited = '1'; });
+    }
+
+    // Reset per-open state when the modal opens
+    if (buildModal) {
+        buildModal.addEventListener('show.bs.modal', () => {
+            if (versionInput) delete versionInput.dataset.userEdited;
+            // If a component is already selected, restore folder + suggest version
+            const comp = document.getElementById('buildComponent').value;
+            if (comp) onBuildComponentChange();
+        });
+    }
+
+    // Update version suggestion when version type radio changes
+    document.querySelectorAll('input[name="versionType"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (document.getElementById('buildComponent').value) suggestVersion();
+        });
+    });
+});
 
 // ── Build-from-folder: detect metadata via AJAX ───────────────────────────
 async function detectFolder() {

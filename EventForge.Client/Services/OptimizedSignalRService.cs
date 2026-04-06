@@ -77,6 +77,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<MaintenanceEndedPayload>? ServerMaintenanceEnded;
     public event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
     public event Action<UpdateProgressPayload>? UpdateProgressReceived;
+    public event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
     #endregion
 
     private class BatchedEvent
@@ -438,10 +439,25 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                     data.TryGetProperty("formattedTotal", out var ft) ? ft.GetString() : null,
                     data.TryGetProperty("formattedSpeed", out var fs) ? fs.GetString() : null,
                     data.TryGetProperty("eta", out var eta) ? eta.GetString() : null,
-                    data.TryGetProperty("sentAt", out var sa) ? sa.GetDateTime() : DateTime.UtcNow);
+                    data.TryGetProperty("sentAt", out var sa) ? sa.GetDateTime() : DateTime.UtcNow,
+                    IsManualInstall: data.TryGetProperty("isManualInstall", out var im) && im.ValueKind == System.Text.Json.JsonValueKind.True ? true
+                                   : im.ValueKind == System.Text.Json.JsonValueKind.False ? false : null,
+                    PackageId: data.TryGetProperty("packageId", out var pid) && pid.ValueKind == System.Text.Json.JsonValueKind.String && Guid.TryParse(pid.GetString(), out var g) ? g : null,
+                    NextWindowAt: data.TryGetProperty("nextWindowAt", out var nw) ? nw.GetString() : null);
                 UpdateProgressReceived?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdateProgress payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("UpdatesAvailable", data =>
+        {
+            try
+            {
+                var count = data.TryGetProperty("count", out var cnt) && cnt.ValueKind == System.Text.Json.JsonValueKind.Number
+                    ? cnt.GetInt32() : 0;
+                UpdatesAvailableReceived?.Invoke(new UpdatesAvailablePayload(count));
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdatesAvailable payload"); }
         });
     }
 

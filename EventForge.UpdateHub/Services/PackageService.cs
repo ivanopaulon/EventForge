@@ -47,4 +47,36 @@ public class PackageService(UpdateHubDbContext db, IConfiguration configuration)
         if (pkg is null) throw new FileNotFoundException($"Package {packageId} not found.");
         return Path.Combine(PackageStorePath, pkg.FilePath);
     }
+
+    public async Task<string> GetSuggestedNextVersionAsync(
+        PackageComponent component, string versionType, CancellationToken ct = default)
+    {
+        // Use the most recently uploaded package for the component regardless of status,
+        // so the suggestion always continues from the last used version.
+        var latest = await db.UpdatePackages
+            .Where(x => x.Component == component)
+            .OrderByDescending(x => x.UploadedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (latest is null)
+            return versionType.Equals("major", StringComparison.OrdinalIgnoreCase) ? "2.0.0" : "1.1.0";
+
+        // Strip NBGV build metadata (e.g. "1.2.3+gabcdef1" → "1.2.3").
+        var raw = latest.Version;
+        var plusIdx = raw.IndexOf('+');
+        if (plusIdx >= 0) raw = raw[..plusIdx];
+
+        if (Version.TryParse(raw, out var parsed))
+        {
+            var major = parsed.Major < 0 ? 1 : parsed.Major;
+            var minor = parsed.Minor < 0 ? 0 : parsed.Minor;
+
+            return versionType.Equals("major", StringComparison.OrdinalIgnoreCase)
+                ? $"{major + 1}.0.0"
+                : $"{major}.{minor + 1}.0";
+        }
+
+        // Fallback: cannot parse — return unchanged with a "-next" suffix.
+        return raw + "-next";
+    }
 }

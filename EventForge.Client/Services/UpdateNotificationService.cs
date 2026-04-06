@@ -4,8 +4,8 @@ namespace EventForge.Client.Services;
 
 /// <summary>
 /// Singleton service that:
-/// - listens for MaintenanceStarted / MaintenanceEnded / ClientUpdateDeployed events
-///   pushed by the Server via the update-notifications SignalR hub;
+/// - listens for MaintenanceStarted / MaintenanceEnded / ClientUpdateDeployed / UpdateProgress /
+///   UpdatesAvailable events pushed by the Server via the update-notifications SignalR hub;
 /// - exposes SuperAdmin-only operations (GetPackages, GetInstallations, TriggerUpdate)
 ///   through the Server proxy (/api/v1/updatehub-proxy/*).
 /// </summary>
@@ -23,16 +23,32 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private string? _clientUpdateVersion;
     private int _availableUpdatesCount;
     private UpdateProgressPayload? _currentProgress;
+    // Tracks PackageIds we have received AwaitingMaintenanceWindow for (persists across phase changes)
+    private readonly HashSet<Guid> _pendingManualInstallIds = [];
 
     public bool IsServerMaintenance => _isServerMaintenance;
+
+    /// <summary>
+    /// True during an active download/install phase (overlay blocks UI).
+    /// False for PackageReceived and AwaitingMaintenanceWindow (shown as snackbar instead).
+    /// </summary>
     public bool IsActiveUpdate =>
         _currentProgress is not null &&
+        !string.Equals(_currentProgress.Phase, "PackageReceived", StringComparison.OrdinalIgnoreCase) &&
         !string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when a package has been received and is about to be downloaded or is awaiting install.</summary>
+    public bool HasDownloadNotification =>
+        _currentProgress is not null &&
+        (string.Equals(_currentProgress.Phase, "PackageReceived", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase));
+
     public string? MaintenanceComponent => _maintenanceComponent;
     public string? MaintenanceVersion => _maintenanceVersion;
     public bool HasPendingClientUpdate => _hasPendingClientUpdate;
     public string? ClientUpdateVersion => _clientUpdateVersion;
     public int AvailableUpdatesCount => _availableUpdatesCount;
+    public int PendingManualInstallsCount => _pendingManualInstallIds.Count;
     public UpdateProgressPayload? CurrentProgress => _currentProgress;
 
     public event Action? StateChanged;
@@ -50,6 +66,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _realtime.ServerMaintenanceEnded += OnMaintenanceEnded;
         _realtime.ClientUpdateDeployed += OnClientUpdateDeployed;
         _realtime.UpdateProgressReceived += OnUpdateProgress;
+        _realtime.UpdatesAvailableReceived += OnUpdatesAvailable;
     }
 
     // ── SignalR event handlers ───────────────────────────────────────────────
@@ -69,6 +86,9 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _maintenanceComponent = null;
         _maintenanceVersion = null;
         _currentProgress = null;
+        // A completed install removes it from pending (PackageId not in this payload, so clear all
+        // if there are no other awaiting signals — conservative: keep the set as-is and let
+        // OnUpdateProgress terminal phases clean up per-package).
         _logger.LogInformation("Maintenance ended: {Component} v{Version}", payload.Component, payload.Version);
         StateChanged?.Invoke();
     }
@@ -85,6 +105,31 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private void OnUpdateProgress(UpdateProgressPayload payload)
     {
         _currentProgress = payload;
+
+        // Track packages awaiting manual install so PendingManualInstallsCount stays accurate.
+        if (payload.PackageId.HasValue)
+        {
+            var isAwaiting = string.Equals(payload.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase)
+                          && payload.IsManualInstall == true;
+
+            // Remove from pending once the install completes (any terminal phase clears it).
+            var isTerminal = string.Equals(payload.Phase, "Completed", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(payload.Phase, "Rollback", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(payload.Phase, "Failed", StringComparison.OrdinalIgnoreCase);
+
+            if (isAwaiting)
+                _pendingManualInstallIds.Add(payload.PackageId.Value);
+            else if (isTerminal)
+                _pendingManualInstallIds.Remove(payload.PackageId.Value);
+        }
+
+        StateChanged?.Invoke();
+    }
+
+    private void OnUpdatesAvailable(UpdatesAvailablePayload payload)
+    {
+        _availableUpdatesCount = payload.Count;
+        _logger.LogDebug("UpdatesAvailable received: count={Count}", payload.Count);
         StateChanged?.Invoke();
     }
 
@@ -137,5 +182,6 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         _realtime.ServerMaintenanceEnded -= OnMaintenanceEnded;
         _realtime.ClientUpdateDeployed -= OnClientUpdateDeployed;
         _realtime.UpdateProgressReceived -= OnUpdateProgress;
+        _realtime.UpdatesAvailableReceived -= OnUpdatesAvailable;
     }
 }

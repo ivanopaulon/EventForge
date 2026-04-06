@@ -107,6 +107,20 @@ public class PackagesModel(
         return RedirectToPage();
     }
 
+    // ── Suggerisci versione (AJAX) ─────────────────────────────────────────
+    public async Task<IActionResult> OnPostSuggestVersionAsync(string component, string versionType = "minor")
+    {
+        if (!Enum.TryParse<PackageComponent>(component, true, out var comp))
+            return new JsonResult(new { error = "Componente non valido." });
+
+        if (!versionType.Equals("major", StringComparison.OrdinalIgnoreCase) &&
+            !versionType.Equals("minor", StringComparison.OrdinalIgnoreCase))
+            versionType = "minor";
+
+        var suggested = await packageService.GetSuggestedNextVersionAsync(comp, versionType);
+        return new JsonResult(new { version = suggested });
+    }
+
     // ── Rileva metadati cartella (AJAX) ───────────────────────────────────
     public async Task<IActionResult> OnPostDetectFolderAsync(string folderPath)
     {

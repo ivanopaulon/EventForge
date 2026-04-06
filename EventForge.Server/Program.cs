@@ -140,6 +140,10 @@ builder.Services.AddScoped<EventForge.Server.Services.Configuration.IBrandingSer
 builder.Services.AddSingleton<EventForge.Server.Services.Updates.IUpdateHubProxyService, EventForge.Server.Services.Updates.UpdateHubProxyService>();
 builder.Services.AddSingleton<EventForge.Server.Services.Updates.IAgentUpdateProxyService, EventForge.Server.Services.Updates.AgentUpdateProxyService>();
 
+// UpdatesAvailableRefreshService — broadcasts ReadyToDeploy package count to SuperAdmin clients
+builder.Services.AddSingleton<EventForge.Server.Services.Updates.UpdatesAvailableRefreshService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EventForge.Server.Services.Updates.UpdatesAvailableRefreshService>());
+
 // Agent monitor — singleton background service (probes Agent, auto-restarts if unreachable > threshold)
 builder.Services.AddSingleton<EventForge.Server.Services.AgentMonitorService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<EventForge.Server.Services.AgentMonitorService>());

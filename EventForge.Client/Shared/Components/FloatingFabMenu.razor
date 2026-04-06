@@ -90,12 +90,14 @@
         @* Aggiornamenti — solo SuperAdmin *@
         @if (_profileRef?.IsSuperAdmin == true)
         {
+            var _totalUpdatesBadge = UpdateNotification.AvailableUpdatesCount + UpdateNotification.PendingManualInstallsCount;
             <div class="ef-speed-dial-action">
-                <MudTooltip Text="Aggiornamenti" Placement="Placement.Left">
-                    <MudBadge Content="@UpdateNotification.AvailableUpdatesCount"
-                              Color="Color.Warning"
+                <MudTooltip Text="@(_totalUpdatesBadge > 0 ? $"Aggiornamenti ({UpdateNotification.AvailableUpdatesCount} disponibili, {UpdateNotification.PendingManualInstallsCount} in attesa)" : "Aggiornamenti")"
+                            Placement="Placement.Left">
+                    <MudBadge Content="@_totalUpdatesBadge"
+                              Color="@(UpdateNotification.PendingManualInstallsCount > 0 ? Color.Error : Color.Warning)"
                               Overlap="true"
-                              Visible="@(UpdateNotification.AvailableUpdatesCount > 0)"
+                              Visible="@(_totalUpdatesBadge > 0)"
                               Max="99">
                         <MudFab Color="Color.Secondary"
                                 StartIcon="@Icons.Material.Filled.SystemUpdate"
