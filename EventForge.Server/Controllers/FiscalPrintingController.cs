@@ -12,10 +12,10 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for fiscal printer operations.
 /// Supports receipt printing, refunds, daily closure, real-time status, cash drawer management,
 /// network scanning, printer info reading, and wizard setup.
-/// All operations are authorised for the <c>Admin</c> and <c>Manager</c> roles.
+/// All operations are authorised for the <c>Admin</c>, <c>Manager</c>, and <c>StoreManager</c> roles.
 /// </summary>
 [Route("api/v1/fiscal-printing")]
-[Authorize(Roles = "Admin,Manager")]
+[Authorize(Policy = "RequireStoreConfig")]
 public class FiscalPrintingController(
     IFiscalPrinterService fiscalPrinterService,
     FiscalPrinterStatusCache statusCache,
@@ -187,7 +187,7 @@ public class FiscalPrintingController(
     /// <param name="printerId">Unique identifier of the target fiscal printer.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("daily-closure/{printerId:guid}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(typeof(FiscalPrintResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<FiscalPrintResult>> DailyClosureAsync(

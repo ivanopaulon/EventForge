@@ -166,7 +166,7 @@
                 </MudNavGroup>
             }
 
-            <!-- Punto Vendita (POS + Store Settings merged) -->
+            <!-- Punto Vendita (POS Register) -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.pos", "Punto Vendita")"
                          Icon="@Icons.Material.Outlined.PointOfSale"
                          Expanded="@(_openGroup == "pos")"
@@ -176,27 +176,62 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.posRegister", "Cassa (POS)")
                 </MudNavLink>
-                <MudNavLink Href="/store/payment-methods"
-                            Icon="@Icons.Material.Outlined.Payment"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
-                </MudNavLink>
-                <MudNavLink Href="/store/pos"
-                            Icon="@Icons.Material.Outlined.Computer"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.posManagement", "Punti Cassa (Terminali)")
-                </MudNavLink>
-                <MudNavLink Href="/store/operators"
-                            Icon="@Icons.Material.Outlined.Person"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.operatorManagement", "Operatori")
-                </MudNavLink>
-                <MudNavLink Href="/store/operator-groups"
-                            Icon="@Icons.Material.Outlined.Groups"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.operatorGroupManagement", "Gruppi Operatori")
-                </MudNavLink>
             </MudNavGroup>
+
+            <!-- Configurazione Store -->
+            @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.storeConfig", "🏪 Configurazione Store")"
+                             Icon="@Icons.Material.Outlined.Store"
+                             Expanded="@(_openGroup == "storeConfig")"
+                             ExpandedChanged="@(v => OnGroupExpanded("storeConfig", v))">
+                    <MudNavLink Href="/admin/store-pos"
+                                Icon="@Icons.Material.Outlined.Computer"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.storePosManagement", "POS")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/operators"
+                                Icon="@Icons.Material.Outlined.Person"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.operatorManagement", "Operatori")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/operator-groups"
+                                Icon="@Icons.Material.Outlined.Groups"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.operatorGroupManagement", "Gruppi Operatori")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/payment-methods"
+                                Icon="@Icons.Material.Outlined.Payment"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Stampanti & Stazioni -->
+            @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.printersAndStations", "🖨️ Stampanti & Stazioni")"
+                             Icon="@Icons.Material.Outlined.Print"
+                             Expanded="@(_openGroup == "printersAndStations")"
+                             ExpandedChanged="@(v => OnGroupExpanded("printersAndStations", v))">
+                    <MudNavLink Href="/admin/fiscal-printers"
+                                Icon="@Icons.Material.Outlined.ReceiptLong"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.fiscalPrintersDashboard", "Dashboard Fiscali")
+                    </MudNavLink>
+                    <MudNavLink Href="/admin/stations"
+                                Icon="@Icons.Material.Outlined.Kitchen"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.stations", "Stazioni")
+                    </MudNavLink>
+                    <MudNavLink Href="/admin/fiscal-printers"
+                                Icon="@Icons.Material.Outlined.History"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.closureHistory", "Storico Chiusure")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
 
             <!-- Contabilità -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilità")"
@@ -256,6 +291,7 @@
     private bool _isAdmin = false;
     private bool _isSuperAdmin = false;
     private bool _isManager = false;
+    private bool _isStoreManager = false;
     private bool _canManageWarehouse = false;
     private int _unreadNotificationCount = 0;
     private int _unreadMessageCount = 0;
@@ -292,6 +328,7 @@
             _isSuperAdmin = await AuthService.IsSuperAdminAsync();
             _isAdmin = await AuthService.IsInRoleAsync("Admin");
             _isManager = await AuthService.IsInRoleAsync("Manager");
+            _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
             
             _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
             
@@ -303,6 +340,7 @@
             _isAdmin = false;
             _isSuperAdmin = false;
             _isManager = false;
+            _isStoreManager = false;
             _canManageWarehouse = false;
             _unreadNotificationCount = 0;
             _unreadMessageCount = 0;

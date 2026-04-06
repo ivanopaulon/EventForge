@@ -944,7 +944,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="201">Returns the newly created store POS</response>
     /// <response code="400">If the store POS data is invalid</response>
     [HttpPost("pos")]
-    [Authorize(Policy = "RequireManager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<StorePosDto>> CreateStorePos(CreateStorePosDto createStorePosDto, CancellationToken cancellationToken = default)
@@ -978,7 +978,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="400">If the store POS data is invalid</response>
     /// <response code="404">If the store POS is not found</response>
     [HttpPut("pos/{id:guid}")]
-    [Authorize(Policy = "RequireManager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1016,7 +1016,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="204">Store POS deleted successfully</response>
     /// <response code="404">If the store POS is not found</response>
     [HttpDelete("pos/{id:guid}")]
-    [Authorize(Policy = "RequireManager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStorePos(Guid id, CancellationToken cancellationToken = default)
@@ -1055,7 +1055,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="404">If store POS not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("pos/{id:guid}/image")]
-    [Authorize(Policy = "RequireManager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(typeof(StorePosDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -1147,7 +1147,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="404">If store POS not found or has no image</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpDelete("pos/{id:guid}/image")]
-    [Authorize(Policy = "RequireManager")]
+    [Authorize(Policy = "RequireStoreConfig")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

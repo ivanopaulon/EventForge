@@ -594,6 +594,8 @@ public static class ServiceCollectionExtensions
                 policy.RequireRole("Admin", "SuperAdmin")) // SuperAdmin can also access Admin content
             .AddPolicy("RequireManager", policy =>
                 policy.RequireRole("Admin", "Manager", "SuperAdmin")) // SuperAdmin can access Manager content too
+            .AddPolicy("RequireStoreConfig", policy =>
+                policy.RequireRole("Admin", "Manager", "StoreManager", "SuperAdmin"))
             .AddPolicy("RequireSuperAdmin", policy =>
                 policy.RequireRole("SuperAdmin"))
             .AddPolicy("CanManageUsers", policy =>
