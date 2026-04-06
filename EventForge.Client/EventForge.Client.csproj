@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NuGetAudit>True</NuGetAudit>
     <ApplicationIcon>wwwroot\icons\favicon.ico</ApplicationIcon>
+    <!-- Assembly version -->
+    <Version>1.0.0</Version>
     <!-- InvariantGlobalization must be false: Syncfusion components (SfSchedule) use
          System.Globalization for date/time formatting, culture-specific calendar rendering
          and JS interop. Setting this to true removes all ICU culture data from the WASM bundle

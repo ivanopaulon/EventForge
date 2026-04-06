@@ -80,19 +80,4 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
-  <!-- Publish Blazor WASM Client with Server -->
-  <Target Name="PublishBlazorClient" BeforeTargets="Publish">
-    <PropertyGroup>
-      <ClientProjectPath>..\EventForge.Client\EventForge.Client.csproj</ClientProjectPath>
-      <ClientPublishTempDir>$(IntermediateOutputPath)BlazorClient\</ClientPublishTempDir>
-      <ClientPublishDir>$(PublishDir)wwwroot\</ClientPublishDir>
-    </PropertyGroup>
-    <Message Importance="high" Text="Publishing Blazor WASM client..." />
-    <Exec Command="dotnet publish $(ClientProjectPath) -c $(Configuration) -o $(ClientPublishTempDir)" />
-    <Message Importance="high" Text="Copying Blazor WASM client files to $(ClientPublishDir)..." />
-    <ItemGroup>
-      <ClientFiles Include="$(ClientPublishTempDir)wwwroot\**\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ClientFiles)" DestinationFolder="$(ClientPublishDir)%(RecursiveDir)" />
-  </Target>
 </Project>

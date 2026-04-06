@@ -446,18 +446,16 @@ app.UsePerformanceTelemetry();
 // Enable rate limiting
 app.UseRateLimiter();
 
-// Redirect root and legacy paths to the dashboard BEFORE static files are served.
-// This middleware must run before UseDefaultFiles so that "/" is intercepted before
-// being rewritten to "/index.html" by DefaultFilesMiddleware.
-// - "/" and "/index.html" → /Dashboard/Index  (requires SuperAdmin login)
-// - "/settings*"         → /Dashboard/Settings (legacy static panel used localStorage JWT
-//                          never written by cookie-based login; must go through Razor Page)
+// Redirect root and legacy paths to the dashboard.
+// - "/"          → /Dashboard/Index  (requires SuperAdmin login)
+// - "/settings*" → /Dashboard/Settings (legacy static panel used localStorage JWT
+//                  never written by cookie-based login; must go through Razor Page)
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value;
     if (path != null)
     {
-        if (path == "/" || path.Equals("/index.html", StringComparison.OrdinalIgnoreCase))
+        if (path == "/")
         {
             context.Response.Redirect("/Dashboard/Index", permanent: false);
             return;
@@ -474,12 +472,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// Serve default document (index.html) and static files from wwwroot
-var defaultFilesOptions = new DefaultFilesOptions();
-defaultFilesOptions.DefaultFileNames.Clear();
-defaultFilesOptions.DefaultFileNames.Add("index.html");
-app.UseDefaultFiles(defaultFilesOptions);
-
+// Serve static files from wwwroot (Razor Pages assets)
 app.UseStaticFiles();
 
 // Authentication & Authorization
@@ -543,26 +536,6 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<AlertHub>("/hubs/alerts");
 app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
-
-// FALLBACK: serve index.html for client SPA routes ONLY
-// Exclude Razor Pages routes (/Dashboard, /ServerAuth, /Setup) and static file paths (/settings)
-app.MapWhen(
-    context => !context.Request.Path.StartsWithSegments("/Dashboard") &&
-               !context.Request.Path.StartsWithSegments("/ServerAuth") &&
-               !context.Request.Path.StartsWithSegments("/Setup") &&
-               !context.Request.Path.StartsWithSegments("/settings") &&
-               !context.Request.Path.StartsWithSegments("/api") &&
-               !context.Request.Path.StartsWithSegments("/hubs") &&
-               !context.Request.Path.StartsWithSegments("/health") &&
-               !context.Request.Path.StartsWithSegments("/swagger"),
-    appBuilder =>
-    {
-        appBuilder.UseRouting();
-        appBuilder.UseEndpoints(endpoints =>
-        {
-            endpoints.MapFallbackToFile("index.html");
-        });
-    });
 
 app.Run();
 
