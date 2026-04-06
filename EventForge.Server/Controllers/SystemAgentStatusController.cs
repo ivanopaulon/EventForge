@@ -18,90 +18,48 @@ public class SystemAgentStatusController(
     IConfiguration configuration,
     ILogger<SystemAgentStatusController> logger) : ControllerBase
 {
-    private static readonly JsonSerializerOptions _jsonOpts =
-        new() { PropertyNameCaseInsensitive = true };
-
     [HttpGet]
     public IActionResult GetAgentStatus()
     {
         var agentLocalUrl = (configuration["Agent:LocalUrl"] ?? string.Empty).TrimEnd('/');
         if (string.IsNullOrWhiteSpace(agentLocalUrl))
-        {
-            return Ok(new AgentStatusResponseDto(
-                Reachable: false,
-                Status: "NotConfigured",
-                InstallationName: null,
-                AgentVersion: null,
-                ServerVersion: null,
-                ClientVersion: null,
-                HubConnectionState: null,
-                LastHeartbeatAt: null,
-                ProbedAt: agentMonitor.LastSeenAt ?? DateTime.UtcNow,
-                UnreachableSinceUtc: null,
-                AutoRestartAfterMinutes: 0));
-        }
+            return Ok(BuildDto(false, "NotConfigured", null));
 
         if (!agentMonitor.Reachable)
-        {
-            return Ok(new AgentStatusResponseDto(
-                Reachable: false,
-                Status: "Offline",
-                InstallationName: null,
-                AgentVersion: null,
-                ServerVersion: null,
-                ClientVersion: null,
-                HubConnectionState: null,
-                LastHeartbeatAt: null,
-                ProbedAt: agentMonitor.LastSeenAt ?? DateTime.UtcNow,
-                UnreachableSinceUtc: agentMonitor.UnreachableSince,
-                AutoRestartAfterMinutes: agentMonitor.AutoRestartAfterMinutes));
-        }
+            return Ok(BuildDto(false, "Offline", null));
 
         // Parse the last cached JSON from the background probe
-        try
+        var json = agentMonitor.LastStatusJson;
+        if (!string.IsNullOrEmpty(json))
         {
-            var json = agentMonitor.LastStatusJson;
-            if (!string.IsNullOrEmpty(json))
+            try
             {
                 using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
+                var r = doc.RootElement;
                 return Ok(new AgentStatusResponseDto(
                     Reachable: true,
-                    Status: root.TryGetProperty("status", out var s) ? s.GetString() ?? "Online" : "Online",
-                    InstallationName: root.TryGetProperty("installationName", out var n) ? n.GetString() : null,
-                    AgentVersion: root.TryGetProperty("agentVersion", out var av) ? av.GetString() : null,
-                    ServerVersion: root.TryGetProperty("serverVersion", out var sv) ? sv.GetString() : null,
-                    ClientVersion: root.TryGetProperty("clientVersion", out var cv) ? cv.GetString() : null,
-                    HubConnectionState: root.TryGetProperty("hubConnectionState", out var h) ? h.GetString() : null,
-                    LastHeartbeatAt: root.TryGetProperty("lastHeartbeatAt", out var lh) && lh.ValueKind != JsonValueKind.Null
+                    Status: r.TryGetProperty("status", out var s) ? s.GetString() ?? "Online" : "Online",
+                    InstallationName: r.TryGetProperty("installationName", out var n) ? n.GetString() : null,
+                    AgentVersion: r.TryGetProperty("agentVersion", out var av) ? av.GetString() : null,
+                    ServerVersion: r.TryGetProperty("serverVersion", out var sv) ? sv.GetString() : null,
+                    ClientVersion: r.TryGetProperty("clientVersion", out var cv) ? cv.GetString() : null,
+                    HubConnectionState: r.TryGetProperty("hubConnectionState", out var h) ? h.GetString() : null,
+                    LastHeartbeatAt: r.TryGetProperty("lastHeartbeatAt", out var lh) && lh.ValueKind != JsonValueKind.Null
                         ? lh.GetDateTime() : null,
                     ProbedAt: agentMonitor.LastSeenAt ?? DateTime.UtcNow,
                     UnreachableSinceUtc: null,
                     AutoRestartAfterMinutes: agentMonitor.AutoRestartAfterMinutes));
             }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to parse cached agent status JSON");
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to parse cached agent status JSON");
+            }
         }
 
-        return Ok(new AgentStatusResponseDto(
-            Reachable: true,
-            Status: "Online",
-            InstallationName: null,
-            AgentVersion: null,
-            ServerVersion: null,
-            ClientVersion: null,
-            HubConnectionState: null,
-            LastHeartbeatAt: null,
-            ProbedAt: agentMonitor.LastSeenAt ?? DateTime.UtcNow,
-            UnreachableSinceUtc: null,
-            AutoRestartAfterMinutes: agentMonitor.AutoRestartAfterMinutes));
+        return Ok(BuildDto(true, "Online", null));
     }
 
-    /// <summary>
-    /// Manually triggers an Agent service restart. SuperAdmin only.
-    /// </summary>
+    /// <summary>Manually triggers an Agent service restart. SuperAdmin only.</summary>
     [HttpPost("restart")]
     [Authorize(Roles = "SuperAdmin")]
     public IActionResult RestartAgent()
@@ -113,8 +71,18 @@ public class SystemAgentStatusController(
 
         return result.Success
             ? Ok(new AgentRestartResultDto(true, result.Message))
-            : StatusCode(StatusCodes.Status503ServiceUnavailable, new AgentRestartResultDto(false, result.Message));
+            : StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new AgentRestartResultDto(false, result.Message));
     }
+
+    // Builds a minimal (offline/not-configured/fallback online) response DTO.
+    private AgentStatusResponseDto BuildDto(bool reachable, string status, string? json) =>
+        new(reachable, status,
+            InstallationName: null, AgentVersion: null, ServerVersion: null,
+            ClientVersion: null, HubConnectionState: null, LastHeartbeatAt: null,
+            ProbedAt: agentMonitor.LastSeenAt ?? DateTime.UtcNow,
+            UnreachableSinceUtc: reachable ? null : agentMonitor.UnreachableSince,
+            AutoRestartAfterMinutes: agentMonitor.AutoRestartAfterMinutes);
 }
 
 public record AgentStatusResponseDto(

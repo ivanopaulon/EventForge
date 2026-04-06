@@ -1,65 +1,49 @@
 namespace EventForge.Server.Services;
 
 /// <summary>
-/// Singleton that continuously probes the co-located UpdateAgent, tracks unreachability
-/// duration, and automatically restarts the Windows Service once the configured threshold
-/// is exceeded.
+/// Singleton BackgroundService that continuously probes the co-located UpdateAgent,
+/// tracks unreachability duration, and automatically restarts the Windows Service
+/// once the configured threshold is exceeded.
 ///
 /// Configuration (Server appsettings.json, section "Agent"):
 ///   LocalUrl                — http://localhost:{agentPort}  (probe target)
 ///   PollIntervalSeconds     — how often to probe (default 30 s)
 ///   AutoRestartAfterMinutes — minutes of unreachability before auto-restart (0 = disabled)
 /// </summary>
-public sealed class AgentMonitorService : BackgroundService
+public sealed class AgentMonitorService(
+    IHttpClientFactory httpFactory,
+    IConfiguration config,
+    ILogger<AgentMonitorService> logger) : BackgroundService
 {
-    // ── Injected deps ────────────────────────────────────────────────────────
-    private readonly IHttpClientFactory _httpFactory;
-    private readonly IConfiguration _config;
-    private readonly ILogger<AgentMonitorService> _logger;
-
-    // ── Current state (read by AgentStatusController) ────────────────────────
-    private volatile bool _reachable = false;
+    // ── Mutable state protected by _lock ─────────────────────────────────────
+    private readonly object _lock = new();
+    private bool _reachable;
     private DateTime? _unreachableSince;
     private DateTime? _lastSeenAt;
     private DateTime? _lastRestartAttemptAt;
-    private string? _lastStatusJson;          // raw JSON from /api/agent/health
+    private string? _lastStatusJson;
 
-    public bool Reachable => _reachable;
-    public DateTime? UnreachableSince => _unreachableSince;
-    public DateTime? LastSeenAt => _lastSeenAt;
-    public DateTime? LastRestartAttemptAt => _lastRestartAttemptAt;
+    // ── Thread-safe readers (snapshot under lock) ─────────────────────────────
+    public bool Reachable { get { lock (_lock) return _reachable; } }
+    public DateTime? UnreachableSince { get { lock (_lock) return _unreachableSince; } }
+    public DateTime? LastSeenAt { get { lock (_lock) return _lastSeenAt; } }
+    public string? LastStatusJson { get { lock (_lock) return _lastStatusJson; } }
 
-    /// <summary>
-    /// Minutes of unreachability before auto-restart is attempted.
-    /// 0 means disabled.
-    /// </summary>
+    /// <summary>Minutes of unreachability before auto-restart. 0 = disabled.</summary>
     public int AutoRestartAfterMinutes =>
-        _config.GetValue<int>("Agent:AutoRestartAfterMinutes", 0);
-
-    /// <summary>Parsed snapshot of the last successful probe payload, or null.</summary>
-    public string? LastStatusJson => _lastStatusJson;
-
-    public AgentMonitorService(
-        IHttpClientFactory httpFactory,
-        IConfiguration config,
-        ILogger<AgentMonitorService> logger)
-    {
-        _httpFactory = httpFactory;
-        _config = config;
-        _logger = logger;
-    }
+        config.GetValue<int>("Agent:AutoRestartAfterMinutes", 0);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var agentUrl = (_config["Agent:LocalUrl"] ?? string.Empty).TrimEnd('/');
+        var agentUrl = (config["Agent:LocalUrl"] ?? string.Empty).TrimEnd('/');
         if (string.IsNullOrWhiteSpace(agentUrl))
         {
-            _logger.LogInformation("Agent:LocalUrl not configured — AgentMonitorService idle");
+            logger.LogInformation("Agent:LocalUrl not configured — AgentMonitorService idle");
             return;
         }
 
-        var pollSeconds = _config.GetValue<int>("Agent:PollIntervalSeconds", 30);
-        _logger.LogInformation(
+        var pollSeconds = config.GetValue<int>("Agent:PollIntervalSeconds", 30);
+        logger.LogInformation(
             "AgentMonitorService started — probing {Url} every {Poll}s, auto-restart after {Threshold}min",
             agentUrl, pollSeconds, AutoRestartAfterMinutes);
 
@@ -79,61 +63,74 @@ public sealed class AgentMonitorService : BackgroundService
 
     private async Task ProbeAsync(string agentUrl, CancellationToken ct)
     {
+        bool reached;
+        string? json = null;
+
         try
         {
-            using var http = _httpFactory.CreateClient();
+            using var http = httpFactory.CreateClient();
             http.Timeout = TimeSpan.FromSeconds(3);
             var response = await http.GetAsync($"{agentUrl}/api/agent/health", ct);
 
             if (response.IsSuccessStatusCode)
             {
-                _lastStatusJson = await response.Content.ReadAsStringAsync(ct);
-                _reachable = true;
-                _unreachableSince = null;
-                _lastSeenAt = DateTime.UtcNow;
+                json = await response.Content.ReadAsStringAsync(ct);
+                reached = true;
             }
             else
             {
-                MarkUnreachable();
+                reached = false;
             }
         }
-        catch (OperationCanceledException) { /* shutdown */ }
-        catch
+        catch (OperationCanceledException) { return; }
+        catch { reached = false; }
+
+        // Update shared state atomically
+        lock (_lock)
         {
-            MarkUnreachable();
+            if (reached)
+            {
+                _reachable = true;
+                _unreachableSince = null;
+                _lastSeenAt = DateTime.UtcNow;
+                _lastStatusJson = json;
+            }
+            else
+            {
+                if (_reachable || !_unreachableSince.HasValue)
+                {
+                    _unreachableSince = DateTime.UtcNow;
+                    logger.LogWarning("UpdateAgent is no longer reachable at {Url}", config["Agent:LocalUrl"]);
+                }
+                _reachable = false;
+            }
         }
 
-        // Auto-restart check
-        if (!_reachable && AutoRestartAfterMinutes > 0 && _unreachableSince.HasValue)
+        // Auto-restart check (reads are consistent via local copies)
+        if (!reached)
         {
-            var elapsed = DateTime.UtcNow - _unreachableSince.Value;
-            if (elapsed.TotalMinutes >= AutoRestartAfterMinutes)
+            DateTime? unreachableSince;
+            DateTime? lastAttempt;
+            lock (_lock) { unreachableSince = _unreachableSince; lastAttempt = _lastRestartAttemptAt; }
+
+            var threshold = AutoRestartAfterMinutes;
+            if (threshold > 0 && unreachableSince.HasValue)
             {
-                // Avoid retrying too frequently — wait at least one full threshold interval
-                var sinceLastAttempt = _lastRestartAttemptAt.HasValue
-                    ? (DateTime.UtcNow - _lastRestartAttemptAt.Value).TotalMinutes
+                var elapsed = DateTime.UtcNow - unreachableSince.Value;
+                var sinceLastAttempt = lastAttempt.HasValue
+                    ? (DateTime.UtcNow - lastAttempt.Value).TotalMinutes
                     : double.MaxValue;
 
-                if (sinceLastAttempt >= AutoRestartAfterMinutes)
+                if (elapsed.TotalMinutes >= threshold && sinceLastAttempt >= threshold)
                 {
-                    _logger.LogWarning(
+                    logger.LogWarning(
                         "Agent unreachable for {Min:F1} min (threshold {Threshold} min) — triggering auto-restart",
-                        elapsed.TotalMinutes, AutoRestartAfterMinutes);
+                        elapsed.TotalMinutes, threshold);
                     var result = TryRestartService();
-                    _logger.LogInformation("Auto-restart result: {Success} — {Message}", result.Success, result.Message);
+                    logger.LogInformation("Auto-restart result: {Success} — {Message}", result.Success, result.Message);
                 }
             }
         }
-    }
-
-    private void MarkUnreachable()
-    {
-        if (_reachable || !_unreachableSince.HasValue)
-        {
-            _unreachableSince = DateTime.UtcNow;
-            _logger.LogWarning("UpdateAgent is no longer reachable at {Url}", _config["Agent:LocalUrl"]);
-        }
-        _reachable = false;
     }
 
     // ── Restart logic (shared by auto-restart and manual restart endpoint) ──
@@ -146,11 +143,11 @@ public sealed class AgentMonitorService : BackgroundService
     {
         const string ServiceName = "EventForge Update Agent";
 
-        _lastRestartAttemptAt = DateTime.UtcNow;
+        lock (_lock) { _lastRestartAttemptAt = DateTime.UtcNow; }
 
         if (!OperatingSystem.IsWindows())
         {
-            _logger.LogWarning("Agent restart requested but not running on Windows");
+            logger.LogWarning("Agent restart requested but not running on Windows");
             return new AgentRestartResult(false, "Il riavvio automatico è supportato solo su Windows.");
         }
 
@@ -159,8 +156,8 @@ public sealed class AgentMonitorService : BackgroundService
             using var sc = new System.ServiceProcess.ServiceController(ServiceName);
             var status = sc.Status;
 
-            if (status == System.ServiceProcess.ServiceControllerStatus.Running ||
-                status == System.ServiceProcess.ServiceControllerStatus.Paused)
+            if (status is System.ServiceProcess.ServiceControllerStatus.Running
+                      or System.ServiceProcess.ServiceControllerStatus.Paused)
             {
                 sc.Stop();
                 sc.WaitForStatus(System.ServiceProcess.ServiceControllerStatus.Stopped,
@@ -168,33 +165,34 @@ public sealed class AgentMonitorService : BackgroundService
             }
 
             sc.Start();
-            _logger.LogInformation("Agent service '{Name}' start command issued", ServiceName);
+            logger.LogInformation("Agent service '{Name}' start command issued", ServiceName);
             return new AgentRestartResult(true, $"Servizio '{ServiceName}' avviato con successo.");
         }
         catch (System.ServiceProcess.TimeoutException)
         {
-            _logger.LogWarning("Agent service stop timed out; attempting start anyway");
+            logger.LogWarning("Agent service stop timed out; attempting start anyway");
             try
             {
                 using var sc2 = new System.ServiceProcess.ServiceController(ServiceName);
                 sc2.Start();
-                return new AgentRestartResult(true, $"Avvio inviato (stop timeout). Verificare lo stato del servizio.");
+                return new AgentRestartResult(true,
+                    "Avvio inviato (stop timeout). Verificare lo stato del servizio.");
             }
             catch (Exception ex2)
             {
-                _logger.LogError(ex2, "Agent restart fallback failed");
+                logger.LogError(ex2, "Agent restart fallback failed");
                 return new AgentRestartResult(false, $"Riavvio fallito: {ex2.Message}");
             }
         }
         catch (InvalidOperationException ex)
             when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogWarning(ex, "Agent service '{Name}' not found", ServiceName);
+            logger.LogWarning(ex, "Agent service '{Name}' not found", ServiceName);
             return new AgentRestartResult(false, $"Servizio '{ServiceName}' non trovato su questo host.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Agent restart failed");
+            logger.LogError(ex, "Agent restart failed");
             return new AgentRestartResult(false, $"Errore: {ex.Message}");
         }
     }

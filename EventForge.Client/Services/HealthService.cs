@@ -11,7 +11,7 @@ namespace EventForge.Client.Services
 
         /// <summary>
         /// Fetches the status of the co-located UpdateAgent from the Server proxy.
-        /// Returns null if unauthenticated or if the endpoint is unreachable.
+        /// Returns null when the Agent is not configured or unreachable.
         /// </summary>
         Task<AgentStatusClientDto?> GetAgentStatusAsync();
 
@@ -26,79 +26,14 @@ namespace EventForge.Client.Services
         IHttpClientFactory httpClientFactory,
         ILogger<HealthService> logger) : IHealthService
     {
-        private const string BaseUrl = "health";
+        public Task<HealthStatusDto?> GetHealthAsync()
+            => GetAsync<HealthStatusDto>("api/v1/health");
 
-        public async Task<HealthStatusDto?> GetHealthAsync()
-        {
-            try
-            {
-                var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.GetAsync("api/v1/health");
+        public Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
+            => GetAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}",
-                        response.StatusCode, response.ReasonPhrase);
-                    return null;
-                }
-
-                return await response.Content.ReadFromJsonAsync<HealthStatusDto>();
-            }
-            catch (HttpRequestException ex)
-            {
-                logger.LogError(ex, "Network error calling health endpoint: {Message}", ex.Message);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unexpected error calling health endpoint: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
-        {
-            try
-            {
-                var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.GetAsync("api/v1/health/detailed");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}",
-                        response.StatusCode, response.ReasonPhrase);
-                    return null;
-                }
-
-                return await response.Content.ReadFromJsonAsync<DetailedHealthStatusDto>();
-            }
-            catch (HttpRequestException ex)
-            {
-                logger.LogError(ex, "Network error calling detailed health endpoint: {Message}", ex.Message);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unexpected error calling detailed health endpoint: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<AgentStatusClientDto?> GetAgentStatusAsync()
-        {
-            try
-            {
-                var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.GetAsync("api/v1/system/agent-status");
-                if (!response.IsSuccessStatusCode) return null;
-                return await response.Content.ReadFromJsonAsync<AgentStatusClientDto>();
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Agent status fetch failed: {Message}", ex.Message);
-                return null;
-            }
-        }
+        public Task<AgentStatusClientDto?> GetAgentStatusAsync()
+            => GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
 
         public async Task<(bool Success, string Message)> RestartAgentAsync()
         {
@@ -113,6 +48,33 @@ namespace EventForge.Client.Services
             {
                 logger.LogWarning(ex, "Agent restart request failed");
                 return (false, ex.Message);
+            }
+        }
+
+        // ── Helper ───────────────────────────────────────────────────────────
+
+        private async Task<T?> GetAsync<T>(string relativeUrl) where T : class
+        {
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient("ApiClient");
+                var response = await httpClient.GetAsync(relativeUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogWarning("GET {Url} failed: {StatusCode}", relativeUrl, response.StatusCode);
+                    return null;
+                }
+                return await response.Content.ReadFromJsonAsync<T>();
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogError(ex, "Network error calling {Url}: {Message}", relativeUrl, ex.Message);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error calling {Url}: {Message}", relativeUrl, ex.Message);
+                return null;
             }
         }
     }

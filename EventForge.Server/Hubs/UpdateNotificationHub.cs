@@ -12,15 +12,8 @@ namespace EventForge.Server.Hubs;
 ///   "superadmin"   — SuperAdmin users only (additionally receives UpdatesAvailable)
 /// </summary>
 [Authorize]
-public class UpdateNotificationHub : Hub
+public class UpdateNotificationHub(ILogger<UpdateNotificationHub> logger) : Hub
 {
-    private readonly ILogger<UpdateNotificationHub> _logger;
-
-    public UpdateNotificationHub(ILogger<UpdateNotificationHub> logger)
-    {
-        _logger = logger;
-    }
-
     public override async Task OnConnectedAsync()
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, "all_clients");
@@ -28,7 +21,7 @@ public class UpdateNotificationHub : Hub
         if (Context.User?.IsInRole("SuperAdmin") == true)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "superadmin");
-            _logger.LogDebug("SuperAdmin {UserId} joined update-notification groups", GetUserId());
+            logger.LogDebug("SuperAdmin {UserId} joined update-notification groups", GetUserId());
         }
 
         await base.OnConnectedAsync();

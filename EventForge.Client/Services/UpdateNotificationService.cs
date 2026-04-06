@@ -9,13 +9,13 @@ namespace EventForge.Client.Services;
 /// - exposes SuperAdmin-only operations (GetPackages, GetInstallations, TriggerUpdate)
 ///   through the Server proxy (/api/v1/updatehub-proxy/*).
 /// </summary>
-public class UpdateNotificationService : IUpdateNotificationService, IDisposable
+public sealed class UpdateNotificationService : IUpdateNotificationService, IDisposable
 {
     private readonly IHttpClientService _http;
     private readonly IRealtimeService _realtime;
     private readonly ILogger<UpdateNotificationService> _logger;
 
-    // State
+    // ── Maintenance state ────────────────────────────────────────────────────
     private bool _isServerMaintenance;
     private string? _maintenanceComponent;
     private string? _maintenanceVersion;
@@ -80,8 +80,8 @@ public class UpdateNotificationService : IUpdateNotificationService, IDisposable
     {
         try
         {
-            var result = await _http.GetAsync<List<PackageSummaryClientDto>>("api/v1/updatehub-proxy/packages", ct);
-            return result ?? [];
+            return await _http.GetAsync<List<PackageSummaryClientDto>>(
+                "api/v1/updatehub-proxy/packages", ct) ?? [];
         }
         catch (Exception ex)
         {
@@ -94,8 +94,8 @@ public class UpdateNotificationService : IUpdateNotificationService, IDisposable
     {
         try
         {
-            var result = await _http.GetAsync<List<InstallationSummaryClientDto>>("api/v1/updatehub-proxy/installations", ct);
-            return result ?? [];
+            return await _http.GetAsync<List<InstallationSummaryClientDto>>(
+                "api/v1/updatehub-proxy/installations", ct) ?? [];
         }
         catch (Exception ex)
         {
@@ -105,12 +105,10 @@ public class UpdateNotificationService : IUpdateNotificationService, IDisposable
     }
 
     public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-    {
-        await _http.PostAsync<object>(
+        => await _http.PostAsync<object>(
             $"api/v1/updatehub-proxy/installations/{installationId}/update",
             new { PackageId = packageId },
             ct);
-    }
 
     public async Task RefreshAvailableUpdatesCountAsync()
     {
