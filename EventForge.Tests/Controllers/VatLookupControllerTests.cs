@@ -1,7 +1,9 @@
 using EventForge.DTOs.External;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.External;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -22,6 +24,29 @@ public class VatLookupControllerTests
         _mockVatLookupService = new Mock<IVatLookupService>();
         _mockLogger = new Mock<ILogger<VatLookupController>>();
         _controller = new VatLookupController(_mockVatLookupService.Object, _mockLogger.Object);
+
+        // Set up ControllerContext with a minimal HttpContext so BaseApiController helpers
+        // can access HttpContext.Request.Path, HttpContext.Items, and HttpContext.RequestServices
+        var mockLoggerFactory = new Mock<ILoggerFactory>();
+        mockLoggerFactory.Setup(x => x.CreateLogger(It.IsAny<string>()))
+            .Returns(Mock.Of<ILogger>());
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(mockLoggerFactory.Object);
+        serviceCollection.AddLogging();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(c => c.Items).Returns(new Dictionary<object, object?>());
+        mockHttpContext.Setup(c => c.Request.Path).Returns(new PathString("/api/v1/vat-lookup"));
+        mockHttpContext.Setup(c => c.Request.Method).Returns("GET");
+        mockHttpContext.Setup(c => c.RequestServices).Returns(serviceProvider);
+        mockHttpContext.Setup(c => c.User).Returns(new System.Security.Claims.ClaimsPrincipal());
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
     }
 
     [Fact]

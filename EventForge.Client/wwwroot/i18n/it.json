@@ -2448,7 +2448,13 @@
     "registries": "Anagrafiche",
     "commercial": "Commerciale",
     "events": "Gestione Calendario",
-    "eventCalendar": "Calendario & Promemoria"
+    "eventCalendar": "Calendario & Promemoria",
+    "profile": "Profilo",
+    "help": "Aiuto",
+    "notifications": "Notifiche",
+    "chat": "Chat",
+    "administration": "Amministrazione",
+    "superAdmin": "Super Amministratore"
   },
   "tour": {
     "chat": "Tour Chat",

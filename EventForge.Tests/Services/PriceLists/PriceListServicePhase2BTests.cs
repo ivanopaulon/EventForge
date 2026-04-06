@@ -172,10 +172,11 @@ public class PriceListServicePhase2BTests
         var mockAudit = new MockAuditLogService();
         var unitConversionService = new UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
-        var mockCalculationService = new MockPriceCalculationService();
+        // Use real PriceCalculationService so applied-price and purchase-comparison logic runs correctly.
+        var realCalculationService = new PriceCalculationService(context, unitConversionService, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var eventEntity = CreateEvent(tenant.Id);
@@ -234,10 +235,11 @@ public class PriceListServicePhase2BTests
         var mockAudit = new MockAuditLogService();
         var unitConversionService = new UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
-        var mockCalculationService = new MockPriceCalculationService();
+        // Use real PriceCalculationService so purchase-price comparison logic runs correctly.
+        var realCalculationService = new PriceCalculationService(context, unitConversionService, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id);

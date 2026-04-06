@@ -4,7 +4,8 @@ using System.Net;
 namespace EventForge.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class BackendRefactoringIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class BackendRefactoringIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 
