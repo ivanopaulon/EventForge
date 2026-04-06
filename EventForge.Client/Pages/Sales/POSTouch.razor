@@ -264,7 +264,7 @@ else
                                            Label="@KeypadLabel"
                                            AllowDecimal="@(_keypadMode != KeypadMode.Quantity)" />
 
-                    <!-- Apply / Add buttons -->
+                    <!-- Apply button (visible when a cart item is selected) -->
                     <MudStack Row="true" Spacing="2" Class="mt-2">
 
                         @if (_selectedCartItem != null)
