@@ -197,17 +197,36 @@ public class FiscalRefundData
 }
 
 /// <summary>
-/// Status information for a fiscal printer.
+/// Paper status values reported by the Custom fiscal printer protocol.
+/// </summary>
+public enum FiscalPrinterPaperStatus
+{
+    /// <summary>Paper level is normal; printing is unaffected.</summary>
+    Ok,
+
+    /// <summary>Paper is running low; replace the roll soon (warning).</summary>
+    Low,
+
+    /// <summary>Paper is exhausted; printing is blocked until the roll is replaced.</summary>
+    Out,
+
+    /// <summary>Paper status could not be determined (e.g., printer offline).</summary>
+    Unknown
+}
+
+/// <summary>
+/// Status information for a Custom fiscal printer.
+/// Fields are populated from the 3-byte bitmap returned by CMD_READ_STATUS ("10").
 /// </summary>
 public class FiscalPrinterStatus
 {
     /// <summary>
-    /// Indicates if the printer is online.
+    /// Indicates if the printer is online and reachable.
     /// </summary>
     public bool IsOnline { get; set; }
 
     /// <summary>
-    /// Paper status (OK, LOW, OUT, UNKNOWN).
+    /// Paper status derived from the status bitmap (OK, LOW, OUT, UNKNOWN).
     /// </summary>
     public string PaperStatus { get; set; } = "UNKNOWN";
 
@@ -220,4 +239,49 @@ public class FiscalPrinterStatus
     /// Last time status was checked.
     /// </summary>
     public DateTime? LastCheck { get; set; }
+
+    // --- Custom protocol bitmap fields (byte 1) ---
+
+    /// <summary>Byte 1 bit 0 – Paper is completely out; printing is blocked.</summary>
+    public bool IsPaperOut { get; set; }
+
+    /// <summary>Byte 1 bit 1 – Printer cover is open.</summary>
+    public bool IsCoverOpen { get; set; }
+
+    /// <summary>Byte 1 bit 2 – Print head error detected.</summary>
+    public bool IsHeadError { get; set; }
+
+    /// <summary>Byte 1 bit 3 – Paper cutter error detected.</summary>
+    public bool IsCutterError { get; set; }
+
+    /// <summary>Byte 1 bit 4 – Fiscal memory is 100% full; printing is blocked. Requires authorised technical intervention.</summary>
+    public bool IsFiscalMemoryFull { get; set; }
+
+    // --- Custom protocol bitmap fields (byte 2) ---
+
+    /// <summary>Byte 2 bit 0 – Paper is running low; replace the roll soon.</summary>
+    public bool IsPaperLow { get; set; }
+
+    /// <summary>Byte 2 bit 1 – Fiscal memory is almost full (&gt;90%).</summary>
+    public bool IsFiscalMemoryAlmostFull { get; set; }
+
+    /// <summary>Byte 2 bit 2 – Cash drawer is open.</summary>
+    public bool IsDrawerOpen { get; set; }
+
+    /// <summary>Byte 2 bit 3 – Print head is overheating; printing may be temporarily suspended.</summary>
+    public bool IsHeadOverheat { get; set; }
+
+    // --- Custom protocol bitmap fields (byte 3) ---
+
+    /// <summary>Byte 3 bit 0 – A receipt is currently open (not yet closed or cancelled).</summary>
+    public bool IsReceiptOpen { get; set; }
+
+    /// <summary>Byte 3 bit 1 – Printer is in active fiscal mode.</summary>
+    public bool IsFiscalModeActive { get; set; }
+
+    /// <summary>
+    /// Byte 3 bit 2 – Daily fiscal closure (Z-report) is required.
+    /// Custom printers block new receipts if closure is not performed within 24 hours.
+    /// </summary>
+    public bool IsDailyClosureRequired { get; set; }
 }
