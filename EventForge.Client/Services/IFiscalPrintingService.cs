@@ -72,4 +72,15 @@ public interface IFiscalPrintingService
 
     /// <summary>Downloads the PDF Z-report for a closure. Returns null on failure.</summary>
     Task<byte[]?> DownloadClosurePdfAsync(Guid closureId, CancellationToken ct = default);
+
+    // ── Overdue closure tracking (SignalR push, consumed by MainLayout) ───────
+
+    /// <summary>True when at least one printer has signalled an overdue daily closure.</summary>
+    bool IsClosureOverdue { get; }
+
+    /// <summary>Fired whenever <see cref="IsClosureOverdue"/> changes.</summary>
+    event Action? ClosureStatusChanged;
+
+    /// <summary>Sets <see cref="IsClosureOverdue"/> and fires <see cref="ClosureStatusChanged"/>.</summary>
+    void SetClosureOverdue(bool value);
 }

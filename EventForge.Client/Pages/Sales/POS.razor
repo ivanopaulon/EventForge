@@ -9,9 +9,11 @@
 @using EventForge.Client.Shared.Components.Dialogs.Sales
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.FiscalPrinting
 @using EventForge.Client.Services.Sales
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 @attribute [Authorize]
 @inject POSViewModel ViewModel
@@ -27,6 +29,25 @@
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading" 
                     Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
+
+@if (_fiscalPrinterStatus?.IsDailyClosureRequired == true)
+{
+    <MudAlert Severity="Severity.Warning"
+              Dense="true"
+              Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudText Style="flex:1">
+                ⚠️ Il registratore di cassa richiede la chiusura giornaliera. Le nuove stampe potrebbero essere bloccate.
+            </MudText>
+            <MudButton Size="Size.Small"
+                       Variant="Variant.Filled"
+                       Color="Color.Warning"
+                       OnClick="@OpenDailyClosureDialogAsync">
+                Esegui Chiusura Ora
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
     <!-- Page Title -->
@@ -999,6 +1020,9 @@
             // Create .NET reference and setup shortcuts
             _dotNetRef = DotNetObjectReference.Create(this);
             await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
+
+            // Connect to fiscal printer hub if a printer is configured
+            await ConnectFiscalHubAsync();
         }
     }
 
@@ -1065,6 +1089,17 @@
         ViewModel.StateChanged -= StateHasChanged;
         ViewModel.OnNotification -= HandleNotification;
         ViewModel.Dispose();
+
+        if (_fiscalHubConnection is not null)
+        {
+            try
+            {
+                if (_fiscalPrinterId.HasValue)
+                    await _fiscalHubConnection.SendAsync("UnsubscribeFromPrinter", _fiscalPrinterId.Value);
+                await _fiscalHubConnection.DisposeAsync();
+            }
+            catch { /* intentionally swallowed during disposal */ }
+        }
     }
 
     // =========================================================================
@@ -1077,6 +1112,85 @@
     /// Populated in OnInitializedAsync once the station configuration is loaded.
     /// </summary>
     private Guid? _fiscalPrinterId = null;
+
+    /// <summary>Most recent status of the fiscal printer, kept current via SignalR push.</summary>
+    private FiscalPrinterStatus? _fiscalPrinterStatus;
+
+    /// <summary>SignalR connection for real-time fiscal printer status updates.</summary>
+    private HubConnection? _fiscalHubConnection;
+
+    /// <summary>
+    /// Connects to the fiscal printer SignalR hub and subscribes to the printer
+    /// assigned to this POS station. Only called when <see cref="_fiscalPrinterId"/> is set.
+    /// </summary>
+    private async Task ConnectFiscalHubAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            _fiscalHubConnection = new HubConnectionBuilder()
+                .WithUrl("/hubs/fiscal-printer")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _fiscalHubConnection.On<Guid, FiscalPrinterStatus>("PrinterStatusUpdated", (printerId, status) =>
+            {
+                if (printerId != _fiscalPrinterId.Value) return;
+                _fiscalPrinterStatus = status;
+                InvokeAsync(StateHasChanged);
+            });
+
+            _fiscalHubConnection.On<Guid, string>("ClosureRequired", (printerId, _) =>
+            {
+                if (printerId != _fiscalPrinterId.Value) return;
+                if (_fiscalPrinterStatus is not null)
+                    _fiscalPrinterStatus.IsDailyClosureRequired = true;
+                InvokeAsync(StateHasChanged);
+            });
+
+            await _fiscalHubConnection.StartAsync();
+            await _fiscalHubConnection.SendAsync("SubscribeToPrinter", _fiscalPrinterId.Value);
+
+            // Load initial status
+            _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+
+            Logger.LogDebug("POS: subscribed to fiscal printer {PrinterId}", _fiscalPrinterId.Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: could not connect to fiscal printer SignalR hub");
+        }
+    }
+
+    /// <summary>Opens the daily closure dialog for the printer assigned to this POS.</summary>
+    private async Task OpenDailyClosureDialogAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId.Value,
+            [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+            "Chiusura Giornaliera", parameters, options);
+
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+        {
+            _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+            StateHasChanged();
+        }
+    }
 
     /// <summary>
     /// Triggers fiscal printing after a successful sale closure.

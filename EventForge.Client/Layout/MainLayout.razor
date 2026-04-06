@@ -2,7 +2,10 @@
 @inherits LayoutComponentBase
 @using EventForge.Client.Constants
 @using EventForge.DTOs.Configuration
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Station
 @using EventForge.Client.Shared.Components
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IAuthService AuthService
 @inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
@@ -15,7 +18,9 @@
 @inject IDialogService DialogService
 @inject IBrandingService BrandingService
 @inject IServerConfigOverlayService ServerConfigOverlayService
-@implements IDisposable
+@inject IFiscalPrintingService FiscalPrintingService
+@inject IHttpClientService HttpClientService
+@implements IAsyncDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
@@ -63,6 +68,33 @@
             <NavMenu />
         </MudDrawer>
     }
+
+    @if (FiscalPrintingService.IsClosureOverdue && !_closureOverdueDismissed && _isManagerOrAbove)
+    {
+        <MudAppBar Elevation="0" Dense="true" Style="top:64px; background:transparent; pointer-events:none;">
+            <MudAlert Severity="Severity.Error"
+                      Dense="true"
+                      Style="width:100%; pointer-events:all;"
+                      NoIcon="false">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudText Style="flex:1">
+                        ⚠️ <strong>CHIUSURA GIORNALIERA NON ESEGUITA</strong> — Alcune stampanti fiscali richiedono la chiusura immediata.
+                    </MudText>
+                    <MudButton Size="Size.Small"
+                               Variant="Variant.Filled"
+                               Color="Color.Error"
+                               OnClick="@(() => NavigationManager.NavigateTo("/admin/fiscal-printers"))">
+                        Vai alla Chiusura
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                   Size="Size.Small"
+                                   Color="Color.Inherit"
+                                   OnClick="@DismissClosureOverdue"
+                                   aria-label="Ignora" />
+                </MudStack>
+            </MudAlert>
+        </MudAppBar>
+    }
     
     <!-- Main content area with proper semantic structure -->
     <MudMainContent Class="mt-12 pa-2 pa-sm-4 main-content-with-footer" role="main">
@@ -93,6 +125,12 @@
     private readonly SemaphoreSlim _authStateLock = new(1, 1);
     private BrandingConfigurationDto? _branding;
 
+    // ── Fiscal overdue banner ──────────────────────────────────────────────────
+    private bool _closureOverdueDismissed = false;
+    private bool _isManagerOrAbove = false;
+    private HubConnection? _fiscalHubConnection;
+    private bool _fiscalHubStarted = false;
+
     protected override async Task OnInitializedAsync()
     {
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
@@ -100,6 +138,7 @@
         FontPreferencesService.OnPreferencesChanged += OnFontPreferencesChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
         NavigationManager.LocationChanged += OnLocationChanged;
+        FiscalPrintingService.ClosureStatusChanged += OnClosureStatusChanged;
         
         // Subscribe to session keepalive events
         SessionKeepaliveService.OnRefreshSuccess += OnSessionRefreshSuccess;
@@ -293,12 +332,22 @@
                 // User just logged in - start the keepalive service
                 Logger.LogInformation("User authenticated, starting session keepalive service");
                 SessionKeepaliveService.Start();
+
+                // Check roles and start fiscal hub if appropriate
+                _isManagerOrAbove = await AuthService.IsInRoleAsync("Admin")
+                    || await AuthService.IsInRoleAsync("Manager")
+                    || await AuthService.IsInRoleAsync("StoreManager")
+                    || await AuthService.IsSuperAdminAsync();
+
+                if (_isManagerOrAbove && !_fiscalHubStarted)
+                    _ = Task.Run(ConnectFiscalHubAsync);
             }
             else if (!_isAuthenticated && wasAuthenticated)
             {
                 // User just logged out - stop the keepalive service
                 Logger.LogInformation("User logged out, stopping session keepalive service");
                 SessionKeepaliveService.Stop();
+                _isManagerOrAbove = false;
             }
             
             StateHasChanged();
@@ -306,6 +355,57 @@
         finally
         {
             _authStateLock.Release();
+        }
+    }
+
+    // ── Fiscal overdue banner helpers ─────────────────────────────────────────
+
+    private void OnClosureStatusChanged() => InvokeAsync(StateHasChanged);
+
+    private void DismissClosureOverdue()
+    {
+        _closureOverdueDismissed = true;
+        StateHasChanged();
+    }
+
+    private async Task ConnectFiscalHubAsync()
+    {
+        _fiscalHubStarted = true;
+        try
+        {
+            _fiscalHubConnection = new HubConnectionBuilder()
+                .WithUrl("/hubs/fiscal-printer")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _fiscalHubConnection.On<Guid, string>("ClosureRequired", (_, _) =>
+            {
+                FiscalPrintingService.SetClosureOverdue(true);
+                _closureOverdueDismissed = false;
+            });
+
+            await _fiscalHubConnection.StartAsync();
+
+            // Subscribe to all fiscal printers so we receive their ClosureRequired events
+            try
+            {
+                var printerPage = await HttpClientService.GetAsync<PagedResult<PrinterDto>>(
+                    "api/v1/stations/printers?page=1&pageSize=100");
+                var fiscalPrinters = printerPage?.Items?.Where(p => p.IsFiscalPrinter).ToList() ?? [];
+                foreach (var p in fiscalPrinters)
+                    await _fiscalHubConnection.SendAsync("SubscribeToPrinter", p.Id);
+
+                Logger.LogDebug("MainLayout: subscribed to {Count} fiscal printer(s)", fiscalPrinters.Count);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "MainLayout: could not load fiscal printers for hub subscription");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "MainLayout: could not connect to fiscal printer SignalR hub");
+            _fiscalHubStarted = false;
         }
     }
 
@@ -403,13 +503,14 @@
         });
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
         ThemeService.OnThemeChanged -= OnThemeChanged;
         FontPreferencesService.OnPreferencesChanged -= OnFontPreferencesChanged;
         TranslationService.LanguageChanged -= OnLanguageChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
+        FiscalPrintingService.ClosureStatusChanged -= OnClosureStatusChanged;
         SessionKeepaliveService.OnRefreshSuccess -= OnSessionRefreshSuccess;
         SessionKeepaliveService.OnRefreshFailure -= OnSessionRefreshFailure;
         SessionKeepaliveService.OnSessionWarning -= OnSessionWarning; // NEW
@@ -419,5 +520,11 @@
         
         // Dispose the semaphore
         _authStateLock.Dispose();
+
+        if (_fiscalHubConnection is not null)
+        {
+            try { await _fiscalHubConnection.DisposeAsync(); }
+            catch { /* intentionally swallowed during disposal */ }
+        }
     }
 }

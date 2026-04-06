@@ -5,6 +5,7 @@
 @using EventForge.Client.Shared.Components.FiscalPrinting
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize(Roles = "Admin,Manager")]
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IHttpClientService HttpClientService
@@ -13,6 +14,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject ILogger<ClosureHistory> Logger
+@implements IAsyncDisposable
 
 <PageTitle>Storico Chiusure Fiscali</PageTitle>
 
@@ -152,6 +154,7 @@
     private string? _printerName;
     private List<DailyClosureHistoryDto> _closures = new();
     private List<DailyClosureHistoryDto> _closuresFiltered = new();
+    private HubConnection? _hubConnection;
 
     // Filters
     private DateTime? _filterFromDate;
@@ -184,6 +187,64 @@
         ];
 
         await LoadHistoryAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _hubConnection is not null) return;
+        await ConnectToHubAsync();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  SignalR
+    // ─────────────────────────────────────────────────────────
+
+    private async Task ConnectToHubAsync()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl("/hubs/fiscal-printer")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<Guid, string>("ClosureRequired", async (printerId, _) =>
+            {
+                if (printerId != PrinterId) return;
+                await InvokeAsync(async () =>
+                {
+                    await LoadHistoryAsync();
+                    StateHasChanged();
+                });
+            });
+
+            await _hubConnection.StartAsync();
+            await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId);
+
+            Logger.LogDebug("ClosureHistory: subscribed to printer {PrinterId}", PrinterId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "ClosureHistory: could not connect to SignalR hub for printer {PrinterId}", PrinterId);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  IAsyncDisposable
+    // ─────────────────────────────────────────────────────────
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                await _hubConnection.SendAsync("UnsubscribeFromPrinter", PrinterId);
+                await _hubConnection.DisposeAsync();
+            }
+            catch { /* intentionally swallowed during disposal */ }
+            _hubConnection = null;
+        }
     }
 
     // ─────────────────────────────────────────────────────────

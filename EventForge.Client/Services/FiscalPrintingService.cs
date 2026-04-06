@@ -344,6 +344,23 @@ public class FiscalPrintingService(
         }
     }
 
+    // ── Overdue closure tracking ──────────────────────────────────────────────
+
+    private bool _isClosureOverdue;
+
+    /// <inheritdoc />
+    public bool IsClosureOverdue => _isClosureOverdue;
+
+    /// <inheritdoc />
+    public event Action? ClosureStatusChanged;
+
+    /// <inheritdoc />
+    public void SetClosureOverdue(bool value)
+    {
+        _isClosureOverdue = value;
+        ClosureStatusChanged?.Invoke();
+    }
+
     public async Task<byte[]?> DownloadClosurePdfAsync(
         Guid closureId, CancellationToken ct = default)
     {
