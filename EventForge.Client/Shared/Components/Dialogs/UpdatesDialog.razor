@@ -423,8 +423,14 @@
         Action<T> onSuccess,
         Action<Exception> onError)
     {
-        try { onSuccess(await fetch()); }
-        catch (Exception ex) { onError(ex); }
+        try
+        {
+            onSuccess(await fetch());
+        }
+        catch (Exception ex)
+        {
+            onError(ex);
+        }
     }
 
     private void ShowPackageDetails(PackageSummaryClientDto package)
