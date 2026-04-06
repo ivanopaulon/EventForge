@@ -11,6 +11,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<PromotionNew> Logger
 
+<PageTitle>@TranslationService.GetTranslation("promotion.new", "Nuova Promozione")</PageTitle>
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <PageLoadingOverlay Visible="_isLoading || _isSaving"
                         Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina..."))" />

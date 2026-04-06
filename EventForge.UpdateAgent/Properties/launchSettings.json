@@ -3,10 +3,11 @@
     "EventForge.UpdateAgent": {
       "commandName": "Project",
       "launchBrowser": true,
+      "launchUrl": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:59404;http://localhost:59405"
+      "applicationUrl": "http://localhost:5780"
     }
   }
 }

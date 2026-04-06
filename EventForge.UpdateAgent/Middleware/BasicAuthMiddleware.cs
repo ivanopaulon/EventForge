@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
+using EventForge.UpdateAgent.Security;
 
 namespace EventForge.UpdateAgent.Middleware;
 
@@ -63,7 +64,7 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
             if (credentials.Length != 2) return false;
 
             return credentials[0] == expectedUser &&
-                   credentials[1] == expectedPass;
+                   PasswordHasher.Verify(credentials[1], expectedPass);
         }
         catch
         {

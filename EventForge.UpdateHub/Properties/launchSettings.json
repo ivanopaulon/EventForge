@@ -3,10 +3,11 @@
     "EventForge.UpdateHub": {
       "commandName": "Project",
       "launchBrowser": true,
+      "launchUrl": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:59406;http://localhost:59407"
+      "applicationUrl": "http://localhost:7243"
     }
   }
 }

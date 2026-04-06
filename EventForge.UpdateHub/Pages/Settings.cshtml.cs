@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using EventForge.UpdateHub.Configuration;
+using EventForge.UpdateHub.Security;
 
 namespace EventForge.UpdateHub.Pages;
 
@@ -33,6 +34,10 @@ public class SettingsModel(
     [BindProperty] public int LogRetentionDays { get; set; }
     [BindProperty] public string? LogDirectoryPath { get; set; }
     [BindProperty] public string UiUsername { get; set; } = string.Empty;
+    /// <summary>
+    /// New password submitted via the form. Empty means "keep the existing stored value".
+    /// Never populated on GET — the current hash is never sent to the browser.
+    /// </summary>
     [BindProperty] public string UiPassword { get; set; } = string.Empty;
 
     public bool IsDefaultCredentials { get; private set; }
@@ -77,7 +82,11 @@ public class SettingsModel(
             hubOptions.Logging.RetentionDays = LogRetentionDays;
             hubOptions.Logging.DirectoryPath = string.IsNullOrWhiteSpace(LogDirectoryPath) ? null : LogDirectoryPath;
             hubOptions.UI.Username = UiUsername;
-            hubOptions.UI.Password = UiPassword;
+            // Only update password if a new one was typed; empty = keep existing stored value.
+            var newPasswordToStore = string.IsNullOrEmpty(UiPassword)
+                ? hubOptions.UI.Password   // keep existing (may already be hashed)
+                : PasswordHasher.Hash(UiPassword);
+            hubOptions.UI.Password = newPasswordToStore;
 
             logger.LogInformation("Hub settings saved via UI");
             TempData["Success"] = "Impostazioni salvate. Le credenziali UI sono attive immediatamente.";
@@ -108,8 +117,11 @@ public class SettingsModel(
         LogRetentionDays = hubOptions.Logging.RetentionDays;
         LogDirectoryPath = hubOptions.Logging.DirectoryPath;
         UiUsername = hubOptions.UI.Username;
-        UiPassword = hubOptions.UI.Password;
-        IsDefaultCredentials = hubOptions.UI.Username == "admin" && hubOptions.UI.Password == "Admin#123!";
+        UiPassword = string.Empty; // never send the stored hash to the browser
+        // "default credentials" = still the well-known plaintext sentinel (not yet changed/hashed)
+        IsDefaultCredentials = hubOptions.UI.Username == "admin" &&
+                               !PasswordHasher.IsHashed(hubOptions.UI.Password) &&
+                               hubOptions.UI.Password == "Admin#123!";
     }
 
     private Dictionary<string, object?> MergeSection(JsonElement root, UpdateHubOptions opts)

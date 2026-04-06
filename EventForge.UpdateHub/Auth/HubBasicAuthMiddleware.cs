@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using EventForge.UpdateHub.Configuration;
+using EventForge.UpdateHub.Security;
 
 namespace EventForge.UpdateHub.Auth;
 
@@ -78,7 +79,7 @@ public class HubBasicAuthMiddleware(RequestDelegate next, UpdateHubOptions optio
             if (credentials.Length != 2) return false;
 
             return credentials[0] == expectedUser &&
-                   credentials[1] == expectedPass;
+                   PasswordHasher.Verify(credentials[1], expectedPass);
         }
         catch
         {

@@ -10,6 +10,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<AnalyticsDashboard> Logger
 
+<PageTitle>@TranslationService.GetTranslation("analytics.title", "Analytics & Reportistica")</PageTitle>
 <PageLoadingOverlay Visible="_isLoading"
                     Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
 

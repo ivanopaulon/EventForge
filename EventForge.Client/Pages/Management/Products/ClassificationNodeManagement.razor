@@ -8,6 +8,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 
+<PageTitle>@TranslationService.GetTranslation("classificationNode.management", "Gestione Nodi di Classificazione")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
                       TEntity="ClassificationNodeDto"
                       Config="_config"

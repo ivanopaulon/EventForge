@@ -12,6 +12,7 @@
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
 
+<PageTitle>@TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
                       TEntity="PriceListDto"
                       Config="_config"
