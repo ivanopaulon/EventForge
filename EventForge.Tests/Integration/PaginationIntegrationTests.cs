@@ -10,7 +10,8 @@ using System.Text.Json;
 namespace EventForge.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class PaginationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class PaginationIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 

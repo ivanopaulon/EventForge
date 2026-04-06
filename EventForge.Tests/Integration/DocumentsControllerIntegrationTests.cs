@@ -8,7 +8,8 @@ using System.Net;
 namespace EventForge.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public class DocumentsControllerIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("Integration Tests")]
+public class DocumentsControllerIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
 
