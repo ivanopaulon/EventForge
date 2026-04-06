@@ -13,11 +13,25 @@ using System.Net.Http.Json;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+// Load environment-specific overrides from "Environments:{env}" section in appsettings.json.
+// Development (Blazor DevServer → blazor-environment: Development) → BaseUrl 7241
+// Production  (IIS static files → no header sent)                  → BaseUrl 7242
+var environment = builder.HostEnvironment.Environment;
+var envSection = builder.Configuration.GetSection($"Environments:{environment}");
+if (envSection.Exists())
+{
+    var envOverrides = envSection
+        .AsEnumerable(makePathsRelative: true)
+        .Where(kvp => kvp.Value is not null)
+        .Select(kvp => new KeyValuePair<string, string?>(kvp.Key, kvp.Value));
+    builder.Configuration.AddInMemoryCollection(envOverrides);
+}
+
 // Use component type from the current project namespace
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Load API base URL from configuration (appsettings.json)
+// Load API base URL from configuration — already resolved to the correct environment value above
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7241/";
 
 // Configure HttpClient instances using best practices for performance
