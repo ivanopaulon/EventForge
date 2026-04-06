@@ -47,7 +47,32 @@ public interface IInstallationService
 
     /// <summary>Sets the update mode (Automatic or Manual) for an installation.</summary>
     Task SetUpdateModeAsync(Guid id, InstallationUpdateMode mode, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the most recent update history records for a single installation,
+    /// ordered by <see cref="UpdateHistory.StartedAt"/> descending.
+    /// </summary>
+    Task<IReadOnlyList<UpdateHistorySummary>> GetRecentHistoryAsync(
+        Guid installationId, int max = 5, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the most recent update history records for multiple installations in a single
+    /// database round-trip, keyed by <c>InstallationId</c>.
+    /// </summary>
+    Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
+        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
 }
+
+/// <summary>Summary of a single update history record, used in the Installations UI.</summary>
+public record UpdateHistorySummary(
+    Guid HistoryId,
+    Guid PackageId,
+    string? PackageVersion,
+    PackageComponent? Component,
+    UpdateHistoryStatus Status,
+    string? PhaseDescription,
+    DateTime StartedAt,
+    DateTime? CompletedAt);
 
 /// <summary>Rich identity payload sent by the agent on every SignalR connect.</summary>
 public record RegistrationInfo(

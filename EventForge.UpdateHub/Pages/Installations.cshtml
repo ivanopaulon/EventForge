@@ -1,6 +1,7 @@
 @page
 @model EventForge.UpdateHub.Pages.InstallationsModel
 @using EventForge.UpdateHub.Data.Entities
+@using EventForge.UpdateHub.Services
 @{
     ViewData["Title"] = "Installazioni";
     ViewData["PageSection"] = "Hub";
@@ -113,6 +114,7 @@
                         <th>Posizione / Tag</th>
                         <th>Ultimo contatto</th>
                         <th>Modalità</th>
+                        <th>Aggiornamenti</th>
                         <th>Azioni</th>
                     </tr>
                 </thead>
@@ -246,6 +248,52 @@
                             </div>
                         </td>
                         <td>
+                            @{
+                                // Show up to 3 most recent update records as status badges
+                                var updates = row.RecentUpdates;
+                            }
+                            @if (updates.Count == 0)
+                            {
+                                <span class="text-muted" style="font-size:.75rem">—</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column gap-1">
+                                @foreach (var upd in updates)
+                                {
+                                    var (updBadgeCls, updBadgeIcon, updBadgeLabel) = upd.Status switch {
+                                        UpdateHistoryStatus.Succeeded  => ("ef-badge-success",  "bi-check-circle",           "Installato"),
+                                        UpdateHistoryStatus.Failed     => ("ef-badge-danger",   "bi-x-circle",               "Fallito"),
+                                        UpdateHistoryStatus.RolledBack => ("ef-badge-neutral",  "bi-arrow-counterclockwise", "Rollback"),
+                                        UpdateHistoryStatus.InProgress => upd.PhaseDescription switch {
+                                            "Downloading" or "VerifyingChecksum"
+                                                => ("ef-badge-blue",    "bi-cloud-download", "Download…"),
+                                            "AwaitingMaintenanceWindow"
+                                                => ("ef-badge-teal",    "bi-clock",          "Scaricato"),
+                                            "BackingUp" or "RunningPreMigrations" or "StoppingService"
+                                            or "DeployingBinaries" or "StartingService"
+                                            or "RunningPostMigrations" or "VerifyingHealth"
+                                                => ("ef-badge-warning", "bi-gear",           "Installazione…"),
+                                            _   => ("ef-badge-warning", "bi-arrow-repeat",   upd.PhaseDescription ?? "In corso")
+                                        },
+                                        _ => ("ef-badge-neutral", "bi-dash", upd.Status.ToString())
+                                    };
+                                    var isAnimated = upd.Status == UpdateHistoryStatus.InProgress;
+                                    var compCls = upd.Component == PackageComponent.Server ? "ef-badge-blue" : "ef-badge-info";
+                                    <div style="font-size:.72rem" title="@(upd.PackageVersion ?? "—") — @upd.StartedAt.ToString("dd/MM/yy HH:mm")">
+                                        <span class="ef-badge @compCls me-1" style="font-size:.65rem">
+                                            @(upd.Component?.ToString() ?? "—")
+                                        </span>
+                                        <span class="ef-badge @updBadgeCls @(isAnimated ? "pulse-badge" : "")">
+                                            <i class="bi @updBadgeIcon me-1 @(isAnimated ? "spin" : "")" style="font-size:.6rem"></i>@updBadgeLabel
+                                        </span>
+                                        <span class="text-muted ms-1">@(upd.PackageVersion ?? "—")</span>
+                                    </div>
+                                }
+                                </div>
+                            }
+                        </td>
+                        <td>
                             @if (!i.IsRevoked && row.IsOnline && Model.ReadyPackages.Count > 0)
                             {
                                 <div class="d-flex gap-1 flex-wrap">
@@ -277,7 +325,7 @@
                 @if (!Model.Installations.Any())
                 {
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-5">
+                        <td colspan="11" class="text-center text-muted py-5">
                             <i class="bi bi-pc-display fs-3 d-block mb-2"></i>
                             Nessuna installazione registrata.<br />
                             <button class="btn btn-primary btn-sm mt-2"

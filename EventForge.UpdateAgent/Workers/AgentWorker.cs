@@ -349,11 +349,59 @@ public class AgentWorker(
             return Task.CompletedTask;
         });
 
-        // ── UpdateAvailable: informational only ──
-        _connection.On<UpdateAvailableMessage>("UpdateAvailable", msg =>
+        // ── UpdateAvailable: check if newer version, then request update from Hub ──
+        _connection.On<UpdateAvailableMessage>("UpdateAvailable", async msg =>
         {
-            logger.LogInformation("Update available: {Component} {Version}", msg.Component, msg.Version);
-            return Task.CompletedTask;
+            logger.LogInformation("UpdateAvailable received: {Component} {Version} (PackageId={PackageId})",
+                msg.Component, msg.Version, msg.PackageId);
+
+            // Check whether this agent manages the offered component.
+            var isServer = msg.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+            var isClient = msg.Component.Equals("Client", StringComparison.OrdinalIgnoreCase);
+
+            if (isServer && !options.Components.Server.Enabled)
+            {
+                logger.LogDebug("UpdateAvailable: Server component not managed by this agent — skipping.");
+                return;
+            }
+
+            if (isClient && !options.Components.Client.Enabled)
+            {
+                logger.LogDebug("UpdateAvailable: Client component not managed by this agent — skipping.");
+                return;
+            }
+
+            if (!isServer && !isClient)
+            {
+                logger.LogWarning("UpdateAvailable: Unknown component '{Component}' — skipping.", msg.Component);
+                return;
+            }
+
+            // Compare the offered version with the currently installed version.
+            var installedVersion = isServer
+                ? versionDetector.GetServerVersion()
+                : versionDetector.GetClientVersion();
+
+            if (!IsNewerVersion(msg.Version, installedVersion))
+            {
+                logger.LogInformation(
+                    "UpdateAvailable: Already up-to-date (installed={Installed}, offered={Offered}) — skipping.",
+                    installedVersion ?? "none", msg.Version);
+                return;
+            }
+
+            logger.LogInformation(
+                "UpdateAvailable: Newer version detected (offered={Offered} > installed={Installed}). Requesting update from Hub.",
+                msg.Version, installedVersion ?? "none");
+
+            try
+            {
+                await _connection.InvokeAsync("RequestStartUpdate", msg.PackageId, ct);
+            }
+            catch (Exception ex) when (!ct.IsCancellationRequested)
+            {
+                logger.LogError(ex, "UpdateAvailable: Failed to invoke RequestStartUpdate on Hub.");
+            }
         });
 
         // ── RequestStatus ──
@@ -440,6 +488,31 @@ public class AgentWorker(
             errorMessage);
 
         await _connection.InvokeAsync("ReportUpdateProgress", msg, ct);
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="offered"/> is strictly greater than
+    /// <paramref name="installed"/>. Returns <see langword="true"/> when <paramref name="installed"/>
+    /// is null/empty (component not yet installed on this machine).
+    /// Falls back to ordinal string comparison for non-parseable version strings.
+    /// </summary>
+    private static bool IsNewerVersion(string offered, string? installed)
+    {
+        if (string.IsNullOrWhiteSpace(installed)) return true;
+
+        // Nerdbank.GitVersioning may emit "1.2.3+g1a2b3c4" — strip the build metadata.
+        static string Strip(string v)
+        {
+            var plus = v.IndexOf('+');
+            return plus >= 0 ? v[..plus] : v;
+        }
+
+        if (Version.TryParse(Strip(offered), out var o) &&
+            Version.TryParse(Strip(installed), out var i))
+            return o > i;
+
+        // Fallback: ordinal string compare.
+        return string.Compare(offered, installed, StringComparison.OrdinalIgnoreCase) > 0;
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

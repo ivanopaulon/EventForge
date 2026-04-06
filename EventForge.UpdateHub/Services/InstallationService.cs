@@ -137,4 +137,43 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
         installation.UpdateMode = mode;
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyList<UpdateHistorySummary>> GetRecentHistoryAsync(
+        Guid installationId, int max = 5, CancellationToken ct = default)
+    {
+        var rows = await db.UpdateHistories
+            .Include(h => h.Package)
+            .Where(h => h.InstallationId == installationId)
+            .OrderByDescending(h => h.StartedAt)
+            .Take(max)
+            .ToListAsync(ct);
+
+        return rows.Select(ToSummary).ToList();
+    }
+
+    public async Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
+        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
+    {
+        var ids = installationIds.ToHashSet();
+        if (ids.Count == 0) return [];
+
+        var rows = await db.UpdateHistories
+            .Include(h => h.Package)
+            .Where(h => ids.Contains(h.InstallationId))
+            .OrderByDescending(h => h.StartedAt)
+            .ToListAsync(ct);
+
+        return rows
+            .GroupBy(h => h.InstallationId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<UpdateHistorySummary>)g
+                    .Take(maxPerInstallation)
+                    .Select(ToSummary)
+                    .ToList());
+    }
+
+    private static UpdateHistorySummary ToSummary(UpdateHistory h) =>
+        new(h.Id, h.PackageId, h.Package?.Version, h.Package?.Component,
+            h.Status, h.PhaseDescription, h.StartedAt, h.CompletedAt);
 }

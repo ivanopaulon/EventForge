@@ -19,7 +19,7 @@ public class InstallationsModel(
     public IReadOnlyList<InstallationRow> Installations { get; private set; } = [];
     public IReadOnlyList<UpdatePackage> ReadyPackages { get; private set; } = [];
 
-    public record InstallationRow(Installation Installation, bool IsOnline);
+    public record InstallationRow(Installation Installation, bool IsOnline, IReadOnlyList<UpdateHistorySummary> RecentUpdates);
 
     public async Task OnGetAsync()
     {
@@ -106,6 +106,14 @@ public class InstallationsModel(
         var installs = await installationService.GetAllAsync();
         var online = connectionTracker.GetOnlineInstallationIds();
         ReadyPackages = await packageService.GetByStatusAsync(PackageStatus.ReadyToDeploy);
-        Installations = installs.Select(i => new InstallationRow(i, online.Contains(i.Id))).ToList();
+
+        var installationIds = installs.Select(i => i.Id);
+        var historyMap = await installationService.GetAllRecentHistoryAsync(installationIds, maxPerInstallation: 5);
+
+        Installations = installs.Select(i =>
+        {
+            historyMap.TryGetValue(i.Id, out var history);
+            return new InstallationRow(i, online.Contains(i.Id), history ?? []);
+        }).ToList();
     }
 }
