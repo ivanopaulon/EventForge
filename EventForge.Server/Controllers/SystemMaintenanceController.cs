@@ -85,6 +85,7 @@ public class SystemMaintenanceController(
                     request.IsManualInstall,
                     request.PackageId,
                     request.NextWindowAt,
+                    request.Detail,
                     SentAt = DateTime.UtcNow
                 });
                 break;
@@ -118,4 +119,5 @@ public record MaintenanceNotificationRequest(
     string? CurrentPhase = null,
     bool? IsManualInstall = null,
     Guid? PackageId = null,
-    string? NextWindowAt = null);
+    string? NextWindowAt = null,
+    string? Detail = null);

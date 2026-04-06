@@ -54,7 +54,8 @@ public record UpdateProgressPayload(
     DateTime SentAt,
     bool? IsManualInstall = null,
     Guid? PackageId = null,
-    string? NextWindowAt = null);
+    string? NextWindowAt = null,
+    string? Detail = null);
 
 /// <summary>Count of ReadyToDeploy packages pushed periodically to SuperAdmin clients.</summary>
 public record UpdatesAvailablePayload(int Count);

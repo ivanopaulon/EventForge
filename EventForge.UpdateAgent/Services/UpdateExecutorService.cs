@@ -60,7 +60,8 @@ public class UpdateExecutorService(
         string? eta = null,
         bool? isManualInstall = null,
         Guid? packageId = null,
-        string? nextWindowAt = null)
+        string? nextWindowAt = null,
+        string? detail = null)
     {
         var (url, secret) = GetNotifConfig(command.Component);
         return NotifyServerAsync(url, secret, new
@@ -76,7 +77,8 @@ public class UpdateExecutorService(
             Eta = eta,
             IsManualInstall = isManualInstall,
             PackageId = packageId,
-            NextWindowAt = nextWindowAt
+            NextWindowAt = nextWindowAt,
+            Detail = detail
         });
     }
 
@@ -96,7 +98,7 @@ public class UpdateExecutorService(
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var resp = await _http.SendAsync(request, cts.Token);
             if (!resp.IsSuccessStatusCode)
                 logger.LogWarning("Maintenance notification returned {StatusCode}", resp.StatusCode);
@@ -105,6 +107,24 @@ public class UpdateExecutorService(
         {
             logger.LogWarning(ex, "Maintenance notification failed (best-effort, update continues)");
         }
+    }
+
+    /// <summary>
+    /// Same as <see cref="NotifyPhaseAsync"/> but never blocks the caller — the HTTP call
+    /// runs on a background thread. Used during install phases so the actual install work
+    /// is never delayed waiting for the notification round-trip.
+    /// </summary>
+    private void NotifyPhaseBackground(StartUpdateCommand command, string currentPhase,
+        string? detail = null,
+        int? percentComplete = null,
+        bool? isManualInstall = null,
+        Guid? packageId = null)
+    {
+        _ = Task.Run(() => NotifyPhaseAsync(command, currentPhase,
+            percentComplete: percentComplete,
+            isManualInstall: isManualInstall,
+            packageId: packageId,
+            detail: detail));
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -176,15 +196,20 @@ public class UpdateExecutorService(
     public async Task<string> DownloadAndVerifyAsync(StartUpdateCommand command, CancellationToken ct)
     {
         await ReportAsync(command, UpdatePhase.Downloading, false, true, null, ct);
-        // Notify connected clients immediately so the snackbar appears.
-        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(), percentComplete: 0,
-            isManualInstall: command.IsManualInstall, packageId: command.PackageId);
+        await NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+            percentComplete: 0,
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            detail: $"Avvio download {command.Component} v{command.Version}…");
 
         var zipPath = await DownloadPackageAsync(command, ct);
 
         await ReportAsync(command, UpdatePhase.VerifyingChecksum, false, true, null, ct);
         await NotifyPhaseAsync(command, UpdatePhase.VerifyingChecksum.ToString(),
-            isManualInstall: command.IsManualInstall, packageId: command.PackageId);
+            percentComplete: 100,
+            isManualInstall: command.IsManualInstall,
+            packageId: command.PackageId,
+            detail: "Verifica integrità SHA-256 del pacchetto…");
         await VerifyChecksumAsync(zipPath, command.Checksum, ct);
 
         return zipPath;
@@ -205,20 +230,31 @@ public class UpdateExecutorService(
         {
             // ── Phase 3: Extract ──
             Directory.CreateDirectory(tempDir);
+            NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                detail: "Estrazione archivio ZIP…");
             ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
             var manifest = await LoadManifestAsync(tempDir);
 
             // ── Phase 4: Backup ──
             await ReportAsync(command, UpdatePhase.BackingUp, false, true, null, ct);
-            await NotifyPhaseAsync(command, UpdatePhase.BackingUp.ToString());
+            NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                detail: $"Backup cartella deploy: {deployPath}");
             backupPath = await backupService.CreateBackupAsync(deployPath, command.Component, command.Version, ct);
 
             // ── Phase 5: Pre-migrations ──
             if (isServer && manifest.PreMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPreMigrations, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.RunningPreMigrations.ToString());
-                await migrationRunner.RunScriptsAsync(tempDir, manifest.PreMigrationScripts, ct);
+                var total = manifest.PreMigrationScripts.Count;
+                var current = 0;
+                await migrationRunner.RunScriptsAsync(tempDir, manifest.PreMigrationScripts,
+                    scriptName =>
+                    {
+                        current++;
+                        NotifyPhaseBackground(command, UpdatePhase.RunningPreMigrations.ToString(),
+                            detail: $"Migrazione {current}/{total}: {Path.GetFileName(scriptName)}");
+                        return Task.CompletedTask;
+                    }, ct);
             }
 
             // ── Phase 6: Stop IIS ──
@@ -231,13 +267,15 @@ public class UpdateExecutorService(
                     new { Phase = "Starting", Component = command.Component, Version = command.Version });
 
                 await ReportAsync(command, UpdatePhase.StoppingService, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.StoppingService.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.StoppingService.ToString(),
+                    detail: "Arresto sito IIS e app pool…");
                 await iisManagerService.StopSiteAsync(ct);
             }
 
             // ── Phase 7: Deploy ──
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
-            await NotifyPhaseAsync(command, UpdatePhase.DeployingBinaries.ToString());
+            NotifyPhaseBackground(command, UpdatePhase.DeployingBinaries.ToString(),
+                detail: $"Copia file in: {deployPath}");
             await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
@@ -247,7 +285,8 @@ public class UpdateExecutorService(
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.StartingService, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.StartingService.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.StartingService.ToString(),
+                    detail: "Avvio sito IIS e app pool…");
                 await iisManagerService.StartSiteAsync(ct);
             }
 
@@ -255,23 +294,31 @@ public class UpdateExecutorService(
             if (isServer && manifest.PostMigrationScripts.Count > 0)
             {
                 await ReportAsync(command, UpdatePhase.RunningPostMigrations, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.RunningPostMigrations.ToString());
-                await migrationRunner.RunScriptsAsync(tempDir, manifest.PostMigrationScripts, ct);
+                var total = manifest.PostMigrationScripts.Count;
+                var current = 0;
+                await migrationRunner.RunScriptsAsync(tempDir, manifest.PostMigrationScripts,
+                    scriptName =>
+                    {
+                        current++;
+                        NotifyPhaseBackground(command, UpdatePhase.RunningPostMigrations.ToString(),
+                            detail: $"Migrazione {current}/{total}: {Path.GetFileName(scriptName)}");
+                        return Task.CompletedTask;
+                    }, ct);
             }
 
             // ── Phase 11: Health check ──
             if (isServer)
             {
                 await ReportAsync(command, UpdatePhase.VerifyingHealth, false, true, null, ct);
-                await NotifyPhaseAsync(command, UpdatePhase.VerifyingHealth.ToString());
+                NotifyPhaseBackground(command, UpdatePhase.VerifyingHealth.ToString(),
+                    detail: "Attesa risposta health-check del server…");
                 await VerifyHealthAsync(options.Components.Server.HealthCheckUrl, ct);
             }
 
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
-
-            // Notify connected clients with 100 % so the snackbar briefly shows "Completato" before clearing.
-            await NotifyPhaseAsync(command, UpdatePhase.Completed.ToString(), percentComplete: 100);
+            NotifyPhaseBackground(command, UpdatePhase.Completed.ToString(), percentComplete: 100,
+                detail: $"{command.Component} v{command.Version} installato con successo.");
 
             // Notify clients that maintenance is over (Server back online).
             if (isServer)
@@ -302,6 +349,8 @@ public class UpdateExecutorService(
                 try
                 {
                     await ReportAsync(command, UpdatePhase.Rollback, false, false, ex.Message, CancellationToken.None);
+                    NotifyPhaseBackground(command, UpdatePhase.Rollback.ToString(),
+                        detail: $"Errore: {ex.Message.TruncateForDisplay(120)} — Ripristino backup in corso…");
                     if (isServer) await iisManagerService.StopSiteAsync(CancellationToken.None);
                     await backupService.RestoreBackupAsync(backupPath, deployPath, CancellationToken.None);
                     if (isServer)
@@ -311,7 +360,7 @@ public class UpdateExecutorService(
                         {
                             var manifest2 = await LoadManifestAsync(tempDir);
                             if (manifest2.RollbackScripts.Count > 0)
-                                await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, CancellationToken.None);
+                                await migrationRunner.RunScriptsAsync(tempDir, manifest2.RollbackScripts, null, CancellationToken.None);
                         }
                     }
                     rollbackSucceeded = true;

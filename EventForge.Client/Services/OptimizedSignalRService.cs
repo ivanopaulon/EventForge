@@ -443,7 +443,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                     IsManualInstall: data.TryGetProperty("isManualInstall", out var im) && im.ValueKind == System.Text.Json.JsonValueKind.True ? true
                                    : im.ValueKind == System.Text.Json.JsonValueKind.False ? false : null,
                     PackageId: data.TryGetProperty("packageId", out var pid) && pid.ValueKind == System.Text.Json.JsonValueKind.String && Guid.TryParse(pid.GetString(), out var g) ? g : null,
-                    NextWindowAt: data.TryGetProperty("nextWindowAt", out var nw) ? nw.GetString() : null);
+                    NextWindowAt: data.TryGetProperty("nextWindowAt", out var nw) ? nw.GetString() : null,
+                    Detail: data.TryGetProperty("detail", out var det) ? det.GetString() : null);
                 UpdateProgressReceived?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdateProgress payload"); }
