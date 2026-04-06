@@ -12,28 +12,53 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        // Only enforce on /api/agent/* and /hubs/update negotiation
-        if (!path.StartsWith("/api/agent", StringComparison.OrdinalIgnoreCase) &&
-            !path.StartsWith("/hubs/update", StringComparison.OrdinalIgnoreCase))
+        var requiresAuth = path.StartsWith("/api/agent", StringComparison.OrdinalIgnoreCase) ||
+                           path.StartsWith("/hubs/update", StringComparison.OrdinalIgnoreCase);
+
+        // Optional auth: try to resolve InstallationId for package download paths so that
+        // agents can authenticate, but do not block the request if no key is present
+        // (admin UI access must still work without an API key).
+        var isPackageDownload = path.StartsWith("/api/v1/packages", StringComparison.OrdinalIgnoreCase) &&
+                                path.Contains("/download", StringComparison.OrdinalIgnoreCase);
+
+        if (!requiresAuth && !isPackageDownload)
         {
             await next(context);
             return;
         }
 
-        if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) || string.IsNullOrWhiteSpace(apiKey))
+        var hasKey = context.Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) &&
+                     !string.IsNullOrWhiteSpace(apiKey);
+
+        if (!hasKey)
         {
-            logger.LogWarning("Missing API key for {Path}", path);
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Missing X-Api-Key header.");
+            if (requiresAuth)
+            {
+                logger.LogWarning("Missing API key for {Path}", path);
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Missing X-Api-Key header.");
+                return;
+            }
+
+            // No key on a download path — let the request through (admin may use cookie auth).
+            await next(context);
             return;
         }
 
         var installation = await installationService.GetByApiKeyAsync(apiKey!);
         if (installation is null)
         {
-            logger.LogWarning("Invalid API key attempt for {Path}", path);
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Invalid API key.");
+            if (requiresAuth)
+            {
+                logger.LogWarning("Invalid API key attempt for {Path}", path);
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Invalid API key.");
+                return;
+            }
+
+            // Invalid key on a download path — log and continue without setting InstallationId.
+            logger.LogWarning("Invalid API key on download path {Path} — continuing without agent identity", path);
+            await next(context);
             return;
         }
 
