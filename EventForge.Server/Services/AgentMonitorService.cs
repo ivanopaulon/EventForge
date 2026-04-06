@@ -66,8 +66,14 @@ public sealed class AgentMonitorService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await ProbeAsync(agentUrl, stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(pollSeconds), stoppingToken)
-                .ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.NotOnCanceled); // swallow cancellation
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(pollSeconds), stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
@@ -113,7 +119,8 @@ public sealed class AgentMonitorService : BackgroundService
                     _logger.LogWarning(
                         "Agent unreachable for {Min:F1} min (threshold {Threshold} min) — triggering auto-restart",
                         elapsed.TotalMinutes, AutoRestartAfterMinutes);
-                    TryRestartService();
+                    var result = TryRestartService();
+                    _logger.LogInformation("Auto-restart result: {Success} — {Message}", result.Success, result.Message);
                 }
             }
         }
@@ -133,9 +140,9 @@ public sealed class AgentMonitorService : BackgroundService
 
     /// <summary>
     /// Attempts to restart the Windows Service and records the attempt timestamp.
-    /// Returns a human-readable result message.
+    /// Returns a structured result with an explicit success flag.
     /// </summary>
-    public string TryRestartService()
+    public AgentRestartResult TryRestartService()
     {
         const string ServiceName = "EventForge Update Agent";
 
@@ -144,7 +151,7 @@ public sealed class AgentMonitorService : BackgroundService
         if (!OperatingSystem.IsWindows())
         {
             _logger.LogWarning("Agent restart requested but not running on Windows");
-            return "Il riavvio automatico è supportato solo su Windows.";
+            return new AgentRestartResult(false, "Il riavvio automatico è supportato solo su Windows.");
         }
 
         try
@@ -162,7 +169,7 @@ public sealed class AgentMonitorService : BackgroundService
 
             sc.Start();
             _logger.LogInformation("Agent service '{Name}' start command issued", ServiceName);
-            return $"Servizio '{ServiceName}' avviato con successo.";
+            return new AgentRestartResult(true, $"Servizio '{ServiceName}' avviato con successo.");
         }
         catch (System.ServiceProcess.TimeoutException)
         {
@@ -171,24 +178,26 @@ public sealed class AgentMonitorService : BackgroundService
             {
                 using var sc2 = new System.ServiceProcess.ServiceController(ServiceName);
                 sc2.Start();
-                return $"Avvio inviato (stop timeout). Verificare lo stato del servizio.";
+                return new AgentRestartResult(true, $"Avvio inviato (stop timeout). Verificare lo stato del servizio.");
             }
             catch (Exception ex2)
             {
                 _logger.LogError(ex2, "Agent restart fallback failed");
-                return $"Riavvio fallito: {ex2.Message}";
+                return new AgentRestartResult(false, $"Riavvio fallito: {ex2.Message}");
             }
         }
         catch (InvalidOperationException ex)
             when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning(ex, "Agent service '{Name}' not found", ServiceName);
-            return $"Servizio '{ServiceName}' non trovato su questo host.";
+            return new AgentRestartResult(false, $"Servizio '{ServiceName}' non trovato su questo host.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Agent restart failed");
-            return $"Errore: {ex.Message}";
+            return new AgentRestartResult(false, $"Errore: {ex.Message}");
         }
     }
+
+    public record AgentRestartResult(bool Success, string Message);
 }

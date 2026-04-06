@@ -52,6 +52,7 @@
     <!-- Setup Wizard and Background Services -->
     <PackageReference Include="ncrontab" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
@@ -77,10 +78,7 @@
 
   <!-- Write version.txt to publish folder so UpdateAgent can read it without loading the DLL -->
   <Target Name="WriteVersionFile" AfterTargets="Publish">
-    <WriteLinesToFile
-      File="$(PublishDir)version.txt"
-      Lines="$(InformationalVersion)"
-      Overwrite="true" />
+    <WriteLinesToFile File="$(PublishDir)version.txt" Lines="$(InformationalVersion)" Overwrite="true" />
   </Target>
 
 </Project>

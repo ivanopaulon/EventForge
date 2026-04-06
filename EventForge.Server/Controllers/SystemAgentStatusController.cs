@@ -1,3 +1,4 @@
+using EventForge.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -108,14 +109,11 @@ public class SystemAgentStatusController(
         logger.LogInformation("Manual Agent restart requested by {User}",
             User.Identity?.Name ?? "unknown");
 
-        var message = agentMonitor.TryRestartService();
-        var success = !message.StartsWith("Errore") &&
-                      !message.StartsWith("Il riavvio") &&
-                      !message.Contains("non trovato");
+        var result = agentMonitor.TryRestartService();
 
-        return success
-            ? Ok(new AgentRestartResultDto(true, message))
-            : StatusCode(StatusCodes.Status503ServiceUnavailable, new AgentRestartResultDto(false, message));
+        return result.Success
+            ? Ok(new AgentRestartResultDto(true, result.Message))
+            : StatusCode(StatusCodes.Status503ServiceUnavailable, new AgentRestartResultDto(false, result.Message));
     }
 }
 
