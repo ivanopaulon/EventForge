@@ -1,0 +1,165 @@
+@inject ITranslationService TranslationService
+
+<div class="pos-touch-keypad">
+    <!-- Display -->
+    <MudPaper Elevation="1" Class="pa-2 mb-1" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @if (!string.IsNullOrEmpty(Label))
+                {
+                    @Label
+                }
+                else
+                {
+                    @TranslationService.GetTranslation("sales.quantity", "Quantità")
+                }
+            </MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700; min-width: 80px; text-align: right; font-family: monospace;">
+                @(_input.Length > 0 ? _input : "0")
+            </MudText>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Keypad grid -->
+    <div class="pos-touch-keypad-grid">
+        @foreach (var btn in _buttons)
+        {
+            <MudButton Variant="@btn.Variant"
+                       Color="@btn.Color"
+                       Size="Size.Large"
+                       Class="pos-touch-key"
+                       Style="@btn.Style"
+                       OnClick="@(() => HandleKey(btn.Value))">
+                @if (!string.IsNullOrEmpty(btn.Icon))
+                {
+                    <MudIcon Icon="@btn.Icon" Size="Size.Small" />
+                }
+                else
+                {
+                    @btn.Label
+                }
+            </MudButton>
+        }
+    </div>
+</div>
+
+<style>
+    .pos-touch-keypad {
+        user-select: none;
+    }
+
+    .pos-touch-keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .pos-touch-key {
+        height: 56px !important;
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        min-width: unset !important;
+    }
+</style>
+
+@code {
+    [Parameter] public decimal Value { get; set; }
+    [Parameter] public EventCallback<decimal> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public bool AllowDecimal { get; set; } = true;
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private string _input = string.Empty;
+
+    private record KeypadButton(
+        string Value,
+        string Label,
+        string Icon = "",
+        Color Color = Color.Default,
+        Variant Variant = Variant.Outlined,
+        string Style = "");
+
+    private readonly KeypadButton[] _buttons =
+    [
+        new("7",  "7"),
+        new("8",  "8"),
+        new("9",  "9"),
+        new("4",  "4"),
+        new("5",  "5"),
+        new("6",  "6"),
+        new("1",  "1"),
+        new("2",  "2"),
+        new("3",  "3"),
+        new("C",  "C",  Color: Color.Warning, Variant: Variant.Filled),
+        new("0",  "0"),
+        new("⌫",  "",   Icon: Icons.Material.Filled.Backspace, Color: Color.Default),
+    ];
+
+    protected override void OnParametersSet()
+    {
+        // Sync display when Value is changed externally
+        if (decimal.TryParse(_input, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+            && parsed != Value)
+        {
+            _input = Value == 0 ? string.Empty : Value.ToString("G", System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
+    private async Task HandleKey(string key)
+    {
+        switch (key)
+        {
+            case "C":
+                _input = string.Empty;
+                break;
+
+            case "⌫":
+                if (_input.Length > 0)
+                    _input = _input[..^1];
+                break;
+
+            case ".":
+                if (!AllowDecimal) return;
+                if (!_input.Contains('.'))
+                    _input = _input.Length == 0 ? "0." : _input + ".";
+                break;
+
+            default:
+                if (char.IsDigit(key[0]))
+                {
+                    // Avoid leading zeros (except "0.")
+                    if (_input == "0")
+                        _input = key;
+                    else
+                        _input += key;
+                }
+                break;
+        }
+
+        await NotifyValueChanged();
+    }
+
+    /// <summary>Sets the keypad display to the given decimal value.</summary>
+    public void SetValue(decimal value)
+    {
+        _input = value == 0
+            ? string.Empty
+            : value.ToString("G", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Returns the current decimal value (0 when display is empty).</summary>
+    public decimal GetValue()
+    {
+        if (string.IsNullOrEmpty(_input)) return 0m;
+        return decimal.TryParse(_input, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0m;
+    }
+
+    private async Task NotifyValueChanged()
+    {
+        var value = GetValue();
+        await ValueChanged.InvokeAsync(value);
+    }
+}
