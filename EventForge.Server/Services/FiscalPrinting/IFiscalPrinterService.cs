@@ -98,4 +98,56 @@ public interface IFiscalPrinterService
     Task<FiscalPrintResult> TestConnectionAsync(
         Guid printerId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tests a TCP connection to an arbitrary IP/port without requiring a printer record in the DB.
+    /// Used by the setup wizard (Step 2A) before the printer is saved.
+    /// </summary>
+    /// <param name="ipAddress">IP address to connect to.</param>
+    /// <param name="port">TCP port to connect to (typically 9100).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<FiscalPrintResult> TestTcpConnectionAsync(
+        string ipAddress,
+        int port,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tests a serial connection to an arbitrary port without requiring a printer record in the DB.
+    /// Used by the setup wizard (Step 2B) before the printer is saved.
+    /// </summary>
+    /// <param name="serialPortName">Serial port name (e.g., COM1, /dev/ttyUSB0).</param>
+    /// <param name="baudRate">Baud rate.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<FiscalPrintResult> TestSerialConnectionAsync(
+        string serialPortName,
+        int baudRate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads basic info (model, serial, firmware, memory %) from a printer
+    /// identified by IP/port, without requiring a DB record.
+    /// Used by the setup wizard (Step 3).
+    /// </summary>
+    /// <param name="ipAddress">IP address.</param>
+    /// <param name="port">TCP port.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<FiscalPrinterInfoDto> GetPrinterInfoByAddressAsync(
+        string ipAddress,
+        int port,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Scans the specified subnet for devices responding on the fiscal printer port (default 9100).
+    /// Results are returned as soon as they are discovered (streaming-style via IAsyncEnumerable is
+    /// not used here to keep it REST-friendly; all results are collected and returned at once).
+    /// </summary>
+    /// <param name="subnetPrefix">Subnet prefix, e.g., "192.168.1" (scans .1 to .254).</param>
+    /// <param name="port">Port to probe (default 9100).</param>
+    /// <param name="timeoutMs">Per-host connection timeout in milliseconds (default 300 ms).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<List<NetworkScanResultDto>> ScanNetworkAsync(
+        string subnetPrefix,
+        int port = 9100,
+        int timeoutMs = 300,
+        CancellationToken cancellationToken = default);
 }

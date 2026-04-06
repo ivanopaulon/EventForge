@@ -1,6 +1,8 @@
 using EventForge.DTOs.FiscalPrinting;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.FiscalPrinting;
+using EventForge.Server.Services.Station;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -17,6 +19,8 @@ public class FiscalPrintingControllerTests
 {
     private readonly Mock<IFiscalPrinterService> _mockService;
     private readonly Mock<ILogger<FiscalPrintingController>> _mockLogger;
+    private readonly Mock<IStationService> _mockStationService;
+    private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly FiscalPrinterStatusCache _statusCache;
     private readonly FiscalPrintingController _controller;
 
@@ -24,6 +28,8 @@ public class FiscalPrintingControllerTests
     {
         _mockService = new Mock<IFiscalPrinterService>();
         _mockLogger = new Mock<ILogger<FiscalPrintingController>>();
+        _mockStationService = new Mock<IStationService>();
+        _mockTenantContext = new Mock<ITenantContext>();
         _statusCache = new FiscalPrinterStatusCache();
 
         var mockHttpContext = new Mock<HttpContext>();
@@ -35,9 +41,15 @@ public class FiscalPrintingControllerTests
         mockUser.Setup(u => u.Identity!.Name).Returns("testuser");
         mockHttpContext.Setup(c => c.User).Returns(mockUser.Object);
 
+        var tenantId = Guid.NewGuid();
+        _mockTenantContext.Setup(t => t.CurrentTenantId).Returns(tenantId);
+        _mockTenantContext.Setup(t => t.CanAccessTenantAsync(It.IsAny<Guid>())).ReturnsAsync(true);
+
         _controller = new FiscalPrintingController(
             _mockService.Object,
             _statusCache,
+            _mockStationService.Object,
+            _mockTenantContext.Object,
             _mockLogger.Object)
         {
             ControllerContext = new ControllerContext

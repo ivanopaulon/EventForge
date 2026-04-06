@@ -1,4 +1,5 @@
 using EventForge.DTOs.FiscalPrinting;
+using EventForge.DTOs.Station;
 
 namespace EventForge.Client.Services;
 
@@ -186,6 +187,87 @@ public class FiscalPrintingService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "GetHealthAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    // ── Wizard endpoints ──────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> TestTcpConnectionAsync(
+        string ipAddress, int port, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/test-tcp?ipAddress={Uri.EscapeDataString(ipAddress)}&port={port}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "TestTcpConnectionAsync failed for {IpAddress}:{Port}", ipAddress, port);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> TestSerialConnectionAsync(
+        string serialPortName, int baudRate, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/test-serial?serialPortName={Uri.EscapeDataString(serialPortName)}&baudRate={baudRate}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "TestSerialConnectionAsync failed for {Port}", serialPortName);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrinterInfoDto?> GetPrinterInfoByAddressAsync(
+        string ipAddress, int port, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<FiscalPrinterInfoDto>(
+                $"{BaseUrl}/printer-info?ipAddress={Uri.EscapeDataString(ipAddress)}&port={port}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetPrinterInfoByAddressAsync failed for {IpAddress}:{Port}", ipAddress, port);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<NetworkScanResultDto>?> ScanNetworkAsync(
+        string subnetPrefix, int port = 9100, int timeoutMs = 300, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<List<NetworkScanResultDto>>(
+                $"{BaseUrl}/scan-network?subnetPrefix={Uri.EscapeDataString(subnetPrefix)}&port={port}&timeoutMs={timeoutMs}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "ScanNetworkAsync failed for subnet {Subnet}", subnetPrefix);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<FiscalPrinterSetupDto, PrinterDto>(
+                $"{BaseUrl}/setup", setup, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "SaveSetupAsync failed");
             return null;
         }
     }

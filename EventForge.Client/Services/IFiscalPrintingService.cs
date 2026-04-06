@@ -35,4 +35,21 @@ public interface IFiscalPrintingService
 
     /// <summary>Returns the health summary for the specified printer (live test + cached status).</summary>
     Task<FiscalPrinterHealthDto?> GetHealthAsync(Guid printerId, CancellationToken ct = default);
+
+    // ── Wizard endpoints ──────────────────────────────────────────────────────
+
+    /// <summary>Tests a TCP connection to an arbitrary IP/port (wizard Step 2A).</summary>
+    Task<FiscalPrintResult?> TestTcpConnectionAsync(string ipAddress, int port, CancellationToken ct = default);
+
+    /// <summary>Tests a serial connection to an arbitrary port (wizard Step 2B).</summary>
+    Task<FiscalPrintResult?> TestSerialConnectionAsync(string serialPortName, int baudRate, CancellationToken ct = default);
+
+    /// <summary>Reads printer info (model, firmware, memory %) from an IP/port without a DB record.</summary>
+    Task<FiscalPrinterInfoDto?> GetPrinterInfoByAddressAsync(string ipAddress, int port, CancellationToken ct = default);
+
+    /// <summary>Scans the given subnet for devices responding on the fiscal printer port.</summary>
+    Task<List<NetworkScanResultDto>?> ScanNetworkAsync(string subnetPrefix, int port = 9100, int timeoutMs = 300, CancellationToken ct = default);
+
+    /// <summary>Saves the full wizard configuration (creates printer + associations).</summary>
+    Task<EventForge.DTOs.Station.PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default);
 }

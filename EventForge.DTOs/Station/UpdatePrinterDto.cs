@@ -57,5 +57,31 @@ namespace EventForge.DTOs.Station
         /// </summary>
         [Display(Name = "Station", Description = "Station associated with the printer.")]
         public Guid? StationId { get; set; }
+
+        // --- Fiscal Printer Support ---
+
+        /// <summary>Indicates if this is a fiscal printer.</summary>
+        [Display(Name = "Is Fiscal Printer")]
+        public bool IsFiscalPrinter { get; set; }
+
+        /// <summary>Protocol type (e.g., "Custom"). Other values are reserved for future use.</summary>
+        [MaxLength(50)]
+        [Display(Name = "Protocol Type")]
+        public string? ProtocolType { get; set; }
+
+        /// <summary>TCP/IP port for fiscal printer communication (1-65535).</summary>
+        [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
+        [Display(Name = "Port")]
+        public int? Port { get; set; }
+
+        /// <summary>Serial port baud rate (300-115200).</summary>
+        [Range(300, 115200, ErrorMessage = "Baud rate must be between 300 and 115200.")]
+        [Display(Name = "Baud Rate")]
+        public int? BaudRate { get; set; }
+
+        /// <summary>Serial port name (e.g., COM1, /dev/ttyUSB0).</summary>
+        [MaxLength(20)]
+        [Display(Name = "Serial Port Name")]
+        public string? SerialPortName { get; set; }
     }
 }

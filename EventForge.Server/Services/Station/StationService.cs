@@ -389,6 +389,11 @@ public class StationService(
                 Location = createPrinterDto.Location,
                 Address = createPrinterDto.Address,
                 StationId = createPrinterDto.StationId,
+                IsFiscalPrinter = createPrinterDto.IsFiscalPrinter,
+                ProtocolType = createPrinterDto.ProtocolType,
+                Port = createPrinterDto.Port,
+                BaudRate = createPrinterDto.BaudRate,
+                SerialPortName = createPrinterDto.SerialPortName,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -453,6 +458,11 @@ public class StationService(
             printer.Location = updatePrinterDto.Location;
             printer.Address = updatePrinterDto.Address;
             printer.StationId = updatePrinterDto.StationId;
+            printer.IsFiscalPrinter = updatePrinterDto.IsFiscalPrinter;
+            printer.ProtocolType = updatePrinterDto.ProtocolType;
+            printer.Port = updatePrinterDto.Port;
+            printer.BaudRate = updatePrinterDto.BaudRate;
+            printer.SerialPortName = updatePrinterDto.SerialPortName;
             printer.ModifiedAt = DateTime.UtcNow;
             printer.ModifiedBy = currentUser;
 
