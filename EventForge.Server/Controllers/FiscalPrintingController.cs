@@ -1,10 +1,12 @@
 using EventForge.DTOs.FiscalPrinting;
 using EventForge.DTOs.Station;
+using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace EventForge.Server.Controllers;
 
@@ -21,6 +23,7 @@ public class FiscalPrintingController(
     FiscalPrinterStatusCache statusCache,
     IStationService stationService,
     ITenantContext tenantContext,
+    IAuditLogService auditLogService,
     ILogger<FiscalPrintingController> logger) : BaseApiController
 {
     // -------------------------------------------------------------------------
@@ -576,6 +579,17 @@ public class FiscalPrintingController(
                 "Fiscal printer {Name} created via wizard | PrinterId={Id}",
                 printer.Name, printer.Id);
 
+            await auditLogService.LogEntityChangeAsync(
+                entityName: "Printer",
+                entityId: printer.Id,
+                propertyName: "Configuration",
+                operationType: "Insert",
+                oldValue: null,
+                newValue: JsonSerializer.Serialize(setup),
+                changedBy: GetCurrentUser(),
+                entityDisplayName: printer.Name,
+                cancellationToken: cancellationToken);
+
             return CreatedAtAction(
                 actionName: null,
                 routeValues: new { },
@@ -730,6 +744,17 @@ public class FiscalPrintingController(
             logger.LogInformation(
                 "Fiscal printer {Name} updated via wizard | PrinterId={Id}",
                 printer.Name, printer.Id);
+
+            await auditLogService.LogEntityChangeAsync(
+                entityName: "Printer",
+                entityId: printer.Id,
+                propertyName: "Configuration",
+                operationType: "Update",
+                oldValue: JsonSerializer.Serialize(existing),
+                newValue: JsonSerializer.Serialize(setup),
+                changedBy: GetCurrentUser(),
+                entityDisplayName: printer.Name,
+                cancellationToken: cancellationToken);
 
             return Ok(printer);
         }
