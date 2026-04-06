@@ -145,7 +145,7 @@ public class FiscalPrinterStatusCacheTests
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void GetCachedStatus_DifferentPrinterIds_ArIsolated()
+    public void GetCachedStatus_DifferentPrinterIds_AreIsolated()
     {
         var cache = new FiscalPrinterStatusCache();
         var idA = Guid.NewGuid();
