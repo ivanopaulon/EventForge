@@ -426,7 +426,8 @@ public class SettingsModel : PageModel
         try
         {
             var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("CsvImport_MaxFileSizeBytes", (CsvMaxFileSizeMb * 1024 * 1024).ToString(), null, ct);
+            var maxBytes = (long)Math.Clamp(CsvMaxFileSizeMb, 1, 2048) * 1024 * 1024;
+            await _configService.SetValueAsync("CsvImport_MaxFileSizeBytes", maxBytes.ToString(), null, ct);
             await _configService.SetValueAsync("CsvImport_BatchSize", CsvBatchSize.ToString(), null, ct);
             await _configService.SetValueAsync("CsvImport_DefaultCurrency", CsvDefaultCurrency, null, ct);
             await _configService.SetValueAsync("CsvImport_MaxRowsPreview", CsvMaxRowsPreview.ToString(), null, ct);
@@ -859,15 +860,15 @@ public class SettingsModel : PageModel
         }
     }
 
-    /// <summary>Masks the password in a connection string for safe display.</summary>
+    /// <summary>Masks sensitive values in a connection string for safe display.</summary>
+    private static readonly System.Text.RegularExpressions.Regex _connStrSensitivePattern =
+        new(@"(Password|PWD|Pass)\s*=\s*[^;]+",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private static string? MaskConnectionString(string? cs)
     {
         if (string.IsNullOrEmpty(cs)) return cs;
-        // Replace Password=... or PWD=... values with ****
-        return System.Text.RegularExpressions.Regex.Replace(
-            cs,
-            @"(Password|PWD)\s*=\s*[^;]+",
-            "$1=****",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return _connStrSensitivePattern.Replace(cs, "$1=****");
     }
 }
