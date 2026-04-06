@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@using EventForge.UpdateAgent.Services
 @{
     ViewData["Title"] = "Dashboard";
     ViewData["InstallationId"] = Model.InstallationId;
@@ -121,6 +122,69 @@
     </div>
 </div>
 
+<!-- Pacchetti ricevuti dall'Hub -->
+@if (Model.TrackedCommands.Count > 0)
+{
+    <div class="ef-card mb-4">
+        <div class="ef-card-header">
+            <i class="bi bi-inbox-fill"></i>
+            Pacchetti ricevuti dall'Hub
+            <span class="ef-badge ef-badge-neutral ms-1">@Model.TrackedCommands.Count</span>
+        </div>
+        <div class="ef-card-body p-0">
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th>Componente</th>
+                            <th>Versione</th>
+                            <th>Stato</th>
+                            <th>Ricevuto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cmd in Model.TrackedCommands)
+                        {
+                            var (stateCls, stateLabel) = cmd.State switch {
+                                CommandState.Received        => ("ef-badge-neutral", "Ricevuto"),
+                                CommandState.Downloading     => ("ef-badge-blue", "Download in corso"),
+                                CommandState.DownloadFailed  => ("ef-badge-danger", "Download fallito"),
+                                CommandState.Downloaded      => ("ef-badge-teal", "Scaricato"),
+                                CommandState.Installing      => ("ef-badge-warning", "Installazione in corso"),
+                                CommandState.Installed       => ("ef-badge-success", "Installato"),
+                                CommandState.Failed          => ("ef-badge-danger", "Fallito"),
+                                _                            => ("ef-badge-neutral", cmd.State.ToString())
+                            };
+                            var isAnimated = cmd.State == CommandState.Downloading || cmd.State == CommandState.Installing;
+                            <tr>
+                                <td>
+                                    <span class="ef-badge @(cmd.Component == "Server" ? "ef-badge-blue" : "ef-badge-info")">
+                                        @cmd.Component
+                                    </span>
+                                </td>
+                                <td><code>@cmd.Version</code></td>
+                                <td>
+                                    <span class="ef-badge @stateCls @(isAnimated ? "pulse-badge" : "")">
+                                        @if (isAnimated) { <i class="bi bi-arrow-repeat me-1 spin"></i> }
+                                        @stateLabel
+                                    </span>
+                                    @if ((cmd.State == CommandState.Failed || cmd.State == CommandState.DownloadFailed) && !string.IsNullOrEmpty(cmd.ErrorMessage))
+                                    {
+                                        <div class="text-danger" style="font-size:.72rem;margin-top:2px" title="@cmd.ErrorMessage">
+                                            @(cmd.ErrorMessage!.Length > 80 ? cmd.ErrorMessage[..80] + "…" : cmd.ErrorMessage)
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-muted small">@cmd.ReceivedAt.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Pending updates -->
 @if (Model.QueueBlocked)
 {
@@ -162,6 +226,7 @@
                             <th>#</th>
                             <th>Componente</th>
                             <th>Versione</th>
+                            <th>Modalità</th>
                             <th>In coda dal</th>
                             <th>File</th>
                             <th></th>
@@ -186,6 +251,16 @@
                                     </span>
                                 </td>
                                 <td><code>@item.Command.Version</code></td>
+                                <td>
+                                    @if (item.IsManualInstall)
+                                    {
+                                        <span class="ef-badge ef-badge-warning">Manuale 🔒</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ef-badge ef-badge-success">Auto</span>
+                                    }
+                                </td>
                                 <td class="text-muted">@item.QueuedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
                                 <td>
                                     @if (System.IO.File.Exists(item.LocalZipPath))

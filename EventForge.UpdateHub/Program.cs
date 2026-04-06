@@ -28,6 +28,9 @@ var logDir = !string.IsNullOrWhiteSpace(hubOptions.Logging.DirectoryPath)
     ? hubOptions.Logging.DirectoryPath
     : Path.Combine(AppContext.BaseDirectory, "logs");
 
+// Ensure the log directory exists before Serilog tries to write to it.
+Directory.CreateDirectory(logDir);
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
@@ -39,6 +42,13 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+// ── Kestrel endpoint binding (standalone / non-IIS) ──────────────────────
+// Under IIS in-process, UseUrls is overridden by the IIS module — safe to call unconditionally.
+var urls = new List<string>();
+if (hubOptions.UI.HttpPort > 0)  urls.Add($"http://*:{hubOptions.UI.HttpPort}");
+if (hubOptions.UI.HttpsPort > 0) urls.Add($"https://*:{hubOptions.UI.HttpsPort}");
+if (urls.Count > 0) builder.WebHost.UseUrls([.. urls]);
 
 // ── Services ──
 builder.Services.AddRazorPages();
@@ -53,10 +63,15 @@ builder.Services.AddDbContext<UpdateHubDbContext>(options =>
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IInstallationService, InstallationService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
+builder.Services.AddScoped<IPackageBuildService, PackageBuildService>();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
 builder.Services.AddHostedService<PackageWatcherService>();
 
 var app = builder.Build();
+
+// ── Startup validation (folders + config checks) ──────────────────────────
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+StartupValidator.Run(hubOptions, startupLogger);
 
 // ── Database migration ──
 using (var scope = app.Services.CreateScope())
@@ -81,5 +96,8 @@ app.UseRouting();
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/update");
+
+Log.Information("EventForge UpdateHub starting. Endpoints: {Urls}",
+    urls.Count > 0 ? string.Join(", ", urls) : "(managed by IIS/reverse-proxy)");
 
 app.Run();

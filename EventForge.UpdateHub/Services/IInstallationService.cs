@@ -44,6 +44,9 @@ public interface IInstallationService
 
     /// <summary>Re-issue a new API key for an installation (invalidates the old one).</summary>
     Task<string?> ReissueApiKeyAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Sets the update mode (Automatic or Manual) for an installation.</summary>
+    Task SetUpdateModeAsync(Guid id, InstallationUpdateMode mode, CancellationToken ct = default);
 }
 
 /// <summary>Rich identity payload sent by the agent on every SignalR connect.</summary>

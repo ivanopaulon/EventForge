@@ -1,3 +1,4 @@
+using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Notifications;
@@ -46,6 +47,11 @@ public interface IRealtimeService
     /// Gets whether the document collaboration connection is active.
     /// </summary>
     bool IsDocumentCollaborationConnected { get; }
+
+    /// <summary>
+    /// Gets whether the update-notifications connection is active.
+    /// </summary>
+    bool IsUpdateNotificationConnected { get; }
 
     #endregion
 
@@ -228,6 +234,22 @@ public interface IRealtimeService
     /// Starts the document collaboration connection.
     /// </summary>
     Task StartDocumentCollaborationConnectionAsync();
+
+    #endregion
+
+    #region Update / Maintenance Events
+
+    /// <summary>Fired when the Server starts a planned maintenance/update.</summary>
+    event Action<MaintenanceStartedPayload>? ServerMaintenanceStarted;
+
+    /// <summary>Fired when the Server returns online after maintenance.</summary>
+    event Action<MaintenanceEndedPayload>? ServerMaintenanceEnded;
+
+    /// <summary>Fired when a new Client version has been deployed to disk.</summary>
+    event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
+
+    /// <summary>Fired periodically during an active download/install with current progress.</summary>
+    event Action<UpdateProgressPayload>? UpdateProgressReceived;
 
     #endregion
 

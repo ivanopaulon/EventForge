@@ -1,5 +1,6 @@
 @page
 @model EventForge.UpdateHub.Pages.PackagesModel
+@using System.Text.Json
 @using EventForge.UpdateHub.Data.Entities
 @{
     ViewData["Title"] = "Pacchetti";
@@ -20,6 +21,9 @@
     </div>
     <div class="d-flex gap-2 align-items-center">
         <span class="ef-badge ef-badge-neutral">@Model.Packages.Count totali</span>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#buildModal">
+            <i class="bi bi-folder2-open me-1"></i>Crea da cartella
+        </button>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
             <i class="bi bi-cloud-upload me-1"></i>Carica
         </button>
@@ -214,12 +218,112 @@
                                     data-bs-toggle="modal" data-bs-target="#uploadModal">
                                 <i class="bi bi-cloud-upload me-1"></i>Carica il primo pacchetto
                             </button>
+                            <button class="btn btn-outline-primary btn-sm mt-2"
+                                    data-bs-toggle="modal" data-bs-target="#buildModal">
+                                <i class="bi bi-folder2-open me-1"></i>Crea da cartella
+                            </button>
                         </td>
                     </tr>
                 }
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ── Modal crea pacchetto da cartella ──────────────────────────────── -->
+<div class="modal fade" id="buildModal" tabindex="-1" aria-labelledby="buildModalLabel">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="post" asp-page-handler="BuildFromFolder" id="buildForm">
+            @Html.AntiForgeryToken()
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="buildModalLabel">
+                        <i class="bi bi-folder2-open me-2 text-primary"></i>Crea Pacchetto da Cartella
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    @if (!string.IsNullOrEmpty(Model.DefaultServerDeployPath) || !string.IsNullOrEmpty(Model.DefaultClientDeployPath))
+                    {
+                        <div class="alert alert-info py-2 mb-3 small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Cartelle configurate:</strong>
+                            @if (!string.IsNullOrEmpty(Model.DefaultServerDeployPath))
+                            {
+                                <span class="ms-2"><i class="bi bi-server me-1"></i>Server: <code>@Model.DefaultServerDeployPath</code></span>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.DefaultClientDeployPath))
+                            {
+                                <span class="ms-2"><i class="bi bi-display me-1"></i>Client: <code>@Model.DefaultClientDeployPath</code></span>
+                            }
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Componente <span class="text-danger">*</span></label>
+                        <select name="component" id="buildComponent" class="form-select" required
+                                onchange="onBuildComponentChange()">
+                            <option value="">— seleziona —</option>
+                            <option value="Server">Server</option>
+                            <option value="Client">Client</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Percorso cartella publish/deploy <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" name="folderPath" id="buildFolderPath"
+                                   class="form-control font-monospace" required
+                                   placeholder="es. C:\inetpub\wwwroot\EventForge\Server" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="detectFolder()"
+                                    id="detectBtn" title="Rileva versione, componente e commit dalla cartella">
+                                <i class="bi bi-search me-1"></i>Rileva
+                            </button>
+                        </div>
+                        <div class="form-text">Percorso locale accessibile dall'Hub al contenuto del publish.</div>
+                    </div>
+
+                    <div id="detectResult" class="d-none mb-3">
+                        <div class="alert py-2 mb-0 small" id="detectAlert"></div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Versione <span class="text-danger">*</span></label>
+                            <input type="text" name="version" id="buildVersion" class="form-control"
+                                   placeholder="es. 1.2.3" maxlength="50" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Commit Git</label>
+                            <input type="text" name="gitCommit" id="buildGitCommit" class="form-control font-monospace"
+                                   placeholder="es. a1b2c3d4" maxlength="40" />
+                            <div class="form-text">Rilevato automaticamente se disponibile.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Note di rilascio</label>
+                        <textarea name="releaseNotes" id="buildReleaseNotes" class="form-control" rows="3"
+                                  placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
+                    </div>
+
+                    <div class="alert alert-secondary py-2 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Tutti i file della cartella vengono compressi in <code>binaries/</code>.
+                        I file <code>appsettings.json</code> e <code>appsettings.Production.json</code>
+                        sono automaticamente marcati come <em>preservati</em> (non sovrascritti sugli Agent).
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary" id="buildSubmitBtn">
+                        <i class="bi bi-box-seam me-1"></i>Crea pacchetto
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -271,6 +375,92 @@
 
 @section Scripts {
 <script>
+// ── Build-from-folder: auto-fill defaults on component change ─────────────
+const defaultPaths = {
+    'Server': @Html.Raw(JsonSerializer.Serialize(Model.DefaultServerDeployPath ?? string.Empty)),
+    'Client': @Html.Raw(JsonSerializer.Serialize(Model.DefaultClientDeployPath ?? string.Empty))
+};
+
+function onBuildComponentChange() {
+    const comp = document.getElementById('buildComponent').value;
+    const pathInput = document.getElementById('buildFolderPath');
+    if (comp && defaultPaths[comp] && !pathInput.value.trim()) {
+        pathInput.value = defaultPaths[comp];
+    }
+}
+
+// ── Build-from-folder: detect metadata via AJAX ───────────────────────────
+async function detectFolder() {
+    const folderPath = document.getElementById('buildFolderPath').value.trim();
+    if (!folderPath) {
+        showDetectResult('warning', 'Inserisci il percorso della cartella prima di rilevare.');
+        return;
+    }
+
+    const btn = document.getElementById('detectBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Rilevamento…';
+
+    try {
+        const token = document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value;
+        const formData = new FormData();
+        formData.append('folderPath', folderPath);
+        formData.append('__RequestVerificationToken', token);
+
+        const resp = await fetch('?handler=DetectFolder', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        if (data.error) {
+            showDetectResult('danger', '<i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(data.error));
+            return;
+        }
+
+        let filled = [];
+
+        if (data.component) {
+            document.getElementById('buildComponent').value = data.component;
+            filled.push('componente: <strong>' + escHtml(data.component) + '</strong>');
+        }
+        if (data.version) {
+            document.getElementById('buildVersion').value = data.version;
+            filled.push('versione: <strong>' + escHtml(data.version) + '</strong>');
+        }
+        if (data.gitCommit) {
+            document.getElementById('buildGitCommit').value = data.gitCommit;
+            filled.push('commit: <code>' + escHtml(data.gitCommit) + '</code>');
+        }
+
+        if (filled.length > 0) {
+            showDetectResult('success',
+                '<i class="bi bi-check-circle me-1"></i>Rilevati: ' + filled.join(', ') + '.');
+        } else {
+            showDetectResult('warning',
+                '<i class="bi bi-question-circle me-1"></i>Nessun metadato rilevato automaticamente. ' +
+                'Compila i campi manualmente.');
+        }
+    } catch (e) {
+        showDetectResult('danger', '<i class="bi bi-exclamation-triangle me-1"></i>Errore di comunicazione.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+function showDetectResult(type, html) {
+    const el = document.getElementById('detectResult');
+    const alert = document.getElementById('detectAlert');
+    el.classList.remove('d-none');
+    alert.className = 'alert py-2 mb-0 small alert-' + type;
+    alert.innerHTML = html;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Packages table filter ─────────────────────────────────────────────────
 function filterTable() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     const s = document.getElementById('filterStatus').value.toLowerCase();

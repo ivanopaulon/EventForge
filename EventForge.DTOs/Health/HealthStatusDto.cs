@@ -85,5 +85,40 @@ namespace EventForge.DTOs.Health
         /// List of all applied database migrations.
         /// </summary>
         public IEnumerable<string> AppliedMigrations { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Whether the UpdateAgent was reachable on the last probe.
+        /// </summary>
+        public bool AgentReachable { get; set; }
+
+        /// <summary>
+        /// Human-readable Agent status: "Online", "Offline", or "NotConfigured".
+        /// </summary>
+        public string AgentStatus { get; set; } = "NotConfigured";
+
+        /// <summary>
+        /// Agent installation name as reported by the Agent.
+        /// </summary>
+        public string? AgentInstallationName { get; set; }
+
+        /// <summary>
+        /// Agent version as reported by the Agent.
+        /// </summary>
+        public string? AgentVersion { get; set; }
+
+        /// <summary>
+        /// Agent's SignalR Hub connection state (e.g. "Connected", "Disconnected").
+        /// </summary>
+        public string? AgentHubConnectionState { get; set; }
+
+        /// <summary>
+        /// UTC timestamp of the last heartbeat the Agent sent to the UpdateHub.
+        /// </summary>
+        public DateTime? AgentLastHeartbeatAt { get; set; }
+
+        /// <summary>
+        /// UTC timestamp of the last successful probe by the Server.
+        /// </summary>
+        public DateTime? AgentLastSeenAt { get; set; }
     }
 }

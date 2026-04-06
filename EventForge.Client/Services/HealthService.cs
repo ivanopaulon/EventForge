@@ -1,3 +1,4 @@
+using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Health;
 using System.Net.Http.Json;
 
@@ -7,68 +8,95 @@ namespace EventForge.Client.Services
     {
         Task<HealthStatusDto?> GetHealthAsync();
         Task<DetailedHealthStatusDto?> GetDetailedHealthAsync();
+
+        /// <summary>
+        /// Fetches the status of the co-located UpdateAgent from the Server proxy.
+        /// Returns null when the Agent is not configured or unreachable.
+        /// </summary>
+        Task<AgentStatusClientDto?> GetAgentStatusAsync();
+
+        /// <summary>
+        /// Asks the Server to restart the co-located UpdateAgent Windows Service.
+        /// Requires SuperAdmin. Returns (Success, Message).
+        /// </summary>
+        Task<(bool Success, string Message)> RestartAgentAsync();
     }
 
     public class HealthService(
         IHttpClientFactory httpClientFactory,
+        IHttpClientService httpClientService,
         ILogger<HealthService> logger) : IHealthService
     {
-        private const string BaseUrl = "health";
+        public Task<HealthStatusDto?> GetHealthAsync()
+            => GetAnonymousAsync<HealthStatusDto>("api/v1/health");
 
-        public async Task<HealthStatusDto?> GetHealthAsync()
+        public Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
+            => GetAnonymousAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
+
+        /// <summary>
+        /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
+        /// is included — required because <c>GET api/v1/system/agent-status</c> has [Authorize].
+        /// </summary>
+        public async Task<AgentStatusClientDto?> GetAgentStatusAsync()
         {
             try
             {
-                var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.GetAsync("api/v1/health");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    logger.LogWarning("Health check failed with status code {StatusCode}. Reason: {Reason}",
-                        response.StatusCode, response.ReasonPhrase);
-                    return null;
-                }
-
-                return await response.Content.ReadFromJsonAsync<HealthStatusDto>();
-            }
-            catch (HttpRequestException ex)
-            {
-                logger.LogError(ex, "Network error calling health endpoint: {Message}", ex.Message);
-                return null;
+                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error calling health endpoint: {Message}", ex.Message);
+                logger.LogWarning(ex, "Agent status request failed");
                 return null;
             }
         }
 
-        public async Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
+        /// <summary>
+        /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
+        /// is included — required because <c>POST api/v1/system/agent-status/restart</c> has [Authorize(Roles="SuperAdmin")].
+        /// </summary>
+        public async Task<(bool Success, string Message)> RestartAgentAsync()
+        {
+            try
+            {
+                var result = await httpClientService.PostAsync<object?, AgentRestartResultClientDto>(
+                    "api/v1/system/agent-status/restart", null);
+                return (result?.Success == true, result?.Message ?? "Risposta sconosciuta");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Agent restart request failed");
+                return (false, ex.Message);
+            }
+        }
+
+        // ── Anonymous helper — for public [AllowAnonymous] health endpoints ───────
+
+        private async Task<T?> GetAnonymousAsync<T>(string relativeUrl) where T : class
         {
             try
             {
                 var httpClient = httpClientFactory.CreateClient("ApiClient");
-                var response = await httpClient.GetAsync("api/v1/health/detailed");
-
+                var response = await httpClient.GetAsync(relativeUrl);
                 if (!response.IsSuccessStatusCode)
                 {
-                    logger.LogWarning("Detailed health check failed with status code {StatusCode}. Reason: {Reason}",
-                        response.StatusCode, response.ReasonPhrase);
+                    logger.LogWarning("GET {Url} failed: {StatusCode}", relativeUrl, response.StatusCode);
                     return null;
                 }
-
-                return await response.Content.ReadFromJsonAsync<DetailedHealthStatusDto>();
+                return await response.Content.ReadFromJsonAsync<T>();
             }
             catch (HttpRequestException ex)
             {
-                logger.LogError(ex, "Network error calling detailed health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Network error calling {Url}: {Message}", relativeUrl, ex.Message);
                 return null;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error calling detailed health endpoint: {Message}", ex.Message);
+                logger.LogError(ex, "Error calling {Url}: {Message}", relativeUrl, ex.Message);
                 return null;
             }
         }
     }
+
+    // Mirror of AgentRestartResultDto from the Server
+    internal record AgentRestartResultClientDto(bool Success, string Message);
 }

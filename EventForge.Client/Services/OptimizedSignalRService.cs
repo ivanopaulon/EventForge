@@ -1,3 +1,4 @@
+using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Documents;
 using EventForge.DTOs.Notifications;
@@ -71,6 +72,13 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<DocumentCommentDto>? CommentUpdated;
     #endregion
 
+    #region Events - Update / Maintenance
+    public event Action<MaintenanceStartedPayload>? ServerMaintenanceStarted;
+    public event Action<MaintenanceEndedPayload>? ServerMaintenanceEnded;
+    public event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
+    public event Action<UpdateProgressPayload>? UpdateProgressReceived;
+    #endregion
+
     private class BatchedEvent
     {
         public string Type { get; set; } = string.Empty;
@@ -120,7 +128,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             StartConnectionAsync("audit", "/hubs/audit-log"),
             StartConnectionAsync("notification", "/hubs/notifications"),
             StartConnectionAsync("chat", "/hubs/chat"),
-            StartConnectionAsync("document-collaboration", "/hubs/document-collaboration")
+            StartConnectionAsync("document-collaboration", "/hubs/document-collaboration"),
+            StartConnectionAsync("update-notifications", "/hubs/update-notifications")
         };
 
         await Task.WhenAll(connectionTasks);
@@ -241,6 +250,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 break;
             case "document-collaboration":
                 RegisterDocumentCollaborationEventHandlers(connection);
+                break;
+            case "update-notifications":
+                RegisterUpdateNotificationEventHandlers(connection);
                 break;
         }
     }
@@ -369,6 +381,67 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             _logger.LogInformation("Comment updated: {CommentId}", comment.Id);
             CommentUpdated?.Invoke(comment);
+        });
+    }
+
+    private void RegisterUpdateNotificationEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<System.Text.Json.JsonElement>("MaintenanceStarted", data =>
+        {
+            try
+            {
+                var payload = new MaintenanceStartedPayload(
+                    data.TryGetProperty("component", out var c) ? c.GetString() : null,
+                    data.TryGetProperty("version", out var v) ? v.GetString() : null,
+                    data.TryGetProperty("startedAt", out var t) ? t.GetDateTime() : DateTime.UtcNow);
+                ServerMaintenanceStarted?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse MaintenanceStarted payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("MaintenanceEnded", data =>
+        {
+            try
+            {
+                var payload = new MaintenanceEndedPayload(
+                    data.TryGetProperty("component", out var c) ? c.GetString() : null,
+                    data.TryGetProperty("version", out var v) ? v.GetString() : null,
+                    data.TryGetProperty("endedAt", out var t) ? t.GetDateTime() : DateTime.UtcNow);
+                ServerMaintenanceEnded?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse MaintenanceEnded payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("ClientUpdateDeployed", data =>
+        {
+            try
+            {
+                var payload = new ClientUpdateDeployedPayload(
+                    data.TryGetProperty("component", out var c) ? c.GetString() : null,
+                    data.TryGetProperty("version", out var v) ? v.GetString() : null,
+                    data.TryGetProperty("deployedAt", out var t) ? t.GetDateTime() : DateTime.UtcNow);
+                ClientUpdateDeployed?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse ClientUpdateDeployed payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("UpdateProgress", data =>
+        {
+            try
+            {
+                var payload = new UpdateProgressPayload(
+                    data.TryGetProperty("component", out var c) ? c.GetString() : null,
+                    data.TryGetProperty("version", out var v) ? v.GetString() : null,
+                    data.TryGetProperty("phase", out var ph) ? ph.GetString() : null,
+                    data.TryGetProperty("percentComplete", out var pct) && pct.ValueKind == System.Text.Json.JsonValueKind.Number ? pct.GetInt32() : null,
+                    data.TryGetProperty("formattedDownloaded", out var fd) ? fd.GetString() : null,
+                    data.TryGetProperty("formattedTotal", out var ft) ? ft.GetString() : null,
+                    data.TryGetProperty("formattedSpeed", out var fs) ? fs.GetString() : null,
+                    data.TryGetProperty("eta", out var eta) ? eta.GetString() : null,
+                    data.TryGetProperty("sentAt", out var sa) ? sa.GetDateTime() : DateTime.UtcNow);
+                UpdateProgressReceived?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdateProgress payload"); }
         });
     }
 
@@ -1068,6 +1141,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsNotificationConnected => GetConnectionState("notification") == HubConnectionState.Connected;
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
     public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
+    public bool IsUpdateNotificationConnected => GetConnectionState("update-notifications") == HubConnectionState.Connected;
     public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     private HubConnectionState GetConnectionState(string connectionKey)

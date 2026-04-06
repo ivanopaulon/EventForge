@@ -4,9 +4,17 @@
 
 EventForge utilizza un sistema di configurazione flessibile per le porte di comunicazione tra server e client.
 
-**Porte predefinite:**
-- **HTTPS**: 7241
-- **HTTP**: 5240
+**Mappa porte (autoritative):**
+
+| Progetto | Ambiente | HTTP | HTTPS |
+|---|---|---|---|
+| Server | Dev (Kestrel) | 5240 | 7241 |
+| Server | Prod (IIS) | — | 7242 |
+| Client | Dev (Kestrel) | 5048 | 7009 |
+| Client | Prod (IIS) | — | 5240 |
+| UpdateHub | Dev (Kestrel) | 59407 | 59406 |
+| UpdateHub | Prod IIS / Standalone | 7243 | 7244 |
+| UpdateAgent | Prod (Windows Service, localhost) | 5780 | — |
 
 ## Configurazione Server (EventForge.Server)
 
@@ -88,7 +96,64 @@ Crea un file di override per il servizio:
 Environment="ASPNETCORE_URLS=https://+:7241;http://+:5240"
 ```
 
-## Configurazione Client (EventForge.Client)
+## Configurazione UpdateHub (EventForge.UpdateHub)
+
+L'UpdateHub espone la propria UI e l'API SignalR su due porte indipendenti configurabili in `appsettings.json`.
+
+### Porte predefinite
+
+| Protocollo | Porta | Note |
+|---|---|---|
+| HTTPS | 7244 | Produzione IIS; Kestrel standalone |
+| HTTP | 7243 | Kestrel standalone; disabilitabile con `0` |
+
+### Configurazione `appsettings.json`
+
+```json
+"UpdateHub": {
+  "UI": {
+    "HttpsPort": 7244,
+    "HttpPort":  7243
+  }
+}
+```
+
+Imposta una porta a `0` per disabilitarla (es. HTTP-only o HTTPS-only).
+
+### Produzione su IIS
+
+Il setup script (`Setup-EventForge-UpdateHub.ps1`) legge automaticamente `UI.HttpsPort` da `appsettings.json` per configurare il binding IIS. Non è necessario modificare lo script.
+
+### Standalone (senza IIS)
+
+Kestrel rispetta i valori `HttpsPort` / `HttpPort` e si lega direttamente alle porte configurate. Per HTTPS standalone è necessario un certificato configurato nella sezione `Kestrel:Endpoints` di `appsettings.json`.
+
+### Sviluppo Locale
+
+In sviluppo, `launchSettings.json` definisce porte separate per evitare conflitti con le istanze di produzione:
+
+```
+https://localhost:59406 (dev HTTPS)
+http://localhost:59407  (dev HTTP)
+```
+
+---
+
+## Configurazione UpdateAgent (EventForge.UpdateAgent)
+
+L'Agent espone una UI locale (`localhost`-only) su una singola porta HTTP (non HTTPS — il traffico è sempre intra-macchina).
+
+```json
+"UpdateAgent": {
+  "UI": {
+    "Port": 5780
+  }
+}
+```
+
+---
+
+
 
 ### File di Configurazione
 

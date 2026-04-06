@@ -177,6 +177,24 @@ public static class ServiceCollectionExtensions
 
         // Configure VAT lookup service using VIES
         _ = services.AddScoped<IVatLookupService, VatLookupService>();
+
+        // Named client used by AgentMonitorService to probe the co-located UpdateAgent.
+        // Credentials are read from Agent:Username / Agent:Password and sent as HTTP Basic Auth.
+        _ = services.AddHttpClient("AgentClient", (sp, client) =>
+        {
+            var cfg = sp.GetRequiredService<IConfiguration>();
+            client.Timeout = TimeSpan.FromSeconds(3);
+
+            var username = cfg["Agent:Username"] ?? string.Empty;
+            var password  = cfg["Agent:Password"]  ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+            {
+                var encoded = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encoded);
+            }
+        });
     }
 
     /// <summary>

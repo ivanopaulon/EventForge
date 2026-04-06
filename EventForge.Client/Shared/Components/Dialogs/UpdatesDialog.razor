@@ -1,0 +1,328 @@
+@*
+    UpdatesDialog — EFDialog + vertical MudTabs (same structure as HealthStatusDialog)
+    SuperAdmin only. Two tabs: Available Packages + Installations.
+*@
+@namespace EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Services.Updates
+@inject IUpdateNotificationService UpdateNotification
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<EFDialog Icon="@Icons.Material.Outlined.SystemUpdate"
+          Title="@TranslationService.GetTranslation("updates.dialog.title", "Gestione Aggiornamenti")"
+          IsProcessing="@_isLoading"
+          MinWidth="min(900px, 95vw)"
+          MaxHeight="calc(100vh - 48px)"
+          OnClose="Close">
+    <ChildContent>
+        <MudTabs Position="Position.Left"
+                 Rounded="true"
+                 Border="true"
+                 MinimumTabWidth="140px"
+                 Class="updates-tabs">
+
+            <!-- Tab 1: Pacchetti disponibili -->
+            <MudTabPanel Text="Pacchetti"
+                         Icon="@Icons.Material.Outlined.Inventory2">
+                <MudStack Spacing="3" Class="pa-3">
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle1">Pacchetti disponibili</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Size="Size.Small"
+                                       OnClick="LoadDataAsync"
+                                       Disabled="@_isLoading"
+                                       Title="Aggiorna" />
+                    </MudStack>
+
+                    @if (_isLoading)
+                    {
+                        <div class="text-center pa-4">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                    }
+                    else if (_packages.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun pacchetto disponibile.</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="@_packages"
+                                  Hover="true"
+                                  Striped="true"
+                                  Dense="true"
+                                  Elevation="1"
+                                  @bind-SelectedItem="_selectedPackage">
+                            <HeaderContent>
+                                <MudTh>Componente</MudTh>
+                                <MudTh>Versione</MudTh>
+                                <MudTh>Data caricamento</MudTh>
+                                <MudTh>Dimensione</MudTh>
+                                <MudTh>Stato</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Componente">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(context.Component == "Server" ? Color.Primary : Color.Info)"
+                                             Text="@context.Component" />
+                                </MudTd>
+                                <MudTd DataLabel="Versione">
+                                    <MudText Typo="Typo.body2"><strong>v@context.Version</strong></MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Data caricamento">
+                                    <MudText Typo="Typo.body2">@context.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Dimensione">
+                                    <MudText Typo="Typo.body2">@FormatBytes(context.FileSizeBytes)</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Stato">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@GetPackageStatusColor(context.Status)"
+                                             Text="@context.Status" />
+                                </MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                                                   Size="Size.Small"
+                                                   Color="Color.Info"
+                                                   OnClick="@(() => ShowPackageDetails(context))"
+                                                   Title="Dettagli" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+
+                        @if (_packageDetails is not null)
+                        {
+                            <MudPaper Elevation="2" Class="pa-3">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                                    <MudText Typo="Typo.subtitle2">Dettagli pacchetto</MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => _packageDetails = null)" />
+                                </MudStack>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="4"><MudText Typo="Typo.body2"><strong>ID</strong></MudText></MudItem>
+                                    <MudItem xs="8"><MudText Typo="Typo.caption"><code>@_packageDetails.Id</code></MudText></MudItem>
+                                    @if (!string.IsNullOrEmpty(_packageDetails.ReleaseNotes))
+                                    {
+                                        <MudItem xs="4"><MudText Typo="Typo.body2"><strong>Note di rilascio</strong></MudText></MudItem>
+                                        <MudItem xs="8"><MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_packageDetails.ReleaseNotes</MudText></MudItem>
+                                    }
+                                    @if (!string.IsNullOrEmpty(_packageDetails.Checksum))
+                                    {
+                                        <MudItem xs="4"><MudText Typo="Typo.body2"><strong>Checksum SHA-256</strong></MudText></MudItem>
+                                        <MudItem xs="8"><MudText Typo="Typo.caption" Style="word-break:break-all"><code>@_packageDetails.Checksum</code></MudText></MudItem>
+                                    }
+                                </MudGrid>
+                            </MudPaper>
+                        }
+                    }
+                </MudStack>
+            </MudTabPanel>
+
+            <!-- Tab 2: Installazioni -->
+            <MudTabPanel Text="Installazioni"
+                         Icon="@Icons.Material.Outlined.Devices">
+                <MudStack Spacing="3" Class="pa-3">
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle1">Installazioni registrate</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Size="Size.Small"
+                                       OnClick="LoadDataAsync"
+                                       Disabled="@_isLoading"
+                                       Title="Aggiorna" />
+                    </MudStack>
+
+                    @if (_isLoading)
+                    {
+                        <div class="text-center pa-4">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+                    }
+                    else if (_installations.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna installazione registrata.</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="@_installations"
+                                  Hover="true"
+                                  Striped="true"
+                                  Dense="true"
+                                  Elevation="1">
+                            <HeaderContent>
+                                <MudTh>Nome</MudTh>
+                                <MudTh>Posizione</MudTh>
+                                <MudTh>Server</MudTh>
+                                <MudTh>Client</MudTh>
+                                <MudTh>Stato</MudTh>
+                                <MudTh>Azioni</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Nome">
+                                    <MudText Typo="Typo.body2">@context.Name</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Posizione">
+                                    <MudText Typo="Typo.caption">@(context.Location ?? "—")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Server">
+                                    <MudText Typo="Typo.body2">@(context.InstalledVersionServer ?? "—")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Client">
+                                    <MudText Typo="Typo.body2">@(context.InstalledVersionClient ?? "—")</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Stato">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(context.IsConnected ? Color.Success : Color.Default)"
+                                             Text="@(context.IsConnected ? "Online" : "Offline")" />
+                                </MudTd>
+                                <MudTd DataLabel="Azioni">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Size="Size.Small"
+                                               Color="Color.Warning"
+                                               StartIcon="@Icons.Material.Filled.SystemUpdate"
+                                               Disabled="@(!context.IsConnected || _selectedPackage is null || _isSendingUpdate)"
+                                               OnClick="@(() => ConfirmSendUpdateAsync(context))"
+                                               Title="@(_selectedPackage is null ? "Seleziona prima un pacchetto dalla tab Pacchetti" : "Invia aggiornamento")">
+                                        Aggiorna
+                                    </MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+
+                        @if (_selectedPackage is not null)
+                        {
+                            <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
+                                Pacchetto selezionato: <strong>@_selectedPackage.Component v@_selectedPackage.Version</strong> —
+                                clicca "Aggiorna" sull'installazione desiderata.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Warning">
+                                Nessun pacchetto selezionato. Vai alla tab <strong>Pacchetti</strong> e seleziona una riga.
+                            </MudAlert>
+                        }
+                    }
+                </MudStack>
+            </MudTabPanel>
+
+        </MudTabs>
+    </ChildContent>
+</EFDialog>
+
+<style>
+    .updates-tabs .mud-tabs-panels {
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+</style>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _isLoading = false;
+    private bool _isSendingUpdate = false;
+    private string? _errorMessage;
+
+    private List<PackageSummaryClientDto> _packages = [];
+    private List<InstallationSummaryClientDto> _installations = [];
+
+    private PackageSummaryClientDto? _selectedPackage;
+    private PackageSummaryClientDto? _packageDetails;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        try
+        {
+            var packagesTask = UpdateNotification.GetPackagesAsync();
+            var installationsTask = UpdateNotification.GetInstallationsAsync();
+            await Task.WhenAll(packagesTask, installationsTask);
+            _packages = (await packagesTask).ToList();
+            _installations = (await installationsTask).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Impossibile caricare i dati dall'UpdateHub: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ShowPackageDetails(PackageSummaryClientDto package)
+    {
+        _packageDetails = _packageDetails?.Id == package.Id ? null : package;
+    }
+
+    private async Task ConfirmSendUpdateAsync(InstallationSummaryClientDto installation)
+    {
+        if (_selectedPackage is null) return;
+
+        var pkg = _selectedPackage;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Conferma aggiornamento",
+            $"Inviare il pacchetto {pkg.Component} v{pkg.Version} all'installazione \"{installation.Name}\"?",
+            yesText: "Invia aggiornamento",
+            cancelText: "Annulla");
+
+        if (confirmed == true)
+        {
+            await SendUpdateAsync(installation, pkg);
+        }
+    }
+
+    private async Task SendUpdateAsync(InstallationSummaryClientDto installation, PackageSummaryClientDto package)
+    {
+        _isSendingUpdate = true;
+        try
+        {
+            await UpdateNotification.TriggerUpdateAsync(installation.Id, package.Id);
+            AppNotification.ShowSuccess($"Aggiornamento inviato a \"{installation.Name}\".");
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore nell'invio dell'aggiornamento: {ex.Message}");
+        }
+        finally
+        {
+            _isSendingUpdate = false;
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F1} MB";
+    }
+
+    private static Color GetPackageStatusColor(string? status) => status?.ToLowerInvariant() switch
+    {
+        "readytodeploy" => Color.Success,
+        "pending"       => Color.Warning,
+        "error"         => Color.Error,
+        _               => Color.Default
+    };
+}

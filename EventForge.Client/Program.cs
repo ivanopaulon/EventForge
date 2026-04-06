@@ -2,6 +2,7 @@ using Blazored.LocalStorage;
 using EventForge.Client;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
+using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -134,6 +135,7 @@ builder.Services.AddScoped<IAuthenticationDialogService, AuthenticationDialogSer
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IPerformanceOptimizationService, PerformanceOptimizationService>();
 builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
+builder.Services.AddScoped<IUpdateNotificationService, UpdateNotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();

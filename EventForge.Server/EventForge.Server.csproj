@@ -53,6 +53,7 @@
     <PackageReference Include="ncrontab" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="System.IO.Ports" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />

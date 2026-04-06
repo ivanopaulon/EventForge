@@ -166,6 +166,21 @@ if (Test-Path $appSettingsPath) {
         $json = Get-Content $appSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $agentConfig = $json.UpdateAgent
 
+        # Applica gli override di produzione (stessa logica usata dal runtime con ASPNETCORE_ENVIRONMENT=Production).
+        # Senza questo merge lo script leggerebbe la sezione base (Components.*.Enabled = false)
+        # e segnalerebbe erroneamente che nessun componente e abilitato.
+        $prodOverride = $json.Environments.Production.UpdateAgent
+        if ($prodOverride) {
+            if ($prodOverride.PSObject.Properties['Components']) {
+                if ($prodOverride.Components.PSObject.Properties['Server']) {
+                    $agentConfig.Components.Server = $prodOverride.Components.Server
+                }
+                if ($prodOverride.Components.PSObject.Properties['Client']) {
+                    $agentConfig.Components.Client = $prodOverride.Components.Client
+                }
+            }
+        }
+
         # HubUrl
         $hubUrl = $agentConfig.HubUrl
         if ([string]::IsNullOrWhiteSpace($hubUrl) -or $hubUrl -eq "https://updatehub.example.com/hubs/update") {
@@ -190,10 +205,19 @@ if (Test-Path $appSettingsPath) {
             Write-OK "InstallationId: $installId"
         }
 
+        # UI.Password
+        $uiPassword = $agentConfig.UI.Password
+        if ([string]::IsNullOrWhiteSpace($uiPassword) -or $uiPassword -eq "Admin#123!") {
+            Write-WARN "UI.Password e ancora il valore di default ('Admin#123!')."
+            Write-WARN "Cambia la password nella sezione UpdateAgent.UI in: $appSettingsPath"
+        } else {
+            Write-OK "UI.Password: configurata"
+        }
+
         # Components
         $serverEnabled = $agentConfig.Components.Server.Enabled
         $clientEnabled = $agentConfig.Components.Client.Enabled
-        Write-INFO "Componenti abilitati -> Server: $serverEnabled | Client: $clientEnabled"
+        Write-INFO "Componenti abilitati (prod) -> Server: $serverEnabled | Client: $clientEnabled"
         if (!$serverEnabled -and !$clientEnabled) {
             Write-WARN "Nessun componente abilitato. Abilita almeno Server o Client in appsettings.json"
         }
@@ -211,6 +235,33 @@ if (Test-Path $appSettingsPath) {
             } else {
                 Write-OK "ConnectionString  : configurata"
             }
+
+            # HealthCheckUrl
+            $healthUrl = $agentConfig.Components.Server.HealthCheckUrl
+            if ([string]::IsNullOrWhiteSpace($healthUrl) -or $healthUrl -like "http://localhost/api/*") {
+                Write-WARN "Components.Server.HealthCheckUrl usa un valore placeholder: '$healthUrl'"
+                Write-WARN "Imposta l'URL corretto (es. https://localhost:7242/api/v1/health)"
+            } else {
+                Write-OK "Server HealthCheckUrl: $healthUrl"
+            }
+
+            # Server NotificationBaseUrl
+            $srvNotifUrl = $agentConfig.Components.Server.NotificationBaseUrl
+            if ([string]::IsNullOrWhiteSpace($srvNotifUrl) -or $srvNotifUrl -eq "http://localhost") {
+                Write-WARN "Components.Server.NotificationBaseUrl usa un valore placeholder: '$srvNotifUrl'"
+                Write-WARN "Imposta l'URL corretto (es. https://localhost:7242)"
+            } else {
+                Write-OK "Server NotificationBaseUrl: $srvNotifUrl"
+            }
+
+            # Server MaintenanceSecret
+            $srvSecret = $agentConfig.Components.Server.MaintenanceSecret
+            if ([string]::IsNullOrWhiteSpace($srvSecret) -or $srvSecret -eq "REPLACE_WITH_STRONG_SECRET") {
+                Write-WARN "Components.Server.MaintenanceSecret e ancora il placeholder."
+                Write-WARN "Deve corrispondere a UpdateHub.MaintenanceSecret in appsettings.json del Server."
+            } else {
+                Write-OK "Server MaintenanceSecret: configurato"
+            }
         }
 
         if ($clientEnabled) {
@@ -219,6 +270,24 @@ if (Test-Path $appSettingsPath) {
                 Write-WARN "Components.Client.DeployPath non configurato"
             } else {
                 Write-INFO "Client DeployPath : $clientPath"
+            }
+
+            # Client NotificationBaseUrl
+            $cliNotifUrl = $agentConfig.Components.Client.NotificationBaseUrl
+            if ([string]::IsNullOrWhiteSpace($cliNotifUrl) -or $cliNotifUrl -eq "http://localhost") {
+                Write-WARN "Components.Client.NotificationBaseUrl usa un valore placeholder: '$cliNotifUrl'"
+                Write-WARN "Imposta l'URL corretto (es. https://localhost:7242)"
+            } else {
+                Write-OK "Client NotificationBaseUrl: $cliNotifUrl"
+            }
+
+            # Client MaintenanceSecret
+            $cliSecret = $agentConfig.Components.Client.MaintenanceSecret
+            if ([string]::IsNullOrWhiteSpace($cliSecret) -or $cliSecret -eq "REPLACE_WITH_STRONG_SECRET") {
+                Write-WARN "Components.Client.MaintenanceSecret e ancora il placeholder."
+                Write-WARN "Deve corrispondere a UpdateHub.MaintenanceSecret in appsettings.json del Server."
+            } else {
+                Write-OK "Client MaintenanceSecret: configurato"
             }
         }
 

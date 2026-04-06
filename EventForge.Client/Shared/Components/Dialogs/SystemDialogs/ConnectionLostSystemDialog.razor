@@ -2,6 +2,7 @@
 @using MudBlazor
 @inject IConnectionMonitorService ConnectionMonitor
 @inject IServerConfigOverlayService ServerConfigOverlayService
+@inject IHealthService HealthService
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
@@ -28,6 +29,14 @@
         </span>
     </div>
 
+    @* Agent status row *@
+    <div class="clsd-status-row">
+        <span class="clsd-dot @(_agentOk ? "clsd-dot-green" : "clsd-dot-amber")"></span>
+        <span class="clsd-label">Agent</span>
+        <span class="clsd-value @(_agentOk ? "clsd-ok" : "clsd-warn")">
+            @(_agentStatus ?? "Verifica in corso…")
+        </span>
+    </div>
     @if (_restored)
     {
         <div class="clsd-restored">✓ Connessione ripristinata</div>
@@ -76,6 +85,8 @@
 
     private bool _apiOk = true;
     private bool _signalrOk = true;
+    private bool _agentOk = false;
+    private string? _agentStatus;
     private string? _statusMessage;
     private DateTimeOffset? _disconnectedSince;
 
@@ -97,6 +108,40 @@
         ConnectionMonitor.StatusChanged += OnStatusChanged;
         SyncFromMonitor(ConnectionMonitor.Status);
         StartElapsedTimer();
+        _ = FetchAgentStatusAsync();
+    }
+
+    private async Task FetchAgentStatusAsync()
+    {
+        try
+        {
+            var agent = await HealthService.GetAgentStatusAsync();
+            _agentOk = agent?.Reachable == true;
+
+            if (agent is null)
+            {
+                _agentStatus = "Non configurato";
+            }
+            else if (agent.Reachable)
+            {
+                _agentStatus = $"Online — Hub: {agent.HubConnectionState ?? "?"}";
+            }
+            else
+            {
+                var mins = agent.UnreachableSinceUtc.HasValue
+                    ? (int)(DateTime.UtcNow - agent.UnreachableSinceUtc.Value).TotalMinutes
+                    : 0;
+                _agentStatus = mins > 0
+                    ? $"Non raggiungibile da {mins} min"
+                    : "Non raggiungibile";
+            }
+        }
+        catch
+        {
+            _agentOk = false;
+            _agentStatus = "Non raggiungibile";
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnStatusChanged(ConnectionStatus newStatus)
@@ -214,6 +259,11 @@
         box-shadow: 0 0 6px rgba(239, 83, 80, 0.7);
     }
 
+    .clsd-dot-amber {
+        background: #ffa726;
+        box-shadow: 0 0 6px rgba(255, 167, 38, 0.7);
+    }
+
     .clsd-label {
         color: rgba(255, 255, 255, 0.55);
         min-width: 60px;
@@ -222,6 +272,7 @@
     .clsd-value { font-weight: 600; }
     .clsd-ok    { color: #66bb6a; }
     .clsd-err   { color: #ef5350; }
+    .clsd-warn  { color: #ffa726; }
 
     .clsd-message {
         color: rgba(255, 255, 255, 0.82);

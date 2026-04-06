@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace EventForge.UpdateAgent.Services;
@@ -32,6 +33,35 @@ public class UpdateExecutorService(
 
     // Exponential backoff delays (seconds) between successive download attempts.
     private static readonly int[] DownloadDelays = [5, 15, 30, 60, 120];
+
+    // ── Maintenance notification helpers ────────────────────────────────────
+
+    /// <summary>
+    /// Fires a best-effort POST to EventForge.Server's maintenance endpoint so connected clients
+    /// are notified before/after an update. Never throws — failures are logged as warnings.
+    /// </summary>
+    private async Task NotifyServerAsync(string notificationBaseUrl, string maintenanceSecret, object payload)
+    {
+        if (string.IsNullOrWhiteSpace(notificationBaseUrl)) return;
+        try
+        {
+            var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
+            var json = JsonSerializer.Serialize(payload);
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var resp = await _http.SendAsync(request, cts.Token);
+            if (!resp.IsSuccessStatusCode)
+                logger.LogWarning("Maintenance notification returned {StatusCode}", resp.StatusCode);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Maintenance notification failed (best-effort, update continues)");
+        }
+    }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
@@ -82,6 +112,12 @@ public class UpdateExecutorService(
             // ── Phase 6: Stop IIS ──
             if (isServer)
             {
+                // Notify connected clients that the Server is going into maintenance before stopping IIS.
+                await NotifyServerAsync(
+                    options.Components.Server.NotificationBaseUrl,
+                    options.Components.Server.MaintenanceSecret,
+                    new { Phase = "Starting", Component = command.Component, Version = command.Version });
+
                 await ReportAsync(command, UpdatePhase.StoppingService, false, true, null, ct);
                 await iisManagerService.StopSiteAsync(ct);
             }
@@ -116,6 +152,24 @@ public class UpdateExecutorService(
 
             // ── Complete ──
             await ReportAsync(command, UpdatePhase.Completed, true, true, null, ct);
+
+            // Notify clients that maintenance is over (Server back online).
+            if (isServer)
+            {
+                await NotifyServerAsync(
+                    options.Components.Server.NotificationBaseUrl,
+                    options.Components.Server.MaintenanceSecret,
+                    new { Phase = "Started", Component = command.Component, Version = command.Version });
+            }
+            else
+            {
+                // Client component deployed — tell the Server so browsers can refresh.
+                await NotifyServerAsync(
+                    options.Components.Client.NotificationBaseUrl,
+                    options.Components.Client.MaintenanceSecret,
+                    new { Phase = "ClientDeployed", Component = command.Component, Version = command.Version });
+            }
+
             logger.LogInformation("Update completed successfully: {Component} {Version}", command.Component, command.Version);
         }
         catch (Exception ex)
@@ -167,6 +221,15 @@ public class UpdateExecutorService(
 
     private async Task<string> DownloadPackageAsync(string downloadUrl, string packageIdHex, string component, string version, CancellationToken ct)
     {
+        // Defensive fix: if Hub sent a relative URL, prepend the hub base URL
+        if (downloadUrl.StartsWith('/'))
+        {
+            var hubBase = string.IsNullOrWhiteSpace(options.HubBaseUrl)
+                ? options.HubUrl.Replace("/hubs/update", "").TrimEnd('/')
+                : options.HubBaseUrl.TrimEnd('/');
+            downloadUrl = hubBase + downloadUrl;
+        }
+
         var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
 
         var downloadDir = Path.Combine(AppContext.BaseDirectory, "updates");
@@ -325,14 +388,18 @@ public class UpdateExecutorService(
     {
         if (string.IsNullOrWhiteSpace(healthCheckUrl)) return;
 
-        var maxAttempts = options.Install.HealthCheckMaxAttempts;
-        var delayMs     = options.Install.HealthCheckDelaySeconds * 1_000;
+        var maxAttempts   = options.Install.HealthCheckMaxAttempts;
+        var delayMs       = options.Install.HealthCheckDelaySeconds * 1_000;
+        // Cap individual health-check requests to the configured delay + 5 s to avoid hanging forever.
+        var requestTimeout = TimeSpan.FromMilliseconds(delayMs + 5_000);
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
-                var response = await _http.GetAsync(healthCheckUrl, ct);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(requestTimeout);
+                var response = await _http.GetAsync(healthCheckUrl, cts.Token);
                 if (response.IsSuccessStatusCode) return;
                 logger.LogWarning("Health check attempt {Attempt}/{Max} failed: {Status}", attempt, maxAttempts, response.StatusCode);
             }

@@ -9,12 +9,14 @@
 @using EventForge.DTOs.Profile
 @using EventForge.DTOs.Auth
 @using EventForge.Client.Services
+@using EventForge.Client.Services.Updates
 @using System.Timers
 @inject ITranslationService TranslationService
 @inject ILogManagementService LogManagementService
 @inject IProfileService ProfileService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject IHealthService HealthService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @implements IDisposable
 
@@ -201,7 +203,142 @@
                 }
             </MudTabPanel>
 
-            <!-- Tab 2: Sessioni attive -->
+            <!-- Tab 2: UpdateAgent -->
+            <MudTabPanel Text="Agent"
+                         Icon="@Icons.Material.Outlined.Router">
+                <MudStack Spacing="3" Class="pa-3">
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudText Typo="Typo.subtitle1">UpdateAgent</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Size="Size.Small"
+                                       OnClick="RefreshAgentStatusAsync"
+                                       Disabled="@_isLoadingAgent"
+                                       Title="Ricarica stato Agent" />
+                    </MudStack>
+
+                    @if (_isLoadingAgent)
+                    {
+                        <div class="text-center pa-4">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else if (_agentStatus is null)
+                    {
+                        <MudAlert Severity="Severity.Warning">
+                            Agent non configurato o non raggiungibile. Verificare <code>Agent:LocalUrl</code> in appsettings.json.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        @if (!_agentStatus.Reachable)
+                        {
+                            var unreachableMin = _agentStatus.UnreachableSinceUtc.HasValue
+                                ? (int)(DateTime.UtcNow - _agentStatus.UnreachableSinceUtc.Value).TotalMinutes
+                                : 0;
+                            var autoRestartMin = _agentStatus.AutoRestartAfterMinutes;
+                            var minutesToRestart = autoRestartMin > 0
+                                ? Math.Max(0, autoRestartMin - unreachableMin)
+                                : -1;
+
+                            <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Warning">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Style="gap:8px">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2">
+                                                <strong>L'Agent non è raggiungibile</strong>
+                                                @if (unreachableMin > 0)
+                                                {
+                                                    <span> da <strong>@unreachableMin min</strong></span>
+                                                }
+                                            </MudText>
+                                            @if (autoRestartMin > 0)
+                                            {
+                                                @if (minutesToRestart <= 0)
+                                                {
+                                                    <MudText Typo="Typo.caption">
+                                                        ⏳ Riavvio automatico in corso o imminente…
+                                                    </MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.caption">
+                                                        ⏱ Riavvio automatico tra circa <strong>@minutesToRestart min</strong>
+                                                        (soglia: @autoRestartMin min)
+                                                    </MudText>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption">
+                                                    Riavvio automatico disabilitato (<code>Agent:AutoRestartAfterMinutes = 0</code>)
+                                                </MudText>
+                                            }
+                                        </MudStack>
+                                        @if (_isAdmin)
+                                        {
+                                            <MudButton Variant="Variant.Filled"
+                                                       Color="Color.Warning"
+                                                       Size="Size.Small"
+                                                       StartIcon="@Icons.Material.Filled.RestartAlt"
+                                                       Disabled="@_isRestartingAgent"
+                                                       OnClick="RestartAgentAsync">
+                                                @(_isRestartingAgent ? "Riavvio in corso…" : "Riavvia ora")
+                                            </MudButton>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </MudAlert>
+                        }
+                        <MudCard Elevation="1">
+                            <MudCardContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Router"
+                                             Color="@(_agentStatus.Reachable ? Color.Success : Color.Error)"
+                                             Size="Size.Medium" />
+                                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Stato Agent</MudText>
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(_agentStatus.Reachable ? Color.Success : Color.Error)"
+                                             Text="@_agentStatus.Status"
+                                             Variant="Variant.Filled" />
+                                </MudStack>
+                                <MudGrid Spacing="1">
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Installazione</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_agentStatus.InstallationName ?? "—")</MudText></MudItem>
+
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Versione Agent</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_agentStatus.AgentVersion ?? "—")</MudText></MudItem>
+
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Versione Server</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_agentStatus.ServerVersion ?? "—")</MudText></MudItem>
+
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Versione Client</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@(_agentStatus.ClientVersion ?? "—")</MudText></MudItem>
+
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Hub Connection</strong></MudText></MudItem>
+                                    <MudItem xs="7">
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(_agentStatus.HubConnectionState == "Connected" ? Color.Success : Color.Warning)"
+                                                 Text="@(_agentStatus.HubConnectionState ?? "Unknown")" />
+                                    </MudItem>
+
+                                    @if (_agentStatus.LastHeartbeatAt.HasValue)
+                                    {
+                                        <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Ultimo heartbeat</strong></MudText></MudItem>
+                                        <MudItem xs="7"><MudText Typo="Typo.body2">@_agentStatus.LastHeartbeatAt.Value.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")</MudText></MudItem>
+                                    }
+
+                                    <MudItem xs="5"><MudText Typo="Typo.body2"><strong>Sondato alle</strong></MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2">@_agentStatus.ProbedAt.ToLocalTime().ToString("HH:mm:ss")</MudText></MudItem>
+                                </MudGrid>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+
+                </MudStack>
+            </MudTabPanel>
+
+            <!-- Tab 3: Sessioni attive -->
             <MudTabPanel Text="@TranslationService.GetTranslation("health.tab.sessions", "Sessions")"
                          Icon="@Icons.Material.Outlined.Devices">
                 <div class="pa-3">
@@ -653,6 +790,11 @@
     [Parameter] public DateTime? TokenExpiresAt { get; set; }
     [Parameter] public string? ErrorMessage { get; set; }
 
+    // Agent Status State
+    private AgentStatusClientDto? _agentStatus;
+    private bool _isLoadingAgent = false;
+    private bool _isRestartingAgent = false;
+
     // Log Management State
     private bool _filtersExpanded = false;
     private bool _isLoadingLogs = false;
@@ -687,9 +829,9 @@
         
         // Check if user is admin
         await DetermineUserRole();
-        
-        // Load initial logs
-        await LoadLogsAsync();
+
+        // Load agent status and initial logs in parallel
+        await Task.WhenAll(RefreshAgentStatusAsync(), LoadLogsAsync());
     }
 
     protected override void OnParametersSet()
@@ -702,6 +844,47 @@
         else
         {
             StopAutoRefresh();
+        }
+    }
+
+    private async Task RefreshAgentStatusAsync()
+    {
+        _isLoadingAgent = true;
+        try
+        {
+            _agentStatus = await HealthService.GetAgentStatusAsync();
+        }
+        catch
+        {
+            _agentStatus = null;
+        }
+        finally
+        {
+            _isLoadingAgent = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RestartAgentAsync()
+    {
+        _isRestartingAgent = true;
+        StateHasChanged();
+        try
+        {
+            var (success, message) = await HealthService.RestartAgentAsync();
+            if (success)
+                AppNotification.ShowSuccess(message);
+            else
+                AppNotification.ShowWarning(message);
+
+            // Re-probe after a short delay to pick up new state
+            await Task.Delay(3000);
+            await RefreshAgentStatusAsync();
+        }
+        finally
+        {
+            _isRestartingAgent = false;
+            StateHasChanged();
         }
     }
 

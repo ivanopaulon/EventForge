@@ -136,6 +136,13 @@ builder.Services.AddScoped<EventForge.Server.Services.Setup.ISetupWizardService,
 builder.Services.AddScoped<EventForge.Server.Services.Configuration.IPortConfigurationService, EventForge.Server.Services.Configuration.PortConfigurationService>();
 builder.Services.AddScoped<EventForge.Server.Services.Configuration.IBrandingService, EventForge.Server.Services.Configuration.BrandingService>();
 
+// Register Update services
+builder.Services.AddSingleton<EventForge.Server.Services.Updates.IUpdateHubProxyService, EventForge.Server.Services.Updates.UpdateHubProxyService>();
+
+// Agent monitor — singleton background service (probes Agent, auto-restarts if unreachable > threshold)
+builder.Services.AddSingleton<EventForge.Server.Services.AgentMonitorService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EventForge.Server.Services.AgentMonitorService>());
+
 // Register Dashboard services
 builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IServerStatusService, EventForge.Server.Services.Dashboard.ServerStatusService>();
 builder.Services.AddScoped<EventForge.Server.Services.Dashboard.IPerformanceMetricsService, EventForge.Server.Services.Dashboard.PerformanceMetricsService>();
@@ -537,6 +544,7 @@ app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<AlertHub>("/hubs/alerts");
 app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
 app.MapHub<EventForge.Server.Hubs.FiscalPrinterHub>("/hubs/fiscal-printer");
+app.MapHub<EventForge.Server.Hubs.UpdateNotificationHub>("/hubs/update-notifications");
 
 app.Run();
 

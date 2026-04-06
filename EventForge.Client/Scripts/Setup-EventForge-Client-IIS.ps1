@@ -22,6 +22,7 @@ $TEMP_DIR           = "C:\Prym\_tmp"
 $SITE_NAME          = "EventForgeClient"
 $POOL_NAME          = "EventForgeClient"
 $SITE_PORT          = 5240
+$SERVER_PORT        = 7242   # Porta HTTPS del Server; deve corrispondere a Environments:Production:ApiSettings:BaseUrl in appsettings.json
 $SITE_CERT_FRIENDLY = "EventForge Client IIS"
 
 # ------------------------------------------------------------------------------
@@ -528,6 +529,35 @@ $totalFiles = (Get-ChildItem $SITE_PATH -Recurse -File -ErrorAction SilentlyCont
 Write-INFO "File totali nella cartella sito: $totalFiles"
 
 # ==============================================================================
+# STEP 13b - Verifica appsettings.json: Environments.Production.ApiSettings.BaseUrl
+# ==============================================================================
+Write-Step "STEP 13b - Verifica appsettings.json (ApiSettings.BaseUrl produzione)"
+
+$clientAppSettingsPath = Join-Path $SITE_PATH "appsettings.json"
+if (Test-Path $clientAppSettingsPath) {
+    try {
+        $csJson      = Get-Content $clientAppSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $prodBaseUrl = $csJson.Environments.Production.ApiSettings.BaseUrl
+        $expectedUrl = "https://localhost:$SERVER_PORT/"
+        if ($prodBaseUrl -eq $expectedUrl) {
+            Write-OK "Environments.Production.ApiSettings.BaseUrl corretto: $prodBaseUrl"
+        } elseif (-not [string]::IsNullOrWhiteSpace($prodBaseUrl)) {
+            Write-WARN "Environments.Production.ApiSettings.BaseUrl = '$prodBaseUrl'"
+            Write-WARN "Atteso: '$expectedUrl' (porta server $SERVER_PORT)"
+            Write-WARN "Aggiorna appsettings.json se il server e su una porta diversa."
+        } else {
+            Write-WARN "Environments.Production.ApiSettings.BaseUrl non trovato in appsettings.json"
+            Write-WARN "Il client non sapra dove trovare le API in produzione."
+        }
+    } catch {
+        Write-WARN "Impossibile leggere appsettings.json client: $_"
+    }
+} else {
+    Write-WARN "appsettings.json non trovato in $SITE_PATH"
+    Write-WARN "Assicurati che il publish includa wwwroot\appsettings.json"
+}
+
+# ==============================================================================
 # STEP 14 - Verifica web.config Blazor WASM
 # ==============================================================================
 Write-Step "STEP 14 - Verifica web.config Blazor WASM"
@@ -667,7 +697,7 @@ Write-Host "  Log salvato in  : $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 Write-Host ""
 Write-Host "  URL client  : https://localhost:$SITE_PORT" -ForegroundColor Yellow
-Write-Host "  URL server  : https://localhost:7242  (EventForge Server, porta HTTPS)" -ForegroundColor Yellow
+Write-Host "  URL server  : https://localhost:$SERVER_PORT  (EventForge Server, porta HTTPS)" -ForegroundColor Yellow
 Write-Host "  Certificato : Self-signed (trusted in LocalMachine\Root)" -ForegroundColor Yellow
 Write-Host "  Log setup   : $TRANSCRIPT" -ForegroundColor Yellow
 Write-Host ""
@@ -675,7 +705,7 @@ Write-Host "  NOTA: Per deploy o update dei file client eseguire:" -ForegroundCo
 Write-Host "    dotnet publish EventForge.Client -c Release -o $DEPLOY_PATH" -ForegroundColor Cyan
 Write-Host "    (i file statici vengono creati automaticamente in $SITE_PATH)" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  NOTA: Il server API (porta 7242) deve essere raggiungibile dal client." -ForegroundColor Cyan
+Write-Host "  NOTA: Il server API (porta $SERVER_PORT) deve essere raggiungibile dal client." -ForegroundColor Cyan
 Write-Host "  Verifica che il server consenta CORS per https://localhost:$SITE_PORT" -ForegroundColor Cyan
 Write-Host ""
 

@@ -15,12 +15,15 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        // Skip auth for static files (CSS, JS, images) to avoid redirect loops
+        // Skip auth for static files (CSS, JS, images) to avoid redirect loops.
+        // Also skip for /api/agent/health — unauthenticated lightweight probe used by EventForge.Server.
+        // Safe because the Agent listens on localhost only (UseUrls("http://localhost:{port}")).
         var path = context.Request.Path.Value ?? "";
         if (path.StartsWith("/_", StringComparison.Ordinal) ||
             path.StartsWith("/css/", StringComparison.Ordinal) ||
             path.StartsWith("/js/", StringComparison.Ordinal) ||
-            path.StartsWith("/images/", StringComparison.Ordinal))
+            path.StartsWith("/images/", StringComparison.Ordinal) ||
+            path.Equals("/api/agent/health", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;

@@ -129,4 +129,12 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
         await db.SaveChangesAsync(ct);
         return newKey;
     }
+
+    public async Task SetUpdateModeAsync(Guid id, InstallationUpdateMode mode, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return;
+        installation.UpdateMode = mode;
+        await db.SaveChangesAsync(ct);
+    }
 }

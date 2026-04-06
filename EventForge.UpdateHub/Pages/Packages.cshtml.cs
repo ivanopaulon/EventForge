@@ -13,6 +13,7 @@ namespace EventForge.UpdateHub.Pages;
 [RequestSizeLimit(524_288_000)] // 500 MB
 public class PackagesModel(
     IPackageService packageService,
+    IPackageBuildService packageBuildService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
     UpdateHubOptions hubOptions,
@@ -20,6 +21,10 @@ public class PackagesModel(
 {
     public IReadOnlyList<UpdatePackage> Packages { get; private set; } = [];
     public int OnlineCount { get; private set; }
+
+    /// <summary>Pre-configured default deploy paths exposed to the view for UI hints.</summary>
+    public string? DefaultServerDeployPath => hubOptions.DefaultServerDeployPath;
+    public string? DefaultClientDeployPath => hubOptions.DefaultClientDeployPath;
 
     public async Task OnGetAsync()
     {
@@ -88,6 +93,65 @@ public class PackagesModel(
         var created = await packageService.CreateAsync(package);
         logger.LogInformation("Package uploaded via UI: {Version} {Component} Id={Id}", version, component, created.Id);
         TempData["Success"] = $"Pacchetto {comp} {version} caricato con successo.";
+        return RedirectToPage();
+    }
+
+    // ── Rileva metadati cartella (AJAX) ───────────────────────────────────
+    public async Task<IActionResult> OnPostDetectFolderAsync(string folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath))
+            return new JsonResult(new { error = "Percorso cartella obbligatorio." });
+
+        var info = await packageBuildService.DetectFromFolderAsync(folderPath.Trim());
+
+        if (info.DetectionError is not null)
+            return new JsonResult(new { error = info.DetectionError });
+
+        return new JsonResult(new
+        {
+            component = info.Component?.ToString(),
+            version = info.Version,
+            gitCommit = info.GitCommit
+        });
+    }
+
+    // ── Crea pacchetto da cartella ────────────────────────────────────────
+    public async Task<IActionResult> OnPostBuildFromFolderAsync(
+        string folderPath, string component, string version, string? releaseNotes, string? gitCommit)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath))
+        {
+            TempData["Error"] = "Il percorso della cartella è obbligatorio.";
+            return RedirectToPage();
+        }
+
+        if (!Enum.TryParse<PackageComponent>(component, true, out var comp))
+        {
+            TempData["Error"] = "Componente non valido.";
+            return RedirectToPage();
+        }
+
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            TempData["Error"] = "La versione è obbligatoria.";
+            return RedirectToPage();
+        }
+
+        try
+        {
+            var created = await packageBuildService.BuildFromFolderAsync(
+                folderPath.Trim(), comp, version.Trim(),
+                releaseNotes, string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim());
+
+            logger.LogInformation("Package built via UI: {Component} {Version} Id={Id}", comp, version, created.Id);
+            TempData["Success"] = $"Pacchetto {comp} {version} creato con successo dalla cartella.";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Build from folder failed: {Folder}", folderPath);
+            TempData["Error"] = ex.Message;
+        }
+
         return RedirectToPage();
     }
 

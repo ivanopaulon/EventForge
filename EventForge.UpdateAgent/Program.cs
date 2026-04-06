@@ -31,6 +31,9 @@ var logDir = !string.IsNullOrWhiteSpace(earlyAgent.Logging.DirectoryPath)
     ? earlyAgent.Logging.DirectoryPath
     : Path.Combine(AppContext.BaseDirectory, "logs");
 
+// Ensure the log directory exists before Serilog tries to write to it.
+Directory.CreateDirectory(logDir);
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(earlyConfig)
     .Enrich.FromLogContext()
@@ -81,6 +84,7 @@ try
     builder.Services.AddSingleton<IisManagerService>();
     builder.Services.AddSingleton<MigrationRunnerService>();
     builder.Services.AddSingleton<UpdateExecutorService>();
+    builder.Services.AddSingleton<CommandTrackingService>();
 
     // ── Printer proxy ─────────────────────────────────────────────────────
     builder.Services.AddSingleton<IAgentPrinterService, AgentPrinterService>();
@@ -114,6 +118,24 @@ try
     app.MapGet("/api/agent/status", (AgentStatusService svc) =>
         Results.Ok(new { svc.HubConnectionState, svc.LastHeartbeatAt }));
 
+    // Lightweight unauthenticated health probe — used by EventForge.Server to include
+    // Agent status in its own /api/v1/health/detailed response. Safe because the Agent
+    // binds to localhost only; external requests cannot reach this endpoint.
+    app.MapGet("/api/agent/health", (AgentStatusService svc, AgentOptions opts, VersionDetectorService versionDetector) =>
+    {
+        return Results.Ok(new
+        {
+            Status = "Online",
+            InstallationName = opts.InstallationName,
+            AgentVersion = versionDetector.GetAgentVersion(),
+            ServerVersion = versionDetector.GetServerVersion(),
+            ClientVersion = versionDetector.GetClientVersion(),
+            svc.HubConnectionState,
+            svc.LastHeartbeatAt,
+            ProbeTime = DateTime.UtcNow
+        });
+    });
+
     app.MapGet("/api/agent/download-status", (DownloadProgressService svc) =>
     {
         var snap = svc.Current;
@@ -134,6 +156,14 @@ try
     });
 
     Log.Information("EventForge Update Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
+
+    // ── Startup validation (folders + config checks) ──────────────────────
+    using (var scope = app.Services.CreateScope())
+    {
+        var validatorLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var agentOpts       = scope.ServiceProvider.GetRequiredService<AgentOptions>();
+        StartupValidator.Run(agentOpts, validatorLogger);
+    }
 
     // ── Generate InstallationCode on first startup (before workers start) ──
     using (var scope = app.Services.CreateScope())

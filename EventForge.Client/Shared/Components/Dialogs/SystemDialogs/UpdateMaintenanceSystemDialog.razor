@@ -1,0 +1,143 @@
+@namespace EventForge.Client.Shared.Components.Dialogs.SystemDialogs
+@using MudBlazor
+@inject IUpdateNotificationService UpdateNotification
+@implements IDisposable
+
+<EFSystemDialog Title="PRYM"
+                Subtitle="@_subtitle"
+                TopBar="@_topBar"
+                LogoAnim="EFSystemDialog.EFLogoAnim.Pulse"
+                ShowProgressBar="@UpdateNotification.IsServerMaintenance"
+                CardWidth="400px">
+
+    @if (UpdateNotification.IsServerMaintenance)
+    {
+        @* Server maintenance rows *@
+        <div class="umsd-status-row">
+            <MudIcon Icon="@Icons.Material.Filled.SystemUpdate"
+                     Size="Size.Small"
+                     Style="color:#ffa726" />
+            <span class="umsd-label">Componente</span>
+            <span class="umsd-value umsd-warn">@(UpdateNotification.MaintenanceComponent ?? "Server")</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(UpdateNotification.MaintenanceVersion))
+        {
+            <div class="umsd-status-row">
+                <MudIcon Icon="@Icons.Material.Outlined.NewReleases"
+                         Size="Size.Small"
+                         Style="color:#ffa726" />
+                <span class="umsd-label">Versione</span>
+                <span class="umsd-value umsd-warn">@UpdateNotification.MaintenanceVersion</span>
+            </div>
+        }
+
+        <div class="umsd-message">
+            Il server si riavvierà automaticamente al termine dell'aggiornamento.
+            Questa finestra si chiuderà non appena il sistema tornerà online.
+        </div>
+    }
+
+    @if (UpdateNotification.HasPendingClientUpdate)
+    {
+        <div class="umsd-client-update">
+            <MudIcon Icon="@Icons.Material.Filled.BrowserUpdated"
+                     Size="Size.Small"
+                     Style="color:#66bb6a; margin-right:6px" />
+            <span>
+                Nuova versione client disponibile
+                @if (!string.IsNullOrEmpty(UpdateNotification.ClientUpdateVersion))
+                { <span> — <strong>v@UpdateNotification.ClientUpdateVersion</strong></span> }
+            </span>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="ReloadPage"
+                   Class="umsd-reload-btn">
+            Ricarica la pagina
+        </MudButton>
+    }
+
+</EFSystemDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private EFSystemDialog.EFTopBar _topBar =>
+        UpdateNotification.HasPendingClientUpdate && !UpdateNotification.IsServerMaintenance
+            ? EFSystemDialog.EFTopBar.Success
+            : EFSystemDialog.EFTopBar.Warning;
+
+    private string _subtitle =>
+        UpdateNotification.IsServerMaintenance
+            ? "Aggiornamento in corso — attendere prego"
+            : "Nuovo client disponibile";
+
+    protected override void OnInitialized()
+    {
+        UpdateNotification.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ReloadPage()
+    {
+        // Force a full browser reload so the new Blazor WASM bundle is fetched.
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        UpdateNotification.StateChanged -= OnStateChanged;
+    }
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+}
+
+<style>
+    .umsd-status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .umsd-label {
+        color: rgba(255, 255, 255, 0.55);
+        min-width: 80px;
+    }
+
+    .umsd-value { font-weight: 600; }
+    .umsd-warn  { color: #ffa726; }
+
+    .umsd-message {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.82rem;
+        line-height: 1.45;
+        font-style: italic;
+    }
+
+    .umsd-client-update {
+        display: flex;
+        align-items: center;
+        color: #66bb6a;
+        font-size: 0.88rem;
+        font-weight: 600;
+        flex-wrap: wrap;
+        gap: 2px;
+    }
+
+    .umsd-reload-btn {
+        align-self: flex-start;
+        margin-top: 2px;
+    }
+
+    @@media (max-width: 480px) {
+        .umsd-status-row { justify-content: center; }
+    }
+</style>
