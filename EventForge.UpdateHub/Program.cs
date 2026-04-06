@@ -44,6 +44,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<UpdateHubDbContext>();
     db.Database.EnsureCreated();
+    db.EnsureSchemaUpToDate(); // adds new columns to existing databases
 }
 
 // ── Middleware ──

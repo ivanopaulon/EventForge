@@ -10,6 +10,9 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
     public Task<Installation?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => db.Installations.FirstOrDefaultAsync(x => x.Id == id, ct);
 
+    public Task<Installation?> GetByInstallationCodeAsync(string code, CancellationToken ct = default)
+        => db.Installations.FirstOrDefaultAsync(x => x.InstallationCode == code, ct);
+
     public async Task<IReadOnlyList<Installation>> GetAllAsync(CancellationToken ct = default)
         => await db.Installations.OrderBy(x => x.Name).ToListAsync(ct);
 
@@ -66,5 +69,42 @@ public class InstallationService(UpdateHubDbContext db) : IInstallationService
         if (history is null) return;
         history.PhaseDescription = phase;
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> RevokeAsync(Guid id, string? reason, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return false;
+        installation.IsRevoked = true;
+        installation.RevokedAt = DateTime.UtcNow;
+        installation.RevokedReason = reason;
+        installation.Status = InstallationStatus.Offline;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> ReinstateAsync(Guid id, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return false;
+        installation.IsRevoked = false;
+        installation.RevokedAt = null;
+        installation.RevokedReason = null;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<string?> ReissueApiKeyAsync(Guid id, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return null;
+        var newKey = Convert.ToHexString(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLower();
+        installation.ApiKey = newKey;
+        installation.IsRevoked = false;
+        installation.RevokedAt = null;
+        installation.RevokedReason = null;
+        await db.SaveChangesAsync(ct);
+        return newKey;
     }
 }

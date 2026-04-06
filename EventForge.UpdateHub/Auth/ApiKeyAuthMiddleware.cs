@@ -37,6 +37,17 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
             return;
         }
 
+        if (installation.IsRevoked)
+        {
+            logger.LogWarning("Revoked installation attempt: {InstallationId} ({Name}) for {Path}",
+                installation.Id, installation.Name, path);
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync(
+                $"This installation has been revoked. Reason: {installation.RevokedReason ?? "Not specified"}. " +
+                "Contact the Hub administrator to reinstate access.");
+            return;
+        }
+
         context.Items["InstallationId"] = installation.Id;
         context.Items["Installation"] = installation;
         await next(context);

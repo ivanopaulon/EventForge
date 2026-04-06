@@ -121,8 +121,40 @@ public class InstallationsController(
 
         return Accepted(new { PackageId = package.Id, package.Version });
     }
+
+    /// <summary>Revoke an installation's API key. The agent will be blocked with 403 until reinstated.</summary>
+    [HttpPost("{id:guid}/revoke")]
+    public async Task<IActionResult> Revoke(Guid id, [FromBody] RevokeInstallationRequest request)
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+
+        var ok = await installationService.RevokeAsync(id, request.Reason);
+        if (!ok) return NotFound($"Installation {id} not found.");
+
+        // Disconnect the agent if currently connected
+        var connectionId = connectionTracker.GetConnectionId(id);
+        if (connectionId is not null)
+            await hubContext.Clients.Client(connectionId).SendAsync("Disconnected", "API key revoked by administrator.");
+
+        logger.LogWarning("Installation revoked: Id={Id} Reason={Reason}", id, request.Reason);
+        return Ok(new { InstallationId = id, Revoked = true });
+    }
+
+    /// <summary>Reinstate a previously revoked installation.</summary>
+    [HttpPost("{id:guid}/reinstate")]
+    public async Task<IActionResult> Reinstate(Guid id)
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+
+        var ok = await installationService.ReinstateAsync(id);
+        if (!ok) return NotFound($"Installation {id} not found.");
+
+        logger.LogInformation("Installation reinstated: Id={Id}", id);
+        return Ok(new { InstallationId = id, Reinstated = true });
+    }
 }
 
 public record RegisterInstallationRequest(string Name, string? Location, InstallationComponents Components, string? Notes);
 public record SendUpdateRequest(Guid PackageId);
 public record BroadcastUpdateRequest(Guid PackageId);
+public record RevokeInstallationRequest(string? Reason);
