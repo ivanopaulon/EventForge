@@ -26,6 +26,13 @@
 
 .PARAMETER OutDir
     Directory where the final .zip is saved. Defaults to './artifacts'.
+    To have the UpdateHub auto-ingest the package, point this to the Hub's
+    IncomingPackagesPath (e.g. a network share or \\hubserver\packages\incoming).
+
+.PARAMETER IncomingPath
+    Shorthand for pointing OutDir directly at the UpdateHub's IncomingPackagesPath.
+    When specified, it overrides -OutDir.
+    Example: -IncomingPath \\\\hubserver\\packages\\incoming
 
 .PARAMETER SkipPublish
     If set, skips dotnet publish and uses -PublishDir as the binaries source.
@@ -71,6 +78,7 @@ param(
 
     [string] $Configuration   = "Release",
     [string] $OutDir          = "./artifacts",
+    [string] $IncomingPath    = "",
     [switch] $SkipPublish,
     [string] $PublishDir      = "",
     [string] $HubUrl          = "",
@@ -97,6 +105,12 @@ function Write-FAIL { param($msg) Write-Host "  [FAIL] $msg" -ForegroundColor Re
 # ──────────────────────────────────────────────────────────────────────────────
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $RepoRoot  = (Resolve-Path (Join-Path $ScriptDir "..")).Path
+
+# If IncomingPath is specified it takes priority over OutDir
+if (![string]::IsNullOrWhiteSpace($IncomingPath)) {
+    $OutDir = $IncomingPath
+    Write-INFO "IncomingPath specificato: il pacchetto sara' consegnato direttamente all'Hub watcher."
+}
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Magenta

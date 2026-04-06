@@ -30,7 +30,7 @@ public class PackagesController(
         return Ok(packages.Select(p => new
         {
             p.Id, p.Version, p.Component, p.ReleaseNotes,
-            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.IsActive
+            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status
         }));
     }
 
@@ -111,5 +111,34 @@ public class PackagesController(
         if (!System.IO.File.Exists(fullPath)) return NotFound("Package file not found on disk.");
 
         return PhysicalFile(Path.GetFullPath(fullPath), "application/zip", $"{pkg.Component}-{pkg.Version}.zip");
+    }
+
+    /// <summary>Update the status of a package (admin only).</summary>
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> SetStatus(Guid id, [FromQuery] string status)
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+        if (!Enum.TryParse<PackageStatus>(status, true, out var newStatus))
+            return BadRequest($"Invalid status. Valid values: {string.Join(", ", Enum.GetNames<PackageStatus>())}");
+
+        var pkg = await packageService.GetByIdAsync(id);
+        if (pkg is null) return NotFound();
+
+        await packageService.SetStatusAsync(id, newStatus);
+        logger.LogInformation("Package {Id} status changed to {Status}", id, newStatus);
+        return NoContent();
+    }
+
+    /// <summary>Get packages ready to deploy (admin only).</summary>
+    [HttpGet("ready")]
+    public async Task<IActionResult> GetReady()
+    {
+        if (!IsAdminAuthorized()) return Unauthorized();
+        var packages = await packageService.GetByStatusAsync(PackageStatus.ReadyToDeploy);
+        return Ok(packages.Select(p => new
+        {
+            p.Id, p.Version, p.Component, p.ReleaseNotes,
+            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status, p.GitCommit
+        }));
     }
 }

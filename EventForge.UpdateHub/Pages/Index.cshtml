@@ -41,6 +41,61 @@
     </div>
 </div>
 
+@if (Model.ReadyPackages.Count > 0)
+{
+    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+        <span class="me-2 fs-5">📦</span>
+        <div>
+            <strong>@Model.ReadyPackages.Count pacchett@(Model.ReadyPackages.Count == 1 ? "o pronto" : "i pronti") al deploy.</strong>
+            Seleziona un'installazione e premi <em>Invia aggiornamento</em>.
+        </div>
+    </div>
+
+    <h4 class="mb-3">📦 Pacchetti pronti al deploy</h4>
+    <table class="table table-bordered table-hover mb-5">
+        <thead class="table-warning">
+            <tr>
+                <th>Componente</th>
+                <th>Versione</th>
+                <th>Release Notes</th>
+                <th>Commit</th>
+                <th>Caricato il</th>
+                <th>Dimensione</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var pkg in Model.ReadyPackages)
+            {
+                <tr>
+                    <td><span class="badge @(pkg.Component == PackageComponent.Server ? "bg-primary" : "bg-success")">@pkg.Component</span></td>
+                    <td><strong>@pkg.Version</strong></td>
+                    <td>@(pkg.ReleaseNotes ?? "—")</td>
+                    <td><code>@(pkg.GitCommit ?? "—")</code></td>
+                    <td>@pkg.UploadedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@(Math.Round(pkg.FileSizeBytes / 1_048_576.0, 1)) MB</td>
+                    <td>
+                        <form method="post" asp-page-handler="BroadcastUpdate" class="d-inline">
+                            <input type="hidden" name="packageId" value="@pkg.Id" />
+                            <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Inviare aggiornamento @pkg.Component @pkg.Version a TUTTE le installazioni online?')">
+                                📡 Broadcast
+                            </button>
+                        </form>
+                        <form method="post" asp-page-handler="ArchivePackage" class="d-inline ms-1">
+                            <input type="hidden" name="packageId" value="@pkg.Id" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                    onclick="return confirm('Archiviare il pacchetto @pkg.Component @pkg.Version?')">
+                                🗄 Archivia
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 <h4>Installations</h4>
 <table class="table table-striped table-hover">
     <thead class="table-dark">
@@ -52,6 +107,7 @@
             <th>Client Version</th>
             <th>Status</th>
             <th>Last Seen</th>
+            <th>Azioni</th>
         </tr>
     </thead>
     <tbody>
@@ -73,6 +129,22 @@
                 <td>@(inst.InstalledVersionClient ?? "—")</td>
                 <td><span class="badge @badgeClass">@inst.Status</span></td>
                 <td>@(inst.LastSeen?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Never")</td>
+                <td>
+                    @if (Model.ReadyPackages.Count > 0 && inst.Status == InstallationStatus.Online)
+                    {
+                        @foreach (var pkg in Model.ReadyPackages)
+                        {
+                            <form method="post" asp-page-handler="SendUpdate" class="d-inline mb-1">
+                                <input type="hidden" name="installationId" value="@inst.Id" />
+                                <input type="hidden" name="packageId" value="@pkg.Id" />
+                                <button type="submit" class="btn btn-xs btn-sm btn-outline-warning"
+                                        title="Invia @pkg.Component @pkg.Version">
+                                    ↑ @pkg.Component @pkg.Version
+                                </button>
+                            </form>
+                        }
+                    }
+                </td>
             </tr>
         }
     </tbody>

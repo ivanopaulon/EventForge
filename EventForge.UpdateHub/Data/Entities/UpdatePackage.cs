@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace EventForge.UpdateHub.Data.Entities;
 
 /// <summary>
-/// Represents an uploaded update package for server or client.
+/// Represents an update package discovered or uploaded for server or client.
 /// </summary>
 public class UpdatePackage
 {
@@ -32,9 +32,29 @@ public class UpdatePackage
     [MaxLength(200)]
     public string? UploadedBy { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    /// <summary>Lifecycle status of this package.</summary>
+    public PackageStatus Status { get; set; } = PackageStatus.ReadyToDeploy;
+
+    /// <summary>Short git commit SHA embedded in the package manifest.</summary>
+    [MaxLength(40)]
+    public string? GitCommit { get; set; }
 
     public ICollection<UpdateHistory> UpdateHistory { get; set; } = [];
 }
 
 public enum PackageComponent { Server = 1, Client = 2 }
+
+public enum PackageStatus
+{
+    /// <summary>Package ingested and ready to be pushed to agents.</summary>
+    ReadyToDeploy = 1,
+
+    /// <summary>Update is currently being deployed to one or more agents.</summary>
+    Deploying = 2,
+
+    /// <summary>Package has been deployed at least once successfully.</summary>
+    Deployed = 3,
+
+    /// <summary>Package is disabled / superseded.</summary>
+    Archived = 4
+}

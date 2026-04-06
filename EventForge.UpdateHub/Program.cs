@@ -28,6 +28,7 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<IInstallationService, InstallationService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
+builder.Services.AddHostedService<PackageWatcherService>();
 
 var app = builder.Build();
 
