@@ -35,6 +35,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.5" />
     <PackageVersion Include="FreeSpire.Barcode" Version="6.6.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.2" />
+    <PackageVersion Include="System.IO.Ports" Version="9.0.5" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.5" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Health Checks and Resiliency packages -->
