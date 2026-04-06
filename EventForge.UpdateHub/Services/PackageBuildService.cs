@@ -15,8 +15,14 @@ public class PackageBuildService(
     UpdateHubOptions hubOptions,
     ILogger<PackageBuildService> logger) : IPackageBuildService
 {
-    // Files that must not overwrite existing production config on the target machine.
+    // Files that must not overwrite existing production config (IIS-managed, ops-managed).
     private static readonly string[] DefaultPreserveFiles =
+    [
+        "web.config"
+    ];
+
+    // JSON config files that should be deep-merged (new keys added, existing values kept).
+    private static readonly string[] DefaultMergeConfigFiles =
     [
         "appsettings.json",
         "appsettings.Production.json"
@@ -303,6 +309,7 @@ public class PackageBuildService(
             PostMigrationScripts = [.. postMigrationScripts],
             RollbackScripts = [.. rollbackScripts],
             PreserveFiles = DefaultPreserveFiles,
+            MergeConfigFiles = DefaultMergeConfigFiles,
             ReleaseNotes = releaseNotes,
             BuiltAt = DateTime.UtcNow,
             GitCommit = gitCommit
@@ -322,6 +329,7 @@ public class PackageBuildService(
         public string[] PostMigrationScripts { get; init; } = [];
         public string[] RollbackScripts { get; init; } = [];
         public string[] PreserveFiles { get; init; } = [];
+        public string[] MergeConfigFiles { get; init; } = [];
         public string? ReleaseNotes { get; init; }
         public DateTime BuiltAt { get; init; }
         public string? GitCommit { get; init; }

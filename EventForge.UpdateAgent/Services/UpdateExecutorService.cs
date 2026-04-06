@@ -627,20 +627,111 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
+        var mergeSet = manifest.MergeConfigFiles
+            .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
+            .ToHashSet();
+
         foreach (var file in Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories))
         {
             ct.ThrowIfCancellationRequested();
             var relative = Path.GetRelativePath(binariesPath, file);
             var dest = Path.Combine(deployPath, relative);
+            var relLower = relative.ToLowerInvariant();
 
-            if (preserveSet.Count > 0 && File.Exists(dest) &&
-                preserveSet.Contains(relative.ToLowerInvariant()))
+            // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
+            if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
                 continue;
 
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+
+            // Deep-merge JSON config: new keys from template added, existing values kept
+            if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+            {
+                try
+                {
+                    await MergeJsonFilesAsync(file, dest, ct);
+                    continue;
+                }
+                catch
+                {
+                    // If merge fails (invalid JSON etc.), fall through to overwrite
+                }
+            }
+
             File.Copy(file, dest, overwrite: true);
         }
     }
+
+    /// <summary>
+    /// Deep-merges <paramref name="templatePath"/> into <paramref name="targetPath"/>.
+    /// Keys present in target are kept; keys present only in template are added.
+    /// Arrays are NOT merged — template arrays are ignored if the key already exists.
+    /// </summary>
+    private static async Task MergeJsonFilesAsync(string templatePath, string targetPath, CancellationToken ct)
+    {
+        var templateJson = await File.ReadAllTextAsync(templatePath, ct);
+        var targetJson   = await File.ReadAllTextAsync(targetPath, ct);
+
+        using var templateDoc = JsonDocument.Parse(templateJson);
+        using var targetDoc   = JsonDocument.Parse(targetJson);
+
+        var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
+
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        var mergedJson = JsonSerializer.Serialize(merged, options);
+        await File.WriteAllTextAsync(targetPath, mergedJson, ct);
+    }
+
+    /// <summary>
+    /// Recursively merges two JsonElements. Target values win; template adds missing keys.
+    /// </summary>
+    private static Dictionary<string, object?> MergeJsonElements(
+        JsonElement target, JsonElement template)
+    {
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+
+        // Start with all keys from target
+        if (target.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in target.EnumerateObject())
+                result[prop.Name] = JsonElementToObject(prop.Value);
+        }
+
+        // Add keys that exist only in template (new config keys from upgraded version)
+        if (template.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var prop in template.EnumerateObject())
+            {
+                if (!result.ContainsKey(prop.Name))
+                {
+                    result[prop.Name] = JsonElementToObject(prop.Value);
+                }
+                else if (prop.Value.ValueKind == JsonValueKind.Object &&
+                         target.TryGetProperty(prop.Name, out var existingProp) &&
+                         existingProp.ValueKind == JsonValueKind.Object)
+                {
+                    // Recurse into nested objects
+                    result[prop.Name] = MergeJsonElements(existingProp, prop.Value);
+                }
+                // Otherwise keep the target value as-is
+            }
+        }
+
+        return result;
+    }
+
+    private static object? JsonElementToObject(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Object  => element.EnumerateObject()
+                                        .ToDictionary(p => p.Name, p => JsonElementToObject(p.Value),
+                                                      StringComparer.Ordinal),
+        JsonValueKind.Array   => element.EnumerateArray().Select(JsonElementToObject).ToList(),
+        JsonValueKind.String  => element.GetString(),
+        JsonValueKind.Number  => element.TryGetInt64(out var l) ? (object?)l : element.GetDouble(),
+        JsonValueKind.True    => true,
+        JsonValueKind.False   => false,
+        _                     => null
+    };
 
     private async Task VerifyDeployAsync(string deployPath, StartUpdateCommand command, CancellationToken ct)
     {

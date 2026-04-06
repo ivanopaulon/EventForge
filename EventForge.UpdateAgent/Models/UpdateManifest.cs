@@ -21,9 +21,17 @@ public class UpdateManifest
 
     /// <summary>
     /// Files inside binaries/ that must NOT be overwritten if they already exist in the deploy path.
-    /// Protects production config files (e.g. appsettings.json, appsettings.Production.json).
+    /// Use for files that are entirely managed by ops (e.g. web.config, which IIS owns).
     /// </summary>
     public List<string> PreserveFiles { get; set; } = [];
+
+    /// <summary>
+    /// JSON config files inside binaries/ that should be deep-merged with the existing file.
+    /// New keys from the package template are added; existing keys/values in the deploy path are kept.
+    /// This ensures production secrets survive upgrades while new config keys are picked up.
+    /// Typical entries: appsettings.json, appsettings.Production.json.
+    /// </summary>
+    public List<string> MergeConfigFiles { get; set; } = [];
 
     /// <summary>Release notes for this package.</summary>
     public string? ReleaseNotes { get; set; }

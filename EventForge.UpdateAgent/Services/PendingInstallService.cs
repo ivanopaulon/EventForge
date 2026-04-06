@@ -166,8 +166,12 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
 
     // ── Blocked state ────────────────────────────────────────────────────────
 
-    /// <summary>Block the queue because an installation failed. Increments FailCount and downgrades to manual after MaxAutoRetries.</summary>
-    public void Block(Guid packageId, string reason)
+    /// <summary>
+    /// Block the queue because an installation failed.
+    /// Increments FailCount and downgrades to manual after MaxAutoRetries.
+    /// Returns true if the package was downgraded from automatic to manual during this call.
+    /// </summary>
+    public bool Block(Guid packageId, string reason)
     {
         bool downgradedToManual = false;
         lock (_lock)
@@ -196,6 +200,8 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
             logger.LogWarning(
                 "Package {PackageId} downgraded to MANUAL after {Max} consecutive failures — operator approval required to retry.",
                 packageId, options.Install.MaxAutoRetries);
+
+        return downgradedToManual;
     }
 
     /// <summary>
