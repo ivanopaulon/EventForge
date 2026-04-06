@@ -121,11 +121,6 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">ðŸ—™</a>
     </div>
-    <!-- Global configuration for QZ Tray base URL (matches ApiClient BaseAddress) -->
-    <script>
-        window.__apiBaseUrl = "https://localhost:7241";
-    </script>
-
     <!-- Console filter to suppress harmless Mono runtime diagnostics (must load before Blazor) -->
     <script src="js/console-filter.js"></script>
 
@@ -135,10 +130,6 @@
     <!-- Syncfusion Blazor scripts (required for interactive components) -->
     <script src="_content/Syncfusion.Blazor.Core/scripts/syncfusion-blazor.min.js" type="text/javascript"></script>
 
-    <!-- QZ Tray library (installed via npm) -->
-    <script src="js/qz-tray.js"></script>
-    <script src="js/qz-setup.js"></script>
-    
     <!-- Application scripts -->
     <script src="js/font-preferences.js"></script>
     <script src="js/help-system.js"></script>
@@ -162,31 +153,6 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         };
-
-        // Initialize QZ Tray when DOM is ready (non-blocking)
-        // Optional: Comment out or remove this block if you don't want automatic QZ initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Check if qzSetup is available before attempting initialization
-                if (window.qzSetup && typeof window.qzSetup.init === 'function') {
-                    // Initialize QZ Tray with server base URL
-                    // This sets up certificate and signature promises to use EventForge server endpoints
-                    // Uses window.__apiBaseUrl which matches the server's port (7241)
-                    // init() returns a Promise that resolves whether QZ is available or not
-                    window.qzSetup.init({ baseUrl: window.__apiBaseUrl })
-                        .then(function() {
-                            // Initialization complete (or gracefully skipped if QZ unavailable)
-                        })
-                        .catch(function(error) {
-                            console.warn('Errore durante inizializzazione QZ Tray (non-blocking):', error);
-                        });
-                } else {
-                    console.warn('Modulo QZ Tray setup non disponibile. Le funzionalitÃ  di stampa saranno disabilitate.');
-                }
-            } catch (error) {
-                console.warn('Eccezione durante inizializzazione QZ Tray (non-blocking):', error);
-            }
-        });
     </script>
 </body>
 
