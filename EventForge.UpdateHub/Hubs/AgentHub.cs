@@ -88,7 +88,7 @@ public class AgentHub(
             installationId.Value,
             new RegistrationInfo(
                 Name:          null,
-                Location:      null,
+                Location:      msg.Location,
                 VersionServer: msg.VersionServer,
                 VersionClient: msg.VersionClient,
                 MachineName:   null,
@@ -96,7 +96,7 @@ public class AgentHub(
                 DotNetVersion: null,
                 AgentVersion:  msg.AgentVersion,
                 IpAddress:     ip,
-                Tags:          null,
+                Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
                 Status:        status));
 
         logger.LogDebug("Heartbeat from Installation={InstallationId} Status={Status}", installationId, msg.Status);

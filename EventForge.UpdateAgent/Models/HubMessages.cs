@@ -21,7 +21,9 @@ public record HeartbeatMessage(
     string? VersionClient,
     string Status,
     DateTime Timestamp,
-    string? AgentVersion = null);
+    string? AgentVersion           = null,
+    string? Location               = null,
+    IReadOnlyList<string>? Tags    = null);
 
 public record UpdateProgressMessage(
     string InstallationId,

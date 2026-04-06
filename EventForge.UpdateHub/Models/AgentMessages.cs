@@ -19,13 +19,16 @@ public record RegisterInstallationMessage(
     string? AgentVersion      = null);
 
 /// <summary>Sent periodically to confirm the agent is alive.</summary>
+/// <summary>Sent periodically to confirm the agent is alive and propagate mutable config (Location, Tags).</summary>
 public record HeartbeatMessage(
     string InstallationId,
     string? VersionServer,
     string? VersionClient,
     string Status,
     DateTime Timestamp,
-    string? AgentVersion = null);
+    string? AgentVersion           = null,
+    string? Location               = null,
+    IReadOnlyList<string>? Tags    = null);
 
 /// <summary>Sent during or after an update to report progress/result.</summary>
 public record UpdateProgressMessage(

@@ -392,7 +392,9 @@ public class AgentWorker(
             VersionClient:  versionDetector.GetClientVersion(),
             Status:         "Online",
             Timestamp:      DateTime.UtcNow,
-            AgentVersion:   versionDetector.GetAgentVersion()),
+            AgentVersion:   versionDetector.GetAgentVersion(),
+            Location:       options.Location,
+            Tags:           options.Tags.Count > 0 ? options.Tags : null),
             ct);
 
         agentStatus.LastHeartbeatAt = DateTime.UtcNow;
