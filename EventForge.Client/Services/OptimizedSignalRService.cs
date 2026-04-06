@@ -76,6 +76,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<MaintenanceStartedPayload>? ServerMaintenanceStarted;
     public event Action<MaintenanceEndedPayload>? ServerMaintenanceEnded;
     public event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
+    public event Action<UpdateProgressPayload>? UpdateProgressReceived;
     #endregion
 
     private class BatchedEvent
@@ -422,6 +423,25 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 ClientUpdateDeployed?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse ClientUpdateDeployed payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("UpdateProgress", data =>
+        {
+            try
+            {
+                var payload = new UpdateProgressPayload(
+                    data.TryGetProperty("component", out var c) ? c.GetString() : null,
+                    data.TryGetProperty("version", out var v) ? v.GetString() : null,
+                    data.TryGetProperty("phase", out var ph) ? ph.GetString() : null,
+                    data.TryGetProperty("percentComplete", out var pct) && pct.ValueKind == System.Text.Json.JsonValueKind.Number ? pct.GetInt32() : null,
+                    data.TryGetProperty("formattedDownloaded", out var fd) ? fd.GetString() : null,
+                    data.TryGetProperty("formattedTotal", out var ft) ? ft.GetString() : null,
+                    data.TryGetProperty("formattedSpeed", out var fs) ? fs.GetString() : null,
+                    data.TryGetProperty("eta", out var eta) ? eta.GetString() : null,
+                    data.TryGetProperty("sentAt", out var sa) ? sa.GetDateTime() : DateTime.UtcNow);
+                UpdateProgressReceived?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdateProgress payload"); }
         });
     }
 

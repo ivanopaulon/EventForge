@@ -13,6 +13,9 @@ public interface IUpdateNotificationService
     /// <summary>True while the Server component is going through a planned update.</summary>
     bool IsServerMaintenance { get; }
 
+    /// <summary>Latest download/install progress received from the Agent, or null when idle.</summary>
+    UpdateProgressPayload? CurrentProgress { get; }
+
     /// <summary>Component being updated (e.g. "Server").</summary>
     string? MaintenanceComponent { get; }
 

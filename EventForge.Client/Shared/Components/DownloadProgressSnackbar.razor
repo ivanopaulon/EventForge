@@ -1,0 +1,105 @@
+@implements IDisposable
+@inject IUpdateNotificationService UpdateNotification
+
+@{
+    var progress = UpdateNotification.CurrentProgress;
+    var visible = UpdateNotification.IsServerMaintenance || progress != null;
+}
+
+@if (visible)
+{
+    @if (!_isHidden)
+    {
+        <div class="ef-dl-snackbar">
+            <div class="ef-dl-snackbar-header">
+                <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Color="Color.Primary" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle2" Class="flex-grow-1">Aggiornamento in corso</MudText>
+                @if (progress?.Component != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@progress.Component</MudChip>
+                }
+                @if (progress?.Version != null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">v@progress.Version</MudChip>
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small"
+                               OnClick="@(() => _isHidden = true)" Title="Nascondi" />
+            </div>
+            <div class="ef-dl-snackbar-body">
+                <MudText Typo="Typo.caption" Class="d-block mb-1">@TranslatePhase(progress?.Phase)</MudText>
+                <MudProgressLinear Color="Color.Primary"
+                                   Value="@(progress?.PercentComplete ?? 0)"
+                                   Max="100"
+                                   Indeterminate="@(progress?.PercentComplete == null)"
+                                   Rounded="true" Size="Size.Small" />
+                @if (progress != null)
+                {
+                    <div class="ef-dl-snackbar-stats">
+                        <span>
+                            @if (progress.FormattedTotal != null)
+                            {
+                                @($"{progress.FormattedDownloaded} / {progress.FormattedTotal}")
+                            }
+                            else if (progress.FormattedDownloaded != null)
+                            {
+                                @progress.FormattedDownloaded
+                            }
+                        </span>
+                        <span>
+                            @if (progress.FormattedSpeed != null) { <span>@progress.FormattedSpeed</span> }
+                            @if (progress.Eta != null) { <span class="ms-2">ETA @progress.Eta</span> }
+                            @if (progress.PercentComplete != null) { <span class="ms-2">@progress.PercentComplete%</span> }
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="ef-dl-restore-btn">
+            <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.SystemUpdate"
+                    Size="Size.Small" OnClick="@(() => _isHidden = false)"
+                    Title="Mostra progresso aggiornamento" />
+        </div>
+    }
+}
+
+@code {
+    private bool _isHidden;
+
+    protected override void OnInitialized()
+    {
+        UpdateNotification.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        // Auto-show when new progress arrives
+        if (UpdateNotification.CurrentProgress != null)
+            _isHidden = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static string TranslatePhase(string? phase) => phase switch
+    {
+        "Downloading"              => "Download in corso",
+        "VerifyingChecksum"        => "Verifica integrità",
+        "BackingUp"                => "Backup in corso",
+        "RunningPreMigrations"     => "Migrazioni pre-deploy",
+        "StoppingService"          => "Arresto servizio",
+        "DeployingBinaries"        => "Deploy file",
+        "StartingService"          => "Avvio servizio",
+        "RunningPostMigrations"    => "Migrazioni post-deploy",
+        "VerifyingHealth"          => "Verifica salute",
+        "Completed"                => "Completato",
+        "Rollback"                 => "Ripristino backup",
+        "AwaitingMaintenanceWindow"=> "In attesa finestra manutenzione",
+        _                          => "Operazione in corso"
+    };
+
+    public void Dispose()
+    {
+        UpdateNotification.StateChanged -= OnStateChanged;
+    }
+}
