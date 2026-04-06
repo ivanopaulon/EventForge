@@ -160,46 +160,4 @@ public class Printer : AuditableEntity
     [Display(Name = "Print Language", Description = "Command language (ESC/POS, STAR, ZPL, etc).")]
     public PrintLanguage? PrintLanguage { get; set; }
 }
-/// <summary>
-/// Connection type for a printer.
-/// </summary>
-public enum PrinterConnectionType
-{
-    Tcp,          // Ethernet/WiFi TCP connection
-    Serial,       // RS-232 serial (COM port) directly from server
-    UsbViaAgent,  // USB on client machine via EventForge.UpdateAgent proxy
-    NetworkShare  // Shared printer via Windows network share
-}
 
-/// <summary>
-/// Functional category of a printer.
-/// </summary>
-public enum PrinterCategory
-{
-    Fiscal,   // Fiscal/receipt printer with fiscal memory
-    Receipt,  // Non-fiscal receipt printer (thermal)
-    KDS,      // Kitchen Display Station / order printer
-    Label,    // Label printer (barcode, price tags)
-    Report    // Report/document printer
-}
-
-/// <summary>
-/// Paper width for thermal printers.
-/// </summary>
-public enum PaperWidth
-{
-    Mm57 = 57,  // 57mm paper
-    Mm80 = 80   // 80mm paper
-}
-
-/// <summary>
-/// Print command language.
-/// </summary>
-public enum PrintLanguage
-{
-    EscPos,    // ESC/POS (Epson, most thermal printers)
-    Star,      // STAR printers
-    Zpl,       // Zebra ZPL (label printers)
-    Pcl,       // PCL (laser/inkjet)
-    PlainText  // Plain text
-}

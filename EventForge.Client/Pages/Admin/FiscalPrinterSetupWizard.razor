@@ -1,5 +1,6 @@
 @namespace EventForge.Client.Pages.FiscalAdmin
 @page "/admin/fiscal-printers/setup"
+@page "/admin/fiscal-printers-wizard/{PrinterId:guid}"
 @using EventForge.DTOs.FiscalPrinting
 @using EventForge.DTOs.Station
 @using EventForge.DTOs.VatRates
@@ -19,13 +20,13 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<FiscalPrinterSetupWizard> Logger
 
-<PageTitle>Wizard Configurazione Stampante Fiscale</PageTitle>
+<PageTitle>@(_isEditMode ? "Modifica Stampante" : "Wizard Configurazione Stampante Fiscale")</PageTitle>
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
 
 <MudText Typo="Typo.h5" Class="mb-4">
     <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1" Style="vertical-align:middle;" />
-    Configurazione Stampante Fiscale
+    @(_isEditMode ? "Modifica Stampante" : "Configurazione Stampante Fiscale")
 </MudText>
 
 @* ──────────────────── STEP INDICATOR ──────────────────── *@
@@ -34,6 +35,7 @@
     <MudStep Title="Impostazioni"        Icon="@Icons.Material.Filled.Tune" />
     <MudStep Title="Info Stampante"      Icon="@Icons.Material.Filled.Info" />
     <MudStep Title="Configurazione Base" Icon="@Icons.Material.Filled.TextFields" />
+    <MudStep Title="Tipo Stampante"      Icon="@Icons.Material.Filled.Print" />
     <MudStep Title="Codici Fiscali"      Icon="@Icons.Material.Filled.Code" />
     <MudStep Title="Associa POS"         Icon="@Icons.Material.Filled.PointOfSale" />
     <MudStep Title="Test &amp; Salva"    Icon="@Icons.Material.Filled.CheckCircle" />
@@ -68,6 +70,22 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
+                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    <MudRadio Value="@("UsbViaAgent")" Color="Color.Primary">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body1"><b>USB via Agente</b> – EventForge UpdateAgent</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa via USB al client; il server la raggiunge tramite l'agente installato</MudText>
+                        </MudStack>
+                    </MudRadio>
+                </MudPaper>
+                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    <MudRadio Value="@("NetworkShare")" Color="Color.Primary">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body1"><b>Condivisione di Rete</b> – Windows Network Share</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è condivisa sulla rete locale Windows (\\server\stampante)</MudText>
+                        </MudStack>
+                    </MudRadio>
+                </MudPaper>
             </MudStack>
         </MudRadioGroup>
 
@@ -82,7 +100,7 @@
 }
 
 @* ══════════════════════════════════════════════════════════════
-   STEP 1 – TCP / Serial config
+   STEP 1 – TCP / Serial / UsbViaAgent / NetworkShare config
    ══════════════════════════════════════════════════════════════ *@
 @if (_activeStep == 1)
 {
@@ -190,13 +208,13 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                EndIcon="@Icons.Material.Filled.ArrowForward"
                                OnClick="AdvanceFromStep1Tcp"
-                               Disabled="@(!_testConnectionResult?.Success ?? true)">
+                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
                         Avanti
                     </MudButton>
                 </MudStack>
             </MudStack>
         }
-        else
+        else if (_connectionType == "Serial")
         {
             @* ── Serial config ── *@
             <MudText Typo="Typo.subtitle1" Class="mb-4">
@@ -258,10 +276,47 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                EndIcon="@Icons.Material.Filled.ArrowForward"
                                OnClick="AdvanceFromStep1Serial"
-                               Disabled="@(!_testConnectionResult?.Success ?? true)">
+                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
                         Avanti
                     </MudButton>
                 </MudStack>
+            </MudStack>
+        }
+        else
+        {
+            @* ── UsbViaAgent / NetworkShare config ── *@
+            <MudText Typo="Typo.subtitle1" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Usb" Class="mr-2" />
+                @(_connectionType == "UsbViaAgent" ? "Configurazione USB via Agente" : "Configurazione Condivisione di Rete")
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_agentId"
+                                  Label="ID Agente UpdateAgent"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="es. 00000000-0000-0000-0000-000000000001"
+                                  HelperText="GUID dell'agente UpdateAgent registrato nel sistema" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_usbDeviceId"
+                                  Label="ID Dispositivo USB (es. USB001, VID:PID)"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="es. VID_04B8&amp;PID_0202 o USB001"
+                                  HelperText="Identificatore del dispositivo USB sulla macchina dell'agente" />
+                </MudItem>
+            </MudGrid>
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
+                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
+                           StartIcon="@Icons.Material.Filled.ArrowBack">
+                    Indietro
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="AdvanceFromStep1Agent">
+                    Avanti
+                </MudButton>
             </MudStack>
         }
     </MudPaper>
@@ -389,9 +444,95 @@
 }
 
 @* ══════════════════════════════════════════════════════════════
-   STEP 4 – Mapping Codici Fiscali
+   STEP 4 (NEW) – Tipo Stampante
    ══════════════════════════════════════════════════════════════ *@
 @if (_activeStep == 4)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
+            Tipo Stampante
+        </MudText>
+
+        @if (_printerCategory == PrinterCategory.Fiscal)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                💡 Per le stampanti fiscali vengono applicati valori predefiniti: Termica = Sì, Larghezza carta = 80mm, Linguaggio = ESC/POS
+            </MudAlert>
+        }
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect T="PrinterCategory" @bind-Value="_printerCategory"
+                           Label="Categoria Stampante *"
+                           Variant="Variant.Outlined"
+                           @bind-Value:after="@(() => OnCategoryChanged(_printerCategory))"
+                           HelperText="Seleziona la funzione principale della stampante">
+                    <MudSelectItem Value="PrinterCategory.Fiscal">Fiscale (con memoria fiscale)</MudSelectItem>
+                    <MudSelectItem Value="PrinterCategory.Receipt">Scontrino non fiscale (termica)</MudSelectItem>
+                    <MudSelectItem Value="PrinterCategory.KDS">KDS – Kitchen Display / Cucina</MudSelectItem>
+                    <MudSelectItem Value="PrinterCategory.Label">Etichette (barcode, prezzi)</MudSelectItem>
+                    <MudSelectItem Value="PrinterCategory.Report">Report / Documenti</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudField Label="Stampa Termica" Variant="Variant.Outlined">
+                    <MudCheckBox T="bool" @bind-Value="_isThermal" Color="Color.Primary"
+                                 Label="Stampante termica (carta termica, no inchiostro)" />
+                </MudField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField T="int?" @bind-Value="_printerWidth"
+                                 Label="Caratteri per riga (es. 42, 58, 80)"
+                                 Variant="Variant.Outlined"
+                                 Min="10" Max="200"
+                                 HelperText="Larghezza di stampa in caratteri (opzionale)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="PaperWidth?" @bind-Value="_paperWidth"
+                           Label="Larghezza Carta"
+                           Variant="Variant.Outlined"
+                           HelperText="Larghezza della carta in millimetri (opzionale)"
+                           Clearable="true">
+                    <MudSelectItem T="PaperWidth?" Value="null">— Nessuna —</MudSelectItem>
+                    <MudSelectItem T="PaperWidth?" Value="PaperWidth.Mm57">57 mm</MudSelectItem>
+                    <MudSelectItem T="PaperWidth?" Value="PaperWidth.Mm80">80 mm</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="PrintLanguage?" @bind-Value="_printLanguage"
+                           Label="Linguaggio di Stampa"
+                           Variant="Variant.Outlined"
+                           HelperText="Linguaggio comandi della stampante (opzionale)"
+                           Clearable="true">
+                    <MudSelectItem T="PrintLanguage?" Value="null">— Nessuno —</MudSelectItem>
+                    <MudSelectItem T="PrintLanguage?" Value="PrintLanguage.EscPos">ESC/POS (Epson, termica)</MudSelectItem>
+                    <MudSelectItem T="PrintLanguage?" Value="PrintLanguage.Star">STAR</MudSelectItem>
+                    <MudSelectItem T="PrintLanguage?" Value="PrintLanguage.Zpl">ZPL (Zebra, etichette)</MudSelectItem>
+                    <MudSelectItem T="PrintLanguage?" Value="PrintLanguage.Pcl">PCL (laser/inkjet)</MudSelectItem>
+                    <MudSelectItem T="PrintLanguage?" Value="PrintLanguage.PlainText">Testo semplice</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
+            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 3)"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Indietro
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       OnClick="@(() => _activeStep = 5)">
+                Avanti
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@* ══════════════════════════════════════════════════════════════
+   STEP 5 – Mapping Codici Fiscali (was 4)
+   ══════════════════════════════════════════════════════════════ *@
+@if (_activeStep == 5)
 {
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
@@ -478,13 +619,13 @@
         </MudTabs>
 
         <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 3)"
+            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 4)"
                        StartIcon="@Icons.Material.Filled.ArrowBack">
                 Indietro
             </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 5)">
+                       OnClick="@(() => _activeStep = 6)">
                 Avanti
             </MudButton>
         </MudStack>
@@ -492,9 +633,9 @@
 }
 
 @* ══════════════════════════════════════════════════════════════
-   STEP 5 – Associa POS
+   STEP 6 – Associa POS (was 5)
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 5)
+@if (_activeStep == 6)
 {
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
@@ -528,13 +669,13 @@
         }
 
         <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 4)"
+            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 5)"
                        StartIcon="@Icons.Material.Filled.ArrowBack">
                 Indietro
             </MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 6)">
+                       OnClick="@(() => _activeStep = 7)">
                 Avanti
             </MudButton>
         </MudStack>
@@ -542,14 +683,14 @@
 }
 
 @* ══════════════════════════════════════════════════════════════
-   STEP 6 – Test Finale & Salva
+   STEP 7 – Test Finale & Salva (was 6)
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 6)
+@if (_activeStep == 7)
 {
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
-            Test Finale e Salvataggio
+            Test Finale e @(_isEditMode ? "Aggiornamento" : "Salvataggio")
         </MudText>
 
         @* Riepilogo configurazione *@
@@ -559,9 +700,10 @@
                     <MudItem xs="6"><MudText Typo="Typo.caption">Nome</MudText><MudText>@_printerName</MudText></MudItem>
                     <MudItem xs="6"><MudText Typo="Typo.caption">Protocollo</MudText><MudText>@_protocolType</MudText></MudItem>
                     <MudItem xs="6"><MudText Typo="Typo.caption">Connessione</MudText>
-                        <MudText>@(_connectionType == "TCP" ? $"{_tcpIpAddress}:{_tcpPort}" : $"{_serialPortName} @ {_serialBaudRate}")</MudText>
+                        <MudText>@GetConnectionSummary()</MudText>
                     </MudItem>
                     <MudItem xs="6"><MudText Typo="Typo.caption">Posizione</MudText><MudText>@(_printerLocation ?? "—")</MudText></MudItem>
+                    <MudItem xs="6"><MudText Typo="Typo.caption">Categoria</MudText><MudText>@_printerCategory</MudText></MudItem>
                     <MudItem xs="6"><MudText Typo="Typo.caption">POS Associati</MudText>
                         <MudText>@(_stationRows.Count(r => r.Selected))</MudText>
                     </MudItem>
@@ -574,8 +716,14 @@
             <MudCardContent>
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Stampa Scontrino di Test</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                    Prima del salvataggio, è consigliato stampare uno scontrino di prova per
-                    verificare la corretta comunicazione con la stampante.
+                    @if (_isEditMode)
+                    {
+                        <span>Puoi stampare uno scontrino di prova sulla stampante esistente prima di aggiornare la configurazione.</span>
+                    }
+                    else
+                    {
+                        <span>Prima del salvataggio, è consigliato stampare uno scontrino di prova per verificare la corretta comunicazione con la stampante.</span>
+                    }
                 </MudText>
 
                 @if (_testPrintResult is not null)
@@ -607,7 +755,7 @@
         }
 
         <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 5)"
+            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 6)"
                        StartIcon="@Icons.Material.Filled.ArrowBack">
                 Indietro
             </MudButton>
@@ -618,11 +766,11 @@
                 @if (_isSaving)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Salvataggio...</span>
+                    <span>@(_isEditMode ? "Aggiornamento..." : "Salvataggio...")</span>
                 }
                 else
                 {
-                    <span>Salva Configurazione</span>
+                    <span>@(_isEditMode ? "Aggiorna Configurazione" : "Salva Configurazione")</span>
                 }
             </MudButton>
         </MudStack>
@@ -631,11 +779,18 @@
 
 @code {
     // ──────────────────────────────────────────────────────────
+    //  Parameters
+    // ──────────────────────────────────────────────────────────
+
+    [Parameter] public Guid? PrinterId { get; set; }
+
+    // ──────────────────────────────────────────────────────────
     //  State
     // ──────────────────────────────────────────────────────────
 
     private MudStepper? _stepper;
     private int _activeStep;
+    private bool _isEditMode => PrinterId.HasValue;
 
     // Step 0
     private string _connectionType = "TCP";
@@ -650,6 +805,10 @@
     private string _serialPortName = "COM1";
     private int _serialBaudRate = 9600;
 
+    // Step 1 – UsbViaAgent / NetworkShare
+    private string _agentId = string.Empty;
+    private string _usbDeviceId = string.Empty;
+
     // Step 1 – shared
     private bool _isTesting;
     private FiscalPrintResult? _testConnectionResult;
@@ -662,17 +821,24 @@
     private string? _printerLocation;
     private string _protocolType = "Custom";
 
-    // Step 4 – fiscal mapping
+    // Step 4 – printer type
+    private PrinterCategory _printerCategory = PrinterCategory.Receipt;
+    private bool _isThermal;
+    private int? _printerWidth;
+    private PaperWidth? _paperWidth;
+    private PrintLanguage? _printLanguage;
+
+    // Step 5 – fiscal mapping
     private List<VatRateDto> _vatRates = new();
     private List<PaymentMethodDto> _paymentMethods = new();
     private List<VatMappingRow> _vatMappingRows = new();
     private List<PaymentMappingRow> _paymentMappingRows = new();
 
-    // Step 5 – POS association
+    // Step 6 – POS association
     private List<StationDto> _stations = new();
     private List<StationSelectionRow> _stationRows = new();
 
-    // Step 6 – test print & save
+    // Step 7 – test print & save
     private bool _isTestPrinting;
     private FiscalPrintResult? _testPrintResult;
     private bool _isSaving;
@@ -683,12 +849,7 @@
     //  Breadcrumbs
     // ──────────────────────────────────────────────────────────
 
-    private readonly List<BreadcrumbItem> _breadcrumbs =
-    [
-        new BreadcrumbItem("Home", href: "/"),
-        new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
-        new BreadcrumbItem("Nuovo Wizard", href: null, disabled: true)
-    ];
+    private List<BreadcrumbItem> _breadcrumbs = new();
 
     // ──────────────────────────────────────────────────────────
     //  Lifecycle
@@ -696,13 +857,31 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load VAT rates, payment methods and stations in parallel for later steps
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Home", href: "/"),
+            new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
+            new BreadcrumbItem(_isEditMode ? "Modifica Wizard" : "Nuovo Wizard", href: null, disabled: true)
+        ];
+
         var vatTask = FinancialService.GetVatRatesAsync(1, 100);
         var paymentTask = PaymentMethodService.GetAllAsync();
         var stationsTask = HttpClientService.GetAsync<PagedResult<StationDto>>(
             "api/v1/stations?page=1&pageSize=100");
 
-        await Task.WhenAll(vatTask, paymentTask, stationsTask);
+        if (_isEditMode)
+        {
+            var setupTask = FiscalPrintingService.GetSetupAsync(PrinterId!.Value);
+            await Task.WhenAll(vatTask, paymentTask, stationsTask, setupTask);
+            PopulateFromSetup(setupTask.Result);
+            _savedPrinterId = PrinterId;
+            // In edit mode, printer info step is bypassed; provide a placeholder so the step is not blocked
+            _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+        }
+        else
+        {
+            await Task.WhenAll(vatTask, paymentTask, stationsTask);
+        }
 
         var vatResult = vatTask.Result;
         _vatRates = vatResult?.Items?.ToList() ?? new();
@@ -734,6 +913,27 @@
         }).ToList();
     }
 
+    private void PopulateFromSetup(FiscalPrinterSetupDto? setup)
+    {
+        if (setup is null) return;
+
+        _connectionType = setup.ConnectionType;
+        _tcpIpAddress = setup.IpAddress ?? string.Empty;
+        _tcpPort = setup.TcpPort ?? 9100;
+        _serialPortName = setup.SerialPortName ?? "COM1";
+        _serialBaudRate = setup.BaudRate ?? 9600;
+        _agentId = setup.AgentId?.ToString() ?? string.Empty;
+        _usbDeviceId = setup.UsbDeviceId ?? string.Empty;
+        _printerName = setup.Name;
+        _printerLocation = setup.Location;
+        _protocolType = setup.ProtocolType;
+        _printerCategory = setup.Category;
+        _isThermal = setup.IsThermal;
+        _printerWidth = setup.PrinterWidth;
+        _paperWidth = setup.PaperWidth;
+        _printLanguage = setup.PrintLanguage;
+    }
+
     // ──────────────────────────────────────────────────────────
     //  Step 1 – TCP
     // ──────────────────────────────────────────────────────────
@@ -742,14 +942,12 @@
     {
         if (string.IsNullOrWhiteSpace(_tcpIpAddress))
         {
-            // Try to infer subnet from a guess; default to 192.168.1
             _isScanRunning = true;
             StateHasChanged();
             _scanResults = await FiscalPrintingService.ScanNetworkAsync("192.168.1", _tcpPort, 300);
         }
         else
         {
-            // Use the subnet from the already-entered IP
             var parts = _tcpIpAddress.Split('.');
             var subnet = parts.Length >= 3 ? string.Join('.', parts[0], parts[1], parts[2]) : "192.168.1";
             _isScanRunning = true;
@@ -809,8 +1007,18 @@
     private async Task AdvanceFromStep1Serial()
     {
         _activeStep = 2;
-        // For serial, printer info reading via TCP is not applicable; mark as basic online
         _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Step 1 – UsbViaAgent / NetworkShare
+    // ──────────────────────────────────────────────────────────
+
+    private async Task AdvanceFromStep1Agent()
+    {
+        _activeStep = 2;
+        _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+        await Task.CompletedTask;
     }
 
     // ──────────────────────────────────────────────────────────
@@ -830,14 +1038,27 @@
 
     private void AdvanceFromStep3()
     {
-        // Pre-fill printer name from model if empty
         if (string.IsNullOrWhiteSpace(_printerName) && _printerInfo?.Model is not null)
             _printerName = $"Stampante Fiscale – {_printerInfo.Model}";
         _activeStep = 4;
     }
 
     // ──────────────────────────────────────────────────────────
-    //  Step 4 – Fiscal mapping
+    //  Step 4 – Printer type
+    // ──────────────────────────────────────────────────────────
+
+    private void OnCategoryChanged(PrinterCategory newCategory)
+    {
+        if (newCategory == PrinterCategory.Fiscal)
+        {
+            _isThermal = true;
+            _paperWidth = PaperWidth.Mm80;
+            _printLanguage = PrintLanguage.EscPos;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Step 5 – Fiscal mapping
     // ──────────────────────────────────────────────────────────
 
     private void ApplyVatSuggestions()
@@ -874,14 +1095,27 @@
     }
 
     // ──────────────────────────────────────────────────────────
-    //  Step 6 – Test print & save
+    //  Helpers
+    // ──────────────────────────────────────────────────────────
+
+    private string GetConnectionSummary() => _connectionType switch
+    {
+        "TCP" => $"{_tcpIpAddress}:{_tcpPort}",
+        "Serial" => $"{_serialPortName} @ {_serialBaudRate}",
+        "UsbViaAgent" => $"Agente: {_agentId}, Dispositivo: {_usbDeviceId}",
+        "NetworkShare" => $"Network Share",
+        _ => _connectionType
+    };
+
+    // ──────────────────────────────────────────────────────────
+    //  Step 7 – Test print & save
     // ──────────────────────────────────────────────────────────
 
     private async Task PrintTestReceiptAsync()
     {
-        if (_savedPrinterId is null)
+        var printerIdForTest = _savedPrinterId ?? (_isEditMode ? PrinterId : null);
+        if (printerIdForTest is null)
         {
-            // Printer not saved yet: show informational toast
             AppNotification.ShowInfo("Salva prima la configurazione per stampare uno scontrino di test.");
             return;
         }
@@ -894,7 +1128,7 @@
                 Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
                 Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
             };
-            _testPrintResult = await FiscalPrintingService.PrintReceiptAsync(_savedPrinterId.Value, testReceipt);
+            _testPrintResult = await FiscalPrintingService.PrintReceiptAsync(printerIdForTest.Value, testReceipt);
         }
         finally
         {
@@ -908,6 +1142,8 @@
         _saveError = null;
         try
         {
+            var agentGuid = Guid.TryParse(_agentId, out var g) ? g : (Guid?)null;
+
             var setup = new FiscalPrinterSetupDto
             {
                 ConnectionType = _connectionType,
@@ -915,25 +1151,44 @@
                 TcpPort = _connectionType == "TCP" ? _tcpPort : null,
                 SerialPortName = _connectionType == "Serial" ? _serialPortName : null,
                 BaudRate = _connectionType == "Serial" ? _serialBaudRate : null,
+                AgentId = _connectionType == "UsbViaAgent" ? agentGuid : null,
+                UsbDeviceId = _connectionType == "UsbViaAgent" ? _usbDeviceId : null,
                 Name = _printerName,
                 Location = _printerLocation,
                 ProtocolType = _protocolType,
+                Category = _printerCategory,
+                IsThermal = _isThermal,
+                PrinterWidth = _printerWidth,
+                PaperWidth = _paperWidth,
+                PrintLanguage = _printLanguage,
                 VatFiscalCodeOverrides = _vatMappingRows.ToDictionary(r => r.Id, r => r.FiscalCode),
                 PaymentFiscalCodeOverrides = _paymentMappingRows.ToDictionary(r => r.Id, r => r.FiscalCode),
                 AssociatedStationIds = _stationRows.Where(r => r.Selected).Select(r => r.Id).ToList()
             };
 
-            var printer = await FiscalPrintingService.SaveSetupAsync(setup);
+            PrinterDto? printer;
+            if (_isEditMode)
+            {
+                printer = await FiscalPrintingService.UpdateSetupAsync(PrinterId!.Value, setup);
+            }
+            else
+            {
+                printer = await FiscalPrintingService.SaveSetupAsync(setup);
+            }
+
             if (printer is null)
             {
-                _saveError = "Errore nel salvataggio della configurazione. Riprova.";
+                _saveError = _isEditMode
+                    ? "Errore nell'aggiornamento della configurazione. Riprova."
+                    : "Errore nel salvataggio della configurazione. Riprova.";
                 return;
             }
 
             _savedPrinterId = printer.Id;
-            AppNotification.ShowSuccess($"Stampante '{printer.Name}' configurata con successo!");
+            AppNotification.ShowSuccess(_isEditMode
+                ? $"Stampante '{printer.Name}' aggiornata con successo!"
+                : $"Stampante '{printer.Name}' configurata con successo!");
 
-            // Navigate to dashboard after short delay
             await Task.Delay(1500);
             NavigationManager.NavigateTo("/admin/fiscal-printers");
         }

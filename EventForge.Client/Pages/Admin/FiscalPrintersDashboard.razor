@@ -169,7 +169,7 @@
                         Storico Chiusure
                     </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Edit"
-                                 OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers/setup?editId={context.Printer.Id}"))">
+                                 OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers-wizard/{context.Printer.Id}"))">
                         Modifica
                     </MudMenuItem>
                 </MudMenu>

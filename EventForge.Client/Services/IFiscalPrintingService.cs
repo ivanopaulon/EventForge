@@ -53,6 +53,12 @@ public interface IFiscalPrintingService
     /// <summary>Saves the full wizard configuration (creates printer + associations).</summary>
     Task<EventForge.DTOs.Station.PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default);
 
+    /// <summary>Loads the wizard setup payload for an existing printer (edit mode).</summary>
+    Task<FiscalPrinterSetupDto?> GetSetupAsync(Guid printerId, CancellationToken ct = default);
+
+    /// <summary>Updates an existing printer's configuration from the wizard (edit mode).</summary>
+    Task<EventForge.DTOs.Station.PrinterDto?> UpdateSetupAsync(Guid printerId, FiscalPrinterSetupDto setup, CancellationToken ct = default);
+
     // ── Daily closure workflow ────────────────────────────────────────────────
 
     /// <summary>Returns pre-check data before executing the daily closure.</summary>

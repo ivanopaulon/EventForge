@@ -272,6 +272,36 @@ public class FiscalPrintingService(
         }
     }
 
+    /// <inheritdoc />
+    public async Task<FiscalPrinterSetupDto?> GetSetupAsync(Guid printerId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<FiscalPrinterSetupDto>(
+                $"{BaseUrl}/setup/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetSetupAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<PrinterDto?> UpdateSetupAsync(Guid printerId, FiscalPrinterSetupDto setup, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PutAsync<FiscalPrinterSetupDto, PrinterDto>(
+                $"{BaseUrl}/setup/{printerId}", setup, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "UpdateSetupAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
     // ── Daily closure workflow ────────────────────────────────────────────────
 
     /// <inheritdoc />

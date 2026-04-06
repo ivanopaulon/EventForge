@@ -1,16 +1,17 @@
 using System.ComponentModel.DataAnnotations;
+using EventForge.DTOs.Common;
 
 namespace EventForge.DTOs.FiscalPrinting;
 
 /// <summary>
-/// Payload sent by the wizard on Step 7 ("Save Configuration") to create
-/// a new fiscal printer record and persist all mappings in a single request.
+/// Payload sent by the wizard on Step 8 ("Save Configuration") to create or update
+/// a fiscal printer record and persist all mappings in a single request.
 /// </summary>
 public class FiscalPrinterSetupDto
 {
     // ── Step 1 / 2: Connection ────────────────────────────────────────────────
 
-    /// <summary>Connection type: <c>"TCP"</c> or <c>"Serial"</c>.</summary>
+    /// <summary>Connection type: <c>"TCP"</c>, <c>"Serial"</c>, <c>"UsbViaAgent"</c>, or <c>"NetworkShare"</c>.</summary>
     [Required]
     [MaxLength(20)]
     public string ConnectionType { get; set; } = "TCP";
@@ -31,7 +32,32 @@ public class FiscalPrinterSetupDto
     [Range(300, 115200)]
     public int? BaudRate { get; set; }
 
-    // ── Step 4: Base Configuration ────────────────────────────────────────────
+    /// <summary>Agent ID for UsbViaAgent connection. Required when ConnectionType = UsbViaAgent.</summary>
+    public Guid? AgentId { get; set; }
+
+    /// <summary>USB device identifier (e.g. "USB001", "VID:PID"). Required when ConnectionType = UsbViaAgent.</summary>
+    [MaxLength(100)]
+    public string? UsbDeviceId { get; set; }
+
+    // ── Step 4: Printer Type ──────────────────────────────────────────────────
+
+    /// <summary>Functional category of the printer.</summary>
+    public PrinterCategory Category { get; set; } = PrinterCategory.Receipt;
+
+    /// <summary>Indicates if this is a thermal printer.</summary>
+    public bool IsThermal { get; set; }
+
+    /// <summary>Print width in characters per line (e.g. 42, 58, 80).</summary>
+    [Range(10, 200)]
+    public int? PrinterWidth { get; set; }
+
+    /// <summary>Paper width in millimeters.</summary>
+    public PaperWidth? PaperWidth { get; set; }
+
+    /// <summary>Command language used by the printer.</summary>
+    public PrintLanguage? PrintLanguage { get; set; }
+
+    // ── Step 3 (was 4): Base Configuration ───────────────────────────────────
 
     /// <summary>Display name for the printer (e.g., "Stampante Fiscale Cassa 1").</summary>
     [Required]
@@ -46,7 +72,7 @@ public class FiscalPrinterSetupDto
     [MaxLength(50)]
     public string ProtocolType { get; set; } = "Custom";
 
-    // ── Step 5: Fiscal Code Mapping ───────────────────────────────────────────
+    // ── Step 5 (was 4): Fiscal Code Mapping ──────────────────────────────────
 
     /// <summary>
     /// VAT fiscal code overrides: maps VatRateId → fiscal code (1-10).
@@ -59,7 +85,7 @@ public class FiscalPrinterSetupDto
     /// </summary>
     public Dictionary<Guid, int> PaymentFiscalCodeOverrides { get; set; } = new();
 
-    // ── Step 6: POS Association ───────────────────────────────────────────────
+    // ── Step 6 (was 5): POS Association ──────────────────────────────────────
 
     /// <summary>
     /// Station (POS) IDs to which this printer should be associated as default fiscal printer.

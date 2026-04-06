@@ -83,5 +83,43 @@ namespace EventForge.DTOs.Station
         [MaxLength(20)]
         [Display(Name = "Serial Port Name")]
         public string? SerialPortName { get; set; }
+
+        // --- Connection Type & USB-via-Agent ---
+
+        /// <summary>How the printer is connected (TCP, Serial, USB via Agent, etc).</summary>
+        [Display(Name = "Connection Type")]
+        public PrinterConnectionType ConnectionType { get; set; } = PrinterConnectionType.Tcp;
+
+        /// <summary>Agent used for UsbViaAgent connection.</summary>
+        [Display(Name = "Agent ID")]
+        public Guid? AgentId { get; set; }
+
+        /// <summary>USB device identifier (e.g. VID:PID or friendly name).</summary>
+        [MaxLength(100)]
+        [Display(Name = "USB Device ID")]
+        public string? UsbDeviceId { get; set; }
+
+        // --- Non-Fiscal Printer Classification ---
+
+        /// <summary>Functional category of the printer.</summary>
+        [Display(Name = "Printer Category")]
+        public PrinterCategory Category { get; set; } = PrinterCategory.Receipt;
+
+        /// <summary>Indicates if this is a thermal printer.</summary>
+        [Display(Name = "Is Thermal")]
+        public bool IsThermal { get; set; }
+
+        /// <summary>Print width in characters per line (e.g. 42, 58, 80).</summary>
+        [Range(10, 200)]
+        [Display(Name = "Printer Width")]
+        public int? PrinterWidth { get; set; }
+
+        /// <summary>Paper width in millimeters.</summary>
+        [Display(Name = "Paper Width")]
+        public PaperWidth? PaperWidth { get; set; }
+
+        /// <summary>Command language used by the printer.</summary>
+        [Display(Name = "Print Language")]
+        public PrintLanguage? PrintLanguage { get; set; }
     }
 }
