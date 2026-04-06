@@ -27,6 +27,12 @@ public class DailyClosureHistoryDto
     /// <summary>Total amount reported on the Z-report.</summary>
     public decimal TotalAmount { get; set; }
 
+    /// <summary>Amount collected via cash payments.</summary>
+    public decimal CashAmount { get; set; }
+
+    /// <summary>Amount collected via card/electronic payments.</summary>
+    public decimal CardAmount { get; set; }
+
     /// <summary>The operator who triggered the closure.</summary>
     public string? Operator { get; set; }
 

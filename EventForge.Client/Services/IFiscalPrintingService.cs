@@ -69,4 +69,7 @@ public interface IFiscalPrintingService
 
     /// <summary>Reprints the Z-report for a previously executed closure.</summary>
     Task<FiscalPrintResult?> ReprintZReportAsync(Guid closureId, CancellationToken ct = default);
+
+    /// <summary>Downloads the PDF Z-report for a closure. Returns null on failure.</summary>
+    Task<byte[]?> DownloadClosurePdfAsync(Guid closureId, CancellationToken ct = default);
 }

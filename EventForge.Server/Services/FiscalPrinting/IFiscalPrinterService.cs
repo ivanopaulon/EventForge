@@ -186,4 +186,14 @@ public interface IFiscalPrinterService
     Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Generates (or returns a cached copy of) the PDF Z-report for the specified closure.
+    /// On first call the PDF is generated with QuestPDF and persisted to the DB.
+    /// Subsequent calls return the stored bytes.
+    /// </summary>
+    /// <returns>PDF bytes, or <c>null</c> if the closure was not found.</returns>
+    Task<byte[]?> GenerateZReportPdfAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default);
 }

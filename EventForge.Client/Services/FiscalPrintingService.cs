@@ -343,4 +343,22 @@ public class FiscalPrintingService(
             return null;
         }
     }
+
+    public async Task<byte[]?> DownloadClosurePdfAsync(
+        Guid closureId, CancellationToken ct = default)
+    {
+        try
+        {
+            var stream = await httpClientService.GetStreamAsync(
+                $"{BaseUrl}/closures/{closureId}/pdf", ct);
+            using var ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms, ct);
+            return ms.ToArray();
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "DownloadClosurePdfAsync failed for closure {ClosureId}", closureId);
+            return null;
+        }
+    }
 }

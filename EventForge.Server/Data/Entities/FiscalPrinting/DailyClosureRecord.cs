@@ -58,6 +58,13 @@ public class DailyClosureRecord : AuditableEntity
     public bool HasPdf { get; set; }
 
     /// <summary>
+    /// Binary content of the generated PDF Z-report.
+    /// Stored in the DB to allow repeated downloads without re-generation.
+    /// Null until a PDF is generated via the API.
+    /// </summary>
+    public byte[]? PdfBytes { get; set; }
+
+    /// <summary>
     /// Raw printer response for diagnostics (truncated to 500 chars to avoid large rows).
     /// </summary>
     [MaxLength(500)]

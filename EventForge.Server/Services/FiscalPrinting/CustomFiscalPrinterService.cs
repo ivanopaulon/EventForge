@@ -3,6 +3,7 @@ using EventForge.Server.Data;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 using System.Net.Sockets;
 
 namespace EventForge.Server.Services.FiscalPrinting;
@@ -533,19 +534,59 @@ public class CustomFiscalPrinterService(
         var zNumber = int.TryParse(printResult.ReceiptNumber, out var n) ? n : 0;
         var closedAt = DateTime.UtcNow;
 
+        // Aggregate POS data: find all SaleSession closed today on POSes linked to this printer
+        var todayStart = closedAt.Date;
+        var posIds = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => p.DefaultFiscalPrinterId == printerId && !p.IsDeleted)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+
+        decimal totalAmount = 0m, cashAmount = 0m, cardAmount = 0m;
+        int receiptCount = 0;
+
+        if (posIds.Count > 0)
+        {
+            var sessions = await context.SaleSessions
+                .AsNoTracking()
+                .Include(s => s.Payments)
+                    .ThenInclude(p => p.PaymentMethod)
+                .Where(s => posIds.Contains(s.PosId)
+                         && !s.IsDeleted
+                         && s.Status == EventForge.Server.Data.Entities.Sales.SaleSessionStatus.Closed
+                         && s.ClosedAt.HasValue && s.ClosedAt.Value.Date == todayStart)
+                .ToListAsync(cancellationToken);
+
+            receiptCount = sessions.Count;
+            totalAmount = sessions.Sum(s => s.FinalTotal);
+
+            foreach (var session in sessions)
+            {
+                foreach (var payment in session.Payments)
+                {
+                    var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
+                    // FiscalCode 1 = cash; any other recognised code = card/electronic
+                    if (payment.PaymentMethod?.FiscalCode == 1 || code == "CASH" || code == "CONTANTE")
+                        cashAmount += payment.Amount;
+                    else
+                        cardAmount += payment.Amount;
+                }
+            }
+        }
+
         var record = new Data.Entities.FiscalPrinting.DailyClosureRecord
         {
             PrinterId = printerId,
             TenantId = printer?.TenantId ?? Guid.Empty,
             ZReportNumber = zNumber,
             ClosedAt = closedAt,
-            ReceiptCount = 0,  // POS data aggregation deferred
-            TotalAmount = 0m,
-            CashAmount = 0m,
-            CardAmount = 0m,
+            ReceiptCount = receiptCount,
+            TotalAmount = totalAmount,
+            CashAmount = cashAmount,
+            CardAmount = cardAmount,
             Operator = operatorName,
             HasPdf = false,
-            PrinterResponse = null, // RawResponse not available in FiscalPrintResult – preserved for future protocol extension
+            PrinterResponse = null,
             CreatedBy = operatorName
         };
 
@@ -607,6 +648,8 @@ public class CustomFiscalPrinterService(
             ClosedAt = r.ClosedAt,
             ReceiptCount = r.ReceiptCount,
             TotalAmount = r.TotalAmount,
+            CashAmount = r.CashAmount,
+            CardAmount = r.CardAmount,
             Operator = r.Operator,
             HasPdf = r.HasPdf
         }).ToList();
@@ -636,5 +679,63 @@ public class CustomFiscalPrinterService(
 
         // The Custom protocol reprint command is the standard DailyClosure command
         return await DailyClosureAsync(record.PrinterId, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<byte[]?> GenerateZReportPdfAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
+    {
+        var record = await context.DailyClosureRecords
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+            return null;
+
+        // Return cached PDF if already generated
+        if (record.HasPdf && record.PdfBytes is { Length: > 0 })
+            return record.PdfBytes;
+
+        // Load printer name
+        var printerName = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == record.PrinterId && !p.IsDeleted)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? record.PrinterId.ToString();
+
+        // Build the DTO for the document
+        var closureDto = new DailyClosureHistoryDto
+        {
+            Id = record.Id,
+            PrinterId = record.PrinterId,
+            PrinterName = printerName,
+            ZReportNumber = record.ZReportNumber,
+            ClosedAt = record.ClosedAt,
+            ReceiptCount = record.ReceiptCount,
+            TotalAmount = record.TotalAmount,
+            CashAmount = record.CashAmount,
+            CardAmount = record.CardAmount,
+            Operator = record.Operator,
+            HasPdf = true
+        };
+
+        // Generate PDF with QuestPDF
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+        var doc = new ZReportDocument(closureDto, printerName);
+        var pdfBytes = doc.GeneratePdf();
+
+        // Persist PDF bytes and mark HasPdf
+        record.PdfBytes = pdfBytes;
+        record.HasPdf = true;
+        record.ModifiedAt = DateTime.UtcNow;
+        record.ModifiedBy = "System";
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "ZReport PDF generated | ClosureId={ClosureId} Bytes={Bytes}",
+            closureId, pdfBytes.Length);
+
+        return pdfBytes;
     }
 }

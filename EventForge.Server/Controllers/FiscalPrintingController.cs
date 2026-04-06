@@ -681,18 +681,35 @@ public class FiscalPrintingController(
 
     /// <summary>
     /// Downloads the PDF Z-report for the specified closure.
-    /// Note: PDF generation is scheduled for Sprint 5C. This endpoint currently
-    /// returns 404 if no PDF has been stored for the closure.
+    /// On first request the PDF is generated on-demand and stored for future calls.
     /// </summary>
     [HttpGet("closures/{closureId:guid}/pdf")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DownloadClosurePdf(Guid closureId)
+    public async Task<IActionResult> DownloadClosurePdf(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
     {
-        // PDF storage/generation is deferred to Sprint 5C.
-        // Returning 404 with a descriptive message so the client can handle it gracefully.
-        return CreateNotFoundProblem($"PDF for closure {closureId} is not yet available. PDF generation is planned for Sprint 5C.");
+        try
+        {
+            logger.LogInformation(
+                "DownloadClosurePdf | ClosureId={ClosureId} User={User}",
+                closureId, GetCurrentUser());
+
+            var pdfBytes = await fiscalPrinterService.GenerateZReportPdfAsync(closureId, cancellationToken);
+
+            if (pdfBytes is null || pdfBytes.Length == 0)
+                return CreateNotFoundProblem($"Closure {closureId} not found or PDF could not be generated.");
+
+            var fileName = $"ZReport_{closureId:N}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error generating PDF for closure {closureId}.", ex);
+        }
     }
 
     // -------------------------------------------------------------------------

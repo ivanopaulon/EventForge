@@ -11,6 +11,7 @@
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 @inject ILogger<ClosureHistory> Logger
 
 <PageTitle>Storico Chiusure Fiscali</PageTitle>
@@ -278,8 +279,23 @@
 
     private async Task DownloadPdfAsync(Guid closureId)
     {
-        AppNotification.ShowInfo("PDF in generazione... (funzione disponibile da Sprint 5C)");
-        await Task.CompletedTask;
+        AppNotification.ShowInfo("PDF in generazione…");
+        try
+        {
+            var pdfBytes = await FiscalPrintingService.DownloadClosurePdfAsync(closureId);
+            if (pdfBytes is null || pdfBytes.Length == 0)
+            {
+                AppNotification.ShowError("PDF non disponibile per questa chiusura.");
+                return;
+            }
+            var fileName = $"ZReport_{closureId:N}.pdf";
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, pdfBytes, "application/pdf");
+            AppNotification.ShowSuccess("PDF scaricato.");
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore download PDF: {ex.Message}");
+        }
     }
 
     private async Task ReprintAsync(Guid closureId, int zNumber)
@@ -293,20 +309,30 @@
 
     private async Task ExportCsvAsync()
     {
-        // Build CSV string and trigger browser download via JS interop
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Data/Ora,N° Z-Report,Scontrini,Totale,Operatore");
-        foreach (var c in _closuresFiltered)
+        try
         {
-            sb.AppendLine(string.Join(",",
-                c.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
-                c.ZReportNumber,
-                c.ReceiptCount,
-                c.TotalAmount.ToString("F2"),
-                $"\"{c.Operator ?? ""}\""));
-        }
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Data/Ora,N° Z-Report,Scontrini,Totale,Contanti,Carte,Operatore");
+            foreach (var c in _closuresFiltered)
+            {
+                sb.AppendLine(string.Join(",",
+                    c.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                    c.ZReportNumber,
+                    c.ReceiptCount,
+                    c.TotalAmount.ToString("F2"),
+                    c.CashAmount.ToString("F2"),
+                    c.CardAmount.ToString("F2"),
+                    $"\"{c.Operator ?? ""}\""));
+            }
 
-        AppNotification.ShowInfo("Export CSV: funzione disponibile dopo integrazione JSInterop.");
-        await Task.CompletedTask;
+            var csvBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            var fileName = $"Chiusure_{PrinterId}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, csvBytes, "text/csv;charset=utf-8");
+            AppNotification.ShowSuccess($"CSV esportato: {fileName}");
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore export CSV: {ex.Message}");
+        }
     }
 }
