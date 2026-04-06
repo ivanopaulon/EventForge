@@ -44,8 +44,8 @@ public class AgentWorker(
             {
                 agentStatus.HubConnectionState = "Disconnected";
                 agentStatus.LastHeartbeatError = ex.Message;
-                logger.LogError(ex, "Hub connection error. Reconnecting in 30 seconds...");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                logger.LogError(ex, "Hub connection error. Reconnecting in {Delay}s...", options.ReconnectDelaySeconds);
+                await Task.Delay(TimeSpan.FromSeconds(options.ReconnectDelaySeconds), stoppingToken);
             }
         }
 

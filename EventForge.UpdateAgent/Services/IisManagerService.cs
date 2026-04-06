@@ -26,8 +26,8 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
         logger.LogInformation("Starting IIS site: {SiteName}", siteName);
         await RunAppCmdAsync($"start apppool \"{options.Components.Server.AppPoolName}\"", ct);
         await RunAppCmdAsync($"start site \"{siteName}\"", ct);
-        // Give IIS time to warm up
-        await Task.Delay(5000, ct);
+        // Give IIS time to warm up before the health check
+        await Task.Delay(TimeSpan.FromSeconds(options.Install.IisWarmupDelaySeconds), ct);
     }
 
     private async Task RunAppCmdAsync(string arguments, CancellationToken ct)

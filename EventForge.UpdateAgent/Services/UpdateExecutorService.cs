@@ -301,21 +301,24 @@ public class UpdateExecutorService(
     {
         if (string.IsNullOrWhiteSpace(healthCheckUrl)) return;
 
-        for (var attempt = 1; attempt <= 5; attempt++)
+        var maxAttempts = options.Install.HealthCheckMaxAttempts;
+        var delayMs     = options.Install.HealthCheckDelaySeconds * 1_000;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
                 var response = await _http.GetAsync(healthCheckUrl, ct);
                 if (response.IsSuccessStatusCode) return;
-                logger.LogWarning("Health check attempt {Attempt}/5 failed: {Status}", attempt, response.StatusCode);
+                logger.LogWarning("Health check attempt {Attempt}/{Max} failed: {Status}", attempt, maxAttempts, response.StatusCode);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Health check attempt {Attempt}/5 exception", attempt);
+                logger.LogWarning(ex, "Health check attempt {Attempt}/{Max} exception", attempt, maxAttempts);
             }
-            if (attempt < 5) await Task.Delay(5000, ct);
+            if (attempt < maxAttempts) await Task.Delay(delayMs, ct);
         }
-        throw new InvalidOperationException("Health check failed after 5 attempts. Triggering rollback.");
+        throw new InvalidOperationException($"Health check failed after {maxAttempts} attempts. Triggering rollback.");
     }
 
     private async Task ReportAsync(StartUpdateCommand command, UpdatePhase phase, bool isCompleted, bool isSuccess, string? errorMessage, CancellationToken ct)

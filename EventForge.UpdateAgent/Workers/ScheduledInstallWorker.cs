@@ -13,11 +13,13 @@ namespace EventForge.UpdateAgent.Workers;
 public class ScheduledInstallWorker(
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
+    AgentOptions options,
     ILogger<ScheduledInstallWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("ScheduledInstallWorker started.");
+        logger.LogInformation("ScheduledInstallWorker started (check interval: {Interval}s).",
+            options.Install.ScheduledCheckIntervalSeconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -34,7 +36,7 @@ public class ScheduledInstallWorker(
                 logger.LogError(ex, "Unexpected error in ScheduledInstallWorker loop.");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(options.Install.ScheduledCheckIntervalSeconds), stoppingToken);
         }
 
         logger.LogInformation("ScheduledInstallWorker stopped.");

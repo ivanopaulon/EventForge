@@ -38,7 +38,7 @@ public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunne
                     var trimmed = batch.Trim();
                     if (string.IsNullOrWhiteSpace(trimmed)) continue;
                     cmd.CommandText = trimmed;
-                    cmd.CommandTimeout = 300;
+                    cmd.CommandTimeout = options.Install.SqlCommandTimeoutSeconds;
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
                 logger.LogInformation("Migration completed: {Script}", relativePath);

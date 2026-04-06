@@ -5,11 +5,16 @@ namespace EventForge.UpdateAgent.Pages;
 
 public class IndexModel(
     AgentStatusService agentStatus,
+    AgentOptions agentOptions,
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
     VersionDetectorService versionDetector,
     ILogger<IndexModel> logger) : PageModel
 {
+    public string InstallationId { get; private set; } = string.Empty;
+    public string InstallationName { get; private set; } = string.Empty;
+    public bool ServerEnabled { get; private set; }
+    public bool ClientEnabled { get; private set; }
     public string HubState { get; private set; } = "Disconnected";
     public DateTime? LastHeartbeat { get; private set; }
     public string? ServerVersion { get; private set; }
@@ -22,6 +27,10 @@ public class IndexModel(
 
     public void OnGet()
     {
+        InstallationId = agentOptions.InstallationId;
+        InstallationName = agentOptions.InstallationName;
+        ServerEnabled = agentOptions.Components.Server.Enabled;
+        ClientEnabled = agentOptions.Components.Client.Enabled;
         HubState = agentStatus.HubConnectionState;
         LastHeartbeat = agentStatus.LastHeartbeatAt;
         ServerVersion = versionDetector.GetServerVersion();
