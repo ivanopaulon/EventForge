@@ -14,6 +14,7 @@ namespace EventForge.UpdateHub.Pages;
 public class PackagesModel(
     IPackageService packageService,
     IPackageBuildService packageBuildService,
+    IInstallationService installationService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
     UpdateHubOptions hubOptions,
@@ -22,9 +23,15 @@ public class PackagesModel(
     public IReadOnlyList<UpdatePackage> Packages { get; private set; } = [];
     public int OnlineCount { get; private set; }
 
+    /// <summary>Installations that are currently online, used to populate the targeted-deploy modal.</summary>
+    public IReadOnlyList<OnlineInstallationRow> OnlineInstallations { get; private set; } = [];
+
     /// <summary>Pre-configured default deploy paths exposed to the view for UI hints.</summary>
     public string? DefaultServerDeployPath => hubOptions.DefaultServerDeployPath;
     public string? DefaultClientDeployPath => hubOptions.DefaultClientDeployPath;
+
+    /// <summary>Row projected for the targeted-deploy modal (minimal set of fields needed).</summary>
+    public record OnlineInstallationRow(Guid Id, string Name, string? Location, bool HasServer, bool HasClient);
 
     public async Task OnGetAsync()
     {
@@ -33,7 +40,7 @@ public class PackagesModel(
 
     // ── Carica pacchetto ──────────────────────────────────────────────────
     public async Task<IActionResult> OnPostUploadAsync(
-        string version, string component, string? releaseNotes, IFormFile? file)
+        string version, string component, string? releaseNotes, string? gitCommit, IFormFile? file)
     {
         if (string.IsNullOrWhiteSpace(version))
         {
@@ -85,6 +92,7 @@ public class PackagesModel(
             Version = version,
             Component = comp,
             ReleaseNotes = string.IsNullOrWhiteSpace(releaseNotes) ? null : releaseNotes,
+            GitCommit = string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim(),
             Checksum = checksum,
             FilePath = fileName,
             FileSizeBytes = file.Length
@@ -173,6 +181,46 @@ public class PackagesModel(
         return RedirectToPage();
     }
 
+    // ── Targeted deploy a singola installazione ────────────────────────────
+    public async Task<IActionResult> OnPostDeployToAsync(Guid packageId, Guid installationId)
+    {
+        var pkg = await packageService.GetByIdAsync(packageId);
+        if (pkg is null) { TempData["Error"] = "Pacchetto non trovato."; return RedirectToPage(); }
+
+        var connectionId = connectionTracker.GetConnectionId(installationId);
+        if (connectionId is null)
+        {
+            TempData["Error"] = "L'installazione non è attualmente online.";
+            return RedirectToPage();
+        }
+
+        var installation = await installationService.GetByIdAsync(installationId);
+        if (installation is null) { TempData["Error"] = "Installazione non trovata."; return RedirectToPage(); }
+
+        var history = await installationService.StartUpdateHistoryAsync(
+            installationId, packageId,
+            installation.InstalledVersionServer,
+            installation.InstalledVersionClient);
+
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
+
+        var command = new StartUpdateCommand(
+            history.Id, pkg.Id, pkg.Version,
+            pkg.Component.ToString(),
+            $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
+            pkg.Checksum,
+            IsManualInstall: installation.UpdateMode == InstallationUpdateMode.Manual);
+
+        await agentHubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+        await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);
+
+        logger.LogInformation("Targeted deploy via UI: Package={PackageId} Installation={InstallationId}", packageId, installationId);
+        TempData["Success"] = $"Aggiornamento {pkg.Component} {pkg.Version} inviato a {installation.Name}.";
+        return RedirectToPage();
+    }
+
     // ── Broadcast a tutte le installazioni online ─────────────────────────
     public async Task<IActionResult> OnPostBroadcastAsync(Guid packageId)
     {
@@ -186,9 +234,13 @@ public class PackagesModel(
             return RedirectToPage();
         }
 
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
+
         var notification = new UpdateAvailableMessage(
             pkg.Id, pkg.Version, pkg.Component.ToString(),
-            $"/api/v1/packages/{pkg.Id}/download",
+            $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
             pkg.Checksum, pkg.ReleaseNotes);
 
         await agentHubContext.Clients.All.SendAsync("UpdateAvailable", notification);
@@ -202,6 +254,16 @@ public class PackagesModel(
     private async Task LoadAsync()
     {
         Packages = await packageService.GetAllAsync();
-        OnlineCount = connectionTracker.GetOnlineInstallationIds().Count;
+        var onlineIds = connectionTracker.GetOnlineInstallationIds();
+        OnlineCount = onlineIds.Count;
+
+        var allInstallations = await installationService.GetAllAsync();
+        OnlineInstallations = allInstallations
+            .Where(i => !i.IsRevoked && onlineIds.Contains(i.Id))
+            .Select(i => new OnlineInstallationRow(
+                i.Id, i.Name, i.Location,
+                i.Components == InstallationComponents.Server || i.Components == InstallationComponents.Both,
+                i.Components == InstallationComponents.Client || i.Components == InstallationComponents.Both))
+            .ToList();
     }
 }

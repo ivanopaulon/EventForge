@@ -164,6 +164,19 @@
                             <div class="d-flex gap-1 flex-wrap">
                                 @if (pkg.Status == PackageStatus.ReadyToDeploy)
                                 {
+                                    <!-- Targeted deploy -->
+                                    @if (Model.OnlineInstallations.Count > 0)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deployModal"
+                                                data-pkg-id="@pkg.Id"
+                                                data-pkg-label="@pkg.Component @pkg.Version"
+                                                data-pkg-component="@pkg.Component.ToString().ToLower()"
+                                                onclick="openDeployModal(this)">
+                                            <i class="bi bi-send me-1"></i>Deploy a…
+                                        </button>
+                                    }
                                     <!-- Broadcast -->
                                     <form method="post" asp-page-handler="Broadcast" class="d-inline">
                                         <input type="hidden" name="packageId" value="@pkg.Id" />
@@ -228,6 +241,67 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ── Modal deploy a specifica installazione ────────────────────────── -->
+<div class="modal fade" id="deployModal" tabindex="-1" aria-labelledby="deployModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="DeployTo">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="packageId" id="deployPkgId" value="" />
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deployModalLabel">
+                        <i class="bi bi-send me-2 text-primary"></i>Deploy a installazione specifica
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Pacchetto: <strong><span id="deployPkgLabel"></span></strong>
+                    </p>
+                    @if (Model.OnlineInstallations.Count == 0)
+                    {
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-wifi-off me-1"></i>Nessuna installazione online al momento.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Seleziona installazione <span class="text-danger">*</span></label>
+                            <select name="installationId" class="form-select" required>
+                                <option value="">— seleziona —</option>
+                                @foreach (var inst in Model.OnlineInstallations)
+                                {
+                                    var comp = inst.HasServer && inst.HasClient ? "server client" : inst.HasServer ? "server" : "client";
+                                    <option value="@inst.Id"
+                                            class="deploy-inst-row"
+                                            data-component="@comp">
+                                        @inst.Name @(string.IsNullOrEmpty(inst.Location) ? "" : $"— {inst.Location}")
+                                        (@(inst.HasServer && inst.HasClient ? "Server+Client" : inst.HasServer ? "Server" : "Client"))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            La modalità (Auto/Manuale) dell'installazione selezionata viene rispettata.
+                        </p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    @if (Model.OnlineInstallations.Count > 0)
+                    {
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i>Invia aggiornamento
+                        </button>
+                    }
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -357,6 +431,11 @@
                         <div class="form-text">Dimensione massima: 500 MB</div>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Commit Git</label>
+                        <input type="text" name="gitCommit" class="form-control font-monospace"
+                               placeholder="es. a1b2c3d4" maxlength="40" />
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Note di rilascio</label>
                         <textarea name="releaseNotes" class="form-control" rows="3"
                                   placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
@@ -375,6 +454,24 @@
 
 @section Scripts {
 <script>
+// ── Targeted deploy modal ─────────────────────────────────────────────────
+function openDeployModal(btn) {
+    const pkgId    = btn.getAttribute('data-pkg-id');
+    const pkgLabel = btn.getAttribute('data-pkg-label');
+    const pkgComp  = btn.getAttribute('data-pkg-component'); // 'server' or 'client'
+
+    document.getElementById('deployPkgId').value    = pkgId;
+    document.getElementById('deployPkgLabel').textContent = pkgLabel;
+
+    // Show only installations that have the relevant component
+    document.querySelectorAll('.deploy-inst-row').forEach(row => {
+        const comp = row.getAttribute('data-component') || '';
+        row.style.display = (pkgComp === 'server' && comp.includes('server')) ||
+                            (pkgComp === 'client' && comp.includes('client'))
+            ? '' : 'none';
+    });
+}
+
 // ── Build-from-folder: auto-fill defaults on component change ─────────────
 const defaultPaths = {
     'Server': @Html.Raw(JsonSerializer.Serialize(Model.DefaultServerDeployPath ?? string.Empty)),

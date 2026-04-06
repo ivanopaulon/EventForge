@@ -1,3 +1,4 @@
+using EventForge.UpdateHub.Configuration;
 using EventForge.UpdateHub.Models;
 using EventForge.UpdateHub.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -11,7 +12,9 @@ namespace EventForge.UpdateHub.Hubs;
 public class AgentHub(
     ILogger<AgentHub> logger,
     IConnectionTracker connectionTracker,
-    IInstallationService installationService) : Hub
+    IInstallationService installationService,
+    IPackageService packageService,
+    UpdateHubOptions hubOptions) : Hub
 {
     public override async Task OnConnectedAsync()
     {
@@ -125,6 +128,59 @@ public class AgentHub(
 
         logger.LogInformation("Update progress Installation={InstallationId} Phase={Phase} Completed={IsCompleted} Success={IsSuccess}",
             installationId, msg.Phase, msg.IsCompleted, msg.IsSuccess);
+    }
+
+    /// <summary>
+    /// Agent → Hub: Agent received an <see cref="UpdateAvailableMessage"/> broadcast and detected
+    /// its installed version is older. The Hub creates a history record and sends back a
+    /// <c>StartUpdate</c> command to this specific agent.
+    /// </summary>
+    public async Task RequestStartUpdate(Guid packageId)
+    {
+        var installationId = GetInstallationId();
+        if (installationId is null) return;
+
+        var pkg = await packageService.GetByIdAsync(packageId);
+        if (pkg is null)
+        {
+            logger.LogWarning("RequestStartUpdate: Package {PackageId} not found.", packageId);
+            return;
+        }
+
+        if (pkg.Status == PackageStatus.Archived)
+        {
+            logger.LogWarning("RequestStartUpdate: Package {PackageId} is archived — ignoring.", packageId);
+            return;
+        }
+
+        var installation = await installationService.GetByIdAsync(installationId.Value);
+        if (installation is null) return;
+
+        var history = await installationService.StartUpdateHistoryAsync(
+            installationId.Value, packageId,
+            installation.InstalledVersionServer,
+            installation.InstalledVersionClient);
+
+        var httpContext = Context.GetHttpContext();
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{httpContext?.Request.Scheme}://{httpContext?.Request.Host}";
+
+        var command = new StartUpdateCommand(
+            history.Id,
+            pkg.Id,
+            pkg.Version,
+            pkg.Component.ToString(),
+            $"{baseUrl}/api/v1/packages/{pkg.Id}/download",
+            pkg.Checksum,
+            IsManualInstall: installation.UpdateMode == InstallationUpdateMode.Manual);
+
+        await Clients.Caller.SendAsync("StartUpdate", command);
+        await packageService.SetStatusAsync(packageId, PackageStatus.Deploying);
+
+        logger.LogInformation(
+            "RequestStartUpdate: StartUpdate sent to Installation={InstallationId} Package={PackageId} Version={Version}",
+            installationId, packageId, pkg.Version);
     }
 
     private Guid? GetInstallationId()
