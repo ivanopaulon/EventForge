@@ -567,4 +567,162 @@ public class FiscalPrintingController(
                 "Unexpected error saving fiscal printer setup.", ex);
         }
     }
+
+    // -------------------------------------------------------------------------
+    //  Daily closure – pre-check (5B.4)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns a pre-check summary for the daily fiscal closure of the specified printer.
+    /// Includes whether there is an open receipt (blocks closure), drawer state, and
+    /// today's receipt/total summary.
+    /// </summary>
+    [HttpGet("daily-closure/precheck/{printerId:guid}")]
+    [ProducesResponseType(typeof(DailyClosurePreCheckDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DailyClosurePreCheckDto>> GetDailyClosurePreCheckAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation(
+                "GetDailyClosurePreCheckAsync | PrinterId={PrinterId} User={User}",
+                printerId, GetCurrentUser());
+
+            var preCheck = await fiscalPrinterService.GetDailyClosurePreCheckAsync(printerId, cancellationToken);
+            return Ok(preCheck);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error getting pre-check for printer {printerId}.", ex);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Daily closure – execute (5B.4)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Executes the daily fiscal closure (Z-report) for the specified printer.
+    /// This operation is irreversible. Caller should invoke the pre-check endpoint first.
+    /// </summary>
+    [HttpPost("daily-closure/execute/{printerId:guid}")]
+    [ProducesResponseType(typeof(DailyClosureResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<DailyClosureResultDto>> ExecuteDailyClosureAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var operatorName = GetCurrentUser();
+            logger.LogInformation(
+                "ExecuteDailyClosureAsync | PrinterId={PrinterId} Operator={Op}",
+                printerId, operatorName);
+
+            var result = await fiscalPrinterService.ExecuteDailyClosureAsync(
+                printerId, operatorName, cancellationToken);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error executing daily closure for printer {printerId}.", ex);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Closure history (5B.4)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns the history of daily closures for the specified printer, with optional date filters.
+    /// </summary>
+    [HttpGet("closures/{printerId:guid}")]
+    [ProducesResponseType(typeof(List<DailyClosureHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<DailyClosureHistoryDto>>> GetClosureHistoryAsync(
+        Guid printerId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var history = await fiscalPrinterService.GetClosureHistoryAsync(
+                printerId, page, pageSize, fromDate, toDate, cancellationToken);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error retrieving closure history for printer {printerId}.", ex);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  PDF download (5B.4) – stub (PDF generation is Sprint 5C scope)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Downloads the PDF Z-report for the specified closure.
+    /// Note: PDF generation is scheduled for Sprint 5C. This endpoint currently
+    /// returns 404 if no PDF has been stored for the closure.
+    /// </summary>
+    [HttpGet("closures/{closureId:guid}/pdf")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult DownloadClosurePdf(Guid closureId)
+    {
+        // PDF storage/generation is deferred to Sprint 5C.
+        // Returning 404 with a descriptive message so the client can handle it gracefully.
+        return CreateNotFoundProblem($"PDF for closure {closureId} is not yet available. PDF generation is planned for Sprint 5C.");
+    }
+
+    // -------------------------------------------------------------------------
+    //  Reprint Z-report (5B.4)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Reprints the Z-report for a previously executed closure.
+    /// </summary>
+    [HttpPost("closures/{closureId:guid}/reprint")]
+    [ProducesResponseType(typeof(FiscalPrintResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FiscalPrintResult>> ReprintZReportAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation(
+                "ReprintZReportAsync | ClosureId={ClosureId} User={User}",
+                closureId, GetCurrentUser());
+
+            var result = await fiscalPrinterService.ReprintZReportAsync(closureId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error reprinting Z-report for closure {closureId}.", ex);
+        }
+    }
 }

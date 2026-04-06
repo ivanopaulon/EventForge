@@ -52,4 +52,21 @@ public interface IFiscalPrintingService
 
     /// <summary>Saves the full wizard configuration (creates printer + associations).</summary>
     Task<EventForge.DTOs.Station.PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default);
+
+    // ── Daily closure workflow ────────────────────────────────────────────────
+
+    /// <summary>Returns pre-check data before executing the daily closure.</summary>
+    Task<DailyClosurePreCheckDto?> GetDailyClosurePreCheckAsync(Guid printerId, CancellationToken ct = default);
+
+    /// <summary>Executes the daily fiscal closure (Z-report) for the specified printer.</summary>
+    Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(Guid printerId, CancellationToken ct = default);
+
+    /// <summary>Returns the history of daily closures for the specified printer.</summary>
+    Task<List<DailyClosureHistoryDto>?> GetClosureHistoryAsync(
+        Guid printerId, int page = 1, int pageSize = 20,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default);
+
+    /// <summary>Reprints the Z-report for a previously executed closure.</summary>
+    Task<FiscalPrintResult?> ReprintZReportAsync(Guid closureId, CancellationToken ct = default);
 }

@@ -271,4 +271,76 @@ public class FiscalPrintingService(
             return null;
         }
     }
+
+    // ── Daily closure workflow ────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<DailyClosurePreCheckDto?> GetDailyClosurePreCheckAsync(
+        Guid printerId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<DailyClosurePreCheckDto>(
+                $"{BaseUrl}/daily-closure/precheck/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetDailyClosurePreCheckAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(
+        Guid printerId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, DailyClosureResultDto>(
+                $"{BaseUrl}/daily-closure/execute/{printerId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "ExecuteDailyClosureAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<DailyClosureHistoryDto>?> GetClosureHistoryAsync(
+        Guid printerId, int page = 1, int pageSize = 20,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/closures/{printerId}?page={page}&pageSize={pageSize}";
+            if (fromDate.HasValue)
+                url += $"&fromDate={fromDate.Value:o}";
+            if (toDate.HasValue)
+                url += $"&toDate={toDate.Value:o}";
+            return await httpClientService.GetAsync<List<DailyClosureHistoryDto>>(url, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetClosureHistoryAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult?> ReprintZReportAsync(
+        Guid closureId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/closures/{closureId}/reprint", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "ReprintZReportAsync failed for closure {ClosureId}", closureId);
+            return null;
+        }
+    }
 }

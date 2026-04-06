@@ -271,6 +271,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IFiscalPrinterService, CustomFiscalPrinterService>();
         _ = services.AddSingleton<FiscalPrinterStatusCache>();
         _ = services.AddHostedService<EventForge.Server.HostedServices.FiscalPrinterMonitorService>();
+        _ = services.AddHostedService<EventForge.Server.HostedServices.DailyClosureReminderService>();
 
         // Register code generation services
         _ = services.AddScoped<IDailyCodeGenerator, DailySequentialCodeGenerator>();

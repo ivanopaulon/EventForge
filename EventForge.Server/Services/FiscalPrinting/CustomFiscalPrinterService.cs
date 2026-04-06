@@ -25,6 +25,14 @@ public class CustomFiscalPrinterService(
 {
     private readonly FiscalReceiptBuilder _builder = new();
 
+    // In-memory closure history (replaced by DB persistence in a future sprint)
+    // WARNING: this data is lost on application restart and not shared across instances.
+    // Deploy Sprint 5C DB persistence before going to production.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, List<DailyClosureHistoryDto>>
+        _closureHistory = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, DailyClosureHistoryDto>
+        _closureById = new();
+
     // -------------------------------------------------------------------------
     //  IFiscalPrinterService
     // -------------------------------------------------------------------------
@@ -465,5 +473,164 @@ public class CustomFiscalPrinterService(
         var list = results.OrderBy(r => r.IpAddress, StringComparer.OrdinalIgnoreCase).ToList();
         logger.LogInformation("Network scan {Subnet}.x:{Port} found {Count} devices", subnetPrefix, port, list.Count);
         return list;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Daily closure workflow
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<DailyClosurePreCheckDto> GetDailyClosurePreCheckAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default)
+    {
+        var printer = await ResolveAndLoadPrinterAsync(printerId, cancellationToken);
+        var preCheck = new DailyClosurePreCheckDto();
+
+        try
+        {
+            // Attempt a status read to detect open-receipt and drawer states
+            var statusResult = await GetStatusAsync(printerId, cancellationToken);
+            preCheck.IsDrawerOpen = false; // Custom status bitmap does not expose drawer state directly
+            // IsReceiptOpen is inferred from the status – if the printer has an error/busy flag
+            // we treat it as an open receipt to be safe
+            preCheck.HasOpenReceipt = statusResult.IsReceiptOpen;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "GetDailyClosurePreCheckAsync: could not read status for printer {PrinterId}", printerId);
+        }
+
+        // Populate history-based totals from our in-memory history for now
+        // (will be replaced by DB aggregation in a future sprint)
+        preCheck.LastClosureDate = _closureHistory.TryGetValue(printerId, out var history) && history.Count > 0
+            ? history.Max(c => c.ClosedAt)
+            : null;
+
+        preCheck.CheckedAt = DateTime.UtcNow;
+        return preCheck;
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto> ExecuteDailyClosureAsync(
+        Guid printerId,
+        string operatorName,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("ExecuteDailyClosureAsync | PrinterId={PrinterId} Operator={Op}", printerId, operatorName);
+
+        var printResult = await DailyClosureAsync(printerId, cancellationToken);
+
+        if (!printResult.Success)
+        {
+            return new DailyClosureResultDto
+            {
+                Success = false,
+                ErrorMessage = printResult.ErrorMessage,
+                ClosedAt = DateTime.UtcNow
+            };
+        }
+
+        // Build closure record
+        var closureId = Guid.NewGuid();
+        var printer = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .Select(p => new { p.Id, p.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var historyEntry = new DailyClosureHistoryDto
+        {
+            Id = closureId,
+            PrinterId = printerId,
+            PrinterName = printer?.Name ?? printerId.ToString(),
+            ZReportNumber = int.TryParse(printResult.ReceiptNumber, out var n) ? n : 0,
+            ClosedAt = DateTime.UtcNow,
+            ReceiptCount = 0, // aggregation from POS data is deferred to Sprint 5C
+            TotalAmount = 0m,
+            Operator = operatorName,
+            HasPdf = false
+        };
+
+        _closureHistory.AddOrUpdate(
+            printerId,
+            _ => [historyEntry],
+            (_, existing) => { existing.Add(historyEntry); return existing; });
+
+        _closureById[closureId] = historyEntry;
+
+        logger.LogInformation(
+            "DailyClosure recorded | PrinterId={PrinterId} ClosureId={ClosureId} Operator={Op}",
+            printerId, closureId, operatorName);
+
+        return new DailyClosureResultDto
+        {
+            Success = true,
+            ClosureId = closureId,
+            ZReportNumber = historyEntry.ZReportNumber,
+            ClosedAt = historyEntry.ClosedAt,
+            ReceiptCount = historyEntry.ReceiptCount,
+            TotalAmount = historyEntry.TotalAmount,
+            Operator = operatorName
+        };
+    }
+
+    /// <inheritdoc />
+    public Task<List<DailyClosureHistoryDto>> GetClosureHistoryAsync(
+        Guid printerId,
+        int page = 1,
+        int pageSize = 20,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_closureHistory.TryGetValue(printerId, out var history))
+            return Task.FromResult(new List<DailyClosureHistoryDto>());
+
+        IEnumerable<DailyClosureHistoryDto> query = history.OrderByDescending(c => c.ClosedAt);
+
+        if (fromDate.HasValue)
+            query = query.Where(c => c.ClosedAt >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(c => c.ClosedAt <= toDate.Value);
+
+        var result = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc />
+    public async Task<FiscalPrintResult> ReprintZReportAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_closureById.TryGetValue(closureId, out var closure))
+        {
+            return new FiscalPrintResult
+            {
+                Success = false,
+                ErrorMessage = $"Closure {closureId} not found in history",
+                PrintDate = DateTime.UtcNow
+            };
+        }
+
+        logger.LogInformation("ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, closure.PrinterId);
+
+        // The Custom protocol reprint command is the standard DailyClosure command
+        return await DailyClosureAsync(closure.PrinterId, cancellationToken);
+    }
+
+    // -------------------------------------------------------------------------
+    //  Private helpers
+    // -------------------------------------------------------------------------
+
+    private async Task<EventForge.Server.Data.Entities.Common.Printer> ResolveAndLoadPrinterAsync(
+        Guid printerId, CancellationToken cancellationToken)
+    {
+        var printer = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException($"Printer {printerId} not found.");
+        return printer;
     }
 }

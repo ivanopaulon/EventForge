@@ -4,6 +4,7 @@
 @using EventForge.DTOs.Station
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.FiscalPrinting
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -11,6 +12,7 @@
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IHttpClientService HttpClientService
 @inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject ILogger<FiscalPrintersDashboard> Logger
 @implements IAsyncDisposable
@@ -149,7 +151,7 @@
                         Dettagli
                     </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.EventNote"
-                                 OnClick="@(() => DailyClosureAsync(context.Printer.Id, context.Printer.Name))"
+                                 OnClick="@(() => OpenDailyClosureDialogAsync(context.Printer.Id, context.Printer.Name))"
                                  Disabled="@(context.Status?.IsDailyClosureRequired != true)">
                         Chiusura Giornaliera
                     </MudMenuItem>
@@ -162,6 +164,10 @@
                         Apri Cassetto
                     </MudMenuItem>
                     <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.History"
+                                 OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers/{context.Printer.Id}/closures"))">
+                        Storico Chiusure
+                    </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Edit"
                                  OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers/setup?editId={context.Printer.Id}"))">
                         Modifica
@@ -332,24 +338,32 @@
 
     private async Task ShowDetailAsync(Guid printerId)
     {
-        var status = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Status;
         var printer = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Printer;
-        // Detail is shown via the FiscalPrinterStatusIndicator chip (reuse dialog)
         AppNotification.ShowInfo($"Stampante: {printer?.Name ?? printerId.ToString()}");
     }
 
-    private async Task DailyClosureAsync(Guid printerId, string printerName)
+    private async Task OpenDailyClosureDialogAsync(Guid printerId, string printerName)
     {
-        var result = await FiscalPrintingService.DailyClosureAsync(printerId);
-        if (result?.Success == true)
+        var parameters = new DialogParameters
         {
-            AppNotification.ShowSuccess($"Chiusura giornaliera completata per {printerName}.");
+            [nameof(DailyClosureDialog.PrinterId)] = printerId,
+            [nameof(DailyClosureDialog.PrinterName)] = printerName
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            CloseButton = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+            "Chiusura Giornaliera", parameters, options);
+
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
             await RefreshAsync();
-        }
-        else
-        {
-            AppNotification.ShowError($"Chiusura fallita: {result?.ErrorMessage ?? "errore sconosciuto"}");
-        }
     }
 
     private async Task PrintTestAsync(Guid printerId)

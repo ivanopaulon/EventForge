@@ -150,4 +150,40 @@ public interface IFiscalPrinterService
         int port = 9100,
         int timeoutMs = 300,
         CancellationToken cancellationToken = default);
+
+    // ── Daily closure workflow ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Checks whether it is safe to execute the daily fiscal closure for the specified printer.
+    /// Returns a summary of today's receipts and warns if an open receipt exists.
+    /// </summary>
+    Task<DailyClosurePreCheckDto> GetDailyClosurePreCheckAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes the daily fiscal closure (Z-report) and records the result in the closure history.
+    /// </summary>
+    Task<DailyClosureResultDto> ExecuteDailyClosureAsync(
+        Guid printerId,
+        string operatorName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the paginated history of daily closures for the specified printer.
+    /// </summary>
+    Task<List<DailyClosureHistoryDto>> GetClosureHistoryAsync(
+        Guid printerId,
+        int page = 1,
+        int pageSize = 20,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reprints the Z-report for a previously executed closure.
+    /// </summary>
+    Task<FiscalPrintResult> ReprintZReportAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default);
 }
