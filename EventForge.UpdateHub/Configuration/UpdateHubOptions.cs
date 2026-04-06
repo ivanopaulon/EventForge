@@ -97,6 +97,20 @@ public class HubLoggingOptions
 
 public class HubUiOptions
 {
+    /// <summary>
+    /// HTTPS port Kestrel listens on when running standalone (not behind IIS/reverse-proxy).
+    /// 0 = disabled. Default: 7244.
+    /// When deployed under IIS the value is ignored — use the IIS site binding instead.
+    /// </summary>
+    public int HttpsPort { get; set; } = 7244;
+
+    /// <summary>
+    /// HTTP port Kestrel listens on when running standalone.
+    /// 0 = disabled. Default: 7243.
+    /// For standalone HTTPS-only deployments set this to 0.
+    /// </summary>
+    public int HttpPort { get; set; } = 7243;
+
     /// <summary>HTTP Basic auth username for the admin web UI. Change before deploying.</summary>
     public string Username { get; set; } = "admin";
 
