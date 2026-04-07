@@ -726,59 +726,6 @@ dotnet run --urls "https://localhost:7241;http://localhost:5240"
    - Disable unwanted recycling triggers
    - Monitor memory usage if recycling due to memory limits
 
-### QZ Tray Integration Issues
-
-**Symptoms:** `qz.api.setCertificatePromise is not a function` or QZ Tray errors in browser console
-
-**Root Cause:** This occurs when the QZ Tray JavaScript library version doesn't match the API usage in the application code.
-
-**Solutions:**
-
-1. **Verify QZ Tray is installed and running:**
-   - Download latest version from: https://qz.io/download/
-   - Install QZ Tray application on client machines
-   - Ensure QZ Tray is running (system tray icon should be visible)
-
-2. **Check QZ Tray library version in the client:**
-   ```powershell
-   # Check wwwroot for QZ Tray files
-   Get-ChildItem "C:\inetpub\EventForge\wwwroot" -Recurse -Filter "*qz-tray*"
-   ```
-
-3. **Update QZ Tray JavaScript library:**
-   - The application should use the npm package `qz-tray` version 2.2.x or later
-   - Check `EventForge.Client/package.json` for qz-tray version
-   - Update to compatible version:
-     ```bash
-     cd EventForge.Client
-     npm update qz-tray
-     npm run build
-     ```
-   - Republish the application
-
-4. **Verify certificate setup in qz-setup.js:**
-   - Ensure the certificate promise setup matches the QZ Tray API version
-   - For QZ Tray 2.2.x, use:
-     ```javascript
-     qz.security.setCertificatePromise(function(resolve, reject) {
-         // Certificate setup
-     });
-     ```
-
-5. **Check browser console for QZ Tray connection:**
-   - QZ Tray must be running on the client machine
-   - WebSocket connection to localhost:8182 or localhost:8181 must succeed
-   - Check firewall settings allow local QZ Tray connection
-
-6. **Non-blocking error handling:**
-   - If QZ Tray is optional functionality, ensure errors are caught and don't block application startup
-   - The error message indicates this is "non-blocking" which is good practice
-
-**Best Practice:** QZ Tray integration is primarily a client-side concern. For IIS deployment:
-- Ensure the client JavaScript files are published correctly
-- Document QZ Tray installation requirements for end users
-- Provide fallback functionality if QZ Tray is unavailable
-
 ### Port Already in Use
 
 **Symptoms:** Cannot start IIS, port binding error
@@ -923,7 +870,6 @@ In **production** (after publishing to IIS), both client and server are served f
 - [ ] API calls successful (check browser network tab)
 - [ ] Database connectivity confirmed
 - [ ] Authentication/login working
-- [ ] QZ Tray integration working (if applicable)
 - [ ] All critical features tested
 
 ### Troubleshooting Checklist

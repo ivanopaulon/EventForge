@@ -20,7 +20,6 @@ Guide dettagliate per l'implementazione di funzionalità specifiche di EventForg
 - [Barcode Integration](./barcode-integration.md) - Integrazione codici a barre
 - [Cross-Platform Barcode](./BARCODE_CROSS_PLATFORM_GUIDE.md) - Codici a barre cross-platform
 - [Printing System](./printing-system.md) - Sistema di stampa
-- [QZ Tray Integration](./QZ_PRINTING_INTEGRATION_GUIDE.md) - Integrazione QZ Tray
 
 ### 🎨 UI/UX Features
 - [Custom Theming](./theming-advanced.md) - Temi personalizzati avanzati
@@ -151,7 +150,7 @@ Integrazione completa per lettura e generazione codici a barre.
 - Barcode scanners
 
 ### Printing System
-Sistema di stampa avanzato con supporto QZ Tray.
+Sistema di stampa avanzato.
 
 **Caratteristiche:**
 - Silent printing

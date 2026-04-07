@@ -55,8 +55,6 @@ Questo file mantiene la mappatura tra i file di documentazione originali e la lo
 | `NOTIFICATIONS_CHAT_UI_IMPLEMENTATION.md` | `docs/features/NOTIFICATIONS_CHAT_UI_IMPLEMENTATION.md` | UI chat |
 | `BARCODE_INTEGRATION_GUIDE.md` | `docs/features/BARCODE_INTEGRATION_GUIDE.md` | Integrazione barcode |
 | `BARCODE_CROSS_PLATFORM_GUIDE.md` | `docs/features/BARCODE_CROSS_PLATFORM_GUIDE.md` | Barcode cross-platform |
-| `QZ_PRINTING_INTEGRATION_GUIDE.md` | `docs/features/QZ_PRINTING_INTEGRATION_GUIDE.md` | Integrazione stampa |
-| `QZ_TRAY_SIGNATURE_README.md` | `docs/features/QZ_TRAY_SIGNATURE_README.md` | Signature QZ Tray |
 | `PROMOTIONS_ENGINE.md` | `docs/features/PROMOTIONS_ENGINE.md` | Motore promozioni |
 | `SIGNALR_IMPLEMENTATION_STEP1.md` | `docs/features/SIGNALR_IMPLEMENTATION_STEP1.md` | Implementazione SignalR |
 | `RETAIL_CART_SESSION.md` | `docs/features/RETAIL_CART_SESSION.md` | Sessione carrello |

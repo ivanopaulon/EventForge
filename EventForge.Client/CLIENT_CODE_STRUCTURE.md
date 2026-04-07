@@ -250,8 +250,6 @@ Chart and trend visualization components:
 #### JavaScript (4 files)
 - `console-filter.js` - Console log filtering for Mono diagnostics
 - `help-system.js` - Help system interactivity
-- `qz-setup.js` - QZ Tray printer integration
-- `qz-tray.js` - QZ Tray library (installed via npm)
 
 #### Internationalization (`i18n/`)
 - `en.json` - English translations
