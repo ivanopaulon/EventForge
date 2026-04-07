@@ -12,7 +12,10 @@ using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.PriceLists;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace EventForge.Tests.Services.PriceLists;
 
@@ -20,6 +23,7 @@ namespace EventForge.Tests.Services.PriceLists;
 public class PriceListServicePhase2CTests_PR4
 {
     private readonly DbContextOptions<EventForgeDbContext> _dbOptions;
+    private Guid _currentTenantId;
 
     public PriceListServicePhase2CTests_PR4()
     {
@@ -919,24 +923,31 @@ public class PriceListServicePhase2CTests_PR4
 
     #region Helper Methods
 
-    private static PriceListService CreateService(EventForgeDbContext context)
+    private PriceListService CreateService(EventForgeDbContext context)
     {
         var mockAudit = new MockAuditLogService();
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
-        var mockGenerationService = new MockPriceListGenerationService();
-        var mockCalculationService = new MockPriceCalculationService();
+        var tenantContextMock = new Mock<ITenantContext>();
+        tenantContextMock.Setup(x => x.CurrentTenantId).Returns(() => _currentTenantId);
+        var generationService = new PriceListGenerationService(context, mockAudit, NullLogger<PriceListGenerationService>.Instance, tenantContextMock.Object);
+        var mockCalculationService = new PriceCalculationService(context, mockUnitConversion, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        return new PriceListService(context, mockAudit, Microsoft.Extensions.Logging.Abstractions.NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, generationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
-    private static Tenant CreateTenant() => new()
+    private Tenant CreateTenant()
     {
-        Id = Guid.NewGuid(),
-        Name = "Test Tenant",
-        CreatedAt = DateTime.UtcNow,
-        CreatedBy = "test"
-    };
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Tenant",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _currentTenantId = tenant.Id;
+        return tenant;
+    }
 
     private static Product CreateProduct(
         Guid tenantId,

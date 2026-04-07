@@ -35,9 +35,18 @@ public class PriceListService(
 
             if (status.HasValue)
             {
-                // Cast DTO enum to entity enum for comparison
-                var entityStatus = (PriceListStatus)status.Value;
-                query = query.Where(pl => pl.Status == entityStatus);
+                // Map DTO enum to entity enum by name (the two enums have different ordinal values)
+                var entityStatus = status.Value switch
+                {
+                    DTOs.Common.PriceListStatus.Active => PriceListStatus.Active,
+                    DTOs.Common.PriceListStatus.Suspended => PriceListStatus.Suspended,
+                    DTOs.Common.PriceListStatus.Deleted => PriceListStatus.Deleted,
+                    _ => (PriceListStatus?)null
+                };
+                if (entityStatus.HasValue)
+                {
+                    query = query.Where(pl => pl.Status == entityStatus.Value);
+                }
                 logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
             }
 
@@ -572,7 +581,13 @@ public class PriceListService(
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
+            Status = priceList.Status switch
+            {
+                PriceListStatus.Active => EventForge.DTOs.Common.PriceListStatus.Active,
+                PriceListStatus.Suspended => EventForge.DTOs.Common.PriceListStatus.Suspended,
+                PriceListStatus.Deleted => EventForge.DTOs.Common.PriceListStatus.Deleted,
+                _ => EventForge.DTOs.Common.PriceListStatus.Active
+            },
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,

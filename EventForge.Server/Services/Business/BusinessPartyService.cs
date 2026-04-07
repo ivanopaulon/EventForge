@@ -1153,9 +1153,7 @@ public class BusinessPartyService(
             // ⚡ Single query con eager loading ottimizzato
             var businessParty = await context.BusinessParties
                 .Where(bp => bp.Id == id && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
-                .Include(bp => bp.Contacts)
-                .Include(bp => bp.Addresses)
-                .AsSplitQuery() // ⭐ CRITICO: evita cartesian explosion con multiple includes
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (businessParty is null)
@@ -1164,14 +1162,23 @@ public class BusinessPartyService(
                 return null;
             }
 
-            // Filter contacts and addresses based on includeInactive parameter
-            var filteredContacts = includeInactive
-                ? businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value).ToList()
-                : businessParty.Contacts.Where(c => c.TenantId == currentTenantId.Value && !c.IsDeleted).ToList();
+            // Query contacts and addresses directly via OwnerId (polymorphic association)
+            var contactsQuery = context.Contacts
+                .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && c.TenantId == currentTenantId.Value);
+            var addressesQuery = context.Addresses
+                .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && a.TenantId == currentTenantId.Value);
 
-            var filteredAddresses = includeInactive
-                ? businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value).ToList()
-                : businessParty.Addresses.Where(a => a.TenantId == currentTenantId.Value && !a.IsDeleted).ToList();
+            var allContacts = await (includeInactive
+                ? contactsQuery.ToListAsync(cancellationToken)
+                : contactsQuery.Where(c => !c.IsDeleted).ToListAsync(cancellationToken));
+
+            var allAddresses = await (includeInactive
+                ? addressesQuery.ToListAsync(cancellationToken)
+                : addressesQuery.Where(a => !a.IsDeleted).ToListAsync(cancellationToken));
+
+            // Filter contacts and addresses based on includeInactive parameter
+            var filteredContacts = allContacts;
+            var filteredAddresses = allAddresses;
 
             // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
             var priceListsQuery = await context.PriceListBusinessParties

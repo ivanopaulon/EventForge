@@ -723,7 +723,7 @@ public class PriceListServicePhase2CTests
         var mockAudit = new MockAuditLogService();
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
-        var mockCalculationService = new MockPriceCalculationService();
+        var mockCalculationService = new Server.Services.PriceLists.PriceCalculationService(context, mockUnitConversion, NullLogger<Server.Services.PriceLists.PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
         return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);

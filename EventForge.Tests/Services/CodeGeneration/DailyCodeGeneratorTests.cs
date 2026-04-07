@@ -1,5 +1,6 @@
 using EventForge.Server.Data;
 using EventForge.Server.Services.CodeGeneration;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,17 +13,22 @@ namespace EventForge.Tests.Services.CodeGeneration;
 [Trait("Category", "Unit")]
 public class DailyCodeGeneratorTests : IDisposable
 {
+    private readonly SqliteConnection _sqliteConnection;
     private readonly EventForgeDbContext _context;
     private readonly Mock<ILogger<DailySequentialCodeGenerator>> _mockLogger;
     private readonly DailySequentialCodeGenerator _codeGenerator;
 
     public DailyCodeGeneratorTests()
     {
-        // Create in-memory database
+        // Use SQLite in-memory so raw SQL and GetDbConnection() work
+        _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+        _sqliteConnection.Open();
+
         var options = new DbContextOptionsBuilder<EventForgeDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseSqlite(_sqliteConnection)
             .Options;
         _context = new EventForgeDbContext(options);
+        _context.Database.EnsureCreated();
 
         _mockLogger = new Mock<ILogger<DailySequentialCodeGenerator>>();
 
@@ -112,5 +118,6 @@ public class DailyCodeGeneratorTests : IDisposable
     public void Dispose()
     {
         _context?.Dispose();
+        _sqliteConnection?.Dispose();
     }
 }

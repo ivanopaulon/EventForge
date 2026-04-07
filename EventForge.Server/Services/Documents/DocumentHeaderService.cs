@@ -833,20 +833,10 @@ public class DocumentHeaderService(
             // Check if we should merge with an existing IDENTICAL row
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
-                // Compare ALL conditions for "identical" rows
                 var existingRow = await context.DocumentRows
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
-                        // Check price, VAT, and discounts match
-                        r.UnitPrice == createDto.UnitPrice &&
-                        r.VatRate == createDto.VatRate &&
-                        r.LineDiscount == createDto.LineDiscount &&
-                        r.LineDiscountValue == createDto.LineDiscountValue &&
-                        r.DiscountType == createDto.DiscountType &&
-                        // Notes match (or both empty)
-                        ((string.IsNullOrEmpty(r.Notes) && string.IsNullOrEmpty(createDto.Notes)) ||
-                         r.Notes == createDto.Notes) &&
                         !r.IsDeleted,
                         cancellationToken);
 
