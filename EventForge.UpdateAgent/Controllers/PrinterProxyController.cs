@@ -139,7 +139,7 @@ public sealed class PrinterProxyController(
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                printerNames = GetWindowsPrintersAsync();
+                printerNames = GetWindowsPrinters();
             }
             else
             {
@@ -155,7 +155,7 @@ public sealed class PrinterProxyController(
         return Ok(new { printers = printerNames });
     }
 
-    private static List<string> GetWindowsPrintersAsync()
+    private static List<string> GetWindowsPrinters()
     {
         var printers = new List<string>();
         try

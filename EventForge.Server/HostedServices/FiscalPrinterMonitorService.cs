@@ -209,12 +209,14 @@ public class FiscalPrinterMonitorService : BackgroundService
             var now = DateTime.UtcNow;
             var (count, lastLogged) = _errorState.GetOrAdd(printerId, _ => (0, DateTime.MinValue));
             count++;
-            _errorState[printerId] = (count, now);
 
             // Log at ERROR for the first few occurrences; after threshold only repeat every cooldown period.
             var isSuppressed = count > ErrorThresholdForDemotion && (now - lastLogged) < ErrorLogCooldown;
             if (!isSuppressed)
             {
+                // Update the last-logged timestamp BEFORE the log so subsequent checks use this time.
+                _errorState[printerId] = (count, now);
+
                 if (count <= ErrorThresholdForDemotion)
                 {
                     _logger.LogError(
@@ -229,8 +231,12 @@ public class FiscalPrinterMonitorService : BackgroundService
                         "FiscalPrinterMonitorService: repeated error polling printer {Name} ({Id}) " +
                         "({Count} consecutive failures, {Ex}). Further errors suppressed for {Cooldown}.",
                         printerName, printerId, count, ex.Message, ErrorLogCooldown);
-                    _errorState[printerId] = (count, now); // reset cooldown window
                 }
+            }
+            else
+            {
+                // Update error count only (keep lastLogged unchanged so cooldown keeps running).
+                _errorState[printerId] = (count, lastLogged);
             }
         }
     }

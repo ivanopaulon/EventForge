@@ -106,7 +106,7 @@
                                     <MudIconButton Icon="@Icons.Material.Outlined.Info"
                                                    Size="Size.Small"
                                                    Color="Color.Info"
-                                                   OnClick="@(() => { if (context is not null) ShowPackageDetails(context); })"
+                                                   OnClick="@(() => ShowPackageDetails(context!))"
                                                    Title="Dettagli" />
                                 </MudTd>
                             </RowTemplate>
