@@ -2,7 +2,7 @@
 
 ## Overview
 
-The EventForge Pagination System provides a centralized, configurable, and role-based approach to pagination across all API endpoints. This foundation replaces hardcoded pagination limits with a flexible system that supports endpoint-specific overrides, role-based limits, and export operations.
+The Prym Pagination System provides a centralized, configurable, and role-based approach to pagination across all API endpoints. This foundation replaces hardcoded pagination limits with a flexible system that supports endpoint-specific overrides, role-based limits, and export operations.
 
 ## Features
 
@@ -136,12 +136,12 @@ When a requested page size exceeds the allowed limit, the system:
 ## Testing
 
 ### Unit Tests
-- 16 unit test methods in `EventForge.Tests/ModelBinders/PaginationModelBinderTests.cs`
+- 16 unit test methods in `Prym.Tests/ModelBinders/PaginationModelBinderTests.cs`
 - Multiple test cases per Theory test (33 total test executions)
 - Tests cover all scenarios: defaults, capping, role-based limits, endpoint overrides, wildcards, invalid inputs, export headers
 
 ### Integration Tests
-- 8 integration tests in `EventForge.Tests/Integration/PaginationIntegrationTests.cs`
+- 8 integration tests in `Prym.Tests/Integration/PaginationIntegrationTests.cs`
 - Tests verify configuration loading, JSON serialization, and end-to-end behavior
 
 ## Logging

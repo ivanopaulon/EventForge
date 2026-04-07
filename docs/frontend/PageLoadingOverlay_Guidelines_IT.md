@@ -2,7 +2,7 @@
 
 ## Sommario
 
-Il componente `PageLoadingOverlay` è un overlay di caricamento standardizzato per EventForge. Questo documento fornisce le linee guida su quando e come utilizzare correttamente il componente, pattern consigliati, esempi pratici e best practice.
+Il componente `PageLoadingOverlay` è un overlay di caricamento standardizzato per Prym. Questo documento fornisce le linee guida su quando e come utilizzare correttamente il componente, pattern consigliati, esempi pratici e best practice.
 
 ## Indice
 
@@ -179,7 +179,7 @@ Il componente `PageLoadingOverlay` è un overlay di caricamento standardizzato p
 
 ```razor
 @page "/brand-management"
-@using EventForge.DTOs.Products
+@using Prym.DTOs.Products
 @inject IBrandService BrandService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar
@@ -583,4 +583,4 @@ _config = new EntityManagementConfig<MyEntityDto>
 
 **Versione documento**: 2.0  
 **Data**: Aprile 2026  
-**Autore**: EventForge Development Team
+**Autore**: Prym Development Team

@@ -1,6 +1,6 @@
 # Notifications and Chat Services Implementation
 
-This document describes the complete implementation of NotificationService and ChatService for EventForge.
+This document describes the complete implementation of NotificationService and ChatService for Prym.
 
 ## Overview
 

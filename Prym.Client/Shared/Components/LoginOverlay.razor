@@ -1,0 +1,33 @@
+@namespace Prym.Client.Shared.Components
+@inject IAuthenticationDialogService AuthDialogService
+@inject IDialogService DialogService
+@implements IDisposable
+
+@code {
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
+
+    protected override void OnInitialized()
+    {
+        AuthDialogService.LoginRequested += OnLoginRequested;
+    }
+
+    private async Task OnLoginRequested(TaskCompletionSource<bool> tcs)
+    {
+        var parameters = new DialogParameters<LoginSystemDialog>
+        {
+            { x => x.Tcs, tcs }
+        };
+        await DialogService.ShowAsync<LoginSystemDialog>(string.Empty, parameters, _options);
+    }
+
+    public void Dispose()
+    {
+        AuthDialogService.LoginRequested -= OnLoginRequested;
+    }
+}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-EventForge implements a **sliding expiration** strategy for user sessions. As long as the user is active (navigating pages or the background keepalive is running), the session never expires. A session is only terminated by an explicit logout or after **10 hours of true inactivity**.
+Prym implements a **sliding expiration** strategy for user sessions. As long as the user is active (navigating pages or the background keepalive is running), the session never expires. A session is only terminated by an explicit logout or after **10 hours of true inactivity**.
 
 ---
 
@@ -16,7 +16,7 @@ The session is maintained through periodic JWT token refresh. Every time the tok
 
 ### Background Keepalive (`SessionKeepaliveService`)
 
-`EventForge.Client/Services/SessionKeepaliveService.cs` runs a background timer that:
+`Prym.Client/Services/SessionKeepaliveService.cs` runs a background timer that:
 
 1. Fires every **3 minutes** (`KEEPALIVE_INTERVAL_MINUTES = 3`).
 2. Calls `IAuthService.RefreshTokenAsync()` to obtain a new JWT token.
@@ -27,13 +27,13 @@ The session is maintained through periodic JWT token refresh. Every time the tok
 
 ### Navigation Refresh (`MainLayout.OnLocationChanged`)
 
-`EventForge.Client/Layout/MainLayout.razor` subscribes to `NavigationManager.LocationChanged` and calls `IAuthService.RefreshTokenAsync()` on every page navigation, providing an additional refresh trigger beyond the background timer.
+`Prym.Client/Layout/MainLayout.razor` subscribes to `NavigationManager.LocationChanged` and calls `IAuthService.RefreshTokenAsync()` on every page navigation, providing an additional refresh trigger beyond the background timer.
 
 ---
 
 ## Configuration Parameters
 
-All parameters live in `EventForge.Server/appsettings.json` and can be overridden via environment variables or `appsettings.overrides.json`.
+All parameters live in `Prym.Server/appsettings.json` and can be overridden via environment variables or `appsettings.overrides.json`.
 
 | Parameter | Location | Default | Description |
 |-----------|----------|---------|-------------|

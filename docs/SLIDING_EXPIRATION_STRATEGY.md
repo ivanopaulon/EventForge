@@ -2,7 +2,7 @@
 
 ## Overview
 
-EventForge implements a **true sliding expiration** pattern for JWT authentication, ensuring users never have to re-login during active work sessions.
+Prym implements a **true sliding expiration** pattern for JWT authentication, ensuring users never have to re-login during active work sessions.
 
 ## How It Works
 

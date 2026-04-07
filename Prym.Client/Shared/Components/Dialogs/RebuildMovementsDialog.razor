@@ -1,0 +1,594 @@
+@using Prym.DTOs.Warehouse
+@using Prym.DTOs.Documents
+@inject IStockReconciliationService StockReconciliationService
+@inject IWarehouseService WarehouseService
+@inject IDocumentTypeService DocumentTypeService
+@inject ITranslationService TranslationService
+@inject ILogger<RebuildMovementsDialog> Logger
+@implements IDisposable
+
+<EFDialog Icon="@Icons.Material.Outlined.BuildCircle"
+          Title='@TranslationService.GetTranslation("rebuildMovements.title", "Ricostruzione Movimenti da Documenti")'
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
+        <MudStepper @ref="_stepper"
+                    ActiveIndex="@_step"
+                    ActiveIndexChanged="@(i => _step = i)"
+                    NonLinear="false"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    DisableAnimation="false"
+                    Style="min-height:0;">
+            <MudStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_fromDate"
+                                   Label="@TranslationService.GetTranslation("common.dateFrom", "Data Da")"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_toDate"
+                                   Label="@TranslationService.GetTranslation("common.dateTo", "Data A")"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_warehouseId"
+                               Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Clearable="true">
+                        @foreach (var w in _warehouses)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)w.Id)">@w.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="_documentTypeId"
+                               Label="@TranslationService.GetTranslation("rebuildMovements.documentType", "Tipo Documento")"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Clearable="true">
+                        @foreach (var dt in _documentTypes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)dt.Id)">@dt.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">
+                        @TranslationService.GetTranslation("rebuildMovements.approvalStatus", "Stato Approvazione")
+                    </MudText>
+                    <div class="d-flex flex-column gap-0">
+                        <MudCheckBox @bind-Value="_includeApproved" Dense="true" Color="Color.Success"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.approved", "Approvato")" />
+                        <MudCheckBox @bind-Value="_includePending" Dense="true" Color="Color.Warning"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.pending", "In Attesa")" />
+                        <MudCheckBox @bind-Value="_includeRejected" Dense="true" Color="Color.Error"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.rejected", "Rifiutato")" />
+                        <MudCheckBox @bind-Value="_includeNoneApproval" Dense="true" Color="Color.Default"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.approvalNone", "Nessuna")" />
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">
+                        @TranslationService.GetTranslation("rebuildMovements.documentStatus", "Stato Documento")
+                    </MudText>
+                    <div class="d-flex flex-column gap-0">
+                        <MudCheckBox @bind-Value="_includeClosed" Dense="true" Color="Color.Primary"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.closed", "Chiuso")" />
+                        <MudCheckBox @bind-Value="_includeOpen" Dense="true" Color="Color.Info"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.open", "Aperto")" />
+                        <MudCheckBox @bind-Value="_includeDraft" Dense="true" Color="Color.Default"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.draft", "Bozza")" />
+                        <MudCheckBox @bind-Value="_includeCancelled" Dense="true" Color="Color.Error"
+                                     Label="@TranslationService.GetTranslation("rebuildMovements.cancelled", "Annullato")" />
+                    </div>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-1" />
+                    <MudCheckBox @bind-Value="_updateExisting" Dense="true" Color="Color.Warning"
+                                 Label="@TranslationService.GetTranslation("rebuildMovements.updateExisting", "Aggiorna movimenti esistenti (data, quantità, tipo)")"
+                                 Class="mt-1" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">
+                        @TranslationService.GetTranslation("rebuildMovements.updateExistingHint", "Se attivo, i movimenti già collegati ai documenti vengono riallineati con i dati del documento.")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+            </MudStep>
+            <MudStep Title="Anteprima" Icon="@Icons.Material.Outlined.Preview">
+            @if (_isLoading)
+            {
+                <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                    <MudText Typo="Typo.body1">
+                        @TranslationService.GetTranslation("rebuildMovements.calculatingPreview", "Calcolo anteprima in corso...")
+                    </MudText>
+                </div>
+            }
+            else if (_previewResult != null)
+            {
+                @* Summary chips *@
+                <MudGrid Spacing="2" Class="mb-4">
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2">
+                            <MudText Typo="Typo.h5">@_previewResult.DocumentsScanned</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.documents", "Documenti")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                            <MudText Typo="Typo.h5" Color="Color.Success">@_previewResult.MovementsCreated</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.toCreate", "Da creare")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                            <MudText Typo="Typo.h5" Color="Color.Warning">@_previewResult.MovementsUpdated</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.toUpdate", "Da aggiornare")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-info);">
+                            <MudText Typo="Typo.h5" Color="Color.Info">@_previewResult.RowsAlreadyHadMovement</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.alreadyPresent", "Già presenti")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2"
+                                  Style="@(_previewResult.RowsSkippedNoLocation + _previewResult.Errors > 0 ? "border-left: 3px solid var(--mud-palette-warning);" : "")">
+                            <MudText Typo="Typo.h5"
+                                     Color="@(_previewResult.RowsSkippedNoLocation + _previewResult.Errors > 0 ? Color.Warning : Color.Default)">
+                                @(_previewResult.RowsSkippedNoLocation + _previewResult.Errors)
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.skippedOrErrors", "Saltati / Errori")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_previewResult.MovementsCreated == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.CheckCircle">
+                        @TranslationService.GetTranslation("rebuildMovements.nothingToCreate",
+                            "Nessun movimento mancante trovato. Tutti i documenti filtrati hanno già un movimento di magazzino associato.")
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">
+                        @TranslationService.GetTranslation("rebuildMovements.previewDetail", "Dettaglio movimenti da creare")
+                        @if (PreviewCreatedCount > _previewMaxRows)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2" Style="display:inline;">
+                                (mostrati @_previewMaxRows di @PreviewCreatedCount)
+                            </MudText>
+                        }
+                    </MudText>
+                    <div style="max-height:280px; overflow-y:auto;">
+                        <MudTable Items="@PreviewCreatedItems"
+                                  Dense="true" Striped="true" Hover="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("field.document", "Documento")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
+                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2">@context.DocumentNumber</MudText>
+                                </MudTd>
+                                <MudTd>
+                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:200px;">@context.ProductName</MudText>
+                                </MudTd>
+                                <MudTd>
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(context.MovementType == "Inbound" ? Color.Success : Color.Warning)"
+                                             Variant="Variant.Outlined">
+                                        @(context.MovementType == "Inbound"
+                                            ? TranslationService.GetTranslation("rebuildMovements.inbound", "↑ Entrata")
+                                            : TranslationService.GetTranslation("rebuildMovements.outbound", "↓ Uscita"))
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align:right;">
+                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Quantity.ToString("N2")</MudText>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                }
+            }
+            </MudStep>
+            <MudStep Title="Applicazione" Icon="@Icons.Material.Outlined.PlayArrow">
+            @if (_isLoading)
+            {
+                <div class="d-flex flex-column align-center pa-4 gap-4">
+                    <div class="d-flex align-center gap-3">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.body1">
+                                @TranslationService.GetTranslation("rebuildMovements.applying", "Creazione movimenti in corso...")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslationFormatted("rebuildMovements.elapsed", "{0}s trascorsi",
+                                    (int)(DateTimeOffset.UtcNow - _applyStartTime).TotalSeconds)
+                            </MudText>
+                        </div>
+                    </div>
+                    @if (_progressLog.Count > 0)
+                    {
+                        <MudPaper Outlined="true" Class="pa-3" Style="width:100%; min-height:90px;">
+                            <div class="d-flex flex-column gap-2">
+                                @for (var i = 0; i < _progressLog.Count; i++)
+                                {
+                                    var logMsg = _progressLog[i];
+                                    var logOpacity = i == 0 ? "1" : i == 1 ? "0.65" : "0.35";
+                                    var isFirst = i == 0;
+                                    <div class="d-flex align-center gap-2" style="opacity:@logOpacity">
+                                        @if (isFirst)
+                                        {
+                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
+                                        }
+                                        <MudText Typo="Typo.body2"
+                                                 Color="@(isFirst ? Color.Primary : Color.Default)"
+                                                 Style="@(isFirst ? "font-weight:600" : "")">
+                                            @logMsg
+                                        </MudText>
+                                    </div>
+                                }
+                            </div>
+                        </MudPaper>
+                    }
+                </div>
+            }
+            else if (_applyResult != null)
+            {
+                <MudAlert Severity="@(_applyResult.Errors == 0 ? Severity.Success : Severity.Warning)" Class="mb-4">
+                    @if (_applyResult.Errors == 0)
+                    {
+                        @TranslationService.GetTranslation("rebuildMovements.applySuccess", "Operazione completata con successo!")
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslationFormatted("rebuildMovements.applyPartial",
+                            "Operazione completata con {0} errore/i.", _applyResult.Errors)
+                    }
+                </MudAlert>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                            <MudText Typo="Typo.h5" Color="Color.Success">@_applyResult.MovementsCreated</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.movementsCreated", "Movimenti creati")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                    @if (_applyResult.MovementsUpdated > 0)
+                    {
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                                <MudText Typo="Typo.h5" Color="Color.Warning">@_applyResult.MovementsUpdated</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @TranslationService.GetTranslation("rebuildMovements.movementsUpdated", "Movimenti aggiornati")
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    @if (_applyResult.Errors > 0)
+                    {
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-error);">
+                                <MudText Typo="Typo.h5" Color="Color.Error">@_applyResult.Errors</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @TranslationService.GetTranslation("common.errors", "Errori")
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                    <MudItem xs="6" sm="3">
+                        <MudPaper Class="pa-3 text-center" Elevation="2">
+                            <MudText Typo="Typo.h5">@_applyResult.DocumentsScanned</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @TranslationService.GetTranslation("rebuildMovements.documents", "Documenti")
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_applyResult.Items.Any(i => i.Status == "Error"))
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
+                        @TranslationService.GetTranslation("rebuildMovements.errorDetail", "Dettaglio errori")
+                    </MudText>
+                    <div style="max-height:200px; overflow-y:auto;">
+                        <MudTable Items="@ApplyErrorItems"
+                                  Dense="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("field.document", "Documento")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.error", "Errore")</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><MudText Typo="Typo.body2">@context.DocumentNumber</MudText></MudTd>
+                                <MudTd><MudText Typo="Typo.body2">@context.ProductName</MudText></MudTd>
+                                <MudTd><MudText Typo="Typo.caption" Color="Color.Error">@context.ErrorMessage</MudText></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+                }
+            }
+            </MudStep>
+        </MudStepper>
+    </ChildContent>
+
+    <DialogActions>
+        @if (_step < 2 || _isLoading)
+        {
+            <MudButton OnClick="Cancel" Disabled="_isLoading" Variant="Variant.Text">
+                @TranslationService.GetTranslation("button.cancel", "Annulla")
+            </MudButton>
+        }
+
+        @if (_step == 0)
+        {
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="GoToPreviewAsync"
+                       Disabled="_isLoading"
+                       StartIcon="@Icons.Material.Outlined.Preview">
+                @TranslationService.GetTranslation("rebuildMovements.preview", "Anteprima")
+            </MudButton>
+        }
+        else if (_step == 1 && !_isLoading)
+        {
+            <MudButton Variant="Variant.Text"
+                       OnClick="@(() => _step = 0)"
+                       StartIcon="@Icons.Material.Outlined.NavigateBefore">
+                @TranslationService.GetTranslation("common.back", "Indietro")
+            </MudButton>
+            @if (_previewResult?.MovementsCreated > 0 || _previewResult?.MovementsUpdated > 0)
+            {
+                var totalOps = (_previewResult?.MovementsCreated ?? 0) + (_previewResult?.MovementsUpdated ?? 0);
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="ApplyAsync"
+                           StartIcon="@Icons.Material.Outlined.PlayArrow">
+                    @TranslationService.GetTranslationFormatted("rebuildMovements.apply",
+                        "Applica ({0} operazioni)", totalOps)
+                </MudButton>
+            }
+        }
+        else if (_step == 2 && !_isLoading)
+        {
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="Close"
+                       StartIcon="@Icons.Material.Outlined.Check">
+                @TranslationService.GetTranslation("button.close", "Chiudi")
+            </MudButton>
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>
+    /// Pre-selects a warehouse when opening the dialog from the stock overview page.
+    /// </summary>
+    [Parameter]
+    public Guid? InitialWarehouseId { get; set; }
+
+    private const int _previewMaxRows = 200;
+    private int _step = 0;
+    private bool _isLoading = false;
+
+    // ── Filter state ──
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private Guid? _warehouseId;
+    private Guid? _documentTypeId;
+    private bool _includeApproved = true;
+    private bool _includePending = false;
+    private bool _includeRejected = false;
+    private bool _includeNoneApproval = false;
+    private bool _includeClosed = true;
+    private bool _includeOpen = false;
+    private bool _includeDraft = false;
+    private bool _includeCancelled = false;
+    private bool _updateExisting = true;
+
+    // ── Reference data ──
+    private List<StorageFacilityDto> _warehouses = new();
+    private List<DocumentTypeDto> _documentTypes = new();
+
+    // ── Results ──
+    private RebuildMovementsResultDto? _previewResult;
+    private RebuildMovementsResultDto? _applyResult;
+
+    // ── Progress tracking ──
+    private readonly List<string> _progressLog = new();
+    private DateTimeOffset _applyStartTime;
+    private CancellationTokenSource? _progressCts;
+    private MudStepper? _stepper;
+
+    private static readonly string[] _progressMessages =
+    [
+        "Caricamento intestazioni documento...",
+        "Verifica movimenti già esistenti...",
+        "Ricerca ubicazioni di magazzino...",
+        "Pianificazione movimenti da creare/aggiornare...",
+        "Aggiornamento movimenti esistenti...",
+        "Creazione nuovi movimenti di magazzino...",
+        "Salvataggio modifiche su database...",
+        "Aggiornamento giacenze prodotti...",
+        "Verifica coerenza dati...",
+        "Completamento operazione batch..."
+    ];
+
+    // ── Computed helpers (avoid nested quotes in Razor attributes) ──
+    private const string StatusCreated = "Created";
+    private const string StatusError = "Error";
+    private IEnumerable<RebuildMovementsRowResultDto> PreviewCreatedItems =>
+        _previewResult?.Items.Where(i => i.Status == StatusCreated).Take(_previewMaxRows)
+        ?? Enumerable.Empty<RebuildMovementsRowResultDto>();
+    private int PreviewCreatedCount => _previewResult?.Items.Count(i => i.Status == StatusCreated) ?? 0;
+    private IEnumerable<RebuildMovementsRowResultDto> ApplyErrorItems =>
+        _applyResult?.Items.Where(i => i.Status == StatusError)
+        ?? Enumerable.Empty<RebuildMovementsRowResultDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _warehouseId = InitialWarehouseId;
+        try
+        {
+            var warehousesTask = WarehouseService.GetStorageFacilitiesAsync();
+            var docTypesTask = DocumentTypeService.GetAllDocumentTypesAsync();
+            await Task.WhenAll(warehousesTask, docTypesTask);
+
+            _warehouses = (await warehousesTask)?.Items?.ToList() ?? new();
+            _documentTypes = (await docTypesTask)?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reference data for RebuildMovementsDialog");
+        }
+    }
+
+    private async Task GoToPreviewAsync()
+    {
+        _step = 1;
+        _isLoading = true;
+        _previewResult = null;
+        StateHasChanged();
+        try
+        {
+            var request = BuildRequest(dryRun: true);
+            _previewResult = await StockReconciliationService.RebuildMovementsPreviewAsync(request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error previewing rebuild movements");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        _step = 2;
+        _isLoading = true;
+        _applyResult = null;
+        _progressLog.Clear();
+        _applyStartTime = DateTimeOffset.UtcNow;
+        _ = StartProgressTrackerAsync();
+        StateHasChanged();
+        try
+        {
+            var request = BuildRequest(dryRun: false);
+            _applyResult = await StockReconciliationService.RebuildMovementsExecuteAsync(request);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing rebuild movements");
+        }
+        finally
+        {
+            StopProgressTracker();
+            _isLoading = false;
+        }
+    }
+
+    private async Task StartProgressTrackerAsync()
+    {
+        _progressCts = new CancellationTokenSource();
+        var msgIndex = 0;
+        try
+        {
+            while (!_progressCts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(2500, _progressCts.Token);
+                var msg = _progressMessages[msgIndex % _progressMessages.Length];
+                _progressLog.Insert(0, msg);
+                if (_progressLog.Count > 3)
+                    _progressLog.RemoveAt(3);
+                msgIndex++;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (TaskCanceledException) { /* expected */ }
+    }
+
+    private void StopProgressTracker()
+    {
+        _progressCts?.Cancel();
+        _progressCts?.Dispose();
+        _progressCts = null;
+    }
+
+    public void Dispose() => StopProgressTracker();
+
+    private RebuildMovementsRequestDto BuildRequest(bool dryRun)
+    {
+        var approvalStatuses = new List<int>();
+        if (_includeApproved) approvalStatuses.Add(2);      // ApprovalStatus.Approved
+        if (_includePending) approvalStatuses.Add(1);       // ApprovalStatus.Pending
+        if (_includeRejected) approvalStatuses.Add(3);      // ApprovalStatus.Rejected
+        if (_includeNoneApproval) approvalStatuses.Add(0);  // ApprovalStatus.None
+
+        var documentStatuses = new List<int>();
+        if (_includeClosed) documentStatuses.Add(2);        // DocumentStatus.Closed
+        if (_includeOpen) documentStatuses.Add(1);          // DocumentStatus.Open
+        if (_includeDraft) documentStatuses.Add(0);         // DocumentStatus.Draft
+        if (_includeCancelled) documentStatuses.Add(3);     // DocumentStatus.Cancelled
+
+        return new RebuildMovementsRequestDto
+        {
+            DryRun = dryRun,
+            FromDate = _fromDate.HasValue ? DateTime.SpecifyKind(_fromDate.Value, DateTimeKind.Utc) : null,
+            ToDate = _toDate.HasValue ? DateTime.SpecifyKind(_toDate.Value, DateTimeKind.Utc) : null,
+            WarehouseId = _warehouseId,
+            DocumentTypeId = _documentTypeId,
+            ApprovalStatuses = approvalStatuses.Count > 0 ? approvalStatuses : null,
+            DocumentStatuses = documentStatuses.Count > 0 ? documentStatuses : null,
+            UpdateExisting = _updateExisting
+        };
+    }
+
+    private void Cancel()
+    {
+        if (_isLoading) return;
+        MudDialog.Cancel();
+    }
+
+    /// <summary>Returns the apply result so the caller can refresh stock data if movements were created.</summary>
+    private void Close() => MudDialog.Close(DialogResult.Ok(_applyResult));
+}

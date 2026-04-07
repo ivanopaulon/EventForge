@@ -1,13 +1,13 @@
-# EventForge Translation Guide
+# Prym Translation Guide
 
-This guide explains how to work with translations in EventForge and maintain translation completeness across all supported languages.
+This guide explains how to work with translations in Prym and maintain translation completeness across all supported languages.
 
 ## Overview
 
-EventForge uses JSON-based i18n (internationalization) for managing translations. All translation files are located in:
+Prym uses JSON-based i18n (internationalization) for managing translations. All translation files are located in:
 
 ```
-EventForge.Client/wwwroot/i18n/
+Prym.Client/wwwroot/i18n/
 ├── en.json  (English - base language)
 ├── it.json  (Italian)
 └── [other languages].json
@@ -36,7 +36,7 @@ Keys are referenced in code using dot notation: `common.save`, `product.title`, 
 
 ## Tools
 
-EventForge provides two CLI tools for managing translations:
+Prym provides two CLI tools for managing translations:
 
 ### 1. TranslationValidator
 
@@ -237,7 +237,7 @@ Current languages:
 - **it** (Italian)
 
 To add a new language:
-1. Create `[language-code].json` in `EventForge.Client/wwwroot/i18n/`
+1. Create `[language-code].json` in `Prym.Client/wwwroot/i18n/`
 2. Run the generator to populate it
 3. Translate all placeholders
 4. Update this documentation

@@ -1,7 +1,7 @@
-# Dependency Injection Patterns - EventForge
+# Dependency Injection Patterns - Prym
 
 ## Overview
-This document describes DI patterns and best practices implemented in EventForge to maintain clean architecture, testability, and prevent common dependency pitfalls.
+This document describes DI patterns and best practices implemented in Prym to maintain clean architecture, testability, and prevent common dependency pitfalls.
 
 ## Facade Pattern (M-1)
 
@@ -99,9 +99,9 @@ public class DocumentFacade : IDocumentFacade
 ## Circular Dependency Detection (M-3)
 
 ### Startup Validation
-EventForge validates the DI container at application startup to detect circular dependencies early, preventing runtime failures.
+Prym validates the DI container at application startup to detect circular dependencies early, preventing runtime failures.
 
-**Location**: `EventForge.Server/Startup/DependencyValidationService.cs`
+**Location**: `Prym.Server/Startup/DependencyValidationService.cs`
 
 ### What It Does
 1. **Extracts service descriptors** from the DI container using reflection

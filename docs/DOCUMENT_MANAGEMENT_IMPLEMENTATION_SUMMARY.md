@@ -1,7 +1,7 @@
 # Document Management Implementation Summary
 
 ## Overview
-This document summarizes the implementation of critical document management features for EventForge, focusing on capabilities that don't require external service integration.
+This document summarizes the implementation of critical document management features for Prym, focusing on capabilities that don't require external service integration.
 
 ## Date
 October 1, 2025
@@ -106,7 +106,7 @@ October 1, 2025
 
 ### Migration
 - **Name**: `20251001104157_AddDocumentRetentionAndAccessLogging`
-- **Location**: `EventForge.Server/Migrations/`
+- **Location**: `Prym.Server/Migrations/`
 - **Status**: Created (not applied - waiting for deployment)
 
 ## Service Registration

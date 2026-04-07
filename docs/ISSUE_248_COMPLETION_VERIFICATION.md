@@ -25,7 +25,7 @@ Questo report verifica lo stato di completamento dell'Issue #248 attraverso:
 ### 1. Entità Principali ✅ COMPLETO
 
 #### DocumentHeader (Testata Documento)
-- **File**: `EventForge.Server/Data/Entities/Documents/DocumentHeader.cs`
+- **File**: `Prym.Server/Data/Entities/Documents/DocumentHeader.cs`
 - **Dimensione**: 15,852 bytes
 - **Campi Implementati**: 30+ campi
 - **Features**:
@@ -39,7 +39,7 @@ Questo report verifica lo stato di completamento dell'Issue #248 attraverso:
   - ✅ Navigation properties (Rows, Attachments, Comments)
 
 #### DocumentRow (Righe Documento)
-- **File**: `EventForge.Server/Data/Entities/Documents/DocumentRow.cs`
+- **File**: `Prym.Server/Data/Entities/Documents/DocumentRow.cs`
 - **Dimensione**: 7,687 bytes
 - **Features**:
   - ✅ Product information (ProductCode, Description, UnitOfMeasure)
@@ -51,7 +51,7 @@ Questo report verifica lo stato di completamento dell'Issue #248 attraverso:
   - ✅ Calculated properties (LineTotal, VATTotal)
 
 #### DocumentType (Tipologia Documento)
-- **File**: `EventForge.Server/Data/Entities/Documents/DocumentType.cs`
+- **File**: `Prym.Server/Data/Entities/Documents/DocumentType.cs`
 - **Dimensione**: 2,231 bytes
 - **Features**:
   - ✅ Type configuration (Name, Code)
@@ -85,7 +85,7 @@ Oltre alle entità base, sono state implementate 12 entità aggiuntive:
 ### 3. Servizi Backend ✅ COMPLETO
 
 ```bash
-$ find EventForge.Server/Services -name "*Document*.cs" | wc -l
+$ find Prym.Server/Services -name "*Document*.cs" | wc -l
 29
 ```
 
@@ -111,7 +111,7 @@ $ find EventForge.Server/Services -name "*Document*.cs" | wc -l
 ### 4. API REST ✅ COMPLETO
 
 #### DocumentsController
-- **File**: `EventForge.Server/Controllers/DocumentsController.cs`
+- **File**: `Prym.Server/Controllers/DocumentsController.cs`
 - **Dimensione**: 2,344 linee di codice
 - **Endpoint HTTP**: 64+ endpoint
 
@@ -270,7 +270,7 @@ Implementati anche:
 ### Build Status ✅ SUCCESS
 
 ```bash
-$ dotnet build EventForge.sln --no-incremental
+$ dotnet build Prym.sln --no-incremental
 Build succeeded.
     144 Warning(s)
     0 Error(s)
@@ -423,18 +423,18 @@ L'implementazione supera significativamente i requisiti originali, includendo fe
 - `OPEN_ISSUES_ANALYSIS_AND_IMPLEMENTATION_STATUS.md` - Status matrix
 
 ### File Implementazione
-- `EventForge.Server/Data/Entities/Documents/*.cs` - 15 entità
-- `EventForge.Server/Services/Documents/*.cs` - 29 servizi
-- `EventForge.Server/Controllers/Documents*.cs` - 5 controller
-- `EventForge.DTOs/Documents/*.cs` - 20+ DTOs
+- `Prym.Server/Data/Entities/Documents/*.cs` - 15 entità
+- `Prym.Server/Services/Documents/*.cs` - 29 servizi
+- `Prym.Server/Controllers/Documents*.cs` - 5 controller
+- `Prym.DTOs/Documents/*.cs` - 20+ DTOs
 
 ### Test
-- `EventForge.Tests/Integration/DocumentsControllerIntegrationTests.cs`
-- `EventForge.Tests/Entities/ProductImageTests.cs`
-- `EventForge.Tests/Entities/ProductSupplierBusinessRulesTests.cs`
+- `Prym.Tests/Integration/DocumentsControllerIntegrationTests.cs`
+- `Prym.Tests/Entities/ProductImageTests.cs`
+- `Prym.Tests/Entities/ProductSupplierBusinessRulesTests.cs`
 
 ---
 
 **Report generato**: 1 Ottobre 2025  
-**Autore**: EventForge Development Team  
+**Autore**: Prym Development Team  
 **Versione**: 1.0.0

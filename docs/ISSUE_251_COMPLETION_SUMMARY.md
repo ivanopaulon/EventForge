@@ -36,7 +36,7 @@ L'issue #251 "Collaborazione" è stata completata al **100%** con l'implementazi
 ## 🏗️ Implementazione Completata
 
 ### 1. DocumentCollaborationHub (Server-side)
-**File**: `EventForge.Server/Hubs/DocumentCollaborationHub.cs`
+**File**: `Prym.Server/Hubs/DocumentCollaborationHub.cs`
 
 #### Features Implementate:
 - ✅ **Connection Management**: Join/Leave document rooms
@@ -74,7 +74,7 @@ Task SendTypingIndicator(Guid documentId, bool isTyping)
 ```
 
 ### 2. SignalRService Extensions (Client-side)
-**File**: `EventForge.Client/Services/SignalRService.cs`
+**File**: `Prym.Client/Services/SignalRService.cs`
 
 #### Aggiunte:
 - ✅ **Connection Field**: `_documentCollaborationHubConnection`
@@ -105,7 +105,7 @@ Task SendTypingIndicator(Guid documentId, bool isTyping)
   - SendDocumentTypingIndicatorAsync(Guid, bool)
 
 ### 3. Program.cs Configuration
-**File**: `EventForge.Server/Program.cs`
+**File**: `Prym.Server/Program.cs`
 
 ```csharp
 // Hub Mapping
@@ -355,24 +355,24 @@ L'issue #251 "Collaborazione" è stata **completata al 100%** con successo. Il s
 ## 📞 Files Modificati
 
 1. **Nuovi Files**:
-   - `EventForge.Server/Hubs/DocumentCollaborationHub.cs` (440 righe)
+   - `Prym.Server/Hubs/DocumentCollaborationHub.cs` (440 righe)
    - `docs/ISSUE_251_COMPLETION_SUMMARY.md` (questo documento)
 
 2. **Files Modificati**:
-   - `EventForge.Server/Program.cs` (+1 riga hub mapping)
-   - `EventForge.Client/Services/SignalRService.cs` (+250 righe circa)
+   - `Prym.Server/Program.cs` (+1 riga hub mapping)
+   - `Prym.Client/Services/SignalRService.cs` (+250 righe circa)
    - `docs/DOCUMENT_MANAGEMENT_DETAILED_ANALYSIS.md` (aggiornato stato)
    - `docs/CLOSED_ISSUES_RECOMMENDATIONS.md` (aggiornato stato)
 
 3. **Files Non Modificati ma Utilizzati**:
-   - `EventForge.Server/Services/Documents/IDocumentCommentService.cs`
-   - `EventForge.Server/Services/Documents/DocumentCommentService.cs`
-   - `EventForge.Server/Controllers/DocumentsController.cs`
-   - `EventForge.DTOs/Documents/DocumentCommentDto.cs`
+   - `Prym.Server/Services/Documents/IDocumentCommentService.cs`
+   - `Prym.Server/Services/Documents/DocumentCommentService.cs`
+   - `Prym.Server/Controllers/DocumentsController.cs`
+   - `Prym.DTOs/Documents/DocumentCommentDto.cs`
 
 ---
 
 **Implementato da**: Copilot Agent  
 **Data**: Gennaio 2025  
-**Versione**: EventForge v1.0  
+**Versione**: Prym v1.0  
 **Status**: ✅ COMPLETATO

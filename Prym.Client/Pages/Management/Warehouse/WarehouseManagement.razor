@@ -1,0 +1,191 @@
+@page "/warehouse/facilities"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Warehouse
+@using Prym.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IWarehouseService WarehouseService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.facilityManagement", "Gestione Magazzini")</PageTitle>
+<EntityManagementPage TEntity="StorageFacilityDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<StorageFacilityDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<StorageFacilityDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Address")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="Address">
+                    <MudTableSortLabel SortBy="@(new Func<StorageFacilityDto, object>(x => x.Address ?? string.Empty))">@TranslationService.GetTranslation("field.address", "Indirizzo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "TotalLocations")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="TotalLocations">
+                    <MudTableSortLabel SortBy="@(new Func<StorageFacilityDto, object>(x => x.TotalLocations))">@TranslationService.GetTranslation("field.locations", "Ubicazioni")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Properties")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="Properties">
+                    <MudTh>@TranslationService.GetTranslation("field.properties", "Proprietà")</MudTh>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="StorageFacilityDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<StorageFacilityDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Warehouse" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @(!string.IsNullOrWhiteSpace(ctx.Item.Manager) ? $"Resp: {ctx.Item.Manager}" : "")
+                            </MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@ctx.Item.Code</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Address")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.address", "Indirizzo")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.Address ?? "-")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "TotalLocations")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.locations", "Ubicazioni")">
+                    <div class="d-flex flex-column">
+                        <MudText Typo="Typo.body2">@ctx.Item.TotalLocations totali</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.ActiveLocations attive</MudText>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Properties")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.properties", "Proprietà")">
+                    <div class="d-flex gap-1 flex-wrap">
+                        @if (ctx.Item.IsFiscal)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">Fiscale</MudChip>
+                        }
+                        @if (ctx.Item.IsRefrigerated)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.AcUnit">Refrigerato</MudChip>
+                        }
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    <MudText Typo="Typo.body2">@ctx.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<StorageFacilityDto>? _entityPage;
+    private IEntityManagementService<StorageFacilityDto> _service = null!;
+    private EntityManagementConfig<StorageFacilityDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new WarehouseManagementService(WarehouseService);
+        _config = new EntityManagementConfig<StorageFacilityDto>
+        {
+            ComponentKey = "WarehouseManagement",
+            PageTitleKey = "warehouse.facilityManagement",
+            PageTitleDefault = "Gestione Magazzini",
+            EntityIcon = Icons.Material.Outlined.Warehouse,
+            PageRootCssClass = "warehouse-page-root",
+            BaseRoute = "/warehouse/facilities",
+            ExcelFileName = "Magazzini",
+            SearchPlaceholderKey = "warehouse.searchFacilities",
+            SearchPlaceholderDefault = "Cerca magazzini",
+            CreateTooltip = "warehouse.createNewFacility",
+            EntityTypeName = "StorageFacility",
+            ShowToggleStatus = false,
+            GetDisplayName = f => f.Name,
+            GetId = f => f.Id,
+            GetIsActive = f => f.IsActive,
+            DeleteConfirmMessageKey = "warehouse.confirmFacilityDelete",
+            DeleteSuccessMessageKey = "warehouse.facilityDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Magazzino", null, disabled: true),
+                new BreadcrumbItem("Magazzini", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Address", DisplayName = "Indirizzo", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "TotalLocations", DisplayName = "Ubicazioni", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "Properties", DisplayName = "Proprietà", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i magazzini" },
+                new() { Id = "fiscal", Label = "Fiscali", Predicate = f => f.IsFiscal, Color = Color.Primary, Icon = Icons.Material.Outlined.AccountBalance, Description = "Magazzini fiscali" },
+                new() { Id = "refrigerated", Label = "Refrigerati", Predicate = f => f.IsRefrigerated, Color = Color.Info, Icon = Icons.Material.Outlined.AcUnit, Description = "Magazzini refrigerati" },
+                new() { Id = "both", Label = "Fiscali + Refrigerati", Predicate = f => f.IsFiscal && f.IsRefrigerated, Color = Color.Success, Icon = Icons.Material.Outlined.VerifiedUser, Description = "Magazzini fiscali e refrigerati" },
+                new() { Id = "active", Label = "Attivi", Predicate = f => f.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Magazzini attivi" },
+                new() { Id = "with_locations", Label = "Con Ubicazioni", Predicate = f => f.TotalLocations > 0, Color = Color.Info, Icon = Icons.Material.Outlined.LocationOn, Description = "Magazzini con ubicazioni configurate" }
+            }
+        };
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(WarehouseDetailDialog.EntityId)] = id
+        };
+        var options = EFDialogDefaults.Options;
+        var dialog = await DialogService.ShowAsync<WarehouseDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage!.RefreshAsync();
+    }
+}

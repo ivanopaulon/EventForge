@@ -6,10 +6,10 @@ Execute steps below sequentially one by one in the order they are listed.
 
 1. Validate that an .NET 10.0 SDK required for this upgrade is installed on the machine and if not, help to get it installed.
 2. Ensure that the SDK version specified in global.json files is compatible with the .NET 10.0 upgrade.
-3. Upgrade EventForge.DTOs\EventForge.DTOs.csproj
-4. Upgrade EventForge.Client\EventForge.Client.csproj
-5. Upgrade EventForge.Server\EventForge.Server.csproj
-6. Upgrade EventForge.Tests\EventForge.Tests.csproj
+3. Upgrade Prym.DTOs\Prym.DTOs.csproj
+4. Upgrade Prym.Client\Prym.Client.csproj
+5. Upgrade Prym.Server\Prym.Server.csproj
+6. Upgrade Prym.Tests\Prym.Tests.csproj
 
 
 ## Settings
@@ -55,7 +55,7 @@ NuGet packages used across all selected projects or their dependencies that need
 ### Project upgrade details
 This section contains details about each project upgrade and modifications that need to be done in the project.
 
-#### EventForge.DTOs\EventForge.DTOs.csproj modifications
+#### Prym.DTOs\Prym.DTOs.csproj modifications
 
 Project properties changes:
   - Target framework: nessuna modifica suggerita dall'analisi (probabile `netstandard2.1`), non aggiornare il TFM.
@@ -66,7 +66,7 @@ NuGet packages changes:
 Other changes:
   - Nessun altro cambiamento automatizzato identificato.
 
-#### EventForge.Client\EventForge.Client.csproj modifications
+#### Prym.Client\Prym.Client.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net9.0` to `net10.0`.
@@ -81,7 +81,7 @@ Feature upgrades:
 Other changes:
   - Controllare i riferimenti a pacchetti ora inclusi nel framework e rimuoverli (vedi tabella).
 
-#### EventForge.Server\EventForge.Server.csproj modifications
+#### Prym.Server\Prym.Server.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net9.0` to `net10.0`.
@@ -96,7 +96,7 @@ Feature upgrades:
 Other changes:
   - Rimuovere i pacchetti ora inclusi nel framework (ad es. `System.Security.Cryptography.X509Certificates`).
 
-#### EventForge.Tests\EventForge.Tests.csproj modifications
+#### Prym.Tests\Prym.Tests.csproj modifications
 
 Project properties changes:
   - Target framework should be changed from `net9.0` to `net10.0`.

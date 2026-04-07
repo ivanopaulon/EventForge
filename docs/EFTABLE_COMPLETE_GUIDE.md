@@ -1,7 +1,7 @@
-# EFTable Complete Guide - EventForge Pattern v2.0
+# EFTable Complete Guide - Prym Pattern v2.0
 
 **Last Updated**: February 2026  
-**Issue**: [#1014](https://github.com/ivanopaulon/EventForge/issues/1014)  
+**Issue**: [#1014](https://github.com/ivanopaulon/Prym/issues/1014)  
 **Status**: ✅ Production Ready
 
 ---
@@ -23,7 +23,7 @@
 
 ### What is EFTable?
 
-EFTable is EventForge's enterprise-grade data table component providing:
+EFTable is Prym's enterprise-grade data table component providing:
 
 ✅ **Click-to-Detail Navigation** - Row click with Ctrl+Click support  
 ✅ **Configurable Search** - User-controlled searchable columns  
@@ -76,7 +76,7 @@ EFTable is EventForge's enterprise-grade data table component providing:
 
 ```razor
 @page "/management/products"
-@using EventForge.Client.Shared.Components
+@using Prym.Client.Shared.Components
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
@@ -476,9 +476,9 @@ Enable multi-level grouping by dragging column headers to the grouping area.
 ```razor
 @page "/management/entity"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.YourNamespace
-@using EventForge.DTOs.Common
-@using EventForge.Client.Shared.Components
+@using Prym.DTOs.YourNamespace
+@using Prym.DTOs.Common
+@using Prym.Client.Shared.Components
 @attribute [Authorize]
 
 @inject IAuthService AuthService
@@ -719,7 +719,7 @@ private bool FilterItem(EntityDto item)
 Remove:
 - `_dashboardMetrics` field
 - Dashboard configuration methods
-- `@using EventForge.Client.Shared.Components.Dashboard` (if not used elsewhere)
+- `@using Prym.Client.Shared.Components.Dashboard` (if not used elsewhere)
 
 **Step 5: Update CSS Class**
 
@@ -1075,4 +1075,4 @@ For questions or issues:
 
 **Document Version**: 2.0  
 **Last Review**: February 2026  
-**Maintained By**: EventForge Development Team
+**Maintained By**: Prym Development Team

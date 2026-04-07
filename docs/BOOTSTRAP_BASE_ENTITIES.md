@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the implementation of automatic seeding of base entities during tenant bootstrap in EventForge. The system now automatically creates essential entities when a new tenant is initialized, providing a complete foundation for warehouse and product management.
+This document describes the implementation of automatic seeding of base entities during tenant bootstrap in Prym. The system now automatically creates essential entities when a new tenant is initialized, providing a complete foundation for warehouse and product management.
 
 ## Features
 
@@ -12,7 +12,7 @@ The system now includes comprehensive support for Italian VAT nature codes requi
 
 #### Entity: VatNature
 
-**Location**: `EventForge.Server/Data/Entities/Common/VatNature.cs`
+**Location**: `Prym.Server/Data/Entities/Common/VatNature.cs`
 
 **Properties**:
 - `Code`: VAT nature code (e.g., "N1", "N2.1", "N3", etc.)
@@ -120,7 +120,7 @@ The system automatically creates a default warehouse and storage location for ne
 
 ### Bootstrap Service
 
-**Location**: `EventForge.Server/Services/Auth/BootstrapService.cs`
+**Location**: `Prym.Server/Services/Auth/BootstrapService.cs`
 
 The bootstrap service has been enhanced with the following new methods:
 
@@ -237,7 +237,7 @@ Potential improvements for future versions:
 
 - [Italian VAT Nature Codes - Agenzia delle Entrate](https://www.agenziaentrate.gov.it/)
 - [Italian VAT Rates - Current Legislation](https://www.agenziaentrate.gov.it/)
-- EF Core Migrations: `EventForge.Server/Migrations/20251005223454_AddVatNatureAndBootstrapEnhancements.cs`
+- EF Core Migrations: `Prym.Server/Migrations/20251005223454_AddVatNatureAndBootstrapEnhancements.cs`
 
 ## Notes
 

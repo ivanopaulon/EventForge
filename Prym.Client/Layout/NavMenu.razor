@@ -1,0 +1,536 @@
+@using Prym.DTOs.Notifications
+@using Prym.DTOs.Chat
+@using Prym.Client.Services
+@inject IAuthService AuthService
+@inject INotificationService NotificationService
+@inject IChatService ChatService
+@inject IRealtimeService RealtimeService
+@inject ITranslationService TranslationService
+@inject IHelpService HelpService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@implements IDisposable
+
+<MudNavMenu>
+    @if (_isAuthenticated)
+    {
+        <!-- Home -->
+        <MudNavLink Href="/"
+                    Icon="@Icons.Material.Outlined.Home"
+                    Match="NavLinkMatch.All">
+            @TranslationService.GetTranslation("nav.home", "Home")
+        </MudNavLink>
+
+        @if (_isSuperAdmin || _isAdmin || _isManager)
+        {
+            <!-- Calendario & Attività -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.events", "Calendario & Attività")"
+                         Icon="@Icons.Material.Outlined.CalendarMonth"
+                         Expanded="@(_openGroup == "events")"
+                         ExpandedChanged="@(v => OnGroupExpanded("events", v))">
+                <MudNavLink Href="/events/management"
+                            Icon="@Icons.Material.Outlined.CalendarViewMonth"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.eventCalendar", "Calendario & Promemoria")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Catalogo -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.catalog", "Catalogo")"
+                         Icon="@Icons.Material.Outlined.Inventory"
+                         Expanded="@(_openGroup == "catalog")"
+                         ExpandedChanged="@(v => OnGroupExpanded("catalog", v))">
+                <MudNavLink Href="/product-management/products"
+                            Icon="@Icons.Material.Outlined.Inventory2"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.products", "Prodotti")
+                </MudNavLink>
+                <MudNavLink Href="/product-management/brands"
+                            Icon="@Icons.Material.Outlined.Sell"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.brandManagement", "Gestione Marchi")
+                </MudNavLink>
+                <MudNavLink Href="/settings/unit-of-measures"
+                            Icon="@Icons.Material.Outlined.Straighten"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.unitOfMeasureManagement", "Unità di Misura")
+                </MudNavLink>
+                <MudNavLink Href="/management/classification-nodes"
+                            Icon="@Icons.Material.Outlined.AccountTree"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.classificationNodeManagement", "Classificazione")
+                </MudNavLink>
+                <MudNavLink Href="/management/pricelists"
+                            Icon="@Icons.Material.Filled.PriceCheck">
+                    @TranslationService.GetTranslation("menu.pricelists", "Listini Prezzi")
+                </MudNavLink>
+                <MudNavLink Href="/management/promotions"
+                            Icon="@Icons.Material.Outlined.LocalOffer">
+                    @TranslationService.GetTranslation("menu.promotions", "Promozioni")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Anagrafiche -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.registries", "Anagrafiche")"
+                         Icon="@Icons.Material.Outlined.PeopleAlt"
+                         Expanded="@(_openGroup == "registries")"
+                         ExpandedChanged="@(v => OnGroupExpanded("registries", v))">
+                <MudNavLink Href="/business/parties"
+                            Icon="@Icons.Material.Outlined.Business"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.businessPartyManagement", "Business Party")
+                </MudNavLink>
+                <MudNavLink Href="/business/groups"
+                            Icon="@Icons.Material.Outlined.Group"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.businessPartyGroupManagement", "Gruppi Business Party")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Documenti -->
+            @if (_canManageWarehouse || _isAdmin || _isSuperAdmin)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.documentManagement", "Documenti")"
+                             Icon="@Icons.Material.Outlined.Description"
+                             Expanded="@(_openGroup == "documents")"
+                             ExpandedChanged="@(v => OnGroupExpanded("documents", v))">
+                    <MudNavLink Href="/documents/list"
+                                Icon="@Icons.Material.Outlined.ListAlt"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentList", "Elenco Documenti")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/create"
+                                Icon="@Icons.Material.Outlined.Add"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.createDocument", "Nuovo Documento")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/types"
+                                Icon="@Icons.Material.Outlined.Category"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentTypes", "Tipi Documento")
+                    </MudNavLink>
+                    <MudNavLink Href="/documents/counters"
+                                Icon="@Icons.Material.Outlined.Pin"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.documentCounters", "Contatori")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Magazzino -->
+            @if (_canManageWarehouse)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.warehouseManagement", "Magazzino")"
+                             Icon="@Icons.Material.Outlined.Warehouse"
+                             Expanded="@(_openGroup == "warehouse")"
+                             ExpandedChanged="@(v => OnGroupExpanded("warehouse", v))">
+                    <MudNavLink Href="/warehouse/facilities"
+                                Icon="@Icons.Material.Outlined.Business"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.facilities", "Magazzini")
+                    </MudNavLink>
+                    <MudNavLink Href="/warehouse/stock-management"
+                                Icon="@Icons.Material.Outlined.Inventory2"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.stockManagement", "Giacenze")
+                    </MudNavLink>
+                    <MudNavLink Href="/warehouse/lot-management"
+                                Icon="@Icons.Material.Outlined.QrCode"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.lotManagement", "Lotti")
+                    </MudNavLink>
+                    <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")"
+                                 Icon="@Icons.Material.Outlined.Checklist"
+                                 Expanded="false">
+                        <MudNavLink Href="/warehouse/inventory-procedure"
+                                    Icon="@Icons.Material.Outlined.PlayArrow"
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.inventoryProcedure", "Esegui Inventario")
+                        </MudNavLink>
+                        <MudNavLink Href="/warehouse/inventory-diagnostics"
+                                    Icon="@Icons.Material.Outlined.HealthAndSafety"
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.inventoryDiagnostics", "Diagnostica e Correggi")
+                        </MudNavLink>
+                        <MudNavLink Href="/warehouse/inventory-merge"
+                                    Icon="@Icons.Material.Outlined.MergeType"
+                                    Match="NavLinkMatch.All">
+                            @TranslationService.GetTranslation("nav.inventoryMerge", "Accorpamento Inventari")
+                        </MudNavLink>
+                    </MudNavGroup>
+                    <MudNavLink Href="/warehouse/transfers"
+                                Icon="@Icons.Material.Outlined.CompareArrows"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.transferOrders", "Trasferimenti")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Punto Vendita (POS Register) -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.pos", "Punto Vendita")"
+                         Icon="@Icons.Material.Outlined.PointOfSale"
+                         Expanded="@(_openGroup == "pos")"
+                         ExpandedChanged="@(v => OnGroupExpanded("pos", v))">
+                <MudNavLink Href="/sales/pos"
+                            Icon="@Icons.Material.Outlined.PointOfSale"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.posRegister", "Cassa (POS)")
+                </MudNavLink>
+                <MudNavLink Href="/sales/postouch"
+                            Icon="@Icons.Material.Outlined.TouchApp"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.posTouch", "Cassa Touch")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Configurazione Store -->
+            @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.storeConfig", "🏪 Configurazione Store")"
+                             Icon="@Icons.Material.Outlined.Store"
+                             Expanded="@(_openGroup == "storeConfig")"
+                             ExpandedChanged="@(v => OnGroupExpanded("storeConfig", v))">
+                    <MudNavLink Href="/admin/store-pos"
+                                Icon="@Icons.Material.Outlined.Computer"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.storePosManagement", "POS")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/operators"
+                                Icon="@Icons.Material.Outlined.Person"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.operatorManagement", "Operatori")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/operator-groups"
+                                Icon="@Icons.Material.Outlined.Groups"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.operatorGroupManagement", "Gruppi Operatori")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/payment-methods"
+                                Icon="@Icons.Material.Outlined.Payment"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Stampanti & Stazioni -->
+            @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.printersAndStations", "🖨️ Stampanti & Stazioni")"
+                             Icon="@Icons.Material.Outlined.Print"
+                             Expanded="@(_openGroup == "printersAndStations")"
+                             ExpandedChanged="@(v => OnGroupExpanded("printersAndStations", v))">
+                    <MudNavLink Href="/admin/fiscal-printers"
+                                Icon="@Icons.Material.Outlined.ReceiptLong"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.fiscalPrintersDashboard", "Dashboard Fiscali")
+                    </MudNavLink>
+                    <MudNavLink Href="/admin/stations"
+                                Icon="@Icons.Material.Outlined.Kitchen"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.stations", "Stazioni")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Contabilità -->
+            <MudNavGroup title="@TranslationService.GetTranslation("nav.financialManagement", "Contabilità")"
+                         Icon="@Icons.Material.Outlined.AccountBalance"
+                         Expanded="@(_openGroup == "financial")"
+                         ExpandedChanged="@(v => OnGroupExpanded("financial", v))">
+                <MudNavLink Href="/financial/vat-rates"
+                            Icon="@Icons.Material.Outlined.Percent"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.vatRateManagement", "Aliquote IVA")
+                </MudNavLink>
+                <MudNavLink Href="/financial/vat-natures"
+                            Icon="@Icons.Material.Outlined.Category"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.vatNatureManagement", "Nature IVA")
+                </MudNavLink>
+            </MudNavGroup>
+
+            <!-- Analytics & Reporting -->
+            @if (_isAdmin || _isSuperAdmin)
+            {
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.analytics", "Analytics & Reporting")"
+                             Icon="@Icons.Material.Outlined.Analytics"
+                             Expanded="@(_openGroup == "analytics")"
+                             ExpandedChanged="@(v => OnGroupExpanded("analytics", v))">
+                    <MudNavLink Href="/management/analytics"
+                                Icon="@Icons.Material.Filled.Analytics">
+                        @TranslationService.GetTranslation("menu.analytics", "Analytics")
+                    </MudNavLink>
+                    <MudNavLink Href="/management/monitoring"
+                                Icon="@Icons.Material.Filled.MonitorHeart">
+                        @TranslationService.GetTranslation("menu.monitoring", "Monitoring")
+                    </MudNavLink>
+                </MudNavGroup>
+            }
+
+            <!-- Amministrazione (SuperAdmin only) -->
+            @if (_isSuperAdmin)
+            {
+                <MudNavLink Href="/admin"
+                            Icon="@Icons.Material.Outlined.AdminPanelSettings"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.administration", "Amministrazione")
+                </MudNavLink>
+            }
+        }
+    }
+    else
+    {
+        <MudNavLink Href="/login" Icon="@Icons.Material.Outlined.Login" Match="NavLinkMatch.All">
+            @TranslationService.GetTranslation("nav.login", "Accedi")
+        </MudNavLink>
+    }
+</MudNavMenu>
+@code {
+    private bool _isAuthenticated = false;
+    private bool _isAdmin = false;
+    private bool _isSuperAdmin = false;
+    private bool _isManager = false;
+    private bool _isStoreManager = false;
+    private bool _canManageWarehouse = false;
+    private int _unreadNotificationCount = 0;
+    private int _unreadMessageCount = 0;
+    private string? _openGroup = null;
+
+    private void OnGroupExpanded(string groupId, bool expanded)
+    {
+        if (expanded)
+            _openGroup = groupId;
+        else if (_openGroup == groupId)
+            _openGroup = null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        TranslationService.LanguageChanged += OnLanguageChanged;
+        
+        // Subscribe to real-time updates
+        NotificationService.NotificationReceived += OnNotificationReceived;
+        NotificationService.NotificationRead += OnNotificationRead;
+        ChatService.MessageReceived += OnMessageReceived;
+        ChatService.MessageRead += OnMessageRead;
+        
+        await CheckAuthenticationState();
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        if (_isAuthenticated)
+        {
+            // Check for all role types
+            _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+            _isAdmin = await AuthService.IsInRoleAsync("Admin");
+            _isManager = await AuthService.IsInRoleAsync("Manager");
+            _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
+            
+            _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
+            
+            // Load notification and message counts
+            await LoadCommunicationCountsAsync();
+        }
+        else
+        {
+            _isAdmin = false;
+            _isSuperAdmin = false;
+            _isManager = false;
+            _isStoreManager = false;
+            _canManageWarehouse = false;
+            _unreadNotificationCount = 0;
+            _unreadMessageCount = 0;
+        }
+        StateHasChanged();
+    }
+
+    private async void OnAuthenticationStateChanged()
+    {
+        await CheckAuthenticationState();
+    }
+
+    private void OnLanguageChanged(object? sender, string newLanguage)
+    {
+        // Refresh the component when language changes to update navigation labels
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+        TranslationService.LanguageChanged -= OnLanguageChanged;
+        
+        // Unsubscribe from real-time updates
+        NotificationService.NotificationReceived -= OnNotificationReceived;
+        NotificationService.NotificationRead -= OnNotificationRead;
+        ChatService.MessageReceived -= OnMessageReceived;
+        ChatService.MessageRead -= OnMessageRead;
+    }
+
+    /// <summary>
+    /// Load unread notification and message counts for navigation badges
+    /// </summary>
+    private async Task LoadCommunicationCountsAsync()
+    {
+        try
+        {
+            // Start real-time connections if not already started
+            if (!RealtimeService.IsNotificationConnected)
+            {
+                await RealtimeService.StartNotificationConnectionAsync();
+            }
+            if (!RealtimeService.IsChatConnected)
+            {
+                await RealtimeService.StartChatConnectionAsync();
+            }
+
+            // Get notification stats to calculate unread count
+            var notificationStats = await NotificationService.GetNotificationStatsAsync();
+            _unreadNotificationCount = notificationStats.UnreadCount;
+
+            // Get chat stats to calculate unread messages
+            // Note: ChatStatsDto doesn't have unread count, so we'll rely on real-time updates for now
+            var chatStats = await ChatService.GetChatStatsAsync();
+            // _unreadMessageCount will be updated via real-time events
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show to user as this is background loading
+            Console.WriteLine($"[NavMenu] Error loading communication counts: {ex.Message}");
+            _unreadNotificationCount = 0;
+            _unreadMessageCount = 0;
+        }
+    }
+
+    #region Real-time Event Handlers
+
+    private void OnNotificationReceived(NotificationResponseDto notification)
+    {
+        _unreadNotificationCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNotificationRead(Guid notificationId)
+    {
+        _unreadNotificationCount = Math.Max(0, _unreadNotificationCount - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageReceived(ChatMessageDto message)
+    {
+        _unreadMessageCount++;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMessageRead(Guid chatId, Guid messageId)
+    {
+        _unreadMessageCount = Math.Max(0, _unreadMessageCount - 1);
+        InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
+
+    #region Help System Methods
+
+    /// <summary>
+    /// Shows general help dialog.
+    /// </summary>
+    private async Task ShowGeneralHelp()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var parameters = new DialogParameters
+            {
+                ["Title"] = TranslationService.GetTranslation("help.generalHelpTitle", "PRYM Help Center"),
+                ["Content"] = TranslationService.GetTranslation("help.generalHelpContent", "Welcome to PRYM Help! Use this application to manage events, notifications, chat, and more. Each section has its own help system with detailed tutorials and walkthroughs.")
+            };
+
+            await DialogService.ShowAsync<MudMessageBox>(TranslationService.GetTranslation("help.helpCenter", "Help Center"), parameters, options);
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowWarning($"Error showing help: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Shows interactive tour selector.
+    /// </summary>
+    private async Task ShowInteractiveTour()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var tourOptions = new List<string>
+            {
+                TranslationService.GetTranslation("tour.notifications", "Notifications Tour"),
+                TranslationService.GetTranslation("tour.chat", "Chat Tour"),
+                TranslationService.GetTranslation("tour.superadmin", "SuperAdmin Tour")
+            };
+
+            // For now, show a simple message. This could be expanded to a custom component
+            var message = TranslationService.GetTranslation("tour.selectMessage", "Visit the specific sections (Notifications, Chat, SuperAdmin) and click 'Take a Tour' to start an interactive walkthrough of that feature.");
+            
+            await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("nav.interactiveTour", "Interactive Tour"),
+                message,
+                TranslationService.GetTranslation("common.ok", "OK"),
+                options: options
+            );
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowWarning($"Error showing tour options: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Shows onboarding options.
+    /// </summary>
+    private async Task ShowOnboarding()
+    {
+        try
+        {
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var message = TranslationService.GetTranslation("onboarding.centerMessage", "Tutorial Center: Access step-by-step guides for each feature. You can reset your progress and replay tutorials at any time. Visit Notifications, Chat, or SuperAdmin sections and click 'Quick Start' to begin.");
+            
+            await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("nav.tutorialCenter", "Tutorial Center"),
+                message,
+                TranslationService.GetTranslation("common.ok", "OK"),
+                options: options
+            );
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowWarning($"Error showing tutorial center: {ex.Message}");
+        }
+    }
+
+    #endregion
+}

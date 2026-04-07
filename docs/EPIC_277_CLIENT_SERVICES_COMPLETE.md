@@ -144,7 +144,7 @@ La **Fase 2 (Client Services)** dell'Epic #277 è stata completata con successo.
 
 ### Servizi Client (8 files)
 ```
-EventForge.Client/Services/Sales/
+Prym.Client/Services/Sales/
 ├── ISalesService.cs                  (70 lines)
 ├── SalesService.cs                   (280 lines)
 ├── IPaymentMethodService.cs          (40 lines)
@@ -156,7 +156,7 @@ EventForge.Client/Services/Sales/
 ```
 
 ### File Modificati
-- `EventForge.Client/Program.cs` - Aggiunta registrazione 4 servizi
+- `Prym.Client/Program.cs` - Aggiunta registrazione 4 servizi
 
 ### Documentazione Aggiornata (3 files)
 - `docs/EPIC_277_PROGRESS_UPDATE.md`
@@ -255,7 +255,7 @@ Duration: 1m 32s
 ### Esempio 1: Creare una Nuova Sessione di Vendita
 
 ```csharp
-@inject EventForge.Client.Services.Sales.ISalesService SalesService
+@inject Prym.Client.Services.Sales.ISalesService SalesService
 
 private async Task CreateNewSaleAsync()
 {
@@ -278,7 +278,7 @@ private async Task CreateNewSaleAsync()
 ### Esempio 2: Aggiungere un Prodotto al Carrello
 
 ```csharp
-@inject EventForge.Client.Services.Sales.ISalesService SalesService
+@inject Prym.Client.Services.Sales.ISalesService SalesService
 
 private async Task AddProductToCartAsync(Guid sessionId, Guid productId)
 {
@@ -302,7 +302,7 @@ private async Task AddProductToCartAsync(Guid sessionId, Guid productId)
 ### Esempio 3: Aggiungere un Pagamento
 
 ```csharp
-@inject EventForge.Client.Services.Sales.ISalesService SalesService
+@inject Prym.Client.Services.Sales.ISalesService SalesService
 
 private async Task AddPaymentAsync(Guid sessionId, Guid paymentMethodId, decimal amount)
 {
@@ -324,7 +324,7 @@ private async Task AddPaymentAsync(Guid sessionId, Guid paymentMethodId, decimal
 ### Esempio 4: Chiudere una Sessione
 
 ```csharp
-@inject EventForge.Client.Services.Sales.ISalesService SalesService
+@inject Prym.Client.Services.Sales.ISalesService SalesService
 
 private async Task CloseSaleAsync(Guid sessionId)
 {
@@ -339,7 +339,7 @@ private async Task CloseSaleAsync(Guid sessionId)
 ### Esempio 5: Ottenere Metodi di Pagamento Attivi
 
 ```csharp
-@inject EventForge.Client.Services.Sales.IPaymentMethodService PaymentMethodService
+@inject Prym.Client.Services.Sales.IPaymentMethodService PaymentMethodService
 
 private async Task LoadPaymentMethodsAsync()
 {

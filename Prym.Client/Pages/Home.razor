@@ -1,0 +1,388 @@
+@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Events
+@using Prym.DTOs.Calendar
+@using Prym.DTOs.Common
+@using Prym.DTOs.Documents
+@attribute [Authorize]
+@inject IAuthService AuthService
+@inject IEventService EventService
+@inject ICalendarReminderService CalendarReminderService
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject IDocumentHeaderService DocumentHeaderService
+@inject NavigationManager NavigationManager
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<Home> Logger
+
+<PageTitle>@TranslationService.GetTranslation("home.title", "PRYM - Dashboard")</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 pa-4">
+
+    <!-- Header -->
+    <div class="d-flex align-center mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" Class="mr-3" />
+        <div>
+            <MudText Typo="Typo.h5">@TranslationService.GetTranslation("home.welcomeBack", "Bentornato")</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("it-IT"))
+            </MudText>
+        </div>
+    </div>
+
+    <MudGrid Spacing="3">
+
+        <!-- STATISTICS ROW (admin/manager only) -->
+        @if (_isAdmin || _isManager || _isSuperAdmin)
+        {
+            <!-- Products count -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                    @if (_statsLoading)
+                    {
+                        <MudSkeleton Width="100%" Height="48px" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_productCount</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti</MudText>
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- Business parties count -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-secondary);">
+                    @if (_statsLoading)
+                    {
+                        <MudSkeleton Width="100%" Height="48px" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Secondary" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_businessPartyCount</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Business Party</MudText>
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- Documents count -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-tertiary);">
+                    @if (_statsLoading)
+                    {
+                        <MudSkeleton Width="100%" Height="48px" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Tertiary" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_documentCount</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti</MudText>
+                        </div>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- Quick actions -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-3" Style="border-left: 4px solid var(--mud-palette-warning);">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Azioni Rapide</MudText>
+                    <div class="d-flex flex-column gap-1">
+                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/documents/create"))">
+                            Nuovo Documento
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/product-management/products"))">
+                            Prodotti
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.Business" Color="Color.Primary"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/business/parties"))">
+                            Business Party
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        }
+
+        <!-- UPCOMING EVENTS panel -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
+                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Event" Color="Color.Info" Class="mr-2" />
+                    <MudText Typo="Typo.subtitle1">Prossimi Eventi</MudText>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@_upcomingEvents.Count</MudChip>
+                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/events/management"))" />
+                </div>
+                @if (_calendarLoading)
+                {
+                    <div class="pa-4"><MudProgressLinear Indeterminate="true" /></div>
+                }
+                else if (!_upcomingEvents.Any())
+                {
+                    <div class="pa-4 text-center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun evento pianificato</MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudList T="EventDto" Dense="true" Padding="false">
+                        @foreach (var ev in _upcomingEvents.Take(6))
+                        {
+                            <MudListItem T="EventDto">
+                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@ev.Name</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @ev.StartDate.ToString("dd/MM HH:mm")
+                                        </MudText>
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                   Color="Color.Success" Size="Size.Small"
+                                                   Title="Segna come completato"
+                                                   OnClick="@(() => CompleteEventAsync(ev))" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- TASKS panel -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
+                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+                    <MudIcon Icon="@Icons.Material.Outlined.CheckBox" Color="Color.Warning" Class="mr-2" />
+                    <MudText Typo="Typo.subtitle1">Task Aperti</MudText>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">@_openTasks.Count</MudChip>
+                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/events/management"))" />
+                </div>
+                @if (_calendarLoading)
+                {
+                    <div class="pa-4"><MudProgressLinear Indeterminate="true" /></div>
+                }
+                else if (!_openTasks.Any())
+                {
+                    <div class="pa-4 text-center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun task aperto</MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudList T="CalendarReminderDto" Dense="true" Padding="false">
+                        @foreach (var task in _openTasks.Take(6))
+                        {
+                            <MudListItem T="CalendarReminderDto">
+                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@task.Title</MudText>
+                                        <MudText Typo="Typo.caption"
+                                                 Color="@(task.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
+                                            @task.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </MudText>
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                   Color="Color.Success" Size="Size.Small"
+                                                   Title="Segna come completato"
+                                                   OnClick="@(() => CompleteReminderAsync(task))" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- REMINDERS panel -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
+                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+                    <MudIcon Icon="@Icons.Material.Outlined.Alarm" Color="Color.Error" Class="mr-2" />
+                    <MudText Typo="Typo.subtitle1">Promemoria Attivi</MudText>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error">@_activeReminders.Count</MudChip>
+                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/events/management"))" />
+                </div>
+                @if (_calendarLoading)
+                {
+                    <div class="pa-4"><MudProgressLinear Indeterminate="true" /></div>
+                }
+                else if (!_activeReminders.Any())
+                {
+                    <div class="pa-4 text-center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun promemoria attivo</MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudList T="CalendarReminderDto" Dense="true" Padding="false">
+                        @foreach (var rem in _activeReminders.Take(6))
+                        {
+                            <MudListItem T="CalendarReminderDto">
+                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@rem.Title</MudText>
+                                        <MudText Typo="Typo.caption"
+                                                 Color="@(rem.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
+                                            @rem.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </MudText>
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                                   Color="Color.Success" Size="Size.Small"
+                                                   Title="Segna come completato"
+                                                   OnClick="@(() => CompleteReminderAsync(rem))" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _isSuperAdmin = false;
+    private bool _isAdmin = false;
+    private bool _isManager = false;
+
+    private bool _statsLoading = true;
+    private bool _calendarLoading = true;
+
+    private int _productCount = 0;
+    private int _businessPartyCount = 0;
+    private int _documentCount = 0;
+
+    private List<EventDto> _upcomingEvents = new();
+    private List<CalendarReminderDto> _openTasks = new();
+    private List<CalendarReminderDto> _activeReminders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+        _isAdmin = await AuthService.IsInRoleAsync("Admin");
+        _isManager = await AuthService.IsInRoleAsync("Manager");
+
+        var statsTask = LoadStatsAsync();
+        var calendarTask = LoadCalendarAsync();
+        await Task.WhenAll(statsTask, calendarTask);
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        if (!(_isSuperAdmin || _isAdmin || _isManager)) { _statsLoading = false; return; }
+        try
+        {
+            var productsTask = ProductService.GetProductsAsync(page: 1, pageSize: 1);
+            var businessTask = BusinessPartyService.GetBusinessPartiesAsync(page: 1, pageSize: 1);
+            var documentsTask = DocumentHeaderService.GetPagedDocumentHeadersAsync(new DocumentHeaderQueryParameters { Page = 1, PageSize = 1 });
+            await Task.WhenAll(productsTask, businessTask, documentsTask);
+
+            _productCount = (int)(productsTask.Result?.TotalCount ?? 0);
+            _businessPartyCount = (int)(businessTask.Result?.TotalCount ?? 0);
+            _documentCount = (int)(documentsTask.Result?.TotalCount ?? 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load dashboard statistics");
+        }
+        finally
+        {
+            _statsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCalendarAsync()
+    {
+        try
+        {
+            var eventsTask = EventService.GetEventsByDateRangeAsync(DateTime.UtcNow, DateTime.UtcNow.AddDays(30));
+            var remindersTask = CalendarReminderService.GetActiveRemindersAsync();
+            await Task.WhenAll(eventsTask, remindersTask);
+
+            _upcomingEvents = eventsTask.Result
+                .Where(e => e.Status == EventStatus.Planned || e.Status == EventStatus.Ongoing)
+                .OrderBy(e => e.StartDate)
+                .ToList();
+
+            var allActive = remindersTask.Result.ToList();
+            _openTasks = allActive
+                .Where(r => r.ItemType == CalendarItemType.Task && !r.IsCompleted)
+                .OrderBy(r => r.DueDate)
+                .ToList();
+            _activeReminders = allActive
+                .Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted)
+                .OrderBy(r => r.DueDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load calendar data for dashboard");
+        }
+        finally
+        {
+            _calendarLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CompleteEventAsync(EventDto ev)
+    {
+        try
+        {
+            var updateDto = new UpdateEventDto
+            {
+                Name = ev.Name,
+                ShortDescription = ev.ShortDescription ?? string.Empty,
+                StartDate = ev.StartDate,
+                EndDate = ev.EndDate,
+                Status = EventStatus.Completed,
+                RowVersion = ev.RowVersion
+            };
+            await EventService.UpdateEventAsync(ev.Id, updateDto);
+            _upcomingEvents.Remove(ev);
+            StateHasChanged();
+            AppNotification.ShowSuccess("Evento completato");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to complete event {EventId}", ev.Id);
+            AppNotification.ShowError($"Errore: {ex.Message}");
+        }
+    }
+
+    private async Task CompleteReminderAsync(CalendarReminderDto reminder)
+    {
+        try
+        {
+            await CalendarReminderService.CompleteCalendarReminderAsync(reminder.Id);
+            _openTasks.Remove(reminder);
+            _activeReminders.Remove(reminder);
+            StateHasChanged();
+            AppNotification.ShowSuccess("Completato");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to complete reminder {ReminderId}", reminder.Id);
+            AppNotification.ShowError($"Errore: {ex.Message}");
+        }
+    }
+}

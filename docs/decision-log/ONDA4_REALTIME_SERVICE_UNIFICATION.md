@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-EventForge uses multiple SignalR client implementations for real-time communication:
+Prym uses multiple SignalR client implementations for real-time communication:
 - `SignalRService`: Original implementation with separate hub connections for audit, notifications, chat, and document collaboration
 - `OptimizedSignalRService`: New optimized implementation with connection pooling, event batching, and performance optimizations
 
@@ -258,11 +258,11 @@ If critical issues are discovered:
 - ONDA3_COMPLETION.md: Previous wave completion criteria
 
 ## References
-- EventForge.Client/Services/IRealtimeService.cs
-- EventForge.Client/Services/OptimizedSignalRService.cs
-- EventForge.Client/Services/SignalRService.cs (deprecated)
-- EventForge.Client/Program.cs (DI registration)
-- EventForge.Tests/Services/OptimizedSignalRServiceTests.cs
+- Prym.Client/Services/IRealtimeService.cs
+- Prym.Client/Services/OptimizedSignalRService.cs
+- Prym.Client/Services/SignalRService.cs (deprecated)
+- Prym.Client/Program.cs (DI registration)
+- Prym.Tests/Services/OptimizedSignalRServiceTests.cs
 
 ## Notes
 - This decision enables future work on real-time collaboration features

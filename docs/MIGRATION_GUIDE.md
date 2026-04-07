@@ -71,7 +71,7 @@ private void HandleQuickFilter(QuickFilter<EntityDto>? filter)
 
 **Add using:**
 ```razor
-@using EventForge.Client.Extensions
+@using Prym.Client.Extensions
 ```
 
 **Implement method:**
@@ -241,7 +241,7 @@ Use this checklist for each page you migrate:
 
 - [ ] **Step 2: OnRowClick**
   - [ ] Add @inject IJSRuntime
-  - [ ] Add @using EventForge.Client.Extensions
+  - [ ] Add @using Prym.Client.Extensions
   - [ ] Add OnRowClick="@HandleRowClick" to EFTable
   - [ ] Implement HandleRowClick with Ctrl+Click support
 
@@ -319,7 +319,7 @@ TotalItemsCount="@_allEntities.Count"
 
 ## Migration Timeline
 
-For EventForge, we migrated pages in 5 PRs:
+For Prym, we migrated pages in 5 PRs:
 
 - **PR #1** - Standardized toolbar structure
 - **PR #2** - Added OnRowClick navigation + configurable search
@@ -333,8 +333,8 @@ Each page takes approximately **30-60 minutes** to migrate following this guide.
 
 See also:
 - [EFTABLE_STANDARD_PATTERN.md](./EFTABLE_STANDARD_PATTERN.md) - Complete reference pattern
-- [Example: WarehouseManagement.razor](../EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor) - Fully modernized
-- [Example: ProductManagement.razor](../EventForge.Client/Pages/Management/Products/ProductManagement.razor) - Fully modernized
+- [Example: WarehouseManagement.razor](../Prym.Client/Pages/Management/Warehouse/WarehouseManagement.razor) - Fully modernized
+- [Example: ProductManagement.razor](../Prym.Client/Pages/Management/Products/ProductManagement.razor) - Fully modernized
 
 ---
 

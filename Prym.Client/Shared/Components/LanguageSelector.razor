@@ -1,0 +1,95 @@
+@using Prym.Client.Services
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+<MudSelect T="string" 
+           Value="@TranslationService.CurrentLanguage" 
+           ValueChanged="@OnLanguageChanged"
+           Label="@(ShowFlags ? "" : TranslationService.GetTranslation("common.language"))"
+           Variant="Variant.Outlined"
+           Dense="@Dense"
+           Class="@($"language-selector {Class}")"
+           aria-label="@TranslationService.GetTranslation("accessibility.selectLanguage", "Select language")"
+           role="combobox"
+           aria-expanded="false"
+           aria-describedby="language-selector-description">
+    @foreach (var language in TranslationService.GetAvailableLanguages())
+    {
+        <MudSelectItem Value="@language.Key">
+            <div class="d-flex align-center language-item">
+                @if (ShowFlags)
+                {
+                    <div class="flag-icon @GetFlagClass(language.Key)" 
+                         aria-hidden="true" 
+                         title="@language.Value"></div>
+                }
+                else
+                {
+                    <MudIcon Icon="@GetLanguageIcon(language.Key)" 
+                             Style="margin-right:8px;" 
+                             aria-hidden="true" />
+                }
+                <span class="language-name">@language.Value</span>
+            </div>
+        </MudSelectItem>
+    }
+</MudSelect>
+
+<div id="language-selector-description" class="sr-only">
+    @TranslationService.GetTranslation("accessibility.languageSelectorDescription")
+</div>
+
+@code {
+    [Parameter] public bool Dense { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool ShowFlags { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        TranslationService.LanguageChanged += OnLanguageChangedEvent;
+    }
+
+    private async Task OnLanguageChanged(string newLanguage)
+    {
+        try
+        {
+            await TranslationService.SetLanguageAsync(newLanguage);
+            // StateHasChanged will be called by the event handler
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could show snackbar or toast
+            Console.Error.WriteLine($"Error changing language: {ex.Message}");
+        }
+    }
+
+    private void OnLanguageChangedEvent(object? sender, string newLanguage)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetLanguageIcon(string languageCode)
+    {
+        return languageCode switch
+        {
+            "it" => Icons.Material.Filled.Flag,
+            "en" => Icons.Material.Filled.Flag,
+            _ => Icons.Material.Filled.Language
+        };
+    }
+
+    private string GetFlagClass(string languageCode)
+    {
+        return languageCode switch
+        {
+            "it" => "flag-it",
+            "en" => "flag-en", 
+            _ => "flag-default"
+        };
+    }
+
+    public void Dispose()
+    {
+        TranslationService.LanguageChanged -= OnLanguageChangedEvent;
+    }
+}

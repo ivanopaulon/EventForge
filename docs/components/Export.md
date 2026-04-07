@@ -4,8 +4,8 @@
 
 Sistema di export avanzato per EFTable con selezione colonne e supporto dati filtrati.
 
-**File:** `EventForge.Client/Shared/Components/Dialogs/ExportDialog.razor`  
-**Models:** `EventForge.Client/Shared/Components/Export/ExportModels.cs`  
+**File:** `Prym.Client/Shared/Components/Dialogs/ExportDialog.razor`  
+**Models:** `Prym.Client/Shared/Components/Export/ExportModels.cs`  
 **Versione:** 1.0 (PR #4)
 
 ## Features

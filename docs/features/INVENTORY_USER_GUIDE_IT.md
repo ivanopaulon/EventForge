@@ -254,4 +254,4 @@ Condividi feedback con: [inserire canale feedback]
 
 **Versione Guida**: 1.0  
 **Data**: Gennaio 2025  
-**Per Versione Software**: EventForge v[versione]
+**Per Versione Software**: Prym v[versione]

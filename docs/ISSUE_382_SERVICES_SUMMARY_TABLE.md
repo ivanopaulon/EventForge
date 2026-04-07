@@ -1,7 +1,7 @@
 # Issue #382 - Tabella Riepilogativa Stato Servizi
 
 **Data:** 2025-01-14  
-**Issue:** [#382](https://github.com/ivanopaulon/EventForge/issues/382)  
+**Issue:** [#382](https://github.com/ivanopaulon/Prym/issues/382)  
 **Stato:** ✅ Completato
 
 ---

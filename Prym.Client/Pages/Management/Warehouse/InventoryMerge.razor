@@ -1,0 +1,470 @@
+@page "/warehouse/inventory-merge"
+@using Prym.DTOs.Warehouse
+@using Prym.Client.Services
+@inject IInventoryService InventoryService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+<PageTitle>Accorpamento Inventari</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+
+<MudText Typo="Typo.h5" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.MergeType" Class="mr-2 mb-1" Style="vertical-align:middle;" />
+    Accorpamento Inventari
+</MudText>
+
+@* ──────────────────── STEP INDICATOR ──────────────────── *@
+<MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="true" Class="mb-4">
+    <MudStep title="Selezione" Icon="@Icons.Material.Filled.Checklist" />
+    <MudStep title="Anteprima" Icon="@Icons.Material.Filled.Preview" />
+    <MudStep title="Risultato" Icon="@Icons.Material.Filled.CheckCircle" />
+</MudStepper>
+
+@* ──────────────────── STEP 0: SELEZIONE ──────────────────── *@
+@if (_activeStep == 0)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-3">
+            Seleziona almeno 2 inventari aperti da accorpare
+        </MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        else if (_openDocumentHeaders == null || !_openDocumentHeaders.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                Nessun inventario aperto disponibile per l'accorpamento.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable T="InventoryDocumentHeaderDto"
+                      Items="_openDocumentHeaders"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selectedDocuments"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      Class="mb-3">
+                <HeaderContent>
+                    <MudTh>Numero</MudTh>
+                    <MudTh>Data Inventario</MudTh>
+                    <MudTh>Magazzino</MudTh>
+                    <MudTh>Stato</MudTh>
+                    <MudTh Style="text-align:right">N° Righe</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Numero">
+                        <MudText Typo="Typo.body2"><b>@context.Number</b></MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Data Inventario">
+                        @context.InventoryDate.ToString("dd/MM/yyyy")
+                    </MudTd>
+                    <MudTd DataLabel="Magazzino">
+                        @(context.WarehouseName ?? "—")
+                    </MudTd>
+                    <MudTd DataLabel="Stato">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="N° Righe" Style="text-align:right">
+                        @context.RowCount
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>Nessun inventario disponibile.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+
+            @if (_selectedDocuments.Count > 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @_selectedDocuments.Count inventari selezionati —
+                    totale righe: <b>@_selectedDocuments.Sum(d => d.RowCount)</b>
+                </MudAlert>
+            }
+        }
+    </MudPaper>
+
+    @* Selezione documento target *@
+    @if (_selectedDocuments.Count >= 2)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Documento di destinazione</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2" Color="Color.Secondary">
+                Il documento scelto come destinazione riceverà tutte le righe accorpate.
+                Gli altri verranno soft-eliminati.
+            </MudText>
+            <MudSelect T="Guid?"
+                       @bind-Value="_targetDocumentId"
+                       Label="Documento target (opzionale — default: primo selezionato)"
+                       Variant="Variant.Outlined"
+                       Clearable="true"
+                       Dense="true">
+                @foreach (var doc in _selectedDocuments)
+                {
+                    <MudSelectItem Value="@((Guid?)doc.Id)">
+                        @doc.Number — @doc.InventoryDate.ToString("dd/MM/yyyy")
+                        (@(doc.RowCount) righe)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_mergeNotes"
+                          Label="Note accorpamento (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Class="mt-3"
+                          MaxLength="500" />
+        </MudPaper>
+    }
+
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))">
+            Annulla
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_selectedDocuments.Count < 2 || _previewLoading)"
+                   OnClick="@LoadPreviewAsync"
+                   StartIcon="@Icons.Material.Filled.Preview">
+            @if (_previewLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Calcolo anteprima...</span>
+            }
+            else
+            {
+                <span>Mostra anteprima</span>
+            }
+        </MudButton>
+    </MudStack>
+}
+
+@* ──────────────────── STEP 1: ANTEPRIMA ──────────────────── *@
+@if (_activeStep == 1 && _preview != null)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h4" Class="mt-1"><b>@_preview.SourceDocuments.Count</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti sorgente</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.TableRows" Color="Color.Info" Size="Size.Large" />
+                <MudText Typo="Typo.h4" Class="mt-1"><b>@_preview.TotalInputRows</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe totali in ingresso</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.MergeType" Color="Color.Warning" Size="Size.Large" />
+                <MudText Typo="Typo.h4" Class="mt-1"><b>@_preview.RowsToMerge</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe da accorpare (somma qty)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Output" Color="Color.Success" Size="Size.Large" />
+                <MudText Typo="Typo.h4" Class="mt-1"><b>@_preview.EstimatedOutputRows</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe stimate nel risultato</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_preview.Warnings != null && _preview.Warnings.Any())
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" ShowCloseIcon="false">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Attenzione</MudText>
+            <ul Class="pl-4 mb-0">
+                @foreach (var w in _preview.Warnings)
+                {
+                    <li><MudText Typo="Typo.body2">@w</MudText></li>
+                }
+            </ul>
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.subtitle1" Class="mb-3">Documenti selezionati</MudText>
+        <MudTable T="MergeSourceDocumentSummaryDto"
+                  Items="_preview.SourceDocuments"
+                  Dense="true"
+                  Hover="true"
+                  Striped="true">
+            <HeaderContent>
+                <MudTh>Numero</MudTh>
+                <MudTh>Data</MudTh>
+                <MudTh>Magazzino</MudTh>
+                <MudTh>Stato</MudTh>
+                <MudTh Style="text-align:right">Righe</MudTh>
+                <MudTh>Ruolo</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Numero"><b>@context.Number</b></MudTd>
+                <MudTd DataLabel="Data">@context.InventoryDate.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Magazzino">@(context.WarehouseName ?? "—")</MudTd>
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Righe" Style="text-align:right">@context.RowCount</MudTd>
+                <MudTd DataLabel="Ruolo">
+                    @if (context.Id == (_targetDocumentId ?? _selectedDocuments.FirstOrDefault()?.Id))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                 Icon="@Icons.Material.Filled.Star">
+                            Destinazione
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                            Sorgente → eliminato
+                        </MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   OnClick="@GoBackToSelection"
+                   StartIcon="@Icons.Material.Filled.ArrowBack">
+            Indietro
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Warning"
+                   Disabled="@_merging"
+                   OnClick="@ConfirmAndMergeAsync"
+                   StartIcon="@Icons.Material.Filled.MergeType">
+            @if (_merging)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Accorpamento in corso...</span>
+            }
+            else
+            {
+                <span>Conferma e Accorpa</span>
+            }
+        </MudButton>
+    </MudStack>
+}
+
+@* ──────────────────── STEP 2: RISULTATO ──────────────────── *@
+@if (_activeStep == 2 && _result != null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Filled.CheckCircle">
+        <MudText Typo="Typo.subtitle1">Accorpamento completato con successo!</MudText>
+        <MudText Typo="Typo.body2">
+            Documento risultante: <b>@_result.MergedDocumentNumber</b>
+            — @_result.TotalRows righe totali
+            (@_result.MergedRows accorpate, @_result.CopiedRows copiate).
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mt-1">
+            Documenti eliminati (soft): @_result.SoftDeletedDocumentIds.Count
+        </MudText>
+    </MudAlert>
+
+    @if (_result.Warnings != null && _result.Warnings.Any())
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            @foreach (var w in _result.Warnings)
+            {
+                <MudText Typo="Typo.body2">⚠️ @w</MudText>
+            }
+        </MudAlert>
+    }
+
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.Done" Color="Color.Success" Size="Size.Large" />
+                <MudText Typo="Typo.h4"><b>@_result.TotalRows</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe nel documento finale</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.MergeType" Color="Color.Warning" Size="Size.Large" />
+                <MudText Typo="Typo.h4"><b>@_result.MergedRows</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe accorpate (qty sommate)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-3 text-center" Elevation="1">
+                <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Large" />
+                <MudText Typo="Typo.h4"><b>@_result.CopiedRows</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Righe copiate (nessun duplicato)</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   OnClick="@ResetWizard"
+                   StartIcon="@Icons.Material.Filled.Refresh">
+            Nuovo accorpamento
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="@(() => NavigationManager.NavigateTo("/warehouse/inventory-procedure"))"
+                   StartIcon="@Icons.Material.Filled.List">
+            Torna agli inventari
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private MudStepper? _stepper;
+    private int _activeStep = 0;
+
+    private bool _loading = true;
+    private bool _previewLoading = false;
+    private bool _merging = false;
+
+    private List<InventoryDocumentHeaderDto> _openDocumentHeaders = new();
+    private HashSet<InventoryDocumentHeaderDto> _selectedDocuments = new();
+    private Guid? _targetDocumentId = null;
+    private string? _mergeNotes;
+
+    private MergeInventoryDocumentsPreviewDto? _preview;
+    private MergeInventoryDocumentsResultDto? _result;
+
+    private readonly List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new("Home",      href: "/",                             icon: Icons.Material.Filled.Home),
+        new("Magazzino", href: "/warehouse/facilities",         icon: Icons.Material.Filled.Warehouse),
+        new("Inventari", href: "/warehouse/inventory-procedure",icon: Icons.Material.Filled.Inventory),
+        new("Accorpamento", href: null, disabled: true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOpenDocumentsAsync();
+    }
+
+    private async Task LoadOpenDocumentsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _openDocumentHeaders = await InventoryService.GetOpenInventoryDocumentHeadersAsync()
+                             ?? new List<InventoryDocumentHeaderDto>();
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore nel caricamento degli inventari: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadPreviewAsync()
+    {
+        _previewLoading = true;
+        try
+        {
+            var ids = _selectedDocuments.Select(d => d.Id).ToList();
+            _preview = await InventoryService.PreviewMergeInventoryDocumentsAsync(ids);
+
+            if (_preview == null)
+            {
+                AppNotification.ShowError("Impossibile generare l'anteprima.");
+                return;
+            }
+            _activeStep = 1;
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore anteprima: {ex.Message}");
+        }
+        finally
+        {
+            _previewLoading = false;
+        }
+    }
+
+    private async Task ConfirmAndMergeAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Conferma accorpamento",
+            $"Stai per accorpare {_selectedDocuments.Count} inventari in uno solo. " +
+            "Gli altri verranno soft-eliminati. Continuare?",
+            yesText: "Accorpa",
+            cancelText: "Annulla");
+
+        if (confirmed != true) return;
+
+        _merging = true;
+        try
+        {
+            var dto = new MergeInventoryDocumentsDto
+            {
+                SourceDocumentIds = _selectedDocuments.Select(d => d.Id).ToList(),
+                TargetDocumentId  = _targetDocumentId,
+                Notes             = _mergeNotes,
+            };
+
+            _result = await InventoryService.MergeInventoryDocumentsExtendedAsync(dto);
+
+            if (_result == null)
+            {
+                AppNotification.ShowError("Errore durante l'accorpamento.");
+                return;
+            }
+
+            AppNotification.ShowSuccess($"Accorpamento completato! Documento: {_result.MergedDocumentNumber}");
+            _activeStep = 2;
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore accorpamento: {ex.Message}");
+        }
+        finally
+        {
+            _merging = false;
+        }
+    }
+
+    private void GoBackToSelection()
+    {
+        _preview    = null;
+        _activeStep = 0;
+    }
+
+    private async Task ResetWizard()
+    {
+        _preview           = null;
+        _result            = null;
+        _selectedDocuments = new();
+        _targetDocumentId  = null;
+        _mergeNotes        = null;
+        _activeStep        = 0;
+        await LoadOpenDocumentsAsync();
+    }
+
+    private static Color GetStatusColor(string? status) => status switch
+    {
+        "Open"      => Color.Warning,
+        "Closed"    => Color.Success,
+        "Cancelled" => Color.Error,
+        _           => Color.Default,
+    };
+}

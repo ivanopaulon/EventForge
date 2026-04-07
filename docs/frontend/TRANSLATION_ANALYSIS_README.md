@@ -1,4 +1,4 @@
-# Translation Coverage Analysis - EventForge
+# Translation Coverage Analysis - Prym
 
 > **⚠️ UPDATE (2024):** Spanish and French language support has been removed from the project.
 > The system now only supports Italian (it) and English (en), which have been fully aligned with 1615 keys each.
@@ -6,7 +6,7 @@
 
 ## Quick Start 🚀
 
-This directory contains a complete analysis of translation coverage for the EventForge client application.
+This directory contains a complete analysis of translation coverage for the Prym client application.
 
 ### For Immediate Action
 
@@ -56,10 +56,10 @@ This directory contains a complete analysis of translation coverage for the Even
 Implement translations from `critical_translations_to_add.md`:
 ```bash
 # Open the translation files
-vi EventForge.Client/wwwroot/i18n/it.json
-vi EventForge.Client/wwwroot/i18n/en.json
-vi EventForge.Client/wwwroot/i18n/es.json
-vi EventForge.Client/wwwroot/i18n/fr.json
+vi Prym.Client/wwwroot/i18n/it.json
+vi Prym.Client/wwwroot/i18n/en.json
+vi Prym.Client/wwwroot/i18n/es.json
+vi Prym.Client/wwwroot/i18n/fr.json
 
 # Copy the sections from critical_translations_to_add.md
 # Add them to the appropriate locations in each file
@@ -89,7 +89,7 @@ Set up automated validation:
 
 All translation files are in:
 ```
-EventForge.Client/wwwroot/i18n/
+Prym.Client/wwwroot/i18n/
 ├── it.json  (Italian - Primary)
 ├── en.json  (English)
 ├── es.json  (Spanish)
@@ -146,5 +146,5 @@ For detailed information, see:
 ---
 
 **Generated**: September 30, 2024  
-**Analysis Tool**: EventForge Translation Coverage Analyzer  
-**Project**: ivanopaulon/EventForge
+**Analysis Tool**: Prym Translation Coverage Analyzer  
+**Project**: ivanopaulon/Prym

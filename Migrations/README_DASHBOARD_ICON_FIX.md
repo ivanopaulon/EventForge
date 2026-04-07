@@ -21,7 +21,7 @@ MudBlazor icons like `Icons.Material.Outlined.Analytics` contain complete SVG pa
 ### Changes Made
 
 #### 1. Entity Model Update
-**File**: `EventForge.Server/Data/Entities/Dashboard/DashboardMetricConfig.cs`
+**File**: `Prym.Server/Data/Entities/Dashboard/DashboardMetricConfig.cs`
 
 Changed Icon property MaxLength attribute:
 ```csharp
@@ -33,7 +33,7 @@ Changed Icon property MaxLength attribute:
 ```
 
 #### 2. DTO Update
-**File**: `EventForge.DTOs/Dashboard/DashboardConfigurationDto.cs`
+**File**: `Prym.DTOs/Dashboard/DashboardConfigurationDto.cs`
 
 Added validation attribute to Icon property:
 ```csharp
@@ -71,12 +71,12 @@ ALTER COLUMN [Icon] NVARCHAR(1000) NULL;
 **Solution**: Removed the redundant text indicator. Users now rely on the MudStepper's built-in visual indicators for step progress.
 
 ### Files Modified
-- `EventForge.Client/Shared/Components/Dialogs/DashboardConfigurationDialog.razor`
+- `Prym.Client/Shared/Components/Dialogs/DashboardConfigurationDialog.razor`
   - Removed `_isEditingMetric` field
   - Simplified button visibility logic
   - Removed unnecessary flag assignment after metric creation
 
-- `EventForge.Client/Shared/Components/Dialogs/MetricEditorDialog.razor`
+- `Prym.Client/Shared/Components/Dialogs/MetricEditorDialog.razor`
   - Removed redundant "Step X di 4" text from DialogActions
   - Cleaner, less cluttered button area
 

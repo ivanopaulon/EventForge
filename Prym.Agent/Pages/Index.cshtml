@@ -1,0 +1,386 @@
+@page
+@model IndexModel
+@using Prym.Agent.Services
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["InstallationId"] = Model.InstallationId;
+    ViewData["InstallationName"] = Model.InstallationName;
+
+    var stateColor = Model.HubState switch {
+        "Connected"    => "success",
+        "Reconnecting" => "warning",
+        _              => "danger"
+    };
+    var stateIcon = Model.HubState switch {
+        "Connected"    => "bi-check-circle-fill",
+        "Reconnecting" => "bi-arrow-repeat",
+        _              => "bi-x-circle-fill"
+    };
+    var bannerText = Model.HubState switch {
+        "Connected"    => "Connesso all'UpdateHub",
+        "Reconnecting" => "Riconnessione all'UpdateHub in corso…",
+        _              => "Hub non raggiungibile"
+    };
+}
+
+<!-- Page header -->
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-grid-1x2-fill"></i></div>
+        <div>
+            <h1>Dashboard</h1>
+            <p class="ef-page-subtitle">Stato dell'agent e coda aggiornamenti</p>
+        </div>
+    </div>
+    <a href="/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-clockwise"></i>Aggiorna
+    </a>
+</div>
+
+<!-- ── Download in progress (real-time, polling) ──────────────────────── -->
+<div id="downloadWidget" style="display:none" class="ef-card mb-4 border-top border-primary border-3">
+    <div class="ef-card-header">
+        <i class="bi bi-cloud-download-fill text-primary"></i>
+        <span>Download in corso</span>
+        <span id="dl-component" class="ef-badge ef-badge-blue ms-1"></span>
+        <span id="dl-version" class="ef-badge ef-badge-neutral ms-1"></span>
+        <span id="dl-speed" class="ms-auto" style="font-size:.75rem;color:var(--ef-text-muted)"></span>
+    </div>
+    <div class="ef-card-body">
+        <div class="d-flex justify-content-between mb-1" style="font-size:.78rem;color:var(--ef-text-muted)">
+            <span id="dl-bytes"></span>
+            <span id="dl-eta"></span>
+        </div>
+        <div class="progress" style="height:8px">
+            <div id="dl-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                 role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="mt-1" style="font-size:.72rem;color:var(--ef-text-subtle)">
+            <span id="dl-pct"></span>
+        </div>
+    </div>
+</div>
+
+<!-- Hub status banner -->
+<div class="alert alert-@stateColor d-flex align-items-center gap-2 mb-4">
+    <i class="bi @stateIcon fs-5"></i>
+    <strong>@bannerText</strong>
+    @if (Model.LastHeartbeat.HasValue)
+    {
+        <span class="ms-auto" style="font-size:.75rem;opacity:.7">
+            Ultimo heartbeat: @Model.LastHeartbeat.Value.ToLocalTime().ToString("HH:mm:ss")
+        </span>
+    }
+    else
+    {
+        <span class="ms-auto" style="font-size:.75rem;opacity:.7">@DateTime.Now.ToString("HH:mm:ss")</span>
+    }
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(Model.HubState == "Connected" ? "green" : "red")">
+            <div class="ef-kpi-label"><i class="bi bi-cloud me-1"></i>Hub</div>
+            <div class="ef-kpi-value" style="font-size:1.1rem">@Model.HubState</div>
+            <div class="ef-kpi-sub">@(Model.LastHeartbeat?.ToLocalTime().ToString("HH:mm:ss") ?? "—")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card blue">
+            <div class="ef-kpi-label"><i class="bi bi-hdd-network me-1"></i>Server</div>
+            <div class="ef-kpi-value" style="font-size:1.15rem">@(Model.ServerVersion ?? "—")</div>
+            <div class="ef-kpi-sub">@(Model.ServerEnabled ? "Abilitato" : "Disabilitato")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card cyan">
+            <div class="ef-kpi-label"><i class="bi bi-window me-1"></i>Client</div>
+            <div class="ef-kpi-value" style="font-size:1.15rem">@(Model.ClientVersion ?? "—")</div>
+            <div class="ef-kpi-sub">@(Model.ClientEnabled ? "Abilitato" : "Disabilitato")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(Model.QueueBlocked ? "red" : Model.PendingCount > 0 ? "amber" : "green")">
+            <div class="ef-kpi-label"><i class="bi bi-list-ol me-1"></i>Coda</div>
+            <div class="ef-kpi-value">@Model.PendingCount</div>
+            <div class="ef-kpi-sub">
+                @if (Model.QueueBlocked)
+                {
+                    <span>BLOCCATA</span>
+                }
+                else if (Model.NextWindow.HasValue)
+                {
+                    <span>Prossima finestra: @Model.NextWindow.Value.ToLocalTime().ToString("ddd HH:mm")</span>
+                }
+                else
+                {
+                    <span>@(Model.PendingCount == 0 ? "Nessun aggiornamento in attesa" : "Installazione immediata")</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pacchetti ricevuti dall'Hub -->
+@if (Model.TrackedCommands.Count > 0)
+{
+    <div class="ef-card mb-4">
+        <div class="ef-card-header">
+            <i class="bi bi-inbox-fill"></i>
+            Pacchetti ricevuti dall'Hub
+            <span class="ef-badge ef-badge-neutral ms-1">@Model.TrackedCommands.Count</span>
+        </div>
+        <div class="ef-card-body p-0">
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th>Componente</th>
+                            <th>Versione</th>
+                            <th>Stato</th>
+                            <th>Ricevuto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cmd in Model.TrackedCommands)
+                        {
+                            var (stateCls, stateLabel) = cmd.State switch {
+                                CommandState.Received        => ("ef-badge-neutral", "Ricevuto"),
+                                CommandState.Downloading     => ("ef-badge-blue", "Download in corso"),
+                                CommandState.DownloadFailed  => ("ef-badge-danger", "Download fallito"),
+                                CommandState.Downloaded      => ("ef-badge-teal", "Scaricato"),
+                                CommandState.Installing      => ("ef-badge-warning", "Installazione in corso"),
+                                CommandState.Installed       => ("ef-badge-success", "Installato"),
+                                CommandState.Failed          => ("ef-badge-danger", "Fallito"),
+                                _                            => ("ef-badge-neutral", cmd.State.ToString())
+                            };
+                            var isAnimated = cmd.State == CommandState.Downloading || cmd.State == CommandState.Installing;
+                            <tr>
+                                <td>
+                                    <span class="ef-badge @(cmd.Component == "Server" ? "ef-badge-blue" : "ef-badge-info")">
+                                        @cmd.Component
+                                    </span>
+                                </td>
+                                <td><code>@cmd.Version</code></td>
+                                <td>
+                                    <span class="ef-badge @stateCls @(isAnimated ? "pulse-badge" : "")">
+                                        @if (isAnimated) { <i class="bi bi-arrow-repeat me-1 spin"></i> }
+                                        @stateLabel
+                                    </span>
+                                    @if ((cmd.State == CommandState.Failed || cmd.State == CommandState.DownloadFailed) && !string.IsNullOrEmpty(cmd.ErrorMessage))
+                                    {
+                                        <div class="text-danger" style="font-size:.72rem;margin-top:2px" title="@cmd.ErrorMessage">
+                                            @(cmd.ErrorMessage!.Length > 80 ? cmd.ErrorMessage[..80] + "…" : cmd.ErrorMessage)
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-muted small">@cmd.ReceivedAt.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Pending updates -->
+@if (Model.QueueBlocked)
+{
+    var blocked = Model.PendingUpdates.FirstOrDefault(p => p.PackageId == Model.BlockedByPackageId);
+    var maxRetries = Model.MaxAutoRetries;
+    var failCount = blocked?.FailCount ?? 0;
+    var isNowManual = blocked?.IsManualInstall ?? false;
+
+    <div class="alert alert-danger d-flex align-items-start gap-2 mb-4">
+        <i class="bi bi-exclamation-triangle-fill fs-5 mt-1 flex-shrink-0"></i>
+        <div class="flex-grow-1">
+            <strong>Coda bloccata</strong> — @Model.BlockedReason
+
+            @if (failCount > 0)
+            {
+                <div class="mt-1 small">
+                    <i class="bi bi-arrow-repeat me-1"></i>
+                    Tentativi falliti: <strong>@failCount</strong>
+                    @if (!isNowManual && maxRetries > 0)
+                    {
+                        <span class="text-warning ms-1">(diventa manuale dopo @maxRetries tentativi)</span>
+                    }
+                    @if (isNowManual && blocked?.Command.IsManualInstall == false)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">Degradato a manuale</span>
+                    }
+                </div>
+            }
+
+            <div class="mt-2 d-flex gap-2 flex-wrap">
+                <form method="post" asp-page-handler="UnblockQueue">
+                    <button type="submit" class="btn btn-sm btn-warning"
+                            onclick="return confirm('Riprova l\'aggiornamento fallito?\nRimane in coda e verrà ritentato alla prossima finestra di manutenzione.')">
+                        <i class="bi bi-arrow-repeat me-1"></i>🔄 Riprova
+                    </button>
+                </form>
+                <form method="post" asp-page-handler="UnblockSkip">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            onclick="return confirm('ATTENZIONE: questo SALTA l\'aggiornamento fallito e lo rimuove dalla coda.\nLe migrazioni dipendenti NON verranno eseguite. Procedere solo se si conosce il rischio.')">
+                        <i class="bi bi-skip-forward me-1"></i>⚠️ Salta e rimuovi
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.PendingUpdates.Count > 0)
+{
+    <div class="ef-card">
+        <div class="ef-card-header">
+            <i class="bi bi-clock-history"></i>
+            Aggiornamenti in coda
+            <span class="ef-badge @(Model.QueueBlocked ? "ef-badge-danger" : "ef-badge-warning") ms-1">@Model.PendingUpdates.Count</span>
+        </div>
+        <div class="ef-card-body p-0">
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Componente</th>
+                            <th>Versione</th>
+                            <th>Modalità</th>
+                            <th>In coda dal</th>
+                            <th>File</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (item, idx) in Model.PendingUpdates.Select((p, i) => (p, i)))
+                        {
+                            var isHead = idx == 0;
+                            var rowCls = isHead && Model.QueueBlocked ? "row-danger" : isHead ? "row-warning" : "";
+                            <tr class="@rowCls">
+                                <td>
+                                    <span class="ef-badge ef-badge-neutral">@(idx + 1)</span>
+                                    @if (isHead && !Model.QueueBlocked)
+                                    {
+                                        <span class="ef-badge ef-badge-blue ms-1">testa</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="ef-badge @(item.Command.Component == "Server" ? "ef-badge-blue" : "ef-badge-info")">
+                                        @item.Command.Component
+                                    </span>
+                                </td>
+                                <td><code>@item.Command.Version</code></td>
+                                <td>
+                                    @if (item.IsManualInstall)
+                                    {
+                                        <span class="ef-badge ef-badge-warning">Manuale 🔒</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ef-badge ef-badge-success">Auto</span>
+                                    }
+                                </td>
+                                <td class="text-muted">@item.QueuedAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                <td>
+                                    @if (System.IO.File.Exists(item.LocalZipPath))
+                                    {
+                                        <span class="ef-badge ef-badge-success"><i class="bi bi-check"></i>Su disco</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ef-badge ef-badge-danger"><i class="bi bi-x"></i>Mancante</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (isHead && !Model.QueueBlocked && System.IO.File.Exists(item.LocalZipPath))
+                                    {
+                                        <form method="post" asp-page-handler="InstallNow">
+                                            <input type="hidden" name="packageId" value="@item.PackageId" />
+                                            <button type="submit" class="btn btn-sm btn-success"
+                                                    onclick="return confirm('Installare @item.Command.Component @item.Command.Version ORA (fuori dalla finestra di manutenzione)?')">
+                                                <i class="bi bi-lightning me-1"></i>Installa ora
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else if (!Model.QueueBlocked)
+{
+    <div class="alert alert-success d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <span>Nessun aggiornamento in attesa.</span>
+    </div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const widget    = document.getElementById('downloadWidget');
+    const dlComp    = document.getElementById('dl-component');
+    const dlVer     = document.getElementById('dl-version');
+    const dlSpeed   = document.getElementById('dl-speed');
+    const dlBytes   = document.getElementById('dl-bytes');
+    const dlEta     = document.getElementById('dl-eta');
+    const dlBar     = document.getElementById('dl-bar');
+    const dlPct     = document.getElementById('dl-pct');
+
+    function fmtEta(sec) {
+        if (!sec || sec <= 0) return '';
+        if (sec < 60)  return `ETA: ${Math.round(sec)}s`;
+        if (sec < 3600) return `ETA: ${Math.floor(sec/60)}m ${Math.round(sec%60)}s`;
+        return `ETA: ${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m`;
+    }
+
+    function poll() {
+        fetch('/api/agent/download-status', { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) {
+                    widget.style.display = 'none';
+                    return;
+                }
+                widget.style.display = '';
+                dlComp.textContent  = data.component  ?? '';
+                dlVer.textContent   = data.version    ?? '';
+                dlSpeed.textContent = data.formattedSpeed ?? '';
+                dlBytes.textContent = data.totalBytes
+                    ? `${data.formattedDownloaded} / ${data.formattedTotal}`
+                    : data.formattedDownloaded;
+
+                const pct = data.percentComplete;
+                if (pct != null) {
+                    dlBar.style.width      = pct + '%';
+                    dlBar.setAttribute('aria-valuenow', pct);
+                    dlPct.textContent      = pct + '%';
+                } else {
+                    dlBar.style.width = '100%'; // indeterminate look
+                    dlPct.textContent = 'Calcolo dimensione…';
+                }
+
+                const eta = data.eta;
+                dlEta.textContent = eta ? fmtEta(
+                    parseInt(eta.split(':')[0])*3600 +
+                    parseInt(eta.split(':')[1])*60   +
+                    parseInt(eta.split(':')[2])
+                ) : '';
+            })
+            .catch(() => { widget.style.display = 'none'; });
+    }
+
+    poll();
+    setInterval(poll, 1000);
+})();
+</script>
+}

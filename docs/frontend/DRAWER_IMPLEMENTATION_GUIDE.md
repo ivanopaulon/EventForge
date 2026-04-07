@@ -1,7 +1,7 @@
 # Drawer Pattern Implementation Guide
 
 ## Overview
-This document outlines the implementation of parametric Drawer components in EventForge, replacing traditional dialog-based CRUD operations with modern, accessible drawer interfaces.
+This document outlines the implementation of parametric Drawer components in Prym, replacing traditional dialog-based CRUD operations with modern, accessible drawer interfaces.
 
 **Important: All drawer components must use localized labels, helper texts, and error messages through the TranslationService.**
 
@@ -273,7 +273,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.BaseAddress = new Uri("https://localhost:7241/");
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
 });
 
 // Register centralized service
@@ -414,4 +414,4 @@ protected override async Task OnParametersSetAsync()
 - Clear large object references when closing
 - Implement proper cleanup in IAsyncDisposable
 
-This implementation provides a robust, accessible, and maintainable foundation for CRUD operations throughout the EventForge application.
+This implementation provides a robust, accessible, and maintainable foundation for CRUD operations throughout the Prym application.

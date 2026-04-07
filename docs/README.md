@@ -1,6 +1,6 @@
-# EventForge Documentation
+# Prym Documentation
 
-Benvenuto nella documentazione completa di EventForge. Questa sezione contiene tutte le guide, i tutorial e la documentazione tecnica organizzate per argomento.
+Benvenuto nella documentazione completa di Prym. Questa sezione contiene tutte le guide, i tutorial e la documentazione tecnica organizzate per argomento.
 
 ## 🚨 **AGGIORNAMENTO IMPORTANTE - Gennaio 2025**
 
@@ -107,7 +107,7 @@ Migrazioni e report di completamento
 
 **Data**: 2025-01-27  
 **Versione Documentazione**: 2.0  
-**Compatibilità**: EventForge v1.0+
+**Compatibilità**: Prym v1.0+
 
 ---
 

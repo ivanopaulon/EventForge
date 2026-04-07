@@ -1,0 +1,484 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.UnitOfMeasures
+@using Prym.DTOs.Station
+@using Prym.Client.Services
+@using Prym.DTOs.Common
+@using MudBlazor
+@inject ITranslationService TranslationService
+@inject ILookupCacheService LookupCacheService
+@inject IEntityManagementService EntityManagementService
+@inject ILogger<ClassificationTab> Logger
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
+            @TranslationService.GetTranslation("product.classificationInfo", "Classificazione Prodotto")
+        </MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.BrandId"
+                           Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                           Variant="Variant.Outlined"
+                           Class="ef-select"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           @bind-Value:after="OnBrandChanged">
+                    @if (_brands != null)
+                    {
+                        @foreach (var brand in _brands)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.ModelId"
+                           Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                           Variant="Variant.Outlined"
+                           Class="ef-select"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           @bind-Value:after="NotifyUpdated">
+                    @if (_models != null)
+                    {
+                        @foreach (var model in _models)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?"
+                           @bind-Value="Product.UnitOfMeasureId"
+                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                           Variant="Variant.Outlined"
+                           Class="ef-select"
+                           ReadOnly="@(!IsEditMode)"
+                           Clearable="true"
+                           @bind-Value:after="NotifyUpdated">
+                    @if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
+                    {
+                        @foreach (var um in _unitsOfMeasure)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_categoryName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.categoryLabel","Categoria")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Category))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_familyName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.familyLabel","Famiglia")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Family))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Value="@(_groupName ?? "-")"
+                              Label="@TranslationService.GetTranslation("product.groupLabel","Gruppo")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))"
+                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
+    private List<BrandDto> _brands = new();
+    private List<ModelDto> _models = new();
+    private IEnumerable<UMDto>? _unitsOfMeasure;
+
+    // friendly names for currently selected classification nodes
+    private string? _categoryName;
+    private string? _familyName;
+    private string? _groupName;
+
+    // flags to handle parameter-driven loading
+    private bool _lookupsLoaded = false;
+    private Guid? _currentBrandId;
+    private bool _suppressBrandChange = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // refresh names for selected nodes
+        await LoadSelectedNodeNamesAsync();
+
+        if (!_lookupsLoaded)
+        {
+            await LoadDataAsync();
+        }
+        else if (!Nullable.Equals(_currentBrandId, Product?.BrandId))
+        {
+            _currentBrandId = Product?.BrandId;
+            await RefreshModelsForBrandAsync();
+        }
+        // Always ensure that the currently selected Brand/Model are present in the lists
+        await EnsureSelectedBrandAndModelPresent();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task EnsureSelectedBrandAndModelPresent()
+    {
+        try
+        {
+            // Brands
+            if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
+            {
+                var brand = await LookupCacheService.GetBrandByIdAsync(Product.BrandId.Value);
+                if (brand != null)
+                {
+                    _brands.Add(brand);
+                }
+            }
+
+            // Models
+            if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
+            {
+                var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                if (model != null)
+                {
+                    _models.Add(model);
+                }
+            }
+
+            // Unit of Measure
+            if (Product?.UnitOfMeasureId.HasValue == true && _unitsOfMeasure != null && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
+            {
+                var um = await LookupCacheService.GetUnitOfMeasureByIdAsync(Product.UnitOfMeasureId.Value);
+                if (um != null)
+                {
+                    _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _suppressBrandChange = true;
+        try
+        {
+            try
+            {
+                var brands = await LookupCacheService.GetBrandsRawAsync();
+                _brands = brands.ToList();
+
+                // Ensure selected brand is present
+                if (Product?.BrandId.HasValue == true && !_brands.Any(b => b.Id == Product.BrandId.Value))
+                {
+                    var brand = await LookupCacheService.GetBrandByIdAsync(Product.BrandId.Value);
+                    if (brand != null)
+                    {
+                        _brands.Add(brand);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load brands");
+                _brands = new List<BrandDto>();
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadBrandsError", "Errore nel caricamento dei marchi"));
+            }
+
+            try
+            {
+                var models = await LookupCacheService.GetModelsRawAsync(Product?.BrandId);
+                _models = models.ToList();
+                _currentBrandId = Product?.BrandId;
+
+                // Ensure selected model is present
+                if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
+                {
+                    var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                    if (model != null)
+                    {
+                        _models.Add(model);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load models");
+                _models = new List<ModelDto>();
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsError", "Errore nel caricamento dei modelli"));
+            }
+
+            try
+            {
+                var units = await LookupCacheService.GetUnitsOfMeasureRawAsync();
+                _unitsOfMeasure = units.ToList();
+
+                // Ensure selected unit is present
+                if (Product?.UnitOfMeasureId.HasValue == true && !_unitsOfMeasure.Any(u => u.Id == Product.UnitOfMeasureId.Value))
+                {
+                    var um = await LookupCacheService.GetUnitOfMeasureByIdAsync(Product.UnitOfMeasureId.Value);
+                    if (um != null)
+                    {
+                        _unitsOfMeasure = _unitsOfMeasure.Append(um).ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to load units of measure");
+                _unitsOfMeasure = Enumerable.Empty<UMDto>();
+                AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadUMError", "Errore nel caricamento unità di misura"));
+            }
+
+            _lookupsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error loading classification lookups");
+            AppNotification.ShowError(TranslationService.GetTranslation("product.loadLookupsError", "Errore caricamento dati classificazione"));
+        }
+        finally
+        {
+            _suppressBrandChange = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshModelsForBrandAsync()
+    {
+        _suppressBrandChange = true;
+        try
+        {
+            var models = await LookupCacheService.GetModelsRawAsync(Product?.BrandId);
+            _models = models.ToList();
+
+            // Ensure selected model present
+            if (Product?.ModelId.HasValue == true && !_models.Any(m => m.Id == Product.ModelId.Value))
+            {
+                var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                if (model != null)
+                {
+                    _models.Add(model);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to refresh models for brand {BrandId}", Product?.BrandId);
+            _models = new List<ModelDto>();
+            AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"));
+        }
+        finally
+        {
+            _suppressBrandChange = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSelectedNodeNamesAsync()
+    {
+        // Load readable names for currently selected classification GUIDs (if present)
+        _categoryName = null;
+        _familyName = null;
+        _groupName = null;
+
+        try
+        {
+            if (Product?.CategoryNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.CategoryNodeId.Value);
+                _categoryName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load category node name");
+        }
+
+        try
+        {
+            if (Product?.FamilyNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.FamilyNodeId.Value);
+                _familyName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load family node name");
+        }
+
+        try
+        {
+            if (Product?.GroupNodeId != null)
+            {
+                var n = await EntityManagementService.GetClassificationNodeAsync(Product.GroupNodeId.Value);
+                _groupName = n?.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load group node name");
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OpenPicker(ProductClassificationType type)
+    {
+        if (!IsEditMode) return;
+        
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Type", type },
+                {
+                    "InitialSelectedId",
+                    type == ProductClassificationType.Category ? Product.CategoryNodeId :
+                    type == ProductClassificationType.Family ? Product.FamilyNodeId :
+                    Product.GroupNodeId
+                },
+                { "Title", TranslationService.GetTranslation("classificationNode.selectFor", $"Seleziona {type}") }
+            };
+
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<Prym.Client.Shared.Components.ClassificationNodePicker>("", parameters, options);
+            var result = await dialog.Result;
+
+            // MudBlazor's DialogResult exposes 'Canceled' (US spelling). Cast Data safely to avoid pattern-scope issues.
+            if (result is { Canceled: false })
+            {
+                var selected = result.Data as ClassificationNodeDto;
+                if (selected != null)
+                {
+                    switch (type)
+                    {
+                        case ProductClassificationType.Category:
+                            Product.CategoryNodeId = selected.Id;
+                            _categoryName = selected.Name;
+                            break;
+                        case ProductClassificationType.Family:
+                            Product.FamilyNodeId = selected.Id;
+                            _familyName = selected.Name;
+                            break;
+                        case ProductClassificationType.MerchandiseGroup:
+                            Product.GroupNodeId = selected.Id;
+                            _groupName = selected.Name;
+                            break;
+                    }
+
+                    await NotifyUpdated();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification picker");
+            AppNotification.ShowError(TranslationService.GetTranslation("classificationNode.openPickerError", "Errore nell'apertura del selettore nodi"));
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from ClassificationTab");
+        }
+    }
+
+    private async Task OnBrandChanged()
+    {
+        // Ignore programmatic changes during initialization or refresh
+        if (_suppressBrandChange) return;
+
+        try
+        {
+            if (Product?.BrandId == null)
+            {
+                _models = new List<ModelDto>();
+                if (Product != null) Product.ModelId = null;
+            }
+            else
+            {
+                try
+                {
+                    var models = await LookupCacheService.GetModelsRawAsync(Product.BrandId);
+                    _models = models.ToList();
+                    _currentBrandId = Product.BrandId;
+
+                    // If a model was previously selected and it's not in the list, fetch it explicitly
+                    if (Product.ModelId.HasValue && !_models.Any(m => m.Id == Product.ModelId.Value))
+                    {
+                        var model = await LookupCacheService.GetModelByIdAsync(Product.ModelId.Value);
+                        if (model != null)
+                        {
+                            _models.Add(model);
+                        }
+                        else
+                        {
+                            Product.ModelId = null;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load models for brand {BrandId}", Product.BrandId);
+                    _models = new List<ModelDto>();
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("product.loadModelsByBrandError", "Errore caricamento modelli per il marchio selezionato"));
+                    Product.ModelId = null;
+                }
+            }
+        }
+        finally
+        {
+            await NotifyUpdated();
+            StateHasChanged();
+        }
+    }
+}

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Script di utilità per eseguire l'analisi dei conflitti di route in EventForge
+# Script di utilità per eseguire l'analisi dei conflitti di route in Prym
 # Utilizzo: ./analyze-routes.sh [percorso-controllers] [file-output]
 
-echo "EventForge Route Conflict Analyzer - Avvio Script"
+echo "Prym Route Conflict Analyzer - Avvio Script"
 echo "================================================="
 
 # Parametri di default
-CONTROLLERS_PATH=${1:-"EventForge.Server/Controllers"}
+CONTROLLERS_PATH=${1:-"Prym.Server/Controllers"}
 OUTPUT_FILE=${2:-"route_analysis_report.txt"}
 
 echo "📂 Percorso Controllers: $CONTROLLERS_PATH"
@@ -20,7 +20,7 @@ export OUTPUT_FILE
 
 # Esegui l'analisi tramite test
 echo "🔨 Build del progetto di test..."
-dotnet build EventForge.Tests --configuration Release --verbosity quiet
+dotnet build Prym.Tests --configuration Release --verbosity quiet
 
 if [ $? -ne 0 ]; then
     echo "❌ Errore durante il build del progetto di test"
@@ -32,7 +32,7 @@ echo ""
 
 # Esegui l'analisi
 echo "🔍 Avvio analisi dei conflitti di route..."
-dotnet test EventForge.Tests --filter Category=RouteAnalysis --configuration Release --nologo
+dotnet test Prym.Tests --filter Category=RouteAnalysis --configuration Release --nologo
 
 ANALYZER_EXIT_CODE=$?
 

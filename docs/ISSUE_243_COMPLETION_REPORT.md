@@ -471,18 +471,18 @@ Il sistema è **production-ready** per tutte le funzionalità core richieste. Gl
 ## 📚 File Creati/Modificati
 
 ### Nuove Entità (4)
-- `EventForge.Server/Data/Entities/Warehouse/SustainabilityCertificate.cs`
-- `EventForge.Server/Data/Entities/Warehouse/WasteManagementRecord.cs`
-- `EventForge.Server/Data/Entities/Warehouse/ProjectOrder.cs`
-- `EventForge.Server/Data/Entities/Warehouse/ProjectMaterialAllocation.cs`
+- `Prym.Server/Data/Entities/Warehouse/SustainabilityCertificate.cs`
+- `Prym.Server/Data/Entities/Warehouse/WasteManagementRecord.cs`
+- `Prym.Server/Data/Entities/Warehouse/ProjectOrder.cs`
+- `Prym.Server/Data/Entities/Warehouse/ProjectMaterialAllocation.cs`
 
 ### Nuovi DTOs (3 file, 12 classi)
-- `EventForge.DTOs/Warehouse/SustainabilityCertificateDto.cs` (3 classi)
-- `EventForge.DTOs/Warehouse/WasteManagementRecordDto.cs` (3 classi)
-- `EventForge.DTOs/Warehouse/ProjectOrderDto.cs` (6 classi)
+- `Prym.DTOs/Warehouse/SustainabilityCertificateDto.cs` (3 classi)
+- `Prym.DTOs/Warehouse/WasteManagementRecordDto.cs` (3 classi)
+- `Prym.DTOs/Warehouse/ProjectOrderDto.cs` (6 classi)
 
 ### File Modificati (2)
-- `EventForge.Server/Data/Entities/Warehouse/StockMovement.cs` (aggiunto ProjectOrderId)
-- `EventForge.Server/Data/EventForgeDbContext.cs` (aggiunti 4 DbSets)
+- `Prym.Server/Data/Entities/Warehouse/StockMovement.cs` (aggiunto ProjectOrderId)
+- `Prym.Server/Data/PrymDbContext.cs` (aggiunti 4 DbSets)
 
 **Totale Righe Codice**: ~2,500 righe (entità + DTOs + enums + documentazione)

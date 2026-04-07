@@ -1,4 +1,4 @@
-# EventForge Deployment Guide
+# Prym Deployment Guide
 
 ## Environment Configuration
 
@@ -115,10 +115,10 @@ Built-in query performance monitoring:
 
 ```bash
 # Unit tests
-dotnet test EventForge.Tests
+dotnet test Prym.Tests
 
 # Integration tests
-dotnet test EventForge.IntegrationTests
+dotnet test Prym.IntegrationTests
 
 # All tests
 dotnet test
@@ -139,20 +139,20 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["EventForge.Server/EventForge.Server.csproj", "EventForge.Server/"]
-COPY ["EventForge.DTOs/EventForge.DTOs.csproj", "EventForge.DTOs/"]
-RUN dotnet restore "EventForge.Server/EventForge.Server.csproj"
+COPY ["Prym.Server/Prym.Server.csproj", "Prym.Server/"]
+COPY ["Prym.DTOs/Prym.DTOs.csproj", "Prym.DTOs/"]
+RUN dotnet restore "Prym.Server/Prym.Server.csproj"
 COPY . .
-WORKDIR "/src/EventForge.Server"
-RUN dotnet build "EventForge.Server.csproj" -c Release -o /app/build
+WORKDIR "/src/Prym.Server"
+RUN dotnet build "Prym.Server.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "EventForge.Server.csproj" -c Release -o /app/publish
+RUN dotnet publish "Prym.Server.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "EventForge.Server.dll"]
+ENTRYPOINT ["dotnet", "Prym.Server.dll"]
 ```
 
 ## Troubleshooting

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds comprehensive support for decimal quantities and base unit conversion across the EventForge application. The changes enable proper handling of alternative units of measure (e.g., packs of 6, fractional conversion factors) and fix calculation issues when using product units with conversion factors.
+This implementation adds comprehensive support for decimal quantities and base unit conversion across the Prym application. The changes enable proper handling of alternative units of measure (e.g., packs of 6, fractional conversion factors) and fix calculation issues when using product units with conversion factors.
 
 ## Problem Solved
 
@@ -48,10 +48,10 @@ When merging duplicate products:
 
 ### Server-Side Entities & Services
 ```
-EventForge.Server/
+Prym.Server/
 ├── Data/
 │   ├── Entities/Documents/DocumentRow.cs              [MODIFIED]
-│   └── EventForgeDbContext.cs                         [MODIFIED]
+│   └── PrymDbContext.cs                         [MODIFIED]
 ├── Services/
 │   └── Documents/DocumentHeaderService.cs             [MODIFIED]
 ├── Controllers/
@@ -62,7 +62,7 @@ EventForge.Server/
 
 ### DTOs
 ```
-EventForge.DTOs/Documents/
+Prym.DTOs/Documents/
 ├── CreateDocumentRowDto.cs                            [MODIFIED]
 ├── UpdateDocumentRowDto.cs                            [MODIFIED]
 └── DocumentRowDto.cs                                  [MODIFIED]
@@ -70,7 +70,7 @@ EventForge.DTOs/Documents/
 
 ### Client Components
 ```
-EventForge.Client/
+Prym.Client/
 ├── Shared/Components/Dialogs/Documents/
 │   └── AddDocumentRowDialog.razor                     [MODIFIED]
 └── Pages/Management/Documents/
@@ -79,7 +79,7 @@ EventForge.Client/
 
 ### Tests
 ```
-EventForge.Tests/Services/Documents/
+Prym.Tests/Services/Documents/
 ├── DocumentHeaderStockMovementTests.cs                [MODIFIED]
 ├── DocumentRowMergeTests.cs                           [MODIFIED]
 └── DocumentRowUnitConversionTests.cs                  [NEW - 5 tests]

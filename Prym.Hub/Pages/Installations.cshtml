@@ -1,0 +1,406 @@
+@page
+@model Prym.Hub.Pages.InstallationsModel
+@using Prym.Hub.Data.Entities
+@using Prym.Hub.Services
+@{
+    ViewData["Title"] = "Installazioni";
+    ViewData["PageSection"] = "Hub";
+    var newKey     = TempData["NewKey"]?.ToString();
+    var newKeyId   = TempData["NewKeyInstallationId"]?.ToString();
+    var newKeyName = TempData["NewKeyInstallationName"]?.ToString();
+    int online  = Model.Installations.Count(r => r.IsOnline);
+    int offline = Model.Installations.Count(r => !r.IsOnline && !r.Installation.IsRevoked);
+    int revoked = Model.Installations.Count(r => r.Installation.IsRevoked);
+}
+
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon blue"><i class="bi bi-pc-display-horizontal"></i></div>
+        <div>
+            <h1>Installazioni</h1>
+            <p class="ef-page-subtitle">Gestione delle installazioni registrate e invio aggiornamenti</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="ef-badge ef-badge-neutral">@Model.Installations.Count totali</span>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal">
+            <i class="bi bi-plus-lg me-1"></i>Registra
+        </button>
+    </div>
+</div>
+
+@if (newKey is not null)
+{
+    <div class="alert alert-success border-0 mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-key-fill fs-4 text-success mt-1"></i>
+            <div class="flex-grow-1">
+                <strong>Nuova installazione registrata: <em>@newKeyName</em> (<code>@newKeyId</code>)</strong><br />
+                <span class="text-danger fw-semibold">Copia la chiave API subito — non sarà più visibile.</span>
+                <div class="input-group mt-2" style="max-width:640px">
+                    <input id="newKeyInput" type="text" class="form-control font-monospace fw-bold"
+                           value="@newKey" readonly />
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('newKeyInput').value);this.innerHTML='<i class=\'bi bi-check-lg\'></i> Copiata'">
+                        <i class="bi bi-clipboard"></i> Copia
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- KPI -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card blue">
+            <div class="ef-kpi-label"><i class="bi bi-pc-display-horizontal me-1"></i>Totali</div>
+            <div class="ef-kpi-value">@Model.Installations.Count</div>
+            <div class="ef-kpi-sub">installazioni registrate</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card green">
+            <div class="ef-kpi-label"><i class="bi bi-wifi me-1"></i>Online</div>
+            <div class="ef-kpi-value">@online</div>
+            <div class="ef-kpi-sub">connesse ora</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(offline > 0 ? "amber" : "green")">
+            <div class="ef-kpi-label"><i class="bi bi-wifi-off me-1"></i>Offline</div>
+            <div class="ef-kpi-value">@offline</div>
+            <div class="ef-kpi-sub">non raggiungibili</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(revoked > 0 ? "amber" : "cyan")">
+            <div class="ef-kpi-label"><i class="bi bi-ban me-1"></i>Revocate</div>
+            <div class="ef-kpi-value">@revoked</div>
+            <div class="ef-kpi-sub">chiave revocata</div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ReadyPackages.Count > 0)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-box-seam-fill fs-5 flex-shrink-0"></i>
+        <div>
+            <strong>@Model.ReadyPackages.Count pacchett@(Model.ReadyPackages.Count == 1 ? "o pronto" : "i pronti") al deploy.</strong>
+            Seleziona un'installazione online e premi <em>Invia</em>.
+        </div>
+    </div>
+}
+
+<!-- Tabella installazioni -->
+<div class="ef-card">
+    <div class="ef-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>Installazioni registrate</span>
+        <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:280px"
+               placeholder="🔍 Filtra per nome, posizione, tag…" oninput="filterTable()" />
+    </div>
+    <div class="ef-card-body p-0">
+        <div class="ef-table-wrap">
+            <table class="ef-table" id="instTable">
+                <thead>
+                    <tr>
+                        <th>Stato</th>
+                        <th>Nome / Macchina</th>
+                        <th>Componenti</th>
+                        <th>Versione Server</th>
+                        <th>Versione Client</th>
+                        <th>Sistema</th>
+                        <th>Posizione / Tag</th>
+                        <th>Ultimo contatto</th>
+                        <th>Modalità</th>
+                        <th>Aggiornamenti</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.Installations)
+                {
+                    var i = row.Installation;
+                    var badgeCls = i.IsRevoked ? "ef-badge-danger"
+                                 : row.IsOnline ? "ef-badge-success"
+                                 : i.Status == InstallationStatus.Updating ? "ef-badge-warning"
+                                 : i.Status == InstallationStatus.Error ? "ef-badge-danger"
+                                 : "ef-badge-neutral";
+                    var badgeLabel = i.IsRevoked ? "Revocata"
+                                   : row.IsOnline ? "Online"
+                                   : i.Status.ToString();
+                    var rowCss = i.IsRevoked ? "opacity-75"
+                               : i.Status == InstallationStatus.Error ? "row-danger"
+                               : i.Status == InstallationStatus.Updating ? "row-warning"
+                               : "";
+                    <tr class="@rowCss"
+                        data-search="@((i.Name + " " + i.Location + " " + i.MachineName + " " + i.IpAddress + " " + i.Tags + " " + i.InstallationCode).ToLower())">
+                        <td>
+                            <span class="ef-badge @badgeCls">
+                                @if (row.IsOnline)
+                                {
+                                    <i class="bi bi-circle-fill me-1" style="font-size:.55rem"></i>
+                                }
+                                @badgeLabel
+                            </span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@i.Name</div>
+                            @if (!string.IsNullOrEmpty(i.MachineName))
+                            {
+                                <small class="text-muted"><i class="bi bi-pc me-1"></i>@i.MachineName</small>
+                            }
+                            @if (!string.IsNullOrEmpty(i.IpAddress))
+                            {
+                                <br /><small class="text-muted"><i class="bi bi-ethernet me-1"></i>@i.IpAddress</small>
+                            }
+                            @if (!string.IsNullOrEmpty(i.InstallationCode))
+                            {
+                                <br /><small class="text-muted font-monospace" style="font-size:.7rem"
+                                             title="@i.InstallationCode">@(i.InstallationCode.Length > 30 ? i.InstallationCode[..30] + "…" : i.InstallationCode)</small>
+                            }
+                        </td>
+                        <td class="text-muted small">
+                            @if (i.Components == InstallationComponents.Both) { <text>Server + Client</text> }
+                            else { @i.Components }
+                        </td>
+                        <td><code class="text-muted">@(i.InstalledVersionServer ?? "—")</code></td>
+                        <td><code class="text-muted">@(i.InstalledVersionClient ?? "—")</code></td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.OSVersion))
+                            {
+                                <div class="text-muted" title="@i.OSVersion">
+                                    <i class="bi bi-windows me-1"></i>@(i.OSVersion.Length > 35 ? i.OSVersion[..35] + "…" : i.OSVersion)
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.DotNetVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-braces me-1"></i>.NET @i.DotNetVersion</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.AgentVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-robot me-1"></i>Agent @i.AgentVersion</div>
+                            }
+                            @if (string.IsNullOrEmpty(i.OSVersion) && string.IsNullOrEmpty(i.DotNetVersion) && string.IsNullOrEmpty(i.AgentVersion))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.Location))
+                            {
+                                <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>@i.Location</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.Tags))
+                            {
+                                <div class="mt-1">
+                                @foreach (var tag in i.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                {
+                                    <span class="ef-badge ef-badge-neutral me-1">@tag</span>
+                                }
+                                </div>
+                            }
+                            @if (string.IsNullOrEmpty(i.Location) && string.IsNullOrEmpty(i.Tags))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-muted small" style="white-space:nowrap">
+                            @if (i.LastSeen.HasValue)
+                            {
+                                <span title="@i.LastSeen.Value.ToString("u")">@i.LastSeen.Value.ToString("dd/MM HH:mm:ss")</span>
+                            }
+                            else { <span>Mai</span> }
+                            @if (i.IsRevoked)
+                            {
+                                <div class="text-danger mt-1">
+                                    <i class="bi bi-ban me-1"></i>Revocata @i.RevokedAt?.ToString("dd/MM/yy")
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column gap-1 align-items-start">
+                                @if (i.UpdateMode == InstallationUpdateMode.Manual)
+                                {
+                                    <span class="ef-badge ef-badge-warning">Manuale</span>
+                                }
+                                else
+                                {
+                                    <span class="ef-badge ef-badge-success">Auto</span>
+                                }
+                                <form method="post" asp-page-handler="SetUpdateMode" class="d-flex gap-1 align-items-center mt-1">
+                                    <input type="hidden" name="installationId" value="@i.Id" />
+                                    <select name="mode" class="form-select form-select-sm" style="font-size:.72rem;padding:2px 4px;max-width:90px"
+                                            onchange="this.form.submit()">
+                                        @if (i.UpdateMode == InstallationUpdateMode.Automatic)
+                                        {
+                                            <option value="Automatic" selected>Auto</option>
+                                            <option value="Manual">Manuale</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="Automatic">Auto</option>
+                                            <option value="Manual" selected>Manuale</option>
+                                        }
+                                    </select>
+                                </form>
+                            </div>
+                        </td>
+                        <td>
+                            @{
+                                // Show up to 3 most recent update records as status badges
+                                var updates = row.RecentUpdates;
+                            }
+                            @if (updates.Count == 0)
+                            {
+                                <span class="text-muted" style="font-size:.75rem">—</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column gap-1">
+                                @foreach (var upd in updates)
+                                {
+                                    var (updBadgeCls, updBadgeIcon, updBadgeLabel) = upd.Status switch {
+                                        UpdateHistoryStatus.Succeeded  => ("ef-badge-success",  "bi-check-circle",           "Installato"),
+                                        UpdateHistoryStatus.Failed     => ("ef-badge-danger",   "bi-x-circle",               "Fallito"),
+                                        UpdateHistoryStatus.RolledBack => ("ef-badge-neutral",  "bi-arrow-counterclockwise", "Rollback"),
+                                        UpdateHistoryStatus.InProgress => upd.PhaseDescription switch {
+                                            "Downloading" or "VerifyingChecksum"
+                                                => ("ef-badge-blue",    "bi-cloud-download", "Download…"),
+                                            "AwaitingMaintenanceWindow"
+                                                => ("ef-badge-teal",    "bi-clock",          "Scaricato"),
+                                            "BackingUp" or "RunningPreMigrations" or "StoppingService"
+                                            or "DeployingBinaries" or "StartingService"
+                                            or "RunningPostMigrations" or "VerifyingHealth"
+                                                => ("ef-badge-warning", "bi-gear",           "Installazione…"),
+                                            _   => ("ef-badge-warning", "bi-arrow-repeat",   upd.PhaseDescription ?? "In corso")
+                                        },
+                                        _ => ("ef-badge-neutral", "bi-dash", upd.Status.ToString())
+                                    };
+                                    var isAnimated = upd.Status == UpdateHistoryStatus.InProgress;
+                                    var compCls = upd.Component == PackageComponent.Server ? "ef-badge-blue" : "ef-badge-info";
+                                    <div style="font-size:.72rem" title="@(upd.PackageVersion ?? "—") — @upd.StartedAt.ToString("dd/MM/yy HH:mm")">
+                                        <span class="ef-badge @compCls me-1" style="font-size:.65rem">
+                                            @(upd.Component?.ToString() ?? "—")
+                                        </span>
+                                        <span class="ef-badge @updBadgeCls @(isAnimated ? "pulse-badge" : "")">
+                                            <i class="bi @updBadgeIcon me-1 @(isAnimated ? "spin" : "")" style="font-size:.6rem"></i>@updBadgeLabel
+                                        </span>
+                                        <span class="text-muted ms-1">@(upd.PackageVersion ?? "—")</span>
+                                    </div>
+                                }
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            @if (!i.IsRevoked && row.IsOnline && Model.ReadyPackages.Count > 0)
+                            {
+                                <div class="d-flex gap-1 flex-wrap">
+                                    @foreach (var pkg in Model.ReadyPackages)
+                                    {
+                                        <form method="post" asp-page-handler="SendUpdate">
+                                            <input type="hidden" name="installationId" value="@i.Id" />
+                                            <input type="hidden" name="packageId" value="@pkg.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                    title="Invia @pkg.Component @pkg.Version (@(i.UpdateMode == InstallationUpdateMode.Manual ? "Manuale" : "Auto"))"
+                                                    onclick="return confirm('Inviare @pkg.Component @pkg.Version a @i.Name?\nModalità: @(i.UpdateMode == InstallationUpdateMode.Manual ? "Manuale 🔒" : "Automatica")')">
+                                                <i class="bi bi-upload me-1"></i>@pkg.Component @pkg.Version
+                                                @if (i.UpdateMode == InstallationUpdateMode.Manual)
+                                                {
+                                                    <i class="bi bi-lock-fill ms-1"></i>
+                                                }
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                            else if (!i.IsRevoked && !row.IsOnline && Model.ReadyPackages.Count > 0)
+                            {
+                                <span class="text-muted small"><i class="bi bi-wifi-off me-1"></i>Offline</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Installations.Any())
+                {
+                    <tr>
+                        <td colspan="11" class="text-center text-muted py-5">
+                            <i class="bi bi-pc-display fs-3 d-block mb-2"></i>
+                            Nessuna installazione registrata.<br />
+                            <button class="btn btn-primary btn-sm mt-2"
+                                    data-bs-toggle="modal" data-bs-target="#registerModal">
+                                <i class="bi bi-plus-lg me-1"></i>Registra la prima installazione
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal registra installazione ──────────────────────────────────── -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="Register">
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerModalLabel">
+                        <i class="bi bi-pc-display-horizontal me-2 text-primary"></i>Registra Installazione
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control"
+                               placeholder="es. Sede Milano – Cassa 1" maxlength="200" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Posizione</label>
+                        <input type="text" name="location" class="form-control"
+                               placeholder="es. Via Roma 1, Milano" maxlength="500" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Componenti</label>
+                        <select name="components" class="form-select">
+                            <option value="Both">Server + Client</option>
+                            <option value="Server">Solo Server</option>
+                            <option value="Client">Solo Client</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Note</label>
+                        <textarea name="notes" class="form-control" rows="2"
+                                  placeholder="Note opzionali…" maxlength="500"></textarea>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Al completamento verrà generata una chiave API da configurare nell'Agent.
+                        Salvala subito: non sarà più visibile.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Registra
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#instTable tbody tr').forEach(tr => {
+        const val = tr.getAttribute('data-search') || '';
+        tr.style.display = (!q || val.includes(q)) ? '' : 'none';
+    });
+}
+</script>
+}

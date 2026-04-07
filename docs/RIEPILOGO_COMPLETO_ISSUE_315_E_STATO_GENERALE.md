@@ -179,7 +179,7 @@ L'issue #314 (Product Image Management) è stata **completata con successo** e f
 
 **Phase 1 - Database & Entities** (Week 1):
 - [ ] Modificare 4 entità (29 campi totali)
-- [ ] Aggiornare EventForgeDbContext (relazioni + indici)
+- [ ] Aggiornare PrymDbContext (relazioni + indici)
 - [ ] Creare migration EF Core
 - [ ] Testare migration (up/down)
 

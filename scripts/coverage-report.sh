@@ -5,7 +5,7 @@
 set -e
 
 echo "═══════════════════════════════════════════════════════"
-echo "  EventForge Coverage Report - Onda 4"
+echo "  Prym Coverage Report - Onda 4"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 
@@ -38,7 +38,7 @@ echo ""
 # Step 2: Run tests with coverage
 echo -e "${BLUE}→${NC} Running tests with coverage collection..."
 cd "$PROJECT_ROOT"
-dotnet test EventForge.sln \
+dotnet test Prym.sln \
     --configuration Release \
     --collect:"XPlat Code Coverage" \
     --results-directory "$TEST_RESULTS" \

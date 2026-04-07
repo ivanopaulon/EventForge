@@ -1,0 +1,426 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.Warehouse
+@using Prym.Client.Services
+@using Prym.Client.Shared.Components.Products
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject ILogger<InventoryEditStep> Logger
+
+<MudStack Spacing="3">
+    <!-- Product Quick Info with inline editing -->
+    @if (State.Product != null)
+    {
+        <ProductQuickInfo @ref="_productQuickInfo"
+                          Product="@State.Product"
+                          AllowEdit="true"
+                          ShowCurrentStock="false"
+                          OnProductUpdated="@OnProductUpdatedAsync" />
+    }
+
+    <!-- Edit Form -->
+    <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+        <MudStack Spacing="3">
+            <!-- WAREHOUSE AND LOCATION SECTION -->
+            <MudText Typo="Typo.h6" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-1" />
+                @TranslationService.GetTranslation("warehouse.warehouseAndLocation", "Magazzino e Ubicazione")
+            </MudText>
+
+            @if (!State.IsStockAlreadyAssigned)
+            {
+                <!-- NEW INSERTION: Editable fields -->
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    @TranslationService.GetTranslation("warehouse.selectWarehouseAndLocation", 
+                        "Seleziona magazzino e ubicazione per il nuovo stock")
+                </MudAlert>
+
+                <MudSelect T="Guid?"
+                           Value="@State.DraftWarehouseId"
+                           Label="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                           ValueChanged="@_warehouseChangedCallback">
+                    @if (Warehouses != null)
+                    {
+                        @foreach (var warehouse in Warehouses)
+                        {
+                            <MudSelectItem Value="@((Guid?)warehouse.Id)">
+                                @warehouse.Name
+                            </MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+
+                <MudSelect T="Guid?"
+                           Value="@State.DraftLocationId"
+                           Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                           @ref="_locationSelect"
+                           ValueChanged="@_locationChangedCallback">
+                    @if (Locations != null)
+                    {
+                        @foreach (var location in Locations)
+                        {
+                            <MudSelectItem Value="@((Guid?)location.Id)">
+                                @location.Code - @location.Description
+                            </MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            }
+            else
+            {
+                <!-- EXISTING STOCK EDIT: READ-ONLY fields -->
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Class="mr-1" />
+                    @TranslationService.GetTranslation("warehouse.cannotChangeWarehouseLocation", 
+                        "Magazzino e ubicazione non possono essere modificati per giacenza esistente")
+                </MudAlert>
+
+                <MudTextField Value="@GetWarehouseName()"
+                              Label="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Disabled="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                              Class="mud-input-disabled-custom" />
+
+                <MudTextField Value="@GetLocationDisplay()"
+                              Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
+                              Variant="Variant.Outlined"
+                              ReadOnly="true"
+                              Disabled="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                              Class="mud-input-disabled-custom" />
+            }
+
+            <MudDivider Class="my-4" />
+
+            <!-- Quantity Field (always editable) -->
+            @if (State.ConversionFactor > 1m && State.ProductUnit != null)
+            {
+                <!-- Alternative unit detected - show dual input fields -->
+                <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.alternativeUnitDetected", "Unità Alternativa Rilevata"): 
+                        <strong>1 @State.ProductUnit.UnitType = @State.ConversionFactor @TranslationService.GetTranslation("warehouse.baseUnits", "unità base")</strong>
+                    </MudText>
+                </MudAlert>
+                
+                <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Text" Class="mb-2" Style="padding-left: 8px;">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <MudIcon Icon="@Icons.Material.Outlined.Lightbulb" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.dualInputHelp", "Puoi inserire la quantità in entrambe le unità. Il sistema salverà sempre il valore in unità base.")
+                    </MudText>
+                </MudAlert>
+                
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal"
+                                        Value="@_quantityAlternative"
+                                        Label="@State.ProductUnit.UnitType"
+                                        Variant="Variant.Outlined"
+                                        Immediate="false"
+                                        Min="0"
+                                        Step="1m"
+                                        Required="true"
+                                        RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Inventory2"
+                                        @ref="_quantityField"
+                                        ValueChanged="@OnAlternativeUnitChanged"
+                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} {TranslationService.GetTranslation("warehouse.baseUnits", "unità base")}")" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal"
+                                        Value="@State.DraftQuantity"
+                                        Label="@TranslationService.GetTranslation("warehouse.baseUnitsLabel", "Unità base")"
+                                        Variant="Variant.Outlined"
+                                        Immediate="false"
+                                        Min="0"
+                                        Step="1m"
+                                        Required="true"
+                                        RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                        Adornment="Adornment.Start"
+                                        AdornmentIcon="@Icons.Material.Outlined.Inventory"
+                                        ValueChanged="@OnBaseUnitChanged"
+                                        HelperText="@(_quantityAlternative > 0 ? $"= {_quantityAlternative:N2} {State.ProductUnit?.UnitType}" : "")" />
+                    </MudItem>
+                </MudGrid>
+                
+                <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Outlined">
+                    <MudText Typo="Typo.caption">
+                        <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("warehouse.syncNote", "Modifica uno dei due campi, l'altro si aggiorna automaticamente")
+                    </MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <!-- Base unit only - show single field -->
+                <MudNumericField T="decimal"
+                                Value="@State.DraftQuantity"
+                                Label="@GetQuantityLabel()"
+                                Variant="Variant.Outlined"
+                                Min="0"
+                                Required="true"
+                                RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                                @ref="_quantityField"
+                                ValueChanged="@_quantityChangedCallback" />
+            }
+
+            <MudTextField Value="@State.DraftNotes"
+                         Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"
+                         Variant="Variant.Outlined"
+                         Lines="3"
+                         MaxLength="200"
+                         Counter="200"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Outlined.Comment"
+                         ValueChanged="@_notesChangedCallback" />
+        </MudStack>
+    </MudForm>
+
+    <!-- Keyboard Shortcuts Helper -->
+    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+        <MudText Typo="Typo.caption">
+            <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
+            <strong>@TranslationService.GetTranslation("common.shortcuts", "Scorciatoie"):</strong> 
+            Tab = @TranslationService.GetTranslation("warehouse.nextField", "campo successivo") | 
+            Esc = @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudText>
+    </MudAlert>
+</MudStack>
+
+@code {
+    [Parameter]
+    public InventoryDialogState State { get; set; } = new();
+
+    [Parameter]
+    public List<StorageLocationDto>? Locations { get; set; }
+
+    [Parameter]
+    public List<WarehouseDto>? Warehouses { get; set; }
+
+    [Parameter]
+    public EventCallback OnDraftChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback OnNext { get; set; }
+
+    private MudForm? _form;
+    private MudSelect<Guid?>? _locationSelect;
+    private MudNumericField<decimal>? _quantityField;
+    private ProductQuickInfo? _productQuickInfo;
+    private bool _isFormValid;
+    
+    // For alternative unit dual input
+    private decimal _quantityAlternative;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Small delay to ensure DOM is ready
+            await Task.Delay(50);
+            
+            if (State.IsEditMode)
+            {
+                // In edit mode, focus on quantity field
+                if (_quantityField != null)
+                {
+                    await _quantityField.FocusAsync();
+                    await _quantityField.SelectAsync(); // Select the text for easy editing
+                }
+            }
+            else
+            {
+                // Insert mode: Auto-select location if only one exists
+                if (Locations?.Count == 1)
+                {
+                    State.DraftLocationId = Locations[0].Id;
+                    await NotifyDraftChanged();
+                    StateHasChanged();
+                    
+                    // Focus on quantity field since location is auto-selected
+                    await Task.Delay(50); // Ensure state update is rendered
+                    if (_quantityField != null)
+                    {
+                        await _quantityField.FocusAsync();
+                    }
+                }
+                else if (_locationSelect != null)
+                {
+                    // Focus on location select if multiple locations
+                    await _locationSelect.FocusAsync();
+                }
+            }
+        }
+    }
+
+    private string GetLocationDisplayText()
+    {
+        if (!State.DraftLocationId.HasValue || Locations == null)
+            return "-";
+
+        var location = Locations.FirstOrDefault(l => l.Id == State.DraftLocationId.Value);
+        return location != null ? $"{location.Code} - {location.Description}" : "-";
+    }
+
+    private string GetQuantityLabel()
+    {
+        var baseLabel = TranslationService.GetTranslation("warehouse.quantity", "Quantità");
+        if (State.ConversionFactor > 1)
+        {
+            return $"{baseLabel} ({TranslationService.GetTranslation("warehouse.baseUnit", "unità base")})";
+        }
+        return baseLabel;
+    }
+
+    private EventCallback<Guid?> _locationChangedCallback;
+    private EventCallback<Guid?> _warehouseChangedCallback;
+    private EventCallback<decimal> _quantityChangedCallback;
+    private EventCallback<string> _notesChangedCallback;
+
+    protected override void OnInitialized()
+    {
+        _locationChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleLocationChanged);
+        _warehouseChangedCallback = EventCallback.Factory.Create<Guid?>(this, HandleWarehouseChanged);
+        _quantityChangedCallback = EventCallback.Factory.Create<decimal>(this, HandleQuantityChanged);
+        _notesChangedCallback = EventCallback.Factory.Create<string>(this, HandleNotesChanged);
+        
+        if (State.ConversionFactor > 0m && State.DraftQuantity > 0m)
+        {
+            _quantityAlternative = Math.Round(State.DraftQuantity / State.ConversionFactor, 2);
+            Logger.LogDebug("Init: {Alt} {Unit} = {Base} base", 
+                _quantityAlternative, State.ProductUnit?.UnitType, State.DraftQuantity);
+        }
+        else
+        {
+            _quantityAlternative = 0m;
+        }
+    }
+
+    private async Task HandleLocationChanged(Guid? value)
+    {
+        State.DraftLocationId = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleWarehouseChanged(Guid? value)
+    {
+        State.DraftWarehouseId = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleQuantityChanged(decimal value)
+    {
+        State.DraftQuantity = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task HandleNotesChanged(string value)
+    {
+        State.DraftNotes = value;
+        await NotifyDraftChanged();
+    }
+
+    private async Task NotifyDraftChanged()
+    {
+        if (OnDraftChanged.HasDelegate)
+        {
+            await OnDraftChanged.InvokeAsync();
+        }
+    }
+
+    // Bidirectional conversion methods for alternative units
+    private async Task OnAlternativeUnitChanged(decimal value)
+    {
+        value = Math.Max(0, value);
+        _quantityAlternative = value;
+        
+        if (State.ConversionFactor > 0m)
+        {
+            State.DraftQuantity = value * State.ConversionFactor;
+            Logger.LogDebug("Alternative unit: {Alt} {Unit} → {Base} base", 
+                value, State.ProductUnit?.UnitType, State.DraftQuantity);
+        }
+        else
+        {
+            Logger.LogWarning("Invalid ConversionFactor {Factor}", State.ConversionFactor);
+            State.DraftQuantity = value;
+        }
+        
+        await NotifyDraftChanged();
+    }
+
+    private async Task OnBaseUnitChanged(decimal value)
+    {
+        value = Math.Max(0, value);
+        State.DraftQuantity = value;
+        
+        if (State.ConversionFactor > 0m)
+        {
+            _quantityAlternative = Math.Round(value / State.ConversionFactor, 2);
+            Logger.LogDebug("Base unit: {Base} → {Alt} {Unit}", 
+                value, _quantityAlternative, State.ProductUnit?.UnitType);
+        }
+        else
+        {
+            Logger.LogWarning("Invalid ConversionFactor {Factor}", State.ConversionFactor);
+            _quantityAlternative = 0m;
+        }
+        
+        await NotifyDraftChanged();
+    }
+
+    private async Task OnProductUpdatedAsync()
+    {
+        // Refresh product data after update
+        if (State.Product?.Id != null)
+        {
+            var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
+            if (refreshedProduct != null)
+            {
+                State.Product = refreshedProduct;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private string GetWarehouseName()
+    {
+        if (!State.ExistingWarehouseId.HasValue || Warehouses == null)
+            return "-";
+        
+        var warehouse = Warehouses.FirstOrDefault(w => w.Id == State.ExistingWarehouseId.Value);
+        return warehouse?.Name ?? TranslationService.GetTranslation("common.unknown", "Sconosciuto");
+    }
+
+    private string GetLocationDisplay()
+    {
+        if (!State.ExistingLocationId.HasValue || Locations == null)
+            return "-";
+        
+        var location = Locations.FirstOrDefault(l => l.Id == State.ExistingLocationId.Value);
+        if (location == null)
+            return TranslationService.GetTranslation("common.unknown", "Sconosciuto");
+        
+        return $"{location.Code} - {location.Description}";
+    }
+}

@@ -26,46 +26,46 @@ This guide below provides a quick reference for the pattern.
 ## Remaining Pages (8/11)
 
 ### Business Management
-1. **CustomerManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Business/CustomerManagement.razor`)
+1. **CustomerManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Business/CustomerManagement.razor`)
    - DTO: `BusinessPartyDto`
    - Icon: `Icons.Material.Outlined.People`
    - Metrics: Total Customers, Active, With VAT Number, Recent (last 30 days)
 
-2. **SupplierManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Business/SupplierManagement.razor`)
+2. **SupplierManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Business/SupplierManagement.razor`)
    - DTO: `BusinessPartyDto`
    - Icon: `Icons.Material.Outlined.Business`
    - Metrics: Total Suppliers, Active, With VAT Number, Recent (last 30 days)
 
 ### Products Management
-3. **ClassificationNodeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Products/ClassificationNodeManagement.razor`)
+3. **ClassificationNodeManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Products/ClassificationNodeManagement.razor`)
    - DTO: `ClassificationNodeDto`
    - Icon: `Icons.Material.Outlined.AccountTree`
    - Metrics: Total Nodes, Root Nodes, Leaf Nodes, Recent (last 30 days)
 
-5. **ProductManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Products/ProductManagement.razor`)
+5. **ProductManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Products/ProductManagement.razor`)
    - DTO: `ProductDto`
    - Icon: `Icons.Material.Outlined.Inventory`
    - Note: Already uses EFTable, only add ManagementDashboard
    - Metrics: Total Products, Active, With Images, Recent (last 30 days)
 
 ### Documents Management
-5. **DocumentTypeManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentTypeManagement.razor`)
+5. **DocumentTypeManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Documents/DocumentTypeManagement.razor`)
    - DTO: `DocumentTypeDto`
    - Icon: `Icons.Material.Outlined.Category`
    - Metrics: Total Types, Fiscal Documents, Stock Increase Types, Recent (last 30 days)
 
-6. **DocumentCounterManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Documents/DocumentCounterManagement.razor`)
+6. **DocumentCounterManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Documents/DocumentCounterManagement.razor`)
    - DTO: `DocumentCounterDto` (needs verification)
    - Icon: `Icons.Material.Outlined.Numbers`
    - Metrics: Total Counters, Active Counters, Current Year, Recent (last 30 days)
 
 ### Warehouse Management
-7. **WarehouseManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor`)
+7. **WarehouseManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Warehouse/WarehouseManagement.razor`)
    - DTO: `StorageFacilityDto`
    - Icon: `Icons.Material.Outlined.Warehouse`
    - Metrics: Total Warehouses, Fiscal Warehouses, Refrigerated, Recent (last 30 days)
 
-8. **LotManagement.razor** (`/home/runner/work/EventForge/EventForge/EventForge.Client/Pages/Management/Warehouse/LotManagement.razor`)
+8. **LotManagement.razor** (`/home/runner/work/Prym/Prym/Prym.Client/Pages/Management/Warehouse/LotManagement.razor`)
    - DTO: `LotDto` (needs verification)
    - Icon: `Icons.Material.Outlined.QrCode`
    - Metrics: Total Lots, Active Lots, Expiring Soon, Recent (last 30 days)
@@ -77,10 +77,10 @@ This guide below provides a quick reference for the pattern.
 ```razor
 @page "/path/to/page"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.[Namespace]
-@using EventForge.DTOs.Common
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dashboard
+@using Prym.DTOs.[Namespace]
+@using Prym.DTOs.Common
+@using Prym.Client.Shared.Components
+@using Prym.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject I[Entity]Service [Entity]Service
@@ -566,8 +566,8 @@ This guide below provides a quick reference for the pattern.
 
 After each page update:
 ```bash
-cd /home/runner/work/EventForge/EventForge
-dotnet build --no-incremental EventForge.Client/EventForge.Client.csproj
+cd /home/runner/work/Prym/Prym
+dotnet build --no-incremental Prym.Client/Prym.Client.csproj
 ```
 
 All changes should build without errors (warnings are acceptable if pre-existing).

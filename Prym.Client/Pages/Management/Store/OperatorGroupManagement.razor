@@ -1,0 +1,207 @@
+@page "/store/operator-groups"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Store
+@using Prym.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject Prym.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("store.operatorGroupsList", "Gruppi Operatori")</PageTitle>
+<EntityManagementPage TEntity="StoreUserGroupDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Status")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CashierCount")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="CashierCount">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.CashierCount))">@TranslationService.GetTranslation("field.cashierCount", "Operatori")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsSystemGroup")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsSystemGroup">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.IsSystemGroup))">@TranslationService.GetTranslation("field.isSystemGroup", "Sistema")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsDefault")
+            {
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsDefault">
+                    <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.IsDefault))">@TranslationService.GetTranslation("field.isDefault", "Default")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@ctx.Item.Code</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Groups" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            @if (!string.IsNullOrEmpty(ctx.Item.Description))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.Description</MudText>
+                            }
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Status")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">@GetStatusText(ctx.Item.Status)</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CashierCount")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.cashierCount", "Operatori")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@ctx.Item.CashierCount</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsSystemGroup")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.isSystemGroup", "Sistema")">
+                    @if (ctx.Item.IsSystemGroup)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Outlined.Lock">
+                            @TranslationService.GetTranslation("status.systemGroup", "Sistema")
+                        </MudChip>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsDefault")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.isDefault", "Default")">
+                    @if (ctx.Item.IsDefault)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Outlined.Star">
+                            @TranslationService.GetTranslation("status.default", "Default")
+                        </MudChip>
+                    }
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private IEntityManagementService<StoreUserGroupDto> _service = null!;
+    private EntityManagementConfig<StoreUserGroupDto> _config = null!;
+    private EntityManagementPage<StoreUserGroupDto>? _entityPage;
+
+    protected override void OnInitialized()
+    {
+        _service = new OperatorGroupManagementService(StoreUserGroupService);
+        _config = new EntityManagementConfig<StoreUserGroupDto>
+        {
+            ComponentKey = "OperatorGroupManagement",
+            PageTitleKey = "store.operatorGroupsList",
+            PageTitleDefault = "Gruppi Operatori",
+            EntityIcon = Icons.Material.Outlined.Groups,
+            PageRootCssClass = "management-page-root",
+            BaseRoute = "/store/operator-groups",
+            ExcelFileName = "Gruppi_Operatori",
+            SearchPlaceholderKey = "common.search",
+            SearchPlaceholderDefault = "Cerca",
+            CreateTooltip = "store.createNewOperatorGroup",
+            EntityTypeName = "StoreUserGroup",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            GetDisplayName = g => g.Name,
+            GetId = g => g.Id,
+            CanDelete = g => !g.IsSystemGroup,
+            CannotDeleteMessageKey = "store.cannotDeleteSystemGroup",
+            DeleteConfirmMessageKey = "store.confirmDeleteOperatorGroup",
+            BulkDeleteConfirmMessageKey = "store.confirmDeleteMultipleOperatorGroups",
+            DeleteSuccessMessageKey = "store.operatorGroupDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Configurazione Store", null, disabled: true),
+                new BreadcrumbItem("Gruppi Operatori", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Status", DisplayName = "Status", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "CashierCount", DisplayName = "Operatori", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "IsSystemGroup", DisplayName = "Sistema", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "IsDefault", DisplayName = "Default", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i gruppi" },
+                new() { Id = "system", Label = "Sistema", Predicate = g => g.IsSystemGroup, Color = Color.Primary, Icon = Icons.Material.Outlined.Security, Description = "Gruppi di sistema" },
+                new() { Id = "custom", Label = "Personalizzati", Predicate = g => !g.IsSystemGroup, Color = Color.Info, Icon = Icons.Material.Outlined.Group, Description = "Gruppi personalizzati" },
+                new() { Id = "recent", Label = "Recenti", Predicate = g => g.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Gruppi creati negli ultimi 30 giorni" }
+            }
+        };
+    }
+
+    private Color GetStatusColor(CashierGroupStatus status) => status switch
+    {
+        CashierGroupStatus.Active => Color.Success,
+        CashierGroupStatus.Suspended => Color.Warning,
+        CashierGroupStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(CashierGroupStatus status) => status switch
+    {
+        CashierGroupStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        CashierGroupStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        CashierGroupStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(OperatorGroupDetailDialog.EntityId)] = id
+        };
+        var options = EFDialogDefaults.Options;
+        var dialog = await DialogService.ShowAsync<OperatorGroupDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && _entityPage != null)
+            await _entityPage.RefreshAsync();
+    }
+}

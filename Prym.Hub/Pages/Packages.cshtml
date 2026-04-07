@@ -1,0 +1,778 @@
+@page
+@model Prym.Hub.Pages.PackagesModel
+@using System.Text.Json
+@using Prym.Hub.Data.Entities
+@{
+    ViewData["Title"] = "Pacchetti";
+    ViewData["PageSection"] = "Hub";
+    int ready    = Model.Packages.Count(p => p.Status == PackageStatus.ReadyToDeploy);
+    int deploying = Model.Packages.Count(p => p.Status == PackageStatus.Deploying);
+    int deployed  = Model.Packages.Count(p => p.Status == PackageStatus.Deployed);
+    int archived  = Model.Packages.Count(p => p.Status == PackageStatus.Archived);
+}
+
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon blue"><i class="bi bi-box-seam-fill"></i></div>
+        <div>
+            <h1>Pacchetti</h1>
+            <p class="ef-page-subtitle">Gestione pacchetti di aggiornamento — caricamento, deploy e archiviazione</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="ef-badge ef-badge-neutral">@Model.Packages.Count totali</span>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#buildModal">
+            <i class="bi bi-folder2-open me-1"></i>Crea da cartella
+        </button>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-cloud-upload me-1"></i>Carica
+        </button>
+    </div>
+</div>
+
+<!-- KPI -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(ready > 0 ? "amber" : "cyan")">
+            <div class="ef-kpi-label"><i class="bi bi-box-seam me-1"></i>Pronti</div>
+            <div class="ef-kpi-value">@ready</div>
+            <div class="ef-kpi-sub">ReadyToDeploy</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card @(deploying > 0 ? "amber" : "green")">
+            <div class="ef-kpi-label"><i class="bi bi-arrow-up-circle me-1"></i>In deploy</div>
+            <div class="ef-kpi-value">@deploying</div>
+            <div class="ef-kpi-sub">Deploying</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card green">
+            <div class="ef-kpi-label"><i class="bi bi-check-circle me-1"></i>Distribuiti</div>
+            <div class="ef-kpi-value">@deployed</div>
+            <div class="ef-kpi-sub">Deployed</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="ef-kpi-card cyan">
+            <div class="ef-kpi-label"><i class="bi bi-archive me-1"></i>Archiviati</div>
+            <div class="ef-kpi-value">@archived</div>
+            <div class="ef-kpi-sub">Archived</div>
+        </div>
+    </div>
+</div>
+
+@if (ready > 0 && Model.OnlineCount > 0)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-broadcast fs-5 flex-shrink-0"></i>
+        <div>
+            <strong>@ready pacchett@(ready == 1 ? "o pronto" : "i pronti") al deploy.</strong>
+            @Model.OnlineCount installazion@(Model.OnlineCount == 1 ? "e online" : "i online") — usa <em>Broadcast</em> per distribuire a tutte.
+        </div>
+    </div>
+}
+
+<!-- Tabella pacchetti -->
+<div class="ef-card">
+    <div class="ef-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>Tutti i pacchetti</span>
+        <div class="d-flex gap-2">
+            <select id="filterStatus" class="form-select form-select-sm" style="max-width:180px" onchange="filterTable()">
+                <option value="">Tutti gli stati</option>
+                <option value="readytodeploy">Pronti</option>
+                <option value="deploying">In deploy</option>
+                <option value="deployed">Distribuiti</option>
+                <option value="archived">Archiviati</option>
+            </select>
+            <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:200px"
+                   placeholder="🔍 Filtra versione…" oninput="filterTable()" />
+        </div>
+    </div>
+    <div class="ef-card-body p-0">
+        <div class="ef-table-wrap">
+            <table class="ef-table" id="pkgTable">
+                <thead>
+                    <tr>
+                        <th>Componente</th>
+                        <th>Versione</th>
+                        <th>Stato</th>
+                        <th>Modalità</th>
+                        <th>Note rilascio</th>
+                        <th>Commit</th>
+                        <th>Dimensione</th>
+                        <th>Caricato il</th>
+                        <th>Checksum</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var pkg in Model.Packages)
+                {
+                    var statusCss = pkg.Status switch {
+                        PackageStatus.ReadyToDeploy => "ef-badge-warning",
+                        PackageStatus.Deploying     => "ef-badge-info",
+                        PackageStatus.Deployed      => "ef-badge-success",
+                        PackageStatus.Archived      => "ef-badge-neutral",
+                        _                           => "ef-badge-neutral"
+                    };
+                    var compCss = pkg.Component == PackageComponent.Server ? "ef-badge-blue" : "ef-badge-info";
+                    <tr data-status="@pkg.Status.ToString().ToLower()"
+                        data-search="@pkg.Version.ToLower()">
+                        <td>
+                            <span class="ef-badge @compCss">
+                                @if (pkg.Component == PackageComponent.Server)
+                                { <i class="bi bi-server me-1"></i> }
+                                else
+                                { <i class="bi bi-display me-1"></i> }
+                                @pkg.Component
+                            </span>
+                        </td>
+                        <td><code class="fw-semibold">@pkg.Version</code></td>
+                        <td><span class="ef-badge @statusCss">@pkg.Status</span></td>
+                        <td>
+                            @if (pkg.IsManualInstall)
+                            {
+                                <span class="ef-badge ef-badge-warning" title="L'agent non installerà automaticamente">
+                                    <i class="bi bi-hand-index me-1"></i>Manuale
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="ef-badge ef-badge-success">
+                                    <i class="bi bi-lightning me-1"></i>Auto
+                                </span>
+                            }
+                        </td>
+                        <td class="text-muted small" style="max-width:220px">
+                            @if (!string.IsNullOrEmpty(pkg.ReleaseNotes))
+                            {
+                                <span title="@pkg.ReleaseNotes">
+                                    @(pkg.ReleaseNotes.Length > 60 ? pkg.ReleaseNotes[..60] + "…" : pkg.ReleaseNotes)
+                                </span>
+                            }
+                            else { <span>—</span> }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(pkg.GitCommit))
+                            {
+                                <code class="text-muted" style="font-size:.72rem" title="@pkg.GitCommit">
+                                    @pkg.GitCommit[..Math.Min(8, pkg.GitCommit.Length)]
+                                </code>
+                            }
+                            else { <span class="text-muted">—</span> }
+                        </td>
+                        <td class="text-muted small">@(Math.Round(pkg.FileSizeBytes / 1_048_576.0, 1)) MB</td>
+                        <td class="text-muted small" style="white-space:nowrap">
+                            @pkg.UploadedAt.ToString("dd/MM/yyyy HH:mm")
+                            @if (!string.IsNullOrEmpty(pkg.UploadedBy))
+                            {
+                                <br /><small>@pkg.UploadedBy</small>
+                            }
+                        </td>
+                        <td>
+                            <code class="text-muted" style="font-size:.67rem" title="SHA-256: @pkg.Checksum">
+                                @pkg.Checksum[..12]…
+                            </code>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                @if (pkg.Status == PackageStatus.ReadyToDeploy)
+                                {
+                                    <!-- Targeted deploy -->
+                                    @if (Model.OnlineInstallations.Count > 0)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deployModal"
+                                                data-pkg-id="@pkg.Id"
+                                                data-pkg-label="@pkg.Component @pkg.Version"
+                                                data-pkg-component="@pkg.Component.ToString().ToLower()"
+                                                onclick="openDeployModal(this)">
+                                            <i class="bi bi-send me-1"></i>Deploy a…
+                                        </button>
+                                    }
+                                    <!-- Broadcast -->
+                                    <form method="post" asp-page-handler="Broadcast" class="d-inline">
+                                        <input type="hidden" name="packageId" value="@pkg.Id" />
+                                        <button type="submit" class="btn btn-sm btn-warning"
+                                                onclick="return confirm('Broadcast @pkg.Component @pkg.Version a TUTTE le installazioni online?')">
+                                            <i class="bi bi-broadcast me-1"></i>Broadcast
+                                        </button>
+                                    </form>
+                                    <!-- Archivia -->
+                                    <form method="post" asp-page-handler="SetStatus" class="d-inline">
+                                        <input type="hidden" name="id" value="@pkg.Id" />
+                                        <input type="hidden" name="status" value="Archived" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                onclick="return confirm('Archiviare @pkg.Component @pkg.Version?')">
+                                            <i class="bi bi-archive me-1"></i>Archivia
+                                        </button>
+                                    </form>
+                                }
+                                else if (pkg.Status == PackageStatus.Archived)
+                                {
+                                    <!-- Ripristina -->
+                                    <form method="post" asp-page-handler="SetStatus" class="d-inline">
+                                        <input type="hidden" name="id" value="@pkg.Id" />
+                                        <input type="hidden" name="status" value="ReadyToDeploy" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
+                                        </button>
+                                    </form>
+                                }
+                                else if (pkg.Status == PackageStatus.Deploying || pkg.Status == PackageStatus.Deployed)
+                                {
+                                    <form method="post" asp-page-handler="SetStatus" class="d-inline">
+                                        <input type="hidden" name="id" value="@pkg.Id" />
+                                        <input type="hidden" name="status" value="Archived" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                onclick="return confirm('Archiviare @pkg.Component @pkg.Version?')">
+                                            <i class="bi bi-archive me-1"></i>Archivia
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Packages.Any())
+                {
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-5">
+                            <i class="bi bi-box-seam fs-3 d-block mb-2"></i>
+                            Nessun pacchetto presente.<br />
+                            <button class="btn btn-primary btn-sm mt-2"
+                                    data-bs-toggle="modal" data-bs-target="#uploadModal">
+                                <i class="bi bi-cloud-upload me-1"></i>Carica il primo pacchetto
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm mt-2"
+                                    data-bs-toggle="modal" data-bs-target="#buildModal">
+                                <i class="bi bi-folder2-open me-1"></i>Crea da cartella
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal deploy a specifica installazione ────────────────────────── -->
+<div class="modal fade" id="deployModal" tabindex="-1" aria-labelledby="deployModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="DeployTo">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="packageId" id="deployPkgId" value="" />
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deployModalLabel">
+                        <i class="bi bi-send me-2 text-primary"></i>Deploy a installazione specifica
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Pacchetto: <strong><span id="deployPkgLabel"></span></strong>
+                    </p>
+                    @if (Model.OnlineInstallations.Count == 0)
+                    {
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-wifi-off me-1"></i>Nessuna installazione online al momento.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Seleziona installazione <span class="text-danger">*</span></label>
+                            <select name="installationId" class="form-select" required>
+                                <option value="">— seleziona —</option>
+                                @foreach (var inst in Model.OnlineInstallations)
+                                {
+                                    var comp = inst.HasServer && inst.HasClient ? "server client" : inst.HasServer ? "server" : "client";
+                                    <option value="@inst.Id"
+                                            class="deploy-inst-row"
+                                            data-component="@comp">
+                                        @inst.Name @(string.IsNullOrEmpty(inst.Location) ? "" : $"— {inst.Location}")
+                                        (@(inst.HasServer && inst.HasClient ? "Server+Client" : inst.HasServer ? "Server" : "Client"))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            La modalità (Auto/Manuale) dell'installazione selezionata viene rispettata.
+                        </p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    @if (Model.OnlineInstallations.Count > 0)
+                    {
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i>Invia aggiornamento
+                        </button>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Modal crea pacchetto da cartella ──────────────────────────────── -->
+<div class="modal fade" id="buildModal" tabindex="-1" aria-labelledby="buildModalLabel">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <form method="post" asp-page-handler="BuildFromFolder" id="buildForm">
+            @Html.AntiForgeryToken()
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="buildModalLabel">
+                        <i class="bi bi-folder2-open me-2 text-primary"></i>Crea Pacchetto da Cartella
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    @if (!string.IsNullOrEmpty(Model.DefaultServerDeployPath) || !string.IsNullOrEmpty(Model.DefaultClientDeployPath))
+                    {
+                        <div class="alert alert-info py-2 mb-3 small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Cartelle configurate:</strong>
+                            @if (!string.IsNullOrEmpty(Model.DefaultServerDeployPath))
+                            {
+                                <span class="ms-2"><i class="bi bi-server me-1"></i>Server: <code>@Model.DefaultServerDeployPath</code></span>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.DefaultClientDeployPath))
+                            {
+                                <span class="ms-2"><i class="bi bi-display me-1"></i>Client: <code>@Model.DefaultClientDeployPath</code></span>
+                            }
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Componente <span class="text-danger">*</span></label>
+                        <select name="component" id="buildComponent" class="form-select" required
+                                onchange="onBuildComponentChange()">
+                            <option value="">— seleziona —</option>
+                            <option value="Server">Server</option>
+                            <option value="Client">Client</option>
+                            <option value="Both">🔗 Server + Client</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" id="buildFolderLabel">
+                            Percorso cartella publish/deploy
+                            <span id="buildFolderLabelSuffix"> (Server)</span>
+                            <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" name="folderPath" id="buildFolderPath"
+                                   class="form-control font-monospace" required
+                                   placeholder="es. C:\inetpub\wwwroot\Prym\Server"
+                                   oninput="saveFolderForCurrentComponent()" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="detectFolder()"
+                                    id="detectBtn" title="Rileva versione, componente e commit dalla cartella">
+                                <i class="bi bi-search me-1"></i>Rileva
+                            </button>
+                        </div>
+                        <div class="form-text">Percorso locale accessibile dall'Hub al contenuto del publish.</div>
+                    </div>
+
+                    @* ── Second folder (Client) — visible only when component=Both ── *@
+                    <div class="mb-3 d-none" id="buildClientFolderGroup">
+                        <label class="form-label fw-semibold">
+                            Percorso cartella publish/deploy (Client) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" name="clientFolderPath" id="buildClientFolderPath"
+                                   class="form-control font-monospace"
+                                   placeholder="es. C:\inetpub\wwwroot\Prym\Client"
+                                   oninput="saveClientFolder()" />
+                        </div>
+                        <div class="form-text">Cartella del Client (wwwroot) — usata solo con Server + Client.</div>
+                    </div>
+
+                    <div id="detectResult" class="d-none mb-3">
+                        <div class="alert py-2 mb-0 small" id="detectAlert"></div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Versione <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" name="version" id="buildVersion" class="form-control"
+                                       placeholder="es. 1.2.3" maxlength="50" required />
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="suggestVersion()" id="suggestVersionBtn"
+                                        title="Suggerisci prossima versione in base all'ultimo pacchetto">
+                                    <i class="bi bi-magic me-1"></i>Auto
+                                </button>
+                            </div>
+                            <div class="mt-2 d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="versionType"
+                                           id="versionMinor" value="minor" checked />
+                                    <label class="form-check-label small" for="versionMinor">Minor (+0.1.0)</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="versionType"
+                                           id="versionMajor" value="major" />
+                                    <label class="form-check-label small" for="versionMajor">Major (+1.0.0)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Commit Git</label>
+                            <input type="text" name="gitCommit" id="buildGitCommit" class="form-control font-monospace"
+                                   placeholder="es. a1b2c3d4" maxlength="40" />
+                            <div class="form-text">Rilevato automaticamente se disponibile.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Note di rilascio</label>
+                        <textarea name="releaseNotes" id="buildReleaseNotes" class="form-control" rows="3"
+                                  placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="isManualInstall"
+                                   id="buildIsManualInstall" value="true" />
+                            <label class="form-check-label fw-semibold" for="buildIsManualInstall">
+                                Installazione manuale
+                            </label>
+                            <div class="form-text">Se attivo, l'agent scarica il pacchetto ma non lo installa automaticamente — attende sempre l'approvazione dell'operatore.</div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-secondary py-2 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Tutti i file della cartella vengono compressi in <code>binaries/</code>.
+                        I file <code>appsettings.json</code> e <code>appsettings.Production.json</code>
+                        sono automaticamente marcati come <em>preservati</em> (non sovrascritti sugli Agent).
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary" id="buildSubmitBtn">
+                        <i class="bi bi-box-seam me-1"></i>Crea pacchetto
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Modal upload pacchetto ─────────────────────────────────────────── -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">
+                        <i class="bi bi-cloud-upload me-2 text-primary"></i>Carica Pacchetto
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Componente <span class="text-danger">*</span></label>
+                        <select name="component" class="form-select" required>
+                            <option value="Server">Server</option>
+                            <option value="Client">Client</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Versione <span class="text-danger">*</span></label>
+                        <input type="text" name="version" class="form-control"
+                               placeholder="es. 1.2.3" maxlength="50" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">File ZIP <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" accept=".zip" required />
+                        <div class="form-text">Dimensione massima: 500 MB</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Commit Git</label>
+                        <input type="text" name="gitCommit" class="form-control font-monospace"
+                               placeholder="es. a1b2c3d4" maxlength="40" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Note di rilascio</label>
+                        <textarea name="releaseNotes" class="form-control" rows="3"
+                                  placeholder="Descrizione delle modifiche…" maxlength="2000"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="isManualInstall"
+                                   id="uploadIsManualInstall" value="true" />
+                            <label class="form-check-label fw-semibold" for="uploadIsManualInstall">
+                                Installazione manuale
+                            </label>
+                            <div class="form-text">Se attivo, l'agent scarica il pacchetto ma non lo installa automaticamente — attende sempre l'approvazione dell'operatore.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload me-1"></i>Carica
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// ── Targeted deploy modal ─────────────────────────────────────────────────
+function openDeployModal(btn) {
+    const pkgId    = btn.getAttribute('data-pkg-id');
+    const pkgLabel = btn.getAttribute('data-pkg-label');
+    const pkgComp  = btn.getAttribute('data-pkg-component'); // 'server' or 'client'
+
+    document.getElementById('deployPkgId').value    = pkgId;
+    document.getElementById('deployPkgLabel').textContent = pkgLabel;
+
+    // Show only installations that have the relevant component
+    document.querySelectorAll('.deploy-inst-row').forEach(row => {
+        const comp = row.getAttribute('data-component') || '';
+        row.style.display = (pkgComp === 'server' && comp.includes('server')) ||
+                            (pkgComp === 'client' && comp.includes('client'))
+            ? '' : 'none';
+    });
+}
+
+// ── Build-from-folder: auto-fill defaults + restore last folder on component change ─────────
+const defaultPaths = {
+    'Server': @Html.Raw(JsonSerializer.Serialize(Model.DefaultServerDeployPath ?? string.Empty)),
+    'Client': @Html.Raw(JsonSerializer.Serialize(Model.DefaultClientDeployPath ?? string.Empty))
+};
+
+const FOLDER_STORAGE_KEY = 'hub_last_folder_';
+const CLIENT_FOLDER_KEY  = 'hub_last_folder_client_both';
+
+function saveFolderForCurrentComponent() {
+    const comp = document.getElementById('buildComponent').value;
+    if (!comp) return;
+    const path = document.getElementById('buildFolderPath').value.trim();
+    if (path) {
+        // For "Both", the main folder is the Server folder
+        const key = comp === 'Both' ? FOLDER_STORAGE_KEY + 'server' : FOLDER_STORAGE_KEY + comp.toLowerCase();
+        localStorage.setItem(key, path);
+    }
+}
+
+function saveClientFolder() {
+    const path = document.getElementById('buildClientFolderPath').value.trim();
+    if (path) localStorage.setItem(CLIENT_FOLDER_KEY, path);
+}
+
+function loadFolderForComponent(comp) {
+    if (!comp) return '';
+    const key = comp === 'Both' ? FOLDER_STORAGE_KEY + 'server' : FOLDER_STORAGE_KEY + comp.toLowerCase();
+    return localStorage.getItem(key) || '';
+}
+
+function loadClientFolder() {
+    return localStorage.getItem(CLIENT_FOLDER_KEY) || '';
+}
+
+function onBuildComponentChange() {
+    const comp       = document.getElementById('buildComponent').value;
+    const pathInput  = document.getElementById('buildFolderPath');
+    const isBoth     = comp === 'Both';
+    const clientGroup = document.getElementById('buildClientFolderGroup');
+    const folderLabel = document.getElementById('buildFolderLabelSuffix');
+
+    // Show/hide second folder and update label
+    if (isBoth) {
+        clientGroup.classList.remove('d-none');
+        document.getElementById('buildClientFolderPath').required = true;
+        folderLabel.textContent = ' (Server)';
+    } else {
+        clientGroup.classList.add('d-none');
+        document.getElementById('buildClientFolderPath').required = false;
+        folderLabel.textContent = '';
+    }
+
+    // 1. Restore last used folder for this component from localStorage
+    const lastFolder = loadFolderForComponent(comp);
+    if (lastFolder) {
+        pathInput.value = lastFolder;
+    } else {
+        // Fall back to configured default only if no previous value
+        const defaultKey = isBoth ? 'Server' : comp;
+        if (defaultKey && defaultPaths[defaultKey] && !pathInput.value.trim())
+            pathInput.value = defaultPaths[defaultKey];
+    }
+
+    // 2. Restore client folder when Both is selected
+    if (isBoth) {
+        const lastClient = loadClientFolder();
+        const clientInput = document.getElementById('buildClientFolderPath');
+        if (lastClient) {
+            clientInput.value = lastClient;
+        } else if (defaultPaths['Client'] && !clientInput.value.trim()) {
+            clientInput.value = defaultPaths['Client'];
+        }
+    }
+
+    // 3. Suggest next version automatically
+    suggestVersion();
+}
+
+// ── Version suggestion via API ────────────────────────────────────────────
+async function suggestVersion() {
+    const comp = document.getElementById('buildComponent').value;
+    if (!comp) return;
+
+    const versionType = document.querySelector('input[name="versionType"]:checked')?.value || 'minor';
+    const btn = document.getElementById('suggestVersionBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('component', comp);
+        formData.append('versionType', versionType);
+        formData.append('__RequestVerificationToken',
+            document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value);
+
+        const resp = await fetch('?handler=SuggestVersion', { method: 'POST', body: formData });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.version) {
+            const versionInput = document.getElementById('buildVersion');
+            if (!versionInput.dataset.userEdited) {
+                versionInput.value = data.version;
+            }
+        }
+    } catch (e) {
+        // Ignore — user can fill in manually
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-magic me-1"></i>Auto';
+        }
+    }
+}
+
+// Track manual edits to the version field so auto-suggest doesn't overwrite them
+document.addEventListener('DOMContentLoaded', () => {
+    const buildModal = document.getElementById('buildModal');
+    const versionInput = document.getElementById('buildVersion');
+
+    if (versionInput) {
+        versionInput.addEventListener('input', () => { versionInput.dataset.userEdited = '1'; });
+    }
+
+    // Reset per-open state when the modal opens
+    if (buildModal) {
+        buildModal.addEventListener('show.bs.modal', () => {
+            if (versionInput) delete versionInput.dataset.userEdited;
+            // If a component is already selected, restore folder + suggest version
+            const comp = document.getElementById('buildComponent').value;
+            if (comp) onBuildComponentChange();
+        });
+    }
+
+    // Update version suggestion when version type radio changes
+    document.querySelectorAll('input[name="versionType"]').forEach(r => {
+        r.addEventListener('change', () => {
+            if (document.getElementById('buildComponent').value) suggestVersion();
+        });
+    });
+});
+
+// ── Build-from-folder: detect metadata via AJAX ───────────────────────────
+async function detectFolder() {
+    const folderPath = document.getElementById('buildFolderPath').value.trim();
+    if (!folderPath) {
+        showDetectResult('warning', 'Inserisci il percorso della cartella prima di rilevare.');
+        return;
+    }
+
+    const btn = document.getElementById('detectBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Rilevamento…';
+
+    try {
+        const token = document.querySelector('#buildForm input[name="__RequestVerificationToken"]').value;
+        const formData = new FormData();
+        formData.append('folderPath', folderPath);
+        formData.append('__RequestVerificationToken', token);
+
+        const resp = await fetch('?handler=DetectFolder', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        if (data.error) {
+            showDetectResult('danger', '<i class="bi bi-exclamation-triangle me-1"></i>' + escHtml(data.error));
+            return;
+        }
+
+        let filled = [];
+
+        if (data.component) {
+            document.getElementById('buildComponent').value = data.component;
+            filled.push('componente: <strong>' + escHtml(data.component) + '</strong>');
+        }
+        if (data.version) {
+            document.getElementById('buildVersion').value = data.version;
+            filled.push('versione: <strong>' + escHtml(data.version) + '</strong>');
+        }
+        if (data.gitCommit) {
+            document.getElementById('buildGitCommit').value = data.gitCommit;
+            filled.push('commit: <code>' + escHtml(data.gitCommit) + '</code>');
+        }
+
+        if (filled.length > 0) {
+            showDetectResult('success',
+                '<i class="bi bi-check-circle me-1"></i>Rilevati: ' + filled.join(', ') + '.');
+        } else {
+            showDetectResult('warning',
+                '<i class="bi bi-question-circle me-1"></i>Nessun metadato rilevato automaticamente. ' +
+                'Compila i campi manualmente.');
+        }
+    } catch (e) {
+        showDetectResult('danger', '<i class="bi bi-exclamation-triangle me-1"></i>Errore di comunicazione.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+function showDetectResult(type, html) {
+    const el = document.getElementById('detectResult');
+    const alert = document.getElementById('detectAlert');
+    el.classList.remove('d-none');
+    alert.className = 'alert py-2 mb-0 small alert-' + type;
+    alert.innerHTML = html;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+             .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Packages table filter ─────────────────────────────────────────────────
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const s = document.getElementById('filterStatus').value.toLowerCase();
+    document.querySelectorAll('#pkgTable tbody tr').forEach(tr => {
+        const ver    = tr.getAttribute('data-search') || '';
+        const status = tr.getAttribute('data-status') || '';
+        const matchQ = !q || ver.includes(q);
+        const matchS = !s || status === s;
+        tr.style.display = (matchQ && matchS) ? '' : 'none';
+    });
+}
+</script>
+}

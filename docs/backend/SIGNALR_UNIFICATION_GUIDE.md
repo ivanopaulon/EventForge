@@ -340,8 +340,8 @@ Potential improvements for future PRs:
 
 ## References
 
-- **Interface Definition**: `EventForge.Client/Services/IRealtimeService.cs`
-- **Implementation**: `EventForge.Client/Services/OptimizedSignalRService.cs`
+- **Interface Definition**: `Prym.Client/Services/IRealtimeService.cs`
+- **Implementation**: `Prym.Client/Services/OptimizedSignalRService.cs`
 - **Security Analysis**: `SECURITY_SUMMARY_SIGNALR_UNIFICATION.md`
 - **SignalR Documentation**: https://docs.microsoft.com/aspnet/core/signalr
 

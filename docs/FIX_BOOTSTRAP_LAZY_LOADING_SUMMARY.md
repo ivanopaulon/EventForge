@@ -113,9 +113,9 @@ All seeding functions are idempotent:
 
 ## Files Modified
 
-1. **EventForge.Server/Services/Configuration/BootstrapHostedService.cs** (+26, -6 lines)
-2. **EventForge.Server/Services/Auth/BootstrapService.cs** (+51, -6 lines)
-3. **EventForge.Tests/Services/Auth/BootstrapServiceTests.cs** (+84 lines)
+1. **Prym.Server/Services/Configuration/BootstrapHostedService.cs** (+26, -6 lines)
+2. **Prym.Server/Services/Auth/BootstrapService.cs** (+51, -6 lines)
+3. **Prym.Tests/Services/Auth/BootstrapServiceTests.cs** (+84 lines)
 4. **docs/FIX_BOOTSTRAP_LAZY_LOADING_IT.md** (new file, Italian documentation)
 
 Total: 392 insertions, 6 deletions

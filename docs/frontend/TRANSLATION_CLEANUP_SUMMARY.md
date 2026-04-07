@@ -5,7 +5,7 @@
 
 ## Overview
 
-This document summarizes the work done to clean up and align the EventForge translation system by removing Spanish and French language support and ensuring Italian and English translations are perfectly synchronized.
+This document summarizes the work done to clean up and align the Prym translation system by removing Spanish and French language support and ensuring Italian and English translations are perfectly synchronized.
 
 ## What Was Done
 
@@ -38,8 +38,8 @@ This document summarizes the work done to clean up and align the EventForge tran
 
 ### 2. Files Removed ✅
 
-- `EventForge.Client/wwwroot/i18n/es.json` - Spanish translations
-- `EventForge.Client/wwwroot/i18n/fr.json` - French translations
+- `Prym.Client/wwwroot/i18n/es.json` - Spanish translations
+- `Prym.Client/wwwroot/i18n/fr.json` - French translations
 
 ### 3. Code Changes ✅
 
@@ -101,7 +101,7 @@ To verify the alignment, you can use these commands:
 
 ```bash
 # Check number of keys in each file
-cd EventForge.Client/wwwroot/i18n
+cd Prym.Client/wwwroot/i18n
 echo "IT keys:" && cat it.json | grep -o '"[^"]*":' | wc -l
 echo "EN keys:" && cat en.json | grep -o '"[^"]*":' | wc -l
 

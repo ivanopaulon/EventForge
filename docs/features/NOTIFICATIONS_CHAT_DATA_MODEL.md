@@ -1,8 +1,8 @@
-# EventForge Notifications & Chat Data Model
+# Prym Notifications & Chat Data Model
 
 ## Overview
 
-This document describes the database schema for the **Step 2** implementation of EventForge's SignalR Notifications & Chat system with multi-tenant support. The data model supports real-time notifications and chat functionality with comprehensive multi-tenant isolation, localization, and audit tracking.
+This document describes the database schema for the **Step 2** implementation of Prym's SignalR Notifications & Chat system with multi-tenant support. The data model supports real-time notifications and chat functionality with comprehensive multi-tenant isolation, localization, and audit tracking.
 
 ## Entity Architecture
 

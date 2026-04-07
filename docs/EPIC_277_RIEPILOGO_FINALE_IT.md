@@ -370,7 +370,7 @@ Questo è il documento consolidato che contiene **TUTTO**:
 ### Altri Riferimenti
 
 **Indice**: [EPIC_277_INDEX.md](./EPIC_277_INDEX.md)  
-**Issue GitHub**: [#277](https://github.com/ivanopaulon/EventForge/issues/277)  
+**Issue GitHub**: [#277](https://github.com/ivanopaulon/Prym/issues/277)  
 **Swagger API**: `https://localhost:5001/swagger`
 
 ---

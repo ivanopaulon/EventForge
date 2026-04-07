@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the procurement and product management domain model extensions implemented to support advanced product sourcing, supplier management, and inventory planning capabilities in EventForge.
+This document describes the procurement and product management domain model extensions implemented to support advanced product sourcing, supplier management, and inventory planning capabilities in Prym.
 
 ## Entities
 

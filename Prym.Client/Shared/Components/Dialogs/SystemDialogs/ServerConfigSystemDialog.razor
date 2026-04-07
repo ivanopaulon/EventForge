@@ -1,0 +1,178 @@
+@namespace Prym.Client.Shared.Components.Dialogs.SystemDialogs
+@using MudBlazor
+@inject IServerConfigService ServerConfigService
+@inject IServerConfigOverlayService OverlayService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<EFSystemDialog Title="PRYM"
+                Subtitle="Configurazione Server"
+                TopBar="@_efTopBar"
+                CardWidth="420px">
+
+    <MudTextField @bind-Value="_serverUrl"
+                  Label="URL Server"
+                  Placeholder="https://mioserver:7241/"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  FullWidth="true"
+                  Disabled="@_isSaving"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@_adornmentIcon"
+                  AdornmentColor="@_adornmentColor"
+                  OnKeyUp="@OnUrlKeyUp" />
+
+    @if (_testStatus == TestStatus.Success)
+    {
+        <div class="scsd-status-ok">✓ Server raggiungibile</div>
+    }
+    else if (_testStatus == TestStatus.Failure)
+    {
+        <div class="scsd-status-err">✗ Server non raggiungibile. Verifica l'URL e riprova.</div>
+    }
+
+    <div class="scsd-action-row">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   Size="Size.Small"
+                   OnClick="@TestConnectionAsync"
+                   Disabled="@(_isTesting || _isSaving || string.IsNullOrWhiteSpace(_serverUrl))"
+                   StartIcon="@Icons.Material.Outlined.NetworkCheck">
+            @(_isTesting ? "Test in corso…" : "Testa connessione")
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   OnClick="@SaveAndConnectAsync"
+                   Disabled="@(_testStatus != TestStatus.Success || _isSaving)"
+                   StartIcon="@Icons.Material.Outlined.Save">
+            @(_isSaving ? "Connessione…" : "Salva e connetti")
+        </MudButton>
+    </div>
+
+    <div class="scsd-footer-row">
+        <MudLink OnClick="@ResetToDefaultAsync" Color="Color.Default" Style="cursor:pointer;" Class="scsd-reset">
+            Reimposta URL di default
+        </MudLink>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small"
+                   OnClick="@Cancel" Disabled="@_isSaving">
+            Annulla
+        </MudButton>
+    </div>
+
+</EFSystemDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private enum TestStatus { None, Success, Failure }
+
+    private string _serverUrl = "";
+    private bool _isTesting = false;
+    private bool _isSaving = false;
+    private TestStatus _testStatus = TestStatus.None;
+
+    private EFSystemDialog.EFTopBar _efTopBar => _testStatus switch
+    {
+        TestStatus.Success => EFSystemDialog.EFTopBar.Success,
+        TestStatus.Failure => EFSystemDialog.EFTopBar.Error,
+        _                  => EFSystemDialog.EFTopBar.Primary
+    };
+
+    private string _adornmentIcon => _testStatus switch
+    {
+        TestStatus.Success => Icons.Material.Filled.CheckCircle,
+        TestStatus.Failure => Icons.Material.Filled.Error,
+        _                  => Icons.Material.Outlined.Link
+    };
+
+    private Color _adornmentColor => _testStatus switch
+    {
+        TestStatus.Success => Color.Success,
+        TestStatus.Failure => Color.Error,
+        _                  => Color.Default
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _serverUrl = await ServerConfigService.GetServerUrlAsync();
+    }
+
+    private void OnUrlKeyUp(KeyboardEventArgs e)
+    {
+        if (_testStatus != TestStatus.None)
+            _testStatus = TestStatus.None;
+    }
+
+    private async Task TestConnectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_serverUrl)) return;
+
+        _isTesting = true;
+        _testStatus = TestStatus.None;
+        StateHasChanged();
+
+        var success = await ServerConfigService.TestConnectionAsync(_serverUrl);
+        _testStatus = success ? TestStatus.Success : TestStatus.Failure;
+
+        _isTesting = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveAndConnectAsync()
+    {
+        if (_testStatus != TestStatus.Success) return;
+
+        _isSaving = true;
+        StateHasChanged();
+
+        await ServerConfigService.SetServerUrlAsync(_serverUrl);
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+
+    private async Task ResetToDefaultAsync()
+    {
+        await ServerConfigService.ResetToDefaultAsync();
+        _serverUrl = await ServerConfigService.GetServerUrlAsync();
+        _testStatus = TestStatus.None;
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        OverlayService.Hide();
+        MudDialog.Close();
+    }
+
+    public void Dispose() { }
+}
+
+<style>
+    .scsd-status-ok  { color: #66bb6a; font-size: 0.85rem; font-weight: 600; }
+    .scsd-status-err { color: #ef5350; font-size: 0.85rem; font-weight: 600; }
+
+    .scsd-action-row {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .scsd-footer-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .scsd-reset {
+        font-size: 0.78rem;
+        opacity: 0.6;
+    }
+
+    @@media (max-width: 480px) {
+        .scsd-action-row  { justify-content: center; }
+        .scsd-footer-row  { flex-direction: column; align-items: flex-start; }
+    }
+</style>

@@ -50,7 +50,7 @@ Overall:                   ████████████████░�
 - ✅ Review build e test status (208/208 test OK)
 
 ### 2. SalesWizard - Integrazione Componenti ✅
-**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
+**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
 
 #### Before:
 - 5 steps con placeholder
@@ -92,7 +92,7 @@ Overall:                   ████████████████░�
 - ✅ Reset wizard completo
 
 ### 3. ProductSearch - Mock Data & Testing ✅
-**File**: `EventForge.Client/Shared/Components/Sales/ProductSearch.razor`
+**File**: `Prym.Client/Shared/Components/Sales/ProductSearch.razor`
 
 #### Before:
 - ~175 righe
@@ -121,7 +121,7 @@ Overall:                   ████████████████░�
 - ✅ Tutti i prodotti hanno categoria, prezzo, stock
 
 ### 4. TableManagementStep - Nuovo Componente ✅
-**File**: `EventForge.Client/Pages/Sales/TableManagementStep.razor` (NUOVO)
+**File**: `Prym.Client/Pages/Sales/TableManagementStep.razor` (NUOVO)
 
 #### Specs:
 - **~150 righe**
@@ -151,7 +151,7 @@ Overall:                   ████████████████░�
 - ✅ Two-way binding con wizard
 
 ### 5. Step 6 Complete - Migliorato ✅
-**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
+**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
 
 #### Features Aggiunte:
 - ✅ Riepilogo vendita completo:
@@ -367,9 +367,9 @@ switch (_activeStepIndex)
 
 1. **Build & Run**
    ```bash
-   cd /home/runner/work/EventForge/EventForge
+   cd /home/runner/work/Prym/Prym
    dotnet build
-   dotnet run --project EventForge.Server
+   dotnet run --project Prym.Server
    ```
 
 2. **Navigate to Wizard**
@@ -586,7 +586,7 @@ Il wizard di vendita è **completamente funzionante** per:
 
 ### Ringraziamenti
 
-Grazie per la fiducia nel completare questo importante milestone. Il wizard è ora pronto per portare EventForge al prossimo livello come sistema POS professionale.
+Grazie per la fiducia nel completare questo importante milestone. Il wizard è ora pronto per portare Prym al prossimo livello come sistema POS professionale.
 
 ---
 

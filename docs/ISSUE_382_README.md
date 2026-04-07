@@ -1,10 +1,10 @@
 # Issue #382 - Documentazione Completa
 
-📋 **Issue GitHub:** [#382 - Analisi e correzione della scrittura dei dati di audit e log nei servizi server](https://github.com/ivanopaulon/EventForge/issues/382)
+📋 **Issue GitHub:** [#382 - Analisi e correzione della scrittura dei dati di audit e log nei servizi server](https://github.com/ivanopaulon/Prym/issues/382)
 
 ## 🎯 Obiettivo
 
-Analizzare lo stato attuale dei servizi server EventForge per verificare la corretta scrittura dei dati di audit e log, e correggere eventuali anomalie.
+Analizzare lo stato attuale dei servizi server Prym per verificare la corretta scrittura dei dati di audit e log, e correggere eventuali anomalie.
 
 ## ✅ Stato: COMPLETATO AL 100%
 
@@ -77,7 +77,7 @@ Contiene:
 
 ### Verdict: 🟢 ECCELLENTE
 
-Il sistema di audit e logging di EventForge è **maturo e ben implementato** al 95%.
+Il sistema di audit e logging di Prym è **maturo e ben implementato** al 95%.
 
 ### Statistiche Chiave
 
@@ -235,7 +235,7 @@ await _auditLogService.TrackEntityChangesAsync(
 
 ## 📞 Contatti e Follow-up
 
-- **Issue GitHub:** [#382](https://github.com/ivanopaulon/EventForge/issues/382)
+- **Issue GitHub:** [#382](https://github.com/ivanopaulon/Prym/issues/382)
 - **Branch:** `copilot/fix-92a2e0fa-bdc0-4d75-a188-c1c6d7398d91`
 - **Commits:** 2 (feat + docs)
 - **Status:** ✅ READY TO MERGE

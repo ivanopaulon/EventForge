@@ -2,14 +2,14 @@
 
 ## Overview
 
-This guide documents the comprehensive performance optimizations implemented for the EventForge MudBlazor UI to improve responsiveness, reduce latency, and enhance user experience especially on mobile devices and under high load scenarios.
+This guide documents the comprehensive performance optimizations implemented for the Prym MudBlazor UI to improve responsiveness, reduce latency, and enhance user experience especially on mobile devices and under high load scenarios.
 
 ## Key Performance Improvements
 
 ### 1. Intelligent Caching System
 
 #### PerformanceOptimizationService
-- **Location**: `EventForge.Client/Services/PerformanceOptimizationService.cs`
+- **Location**: `Prym.Client/Services/PerformanceOptimizationService.cs`
 - **Features**:
   - Memory-based caching with configurable expiration
   - Debouncing to reduce excessive API calls
@@ -37,7 +37,7 @@ return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
 ### 2. Optimized SignalR Implementation
 
 #### OptimizedSignalRService
-- **Location**: `EventForge.Client/Services/OptimizedSignalRService.cs`
+- **Location**: `Prym.Client/Services/OptimizedSignalRService.cs`
 - **Features**:
   - Connection pooling for multiple hub connections
   - Event batching to reduce UI update frequency
@@ -54,7 +54,7 @@ return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
 ### 3. Virtualized UI Components
 
 #### OptimizedChatMessageList
-- **Location**: `EventForge.Client/Shared/Components/OptimizedChatMessageList.razor`
+- **Location**: `Prym.Client/Shared/Components/OptimizedChatMessageList.razor`
 - **Features**:
   - Virtualization for large message lists
   - Lazy loading of rich content and attachments
@@ -63,7 +63,7 @@ return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
   - Efficient memory management
 
 #### OptimizedNotificationList
-- **Location**: `EventForge.Client/Shared/Components/OptimizedNotificationList.razor`
+- **Location**: `Prym.Client/Shared/Components/OptimizedNotificationList.razor`
 - **Features**:
   - Virtualized notification display
   - Debounced search with 300ms delay
@@ -72,7 +72,7 @@ return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
   - Smart filtering and sorting
 
 #### LazyAttachmentComponent
-- **Location**: `EventForge.Client/Shared/Components/LazyAttachmentComponent.razor`
+- **Location**: `Prym.Client/Shared/Components/LazyAttachmentComponent.razor`
 - **Features**:
   - Lazy loading based on viewport intersection
   - Progressive image loading

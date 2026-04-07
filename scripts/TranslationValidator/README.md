@@ -4,7 +4,7 @@ A CLI tool for validating that all translation files have the same keys.
 
 ## Purpose
 
-This tool ensures translation completeness across all supported languages in EventForge. It compares all translation JSON files against a base language and reports:
+This tool ensures translation completeness across all supported languages in Prym. It compares all translation JSON files against a base language and reports:
 
 - Missing keys (keys in base language but not in target language)
 - Extra keys (keys in target language but not in base language)
@@ -18,7 +18,7 @@ This tool ensures translation completeness across all supported languages in Eve
 dotnet run --project scripts/TranslationValidator
 ```
 
-This validates all translation files in the default directory (`EventForge.Client/wwwroot/i18n`) using English (`en`) as the base language.
+This validates all translation files in the default directory (`Prym.Client/wwwroot/i18n`) using English (`en`) as the base language.
 
 ### Advanced Options
 

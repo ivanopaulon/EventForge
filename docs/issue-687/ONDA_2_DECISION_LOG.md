@@ -70,14 +70,14 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 ## 🔧 Technical Details - PR #699
 
 ### Files Created
-1. **EventForge.Client/ViewModels/DocumentTypeDetailViewModel.cs**
+1. **Prym.Client/ViewModels/DocumentTypeDetailViewModel.cs**
    - Inherits from `BaseEntityDetailViewModel<DocumentTypeDto, CreateDocumentTypeDto, UpdateDocumentTypeDto>`
    - Uses `IDocumentTypeService` and `IWarehouseService`
    - Implements all abstract methods
    - Loads warehouses for default warehouse dropdown
    - Structured logging with ILogger
 
-2. **EventForge.Tests/ViewModels/DocumentTypeDetailViewModelTests.cs**
+2. **Prym.Tests/ViewModels/DocumentTypeDetailViewModelTests.cs**
    - 7 comprehensive unit tests
    - Pattern: `LoadAsync_WithValidId_LoadsEntity`
    - Pattern: `CreateNewEntity_ReturnsDefaultDocumentType`
@@ -93,7 +93,7 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
    - Documents technical decisions
 
 ### Files Modified
-1. **EventForge.Client/Program.cs**
+1. **Prym.Client/Program.cs**
    - Added `DocumentTypeDetailViewModel` registration in DI container
    - Placed after LotDetailViewModel as specified
 
@@ -162,21 +162,21 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
 ## 🔧 Technical Details - PR #700
 
 ### Files Created (4 files)
-1. **EventForge.Client/ViewModels/DocumentHeaderDetailViewModel.cs**
+1. **Prym.Client/ViewModels/DocumentHeaderDetailViewModel.cs**
    - Inherits from `BaseEntityDetailViewModel<DocumentHeaderDto, CreateDocumentHeaderDto, UpdateDocumentHeaderDto>`
    - Uses `IDocumentHeaderService`, `IDocumentTypeService`, and `IBusinessPartyService`
    - Implements all abstract methods
    - Loads DocumentTypes and BusinessParties for dropdowns
    - Handles complex DocumentHeader entity with 40+ properties
 
-2. **EventForge.Client/ViewModels/DocumentCounterDetailViewModel.cs**
+2. **Prym.Client/ViewModels/DocumentCounterDetailViewModel.cs**
    - Inherits from `BaseEntityDetailViewModel<DocumentCounterDto, CreateDocumentCounterDto, UpdateDocumentCounterDto>`
    - Uses `IDocumentCounterService` and `IDocumentTypeService`
    - Implements all abstract methods
    - Loads DocumentTypes for dropdown
    - Manages counter configuration (prefix, suffix, padding, etc.)
 
-3. **EventForge.Tests/ViewModels/DocumentHeaderDetailViewModelTests.cs** (7 tests)
+3. **Prym.Tests/ViewModels/DocumentHeaderDetailViewModelTests.cs** (7 tests)
    - LoadAsync_WithValidId_LoadsEntity
    - CreateNewEntity_ReturnsDefaultDocumentHeader
    - SaveAsync_NewEntity_CallsCreate
@@ -185,7 +185,7 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
    - IsNewEntity_WithEmptyId_ReturnsTrue
    - GetEntityId_ReturnsCorrectId
 
-4. **EventForge.Tests/ViewModels/DocumentCounterDetailViewModelTests.cs** (7 tests)
+4. **Prym.Tests/ViewModels/DocumentCounterDetailViewModelTests.cs** (7 tests)
    - LoadAsync_WithValidId_LoadsEntity
    - CreateNewEntity_ReturnsDefaultDocumentCounter
    - SaveAsync_NewEntity_CallsCreate
@@ -195,7 +195,7 @@ Onda 2 extends the MVVM refactoring to Documents and Financial management, build
    - GetEntityId_ReturnsCorrectId
 
 ### Files Modified (2 files)
-1. **EventForge.Client/Program.cs**
+1. **Prym.Client/Program.cs**
    - Added `DocumentHeaderDetailViewModel` registration in DI container
    - Added `DocumentCounterDetailViewModel` registration in DI container
    - Placed after DocumentTypeDetailViewModel as part of Onda 2 section
@@ -273,14 +273,14 @@ This is consistent across all Onda 1 ViewModels (Warehouse, StorageLocation, Lot
 ## 🔧 Technical Details - PR #702
 
 ### Files Created (2 files)
-1. **EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs**
+1. **Prym.Client/ViewModels/PaymentTermDetailViewModel.cs**
    - Inherits from `BaseEntityDetailViewModel<PaymentTermDto, CreatePaymentTermDto, UpdatePaymentTermDto>`
    - Uses `IFinancialService`
    - Implements all abstract methods
    - Standalone entity - no related entities
    - Structured logging with ILogger
 
-2. **EventForge.Tests/ViewModels/PaymentTermDetailViewModelTests.cs** (7 tests)
+2. **Prym.Tests/ViewModels/PaymentTermDetailViewModelTests.cs** (7 tests)
    - LoadAsync_WithValidId_LoadsEntity
    - CreateNewEntity_ReturnsDefaultPaymentTerm
    - SaveAsync_NewEntity_CallsCreate
@@ -290,7 +290,7 @@ This is consistent across all Onda 1 ViewModels (Warehouse, StorageLocation, Lot
    - GetEntityId_ReturnsCorrectId
 
 ### Files Modified (2 files)
-1. **EventForge.Client/Program.cs**
+1. **Prym.Client/Program.cs**
    - Added `PaymentTermDetailViewModel` registration in DI container
    - Placed after VatNatureDetailViewModel as part of Onda 2 section
 

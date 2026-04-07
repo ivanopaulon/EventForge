@@ -23,7 +23,7 @@ L'Epic #277 richiede l'implementazione di:
 
 #### 1. Modelli Server-side Implementati
 
-Sono state create nuove entità in `/EventForge.Server/Data/Entities/Sales/`:
+Sono state create nuove entità in `/Prym.Server/Data/Entities/Sales/`:
 
 ##### 1.1 `SaleSession.cs` - Sessione di Vendita Completa
 - **Descrizione**: Entità principale per gestire una sessione di vendita completa
@@ -100,7 +100,7 @@ Dopo l'analisi approfondita delle issue e la verifica dello stato corrente, emer
 
 #### 2. DTOs per Sales API
 
-**Percorso**: `/EventForge.DTOs/Sales/` (DA CREARE)
+**Percorso**: `/Prym.DTOs/Sales/` (DA CREARE)
 
 Sono necessari i seguenti DTOs per le API:
 - [ ] `SaleSessionDto.cs`
@@ -120,7 +120,7 @@ Sono necessari i seguenti DTOs per le API:
 
 #### 3. Servizi Backend
 
-**Percorso**: `/EventForge.Server/Services/Sales/` (DA CREARE)
+**Percorso**: `/Prym.Server/Services/Sales/` (DA CREARE)
 
 Servizi necessari:
 - [ ] `ISaleSessionService.cs` + implementazione
@@ -141,7 +141,7 @@ Servizi necessari:
 
 #### 4. Controller API
 
-**Percorso**: `/EventForge.Server/Controllers/` 
+**Percorso**: `/Prym.Server/Controllers/` 
 
 Controller necessari:
 - [ ] `SalesController.cs` - API per sessioni vendita
@@ -178,7 +178,7 @@ GET    /api/v1/payment-methods              - Lista metodi pagamento
 
 #### 5. Database Integration
 
-- [ ] Aggiungere DbSet per nuove entità in `EventForgeDbContext.cs`
+- [ ] Aggiungere DbSet per nuove entità in `PrymDbContext.cs`
 - [ ] Creare migration per le nuove tabelle
 - [ ] Configurare relazioni e indici
 - [ ] Seed data per metodi pagamento di default
@@ -186,7 +186,7 @@ GET    /api/v1/payment-methods              - Lista metodi pagamento
 
 #### 6. Frontend - Client Services
 
-**Percorso**: `/EventForge.Client/Services/` 
+**Percorso**: `/Prym.Client/Services/` 
 
 Servizi client necessari:
 - [ ] `ISalesService.cs` + `SalesService.cs`
@@ -195,8 +195,8 @@ Servizi client necessari:
 
 #### 7. Frontend - UI Components
 
-**Percorso**: `/EventForge.Client/Pages/Sales/` (DA CREARE)
-**Percorso**: `/EventForge.Client/Shared/Components/Sales/` (DA CREARE)
+**Percorso**: `/Prym.Client/Pages/Sales/` (DA CREARE)
+**Percorso**: `/Prym.Client/Shared/Components/Sales/` (DA CREARE)
 
 ##### 7.1 Wizard Pages (Issue #262)
 
@@ -256,7 +256,7 @@ Servizi client necessari:
 1. **Infrastruttura base**:
    - ✅ `RetailCartSessionsController.cs` - Controller cart base (in-memory)
    - ✅ `IRetailCartSessionService.cs` + implementazione
-   - ✅ DTOs base in `/EventForge.DTOs/RetailCart/`
+   - ✅ DTOs base in `/Prym.DTOs/RetailCart/`
    - ✅ Entità `StorePos.cs`, `StoreUser.cs` per POS e operatori
    - ✅ Sistema documenti completo (per generazione fatture/scontrini)
    - ✅ Sistema promozioni implementato
@@ -498,7 +498,7 @@ I modelli entità creati forniscono una **solida base** per l'implementazione fu
 ### Files Creati
 
 ```
-/EventForge.Server/Data/Entities/Sales/
+/Prym.Server/Data/Entities/Sales/
 ├── SaleSession.cs          (148 lines)
 ├── SaleItem.cs             (95 lines)
 ├── SalePayment.cs          (91 lines)
@@ -509,10 +509,10 @@ I modelli entità creati forniscono una **solida base** per l'implementazione fu
 
 ### Riferimenti Issue
 
-- **Epic #277**: https://github.com/ivanopaulon/EventForge/issues/277
-- **Issue #267**: https://github.com/ivanopaulon/EventForge/issues/267 (Wizard documenti - SOSPESO)
-- **Issue #262**: https://github.com/ivanopaulon/EventForge/issues/262 (UI Design)
-- **Issue #261**: https://github.com/ivanopaulon/EventForge/issues/261 (Technical Specs)
+- **Epic #277**: https://github.com/ivanopaulon/Prym/issues/277
+- **Issue #267**: https://github.com/ivanopaulon/Prym/issues/267 (Wizard documenti - SOSPESO)
+- **Issue #262**: https://github.com/ivanopaulon/Prym/issues/262 (UI Design)
+- **Issue #261**: https://github.com/ivanopaulon/Prym/issues/261 (Technical Specs)
 
 ### Documentazione Correlata
 

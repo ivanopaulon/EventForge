@@ -1,0 +1,257 @@
+@*
+    UpdateDownloadSnackbar — fixed bottom-right bar shown when:
+      • Phase = "PackageReceived"          → package incoming, about to download
+      • Phase = "AwaitingMaintenanceWindow" → downloaded, waiting for install slot or operator
+    
+    For manual packages the bar has a MudSwitch (OFF by default).
+      Switch OFF → after download completes shows "Installa ora" button
+      Switch ON  → triggers install automatically and closes the bar
+    
+    The bar is NOT shown during active download/install phases (those are handled by
+    UpdateMaintenanceOverlay with the full-screen modal).
+*@
+@namespace Prym.Client.Shared.Components
+@using Prym.Client.Services.Updates
+@inject IUpdateNotificationService UpdateNotification
+@inject ILogger<UpdateDownloadSnackbar> Logger
+@implements IDisposable
+
+@if (_visible && _progress is not null)
+{
+    <div class="ef-download-snackbar @(_progress.IsManualInstall == true ? "ef-download-snackbar--manual" : "ef-download-snackbar--auto")">
+
+        @* ── Icon + title ── *@
+        <div class="ef-download-snackbar__header">
+            @if (_isAwaiting)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="me-1" />
+            }
+            else
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="me-1" />
+            }
+            <MudText Typo="Typo.body2" Class="fw-semibold flex-grow-1">
+                @if (_isAwaiting)
+                {
+                    @((_progress.IsManualInstall == true ? "Scaricato" : "In attesa finestra") + @$" — {_progress.Component} v{_progress.Version}")
+                }
+                else
+                {
+                    @($"Pacchetto in arrivo — {_progress.Component} v{_progress.Version}")
+                }
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Dismiss"
+                           Class="ms-1" aria-label="Chiudi" />
+        </div>
+
+        @* ── Body *@
+        <div class="ef-download-snackbar__body">
+
+            @* Mode chip *@
+            @if (_progress.IsManualInstall == true)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                         Icon="@Icons.Material.Outlined.PanTool" Text="Installazione manuale" Class="me-2" />
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                         Icon="@Icons.Material.Outlined.FlashOn" Text="Installazione automatica" Class="me-2" />
+            }
+
+            @* Maintenance window info for auto mode *@
+            @if (_progress.IsManualInstall != true && !string.IsNullOrWhiteSpace(_progress.NextWindowAt))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Prossima finestra: @_progress.NextWindowAt
+                </MudText>
+            }
+
+            @* Manual package: switch + install button *@
+            @if (_progress.IsManualInstall == true)
+            {
+                <div class="ef-download-snackbar__manual-row mt-1">
+                    <MudSwitch T="bool"
+                               @bind-Value="_autoInstallOnComplete"
+                               Color="Color.Primary"
+                               Label="Installa al termine del download"
+                               Size="Size.Small" />
+                </div>
+
+                @if (_isAwaiting)
+                {
+                    @if (_autoInstallOnComplete)
+                    {
+                        @* Switch was ON when download completed → trigger and close *@
+                        @* (handled in OnUpdateProgress; this branch should not be visible long) *@
+                        <MudText Typo="Typo.caption" Color="Color.Success" Class="mt-1">
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Success" Class="me-1" />
+                            Avvio installazione…
+                        </MudText>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.PlayArrow"
+                                       OnClick="InstallNowAsync"
+                                       Disabled="@_isInstalling">
+                                @(_isInstalling ? "Avvio…" : "Installa ora")
+                            </MudButton>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                oppure apri il dialogo aggiornamenti
+                            </MudText>
+                        </div>
+                    }
+                }
+            }
+        </div>
+    </div>
+}
+
+<style>
+    .ef-download-snackbar {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        z-index: 1300;
+        width: min(400px, calc(100vw - 32px));
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        padding: 10px 12px;
+        animation: ef-snackbar-in .2s ease-out;
+    }
+
+    .ef-download-snackbar--manual {
+        border-left: 4px solid var(--mud-palette-warning);
+    }
+
+    .ef-download-snackbar--auto {
+        border-left: 4px solid var(--mud-palette-success);
+    }
+
+    .ef-download-snackbar__header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+
+    .ef-download-snackbar__body {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .ef-download-snackbar__manual-row {
+        width: 100%;
+    }
+
+    @@keyframes ef-snackbar-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    private UpdateProgressPayload? _progress;
+    private bool _visible;
+    private bool _isAwaiting;
+    private bool _autoInstallOnComplete;   // switch state — OFF by default
+    private bool _isInstalling;
+    private Guid? _lastAutoTriggeredPackageId;
+
+    protected override void OnInitialized()
+    {
+        UpdateNotification.StateChanged += OnStateChanged;
+        Refresh();
+    }
+
+    private void OnStateChanged()
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh()
+    {
+        var p = UpdateNotification.CurrentProgress;
+
+        var isPackageReceived = p is not null &&
+            string.Equals(p.Phase, "PackageReceived", StringComparison.OrdinalIgnoreCase);
+        var isAwaiting = p is not null &&
+            string.Equals(p.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
+
+        // Reset per-package switch when a new package arrives.
+        if (p?.PackageId != _progress?.PackageId)
+        {
+            _autoInstallOnComplete = false;
+            _isInstalling = false;
+            _lastAutoTriggeredPackageId = null;
+        }
+
+        _isAwaiting = isAwaiting;
+        _progress = p;
+        _visible = isPackageReceived || isAwaiting;
+
+        // Auto-trigger install if switch is ON and download just completed.
+        if (isAwaiting && _autoInstallOnComplete &&
+            p?.IsManualInstall == true &&
+            p.PackageId.HasValue &&
+            p.PackageId != _lastAutoTriggeredPackageId)
+        {
+            _lastAutoTriggeredPackageId = p.PackageId;
+            _ = TriggerAndCloseAsync(p.PackageId.Value);
+        }
+    }
+
+    private async Task TriggerAndCloseAsync(Guid packageId)
+    {
+        _isInstalling = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await UpdateNotification.TriggerInstallNowAsync(default, packageId);
+            _visible = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Auto-trigger install failed for package {PackageId}", packageId);
+            _autoInstallOnComplete = false; // revert to manual on error
+        }
+        finally
+        {
+            _isInstalling = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task InstallNowAsync()
+    {
+        if (_progress?.PackageId is null) return;
+        _isInstalling = true;
+        try
+        {
+            await UpdateNotification.TriggerInstallNowAsync(default, _progress.PackageId.Value);
+            _visible = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Install now failed for package {PackageId}", _progress.PackageId);
+        }
+        finally
+        {
+            _isInstalling = false;
+        }
+    }
+
+    private void Dismiss() => _visible = false;
+
+    public void Dispose()
+    {
+        UpdateNotification.StateChanged -= OnStateChanged;
+    }
+}

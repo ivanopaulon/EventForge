@@ -16,8 +16,8 @@
 
 ## Location
 
-**Path**: `EventForge.Client/Shared/Components/EFTable.razor`
-**Models**: `EventForge.Client/Shared/Components/EFTableModels.cs`
+**Path**: `Prym.Client/Shared/Components/EFTable.razor`
+**Models**: `Prym.Client/Shared/Components/EFTableModels.cs`
 
 ## Basic Usage
 
@@ -553,7 +553,7 @@ private async Task HandleExport(string format)
 
 ## Standard Toolbar Structure
 
-For management pages in EventForge, we follow a **standardized 4-section toolbar pattern** to ensure consistency across all pages.
+For management pages in Prym, we follow a **standardized 4-section toolbar pattern** to ensure consistency across all pages.
 
 ### 4-Section Toolbar Layout
 
@@ -627,7 +627,7 @@ All management pages MUST structure their custom toolbar (`ToolBarContent`) in e
 
 See **WarehouseManagement.razor** for the gold standard implementation:
 ```
-EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor
+Prym.Client/Pages/Management/Warehouse/WarehouseManagement.razor
 ```
 
 Key features:
@@ -646,8 +646,8 @@ For the complete standardization guide including HTML structure, code-behind pat
 
 See **VatRateManagement.razor** and **WarehouseManagement.razor** for complete real-world examples:
 ```
-EventForge.Client/Pages/Management/Financial/VatRateManagement.razor
-EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor
+Prym.Client/Pages/Management/Financial/VatRateManagement.razor
+Prym.Client/Pages/Management/Warehouse/WarehouseManagement.razor
 ```
 
 These pages demonstrate:
@@ -689,7 +689,7 @@ EFTable follows WCAG 2.1 AA standards:
 
 Unit tests are available at:
 ```
-EventForge.Tests/Components/EFTableTests.cs
+Prym.Tests/Components/EFTableTests.cs
 ```
 
 Run tests:
@@ -757,7 +757,7 @@ When enhancing EFTable:
 
 ## License
 
-Part of EventForge project. See root LICENSE file.
+Part of Prym project. See root LICENSE file.
 
 ## Row Click Navigation
 
@@ -847,7 +847,7 @@ private List<EFTableColumnConfiguration> _initialColumns = new()
 Use the `MatchesSearchInColumns` extension method for clean, declarative filtering:
 
 ```csharp
-using EventForge.Client.Extensions;
+using Prym.Client.Extensions;
 
 private IEnumerable<ProductDto> _filteredProducts => 
     _products.Where(p => 

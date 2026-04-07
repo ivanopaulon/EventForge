@@ -1,4 +1,4 @@
-# EventForge Notifications & Chat UI Implementation Guide
+# Prym Notifications & Chat UI Implementation Guide
 
 ## Overview
 This document describes the Step 4 implementation of Issue #142: UI structure for Notifications, Chat, and SuperAdmin features using MudBlazor components.
@@ -103,7 +103,7 @@ Super Amministrazione (SuperAdmin only)
 
 ### Code Structure
 ```
-EventForge.Client/
+Prym.Client/
 ├── Pages/
 │   ├── Notifications/
 │   │   └── NotificationCenter.razor
@@ -118,7 +118,7 @@ EventForge.Client/
 ```
 
 ### Placeholder DTOs
-**Note:** Placeholder DTOs are defined in components for UI structure. These should be moved to EventForge.DTOs project when implementing business logic:
+**Note:** Placeholder DTOs are defined in components for UI structure. These should be moved to Prym.DTOs project when implementing business logic:
 
 - `NotificationDto`: Id, Title, Message, Type, Priority, IsRead, CreatedAt
 - `ChatDto`: Id, Name, IsGroup, UnreadCount, LastMessage, LastMessageTime

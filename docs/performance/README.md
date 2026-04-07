@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains documentation for FASE 6 - Performance Optimization initiative, which aims to establish performance monitoring infrastructure and optimize the EventForge application.
+This directory contains documentation for FASE 6 - Performance Optimization initiative, which aims to establish performance monitoring infrastructure and optimize the Prym application.
 
 ## Wave 1: Foundation & Monitoring Setup (Current)
 
@@ -23,8 +23,8 @@ This directory contains documentation for FASE 6 - Performance Optimization init
 
 3. **BenchmarkDotNet Performance Tests**
    - Baseline benchmarks for paginated endpoints
-   - Located in `EventForge.PerformanceTests` project
-   - Run with: `dotnet run -c Release --project EventForge.PerformanceTests`
+   - Located in `Prym.PerformanceTests` project
+   - Run with: `dotnet run -c Release --project Prym.PerformanceTests`
 
 ### How to Use MiniProfiler
 
@@ -37,13 +37,13 @@ This directory contains documentation for FASE 6 - Performance Optimization init
 
 ```bash
 # Navigate to the root directory
-cd EventForge
+cd Prym
 
 # Run all benchmarks
-dotnet run -c Release --project EventForge.PerformanceTests
+dotnet run -c Release --project Prym.PerformanceTests
 
 # Run specific category
-dotnet run -c Release --project EventForge.PerformanceTests --filter *Products*
+dotnet run -c Release --project Prym.PerformanceTests --filter *Products*
 ```
 
 ### How to Monitor Slow Requests

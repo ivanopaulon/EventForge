@@ -17,7 +17,7 @@
 
 ### 1. Import the Component
 ```razor
-@using EventForge.Client.Shared.Components
+@using Prym.Client.Shared.Components
 ```
 
 ### 2. Define Quick Filters in Your Code

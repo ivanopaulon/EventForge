@@ -28,13 +28,13 @@ After implementing the fix, these messages should no longer appear in the consol
 
 ```bash
 # Navigate to the project directory
-cd EventForge
+cd Prym
 
 # Build the client application
-dotnet build EventForge.Client
+dotnet build Prym.Client
 
 # Run the application (you'll need to run the server separately)
-dotnet run --project EventForge.Client
+dotnet run --project Prym.Client
 ```
 
 ### 2. Open Browser Developer Tools
@@ -47,7 +47,7 @@ dotnet run --project EventForge.Client
 
 Look for a message in the console:
 ```
-[EventForge] Console filter initialized - Mono runtime diagnostics suppressed
+[Prym] Console filter initialized - Mono runtime diagnostics suppressed
 ```
 
 This message confirms that the console filter has been loaded and is active.
@@ -97,7 +97,7 @@ If the console filter initialization message doesn't appear:
 
 If MONO messages still appear:
 
-1. **Check runtimeconfig.template.json:** Verify the file exists in `EventForge.Client/` directory
+1. **Check runtimeconfig.template.json:** Verify the file exists in `Prym.Client/` directory
 
 2. **Rebuild the application:**
    ```bash
@@ -113,7 +113,7 @@ For production deployment:
 
 ```bash
 # Publish the application
-dotnet publish EventForge.Client -c Release -o ./publish
+dotnet publish Prym.Client -c Release -o ./publish
 
 # Verify files exist
 ls -la ./publish/wwwroot/js/console-filter.js
@@ -169,8 +169,8 @@ If you need to see the MONO diagnostic messages for debugging:
    ```
 
 2. **Permanent:** Delete the following files:
-   - `EventForge.Client/wwwroot/js/console-filter.js`
-   - `EventForge.Client/runtimeconfig.template.json`
+   - `Prym.Client/wwwroot/js/console-filter.js`
+   - `Prym.Client/runtimeconfig.template.json`
    - Remove the script reference from `index.html`
 
 ## Questions or Issues?

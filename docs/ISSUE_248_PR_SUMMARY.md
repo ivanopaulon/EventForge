@@ -7,8 +7,8 @@ This PR completes the comprehensive verification and documentation of **Issue #2
 ## What Was Done
 
 ### 1. Comprehensive Code Analysis ✅
-- Analyzed 15 database entity files in `EventForge.Server/Data/Entities/Documents/`
-- Reviewed 29 service files in `EventForge.Server/Services/Documents/`
+- Analyzed 15 database entity files in `Prym.Server/Data/Entities/Documents/`
+- Reviewed 29 service files in `Prym.Server/Services/Documents/`
 - Examined 5 controller files with 64+ API endpoints
 - Verified 20+ DTO files
 

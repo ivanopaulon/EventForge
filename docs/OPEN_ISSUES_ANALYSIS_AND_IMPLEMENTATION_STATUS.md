@@ -1,4 +1,4 @@
-# 📊 Analisi Issue Aperte e Stato di Implementazione - EventForge
+# 📊 Analisi Issue Aperte e Stato di Implementazione - Prym
 
 > **Obiettivo**: Analizzare tutte le issue aperte (21), accorparle per tema e verificarne lo stato di implementazione, creando documentazione completa per lo stato di avanzamento.
 

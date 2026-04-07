@@ -2,7 +2,7 @@
 
 ## 📋 Panoramica
 
-Questo documento riassume l'analisi approfondita e l'ottimizzazione dei componenti nella cartella `EventForge.Client/Shared/Components`, completata il 27 ottobre 2025.
+Questo documento riassume l'analisi approfondita e l'ottimizzazione dei componenti nella cartella `Prym.Client/Shared/Components`, completata il 27 ottobre 2025.
 
 ## 🎯 Obiettivi
 
@@ -294,7 +294,7 @@ L'analisi ha prodotto risultati significativi:
 ✅ **Zero regressioni:** Build pulito e stabile
 ✅ **Documentazione:** Pattern chiaramente definiti per future ottimizzazioni
 
-Il progetto EventForge.Client ora ha una struttura `Shared/Components` più pulita, manutenibile e professionale, con opportunità chiaramente documentate per ottimizzazioni future quando necessario.
+Il progetto Prym.Client ora ha una struttura `Shared/Components` più pulita, manutenibile e professionale, con opportunità chiaramente documentate per ottimizzazioni future quando necessario.
 
 ---
 

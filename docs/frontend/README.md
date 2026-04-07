@@ -1,6 +1,6 @@
 # Frontend Development Documentation
 
-Documentazione completa per lo sviluppo frontend di EventForge con Blazor Server e MudBlazor.
+Documentazione completa per lo sviluppo frontend di Prym con Blazor Server e MudBlazor.
 
 ## 📋 Indice
 
@@ -37,7 +37,7 @@ Documentazione completa per lo sviluppo frontend di EventForge con Blazor Server
 ## 🎨 Design System
 
 ### Color Themes
-EventForge supporta 6 temi colore:
+Prym supporta 6 temi colore:
 - **Light Theme** - Tema chiaro moderno
 - **Dark Theme** - Tema scuro classico
 - **Warm Theme** - Tema caldo con tonalità terrose

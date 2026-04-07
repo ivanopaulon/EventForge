@@ -234,4 +234,4 @@ Per problemi o suggerimenti sulla procedura di inventario, contatta il team di s
 
 **Versione:** 1.0  
 **Data:** Gennaio 2025  
-**Autore:** EventForge Development Team
+**Autore:** Prym Development Team

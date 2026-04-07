@@ -92,8 +92,8 @@ await AssignLicenseToTenantAsync(defaultTenant.Id, superAdminLicense.Id, cancell
 ### Files Modified
 | File | Lines Changed | Description |
 |------|---------------|-------------|
-| `EventForge.Server/Services/Auth/BootstrapService.cs` | +156 -30 | Added SuperAdmin license creation |
-| `EventForge.Tests/Services/Auth/BootstrapServiceTests.cs` | +13 -8 | Updated tests for SuperAdmin license |
+| `Prym.Server/Services/Auth/BootstrapService.cs` | +156 -30 | Added SuperAdmin license creation |
+| `Prym.Tests/Services/Auth/BootstrapServiceTests.cs` | +13 -8 | Updated tests for SuperAdmin license |
 | `docs/PRODUCT_CREATION_FLOW.md` | +270 | Complete flow documentation (EN) |
 | `docs/RISOLUZIONE_PROBLEMA_LICENZA_IT.md` | +200 | Solution explanation (IT) |
 

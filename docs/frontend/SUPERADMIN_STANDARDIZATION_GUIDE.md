@@ -65,7 +65,7 @@ else
 ```razor
 @page "/superadmin/example-page"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.Client.Shared.Components
+@using Prym.Client.Shared.Components
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
@@ -234,10 +234,10 @@ After standardizing each page:
 
 ## Reference Files
 
-- **SuperAdminPageLayout.razor**: `/EventForge.Client/Shared/Components/SuperAdminPageLayout.razor`
-- **SuperAdminCollapsibleSection.razor**: `/EventForge.Client/Shared/Components/SuperAdminCollapsibleSection.razor`
-- **TenantManagement.razor**: `/EventForge.Client/Pages/SuperAdmin/TenantManagement.razor` (reference implementation)
-- **Configuration.razor**: `/EventForge.Client/Pages/SuperAdmin/Configuration.razor` (completed example)
+- **SuperAdminPageLayout.razor**: `/Prym.Client/Shared/Components/SuperAdminPageLayout.razor`
+- **SuperAdminCollapsibleSection.razor**: `/Prym.Client/Shared/Components/SuperAdminCollapsibleSection.razor`
+- **TenantManagement.razor**: `/Prym.Client/Pages/SuperAdmin/TenantManagement.razor` (reference implementation)
+- **Configuration.razor**: `/Prym.Client/Pages/SuperAdmin/Configuration.razor` (completed example)
 
 ## Next Steps
 

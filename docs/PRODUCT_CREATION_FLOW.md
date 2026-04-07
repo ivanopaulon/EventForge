@@ -1,7 +1,7 @@
 # Product Creation Flow Analysis
 
 ## Overview
-This document analyzes the complete product creation flow in EventForge, from the UI to the server-side code, including license validation.
+This document analyzes the complete product creation flow in Prym, from the UI to the server-side code, including license validation.
 
 ## Flow Diagram
 
@@ -24,8 +24,8 @@ Database (Entity Framework)
 ### 1. User Interface Layer
 
 **Files:**
-- `EventForge.Client/Pages/Management/CreateProduct.razor`
-- `EventForge.Client/Shared/Components/CreateProductDialog.razor`
+- `Prym.Client/Pages/Management/CreateProduct.razor`
+- `Prym.Client/Shared/Components/CreateProductDialog.razor`
 
 **Description:**
 The user can create a product through two ways:
@@ -47,7 +47,7 @@ The user can create a product through two ways:
 
 ### 2. Client-Side Service Layer
 
-**File:** `EventForge.Client/Services/ProductService.cs`
+**File:** `Prym.Client/Services/ProductService.cs`
 
 **Key Method:**
 ```csharp
@@ -69,7 +69,7 @@ public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto)
 
 ### 3. Server-Side Controller Layer
 
-**File:** `EventForge.Server/Controllers/ProductManagementController.cs`
+**File:** `Prym.Server/Controllers/ProductManagementController.cs`
 
 **Controller Attributes:**
 ```csharp
@@ -104,7 +104,7 @@ public async Task<ActionResult<ProductDto>> CreateProduct(
 
 ### 4. License Validation Layer
 
-**File:** `EventForge.Server/Filters/RequireLicenseFeatureAttribute.cs`
+**File:** `Prym.Server/Filters/RequireLicenseFeatureAttribute.cs`
 
 **License Check Flow:**
 
@@ -151,7 +151,7 @@ public async Task<ActionResult<ProductDto>> CreateProduct(
 
 ### 5. Server-Side Service Layer
 
-**File:** `EventForge.Server/Services/Products/ProductService.cs`
+**File:** `Prym.Server/Services/Products/ProductService.cs`
 
 **Key Method:**
 ```csharp

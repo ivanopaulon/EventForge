@@ -1,7 +1,7 @@
-# EventForge Multi-Theme System
+# Prym Multi-Theme System
 
 ## Overview
-EventForge features a comprehensive multi-theme system that provides 6 distinct color palettes to accommodate different user preferences, accessibility needs, and usage contexts. The system ensures consistent brand identity while offering variety and flexibility.
+Prym features a comprehensive multi-theme system that provides 6 distinct color palettes to accommodate different user preferences, accessibility needs, and usage contexts. The system ensures consistent brand identity while offering variety and flexibility.
 
 ## Available Themes
 
@@ -58,7 +58,7 @@ EventForge features a comprehensive multi-theme system that provides 6 distinct 
 ### Theme CSS Files
 Each theme is defined in its own CSS file using the `[data-theme="theme-name"]` selector:
 
-- **`theme-light.css`** - Default light theme with EventForge branding
+- **`theme-light.css`** - Default light theme with Prym branding
 - **`theme-dark.css`** - Dark theme for low-light environments  
 - **`theme-warm.css`** - Warm theme with orange/red/earthy tones
 - **`theme-cool.css`** - Cool theme with blue/green/turquoise colors
@@ -271,4 +271,4 @@ The new multi-theme system maintains backward compatibility with the previous li
 4. **Update documentation** and user guides
 5. **Train users** on new theme selection interface
 
-The multi-theme system represents a significant enhancement to EventForge's user experience, providing flexibility, accessibility, and visual appeal while maintaining the professional quality and brand consistency that users expect.
+The multi-theme system represents a significant enhancement to Prym's user experience, providing flexibility, accessibility, and visual appeal while maintaining the professional quality and brand consistency that users expect.

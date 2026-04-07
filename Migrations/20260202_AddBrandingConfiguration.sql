@@ -36,7 +36,7 @@ BEGIN
     INSERT INTO [dbo].[SystemConfigurations] 
         ([Id], [Key], [Value], [Category], [Description], [IsEncrypted], [RequiresRestart], [IsReadOnly], [DefaultValue], [Version], [IsActive], [CreatedBy], [CreatedAt])
     VALUES
-        (NEWID(), 'Branding:ApplicationName', 'EventForge', 'Branding', 'Application name displayed in UI', 0, 0, 0, 'EventForge', 1, 1, 'System', GETUTCDATE());
+        (NEWID(), 'Branding:ApplicationName', 'Prym', 'Branding', 'Application name displayed in UI', 0, 0, 0, 'Prym', 1, 1, 'System', GETUTCDATE());
     
     PRINT 'Added configuration: Branding:ApplicationName';
 END

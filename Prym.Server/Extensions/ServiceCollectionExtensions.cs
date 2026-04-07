@@ -1,0 +1,701 @@
+using Prym.Server.Auth;
+using Prym.Server.Services.Alerts;
+using Prym.Server.Services.Auth.Seeders;
+using Prym.Server.Services.Banks;
+using Prym.Server.Services.Business;
+using Prym.Server.Services.Calendar;
+using Prym.Server.Services.Chat;
+using Prym.Server.Services.CodeGeneration;
+using Prym.Server.Services.Common;
+using Prym.Server.Services.Dashboard;
+using Prym.Server.Services.DevTools;
+using Prym.Server.Services.Documents;
+using Prym.Server.Services.Events;
+using Prym.Server.Services.Export;
+using Prym.Server.Services.External;
+using Prym.Server.Services.FiscalPrinting;
+using Prym.Server.Services.Licensing;
+using Prym.Server.Services.Logging;
+using Prym.Server.Services.Logs;
+using Prym.Server.Services.Notifications;
+using Prym.Server.Services.PriceHistory;
+using Prym.Server.Services.PriceLists;
+using Prym.Server.Services.PriceLists.Strategies;
+using Prym.Server.Services.Products;
+using Prym.Server.Services.Promotions;
+using Prym.Server.Services.RetailCart;
+using Prym.Server.Services.Sales;
+using Prym.Server.Services.Station;
+using Prym.Server.Services.Store;
+using Prym.Server.Services.Teams;
+using Prym.Server.Services.UnitOfMeasures;
+using Prym.Server.Services.VatRates;
+using Prym.Server.Services.Warehouse;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.MSSqlServer;
+using System.Text;
+
+public static class ServiceCollectionExtensions
+{
+    /// <summary>
+    /// Configura Serilog con fallback su file se il database non � disponibile.
+    /// </summary>
+    public static void AddCustomSerilogLogging(this WebApplicationBuilder builder)
+    {
+        var filePath = builder.Configuration["Serilog:FilePath"] ?? "Logs/log-.log";
+        var fileRetention = builder.Configuration.GetValue<int?>("Serilog:FileRetention") ?? 7;
+        var logDbConnectionString = builder.Configuration.GetConnectionString("LogDb");
+
+        // Disable console logging by default (even in Development) for cleaner output
+        // Console logging can be explicitly enabled via configuration: Serilog:EnableConsole = true
+        var isConsoleLoggingEnabled = builder.Configuration.GetValue<bool>("Serilog:EnableConsole", false);
+        var consoleStatus = isConsoleLoggingEnabled ? "enabled" : "disabled";
+
+        // Configure column options for enriched properties
+        var columnOptions = new ColumnOptions();
+
+        // Add custom columns for client log enrichment
+        columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<SqlColumn>
+        {
+            new SqlColumn { ColumnName = "Source", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "Page", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "UserAgent", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "ClientTimestamp", DataType = System.Data.SqlDbType.DateTimeOffset, AllowNull = true },
+            new SqlColumn { ColumnName = "CorrelationId", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "Category", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+            new SqlColumn { ColumnName = "UserId", DataType = System.Data.SqlDbType.UniqueIdentifier, AllowNull = true },
+            new SqlColumn { ColumnName = "UserName", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
+            new SqlColumn { ColumnName = "RemoteIpAddress", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
+            new SqlColumn { ColumnName = "RequestPath", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
+            new SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar, DataLength = -1, AllowNull = true }
+        };
+
+        var loggerConfiguration = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Error)
+            // Suppress "Now listening on", "Application started", "Hosting environment",
+            // "Content root path" — pure framework startup noise with no operational value.
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Warning)
+            // Suppress verbose EF Core infrastructure and command logs (CommandExecuted, context
+            // initialisation messages, etc.). Warnings and errors (e.g. slow-query warnings,
+            // migration errors, connection failures) are still emitted.
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .Enrich.FromLogContext()  // Enable capturing scope properties
+            .WriteTo.File(
+                path: filePath,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: fileRetention,
+                restrictedToMinimumLevel: LogEventLevel.Information,
+                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+        // Console logging disabled by default for cleaner output
+        // Enable via configuration setting: Serilog:EnableConsole = true
+        if (isConsoleLoggingEnabled)
+        {
+            loggerConfiguration.WriteTo.Console(
+                restrictedToMinimumLevel: LogEventLevel.Information,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+        }
+
+        // Add SQL Server sink if connection string is available
+        // Test connection first before adding the sink to avoid partial configuration
+        if (!string.IsNullOrEmpty(logDbConnectionString))
+        {
+            try
+            {
+                // Test the connection first
+                using (var connection = new Microsoft.Data.SqlClient.SqlConnection(logDbConnectionString))
+                {
+                    connection.Open();
+                }
+
+                // Connection successful - add SQL Server sink
+                _ = loggerConfiguration.WriteTo.MSSqlServer(
+                    connectionString: logDbConnectionString,
+                    sinkOptions: new MSSqlServerSinkOptions
+                    {
+                        TableName = "Logs",
+                        AutoCreateSqlTable = true
+                    },
+                    restrictedToMinimumLevel: LogEventLevel.Information,
+                    columnOptions: columnOptions);
+
+                Log.Logger = loggerConfiguration.CreateLogger();
+                Log.Information("Serilog configurato per SQL Server con enrichment e file logging. Console logging: {ConsoleStatus}.", consoleStatus);
+            }
+            catch (Exception ex)
+            {
+                // If SQL Server connection fails, fall back to file logging only (console in Development)
+                // Don't add SQL Server sink to configuration
+                Log.Logger = loggerConfiguration.CreateLogger();
+                Log.Warning(ex, "Impossibile connettersi al database per il logging. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
+            }
+        }
+        else
+        {
+            Log.Logger = loggerConfiguration.CreateLogger();
+            Log.Warning("LogDb connection string non trovato. SQL Server logging disabilitato. Utilizzo file logging. Console logging: {ConsoleStatus}.", consoleStatus);
+        }
+
+        _ = builder.Host.UseSerilog();
+    }
+
+    /// <summary>
+    /// Configura HttpClient usando i parametri da appsettings.json con resilienza Polly.
+    /// </summary>
+    public static void AddConfiguredHttpClient(this IServiceCollection services, IConfiguration configuration)
+    {
+        var httpClientBase = configuration["HttpClient:BaseAddress"] ?? "https://localhost";
+        var httpClientPort = configuration.GetValue<int>("HttpClient:Port");
+        var httpClientUri = new Uri($"{httpClientBase}:{httpClientPort}/");
+
+        // Configure resilient HTTP client
+        _ = services.AddHttpClient("Default", client =>
+        {
+            client.BaseAddress = httpClientUri;
+            client.Timeout = TimeSpan.FromSeconds(30); // Explicit timeout
+        });
+
+        _ = services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Default"));
+
+        // Configure simple VIES VAT validation service
+        _ = services.AddHttpClient<IViesValidationService, ViesValidationService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
+        // Configure VAT lookup service using VIES
+        _ = services.AddScoped<IVatLookupService, VatLookupService>();
+
+        // Named client used by AgentMonitorService to probe the co-located UpdateAgent.
+        // Credentials are read from Agent:Username / Agent:Password and sent as HTTP Basic Auth.
+        _ = services.AddHttpClient("AgentClient", (sp, client) =>
+        {
+            var cfg = sp.GetRequiredService<IConfiguration>();
+            client.Timeout = TimeSpan.FromSeconds(3);
+
+            var username = cfg["Agent:Username"] ?? string.Empty;
+            var password  = cfg["Agent:Password"]  ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+            {
+                var encoded = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", encoded);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Configura il DbContext per SQL Server.
+    /// </summary>
+    public static void AddConfiguredDbContext(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Register HTTP context accessor first for audit tracking
+        _ = services.AddHttpContextAccessor();
+
+        // Register performance monitoring
+        _ = services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+        _ = services.AddScoped<QueryPerformanceInterceptor>();
+
+        try
+        {
+            // Try DefaultConnection first (standard key), fallback to SqlServer (legacy)
+            var defaultConnection = configuration.GetConnectionString("DefaultConnection");
+            var sqlServerConnection = configuration.GetConnectionString("SqlServer");
+
+            var connectionString = defaultConnection ?? sqlServerConnection;
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                Log.Error("No connection string found - expected 'DefaultConnection' or 'SqlServer'");
+                throw new InvalidOperationException(
+                    "Database connection string not found. Expected 'DefaultConnection' or 'SqlServer' in ConnectionStrings section of appsettings.json");
+            }
+
+            _ = services.AddDbContext<PrymDbContext>((serviceProvider, options) =>
+            {
+                _ = options.UseSqlServer(connectionString, sqlOptions =>
+                    {
+                        // Configure split query behavior to avoid cartesian explosion with multiple includes
+                        // This prevents EF Core warnings about loading related collections
+                        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                    })
+                    .AddInterceptors(serviceProvider.GetRequiredService<QueryPerformanceInterceptor>());
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error during DbContext configuration");
+            throw;
+        }
+
+        // Register audit services
+        _ = services.AddScoped<IAuditLogService, AuditLogService>();
+
+        // Register application log services (Logs namespace - Serilog-based service)
+        _ = services.AddScoped<Prym.Server.Services.Logs.IApplicationLogService, Prym.Server.Services.Logs.ApplicationLogService>();
+
+        // Register log sanitization service for public log viewing
+        _ = services.AddScoped<ILogSanitizationService, LogSanitizationService>();
+
+        // Register unified log management service
+        _ = services.AddScoped<ILogManagementService, LogManagementService>();
+
+        // Register log ingestion services for resilient client log processing
+        _ = services.AddSingleton<LogIngestionService>();
+        _ = services.AddSingleton<ILogIngestionService>(sp => sp.GetRequiredService<LogIngestionService>());
+        _ = services.AddHostedService<LogIngestionBackgroundService>();
+
+        // Register user services
+        _ = services.AddScoped<Prym.Server.Services.Users.IUserService, Prym.Server.Services.Users.UserService>();
+
+        // Register notification and chat services - Step 3 SignalR Implementation
+        _ = services.AddScoped<INotificationService, NotificationService>();
+        _ = services.AddScoped<IChatService, ChatService>();
+        _ = services.AddSingleton<Prym.Server.Services.Chat.IOnlineUserTracker, Prym.Server.Services.Chat.OnlineUserTracker>();
+
+        // Register team services
+        _ = services.AddScoped<ITeamService, TeamService>();
+
+        // Register event services
+        _ = services.AddScoped<IEventService, EventService>();
+        _ = services.AddScoped<ICalendarReminderService, CalendarReminderService>();
+
+        // Register bank services
+        _ = services.AddScoped<IBankService, BankService>();
+
+        // Register unit of measure services
+        _ = services.AddScoped<IUMService, UMService>();
+        _ = services.AddScoped<IUnitConversionService, UnitConversionService>();
+
+        // Register VAT rate services
+        _ = services.AddScoped<IVatRateService, VatRateService>();
+        _ = services.AddScoped<IVatNatureService, VatNatureService>();
+
+        // Register fiscal printing services
+        _ = services.AddScoped<IFiscalMappingService, FiscalMappingService>();
+        _ = services.AddScoped<IFiscalPrinterService, CustomFiscalPrinterService>();
+        _ = services.AddSingleton<FiscalPrinterStatusCache>();
+        _ = services.AddHostedService<Prym.Server.HostedServices.FiscalPrinterMonitorService>();
+        _ = services.AddHostedService<Prym.Server.HostedServices.DailyClosureReminderService>();
+
+        // Register code generation services
+        _ = services.AddScoped<IDailyCodeGenerator, DailySequentialCodeGenerator>();
+
+        // Register product services
+        _ = services.AddScoped<IProductService, ProductService>();
+        _ = services.AddScoped<IBrandService, BrandService>();
+        _ = services.AddScoped<IModelService, ModelService>();
+
+        _ = services.AddScoped<ISupplierProductPriceHistoryService, SupplierProductPriceHistoryService>();
+        _ = services.AddScoped<ISupplierProductBulkService, SupplierProductBulkService>();
+
+        _ = services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
+
+        _ = services.AddScoped<ISupplierProductCsvImportService, SupplierProductCsvImportService>();
+
+        // Register DevTools services
+        _ = services.AddSingleton<IProductGeneratorService, ProductGeneratorService>();
+
+        // Register alert services
+        _ = services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
+
+
+
+        // Register price list services (refactored into specialized services)
+        _ = services.AddScoped<IPriceListService, PriceListService>();
+        _ = services.AddScoped<IPriceListGenerationService, PriceListGenerationService>();
+        _ = services.AddScoped<IPriceCalculationService, PriceCalculationService>();
+        _ = services.AddScoped<IPriceListBusinessPartyService, PriceListBusinessPartyService>();
+        _ = services.AddScoped<IPriceListBulkOperationsService, PriceListBulkOperationsService>();
+        _ = services.AddScoped<IPriceResolutionService, PriceResolutionService>();
+        _ = services.AddScoped<IPriceListValidationService, PriceListValidationService>();
+
+        // Register price precedence strategy
+        _ = services.AddScoped<IPricePrecedenceStrategy, DefaultPricePrecedenceStrategy>();
+
+        // Register payment term services
+        _ = services.AddScoped<IPaymentTermService, PaymentTermService>();
+
+        // Register sales services
+        _ = services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+        _ = services.AddScoped<ISaleSessionService, SaleSessionService>();
+        _ = services.AddScoped<INoteFlagService, NoteFlagService>();
+        _ = services.AddScoped<ITableManagementService, TableManagementService>();
+
+        // Register store user services
+        _ = services.AddScoped<IStoreUserService, StoreUserService>();
+
+        // Register station services
+        _ = services.AddScoped<IStationService, StationService>();
+
+        // Register business party services
+        _ = services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+        _ = services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
+
+        // Register export services
+        _ = services.AddScoped<IExportService, ExportService>();
+
+        // Register common services
+        _ = services.AddScoped<IAddressService, AddressService>();
+        _ = services.AddScoped<IContactService, ContactService>();
+        _ = services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
+        _ = services.AddScoped<IReferenceService, ReferenceService>();
+
+        // Register warehouse services
+        _ = services.AddScoped<IStorageFacilityService, StorageFacilityService>();
+        _ = services.AddScoped<IStorageLocationService, StorageLocationService>();
+        _ = services.AddScoped<ILotService, LotService>();
+        _ = services.AddScoped<IStockService, StockService>();
+        _ = services.AddScoped<ISerialService, SerialService>();
+        _ = services.AddScoped<IStockMovementService, StockMovementService>();
+        _ = services.AddScoped<IStockAlertService, StockAlertService>();
+        _ = services.AddScoped<ITransferOrderService, TransferOrderService>();
+        _ = services.AddScoped<IInventoryBulkSeedService, InventoryBulkSeedService>();
+        _ = services.AddScoped<IInventoryDiagnosticService, InventoryDiagnosticService>();
+        _ = services.AddScoped<IStockReconciliationService, StockReconciliationService>();
+
+        // Register promotion services
+        _ = services.AddScoped<IPromotionService, PromotionService>();
+
+        // Register analytics services
+        _ = services.AddScoped<Prym.Server.Services.Analytics.IAnalyticsService, Prym.Server.Services.Analytics.AnalyticsService>();
+
+        // Register monitoring services (Sprint 4 — Fase 6 Optimization)
+        _ = services.AddScoped<Prym.Server.Services.Monitoring.IMonitoringService, Prym.Server.Services.Monitoring.MonitoringService>();
+
+        // Register retail cart session services
+        _ = services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
+
+        // Register document services  
+        _ = services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+        _ = services.AddScoped<IDocumentCounterService, DocumentCounterService>();
+        _ = services.AddScoped<IDocumentHeaderService, DocumentHeaderService>();
+        _ = services.AddScoped<IDocumentAttachmentService, DocumentAttachmentService>();
+        _ = services.AddScoped<IDocumentCommentService, DocumentCommentService>();
+        _ = services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
+        _ = services.AddScoped<IDocumentWorkflowService, DocumentWorkflowService>();
+        _ = services.AddScoped<IDocumentRecurrenceService, DocumentRecurrenceService>();
+        _ = services.AddScoped<IDocumentStatusService, DocumentStatusService>();
+
+        // Register document analytics and supporting services
+        _ = services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
+        _ = services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        _ = services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
+
+        // Register document export and management services
+        _ = services.AddScoped<IDocumentExportService, DocumentExportService>();
+        _ = services.AddScoped<IDocumentRetentionService, DocumentRetentionService>();
+        _ = services.AddScoped<IDocumentAccessLogService, DocumentAccessLogService>();
+
+        // Register Excel export service
+        _ = services.AddScoped<IExcelExportService, ExcelExportService>();
+
+        // Register document facade for unified API access
+        _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
+
+        // Register warehouse facade for unified API access
+        _ = services.AddScoped<IWarehouseFacade, WarehouseFacade>();
+
+        // Register dashboard configuration services
+        _ = services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
+
+        // TODO: Complete implementation for:
+        // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
+        // - Document reminders, privacy, integrations services
+        // - PromotionRule, PromotionRuleProduct services (create implementations)
+    }
+
+    /// <summary>
+    /// Configures authentication services with JWT bearer token support.
+    /// </summary>
+    public static void AddAuthentication(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        // Register authentication services
+        _ = services.AddScoped<IPasswordService, PasswordService>();
+        _ = services.AddScoped<IJwtTokenService, JwtTokenService>();
+        _ = services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+        // Register bootstrap and seeder services
+        _ = services.AddScoped<IBootstrapService, BootstrapService>();
+        _ = services.AddScoped<IUserSeeder, UserSeeder>();
+        _ = services.AddScoped<ITenantSeeder, TenantSeeder>();
+        _ = services.AddScoped<ILicenseSeeder, LicenseSeeder>();
+        _ = services.AddScoped<IEntitySeeder, EntitySeeder>();
+        _ = services.AddScoped<IProductSeeder, ProductSeeder>();
+        _ = services.AddScoped<IStoreSeeder, StoreSeeder>();
+
+        // Register tenant services
+        _ = services.AddScoped<ITenantContext, TenantContext>();
+        _ = services.AddScoped<ITenantService, TenantService>();
+        _ = services.AddScoped<ITenantUserManagementService, TenantUserManagementService>();
+
+        // Register SuperAdmin services
+        _ = services.AddScoped<IConfigurationService, ConfigurationService>();
+        _ = services.AddScoped<IBackupService, BackupService>();
+
+        // Register licensing services
+        _ = services.AddScoped<ILicenseService, LicenseService>();
+
+        // Register barcode services
+        _ = services.AddScoped<Prym.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
+
+        // Register hosted service for database migration and bootstrap
+        _ = services.AddHostedService<BootstrapHostedService>();
+
+        // Configure session and distributed cache for tenant context
+        // Use Redis in production environment, memory cache in development
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString) && !environment.IsDevelopment())
+        {
+            // Production: Use Redis for distributed caching and sessions
+            _ = services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "Prym";
+            });
+        }
+        else
+        {
+            // Development or Redis not configured: Use in-memory distributed cache
+            _ = services.AddDistributedMemoryCache();
+        }
+
+        _ = services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromHours(4); // Aligned with JWT 240 minutes
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.Name = "Prym.Session";
+        });
+
+        // Get JWT configuration with environment variable support
+        var jwtSection = configuration.GetSection("Authentication:Jwt");
+        var jwtOptions = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
+
+        // Try to get secret key from environment variable first, then fall back to configuration
+        var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? jwtOptions.SecretKey;
+
+        if (string.IsNullOrEmpty(secretKey) || secretKey == "REPLACE_IN_PRODUCTION_WITH_ENVIRONMENT_VARIABLE")
+        {
+            throw new InvalidOperationException(
+                "JWT SecretKey must be configured. Set JWT_SECRET_KEY environment variable or Authentication:Jwt:SecretKey in configuration. " +
+                "For development, you can use a test key, but for production, use a secure randomly generated key of at least 32 characters.");
+        }
+
+        jwtOptions.SecretKey = secretKey;
+
+        var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
+
+        // Configure JWT authentication
+        // DefaultChallengeScheme = Mixed so that challenges route through
+        // ForwardChallengeSelector: Cookie redirect for /Dashboard pages,
+        // JWT 401 for /api endpoints.
+        _ = services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = AuthenticationSchemes.Mixed;
+            options.DefaultChallengeScheme = AuthenticationSchemes.Mixed;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false; // Set to true in production
+            options.SaveToken = true;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtOptions.Issuer,
+                ValidAudience = jwtOptions.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ClockSkew = TimeSpan.FromMinutes(jwtOptions.ClockSkewMinutes)
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    // Read token from query parameter for SignalR connections
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        (path.StartsWithSegments("/hubs/notifications") ||
+                         path.StartsWithSegments("/hubs/chat") ||
+                         path.StartsWithSegments("/hubs/audit-log")))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    Log.Warning("JWT authentication failed: {Error}", context.Exception?.Message);
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    return Task.CompletedTask;
+                }
+            };
+        })
+        .AddCookie(AuthenticationSchemes.ServerCookie, options =>
+        {
+            options.Cookie.Name = "serverToken";
+            options.LoginPath = "/ServerAuth/Login";
+            options.AccessDeniedPath = "/ServerAuth/Login";
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = true;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+
+            options.Events = new CookieAuthenticationEvents
+            {
+                OnValidatePrincipal = context =>
+                {
+                    // Validate the cookie and claims
+                    if (context.Principal?.Identity?.IsAuthenticated != true)
+                    {
+                        context.RejectPrincipal();
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        })
+        .AddPolicyScheme(AuthenticationSchemes.Mixed, "JWT or Cookie", options =>
+        {
+            // Route authentication/challenge/forbid to Cookie for browser-facing
+            // server pages, and to JWT for all API/SignalR endpoints.
+            static string SelectScheme(HttpContext ctx)
+            {
+                if (ctx.Request.Path.StartsWithSegments("/Dashboard") ||
+                    ctx.Request.Path.StartsWithSegments("/ServerAuth") ||
+                    ctx.Request.Path.StartsWithSegments("/Setup"))
+                    return AuthenticationSchemes.ServerCookie;
+
+                return JwtBearerDefaults.AuthenticationScheme;
+            }
+
+            options.ForwardDefaultSelector = SelectScheme;
+        });
+    }
+
+    /// <summary>
+    /// Configures authorization services with policy-based authorization.
+    /// </summary>
+    public static void AddAuthorization(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Authorization handlers that depend on scoped services (DbContext, TenantContext) 
+        // MUST be registered as Scoped, not Singleton. The handler will be instantiated per request.
+        _ = services.AddScoped<IAuthorizationHandler, Prym.Server.Auth.TenantAdminAuthorizationHandler>();
+
+        _ = services.AddAuthorizationBuilder()
+            .AddPolicy("RequireUser", policy =>
+                policy.RequireAuthenticatedUser())
+            .AddPolicy("RequireAdmin", policy =>
+                policy.RequireRole("Admin", "SuperAdmin")) // SuperAdmin can also access Admin content
+            .AddPolicy("RequireManager", policy =>
+                policy.RequireRole("Admin", "Manager", "SuperAdmin")) // SuperAdmin can access Manager content too
+            .AddPolicy("RequireStoreConfig", policy =>
+                policy.RequireRole("Admin", "Manager", "StoreManager", "SuperAdmin"))
+            .AddPolicy("RequireSuperAdmin", policy =>
+                policy.RequireRole("SuperAdmin"))
+            .AddPolicy("CanManageUsers", policy =>
+                policy.RequireClaim("permission", "Users.Users.Create", "Users.Users.Update", "Users.Users.Delete"))
+            .AddPolicy("CanViewReports", policy =>
+                policy.RequireClaim("permission", "Reports.Reports.Read"))
+            .AddPolicy("CanManageEvents", policy =>
+                policy.RequireClaim("permission", "Events.Events.Create", "Events.Events.Update", "Events.Events.Delete"))
+            .AddPolicy("AdminOrSuperAdmin", policy =>
+                policy.RequireRole("Admin", "SuperAdmin")) // Explicit policy for Admin or SuperAdmin access
+            .AddPolicy("RequireTenantAdmin", policy =>
+                policy.Requirements.Add(new Prym.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.TenantAdmin)))
+            .AddPolicy("RequireTenantFullAccess", policy =>
+                policy.Requirements.Add(new Prym.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.FullAccess)));
+    }
+
+    /// <summary>
+    /// Configures ASP.NET Core health checks for monitoring application health.
+    /// Optimized: Health checks don't probe on registration, only when endpoint is called.
+    /// </summary>
+    public static void AddHealthChecks(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    {
+        // OPTIMIZATION: Health checks are lazy - they don't probe during registration
+        // They only execute when /health endpoint is called
+        _ = services.AddHealthChecks()
+            .AddDbContextCheck<PrymDbContext>("database", tags: new[] { "ready" })
+            .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" });
+
+        // Add SQL Server health check if connection string is available
+        var connectionString = configuration.GetConnectionString("SqlServer");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            _ = services.AddHealthChecks()
+                .AddSqlServer(connectionString, tags: new[] { "ready" });
+        }
+
+        // Add Redis health check if connection string is available (production)
+        var redisConnectionString = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnectionString) && !environment.IsDevelopment())
+        {
+            _ = services.AddHealthChecks()
+                .AddRedis(redisConnectionString, "redis", tags: new[] { "ready" });
+        }
+    }
+
+    /// <summary>
+    /// Applica automaticamente le migrazioni e crea il database se necessario.
+    /// Da chiamare all'avvio, dopo la build dell'app.
+    /// </summary>
+    public static void EnsureDatabaseMigrated(this IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PrymDbContext>();
+        try
+        {
+            if (!db.Database.CanConnect())
+            {
+                Log.Error("Impossibile connettersi al database. Migrazione non eseguita.");
+                return;
+            }
+
+            // Check for pending migrations before applying
+            var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+
+            if (!pendingMigrations.Any())
+            {
+                Log.Information("Database è già aggiornato. Nessuna migrazione da applicare.");
+                return;
+            }
+
+            Log.Information("Trovate {Count} migrazioni pendenti: {Migrations}",
+                pendingMigrations.Count, string.Join(", ", pendingMigrations));
+
+            db.Database.Migrate();
+
+            Log.Information("Migrazioni applicate correttamente al database: {AppliedMigrations}",
+                string.Join(", ", pendingMigrations));
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Errore durante l'applicazione delle migrazioni al database.");
+            throw;
+        }
+    }
+}

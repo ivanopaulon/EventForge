@@ -1,6 +1,6 @@
-# License Management System - EventForge
+# License Management System - Prym
 
-Questo documento descrive il sistema di gestione delle licenze implementato per EventForge.
+Questo documento descrive il sistema di gestione delle licenze implementato per Prym.
 
 ## Panoramica
 

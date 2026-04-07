@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Builds an EventForge update package (zip) ready for upload to the UpdateHub.
+    Builds an Prym update package (zip) ready for upload to the UpdateHub.
 
 .DESCRIPTION
     This script:
@@ -114,7 +114,7 @@ if (![string]::IsNullOrWhiteSpace($IncomingPath)) {
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Magenta
-Write-Host "  EventForge Package Builder - Component: $Component" -ForegroundColor Magenta
+Write-Host "  Prym Package Builder - Component: $Component" -ForegroundColor Magenta
 Write-Host "  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 
@@ -123,7 +123,7 @@ Write-Host "================================================================" -F
 # ──────────────────────────────────────────────────────────────────────────────
 Write-Step "STEP 1 - Lettura versione (nbgv)"
 
-$ProjectDir = Join-Path $RepoRoot "EventForge.$Component"
+$ProjectDir = Join-Path $RepoRoot "Prym.$Component"
 if (!(Test-Path $ProjectDir)) {
     Write-FAIL "Cartella progetto non trovata: $ProjectDir"
 }

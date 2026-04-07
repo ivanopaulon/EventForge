@@ -51,7 +51,7 @@ L'**Epic #277 (Wizard Multi-step Documenti e UI Vendita)** è stata completata a
 
 ### 2. Integrazione API Reale - ProductSearch Component ✅
 
-**File**: `EventForge.Client/Shared/Components/Sales/ProductSearch.razor`
+**File**: `Prym.Client/Shared/Components/Sales/ProductSearch.razor`
 
 #### Modifiche Implementate:
 
@@ -77,7 +77,7 @@ private async Task PerformSearch()
 ```
 
 **Benefici**:
-- ✅ Utilizza il vero `EventForge.DTOs.Products.ProductDto`
+- ✅ Utilizza il vero `Prym.DTOs.Products.ProductDto`
 - ✅ Ricerca prodotti dal database reale
 - ✅ Supporto completo per filtraggio
 - ✅ Error handling robusto
@@ -87,7 +87,7 @@ private async Task PerformSearch()
 
 ### 3. Aggiornamento SalesWizard per API Reale ✅
 
-**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
+**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
 
 #### Modifiche nel HandleProductSelected:
 
@@ -101,7 +101,7 @@ private void HandleProductSelected(ProductSearch.ProductDto product)
 
 **After**:
 ```csharp
-private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
+private void HandleProductSelected(Prym.DTOs.Products.ProductDto product)
 {
     // Validazione prezzo
     if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
@@ -124,7 +124,7 @@ private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
 
 ### 4. Completamento ProcessSaleAsync ✅
 
-**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
+**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
 
 #### Implementazione Completa API Integration:
 
@@ -178,7 +178,7 @@ private async Task ProcessSaleAsync()
 
 ### 5. Fix Build Error - ModelDrawer ✅
 
-**File**: `EventForge.Client/Shared/Components/ModelDrawer.razor`
+**File**: `Prym.Client/Shared/Components/ModelDrawer.razor`
 
 **Issue**: MudBlazor SearchFunc signature incompatibile
 
@@ -376,13 +376,13 @@ private async Task<IEnumerable<BrandDto>> SearchBrands(string value, Cancellatio
 
 #### 1. Setup Database
 ```bash
-cd EventForge.Server
+cd Prym.Server
 dotnet ef database update
 ```
 
 #### 2. Avvia Applicazione
 ```bash
-dotnet run --project EventForge.Server
+dotnet run --project Prym.Server
 ```
 
 #### 3. Login
@@ -620,14 +620,14 @@ La richiesta **"Riprendi per mano la epic #277 e le issue collegate, verifichiam
 
 ### Issue Tracking
 
-- Epic: https://github.com/ivanopaulon/EventForge/issues/277
+- Epic: https://github.com/ivanopaulon/Prym/issues/277
 - Branch: `copilot/fix-3c9bdfda-47e2-416d-a1c1-4fa195c53e88`
 
 ### Testing
 
 Per testare il sistema completo:
 ```bash
-dotnet run --project EventForge.Server
+dotnet run --project Prym.Server
 # Navigate to http://localhost:5000/sales/wizard
 ```
 

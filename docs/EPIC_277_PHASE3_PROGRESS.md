@@ -45,7 +45,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 2. SalesWizard.razor - Wizard Completo (450+ righe) ✅
 
-**Percorso**: `/EventForge.Client/Pages/Sales/SalesWizard.razor`  
+**Percorso**: `/Prym.Client/Pages/Sales/SalesWizard.razor`  
 **Route**: `/sales/wizard`
 
 #### Features Implementate:
@@ -108,7 +108,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 3. CartSummary Component (190 righe) ✅
 
-**Percorso**: `/EventForge.Client/Shared/Components/Sales/CartSummary.razor`
+**Percorso**: `/Prym.Client/Shared/Components/Sales/CartSummary.razor`
 
 #### Features Implementate:
 - ✅ Lista items scrollabile con dettagli prodotto
@@ -138,7 +138,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 4. ProductSearch Component (240+ righe) ✅
 
-**Percorso**: `/EventForge.Client/Shared/Components/Sales/ProductSearch.razor`
+**Percorso**: `/Prym.Client/Shared/Components/Sales/ProductSearch.razor`
 
 #### Features Implementate:
 - ✅ Input search con debounce (300ms)
@@ -178,7 +178,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 5. PaymentPanel Component (200 righe) ✅
 
-**Percorso**: `/EventForge.Client/Shared/Components/Sales/PaymentPanel.razor`
+**Percorso**: `/Prym.Client/Shared/Components/Sales/PaymentPanel.razor`
 
 #### Features Implementate:
 - ✅ Summary totale/pagato/resto con visual feedback
@@ -213,7 +213,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 6. CSS Sales Styling (180 righe) ✅
 
-**Percorso**: `/EventForge.Client/wwwroot/css/sales.css`
+**Percorso**: `/Prym.Client/wwwroot/css/sales.css`
 
 #### Stili Implementati:
 
@@ -247,7 +247,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 
 ### 7. TableManagementStep Component (150 righe) ✅ NUOVO
 
-**Percorso**: `/EventForge.Client/Pages/Sales/TableManagementStep.razor`
+**Percorso**: `/Prym.Client/Pages/Sales/TableManagementStep.razor`
 
 #### Features Implementate:
 - ✅ Componente condizionale per BAR/RESTAURANT
@@ -281,7 +281,7 @@ L'implementazione della **Fase 3 (UI Components)** dell'Epic #277 ha raggiunto u
 ### 8. Directory Structure ✅
 
 ```
-EventForge.Client/
+Prym.Client/
 ├── Pages/
 │   └── Sales/
 │       └── SalesWizard.razor ✅ (nuovo)
@@ -294,7 +294,7 @@ EventForge.Client/
 ├── wwwroot/
 │   └── css/
 │       └── sales.css ✅ (nuovo)
-└── _Imports.razor ✅ (aggiornato con EventForge.DTOs.Sales)
+└── _Imports.razor ✅ (aggiornato con Prym.DTOs.Sales)
 
 docs/
 └── EPIC_277_MASTER_DOCUMENTATION.md ✅ (nuovo)
@@ -304,14 +304,14 @@ docs/
 
 ### 8. Global Configuration ✅
 
-**File**: `EventForge.Client/_Imports.razor`
+**File**: `Prym.Client/_Imports.razor`
 
 Aggiunto import per Sales DTOs:
 ```csharp
-@using EventForge.DTOs.Sales
+@using Prym.DTOs.Sales
 ```
 
-**File**: `EventForge.Client/wwwroot/index.html`
+**File**: `Prym.Client/wwwroot/index.html`
 
 Aggiunto link CSS sales:
 ```html

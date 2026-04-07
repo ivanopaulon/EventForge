@@ -159,12 +159,12 @@ Ho creato `docs/PRODUCT_CREATION_FLOW.md` che include:
 
 ## File Modificati
 
-1. **EventForge.Server/Services/Auth/BootstrapService.cs**
+1. **Prym.Server/Services/Auth/BootstrapService.cs**
    - Sostituito `CreateBasicLicenseAsync` con `CreateSuperAdminLicenseAsync`
    - Aggiunto `CreateSuperAdminLicenseFeaturesAsync`
    - Aggiornati log di bootstrap
 
-2. **EventForge.Tests/Services/Auth/BootstrapServiceTests.cs**
+2. **Prym.Tests/Services/Auth/BootstrapServiceTests.cs**
    - Aggiornati test per verificare licenza SuperAdmin
    - Aggiunta verifica funzionalità ProductManagement
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the breaking changes introduced by the EventForge controller refactoring and provides a migration guide for clients using the API.
+This document outlines the breaking changes introduced by the Prym controller refactoring and provides a migration guide for clients using the API.
 
 ## Controller Consolidation
 

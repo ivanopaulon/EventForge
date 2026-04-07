@@ -1,0 +1,129 @@
+@namespace Prym.Client
+
+@using Prym.Client.Layout
+@using Prym.Client.Shared.Components
+@using Prym.Client.Shared.Components.Drawers
+
+
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IServiceProvider ServiceProvider
+@inject IAuthenticationDialogService AuthenticationDialogService
+@implements IDisposable
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<GlobalErrorHandler />
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @* Show empty content - LoginDialog will be shown immediately via OnAfterRenderAsync *@
+                    @if (!_loginDialogShown)
+                    {
+                        <div></div>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+                    <MudPaper Class="pa-4" Elevation="4">
+                        <MudGrid Justify="Justify.Center">
+                            <MudItem xs="12">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="Icons.Material.Filled.QuestionMark" Color="Color.Warning" Size="Size.Medium" Class="mb-4" Style="font-size: 48px;" />
+                                    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Page Not Found</MudText>
+                                    <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                                        Sorry, there's nothing at this address.
+                                    </MudText>
+                                    <MudButton Variant="Variant.Filled" 
+                                               Color="Color.Primary" 
+                                               StartIcon="Icons.Material.Filled.Home"
+                                               OnClick="@ShowLoginDialog">
+                                        Return to Login
+                                    </MudButton>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudContainer>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    private bool _loginDialogShown = false;
+
+    protected override Task OnInitializedAsync()
+    {
+        // Set up global error handler service provider
+        JavaScriptErrorHelper.ServiceProvider = ServiceProvider;
+        
+        // NOTE: I18N REMOVED - TranslationService initialization removed to support minimal home
+        // without internationalization dependencies
+        
+        // Subscribe to authentication state changes for protected routes
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        // Show login dialog immediately if not authenticated and dialog hasn't been shown yet
+        if (!_loginDialogShown)
+        {
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            var currentUri = NavigationManager.Uri;
+            
+            // Show login dialog if not authenticated and not already on login page
+            if (!isAuthenticated && !currentUri.Contains("/login"))
+            {
+                _loginDialogShown = true;
+                await ShowLoginDialog();
+            }
+        }
+    }
+
+    private async void OnAuthenticationStateChanged()
+    {
+        // Authentication state management for protected routes
+        // All pages except login require authentication
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        var currentUri = NavigationManager.Uri;
+        
+        // Show login dialog if not authenticated and not already on login page
+        // This ensures all pages except login require authentication
+        if (!isAuthenticated && !currentUri.Contains("/login") && !_loginDialogShown)
+        {
+            _loginDialogShown = true;
+            await InvokeAsync(ShowLoginDialog);
+        }
+        
+        Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
+    }
+
+    private async Task ShowLoginDialog()
+    {
+        var success = await AuthenticationDialogService.ShowLoginDialogAsync();
+        _loginDialogShown = false;
+        if (success)
+            StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}

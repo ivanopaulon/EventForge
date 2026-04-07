@@ -1,4 +1,4 @@
-# EventForge - Correzione Bootstrap SuperAdmin
+# Prym - Correzione Bootstrap SuperAdmin
 
 ## Problema Identificato
 

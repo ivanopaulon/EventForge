@@ -1,0 +1,37 @@
+{
+  "name": "Prym",
+  "short_name": "Prym",
+  "description": "Prym — gestione eventi, vendite e magazzino",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1F2F46",
+  "theme_color": "#1F2F46",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "trace.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

@@ -27,7 +27,7 @@ Alcuni servizi utilizzavano pattern inconsistenti per l'HttpClient:
 ### 1. Servizi Corretti
 
 #### A. UMService (Gestione Unità di Misura)
-**File**: `EventForge.Client/Services/UMService.cs`
+**File**: `Prym.Client/Services/UMService.cs`
 
 **Prima** (Direct HttpClient - ERRATO):
 ```csharp
@@ -81,7 +81,7 @@ public class UMService : IUMService
 - ✅ ~50% meno codice
 
 #### B. WarehouseService (Gestione Magazzini)
-**File**: `EventForge.Client/Services/WarehouseService.cs`
+**File**: `Prym.Client/Services/WarehouseService.cs`
 
 **Prima** (IHttpClientFactory - INCONSISTENTE):
 ```csharp
@@ -137,11 +137,11 @@ public class WarehouseService : IWarehouseService
 
 ### 2. Verifica ClientLogService
 
-**File**: `EventForge.Client/Services/ClientLogService.cs`
+**File**: `Prym.Client/Services/ClientLogService.cs`
 
 **Verifica Endpoint Server**:
 ```csharp
-// Server: EventForge.Server/Controllers/ClientLogsController.cs
+// Server: Prym.Server/Controllers/ClientLogsController.cs
 [Route("api/[controller]")]  // Espande a "api/ClientLogs"
 public class ClientLogsController : BaseApiController
 {
@@ -153,7 +153,7 @@ public class ClientLogsController : BaseApiController
 
 **Verifica Client**:
 ```csharp
-// Client: EventForge.Client/Services/ClientLogService.cs
+// Client: Prym.Client/Services/ClientLogService.cs
 private async Task SendSingleLogToServerAsync(ClientLogDto clientLog)
 {
     var httpClient = await GetAuthenticatedHttpClientAsync();
@@ -256,12 +256,12 @@ public class MyEntityService : IMyEntityService
 ## Riepilogo Modifiche
 
 ### File Modificati
-1. **EventForge.Client/Services/UMService.cs**
+1. **Prym.Client/Services/UMService.cs**
    - Migrazione da direct HttpClient a IHttpClientService
    - Riduzione ~50% codice
    - Gestione errori migliorata
 
-2. **EventForge.Client/Services/WarehouseService.cs**
+2. **Prym.Client/Services/WarehouseService.cs**
    - Migrazione da IHttpClientFactory a IHttpClientService
    - Allineamento pattern con SupplierManagement
    - Riduzione ~40% codice
@@ -286,7 +286,7 @@ public class MyEntityService : IMyEntityService
 
 ### ✅ Build Verification
 ```bash
-cd /home/runner/work/EventForge/EventForge
+cd /home/runner/work/Prym/Prym
 dotnet build
 # Result: Success - 0 Errors, 162 Warnings (solo MudBlazor analyzer)
 ```
@@ -419,15 +419,15 @@ Questi servizi funzionano correttamente ma potrebbero essere allineati per consi
 - `docs/frontend/HTTPCLIENT_BEST_PRACTICES.md` - Best practices HttpClient (esistente)
 
 ### Servizi di Riferimento
-- `EventForge.Client/Services/BusinessPartyService.cs` - Esempio perfetto
-- `EventForge.Client/Services/FinancialService.cs` - Servizio multiplo
-- `EventForge.Client/Services/UMService.cs` - Appena corretto
-- `EventForge.Client/Services/WarehouseService.cs` - Appena corretto
+- `Prym.Client/Services/BusinessPartyService.cs` - Esempio perfetto
+- `Prym.Client/Services/FinancialService.cs` - Servizio multiplo
+- `Prym.Client/Services/UMService.cs` - Appena corretto
+- `Prym.Client/Services/WarehouseService.cs` - Appena corretto
 
 ### Pagine di Riferimento
-- `EventForge.Client/Pages/Management/SupplierManagement.razor` - Pattern completo
-- `EventForge.Client/Shared/Components/BusinessPartyDrawer.razor` - Drawer complesso
-- `EventForge.Client/Pages/Management/VatRateManagement.razor` - Esempio semplice
+- `Prym.Client/Pages/Management/SupplierManagement.razor` - Pattern completo
+- `Prym.Client/Shared/Components/BusinessPartyDrawer.razor` - Drawer complesso
+- `Prym.Client/Pages/Management/VatRateManagement.razor` - Esempio semplice
 
 ---
 

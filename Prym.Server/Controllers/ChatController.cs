@@ -1,0 +1,1041 @@
+using Prym.DTOs.Chat;
+using Prym.Server.ModelBinders;
+using Prym.Server.Services.Chat;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+
+namespace Prym.Server.Controllers;
+
+/// <summary>
+/// REST API controller for chat management and message history export.
+/// Provides comprehensive endpoints for chat operations, message management,
+/// file handling, and data export capabilities with multi-tenant support.
+/// 
+/// This controller implements stub endpoints for Step 3 requirements while
+/// preparing for future full implementation with advanced features.
+/// </summary>
+[ApiController]
+[Route("api/v1/[controller]")]
+[Authorize]
+[Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+public class ChatController(
+    IChatService chatService,
+    ITenantContext tenantContext,
+    ILogger<ChatController> logger) : BaseApiController
+{
+
+    #region Chat Management
+
+    /// <summary>
+    /// Creates a new chat thread (direct message or group chat).
+    /// Supports automatic member addition, permission setup, and real-time notifications.
+    /// </summary>
+    /// <param name="createChatDto">Chat creation parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created chat with member details and configuration</returns>
+    /// <response code="201">Chat created successfully</response>
+    /// <response code="400">Invalid chat parameters or validation errors</response>
+    /// <response code="429">Rate limit exceeded for tenant or user</response>
+    [HttpPost]
+    [ProducesResponseType(typeof(ChatResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ChatResponseDto>> CreateChatAsync(
+        [FromBody] CreateChatDto createChatDto,
+        CancellationToken cancellationToken = default)
+    {
+        // Validate tenant access
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
+        try
+        {
+            logger.LogInformation(
+                "Creating {ChatType} chat with {ParticipantCount} participants for tenant {TenantId}",
+                createChatDto.Type, createChatDto.ParticipantIds.Count, createChatDto.TenantId);
+
+            var result = await chatService.CreateChatAsync(createChatDto, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetChatByIdAsync),
+                new { id = result.Id },
+                result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
+        {
+            return CreateConflictProblem("Rate limit exceeded: " + ex.Message);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while creating the chat");
+        }
+    }
+
+    /// <summary>
+    /// Gets detailed chat information including members and recent activity.
+    /// Includes permission-based filtering and real-time status updates.
+    /// </summary>
+    /// <param name="id">Chat identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Chat details or 404 if not found/accessible</returns>
+    /// <response code="200">Chat retrieved successfully</response>
+    /// <response code="404">Chat not found or not accessible</response>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ChatResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ChatResponseDto>> GetChatByIdAsync(
+        [FromRoute] Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
+        try
+        {
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
+
+            var chat = await chatService.GetChatByIdAsync(id, userId, tenantId, cancellationToken);
+
+            if (chat is null)
+            {
+                return CreateNotFoundProblem($"Chat with ID {id} was not found or is not accessible");
+            }
+
+            return Ok(chat);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving the chat");
+        }
+    }
+
+    /// <summary>
+    /// Searches and filters user's chats with advanced criteria and pagination.
+    /// Supports full-text search, activity-based sorting, and smart categorization.
+    /// </summary>
+    /// <param name="searchDto">Search and filtering criteria</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated chat results with activity metadata</returns>
+    /// <response code="200">Chats retrieved successfully</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<ChatResponseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ChatResponseDto>>> SearchChatsAsync(
+        [FromQuery] ChatSearchDto searchDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
+        try
+        {
+            // Always scope the search to the authenticated user and their tenant
+            searchDto.UserId = tenantContext.CurrentUserId;
+            searchDto.TenantId = tenantContext.CurrentTenantId;
+
+            logger.LogDebug(
+                "Searching chats for user {UserId} in tenant {TenantId} - Page {Page}",
+                searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
+
+            var result = await chatService.SearchChatsAsync(searchDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while searching chats");
+        }
+    }
+
+    /// <summary>
+    /// Returns all active users in the current tenant available for starting a chat.
+    /// Includes real-time online status for each user.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of available users with online indicators</returns>
+    /// <response code="200">Users retrieved successfully</response>
+    [HttpGet("available-users")]
+    [ProducesResponseType(typeof(List<ChatAvailableUserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ChatAvailableUserDto>>> GetAvailableUsersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
+        try
+        {
+            var tenantId = tenantContext.CurrentTenantId!.Value;
+            var users = await chatService.GetAvailableUsersAsync(tenantId, cancellationToken);
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get available users for chat");
+            return CreateValidationProblemDetails("An error occurred while retrieving available users");
+        }
+    }
+
+    /// <summary>
+    /// Updates chat properties including name, description, and settings.
+    /// Includes permission validation and member notification.
+    /// </summary>
+    /// <param name="id">Chat identifier</param>
+    /// <param name="updateDto">Update parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated chat information</returns>
+    /// <response code="200">Chat updated successfully</response>
+    /// <response code="404">Chat not found or not accessible</response>
+    /// <response code="403">Insufficient permissions to update chat</response>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ChatResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ChatResponseDto>> UpdateChatAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateChatDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var result = await chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while updating the chat");
+        }
+    }
+
+    /// <summary>
+    /// Archives or deletes a chat with comprehensive cleanup.
+    /// Supports soft deletion, data retention policies, and member notification.
+    /// </summary>
+    /// <param name="id">Chat identifier</param>
+    /// <param name="deleteDto">Deletion parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Deletion operation result</returns>
+    /// <response code="200">Chat deleted successfully</response>
+    /// <response code="404">Chat not found or not accessible</response>
+    /// <response code="403">Insufficient permissions to delete chat</response>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(ChatOperationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ChatOperationResultDto>> DeleteChatAsync(
+        [FromRoute] Guid id,
+        [FromBody] DeleteChatDto? deleteDto = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var result = await chatService.DeleteChatAsync(
+                id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while deleting the chat");
+        }
+    }
+
+    #endregion
+
+    #region Message Management
+
+    /// <summary>
+    /// Sends a message in a chat with comprehensive validation and delivery tracking.
+    /// Supports rich content, attachments, threading, and real-time delivery.
+    /// </summary>
+    /// <param name="messageDto">Message content and metadata</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Sent message with delivery status and metadata</returns>
+    /// <response code="201">Message sent successfully</response>
+    /// <response code="400">Invalid message parameters</response>
+    /// <response code="429">Rate limit exceeded</response>
+    [HttpPost("messages")]
+    [ProducesResponseType(typeof(ChatMessageDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ChatMessageDto>> SendMessageAsync(
+        [FromBody] SendMessageDto messageDto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation(
+                "Sending message in chat {ChatId} by user {UserId} with {AttachmentCount} attachments",
+                messageDto.ChatId, messageDto.SenderId, messageDto.Attachments?.Count ?? 0);
+
+            var result = await chatService.SendMessageAsync(messageDto, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetMessageByIdAsync),
+                new { messageId = result.Id },
+                result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
+        {
+            return CreateConflictProblem(ex.Message);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while sending the message"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Retrieves chat messages with filtering, pagination, and permission validation.
+    /// Supports thread navigation, search within conversations, and content filtering.
+    /// </summary>
+    /// <param name="searchDto">Message search and filtering criteria</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated message results with context information</returns>
+    /// <response code="200">Messages retrieved successfully</response>
+    [HttpGet("messages")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessagesAsync(
+        [FromQuery] MessageSearchDto searchDto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogDebug(
+                "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
+                searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
+
+            var result = await chatService.GetMessagesAsync(searchDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving messages"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all chat messages with pagination
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of chat messages</returns>
+    /// <response code="200">Successfully retrieved messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/all")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessages(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await chatService.GetMessagesAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves messages for specific conversation
+    /// </summary>
+    /// <param name="conversationId">Conversation ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of messages for the conversation</returns>
+    /// <response code="200">Successfully retrieved messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/conversation/{conversationId}")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetMessagesByConversation(
+        Guid conversationId,
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await chatService.GetMessagesByConversationAsync(conversationId, pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves unread messages for current user
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of unread messages</returns>
+    /// <response code="200">Successfully retrieved unread messages with pagination metadata in headers</response>
+    /// <response code="400">Invalid pagination parameters</response>
+    [HttpGet("messages/unread")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetUnreadMessages(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await chatService.GetUnreadMessagesAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving unread messages.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific message by ID with access validation and context.
+    /// Includes thread context, attachments, and read receipt information.
+    /// </summary>
+    /// <param name="messageId">Message identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Message details or 404 if not found/accessible</returns>
+    /// <response code="200">Message retrieved successfully</response>
+    /// <response code="404">Message not found or not accessible</response>
+    [HttpGet("messages/{messageId:guid}")]
+    [ProducesResponseType(typeof(ChatMessageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ChatMessageDto>> GetMessageByIdAsync(
+        [FromRoute] Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID and tenant ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+            var tenantId = default(Guid?); // GetCurrentTenantId();
+
+            var message = await chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
+
+            if (message is null)
+            {
+                return CreateNotFoundProblem($"Message with ID {messageId} was not found or is not accessible");
+            }
+
+            return Ok(message);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving the message"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Edits an existing message with validation and change tracking.
+    /// Supports edit history, permission validation, and member notification.
+    /// </summary>
+    /// <param name="messageId">Message identifier</param>
+    /// <param name="editDto">Message edit parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated message with edit metadata</returns>
+    /// <response code="200">Message edited successfully</response>
+    /// <response code="404">Message not found or not accessible</response>
+    /// <response code="403">Insufficient permissions to edit message</response>
+    [HttpPut("messages/{messageId:guid}")]
+    [ProducesResponseType(typeof(ChatMessageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ChatMessageDto>> EditMessageAsync(
+        [FromRoute] Guid messageId,
+        [FromBody] EditMessageRequestDto editDto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var editMessageDto = new EditMessageDto
+            {
+                MessageId = messageId,
+                UserId = userId,
+                Content = editDto.Content,
+                EditReason = editDto.EditReason
+            };
+
+            var result = await chatService.EditMessageAsync(editMessageDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateNotFoundProblem(ex.Message
+            );
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while editing the message"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Deletes a message with soft/hard delete options.
+    /// Supports cascade deletion of attachments and notification cleanup.
+    /// </summary>
+    /// <param name="messageId">Message identifier</param>
+    /// <param name="deleteDto">Deletion parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Deletion operation result</returns>
+    /// <response code="200">Message deleted successfully</response>
+    /// <response code="404">Message not found or not accessible</response>
+    /// <response code="403">Insufficient permissions to delete message</response>
+    [HttpDelete("messages/{messageId:guid}")]
+    [ProducesResponseType(typeof(MessageOperationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<MessageOperationResultDto>> DeleteMessageAsync(
+        [FromRoute] Guid messageId,
+        [FromBody] DeleteMessageDto? deleteDto = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var result = await chatService.DeleteMessageAsync(
+                messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateNotFoundProblem(ex.Message
+            );
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while deleting the message"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Marks a message as read by the current user.
+    /// Updates read receipts and triggers delivery confirmations.
+    /// </summary>
+    /// <param name="messageId">Message identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated read receipt information</returns>
+    /// <response code="200">Message marked as read successfully</response>
+    /// <response code="404">Message not found or not accessible</response>
+    [HttpPost("messages/{messageId:guid}/read")]
+    [ProducesResponseType(typeof(MessageReadReceiptDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MessageReadReceiptDto>> MarkMessageAsReadAsync(
+        [FromRoute] Guid messageId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var result = await chatService.MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateNotFoundProblem(ex.Message
+            );
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while marking the message as read"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Bulk marks multiple messages as read for efficient batch processing.
+    /// Supports conversation-level read status updates with optimization.
+    /// </summary>
+    /// <param name="messageIds">List of message IDs to mark as read</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Bulk read operation results</returns>
+    /// <response code="200">Bulk read operation completed</response>
+    /// <response code="400">Invalid message IDs or request parameters</response>
+    [HttpPost("messages/bulk-read")]
+    [ProducesResponseType(typeof(BulkReadResultDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BulkReadResultDto>> BulkMarkAsReadAsync(
+        [FromBody] List<Guid> messageIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (messageIds is null || !messageIds.Any())
+        {
+            return CreateValidationProblemDetails("Message IDs list cannot be empty"
+            );
+        }
+
+        if (messageIds.Count > 100)
+        {
+            return CreateValidationProblemDetails("Maximum 100 messages allowed per bulk read operation"
+            );
+        }
+
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var result = await chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while marking messages as read"
+                );
+        }
+    }
+
+    #endregion
+
+    #region File & Media Management
+
+    /// <summary>
+    /// Uploads a file attachment to a chat with comprehensive validation.
+    /// Supports multiple file types, virus scanning, and thumbnail generation.
+    /// </summary>
+    /// <param name="uploadRequest">File upload request parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Upload result with file metadata and access information</returns>
+    /// <response code="201">File uploaded successfully</response>
+    /// <response code="400">Invalid file or request parameters</response>
+    /// <response code="413">File too large</response>
+    /// <response code="429">Rate limit exceeded</response>
+    [HttpPost("upload")]
+    [ProducesResponseType(typeof(FileUploadResultDto), StatusCodes.Status201Created)]
+    public async Task<ActionResult<FileUploadResultDto>> UploadFileAsync(
+        [FromForm] ChatFileUploadRequestDto uploadRequest,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (uploadRequest.File is null || uploadRequest.File.Length == 0)
+        {
+            return CreateValidationProblemDetails("File cannot be empty"
+            );
+        }
+
+        // Check file size limit (example: 50MB)
+        const long maxFileSize = 50 * 1024 * 1024; // 50MB
+        if (uploadRequest.File.Length > maxFileSize)
+        {
+            return CreateValidationProblemDetails($"File size cannot exceed {maxFileSize / (1024 * 1024)} MB");
+        }
+
+        try
+        {
+            // TODO: Extract user ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+
+            var uploadDto = new FileUploadDto
+            {
+                ChatId = Guid.Parse(uploadRequest.ChatId),
+                UploadedBy = userId,
+                FileName = uploadRequest.File.FileName,
+                ContentType = uploadRequest.File.ContentType,
+                FileSize = uploadRequest.File.Length,
+                FileStream = uploadRequest.File.OpenReadStream()
+            };
+
+            var result = await chatService.UploadFileAsync(uploadDto, cancellationToken);
+
+            if (result.Success)
+            {
+                return CreatedAtAction(
+                    nameof(GetFileDownloadInfoAsync),
+                    new { attachmentId = result.AttachmentId },
+                    result);
+            }
+            else
+            {
+                return CreateValidationProblemDetails(result.ErrorMessage ?? "An error occurred during file upload"
+                );
+            }
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
+        {
+            return CreateConflictProblem(ex.Message);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while uploading the file"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Gets secure file download information with access validation.
+    /// Provides time-limited URLs, access logging, and download tracking.
+    /// </summary>
+    /// <param name="attachmentId">File attachment identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Secure download information or 404 if not accessible</returns>
+    /// <response code="200">Download information retrieved successfully</response>
+    /// <response code="404">File not found or not accessible</response>
+    [HttpGet("files/{attachmentId:guid}/info")]
+    [ProducesResponseType(typeof(FileDownloadInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FileDownloadInfoDto>> GetFileDownloadInfoAsync(
+        [FromRoute] Guid attachmentId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // TODO: Extract user ID and tenant ID from claims
+            var userId = Guid.Empty; // GetCurrentUserId();
+            var tenantId = default(Guid?); // GetCurrentTenantId();
+
+            var downloadInfo = await chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
+
+            if (downloadInfo is null)
+            {
+                return CreateNotFoundProblem($"File with ID {attachmentId} was not found or is not accessible");
+            }
+
+            return Ok(downloadInfo);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving file information"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Downloads a file attachment with secure access validation.
+    /// STUB IMPLEMENTATION - Returns mock file content.
+    /// TODO: Implement actual secure file download with access validation.
+    /// </summary>
+    /// <param name="attachmentId">File attachment identifier</param>
+    /// <param name="token">Security token for download access</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>File content stream</returns>
+    /// <response code="200">File downloaded successfully</response>
+    /// <response code="404">File not found or token invalid</response>
+    [HttpGet("files/{attachmentId:guid}/download")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DownloadFileAsync(
+        [FromRoute] Guid attachmentId,
+        [FromQuery] string? token = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation("Downloading file {AttachmentId} with token validation", attachmentId);
+
+            // TODO: Implement actual file download with token validation
+            await Task.Delay(10, cancellationToken);
+
+            // Mock response - return sample file content
+            var sampleContent = $"Sample file content for attachment {attachmentId}\nGenerated at: {DateTime.UtcNow}";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sampleContent);
+
+            return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while downloading the file"
+                );
+        }
+    }
+
+    #endregion
+
+    #region Chat Statistics & Analytics
+
+    /// <summary>
+    /// Gets comprehensive chat statistics and analytics.
+    /// Supports real-time metrics, historical analysis, and tenant-specific insights.
+    /// </summary>
+    /// <param name="tenantId">Optional tenant filter for statistics</param>
+    /// <param name="fromDate">Optional start date for statistics range</param>
+    /// <param name="toDate">Optional end date for statistics range</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Comprehensive chat analytics and metrics</returns>
+    /// <response code="200">Statistics retrieved successfully</response>
+    [HttpGet("statistics")]
+    [ProducesResponseType(typeof(ChatStatsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ChatStatsDto>> GetChatStatisticsAsync(
+        [FromQuery] Guid? tenantId = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var dateRange = fromDate.HasValue && toDate.HasValue
+                ? new DateRange { StartDate = fromDate.Value, EndDate = toDate.Value }
+                : null;
+
+            var result = await chatService.GetChatStatisticsAsync(tenantId, dateRange, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
+                );
+        }
+    }
+
+    #endregion
+
+    #region Data Export & History
+
+    /// <summary>
+    /// Exports chat history and messages in various formats (JSON, CSV, Excel).
+    /// Supports advanced filtering, tenant isolation, and compliance requirements.
+    /// 
+    /// STUB IMPLEMENTATION - Returns export preparation status.
+    /// TODO: Implement actual export functionality with multiple formats and streaming.
+    /// </summary>
+    /// <param name="exportRequest">Export parameters and filtering criteria</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Export operation status and download information</returns>
+    /// <response code="202">Export operation started, check status for completion</response>
+    /// <response code="400">Invalid export parameters</response>
+    [HttpPost("export")]
+    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status202Accepted)]
+    public async Task<ActionResult<ChatExportResultDto>> ExportChatHistoryAsync(
+        [FromBody] ChatExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation(
+                "Starting chat export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
+                exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
+
+            // TODO: Implement actual export logic
+            await Task.Delay(100, cancellationToken); // Simulate export preparation
+
+            var exportId = Guid.NewGuid();
+            var result = new ChatExportResultDto
+            {
+                ExportId = exportId,
+                Status = "Preparing",
+                Format = exportRequest.Format,
+                EstimatedCompletionTime = DateTime.UtcNow.AddMinutes(10),
+                StatusUrl = Url.Action(nameof(GetChatExportStatusAsync), new { exportId }),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            return Accepted(result.StatusUrl, result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while starting the export operation"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Gets the status of a chat export operation.
+    /// Provides progress updates, completion status, and download links.
+    /// 
+    /// STUB IMPLEMENTATION - Returns mock export status.
+    /// </summary>
+    /// <param name="exportId">Export operation identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Export operation status and download information</returns>
+    /// <response code="200">Export status retrieved successfully</response>
+    /// <response code="404">Export operation not found</response>
+    [HttpGet("export/{exportId:guid}/status")]
+    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ChatExportResultDto>> GetChatExportStatusAsync(
+        [FromRoute] Guid exportId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogDebug("Retrieving chat export status for {ExportId}", exportId);
+
+            // TODO: Implement actual export status retrieval
+            await Task.Delay(10, cancellationToken);
+
+            // Mock response - in real implementation, check database for export status
+            var result = new ChatExportResultDto
+            {
+                ExportId = exportId,
+                Status = "Completed",
+                Format = "JSON",
+                RecordCount = 5678,
+                FileSizeBytes = 2 * 1024 * 1024, // 2MB
+                DownloadUrl = Url.Action(nameof(DownloadChatExportAsync), new { exportId }),
+                ExpiresAt = DateTime.UtcNow.AddHours(24),
+                CompletedAt = DateTime.UtcNow.AddMinutes(-5)
+            };
+
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving export status"
+                );
+        }
+    }
+
+    /// <summary>
+    /// Downloads an exported chat history file.
+    /// Provides secure, time-limited access to exported data.
+    /// 
+    /// STUB IMPLEMENTATION - Returns mock file content.
+    /// </summary>
+    /// <param name="exportId">Export operation identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Exported file content</returns>
+    /// <response code="200">File downloaded successfully</response>
+    /// <response code="404">Export not found or expired</response>
+    [HttpGet("export/{exportId:guid}/download")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DownloadChatExportAsync(
+        [FromRoute] Guid exportId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogInformation("Downloading chat export file for {ExportId}", exportId);
+
+            // TODO: Implement actual file download logic
+            await Task.Delay(10, cancellationToken);
+
+            // Mock response - return sample JSON content
+            var sampleData = new
+            {
+                exportId,
+                generatedAt = DateTime.UtcNow,
+                format = "JSON",
+                chats = new[]
+                {
+                    new
+                    {
+                        chatId = Guid.NewGuid(),
+                        type = "DirectMessage",
+                        name = "Sample Chat",
+                        createdAt = DateTime.UtcNow.AddDays(-7),
+                        messages = new[]
+                        {
+                            new
+                            {
+                                id = Guid.NewGuid(),
+                                senderId = Guid.NewGuid(),
+                                content = "Hello, this is a sample exported message",
+                                sentAt = DateTime.UtcNow.AddDays(-1),
+                                status = "Read"
+                            }
+                        }
+                    }
+                }
+            };
+
+            var jsonContent = System.Text.Json.JsonSerializer.Serialize(sampleData, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
+            return File(bytes, "application/json", $"chat-export-{exportId}.json");
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while downloading the export file"
+                );
+        }
+    }
+
+    #endregion
+
+    #region System Health & Monitoring
+
+    /// <summary>
+    /// Gets chat system health status and metrics.
+    /// Provides real-time system monitoring and alerting information.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Chat system health status and metrics</returns>
+    /// <response code="200">System health retrieved successfully</response>
+    [HttpGet("system/health")]
+    [ProducesResponseType(typeof(ChatSystemHealthDto), StatusCodes.Status200OK)]
+    [Authorize(Roles = "Admin,SuperAdmin")] // Restrict to administrators
+    public async Task<ActionResult<ChatSystemHealthDto>> GetChatSystemHealthAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await chatService.GetChatSystemHealthAsync(cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return CreateValidationProblemDetails("An error occurred while retrieving system health"
+                );
+        }
+    }
+
+    #endregion
+}
+
+/// <summary>
+/// DTO for file upload request parameters.
+/// Provides Swagger-compatible structure for chat file uploads.
+/// </summary>
+public class ChatFileUploadRequestDto
+{
+    /// <summary>
+    /// File to upload to the chat.
+    /// </summary>
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
+    /// <summary>
+    /// Chat identifier where the file will be uploaded.
+    /// </summary>
+    [Required]
+    [MaxLength(36)] // GUID string length
+    public string ChatId { get; set; } = string.Empty;
+}

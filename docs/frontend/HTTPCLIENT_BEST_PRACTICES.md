@@ -1,10 +1,10 @@
 # HttpClient Best Practices Implementation
 
-This document describes the comprehensive HttpClient best practices implementation across the entire EventForge.Client project.
+This document describes the comprehensive HttpClient best practices implementation across the entire Prym.Client project.
 
 ## Problem Statement
 
-The original EventForge.Client implementation had inconsistent HttpClient usage patterns across services:
+The original Prym.Client implementation had inconsistent HttpClient usage patterns across services:
 
 1. **Mixed Injection Patterns**: Some services used direct `HttpClient` injection while others used `IHttpClientFactory`
 2. **Potential BaseAddress Issues**: Direct HttpClient injection could lead to null BaseAddress problems
@@ -25,7 +25,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
 });
 
 // Configure StaticClient for translation files and static assets
@@ -148,7 +148,7 @@ private async Task<HttpClient> CreateAuthenticatedHttpClientAsync()
 ## Named Clients
 
 ### ApiClient
-- **Purpose**: API calls to the EventForge.Server
+- **Purpose**: API calls to the Prym.Server
 - **BaseAddress**: `https://localhost:7241/`
 - **Used by**: All services making API calls
 - **Authentication**: Set per request when needed

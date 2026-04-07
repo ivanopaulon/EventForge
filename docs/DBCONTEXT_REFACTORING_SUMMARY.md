@@ -2,10 +2,10 @@
 
 ## 📋 Panoramica
 
-Questo documento riassume il lavoro di refactoring, pulizia e ottimizzazione eseguito sul file `EventForgeDbContext.cs` in risposta alla richiesta di analizzare e migliorare la configurazione del DbContext del progetto server.
+Questo documento riassume il lavoro di refactoring, pulizia e ottimizzazione eseguito sul file `PrymDbContext.cs` in risposta alla richiesta di analizzare e migliorare la configurazione del DbContext del progetto server.
 
 **Data**: 7 Ottobre 2025  
-**File modificato**: `/EventForge.Server/Data/EventForgeDbContext.cs`  
+**File modificato**: `/Prym.Server/Data/PrymDbContext.cs`  
 **Build status**: ✅ Compilazione riuscita (6 warnings, non correlati al DbContext)
 
 ---
@@ -164,7 +164,7 @@ IX_TableSessions_TableNumber_Unique  // Numero tavolo univoco
 
 #### 4.1 Compilazione
 ```bash
-dotnet build EventForge.Server/EventForge.Server.csproj
+dotnet build Prym.Server/Prym.Server.csproj
 Result: ✅ Build succeeded
 Warnings: 6 (tutti non correlati al DbContext)
 ```
@@ -297,8 +297,8 @@ Dopo il deployment:
 ## 📚 Documentazione Correlata
 
 - **EPIC #277**: UI Vendita - Implementazione completa
-- **File entities**: `/EventForge.Server/Data/Entities/Sales/`
-- **Migration history**: `/EventForge.Server/Migrations/`
+- **File entities**: `/Prym.Server/Data/Entities/Sales/`
+- **Migration history**: `/Prym.Server/Migrations/`
 
 ---
 

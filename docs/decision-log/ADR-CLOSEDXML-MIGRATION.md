@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-EventForge uses EPPlus 8.2.1 for Excel export functionality in the document management system. This creates several critical problems:
+Prym uses EPPlus 8.2.1 for Excel export functionality in the document management system. This creates several critical problems:
 
 1. **License Error on Startup**: EPPlus 8.x throws a runtime exception requiring explicit license configuration:
    ```
@@ -20,7 +20,7 @@ EventForge uses EPPlus 8.2.1 for Excel export functionality in the document mana
    - Separate licensing for each commercial deployment
    - Compliance overhead and legal review
 
-3. **Open Source Philosophy**: Using proprietary licenses conflicts with EventForge's commitment to open source and free software principles.
+3. **Open Source Philosophy**: Using proprietary licenses conflicts with Prym's commitment to open source and free software principles.
 
 ## Decision Drivers
 
@@ -109,10 +109,10 @@ EventForge uses EPPlus 8.2.1 for Excel export functionality in the document mana
 
 #### Files Modified
 1. `Directory.Packages.props` - Package version management
-2. `EventForge.Server/EventForge.Server.csproj` - Project dependencies
-3. `EventForge.Server/Program.cs` - Remove EPPlus license configuration
-4. `EventForge.Server/Services/Common/ExcelExportService.cs` - Generic Excel export
-5. `EventForge.Server/Services/Documents/DocumentExportService.cs` - Document-specific export
+2. `Prym.Server/Prym.Server.csproj` - Project dependencies
+3. `Prym.Server/Program.cs` - Remove EPPlus license configuration
+4. `Prym.Server/Services/Common/ExcelExportService.cs` - Generic Excel export
+5. `Prym.Server/Services/Documents/DocumentExportService.cs` - Document-specific export
 
 #### API Migration Mappings
 
@@ -229,7 +229,7 @@ If issues arise, rollback involves:
 
 ## Notes
 
-This migration demonstrates EventForge's commitment to:
+This migration demonstrates Prym's commitment to:
 - Open source software principles
 - Cost-effective solutions
 - Developer-friendly licensing

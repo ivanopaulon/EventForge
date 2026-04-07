@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the technical implementation of the inventory procedure in EventForge, specifically addressing the question: **"When inserting an inventory quantity, what exactly are we doing? Are we creating a document? Are we only updating the warehouse?"**
+This document explains the technical implementation of the inventory procedure in Prym, specifically addressing the question: **"When inserting an inventory quantity, what exactly are we doing? Are we creating a document? Are we only updating the warehouse?"**
 
 ## Answer: Both Document Creation AND Warehouse Valuation
 

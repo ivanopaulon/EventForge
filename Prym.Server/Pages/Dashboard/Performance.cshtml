@@ -1,0 +1,108 @@
+@page
+@model Prym.Server.Pages.Dashboard.PerformanceModel
+@using Prym.DTOs.Dashboard
+@{
+    ViewData["Title"] = "Performance";
+    ViewData["PageSection"] = "Monitoring";
+    var m = Model.Metrics;
+}
+
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-speedometer2"></i></div>
+        <div><h1>Performance</h1><p class="ef-page-subtitle">Metriche di utilizzo risorse e query lente</p></div>
+    </div>
+    <a href="/dashboard/performance" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i>Aggiorna</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+else if (m == null)
+{
+    <div class="alert alert-warning">Nessun dato disponibile.</div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card amber">
+                <div class="ef-kpi-label"><i class="bi bi-lightning-fill me-1"></i>Req / min</div>
+                <div class="ef-kpi-value">@m.RequestsPerMinute.ToString("N0")</div>
+                <div class="ef-kpi-sub">Richieste al minuto</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card blue">
+                <div class="ef-kpi-label"><i class="bi bi-hourglass-split me-1"></i>Risposta media</div>
+                <div class="ef-kpi-value">@m.AvgResponseTimeMs.ToString("N1") <small>ms</small></div>
+                <div class="ef-kpi-sub">Latenza media</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card cyan">
+                <div class="ef-kpi-label"><i class="bi bi-memory me-1"></i>Memoria</div>
+                <div class="ef-kpi-value">@m.MemoryUsageMB <small>MB</small></div>
+                <div class="ef-kpi-sub">Utilizzo corrente</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card red">
+                <div class="ef-kpi-label"><i class="bi bi-cpu me-1"></i>CPU</div>
+                <div class="ef-kpi-value">@m.CpuUsagePercent.ToString("N1") <small>%</small></div>
+                <div class="ef-kpi-sub">Utilizzo processore</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ef-card">
+        <div class="ef-card-header">
+            <i class="bi bi-search text-warning"></i>Query lente — ultime 60 min
+            <span class="ef-badge ef-badge-warning ms-auto">@m.SlowQueries.Count() query</span>
+        </div>
+        <div class="ef-card-body p-0">
+            @if (!m.SlowQueries.Any())
+            {
+                <div class="p-4 text-center" style="color:var(--ef-text-muted)">
+                    <i class="bi bi-check-circle-fill text-success d-block mb-2" style="font-size:2rem"></i>
+                    Nessuna query lenta rilevata
+                </div>
+            }
+            else
+            {
+                <div class="ef-table-wrap">
+                    <table class="ef-table">
+                        <thead>
+                            <tr>
+                                <th>Operazione</th>
+                                <th style="width:130px">Durata media</th>
+                                <th style="width:100px">Esecuzioni</th>
+                                <th style="width:150px">Ultima vista</th>
+                                <th style="width:110px">Contesto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in m.SlowQueries.OrderByDescending(x => x.AvgDurationMs))
+                            {
+                                string durBadge = q.AvgDurationMs > 5000 ? "ef-badge-danger" : q.AvgDurationMs > 2000 ? "ef-badge-warning" : "ef-badge-neutral";
+                                <tr>
+                                    <td class="text-truncate" style="max-width:320px" title="@q.QueryPreview">
+                                        <code>@q.QueryPreview</code>
+                                    </td>
+                                    <td><span class="ef-badge @durBadge">@q.AvgDurationMs.ToString("N0") ms</span></td>
+                                    <td style="color:var(--ef-text-muted)">@q.ExecutionCount</td>
+                                    <td style="color:var(--ef-text-muted)">@q.LastSeen.ToString("dd/MM HH:mm")</td>
+                                    <td style="color:var(--ef-text-muted)">@q.Context</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <p class="mt-2" style="font-size:.72rem;color:var(--ef-text-subtle)">
+        <i class="bi bi-clock me-1"></i>@m.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+    </p>
+}

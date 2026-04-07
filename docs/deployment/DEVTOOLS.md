@@ -1,8 +1,8 @@
-# EventForge - DevTools: Strumenti di Sviluppo
+# Prym - DevTools: Strumenti di Sviluppo
 
 ## Panoramica
 
-EventForge include una suite di strumenti di sviluppo (DevTools) progettati per facilitare il testing e lo sviluppo dell'applicazione. Questi strumenti sono disponibili **solo in ambiente di sviluppo** o quando esplicitamente abilitati tramite variabili d'ambiente.
+Prym include una suite di strumenti di sviluppo (DevTools) progettati per facilitare il testing e lo sviluppo dell'applicazione. Questi strumenti sono disponibili **solo in ambiente di sviluppo** o quando esplicitamente abilitati tramite variabili d'ambiente.
 
 ## ⚠️ Avvertenze Importanti
 
@@ -233,7 +233,7 @@ I DevTools includono test unitari per validare la funzionalità:
 
 ```bash
 # Eseguire i test DevTools
-cd EventForge.Tests
+cd Prym.Tests
 dotnet test --filter "Category=Unit&FullyQualifiedName~DevTools"
 ```
 

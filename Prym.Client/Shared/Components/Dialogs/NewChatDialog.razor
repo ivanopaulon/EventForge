@@ -1,0 +1,261 @@
+@using Prym.DTOs.Chat
+@inject IChatService ChatService
+@inject IAuthService AuthService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Filled.PersonAdd"
+          Title="@TranslationService.GetTranslation("chat.newChat", "Nuova Chat")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
+        @if (_isLoadingUsers)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <!-- Search field -->
+            <MudTextField T="string"
+                          @bind-Value="_searchQuery"
+                          Label="@TranslationService.GetTranslation("chat.searchUser", "Cerca utente...")"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          Class="mb-3" />
+
+            <!-- Mode selector for DM vs Group -->
+            @if (_selectedUsers.Count > 1)
+            {
+                <MudTextField T="string"
+                              @bind-Value="_groupName"
+                              Label="@TranslationService.GetTranslation("chat.groupName", "Nome del gruppo")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mb-3" />
+            }
+
+            <!-- User list -->
+            <MudList T="ChatAvailableUserDto" Dense="true" Style="max-height:350px;overflow-y:auto;">
+                @foreach (var user in FilteredUsers)
+                {
+                    var isSelected = _selectedUsers.Contains(user.Id);
+                    <MudListItem T="ChatAvailableUserDto"
+                                 Value="user"
+                                 OnClick="@(() => ToggleUserSelection(user.Id))">
+                        <div class="d-flex align-center gap-2 w-100">
+                            <MudCheckBox T="bool"
+                                         Value="@isSelected"
+                                         Color="Color.Primary"
+                                         Dense="true"
+                                         Class="mr-1" />
+                            <div style="position:relative;">
+                                <MudAvatar Size="Size.Small"
+                                           Style="@($"background-color:{GetAvatarColor(user.DisplayName)};color:#fff;font-size:0.7rem;width:28px;height:28px;min-width:28px;")">
+                                    @GetInitials(user.DisplayName)
+                                </MudAvatar>
+                                @if (user.IsOnline)
+                                {
+                                    <div style="width:8px;height:8px;background:#4caf50;border-radius:50%;position:absolute;bottom:0;right:0;border:1px solid white;"></div>
+                                }
+                            </div>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <MudText Typo="Typo.body2" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    @user.DisplayName
+                                    @if (user.Id == _currentUserId)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Primary" Class="ml-1">(tu)</MudText>
+                                    }
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="@(user.IsOnline ? Color.Success : Color.Secondary)">
+                                    @(user.IsOnline
+                                        ? TranslationService.GetTranslation("chat.online", "Online")
+                                        : TranslationService.GetTranslation("chat.offline", "Offline"))
+                                </MudText>
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+                @if (!FilteredUsers.Any())
+                {
+                    <MudListItem T="string" Disabled="true">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="py-2">
+                            @TranslationService.GetTranslation("chat.noUsersFound", "Nessun utente trovato")
+                        </MudText>
+                    </MudListItem>
+                }
+            </MudList>
+
+            @if (_selectedUsers.Count > 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                    @if (_selectedUsers.Count == 1)
+                    {
+                        var selectedUser = _availableUsers.FirstOrDefault(u => u.Id == _selectedUsers.First());
+                        <MudText Typo="Typo.caption">
+                            @TranslationService.GetTranslation("chat.startingDmWith", "Avvia chat con:")
+                            <strong>@selectedUser?.DisplayName</strong>
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption">
+                            @TranslationService.GetTranslationFormatted("chat.creatingGroupWith", "Creazione gruppo con {0} partecipanti", _selectedUsers.Count)
+                        </MudText>
+                    }
+                </MudAlert>
+            }
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Secondary"
+                   Disabled="@_isLoading">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="CreateChatAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_isLoading || _selectedUsers.Count == 0)"
+                   StartIcon="@Icons.Material.Filled.Chat">
+            @TranslationService.GetTranslation("chat.startChat", "Avvia Chat")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Guid CurrentUserId { get; set; }
+
+    private bool _isLoadingUsers = true;
+    private bool _isLoading = false;
+    private string _searchQuery = string.Empty;
+    private string _groupName = string.Empty;
+    private List<ChatAvailableUserDto> _availableUsers = new();
+    private readonly HashSet<Guid> _selectedUsers = new();
+    private Guid _currentUserId;
+
+    private IEnumerable<ChatAvailableUserDto> FilteredUsers =>
+        string.IsNullOrWhiteSpace(_searchQuery)
+            ? _availableUsers
+            : _availableUsers.Where(u =>
+                u.DisplayName.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                u.Username.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = CurrentUserId;
+        try
+        {
+            _availableUsers = await ChatService.GetAvailableUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore nel caricamento degli utenti: {ex.Message}");
+        }
+        finally
+        {
+            _isLoadingUsers = false;
+        }
+    }
+
+    private void ToggleUserSelection(Guid userId)
+    {
+        if (_selectedUsers.Contains(userId))
+            _selectedUsers.Remove(userId);
+        else
+            _selectedUsers.Add(userId);
+    }
+
+    private async Task CreateChatAsync()
+    {
+        if (_selectedUsers.Count == 0) return;
+
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var userInfo = await AuthService.GetCurrentUserAsync();
+            if (userInfo == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.notAuthenticated", "Utente non autenticato"));
+                return;
+            }
+
+            // Include the current user in the participants
+            var allParticipants = new List<Guid>(_selectedUsers) { userInfo.Id };
+            allParticipants = allParticipants.Distinct().ToList();
+
+            var isGroup = _selectedUsers.Count > 1;
+
+            string? groupChatName = null;
+            if (isGroup)
+            {
+                groupChatName = _groupName.Trim().Length > 0
+                    ? _groupName.Trim()
+                    : string.Join(", ", _availableUsers
+                        .Where(u => _selectedUsers.Contains(u.Id))
+                        .Select(u => u.DisplayName.Split(' ')[0]));
+            }
+
+            var createDto = new CreateChatDto
+            {
+                TenantId = userInfo.TenantId,
+                CreatedBy = userInfo.Id,
+                Type = isGroup ? ChatType.Group : ChatType.DirectMessage,
+                Name = groupChatName,
+                ParticipantIds = allParticipants,
+                IsPrivate = true
+            };
+
+            var chat = await ChatService.CreateChatAsync(createDto);
+            MudDialog.Close(DialogResult.Ok(chat));
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore nella creazione della chat: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private static readonly string[] AvatarColors =
+    {
+        "#f44336", "#e91e63", "#9c27b0", "#673ab7",
+        "#3f51b5", "#2196f3", "#009688", "#4caf50"
+    };
+
+    private static string GetAvatarColor(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return AvatarColors[0];
+        unchecked
+        {
+            var hash = name.Aggregate(0, (acc, c) => acc * 31 + c);
+            return AvatarColors[((hash % AvatarColors.Length) + AvatarColors.Length) % AvatarColors.Length];
+        }
+    }
+}

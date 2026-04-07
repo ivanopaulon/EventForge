@@ -1,12 +1,12 @@
 # VAT Rate Management Implementation
 
 ## Overview
-This implementation adds VAT rate management functionality to EventForge, following the same pattern used for tenant management.
+This implementation adds VAT rate management functionality to Prym, following the same pattern used for tenant management.
 
 ## Components Created
 
 ### 1. VatRateDrawer Component
-**Location:** `EventForge.Client/Shared/Components/VatRateDrawer.razor`
+**Location:** `Prym.Client/Shared/Components/VatRateDrawer.razor`
 
 A reusable drawer component for creating, viewing, and editing VAT rates. Features:
 - Full CRUD operations (Create, Read, Update, Delete)
@@ -26,7 +26,7 @@ A reusable drawer component for creating, viewing, and editing VAT rates. Featur
 - Notes (optional): Additional notes
 
 ### 2. VatRateManagement Page
-**Location:** `EventForge.Client/Pages/Management/VatRateManagement.razor`
+**Location:** `Prym.Client/Pages/Management/VatRateManagement.razor`
 **Route:** `/financial/vat-rates`
 
 A full-featured management page for VAT rates with:
@@ -39,7 +39,7 @@ A full-featured management page for VAT rates with:
 - Responsive design
 
 ### 3. Navigation Integration
-**Location:** `EventForge.Client/Layout/NavMenu.razor`
+**Location:** `Prym.Client/Layout/NavMenu.razor`
 
 Added to the Administration section of the navigation menu:
 - Icon: Percent symbol
@@ -65,7 +65,7 @@ The following endpoints are already implemented in `FinancialManagementControlle
 
 ## Translations
 
-All Italian translations have been added to `EventForge.Client/wwwroot/i18n/it.json`:
+All Italian translations have been added to `Prym.Client/wwwroot/i18n/it.json`:
 
 ### Navigation
 - `nav.vatRateManagement`: "Gestione Aliquote IVA"
@@ -115,5 +115,5 @@ Access is controlled through the `@attribute [Authorize]` directive and the navi
 - All VAT rates are tenant-scoped (multi-tenant support)
 - The implementation follows the same patterns as TenantManagement and TenantDrawer for consistency
 - The component is fully localized with Italian translations
-- The UI is responsive and follows the EventForge design patterns
+- The UI is responsive and follows the Prym design patterns
 - All CRUD operations include proper error handling and user feedback via Snackbar

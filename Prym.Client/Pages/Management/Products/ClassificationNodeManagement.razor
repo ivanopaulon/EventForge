@@ -1,0 +1,214 @@
+@page "/management/classification-nodes"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Common
+@using Prym.Client.Shared.Components
+@using Prym.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IEntityManagementService EntityManagementService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+
+<PageTitle>@TranslationService.GetTranslation("classificationNode.management", "Gestione Nodi di Classificazione")</PageTitle>
+<EntityManagementPage @ref="_entityPage"
+                      TEntity="ClassificationNodeDto"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Code ?? string.Empty))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Type")
+            {
+                <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Type">
+                    <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Type))">@TranslationService.GetTranslation("field.type", "Tipo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<ClassificationNodeDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="ClassificationNodeDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<ClassificationNodeDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:140px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.AccountTree" />
+                        </MudAvatar>
+                        <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.Code ?? "-")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Type")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(ctx.Item.Type)">@GetTypeDisplayName(ctx.Item.Type)</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">@GetStatusDisplayName(ctx.Item.Status)</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    <MudText Typo="Typo.body2">@ctx.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="item">
+        <MudTooltip Text="@TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")">
+            <MudIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
+                           Color="Color.Secondary"
+                           Size="Size.Small"
+                           Class="ef-row-actionbutton"
+                           OnClick="@(() => OpenAddChildDialogAsync(item.Id))" />
+        </MudTooltip>
+    </AdditionalRowActions>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<ClassificationNodeDto>? _entityPage;
+    private IEntityManagementService<ClassificationNodeDto> _service = null!;
+    private EntityManagementConfig<ClassificationNodeDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new ClassificationNodeManagementService(EntityManagementService);
+        _config = new EntityManagementConfig<ClassificationNodeDto>
+        {
+            ComponentKey = "ClassificationNodeManagement",
+            PageTitleKey = "classificationNode.management",
+            PageTitleDefault = "Gestione Nodi di Classificazione",
+            EntityIcon = Icons.Material.Outlined.AccountTree,
+            PageRootCssClass = "management-page-root",
+            BaseRoute = "/management/classification-nodes",
+            ExcelFileName = "NodiClassificazione",
+            SearchPlaceholderKey = "classificationNode.search",
+            SearchPlaceholderDefault = "Cerca nodi di classificazione",
+            CreateTooltip = "classificationNode.createNew",
+            EntityTypeName = "ClassificationNode",
+            ShowToggleStatus = false,
+            ShowAuditLog = true,
+            GetDisplayName = n => n.Name,
+            GetId = n => n.Id,
+            GetIsActive = n => n.IsActive,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Catalogo", null, disabled: true),
+                new BreadcrumbItem("Classificazione", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Name",      DisplayName = "Nome",       IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Code",      DisplayName = "Codice",     IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Type",      DisplayName = "Tipo",       IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "Status",    DisplayName = "Stato",      IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il",  IsVisible = true, Order = 4, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all",     Label = "Tutti",      Predicate = _ => true,                                                                Description = "Mostra tutti i nodi radice" },
+                new() { Id = "active",  Label = "Attivi",     Predicate = n => n.Status == ProductClassificationNodeStatus.Active,  Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle,   Description = "Nodi attivi" },
+                new() { Id = "pending", Label = "In Attesa",  Predicate = n => n.Status == ProductClassificationNodeStatus.Pending, Color = Color.Warning, Icon = Icons.Material.Outlined.HourglassEmpty, Description = "Nodi in attesa di approvazione" },
+                new() { Id = "recent",  Label = "Recenti",    Predicate = n => n.CreatedAt >= DateTime.UtcNow.AddDays(-30),         Color = Color.Info,    Icon = Icons.Material.Outlined.NewReleases,   Description = "Nodi aggiunti negli ultimi 30 giorni" }
+            }
+        };
+    }
+
+    private Color GetTypeColor(ProductClassificationType type) => type switch
+    {
+        ProductClassificationType.Category        => Color.Primary,
+        ProductClassificationType.Family          => Color.Secondary,
+        ProductClassificationType.MerchandiseGroup => Color.Tertiary,
+        _ => Color.Default
+    };
+
+    private string GetTypeDisplayName(ProductClassificationType type) => type switch
+    {
+        ProductClassificationType.Category         => TranslationService.GetTranslation("classificationType.category",        "Categoria"),
+        ProductClassificationType.Family           => TranslationService.GetTranslation("classificationType.family",          "Famiglia"),
+        ProductClassificationType.MerchandiseGroup => TranslationService.GetTranslation("classificationType.merchandiseGroup","Gruppo Merceologico"),
+        _ => type.ToString()
+    };
+
+    private Color GetStatusColor(ProductClassificationNodeStatus status) => status switch
+    {
+        ProductClassificationNodeStatus.Active   => Color.Success,
+        ProductClassificationNodeStatus.Inactive => Color.Default,
+        ProductClassificationNodeStatus.Pending  => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string GetStatusDisplayName(ProductClassificationNodeStatus status) => status switch
+    {
+        ProductClassificationNodeStatus.Active   => TranslationService.GetTranslation("status.active",   "Attivo"),
+        ProductClassificationNodeStatus.Inactive => TranslationService.GetTranslation("status.inactive", "Inattivo"),
+        ProductClassificationNodeStatus.Pending  => TranslationService.GetTranslation("status.pending",  "In attesa"),
+        _ => status.ToString()
+    };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ClassificationNodeDetailDialog.EntityId)] = id,
+            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)null
+        };
+        var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+
+    private async Task OpenAddChildDialogAsync(Guid parentId)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
+            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)parentId
+        };
+        var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+}

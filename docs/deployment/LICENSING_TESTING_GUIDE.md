@@ -1,4 +1,4 @@
-# Testing the EventForge Licensing System
+# Testing the Prym Licensing System
 
 This script demonstrates how to test the licensing system that has been implemented.
 
@@ -6,7 +6,7 @@ This script demonstrates how to test the licensing system that has been implemen
 
 1. Run the application:
 ```bash
-cd EventForge.Server
+cd Prym.Server
 dotnet run
 ```
 

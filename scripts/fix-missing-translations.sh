@@ -9,7 +9,7 @@ echo "╚═══════════════════════�
 echo ""
 
 # Check if we're in the project root
-if [ ! -f "EventForge.sln" ]; then
+if [ ! -f "Prym.sln" ]; then
     echo "❌ Error: Please run this script from the project root directory"
     exit 1
 fi
@@ -52,7 +52,7 @@ if dotnet run --project scripts/TranslationValidator; then
     echo "╚═══════════════════════════════════════════════════════╝"
     echo ""
     echo "Next steps:"
-    echo "1. Review the generated keys in EventForge.Client/wwwroot/i18n/"
+    echo "1. Review the generated keys in Prym.Client/wwwroot/i18n/"
     echo "2. Search for '[NEEDS TRANSLATION]' placeholders"
     echo "3. Replace placeholders with proper translations"
     echo "4. Run validator again to confirm: dotnet run --project scripts/TranslationValidator"

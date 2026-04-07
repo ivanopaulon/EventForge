@@ -1,8 +1,8 @@
-# EventForge Promotion Engine
+# Prym Promotion Engine
 
 ## Overview
 
-The EventForge Promotion Engine is a comprehensive solution for applying discounts and promotions to shopping carts with advanced business rules, priority handling, and caching optimization.
+The Prym Promotion Engine is a comprehensive solution for applying discounts and promotions to shopping carts with advanced business rules, priority handling, and caching optimization.
 
 ## Features
 

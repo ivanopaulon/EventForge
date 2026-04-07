@@ -1,28 +1,28 @@
-# EventForge Project Structure
+# Prym Project Structure
 
-Guida completa alla struttura del progetto EventForge e organizzazione del codice.
+Guida completa alla struttura del progetto Prym e organizzazione del codice.
 
 ## 📁 Struttura Directory Principale
 
 ```
-EventForge/
-├── 📁 EventForge.Server/           # Backend Blazor Server application
-├── 📁 EventForge.Client/           # Frontend client (se applicabile)
-├── 📁 EventForge.DTOs/             # Data Transfer Objects condivisi
-├── 📁 EventForge.Tests/            # Test project unificato
+Prym/
+├── 📁 Prym.Server/           # Backend Blazor Server application
+├── 📁 Prym.Client/           # Frontend client (se applicabile)
+├── 📁 Prym.DTOs/             # Data Transfer Objects condivisi
+├── 📁 Prym.Tests/            # Test project unificato
 ├── 📁 docs/                        # Documentazione organizzata
 ├── 📁 audit/                       # Sistema audit automatizzato
-├── 📄 EventForge.sln               # Solution file
+├── 📄 Prym.sln               # Solution file
 ├── 📄 Directory.Packages.props     # Gestione pacchetti centralizzata
 ├── 📄 README.md                    # Documentazione principale
 └── 🔧 analyze-routes.sh            # Script analisi route
 ```
 
-## 🏗️ EventForge.Server - Backend Structure
+## 🏗️ Prym.Server - Backend Structure
 
 ### Directory Principali
 ```
-EventForge.Server/
+Prym.Server/
 ├── 📁 Controllers/                 # API Controllers REST
 │   ├── AuthController.cs
 │   ├── ProductsController.cs
@@ -81,11 +81,11 @@ EventForge.Server/
    - Localization
    - Exception handling
 
-## 📦 EventForge.DTOs - Data Transfer Objects
+## 📦 Prym.DTOs - Data Transfer Objects
 
 ### Organizzazione per Feature
 ```
-EventForge.DTOs/
+Prym.DTOs/
 ├── 📁 Core/                        # DTOs core
 │   ├── UserDto.cs
 │   ├── TenantDto.cs
@@ -114,11 +114,11 @@ EventForge.DTOs/
 - **Naming**: `{Feature}ManagementDTOs.cs` per gruppi
 - **Validation**: Data annotations per validazione
 
-## 🧪 EventForge.Tests - Test Structure
+## 🧪 Prym.Tests - Test Structure
 
 ### Organizzazione Test
 ```
-EventForge.Tests/
+Prym.Tests/
 ├── 📁 Unit/                        # Test unitari
 │   ├── 📁 Services/               # Test servizi
 │   ├── 📁 Controllers/            # Test controller
@@ -190,23 +190,23 @@ docs/
 
 ### Script Disponibili
 ```
-EventForge/
+Prym/
 ├── 🔧 analyze-routes.sh            # Analisi conflitti route (Unix)
 ├── 🔧 analyze-routes.bat           # Analisi conflitti route (Windows)
 └── 📁 audit/                       # Sistema audit
     ├── 🔧 run-audit.sh            # Script audit (Unix)
-    ├── 🔧 EventForge-Audit.ps1    # Script audit (Windows)
+    ├── 🔧 Prym-Audit.ps1    # Script audit (Windows)
     └── 📄 Program.cs              # Audit tool
 ```
 
 ### File di Configurazione
 ```
-EventForge/
-├── 📄 EventForge.sln               # Solution configuration
+Prym/
+├── 📄 Prym.sln               # Solution configuration
 ├── 📄 Directory.Packages.props     # NuGet package management
 ├── 📄 .gitignore                   # Git ignore rules
 ├── 📄 .gitattributes              # Git attributes
-└── EventForge.Server/
+└── Prym.Server/
     ├── 📄 appsettings.json        # Application settings
     ├── 📄 appsettings.Development.json
     └── 📄 launchSettings.json     # Launch profiles
@@ -215,17 +215,17 @@ EventForge/
 ## 🏛️ Architectural Patterns
 
 ### Clean Architecture
-EventForge segue i principi di Clean Architecture:
+Prym segue i principi di Clean Architecture:
 
-1. **Entities** (`EventForge.Server/Data/Entities/`)
+1. **Entities** (`Prym.Server/Data/Entities/`)
    - Business entities con regole business core
    - Indipendenti da framework esterni
 
-2. **Use Cases** (`EventForge.Server/Services/`)
+2. **Use Cases** (`Prym.Server/Services/`)
    - Application business rules
    - Orchestrazione entità
 
-3. **Interface Adapters** (`EventForge.Server/Controllers/`)
+3. **Interface Adapters** (`Prym.Server/Controllers/`)
    - Conversione dati per use cases
    - Presentazione e controllo
 
@@ -270,13 +270,13 @@ Controllers → Services → Entities
 
 ### Project Dependencies
 ```
-EventForge.Server
-├── → EventForge.DTOs
+Prym.Server
+├── → Prym.DTOs
 └── → External packages (MudBlazor, EF Core, etc.)
 
-EventForge.Tests
-├── → EventForge.Server
-├── → EventForge.DTOs
+Prym.Tests
+├── → Prym.Server
+├── → Prym.DTOs
 └── → Test packages (xUnit, Moq, etc.)
 ```
 
@@ -304,4 +304,4 @@ EventForge.Tests
 
 ---
 
-Questa struttura fornisce una base solida per lo sviluppo scalabile e la manutenzione del progetto EventForge.
+Questa struttura fornisce una base solida per lo sviluppo scalabile e la manutenzione del progetto Prym.

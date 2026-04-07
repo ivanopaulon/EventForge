@@ -252,8 +252,8 @@ Authorization: Bearer {token}
 To apply the database changes:
 
 ```bash
-cd /path/to/EventForge
-dotnet ef database update --project EventForge.Server
+cd /path/to/Prym
+dotnet ef database update --project Prym.Server
 ```
 
 This will apply migration `20251001072904_AddImageManagementToStoreEntities`.

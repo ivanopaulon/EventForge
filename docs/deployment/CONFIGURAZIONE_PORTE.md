@@ -1,8 +1,8 @@
-# Guida alla Configurazione delle Porte - EventForge
+# Guida alla Configurazione delle Porte - Prym
 
 ## Panoramica
 
-EventForge utilizza un sistema di configurazione flessibile per le porte di comunicazione tra server e client.
+Prym utilizza un sistema di configurazione flessibile per le porte di comunicazione tra server e client.
 
 **Mappa porte (autoritative):**
 
@@ -16,13 +16,13 @@ EventForge utilizza un sistema di configurazione flessibile per le porte di comu
 | UpdateHub | Prod IIS / Standalone | 7243 | 7244 |
 | UpdateAgent | Prod (Windows Service, localhost) | 5780 | — |
 
-## Configurazione Server (EventForge.Server)
+## Configurazione Server (Prym.Server)
 
 ### Sviluppo Locale
 
 #### Metodo 1: launchSettings.json (Consigliato per sviluppo)
 
-Edita il file `EventForge.Server/Properties/launchSettings.json`:
+Edita il file `Prym.Server/Properties/launchSettings.json`:
 
 ```json
 {
@@ -41,7 +41,7 @@ Edita il file `EventForge.Server/Properties/launchSettings.json`:
 #### Metodo 2: Parametro da riga di comando
 
 ```bash
-dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
+dotnet run --project Prym.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
 #### Metodo 3: Variabile d'ambiente
@@ -49,19 +49,19 @@ dotnet run --project EventForge.Server --urls "https://localhost:7241;http://loc
 **Linux/macOS:**
 ```bash
 export ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
-dotnet run --project EventForge.Server
+dotnet run --project Prym.Server
 ```
 
 **Windows PowerShell:**
 ```powershell
 $env:ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
-dotnet run --project EventForge.Server
+dotnet run --project Prym.Server
 ```
 
 **Windows CMD:**
 ```cmd
 set ASPNETCORE_URLS=https://localhost:7241;http://localhost:5240
-dotnet run --project EventForge.Server
+dotnet run --project Prym.Server
 ```
 
 ### Produzione e IIS
@@ -96,7 +96,7 @@ Crea un file di override per il servizio:
 Environment="ASPNETCORE_URLS=https://+:7241;http://+:5240"
 ```
 
-## Configurazione UpdateHub (EventForge.UpdateHub)
+## Configurazione UpdateHub (Prym.UpdateHub)
 
 L'UpdateHub espone la propria UI e l'API SignalR su due porte indipendenti configurabili in `appsettings.json`.
 
@@ -122,7 +122,7 @@ Imposta una porta a `0` per disabilitarla (es. HTTP-only o HTTPS-only).
 
 ### Produzione su IIS
 
-Il setup script (`Setup-EventForge-UpdateHub.ps1`) legge automaticamente `UI.HttpsPort` da `appsettings.json` per configurare il binding IIS. Non è necessario modificare lo script.
+Il setup script (`Setup-Prym-UpdateHub.ps1`) legge automaticamente `UI.HttpsPort` da `appsettings.json` per configurare il binding IIS. Non è necessario modificare lo script.
 
 ### Standalone (senza IIS)
 
@@ -139,7 +139,7 @@ http://localhost:59407  (dev HTTP)
 
 ---
 
-## Configurazione UpdateAgent (EventForge.UpdateAgent)
+## Configurazione UpdateAgent (Prym.UpdateAgent)
 
 L'Agent espone una UI locale (`localhost`-only) su una singola porta HTTP (non HTTPS — il traffico è sempre intra-macchina).
 
@@ -161,7 +161,7 @@ Il client utilizza file `appsettings.json` per configurare l'URL del server API.
 
 #### Sviluppo Locale
 
-Edita `EventForge.Client/wwwroot/appsettings.Development.json`:
+Edita `Prym.Client/wwwroot/appsettings.Development.json`:
 
 ```json
 {
@@ -173,7 +173,7 @@ Edita `EventForge.Client/wwwroot/appsettings.Development.json`:
 
 #### Produzione
 
-Edita `EventForge.Client/wwwroot/appsettings.Production.json`:
+Edita `Prym.Client/wwwroot/appsettings.Production.json`:
 
 ```json
 {
@@ -185,7 +185,7 @@ Edita `EventForge.Client/wwwroot/appsettings.Production.json`:
 
 #### File Base
 
-Il file `EventForge.Client/wwwroot/appsettings.json` fornisce la configurazione predefinita:
+Il file `Prym.Client/wwwroot/appsettings.json` fornisce la configurazione predefinita:
 
 ```json
 {
@@ -205,7 +205,7 @@ L'ambiente è determinato dalla proprietà `HostEnvironment.Environment` durante
 
 ## Configurazione CORS
 
-Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `EventForge.Server/appsettings.json` (oppure nel file `appsettings.{Ambiente}.json`):
+Quando modifichi le porte del server, **devi aggiornare** anche la configurazione CORS in `Prym.Server/appsettings.json` (oppure nel file `appsettings.{Ambiente}.json`):
 
 ```json
 "Cors": {
@@ -238,7 +238,7 @@ Porte: 7001 (HTTPS) + 5000 (HTTP)
 
 ```bash
 # Avvia il server
-cd EventForge.Server
+cd Prym.Server
 dotnet run
 
 # In un altro terminale, verifica le porte in ascolto
@@ -373,4 +373,4 @@ dotnet dev-certs https --trust
 
 **Ultima modifica:** 2025-01-12  
 **Versione:** 1.0  
-**Autore:** EventForge Team
+**Autore:** Prym Team

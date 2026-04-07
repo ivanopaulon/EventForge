@@ -20,7 +20,7 @@ Extend Store entities (StoreUser, StoreUserGroup, StorePos, StoreUserPrivilege) 
 
 ### ✅ Foundation Already in Place
 
-The EventForge system already has:
+The Prym system already has:
 
 1. **DocumentReference Infrastructure** (100% Complete)
    - Full DocumentReference entity with OwnerType/OwnerId pattern
@@ -203,7 +203,7 @@ public string? PermissionKey { get; set; }  // MaxLength 200 (e.g., "store.users
 - [ ] Modify StoreUserGroup entity (5 new fields)
 - [ ] Modify StorePos entity (10 new fields)
 - [ ] Modify StoreUserPrivilege entity (5 new fields)
-- [ ] Update EventForgeDbContext with relationships
+- [ ] Update PrymDbContext with relationships
 - [ ] Create EF Core migration
 - [ ] Test migration up/down
 
@@ -422,11 +422,11 @@ public async Task<ActionResult<ProductDto>> UploadProductImage(
 - **Issue #314**: Product image management (✅ COMPLETED - reference implementation)
 
 ### Key Files to Reference
-- `/EventForge.Server/Data/Entities/Products/Product.cs` - Entity pattern
-- `/EventForge.DTOs/Products/ProductDto.cs` - DTO pattern
-- `/EventForge.Server/Services/Products/ProductService.cs` - Service pattern
-- `/EventForge.Server/Controllers/ProductManagementController.cs` - API pattern
-- `/EventForge.Tests/Products/ProductImageTests.cs` - Test pattern
+- `/Prym.Server/Data/Entities/Products/Product.cs` - Entity pattern
+- `/Prym.DTOs/Products/ProductDto.cs` - DTO pattern
+- `/Prym.Server/Services/Products/ProductService.cs` - Service pattern
+- `/Prym.Server/Controllers/ProductManagementController.cs` - API pattern
+- `/Prym.Tests/Products/ProductImageTests.cs` - Test pattern
 - `/docs/ISSUE_314_IMPLEMENTATION_SUMMARY.md` - Documentation template
 
 ### Migration Pattern

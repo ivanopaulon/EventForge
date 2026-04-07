@@ -2,7 +2,7 @@
 
 ## 📋 Panoramica
 
-Questa cartella contiene la **documentazione completa della verifica approfondita del DbContext** di EventForge, eseguita su richiesta per validare che tutte le entità siano correttamente configurate con le loro relazioni e chiavi.
+Questa cartella contiene la **documentazione completa della verifica approfondita del DbContext** di Prym, eseguita su richiesta per validare che tutte le entità siano correttamente configurate con le loro relazioni e chiavi.
 
 **Data Verifica**: Gennaio 2025  
 **Risultato**: ✅ **TUTTO CORRETTAMENTE CONFIGURATO**
@@ -167,7 +167,7 @@ Build Status:             ✅ Success
 
 ## 🚀 Conclusione Generale
 
-Il DbContext di EventForge è:
+Il DbContext di Prym è:
 - ✅ **Completo** nelle funzionalità
 - ✅ **Corretto** nelle configurazioni
 - ✅ **Ottimizzato** per le performance
@@ -188,15 +188,15 @@ Il DbContext di EventForge è:
 ### Build e Test
 ```bash
 # Verifica build
-dotnet build EventForge.Server/EventForge.Server.csproj
+dotnet build Prym.Server/Prym.Server.csproj
 
 # Risultato: ✅ Build succeeded (6 warnings non correlati)
 ```
 
 ### Repository
-- **GitHub**: ivanopaulon/EventForge
+- **GitHub**: ivanopaulon/Prym
 - **Branch**: copilot/analyze-dbcontext-configuration
-- **File Principale**: `/EventForge.Server/Data/EventForgeDbContext.cs`
+- **File Principale**: `/Prym.Server/Data/PrymDbContext.cs`
 
 ---
 

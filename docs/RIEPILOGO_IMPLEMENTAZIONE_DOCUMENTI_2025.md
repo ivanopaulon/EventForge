@@ -105,7 +105,7 @@
 <PackageVersion Include="ClosedXML" Version="0.104.2" />
 ```
 
-**2. EventForge.Server.csproj** ✨ (Aggiornato)
+**2. Prym.Server.csproj** ✨ (Aggiornato)
 ```xml
 <PackageReference Include="QuestPDF" />
 <PackageReference Include="ClosedXML" />
@@ -258,4 +258,4 @@ L'implementazione della Issue #255 è stata completata con successo utilizzando 
 **Report generato**: Gennaio 2025  
 **Versione**: 1.0  
 **Autore**: GitHub Copilot Agent  
-**Repository**: ivanopaulon/EventForge
+**Repository**: ivanopaulon/Prym

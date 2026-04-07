@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the implementation of comprehensive error logging and user-friendly error display for browser errors and license-related errors in EventForge.
+This document describes the implementation of comprehensive error logging and user-friendly error display for browser errors and license-related errors in Prym.
 
 ## Problem Statement
 
@@ -16,7 +16,7 @@ Previously, the application had the following issues:
 
 ### 1. Server-Side: ClientLogsController
 
-**File**: `EventForge.Server/Controllers/ClientLogsController.cs`
+**File**: `Prym.Server/Controllers/ClientLogsController.cs`
 
 A new controller was created to receive client-side logs and forward them to the Serilog infrastructure:
 
@@ -48,7 +48,7 @@ A new controller was created to receive client-side logs and forward them to the
 
 ### 2. Client-Side: Enhanced HttpClientService
 
-**File**: `EventForge.Client/Services/HttpClientService.cs`
+**File**: `Prym.Client/Services/HttpClientService.cs`
 
 Enhanced the HTTP client service to:
 
@@ -75,14 +75,14 @@ Enhanced the HTTP client service to:
 
 ### 3. Client-Side: JavaScript Error Handler
 
-**File**: `EventForge.Client/Shared/JavaScriptErrorHelper.cs`
+**File**: `Prym.Client/Shared/JavaScriptErrorHelper.cs`
 
 Updated to:
 - Display JavaScript errors to users via Snackbar
 - Show Italian message: "Si è verificato un errore nell'applicazione. L'errore è stato registrato."
 - Continue logging errors to the server
 
-**File**: `EventForge.Client/Shared/GlobalErrorHandler.razor`
+**File**: `Prym.Client/Shared/GlobalErrorHandler.razor`
 
 Enhanced to:
 - Prevent default browser error handling for unhandled promises
@@ -90,7 +90,7 @@ Enhanced to:
 
 ### 4. Server-Side: License Error Messages
 
-**File**: `EventForge.Server/Filters/RequireLicenseFeatureAttribute.cs`
+**File**: `Prym.Server/Filters/RequireLicenseFeatureAttribute.cs`
 
 Completely refactored to return proper `ProblemDetails` responses instead of plain text:
 
@@ -156,7 +156,7 @@ Completely refactored to return proper `ProblemDetails` responses instead of pla
 
 ### 5. Client-Side: UI Component Error Handling
 
-**File**: `EventForge.Client/Shared/Components/LicenseDrawer.razor`
+**File**: `Prym.Client/Shared/Components/LicenseDrawer.razor`
 
 Enhanced to handle specific HTTP error codes:
 

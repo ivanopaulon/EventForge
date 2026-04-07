@@ -1,0 +1,47 @@
+@namespace Prym.Client.Shared.Components
+@inject IUpdateNotificationService UpdateNotification
+@inject IDialogService DialogService
+@implements IDisposable
+
+@code {
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
+
+    private IDialogReference? _dialogRef;
+
+    protected override void OnInitialized()
+    {
+        UpdateNotification.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(async () =>
+        {
+            var needsDialog = UpdateNotification.IsActiveUpdate ||
+                              UpdateNotification.IsServerMaintenance ||
+                              UpdateNotification.HasPendingClientUpdate;
+
+            if (needsDialog && _dialogRef is null)
+            {
+                _dialogRef = await DialogService.ShowAsync<UpdateMaintenanceSystemDialog>(string.Empty, _options);
+                _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => _dialogRef = null));
+            }
+            else if (!needsDialog && _dialogRef is not null)
+            {
+                _dialogRef.Close();
+                _dialogRef = null;
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        UpdateNotification.StateChanged -= OnStateChanged;
+    }
+}

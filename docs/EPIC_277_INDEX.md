@@ -1,7 +1,7 @@
 # 📚 Epic #277 - Indice Documentazione
 
 **Epic**: Wizard Multi-step Documenti e UI Vendita  
-**Issue GitHub**: [#277](https://github.com/ivanopaulon/EventForge/issues/277)  
+**Issue GitHub**: [#277](https://github.com/ivanopaulon/Prym/issues/277)  
 **Status**: ✅ **100% COMPLETATO - Gennaio 2025**  
 **Branch Finale**: `copilot/fix-3c9bdfda-47e2-416d-a1c1-4fa195c53e88`
 
@@ -195,15 +195,15 @@ Manteniamo questi file per referenza storica e tracking evoluzione progetto:
 ## 🔗 Collegamenti Utili
 
 **Issue GitHub:**
-- [Epic #277](https://github.com/ivanopaulon/EventForge/issues/277)
-- [Issue #262 - UI wizard vendita](https://github.com/ivanopaulon/EventForge/issues/262)
-- [Issue #261 - Refactoring frontend](https://github.com/ivanopaulon/EventForge/issues/261)
-- [Issue #267 - Wizard documenti](https://github.com/ivanopaulon/EventForge/issues/267) (sospeso)
+- [Epic #277](https://github.com/ivanopaulon/Prym/issues/277)
+- [Issue #262 - UI wizard vendita](https://github.com/ivanopaulon/Prym/issues/262)
+- [Issue #261 - Refactoring frontend](https://github.com/ivanopaulon/Prym/issues/261)
+- [Issue #267 - Wizard documenti](https://github.com/ivanopaulon/Prym/issues/267) (sospeso)
 
 **Codice:**
-- Backend: `/EventForge.Server/`
-- Client Services: `/EventForge.Client/Services/Sales/`
-- DTOs: `/EventForge.DTOs/Sales/`
+- Backend: `/Prym.Server/`
+- Client Services: `/Prym.Client/Services/Sales/`
+- DTOs: `/Prym.DTOs/Sales/`
 
 **Swagger API Docs:**
 - Development: `https://localhost:5001/swagger`

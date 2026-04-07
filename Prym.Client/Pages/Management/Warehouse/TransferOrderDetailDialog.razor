@@ -1,0 +1,212 @@
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Warehouse
+@using Prym.Client.Shared.Components
+@using Prym.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject ITransferOrderService TransferOrderService
+@inject IAppNotificationService AppNotification
+
+<EFDialog Icon="@Icons.Material.Outlined.SwapHoriz"
+          Title="@(_transferOrder != null ? $"Transfer Order {_transferOrder.Number}" : "Transfer Order")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (_transferOrder == null)
+        {
+            <MudAlert Severity="Severity.Error">Transfer order not found</MudAlert>
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Order Information</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Number:</MudText></MudItem>
+                            <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.Number</MudText></MudItem>
+
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Series:</MudText></MudItem>
+                            <MudItem xs="7"><MudText Typo="Typo.body2">@(_transferOrder.Series ?? "N/A")</MudText></MudItem>
+
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Status:</MudText></MudItem>
+                            <MudItem xs="7">
+                                <MudChip T="string" Color="@GetStatusColor(_transferOrder.Status)" Size="Size.Small">
+                                    @_transferOrder.Status
+                                </MudChip>
+                            </MudItem>
+
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Order Date:</MudText></MudItem>
+                            <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.OrderDate.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
+
+                            @if (_transferOrder.ShipmentDate.HasValue)
+                            {
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Shipment Date:</MudText></MudItem>
+                                <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ShipmentDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
+                            }
+                            @if (_transferOrder.ExpectedArrivalDate.HasValue)
+                            {
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Expected Arrival:</MudText></MudItem>
+                                <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ExpectedArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
+                            }
+                            @if (_transferOrder.ActualArrivalDate.HasValue)
+                            {
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Actual Arrival:</MudText></MudItem>
+                                <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ActualArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
+                            }
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Warehouse Information</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Source Warehouse:</MudText></MudItem>
+                            <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.SourceWarehouseName</MudText></MudItem>
+
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Destination Warehouse:</MudText></MudItem>
+                            <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.DestinationWarehouseName</MudText></MudItem>
+
+                            @if (!string.IsNullOrEmpty(_transferOrder.ShippingReference))
+                            {
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Shipping Reference:</MudText></MudItem>
+                                <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ShippingReference</MudText></MudItem>
+                            }
+                            @if (!string.IsNullOrEmpty(_transferOrder.Notes))
+                            {
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Notes:</MudText></MudItem>
+                                <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.Notes</MudText></MudItem>
+                            }
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudPaper Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Transfer Items</MudText>
+                        <EFTable TItem="TransferOrderRowDto"
+                                 Items="@_transferOrder.Rows"
+                                 Dense="true"
+                                 Hover="true"
+                                 Striped="true"
+                                 ShowSearch="false"
+                                 ShowFilters="false"
+                                 ShowRefresh="false"
+                                 ShowCreate="false"
+                                 ShowExport="false"
+                                 ShowColumnConfiguration="false"
+                                 ShowFooter="false"
+                                 AllowDragDropGrouping="false"
+                                 ComponentKey="transfer-order-detail-dialog-rows"
+                                 InitialColumnConfigurations="@_rowColumns">
+                            <HeaderContent Context="columns">
+                                <MudTh>Product</MudTh>
+                                <MudTh>Code</MudTh>
+                                <MudTh>Source Location</MudTh>
+                                <MudTh>Dest. Location</MudTh>
+                                <MudTh>Lot</MudTh>
+                                <MudTh>Qty Ordered</MudTh>
+                                <MudTh>Qty Shipped</MudTh>
+                                <MudTh>Qty Received</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="row">
+                                <MudTd DataLabel="Product">@row.ProductName</MudTd>
+                                <MudTd DataLabel="Code">@row.ProductCode</MudTd>
+                                <MudTd DataLabel="Source Location">@row.SourceLocationCode</MudTd>
+                                <MudTd DataLabel="Dest. Location">@(row.DestinationLocationCode ?? "N/A")</MudTd>
+                                <MudTd DataLabel="Lot">@(row.LotCode ?? "N/A")</MudTd>
+                                <MudTd DataLabel="Qty Ordered">@row.QuantityOrdered</MudTd>
+                                <MudTd DataLabel="Qty Shipped">@row.QuantityShipped</MudTd>
+                                <MudTd DataLabel="Qty Received">@row.QuantityReceived</MudTd>
+                            </RowTemplate>
+                        </EFTable>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudPaper Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Audit Information</MudText>
+                        <MudText>Created: @_transferOrder.CreatedAt.ToString("yyyy-MM-dd HH:mm") by @(_transferOrder.CreatedBy ?? "N/A")</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Close</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
+
+    private Guid Id => EntityId!.Value;
+
+    private bool _isLoading = true;
+    private TransferOrderDto? _transferOrder;
+
+    private readonly List<EFTableColumnConfiguration> _rowColumns = new()
+    {
+        new() { PropertyName = "ProductName",             DisplayName = "Product",         Order = 0 },
+        new() { PropertyName = "ProductCode",             DisplayName = "Code",            Order = 1 },
+        new() { PropertyName = "SourceLocationCode",      DisplayName = "Source Location", Order = 2 },
+        new() { PropertyName = "DestinationLocationCode", DisplayName = "Dest. Location",  Order = 3 },
+        new() { PropertyName = "LotCode",                 DisplayName = "Lot",             Order = 4 },
+        new() { PropertyName = "QuantityOrdered",         DisplayName = "Qty Ordered",     Order = 5 },
+        new() { PropertyName = "QuantityShipped",         DisplayName = "Qty Shipped",     Order = 6 },
+        new() { PropertyName = "QuantityReceived",        DisplayName = "Qty Received",    Order = 7 },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTransferOrderAsync();
+    }
+
+    private async Task LoadTransferOrderAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _transferOrder = await TransferOrderService.GetTransferOrderAsync(Id);
+
+            if (_transferOrder == null)
+            {
+                AppNotification.ShowError("Transfer order not found");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Error loading transfer order: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Pending" => Color.Warning,
+            "Shipped" => Color.Info,
+            "InTransit" => Color.Primary,
+            "Completed" => Color.Success,
+            "Cancelled" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Close();
+    }
+}

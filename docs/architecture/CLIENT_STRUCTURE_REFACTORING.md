@@ -1,8 +1,8 @@
-# EventForge Client - Refactoring della Struttura delle Cartelle
+# Prym Client - Refactoring della Struttura delle Cartelle
 
 ## 📋 Panoramica
 
-Questo documento descrive la riorganizzazione completa della struttura delle cartelle del progetto **EventForge.Client**, implementata per migliorare la manutenibilità, la scalabilità e seguire le best practice di architettura software.
+Questo documento descrive la riorganizzazione completa della struttura delle cartelle del progetto **Prym.Client**, implementata per migliorare la manutenibilità, la scalabilità e seguire le best practice di architettura software.
 
 ## 🎯 Obiettivi del Refactoring
 
@@ -36,8 +36,8 @@ Questo documento descrive la riorganizzazione completa della struttura delle car
 ### 1. Rimozione Pagine Demo
 
 **File Rimossi:**
-- ❌ `EventForge.Client/Pages/LoadingDemo.razor`
-- ❌ `EventForge.Client/Pages/PerformanceDemo.razor`
+- ❌ `Prym.Client/Pages/LoadingDemo.razor`
+- ❌ `Prym.Client/Pages/PerformanceDemo.razor`
 
 **Motivazione**: Nessun riferimento nel codice, utilizzati solo per scopi di sviluppo/test.
 
@@ -200,13 +200,13 @@ Shared/Components/
 ### 4. Aggiornamenti Namespace
 
 **File Modificati:**
-- `EventForge.Client/_Imports.razor` - Aggiunti namespace per Dialogs e Drawers
-- `EventForge.Client/Pages/Management/Products/ProductDetail.razor` - Aggiornato namespace per ProductDetailTabs
+- `Prym.Client/_Imports.razor` - Aggiunti namespace per Dialogs e Drawers
+- `Prym.Client/Pages/Management/Products/ProductDetail.razor` - Aggiornato namespace per ProductDetailTabs
 
 ```razor
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
-@using EventForge.Client.Shared.Components.Drawers
+@using Prym.Client.Shared.Components
+@using Prym.Client.Shared.Components.Dialogs
+@using Prym.Client.Shared.Components.Drawers
 ```
 
 ## 📍 Impatto sul Routing
@@ -295,7 +295,7 @@ I namespace sono già configurati globalmente in `_Imports.razor`. I componenti 
 
 ### Build
 ```bash
-dotnet build EventForge.Client/EventForge.Client.csproj
+dotnet build Prym.Client/Prym.Client.csproj
 ```
 - ✅ **Risultato**: Build successful (0 errors, 229 warnings preesistenti)
 

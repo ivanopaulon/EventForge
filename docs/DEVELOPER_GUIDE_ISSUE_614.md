@@ -84,7 +84,7 @@
 
 ### 1. AddInventoryDocumentRowDto
 
-**File:** `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+**File:** `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
 
 ```csharp
 public class AddInventoryDocumentRowDto
@@ -134,7 +134,7 @@ var rowDto = new AddInventoryDocumentRowDto
 
 ### 2. BarcodeAssignmentInfo (Client Tracking)
 
-**File:** `EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
+**File:** `Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
 
 ```csharp
 private class BarcodeAssignmentInfo
@@ -174,7 +174,7 @@ Session End → List cleared
 
 ### 3. TrackBarcodeAssignment Method
 
-**File:** `EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
+**File:** `Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
 
 ```csharp
 private void TrackBarcodeAssignment(
@@ -234,10 +234,10 @@ private void TrackBarcodeAssignment(
 
 ### 4. InventoryBarcodeAuditPanel Component
 
-**File:** `EventForge.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
+**File:** `Prym.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
 
 ```razor
-@using EventForge.DTOs.Products
+@using Prym.DTOs.Products
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 
@@ -326,7 +326,7 @@ private void TrackBarcodeAssignment(
 
 ### 5. Server-side Merge Logic
 
-**File:** `EventForge.Server/Services/Documents/DocumentHeaderService.cs`  
+**File:** `Prym.Server/Services/Documents/DocumentHeaderService.cs`  
 **Lines:** 686-733
 
 ```csharp
@@ -1084,12 +1084,12 @@ INCLUDE (ProductId, Code, CodeType);
 ## References
 
 ### Code Files
-- `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
-- `EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
-- `EventForge.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
-- `EventForge.Server/Services/Documents/DocumentHeaderService.cs`
-- `EventForge.Tests/Services/Documents/DocumentRowMergeTests.cs`
-- `EventForge.Tests/DTOs/AddInventoryDocumentRowDtoTests.cs`
+- `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+- `Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
+- `Prym.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
+- `Prym.Server/Services/Documents/DocumentHeaderService.cs`
+- `Prym.Tests/Services/Documents/DocumentRowMergeTests.cs`
+- `Prym.Tests/DTOs/AddInventoryDocumentRowDtoTests.cs`
 
 ### Documentation
 - `ISSUE_614_COMPLETION_REPORT.md` - High-level overview

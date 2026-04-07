@@ -159,10 +159,10 @@ builder.Services.AddScoped<ProductDetailViewModel>();
 - Zero breaking changes (interface extracted from existing implementation)
 
 **Implementazione**:
-- ✅ Interface creata in `EventForge.Client/Services/IBusinessPartyService.cs`
+- ✅ Interface creata in `Prym.Client/Services/IBusinessPartyService.cs`
 - ✅ `BusinessPartyService` già implementa l'interfaccia
 - ✅ DI registration confermato in `Program.cs` (line 119)
-- ✅ Unit tests creati in `EventForge.Tests/Services/BusinessPartyServiceTests.cs`
+- ✅ Unit tests creati in `Prym.Tests/Services/BusinessPartyServiceTests.cs`
 - ✅ Zero breaking changes per consumer esistenti
 
 **Methods in IBusinessPartyService**:
@@ -283,9 +283,9 @@ builder.Services.AddScoped<ProductDetailViewModel>();
 
 ### Related Documents
 - Issue #687: Original feature request
-- `EventForge.Client/Services/IBrandService.cs`: Reference interface pattern
-- `EventForge.Client/Services/BrandService.cs`: Reference implementation pattern
-- `EventForge.Tests/Services/LookupCacheServiceTests.cs`: Reference test pattern
+- `Prym.Client/Services/IBrandService.cs`: Reference interface pattern
+- `Prym.Client/Services/BrandService.cs`: Reference implementation pattern
+- `Prym.Tests/Services/LookupCacheServiceTests.cs`: Reference test pattern
 
 ### External Resources
 - MVVM Pattern in Blazor: [Microsoft Docs]

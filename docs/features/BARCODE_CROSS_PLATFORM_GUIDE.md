@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the cross-platform barcode generation capabilities implemented in EventForge following the integration from PR #203. The implementation provides comprehensive barcode and QR code generation with platform-specific optimizations.
+This document outlines the cross-platform barcode generation capabilities implemented in Prym following the integration from PR #203. The implementation provides comprehensive barcode and QR code generation with platform-specific optimizations.
 
 ## Platform Support
 

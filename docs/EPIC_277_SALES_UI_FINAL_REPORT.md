@@ -21,7 +21,7 @@ Questo documento rappresenta il **report finale** dell'implementazione parziale 
 
 ### 2. Backend - Domain Layer (Entità)
 
-**Percorso**: `/EventForge.Server/Data/Entities/Sales/`
+**Percorso**: `/Prym.Server/Data/Entities/Sales/`
 
 Sono stati creati **6 file entità** completi:
 
@@ -76,7 +76,7 @@ Gestione completa tavoli per bar/ristorante:
 
 ### 3. Backend - API Contract Layer (DTOs)
 
-**Percorso**: `/EventForge.DTOs/Sales/`
+**Percorso**: `/Prym.DTOs/Sales/`
 
 Sono stati creati **6 file DTO** completi:
 
@@ -118,7 +118,7 @@ DTO completo sessione con:
 
 ### 4. Backend - Service Layer (DA IMPLEMENTARE)
 
-**Percorso stimato**: `/EventForge.Server/Services/Sales/`
+**Percorso stimato**: `/Prym.Server/Services/Sales/`
 
 #### Servizi necessari:
 
@@ -192,7 +192,7 @@ DTO completo sessione con:
 
 ### 5. Backend - Controller Layer (DA IMPLEMENTARE)
 
-**Percorso**: `/EventForge.Server/Controllers/`
+**Percorso**: `/Prym.Server/Controllers/`
 
 #### Controller necessari:
 
@@ -269,7 +269,7 @@ DELETE /api/v1/note-flags/{id}              - Elimina flag (admin)
 ### 6. Database Integration (DA IMPLEMENTARE)
 
 **File da modificare**:
-- `/EventForge.Server/Data/EventForgeDbContext.cs`
+- `/Prym.Server/Data/PrymDbContext.cs`
 
 **Tasks**:
 - [ ] Aggiungere DbSet per tutte le nuove entità:
@@ -293,7 +293,7 @@ DELETE /api/v1/note-flags/{id}              - Elimina flag (admin)
 
 - [ ] Creare migration:
   ```bash
-  dotnet ef migrations add AddSalesEntities --project EventForge.Server
+  dotnet ef migrations add AddSalesEntities --project Prym.Server
   ```
 
 - [ ] Creare seed data per:
@@ -304,7 +304,7 @@ DELETE /api/v1/note-flags/{id}              - Elimina flag (admin)
 
 ### 7. Frontend - Client Services (DA IMPLEMENTARE)
 
-**Percorso**: `/EventForge.Client/Services/`
+**Percorso**: `/Prym.Client/Services/`
 
 #### Servizi client necessari:
 
@@ -343,7 +343,7 @@ DELETE /api/v1/note-flags/{id}              - Elimina flag (admin)
 
 ### 8. Frontend - UI Implementation (DA IMPLEMENTARE)
 
-**Percorso**: `/EventForge.Client/Pages/Sales/`
+**Percorso**: `/Prym.Client/Pages/Sales/`
 
 #### Wizard Pages (Issue #262)
 
@@ -407,7 +407,7 @@ DELETE /api/v1/note-flags/{id}              - Elimina flag (admin)
 
 #### Shared Components
 
-**Percorso**: `/EventForge.Client/Shared/Components/Sales/`
+**Percorso**: `/Prym.Client/Shared/Components/Sales/`
 
 ##### `ProductKeyboard.razor`
 - Griglia prodotti configurabile (layout backend)
@@ -575,11 +575,11 @@ Features avanzate richieste ma non critiche:
 ### 1. Database Setup
 
 ```bash
-# Aprire EventForgeDbContext.cs
+# Aprire PrymDbContext.cs
 # Aggiungere DbSets per le nuove entità
 
 # Creare migration
-cd EventForge.Server
+cd Prym.Server
 dotnet ef migrations add AddSalesEntities
 
 # Applicare migration
@@ -592,7 +592,7 @@ Iniziare con `PaymentMethodService` (più semplice):
 
 ```bash
 # Creare directory
-mkdir -p EventForge.Server/Services/Sales
+mkdir -p Prym.Server/Services/Sales
 
 # Creare file
 # 1. IPaymentMethodService.cs
@@ -610,7 +610,7 @@ mkdir -p EventForge.Server/Services/Sales
 ### 4. Implementare client service
 
 ```bash
-# Creare EventForge.Client/Services/PaymentMethodService.cs
+# Creare Prym.Client/Services/PaymentMethodService.cs
 # Registrare in Program.cs
 ```
 
@@ -618,7 +618,7 @@ mkdir -p EventForge.Server/Services/Sales
 
 ```bash
 # Creare directory
-mkdir -p EventForge.Client/Pages/Sales
+mkdir -p Prym.Client/Pages/Sales
 
 # Creare SalesWizard.razor (container base)
 # Testare navigazione
@@ -671,7 +671,7 @@ mkdir -p EventForge.Client/Pages/Sales
 
 ### Backend Entities (6 files)
 ```
-EventForge.Server/Data/Entities/Sales/
+Prym.Server/Data/Entities/Sales/
 ├── SaleSession.cs          (148 lines)
 ├── SaleItem.cs             (95 lines)
 ├── SalePayment.cs          (91 lines)
@@ -682,7 +682,7 @@ EventForge.Server/Data/Entities/Sales/
 
 ### Backend DTOs (6 files)
 ```
-EventForge.DTOs/Sales/
+Prym.DTOs/Sales/
 ├── CreateUpdateSaleSessionDto.cs  (80 lines)
 ├── SaleSessionDto.cs              (140 lines)
 ├── SaleItemDtos.cs                (120 lines)
@@ -702,10 +702,10 @@ docs/
 
 ## 🔗 Riferimenti
 
-- **Epic #277**: https://github.com/ivanopaulon/EventForge/issues/277
-- **Issue #267**: https://github.com/ivanopaulon/EventForge/issues/267 (Wizard documenti - SOSPESO)
-- **Issue #262**: https://github.com/ivanopaulon/EventForge/issues/262 (UI Design)
-- **Issue #261**: https://github.com/ivanopaulon/EventForge/issues/261 (Technical Specs)
+- **Epic #277**: https://github.com/ivanopaulon/Prym/issues/277
+- **Issue #267**: https://github.com/ivanopaulon/Prym/issues/267 (Wizard documenti - SOSPESO)
+- **Issue #262**: https://github.com/ivanopaulon/Prym/issues/262 (UI Design)
+- **Issue #261**: https://github.com/ivanopaulon/Prym/issues/261 (Technical Specs)
 - **Branch**: copilot/fix-48be7c6b-6c7e-4322-9d90-f27bd8b62aac
 
 ---

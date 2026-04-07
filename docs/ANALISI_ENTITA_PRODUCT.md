@@ -13,7 +13,7 @@
 
 ## Panoramica
 
-Il sistema EventForge implementa un modello dati completo per la gestione dei prodotti. L'entità centrale `Product` è connessa a diverse entità correlate che forniscono funzionalità estese per la gestione dell'inventario, classificazione, prezzi, fornitori e composizione dei prodotti.
+Il sistema Prym implementa un modello dati completo per la gestione dei prodotti. L'entità centrale `Product` è connessa a diverse entità correlate che forniscono funzionalità estese per la gestione dell'inventario, classificazione, prezzi, fornitori e composizione dei prodotti.
 
 Questo documento fornisce un'analisi dettagliata dell'entità `Product` e di tutte le entità ad essa collegate.
 
@@ -22,7 +22,7 @@ Questo documento fornisce un'analisi dettagliata dell'entità `Product` e di tut
 ## Entità Product
 
 ### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `Product.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -132,7 +132,7 @@ public enum ProductStatus
 ### 1. ProductCode
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `ProductCode.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -168,7 +168,7 @@ public enum ProductCodeStatus
 ### 2. ProductUnit
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `ProductUnit.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -209,7 +209,7 @@ public enum ProductUnitStatus
 ### 3. ProductSupplier
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `ProductSupplier.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -249,7 +249,7 @@ Rappresenta la relazione tra un prodotto e un fornitore. Gestisce informazioni s
 ### 4. ProductBundleItem
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `ProductBundleItem.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -277,7 +277,7 @@ Rappresenta un componente di un bundle di prodotti. Permette di creare prodotti 
 ### 5. Brand
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `Brand.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -303,7 +303,7 @@ Rappresenta un brand o produttore di prodotti.
 ### 6. Model
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Products`  
+**Namespace**: `Prym.Server.Data.Entities.Products`  
 **File**: `Model.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -331,7 +331,7 @@ Rappresenta un modello di prodotto all'interno di un brand.
 ### 1. ClassificationNode
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Common`  
+**Namespace**: `Prym.Server.Data.Entities.Common`  
 **File**: `ClassificationNode.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -366,7 +366,7 @@ Rappresenta un nodo nella gerarchia di classificazione dei prodotti (categoria, 
 ### 2. VatRate
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Common`  
+**Namespace**: `Prym.Server.Data.Entities.Common`  
 **File**: `VatRate.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -406,7 +406,7 @@ public enum ProductVatRateStatus
 ### 3. UM (Unit of Measure)
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Common`  
+**Namespace**: `Prym.Server.Data.Entities.Common`  
 **File**: `UM.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -431,7 +431,7 @@ Rappresenta un'unità di misura (es. "Kg", "L", "Pezzi").
 ### 4. Station
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.StationMonitor`  
+**Namespace**: `Prym.Server.Data.Entities.StationMonitor`  
 **File**: `Station.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -469,7 +469,7 @@ public enum StationStatus
 ### 5. BusinessParty
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Business`  
+**Namespace**: `Prym.Server.Data.Entities.Business`  
 **File**: `BusinessParty.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -508,7 +508,7 @@ public enum BusinessPartyType
 ### 6. DocumentReference
 
 #### Definizione
-**Namespace**: `EventForge.Server.Data.Entities.Teams`  
+**Namespace**: `Prym.Server.Data.Entities.Teams`  
 **File**: `DocumentReference.cs`  
 **Base Class**: `AuditableEntity`
 
@@ -897,7 +897,7 @@ Il sistema utilizza:
 
 ## Riepilogo
 
-Il modello dati di EventForge per la gestione dei prodotti è:
+Il modello dati di Prym per la gestione dei prodotti è:
 
 ### ✅ Punti di Forza
 
@@ -933,13 +933,13 @@ Il sistema gestisce **15+ relazioni dirette** dalla tabella Product verso altre 
 
 ## Riferimenti
 
-- **Codice sorgente**: `/EventForge.Server/Data/Entities/Products/`
-- **Entità comuni**: `/EventForge.Server/Data/Entities/Common/`
-- **DTOs**: `/EventForge.DTOs/Products/`
-- **Servizi**: `/EventForge.Server/Services/Products/`
+- **Codice sorgente**: `/Prym.Server/Data/Entities/Products/`
+- **Entità comuni**: `/Prym.Server/Data/Entities/Common/`
+- **DTOs**: `/Prym.DTOs/Products/`
+- **Servizi**: `/Prym.Server/Services/Products/`
 
 ---
 
 *Documento generato in data: Gennaio 2025*  
 *Versione: 1.0*  
-*Repository: ivanopaulon/EventForge*
+*Repository: ivanopaulon/Prym*

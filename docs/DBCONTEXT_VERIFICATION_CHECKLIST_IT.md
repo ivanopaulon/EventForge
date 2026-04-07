@@ -1,9 +1,9 @@
-# Checklist Verifica DbContext EventForge
+# Checklist Verifica DbContext Prym
 
 ## ✅ VERIFICA COMPLETATA CON SUCCESSO
 
 **Data**: Gennaio 2025  
-**File**: `/EventForge.Server/Data/EventForgeDbContext.cs`  
+**File**: `/Prym.Server/Data/PrymDbContext.cs`  
 **Stato**: ✅ TUTTO CORRETTAMENTE CONFIGURATO
 
 ---
@@ -431,7 +431,7 @@ Unique composite indexes usati per:
 
 ### Conclusione
 
-**Il DbContext di EventForge è COMPLETO e CORRETTAMENTE CONFIGURATO.**
+**Il DbContext di Prym è COMPLETO e CORRETTAMENTE CONFIGURATO.**
 
 ✅ Tutte le entità sono registrate  
 ✅ Tutte le relazioni sono definite  

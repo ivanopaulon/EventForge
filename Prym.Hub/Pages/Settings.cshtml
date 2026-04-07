@@ -1,0 +1,201 @@
+@page
+@model Prym.Hub.Pages.SettingsModel
+@{
+    ViewData["Title"] = "Impostazioni";
+    ViewData["PageSection"] = "Configurazione";
+}
+
+<div class="ef-page-header">
+    <div>
+        <h1 class="ef-page-title"><i class="bi bi-gear-fill me-2"></i>Impostazioni Hub</h1>
+        <p class="ef-page-subtitle">Configurazione completa di Prym Update Hub</p>
+    </div>
+</div>
+
+@if (Model.IsDefaultCredentials)
+{
+    <div class="alert alert-warning d-flex align-items-center mx-0 mb-4" role="alert">
+        <i class="bi bi-shield-exclamation me-3 fs-4"></i>
+        <div>
+            <strong>Credenziali predefinite attive.</strong>
+            Le credenziali UI sono impostate ai valori di default (<code>admin / Admin#123!</code>).
+            Cambiarle prima di esporre il servizio.
+        </div>
+    </div>
+}
+
+<form method="post">
+    <div class="row g-4">
+
+        <!-- ── Sicurezza ──────────────────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-shield-lock-fill me-2"></i>Sicurezza
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Admin API Key</label>
+                            <input asp-for="AdminApiKey" class="form-control ef-form-input" type="password"
+                                   placeholder="Lasciare vuoto per disabilitare l'API admin" autocomplete="new-password" />
+                            <div class="form-text">Header <code>X-Admin-Key</code> richiesto dagli endpoint REST admin. Vuoto = API admin disabilitata.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">URL Pubblico Hub</label>
+                            <input asp-for="BaseUrl" class="form-control ef-form-input"
+                                   placeholder="https://updatehub.example.com" />
+                            <div class="form-text">URL base usato per costruire i link di download inviati agli agent. Lasciare vuoto per derivarlo dalla richiesta.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Enrollment Token</label>
+                            <input asp-for="EnrollmentToken" class="form-control ef-form-input" type="password"
+                                   placeholder="Segreto condiviso per l'auto-registrazione Agent" autocomplete="new-password" />
+                            <div class="form-text">
+                                Token segreto che un nuovo Agent deve presentare per richiedere la propria API key automaticamente.
+                                Vuoto = auto-enrollment disabilitato (registrazione manuale obbligatoria).
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end pb-1">
+                            <div class="form-check form-switch">
+                                <input asp-for="AllowAutoEnrollment" class="form-check-input" type="checkbox" role="switch" />
+                                <label class="form-check-label fw-semibold" asp-for="AllowAutoEnrollment">
+                                    Abilita Auto-Enrollment
+                                </label>
+                                <div class="form-text">Consenti agli agent di auto-registrarsi presentando l'Enrollment Token.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Credenziali UI ─────────────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-person-lock me-2"></i>Credenziali Interfaccia Web
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Username</label>
+                            <input asp-for="UiUsername" class="form-control ef-form-input"
+                                   placeholder="admin" autocomplete="username" />
+                            <div class="form-text">Username per l'autenticazione HTTP Basic della UI web.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Password</label>
+                            <input asp-for="UiPassword" class="form-control ef-form-input" type="password"
+                                   placeholder="••••••••" autocomplete="new-password" />
+                            <div class="form-text">Password per l'autenticazione HTTP Basic della UI web. Attiva immediatamente.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Pacchetti ──────────────────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-box-seam-fill me-2"></i>Gestione Pacchetti
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Directory Pacchetti</label>
+                            <input asp-for="PackageStorePath" class="form-control ef-form-input"
+                                   placeholder="packages" />
+                            <div class="form-text">Percorso dove i pacchetti validati vengono archiviati e serviti.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Directory Incoming</label>
+                            <input asp-for="IncomingPackagesPath" class="form-control ef-form-input"
+                                   placeholder="packages/incoming" />
+                            <div class="form-text">Directory monitorata per nuovi pacchetti .zip da auto-ingestire.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Dimensione Max Upload (MB)</label>
+                            <input asp-for="MaxUploadSizeMb" class="form-control ef-form-input" type="number" min="1" max="10240" />
+                            <div class="form-text">Limite dimensione per singolo file pacchetto caricato.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Retention Pacchetti (giorni)</label>
+                            <input asp-for="PackageRetentionDays" class="form-control ef-form-input" type="number" min="0" />
+                            <div class="form-text">Giorni prima che i pacchetti archiviati/distribuiti vengano rimossi dal disco. 0 = conserva sempre.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Intervallo Pulizia (ore)</label>
+                            <input asp-for="PackageCleanupIntervalHours" class="form-control ef-form-input" type="number" min="0" />
+                            <div class="form-text">Frequenza del job di pulizia background in ore. 0 = disabilitato.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Monitoraggio Agent ──────────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-pc-display-horizontal me-2"></i>Monitoraggio Agent
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Timeout Heartbeat (sec)</label>
+                            <input asp-for="HeartbeatTimeoutSeconds" class="form-control ef-form-input" type="number" min="10" />
+                            <div class="form-text">Secondi dall'ultimo heartbeat prima di considerare un'installazione offline.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Intervallo Controllo Stato (sec)</label>
+                            <input asp-for="AgentStatusCheckIntervalSeconds" class="form-control ef-form-input" type="number" min="10" />
+                            <div class="form-text">Frequenza del controllo background che marca offline le installazioni stale.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Max Aggiornamenti Concorrenti</label>
+                            <input asp-for="MaxConcurrentUpdates" class="form-control ef-form-input" type="number" min="0" />
+                            <div class="form-text">Numero massimo di operazioni di update simultanee. 0 = illimitato.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Log ────────────────────────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-file-text me-2"></i>Log
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Retention Log (giorni)</label>
+                            <input asp-for="LogRetentionDays" class="form-control ef-form-input" type="number" min="1" />
+                            <div class="form-text">Numero di file di log giornalieri da conservare (rolling Serilog).</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Directory Log</label>
+                            <input asp-for="LogDirectoryPath" class="form-control ef-form-input"
+                                   placeholder="Predefinito: {ContentRootPath}/logs" />
+                            <div class="form-text">Percorso assoluto o relativo per i file di log. Vuoto = usa la directory predefinita.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Azioni ──────────────────────────────────────────────────── -->
+        <div class="col-12 d-flex gap-3">
+            <button type="submit" class="ef-btn ef-btn-primary">
+                <i class="bi bi-floppy-fill me-2"></i>Salva Impostazioni
+            </button>
+            <a href="/" class="ef-btn ef-btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Annulla
+            </a>
+        </div>
+
+    </div>
+</form>

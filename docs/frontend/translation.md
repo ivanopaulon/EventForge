@@ -1,10 +1,10 @@
-# Translation Guide - EventForge
+# Translation Guide - Prym
 
-This guide explains how to add or update translations for the EventForge Blazor client application.
+This guide explains how to add or update translations for the Prym Blazor client application.
 
 ## Overview
 
-EventForge uses a custom translation service (`TranslationService`) that loads translations from JSON files located in `EventForge.Client/wwwroot/i18n/`.
+Prym uses a custom translation service (`TranslationService`) that loads translations from JSON files located in `Prym.Client/wwwroot/i18n/`.
 
 ## Supported Languages
 
@@ -14,7 +14,7 @@ Currently supported languages:
 
 ## Translation File Structure
 
-Translation files are located in: `EventForge.Client/wwwroot/i18n/`
+Translation files are located in: `Prym.Client/wwwroot/i18n/`
 
 Each language has its own JSON file:
 - `it.json` - Italian (default)
@@ -45,13 +45,13 @@ Each language has its own JSON file:
 
 ## Adding a New Language
 
-1. **Create a new JSON file** in `EventForge.Client/wwwroot/i18n/` with the language code (e.g., `de.json` for German)
+1. **Create a new JSON file** in `Prym.Client/wwwroot/i18n/` with the language code (e.g., `de.json` for German)
 
 2. **Copy the structure** from an existing file (e.g., `en.json`) and translate all values
 
 3. **Update the TranslationService** to include the new language:
    ```csharp
-   // In EventForge.Client/Services/TranslationService.cs
+   // In Prym.Client/Services/TranslationService.cs
    private readonly Dictionary<string, string> _availableLanguages = new()
    {
        { "it", "Italiano" },
@@ -64,13 +64,13 @@ Each language has its own JSON file:
 
 ## Updating Existing Translations
 
-1. **Edit the appropriate JSON file** in `EventForge.Client/wwwroot/i18n/`
+1. **Edit the appropriate JSON file** in `Prym.Client/wwwroot/i18n/`
 
 2. **Maintain the same structure** - only change the translation values, not the keys
 
 3. **Test your changes** by running the application:
    ```bash
-   cd EventForge.Client
+   cd Prym.Client
    dotnet run
    ```
 
@@ -108,15 +108,15 @@ Always validate your JSON files before committing:
 
 ```bash
 # Linux/Mac
-python3 -m json.tool EventForge.Client/wwwroot/i18n/your-file.json
+python3 -m json.tool Prym.Client/wwwroot/i18n/your-file.json
 
 # Windows
-python -m json.tool EventForge.Client/wwwroot/i18n/your-file.json
+python -m json.tool Prym.Client/wwwroot/i18n/your-file.json
 ```
 
 ### Testing Translations
 
-1. Run the application: `cd EventForge.Client && dotnet run`
+1. Run the application: `cd Prym.Client && dotnet run`
 2. Open browser at `http://localhost:5048`
 3. Test language switching if available
 4. Check browser console for any translation warnings
@@ -144,9 +144,9 @@ python -m json.tool EventForge.Client/wwwroot/i18n/your-file.json
 
 ## File Locations
 
-- **Translation files**: `EventForge.Client/wwwroot/i18n/*.json`
-- **Translation service**: `EventForge.Client/Services/TranslationService.cs`
-- **Language selector**: `EventForge.Client/Shared/Components/LanguageSelector.razor`
+- **Translation files**: `Prym.Client/wwwroot/i18n/*.json`
+- **Translation service**: `Prym.Client/Services/TranslationService.cs`
+- **Language selector**: `Prym.Client/Shared/Components/LanguageSelector.razor`
 
 ## Future Enhancements
 

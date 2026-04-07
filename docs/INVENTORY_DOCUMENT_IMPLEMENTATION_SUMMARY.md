@@ -150,17 +150,17 @@ On first use, the system creates:
 ## Files Changed
 
 ### Added (11 files)
-- `EventForge.DTOs/Warehouse/CreateInventoryDocumentDto.cs`
-- `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
-- `EventForge.DTOs/Warehouse/InventoryDocumentDto.cs`
-- `EventForge.DTOs/Warehouse/InventoryDocumentRowDto.cs`
+- `Prym.DTOs/Warehouse/CreateInventoryDocumentDto.cs`
+- `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+- `Prym.DTOs/Warehouse/InventoryDocumentDto.cs`
+- `Prym.DTOs/Warehouse/InventoryDocumentRowDto.cs`
 - `docs/INVENTORY_DOCUMENT_WORKFLOW.md`
 - `docs/PROCEDURA_INVENTARIO_DOCUMENTO.md`
 
 ### Modified (3 files)
-- `EventForge.Server/Controllers/WarehouseManagementController.cs` - Added 3 endpoints and DocumentHeaderService dependency
-- `EventForge.Server/Services/Documents/IDocumentHeaderService.cs` - Added 3 method signatures
-- `EventForge.Server/Services/Documents/DocumentHeaderService.cs` - Implemented 3 new methods
+- `Prym.Server/Controllers/WarehouseManagementController.cs` - Added 3 endpoints and DocumentHeaderService dependency
+- `Prym.Server/Services/Documents/IDocumentHeaderService.cs` - Added 3 method signatures
+- `Prym.Server/Services/Documents/DocumentHeaderService.cs` - Implemented 3 new methods
 
 ## Next Steps for Frontend Integration
 

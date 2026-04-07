@@ -194,11 +194,11 @@ The changes have been built and verified:
 
 ## Files Changed
 
-1. `EventForge.Client/Shared/Components/CreateProductDialog.razor`
+1. `Prym.Client/Shared/Components/CreateProductDialog.razor`
    - Added IClientLogService injection
    - Enhanced error handling and logging throughout
 
-2. `EventForge.Server/appsettings.json`
+2. `Prym.Server/appsettings.json`
    - Added clarifying comments about Serilog configuration
 
 3. `docs/LOGGING_CONFIGURATION.md` (NEW)

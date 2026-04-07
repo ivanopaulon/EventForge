@@ -1,0 +1,489 @@
+@using Prym.DTOs.Dashboard
+@inject ITranslationService TranslationService
+@inject IDashboardConfigurationService DashboardConfigurationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<DashboardConfigurationDialog> Logger
+@inject IDialogService DialogService
+
+<EFDialog Icon="@Icons.Material.Outlined.Dashboard"
+          Title="@TranslationService.GetTranslation("dashboard.configTitle", "Configurazione Dashboard")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3">
+            @if (_isLoading)
+            {
+                <div class="d-flex justify-center align-center pa-4">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    <MudText Class="ml-3">Caricamento configurazione...</MudText>
+                </div>
+            }
+            else if (_isFirstTimeSetup)
+            {
+                <MudAlert Severity="Severity.Info">
+                    Nessuna configurazione trovata per questa dashboard. Crea la tua prima configurazione personalizzata!
+                </MudAlert>
+                
+                <MudTextField @bind-Value="_configurationName"
+                              Label="Nome Configurazione"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Immediate="true" />
+                
+                <MudTextField @bind-Value="_configurationDescription"
+                              Label="Descrizione (opzionale)"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+                
+                <MudCheckBox @bind-Value="_setAsDefault"
+                             Color="Color.Primary"
+                             Label="Imposta come configurazione predefinita" />
+                
+                <MudText Typo="Typo.h6" Class="mt-3">Metriche Dashboard</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Aggiungi le metriche che desideri visualizzare nella dashboard. Puoi riordinarle e configurarle.
+                </MudText>
+                
+                @if (_metrics.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning">
+                        Nessuna metrica aggiunta. Aggiungi almeno una metrica per creare la configurazione.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
+                        @foreach (var (metric, index) in _metrics.Select((m, i) => (m, i)))
+                        {
+                            <MudPaper Elevation="1" Class="pa-2 mb-2 metric-card"
+                                      draggable="true" 
+                                      @ondragstart="@(() => _draggedMetricIndex = index)"
+                                      @ondragover:preventDefault
+                                      @ondrop="@(() => HandleDrop(index))"
+                                      @onmouseenter="@(() => _hoveredMetricIndex = index)"
+                                      @onmouseleave="@(() => _hoveredMetricIndex = null)">
+                                <div class="d-flex align-center gap-3">
+                                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Style="cursor: move;" />
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@(index + 1)</MudChip>
+                                    <div class="flex-grow-1">
+                                        <MudText Typo="Typo.body1">@metric.Title</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            Tipo: @GetMetricTypeLabel(metric.Type)
+                                        </MudText>
+                                    </div>
+                                    
+                                    @if (_hoveredMetricIndex == index)
+                                    {
+                                        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" Size="Size.Small">
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(async () => await EditMetric(index))">
+                                                Modifica
+                                            </MudMenuItem>
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.ContentCopy" OnClick="@(() => DuplicateMetric(index))">
+                                                Duplica
+                                            </MudMenuItem>
+                                            <MudDivider />
+                                            <MudMenuItem Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="@(() => RemoveMetric(index))">
+                                                Elimina
+                                            </MudMenuItem>
+                                        </MudMenu>
+                                    }
+                                </div>
+                            </MudPaper>
+                        }
+                    </MudPaper>
+                }
+                
+                <MudButton OnClick="@(async () => await AddNewMetric())"
+                          StartIcon="@Icons.Material.Outlined.Add"
+                          Color="Color.Primary"
+                          Variant="Variant.Outlined"
+                          FullWidth="true">
+                    Aggiungi Metrica
+                </MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.body1">
+                    Gestisci le configurazioni della dashboard esistenti o creane di nuove.
+                </MudText>
+                
+                @if (_configurations.Count > 0)
+                {
+                    <MudList T="string" Clickable="true">
+                        @foreach (var config in _configurations)
+                        {
+                            <MudListItem>
+                                <div class="d-flex align-center justify-space-between">
+                                    <div>
+                                        <MudText Typo="Typo.body1">@config.Name</MudText>
+                                        @if (!string.IsNullOrEmpty(config.Description))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@config.Description</MudText>
+                                        }
+                                        @if (config.IsDefault)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">Predefinita</MudChip>
+                                        }
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                      Size="Size.Small"
+                                                      Color="Color.Primary"
+                                                      OnClick="@(() => EditConfiguration(config.Id))" />
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                      Size="Size.Small"
+                                                      Color="Color.Error"
+                                                      OnClick="@(() => DeleteConfiguration(config.Id))" />
+                                        @if (!config.IsDefault)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Star"
+                                                          Size="Size.Small"
+                                                          Color="Color.Warning"
+                                                          OnClick="@(() => SetAsDefault(config.Id))"
+                                                          Title="Imposta come predefinita" />
+                                        }
+                                    </div>
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+                
+                <MudButton OnClick="@CreateNewConfiguration"
+                          StartIcon="@Icons.Material.Outlined.Add"
+                          Color="Color.Primary"
+                          Variant="Variant.Filled"
+                          FullWidth="true">
+                    Crea Nuova Configurazione
+                </MudButton>
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        @if (_isFirstTimeSetup)
+        {
+            <MudButton Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      OnClick="SaveConfiguration"
+                      Disabled="@(!CanSave())">
+                Salva Configurazione
+            </MudButton>
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string EntityType { get; set; } = string.Empty;
+
+    private bool _isLoading = true;
+    private bool _isFirstTimeSetup = false;
+    private string _configurationName = "Configurazione Predefinita";
+    private string _configurationDescription = string.Empty;
+    private bool _setAsDefault = true;
+    private List<DashboardMetricConfigDto> _metrics = new();
+    private List<DashboardConfigurationDto> _configurations = new();
+    private Guid? _editingConfigurationId = null;
+    private int? _hoveredMetricIndex;
+    private int? _draggedMetricIndex;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadConfigurationsAsync();
+    }
+
+    private async Task LoadConfigurationsAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _configurations = (await DashboardConfigurationService.GetConfigurationsAsync(EntityType)).ToList();
+            
+            if (_configurations.Count == 0)
+            {
+                _isFirstTimeSetup = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading dashboard configurations");
+            AppNotification.ShowError("Errore nel caricamento delle configurazioni");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task AddNewMetric()
+    {
+        var newMetric = new DashboardMetricConfigDto
+        {
+            Title = $"Metrica {_metrics.Count + 1}",
+            Type = MetricType.Count,
+            Order = _metrics.Count,
+            Icon = Icons.Material.Outlined.Analytics,
+            Color = "primary",
+            Format = "N0"
+        };
+
+        var parameters = new DialogParameters<MetricEditorDialog>
+        {
+            { x => x.Metric, newMetric },
+            { x => x.IsNewMetric, true }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+            "Crea Nuova Metrica",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto createdMetric)
+        {
+            createdMetric.Order = _metrics.Count;
+            _metrics.Add(createdMetric);
+            AppNotification.ShowSuccess("Metrica aggiunta con successo");
+        }
+    }
+
+    private async Task EditMetric(int index)
+    {
+        var metricToEdit = _metrics[index];
+        var parameters = new DialogParameters<MetricEditorDialog>
+        {
+            { x => x.Metric, metricToEdit },
+            { x => x.IsNewMetric, false }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true
+        };
+
+        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+            "Modifica Metrica",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto editedMetric)
+        {
+            _metrics[index] = editedMetric;
+            _metrics[index].Order = index; // Preserve order
+            AppNotification.ShowSuccess("Metrica modificata con successo");
+        }
+    }
+
+    private void RemoveMetric(int index)
+    {
+        _metrics.RemoveAt(index);
+        // Reorder remaining metrics
+        for (int i = 0; i < _metrics.Count; i++)
+        {
+            _metrics[i].Order = i;
+        }
+    }
+
+    private void MoveMetricUp(int index)
+    {
+        if (index > 0)
+        {
+            var temp = _metrics[index];
+            _metrics[index] = _metrics[index - 1];
+            _metrics[index - 1] = temp;
+            _metrics[index].Order = index;
+            _metrics[index - 1].Order = index - 1;
+        }
+    }
+
+    private void MoveMetricDown(int index)
+    {
+        if (index < _metrics.Count - 1)
+        {
+            var temp = _metrics[index];
+            _metrics[index] = _metrics[index + 1];
+            _metrics[index + 1] = temp;
+            _metrics[index].Order = index;
+            _metrics[index + 1].Order = index + 1;
+        }
+    }
+
+    private void HandleDrop(int targetIndex)
+    {
+        if (_draggedMetricIndex.HasValue && _draggedMetricIndex != targetIndex)
+        {
+            var metric = _metrics[_draggedMetricIndex.Value];
+            _metrics.RemoveAt(_draggedMetricIndex.Value);
+            if (_draggedMetricIndex < targetIndex) targetIndex--;
+            _metrics.Insert(targetIndex, metric);
+            for (int i = 0; i < _metrics.Count; i++) _metrics[i].Order = i;
+            StateHasChanged();
+        }
+        _draggedMetricIndex = null;
+    }
+
+    private void DuplicateMetric(int index)
+    {
+        var original = _metrics[index];
+        var duplicate = new DashboardMetricConfigDto
+        {
+            Title = $"{original.Title} (Copia)",
+            Description = original.Description,
+            Type = original.Type,
+            FieldName = original.FieldName,
+            Format = original.Format,
+            Icon = original.Icon,
+            Color = original.Color,
+            Order = _metrics.Count
+        };
+        _metrics.Add(duplicate);
+        AppNotification.ShowSuccess("Metrica duplicata");
+    }
+
+    private string GetMetricTypeLabel(MetricType type)
+    {
+        return type switch
+        {
+            MetricType.Count => "Conteggio",
+            MetricType.Sum => "Somma",
+            MetricType.Average => "Media",
+            MetricType.Min => "Minimo",
+            MetricType.Max => "Massimo",
+            _ => type.ToString()
+        };
+    }
+
+    private bool CanSave()
+    {
+        return !string.IsNullOrWhiteSpace(_configurationName) && _metrics.Count > 0;
+    }
+
+    private async Task SaveConfiguration()
+    {
+        if (!CanSave())
+        {
+            AppNotification.ShowWarning("Inserisci un nome e almeno una metrica");
+            return;
+        }
+
+        try
+        {
+            if (_editingConfigurationId.HasValue)
+            {
+                // Update existing configuration
+                var updateDto = new UpdateDashboardConfigurationDto
+                {
+                    Name = _configurationName,
+                    Description = _configurationDescription,
+                    IsDefault = _setAsDefault,
+                    Metrics = _metrics
+                };
+
+                await DashboardConfigurationService.UpdateConfigurationAsync(_editingConfigurationId.Value, updateDto);
+                AppNotification.ShowSuccess("Configurazione aggiornata con successo!");
+            }
+            else
+            {
+                // Create new configuration
+                var createDto = new CreateDashboardConfigurationDto
+                {
+                    Name = _configurationName,
+                    Description = _configurationDescription,
+                    EntityType = EntityType,
+                    IsDefault = _setAsDefault,
+                    Metrics = _metrics
+                };
+
+                await DashboardConfigurationService.CreateConfigurationAsync(createDto);
+                AppNotification.ShowSuccess("Configurazione salvata con successo!");
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving dashboard configuration");
+            AppNotification.ShowError("Errore nel salvataggio della configurazione");
+        }
+    }
+
+    private void CreateNewConfiguration()
+    {
+        _isFirstTimeSetup = true;
+        _metrics.Clear();
+        _configurationName = "Nuova Configurazione";
+        _configurationDescription = string.Empty;
+        _setAsDefault = false;
+    }
+
+    private async Task EditConfiguration(Guid id)
+    {
+        try
+        {
+            var config = await DashboardConfigurationService.GetConfigurationByIdAsync(id);
+            if (config != null)
+            {
+                _editingConfigurationId = id;
+                _isFirstTimeSetup = true;
+                _configurationName = config.Name;
+                _configurationDescription = config.Description ?? string.Empty;
+                _setAsDefault = config.IsDefault;
+                _metrics = config.Metrics.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading configuration for edit");
+            AppNotification.ShowError("Errore nel caricamento della configurazione");
+        }
+    }
+
+    private async Task DeleteConfiguration(Guid id)
+    {
+        try
+        {
+            await DashboardConfigurationService.DeleteConfigurationAsync(id);
+            AppNotification.ShowSuccess("Configurazione eliminata");
+            await LoadConfigurationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting configuration");
+            AppNotification.ShowError("Errore nell'eliminazione della configurazione");
+        }
+    }
+
+    private async Task SetAsDefault(Guid id)
+    {
+        try
+        {
+            await DashboardConfigurationService.SetAsDefaultAsync(id);
+            AppNotification.ShowSuccess("Configurazione impostata come predefinita");
+            await LoadConfigurationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting configuration as default");
+            AppNotification.ShowError("Errore nell'impostazione della configurazione predefinita");
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

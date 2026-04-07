@@ -1,4 +1,4 @@
-# Analisi Copertura Traduzioni - EventForge
+# Analisi Copertura Traduzioni - Prym
 
 > **⚠️ AGGIORNAMENTO (2024):** Il supporto per le lingue Spagnolo e Francese è stato rimosso dal progetto.
 > Il sistema ora supporta solo Italiano (it) e Inglese (en), che sono stati completamente allineati con 1615 chiavi ciascuno.
@@ -7,7 +7,7 @@
 ## Sommario Esecutivo
 
 Data dell'analisi: 30 Settembre 2024
-Analisi eseguita su tutte le pagine Razor e file di traduzione nel progetto EventForge.Client.
+Analisi eseguita su tutte le pagine Razor e file di traduzione nel progetto Prym.Client.
 
 ## Situazione Attuale
 
@@ -145,11 +145,11 @@ Tutta la documentazione è pronta per permettere al team di iniziare l'implement
 
 ## Istruzioni di Implementazione
 
-1. Aprire ogni file di lingua in `EventForge.Client/wwwroot/i18n/`
+1. Aprire ogni file di lingua in `Prym.Client/wwwroot/i18n/`
 2. Aggiungere le sezioni dal documento `critical_translations_to_add.md`
 3. Assicurare sintassi JSON corretta (virgole tra sezioni, nessuna virgola finale)
 4. Validare la sintassi JSON prima di salvare
 5. Testare l'applicazione per verificare che le traduzioni si carichino correttamente
 
 ---
-Generato dal Tool di Analisi Traduzioni EventForge
+Generato dal Tool di Analisi Traduzioni Prym

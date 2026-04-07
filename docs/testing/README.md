@@ -1,6 +1,6 @@
 # Testing & Quality Assurance Documentation
 
-Documentazione completa per testing e controllo qualità di EventForge.
+Documentazione completa per testing e controllo qualità di Prym.
 
 ## 📋 Indice
 
@@ -30,7 +30,7 @@ Documentazione completa per testing e controllo qualità di EventForge.
 ## 🚀 Quick Start per Testing
 
 ### Struttura Test
-EventForge utilizza xUnit con categorizzazione tramite traits:
+Prym utilizza xUnit con categorizzazione tramite traits:
 
 ```bash
 # Esegui tutti i test
@@ -98,7 +98,7 @@ dotnet test --filter Category=RouteAnalysis
 ./audit/run-audit.sh
 
 # Windows
-.\audit\EventForge-Audit.ps1
+.\audit\Prym-Audit.ps1
 
 # .NET diretto
 cd audit && dotnet run

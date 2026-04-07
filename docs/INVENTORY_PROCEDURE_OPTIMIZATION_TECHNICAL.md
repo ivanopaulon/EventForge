@@ -382,4 +382,4 @@ The document-based approach aligns with standard inventory management practices 
 
 **Version:** 1.0  
 **Date:** January 2025  
-**Author:** EventForge Development Team
+**Author:** Prym Development Team

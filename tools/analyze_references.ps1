@@ -1,5 +1,5 @@
-$root = "C:\Users\ivano\source\repos\EventForge"
-$files = git -C $root ls-files "EventForge.Client/**/*.razor"
+$root = "C:\Users\ivano\source\repos\Prym"
+$files = git -C $root ls-files "Prym.Client/**/*.razor"
 foreach ($f in $files) {
  $name = [System.IO.Path]::GetFileNameWithoutExtension($f)
  $pattern1 = "<${name}[ >]"
