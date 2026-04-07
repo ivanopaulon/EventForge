@@ -105,11 +105,8 @@ public sealed class EpsonWebApiCommunication : IAsyncDisposable
 
         try
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_requestTimeoutMs);
-
             using var response = await _httpClient
-                .PostAsync(uri, content, cts.Token)
+                .PostAsync(uri, content, cancellationToken)
                 .ConfigureAwait(false);
 
             var responseBody = await response.Content

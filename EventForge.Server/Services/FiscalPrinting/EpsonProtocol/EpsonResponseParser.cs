@@ -201,7 +201,7 @@ public static class EpsonResponseParser
             EpsonProtocolConstants.ErrPrintSystemError => "Print system error",
             EpsonProtocolConstants.ErrBadPort => "Bad port configuration",
             EpsonProtocolConstants.ErrTimeout => "Request timed out",
-            "" or null => null,
+            _ when string.IsNullOrEmpty(code) => null,
             _ => $"Printer error: {code}"
         };
 

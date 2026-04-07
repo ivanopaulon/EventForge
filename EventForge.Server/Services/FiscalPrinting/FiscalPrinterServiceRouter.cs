@@ -52,7 +52,16 @@ public sealed class FiscalPrinterServiceRouter(
                 .Where(p => p.Id == printerId && !p.IsDeleted)
                 .Select(p => p.ProtocolType)
                 .FirstOrDefaultAsync(cancellationToken)
-                .ConfigureAwait(false) ?? "Custom";
+                .ConfigureAwait(false);
+
+            if (string.IsNullOrWhiteSpace(protocol))
+            {
+                logger.LogWarning(
+                    "Router: no ProtocolType found for printer {PrinterId}; falling back to Custom protocol. " +
+                    "Set ProtocolType on the Printer entity to suppress this warning.",
+                    printerId);
+                protocol = "Custom";
+            }
 
             _protocolCache.TryAdd(printerId, protocol);
         }
