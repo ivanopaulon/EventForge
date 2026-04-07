@@ -52,7 +52,14 @@ if (urls.Count > 0) builder.WebHost.UseUrls([.. urls]);
 
 // ── Services ──
 builder.Services.AddRazorPages();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Serialize enums as strings so downstream consumers (EventForge.Server proxy) can
+        // deserialize them into string properties of PackageSummaryDto / InstallationSummaryDto.
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c => c.SwaggerDoc("v1", new() { Title = "EventForge UpdateHub API", Version = "v1" }));
 

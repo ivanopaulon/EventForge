@@ -58,7 +58,9 @@ public partial class CustomFiscalPrinterService
                     : "Unexpected response to status request"
             };
         }
-        catch (Exception ex) when (ex is FiscalPrinterCommunicationException or OperationCanceledException)
+        catch (Exception ex) when (ex is FiscalPrinterCommunicationException
+                                       or InvalidOperationException
+                                       or OperationCanceledException)
         {
             logger.LogWarning(ex, "GetStatusAsync failed for printer {PrinterId}", printerId);
             return new FiscalPrinterStatus

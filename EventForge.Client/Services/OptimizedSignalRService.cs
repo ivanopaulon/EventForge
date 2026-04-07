@@ -1,6 +1,7 @@
 using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.FiscalPrinting;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
@@ -80,6 +81,25 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
     #endregion
 
+    #region Events - Fiscal Printer
+    public event Action<Guid, FiscalPrinterStatus>? PrinterStatusUpdated;
+    public event Action<Guid, string>? PrinterClosureRequired;
+    public event Action<Guid>? PrinterCriticalClosureMissing;
+    #endregion
+
+    #region Events - Alerts
+    public event Action<object>? PriceAlertReceived;
+    #endregion
+
+    #region Events - Configuration
+    public event Action<object>? ConfigurationChanged;
+    public event Action<object>? RestartRequired;
+    public event Action<object>? SystemOperationReceived;
+    #endregion
+
+    // Reference counting for fiscal printer group subscriptions (printerId → subscriber count)
+    private readonly ConcurrentDictionary<Guid, int> _printerSubscriptions = new();
+
     private class BatchedEvent
     {
         public string Type { get; set; } = string.Empty;
@@ -130,7 +150,10 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             StartConnectionAsync("notification", "/hubs/notifications"),
             StartConnectionAsync("chat", "/hubs/chat"),
             StartConnectionAsync("document-collaboration", "/hubs/document-collaboration"),
-            StartConnectionAsync("update-notifications", "/hubs/update-notifications")
+            StartConnectionAsync("update-notifications", "/hubs/update-notifications"),
+            StartConnectionAsync("fiscal-printer", "/hubs/fiscal-printer"),
+            StartConnectionAsync("alerts", "/hubs/alerts"),
+            StartConnectionAsync("configuration", "/hubs/configuration")
         };
 
         await Task.WhenAll(connectionTasks);
@@ -254,6 +277,15 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 break;
             case "update-notifications":
                 RegisterUpdateNotificationEventHandlers(connection);
+                break;
+            case "fiscal-printer":
+                RegisterFiscalPrinterEventHandlers(connection);
+                break;
+            case "alerts":
+                RegisterAlertEventHandlers(connection);
+                break;
+            case "configuration":
+                RegisterConfigurationEventHandlers(connection);
                 break;
         }
     }
@@ -459,6 +491,57 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 UpdatesAvailableReceived?.Invoke(new UpdatesAvailablePayload(count));
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdatesAvailable payload"); }
+        });
+    }
+
+    private void RegisterFiscalPrinterEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<Guid, FiscalPrinterStatus>("PrinterStatusUpdated", (printerId, status) =>
+        {
+            try { PrinterStatusUpdated?.Invoke(printerId, status); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process PrinterStatusUpdated"); }
+        });
+
+        _ = connection.On<Guid, string>("ClosureRequired", (printerId, printerName) =>
+        {
+            try { PrinterClosureRequired?.Invoke(printerId, printerName); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ClosureRequired"); }
+        });
+
+        _ = connection.On<Guid>("CriticalClosureMissing", printerId =>
+        {
+            try { PrinterCriticalClosureMissing?.Invoke(printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process CriticalClosureMissing"); }
+        });
+    }
+
+    private void RegisterAlertEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<System.Text.Json.JsonElement>("NewAlert", data =>
+        {
+            try { PriceAlertReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NewAlert"); }
+        });
+    }
+
+    private void RegisterConfigurationEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<System.Text.Json.JsonElement>("ConfigurationChanged", data =>
+        {
+            try { ConfigurationChanged?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ConfigurationChanged"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("RestartRequired", data =>
+        {
+            try { RestartRequired?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process RestartRequired"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("SystemOperation", data =>
+        {
+            try { SystemOperationReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process SystemOperation"); }
         });
     }
 
@@ -1159,6 +1242,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
     public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
     public bool IsUpdateNotificationConnected => GetConnectionState("update-notifications") == HubConnectionState.Connected;
+    public bool IsFiscalPrinterConnected => GetConnectionState("fiscal-printer") == HubConnectionState.Connected;
+    public bool IsAlertsConnected => GetConnectionState("alerts") == HubConnectionState.Connected;
+    public bool IsConfigurationConnected => GetConnectionState("configuration") == HubConnectionState.Connected;
     public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     private HubConnectionState GetConnectionState(string connectionKey)
