@@ -275,7 +275,7 @@ namespace EventForge.Client.Services
                         foreach (System.Collections.DictionaryEntry entry in exception.Data)
                         {
                             if (entry.Key is string key && entry.Value != null)
-                                enrichedProperties[$"ExceptionData_{key}"] = entry.Value.ToString() ?? string.Empty;
+                                enrichedProperties[$"ExceptionData_{key}"] = entry.Value?.ToString() ?? string.Empty;
                         }
                     }
                 }

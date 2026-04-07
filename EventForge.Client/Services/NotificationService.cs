@@ -104,7 +104,7 @@ public class NotificationService : INotificationService
         try
         {
             var result = await _httpClientService.PostAsync<CreateNotificationDto, NotificationResponseDto>("api/v1/notifications", createDto, cancellationToken);
-            return result ?? throw new InvalidOperationException("Failed to send notification: server returned null result");
+            return result ?? throw new InvalidOperationException("Failed to send notification: the HTTP call succeeded but the server returned an empty response body");
         }
         catch (Exception ex)
         {
