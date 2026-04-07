@@ -1,0 +1,107 @@
+@using EventForge.DTOs.Store
+@using EventForge.Client.Services.Store
+@inject IFiscalDrawerService FiscalDrawerService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FiscalDrawerTransactionDialog> Logger
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            @if (TransactionType == FiscalDrawerTransactionType.Deposit)
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.ArrowUpward" Color="Color.Success" />
+                <MudText Typo="Typo.h6">Versamento nel Cassetto</MudText>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.ArrowDownward" Color="Color.Warning" />
+                <MudText Typo="Typo.h6">Prelievo dal Cassetto</MudText>
+            }
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@_model">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudNumericField @bind-Value="_model.Amount" Label="Importo (€)" Required="true"
+                                     Min="0.01m" Format="N2" Variant="Variant.Outlined"
+                                     Adornment="Adornment.Start" AdornmentText="€" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect @bind-Value="_model.PaymentType" Label="Metodo Pagamento" Variant="Variant.Outlined">
+                        <MudSelectItem Value="FiscalDrawerPaymentType.Cash">Contanti</MudSelectItem>
+                        <MudSelectItem Value="FiscalDrawerPaymentType.Card">Carta</MudSelectItem>
+                        <MudSelectItem Value="FiscalDrawerPaymentType.Transfer">Bonifico</MudSelectItem>
+                        <MudSelectItem Value="FiscalDrawerPaymentType.Other">Altro</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Description" Label="Descrizione / Nota" MaxLength="200"
+                                  Variant="Variant.Outlined" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled"
+                   Color="@(TransactionType == FiscalDrawerTransactionType.Deposit ? Color.Success : Color.Warning)"
+                   Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Conferma
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid DrawerId { get; set; }
+    [Parameter] public FiscalDrawerTransactionType TransactionType { get; set; } = FiscalDrawerTransactionType.Deposit;
+
+    private MudForm? _form;
+    private bool _saving;
+
+    private readonly CreateFiscalDrawerTransactionDto _model = new()
+    {
+        TransactionType = FiscalDrawerTransactionType.Deposit,
+        PaymentType = FiscalDrawerPaymentType.Cash,
+        Amount = 0
+    };
+
+    protected override void OnParametersSet()
+    {
+        _model.TransactionType = TransactionType;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form is null) return;
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            var result = await FiscalDrawerService.CreateTransactionAsync(DrawerId, _model);
+            if (result is not null)
+            {
+                var typeLabel = TransactionType == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo";
+                AppNotification.ShowSuccess($"{typeLabel} di €{_model.Amount:N2} registrato.");
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                AppNotification.ShowError("Errore durante la registrazione.");
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

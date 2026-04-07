@@ -11,6 +11,7 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.FiscalPrinting
 @using EventForge.Client.Services.Sales
+@using EventForge.Client.Services.Store
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -24,6 +25,7 @@
 @inject IJSRuntime JSRuntime
 @inject ISalesService SalesService
 @inject IFiscalPrintingService FiscalPrintingService
+@inject IFiscalDrawerService FiscalDrawerService
 @inject ILogger<POS> Logger
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
@@ -47,6 +49,38 @@
             </MudButton>
         </MudStack>
     </MudAlert>
+}
+
+@if (_fiscalDrawerSummary is not null && !_fiscalDrawerSummary.HasOpenSession)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Size="Size.Small" />
+            <MudText Style="flex:1">Cassetto <strong>@_fiscalDrawerSummary.Name</strong>: sessione non aperta.</MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info" OnClick="@OpenDrawerSessionAsync">
+                Apri Sessione
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+@if (_fiscalDrawerSummary is not null && _fiscalDrawerSummary.HasOpenSession)
+{
+    <MudPaper Elevation="0" Class="pa-2 mb-2 d-flex align-center gap-3 flex-wrap"
+              Style="background: linear-gradient(90deg, #e8f5e9, #f1f8e9); border-radius:6px; border-left:4px solid var(--mud-palette-success);">
+        <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Success" Size="Size.Small" />
+        <MudText Typo="Typo.body2"><strong>@_fiscalDrawerSummary.Name</strong></MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Saldo: <strong>@($"€ {_fiscalDrawerSummary.CurrentBalance:N2}")</strong></MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Vendite: <strong>@($"€ {_fiscalDrawerSummary.SessionTotalSales:N2}")</strong></MudText>
+        <MudSpacer />
+        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowUpward"
+                   Color="Color.Success" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))">
+            Versamento
+        </MudButton>
+        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowDownward"
+                   Color="Color.Warning" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))">
+            Prelievo
+        </MudButton>
+    </MudPaper>
 }
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
@@ -1026,6 +1060,8 @@
 
             // Connect to fiscal printer hub if a printer is configured
             await ConnectFiscalHubAsync();
+            // Load fiscal drawer for the current POS/operator selection
+            await LoadFiscalDrawerAsync();
         }
     }
 
@@ -1119,6 +1155,9 @@
     /// <summary>Most recent status of the fiscal printer, kept current via SignalR push.</summary>
     private FiscalPrinterStatus? _fiscalPrinterStatus;
 
+    /// <summary>Fiscal drawer assigned to the current POS (fixed) or operator (floating).</summary>
+    private FiscalDrawerSummaryDto? _fiscalDrawerSummary;
+
     /// <summary>SignalR connection for real-time fiscal printer status updates.</summary>
     private HubConnection? _fiscalHubConnection;
 
@@ -1163,6 +1202,60 @@
         {
             Logger.LogWarning(ex, "POS: could not connect to fiscal printer SignalR hub");
         }
+    }
+
+    /// <summary>Loads fiscal drawer summary for the currently selected POS or operator.</summary>
+    private async Task LoadFiscalDrawerAsync()
+    {
+        _fiscalDrawerSummary = null;
+        try
+        {
+            if (ViewModel.SelectedPosId.HasValue)
+            {
+                var drawer = await FiscalDrawerService.GetByPosIdAsync(ViewModel.SelectedPosId.Value);
+                if (drawer is not null)
+                    _fiscalDrawerSummary = await FiscalDrawerService.GetSummaryAsync(drawer.Id);
+            }
+            else if (ViewModel.SelectedOperatorId.HasValue)
+            {
+                var drawer = await FiscalDrawerService.GetByOperatorIdAsync(ViewModel.SelectedOperatorId.Value);
+                if (drawer is not null)
+                    _fiscalDrawerSummary = await FiscalDrawerService.GetSummaryAsync(drawer.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: could not load fiscal drawer summary");
+        }
+        StateHasChanged();
+    }
+
+    private async Task OpenDrawerSessionAsync()
+    {
+        if (_fiscalDrawerSummary is null) return;
+        var dto = new OpenFiscalDrawerSessionDto { OpeningBalance = 0 };
+        var result = await FiscalDrawerService.OpenSessionAsync(_fiscalDrawerSummary.Id, dto);
+        if (result is not null)
+        {
+            AppNotification.ShowSuccess("Sessione cassetto aperta.");
+            await LoadFiscalDrawerAsync();
+        }
+    }
+
+    private async Task OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType type)
+    {
+        if (_fiscalDrawerSummary is null) return;
+        var parameters = new DialogParameters
+        {
+            ["DrawerId"] = _fiscalDrawerSummary.Id,
+            ["TransactionType"] = type
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
+            type == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo", parameters, options);
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+            await LoadFiscalDrawerAsync();
     }
 
     /// <summary>Opens the daily closure dialog for the printer assigned to this POS.</summary>
