@@ -6,6 +6,7 @@ using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -23,6 +24,8 @@ public class FiscalPrintingControllerTests
     private readonly Mock<IStationService> _mockStationService;
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly Mock<IAuditLogService> _mockAuditLogService;
+    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly FiscalPrinterStatusCache _statusCache;
     private readonly FiscalPrintingController _controller;
 
@@ -33,6 +36,8 @@ public class FiscalPrintingControllerTests
         _mockStationService = new Mock<IStationService>();
         _mockTenantContext = new Mock<ITenantContext>();
         _mockAuditLogService = new Mock<IAuditLogService>();
+        _mockConfiguration = new Mock<IConfiguration>();
+        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         _statusCache = new FiscalPrinterStatusCache();
 
         var mockHttpContext = new Mock<HttpContext>();
@@ -54,6 +59,8 @@ public class FiscalPrintingControllerTests
             _mockStationService.Object,
             _mockTenantContext.Object,
             _mockAuditLogService.Object,
+            _mockConfiguration.Object,
+            _mockHttpClientFactory.Object,
             _mockLogger.Object)
         {
             ControllerContext = new ControllerContext

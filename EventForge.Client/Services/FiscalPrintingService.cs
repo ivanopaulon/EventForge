@@ -408,4 +408,23 @@ public class FiscalPrintingService(
             return null;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<List<string>> GetAgentSystemPrintersAsync(Guid agentId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<AgentSystemPrintersResult>(
+                $"{BaseUrl}/agent-system-printers?agentId={agentId}", ct);
+            return result?.Printers ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "GetAgentSystemPrintersAsync failed for agent {AgentId}", agentId);
+            return [];
+        }
+    }
+
+    /// <summary>Internal DTO matching the server's AgentSystemPrintersResponse payload.</summary>
+    private sealed record AgentSystemPrintersResult(List<string>? Printers);
 }

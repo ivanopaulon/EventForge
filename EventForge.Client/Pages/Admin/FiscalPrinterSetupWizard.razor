@@ -298,13 +298,57 @@
                                   Placeholder="es. 00000000-0000-0000-0000-000000000001"
                                   HelperText="GUID dell'agente UpdateAgent registrato nel sistema" />
                 </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_usbDeviceId"
-                                  Label="ID Dispositivo USB (es. USB001, VID:PID)"
-                                  Variant="Variant.Outlined"
-                                  Placeholder="es. VID_04B8&amp;PID_0202 o USB001"
-                                  HelperText="Identificatore del dispositivo USB sulla macchina dell'agente" />
-                </MudItem>
+                @if (_connectionType == "UsbViaAgent")
+                {
+                    <MudItem xs="12" md="6">
+                        <div class="d-flex align-center gap-2">
+                            <MudAutocomplete T="string"
+                                             @bind-Value="_usbDeviceId"
+                                             Label="Stampante di sistema (USB)"
+                                             Variant="Variant.Outlined"
+                                             SearchFunc="@SearchSystemPrinters"
+                                             ResetValueOnEmptyText="false"
+                                             CoerceValue="true"
+                                             HelperText="Seleziona dalla lista o digita manualmente l'ID dispositivo"
+                                             Placeholder="es. Microsoft Print to PDF" />
+                            <MudTooltip Text="Carica stampanti installate sull'agente">
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                               Color="Color.Primary"
+                                               OnClick="LoadAgentSystemPrintersAsync"
+                                               Disabled="_loadingAgentPrinters" />
+                            </MudTooltip>
+                        </div>
+                        @if (_loadingAgentPrinters)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" Style="width:14px;height:14px;display:inline-block;" />
+                                Caricamento stampanti dall'agente...
+                            </MudText>
+                        }
+                        else if (_agentSystemPrinters.Count > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                                @_agentSystemPrinters.Count stampant@(_agentSystemPrinters.Count == 1 ? "e" : "i") trovat@(_agentSystemPrinters.Count == 1 ? "a" : "e") sull'agente
+                            </MudText>
+                        }
+                        else if (_agentSystemPrintersLoaded)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning" Class="mt-1">
+                                Nessuna stampante trovata. Verifica che l'agente sia in esecuzione e l'ID sia corretto.
+                            </MudText>
+                        }
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_usbDeviceId"
+                                      Label="Percorso Condivisione di Rete"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="es. \\server\stampante"
+                                      HelperText="Percorso UNC della stampante condivisa" />
+                    </MudItem>
+                }
             </MudGrid>
 
             <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
@@ -810,6 +854,9 @@
     // Step 1 – UsbViaAgent / NetworkShare
     private string _agentId = string.Empty;
     private string _usbDeviceId = string.Empty;
+    private List<string> _agentSystemPrinters = [];
+    private bool _loadingAgentPrinters;
+    private bool _agentSystemPrintersLoaded;
 
     // Step 1 – shared
     private bool _isTesting;
@@ -1032,6 +1079,45 @@
         _activeStep = 2;
         _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
         await Task.CompletedTask;
+    }
+
+    private async Task LoadAgentSystemPrintersAsync()
+    {
+        if (!Guid.TryParse(_agentId, out var agentGuid))
+        {
+            Logger.LogWarning("Cannot load agent printers: '{AgentId}' is not a valid GUID", _agentId);
+            return;
+        }
+
+        _loadingAgentPrinters = true;
+        _agentSystemPrintersLoaded = false;
+        StateHasChanged();
+
+        try
+        {
+            _agentSystemPrinters = await FiscalPrintingService.GetAgentSystemPrintersAsync(agentGuid);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load agent system printers for agent {AgentId}", agentGuid);
+            _agentSystemPrinters = [];
+        }
+        finally
+        {
+            _loadingAgentPrinters = false;
+            _agentSystemPrintersLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private Task<IEnumerable<string>> SearchSystemPrinters(string? value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult<IEnumerable<string>>(_agentSystemPrinters);
+
+        var filtered = _agentSystemPrinters
+            .Where(p => p.Contains(value, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(filtered);
     }
 
     // ──────────────────────────────────────────────────────────

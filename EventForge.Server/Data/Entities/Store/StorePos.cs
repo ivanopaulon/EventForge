@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -133,6 +134,20 @@ public class StorePos : AuditableEntity
     /// Navigation property for the default fiscal printer.
     /// </summary>
     public Printer? DefaultFiscalPrinter { get; set; }
+
+    // --- Cashier Group Assignment ---
+
+    /// <summary>
+    /// Cashier group assigned to this POS (operators authorized to use it).
+    /// </summary>
+    [Display(Name = "Cashier Group", Description = "Operator group assigned to this POS.")]
+    public Guid? CashierGroupId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the assigned cashier group.
+    /// </summary>
+    [ForeignKey(nameof(CashierGroupId))]
+    public StoreUserGroup? CashierGroup { get; set; }
 }
 
 /// <summary>

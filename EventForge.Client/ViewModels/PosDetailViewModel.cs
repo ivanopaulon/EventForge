@@ -48,7 +48,9 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
             CurrencyCode = entity.CurrencyCode,
             TimeZone = entity.TimeZone,
             LocationLatitude = entity.LocationLatitude,
-            LocationLongitude = entity.LocationLongitude
+            LocationLongitude = entity.LocationLongitude,
+            DefaultFiscalPrinterId = entity.DefaultFiscalPrinterId,
+            CashierGroupId = entity.CashierGroupId
         };
     }
 
@@ -63,10 +65,10 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
             Notes = entity.Notes,
             TerminalIdentifier = entity.TerminalIdentifier,
             IPAddress = entity.IPAddress,
-            IsOnline = entity.IsOnline
+            IsOnline = entity.IsOnline,
+            DefaultFiscalPrinterId = entity.DefaultFiscalPrinterId,
+            CashierGroupId = entity.CashierGroupId
         };
-        // Note: CurrencyCode, TimeZone, LocationLatitude, LocationLongitude cannot be updated
-        // per UpdateStorePosDto definition - they are set only during creation
     }
 
     protected override Task<StorePosDto?> CreateEntityAsync(CreateStorePosDto createDto)

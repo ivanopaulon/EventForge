@@ -1064,6 +1064,8 @@ public class StoreUserService(
 
             var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
+                .Include(sp => sp.DefaultFiscalPrinter)
+                .Include(sp => sp.CashierGroup)
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
             return storePos is not null ? MapToStorePosDto(storePos) : null;
@@ -1100,6 +1102,8 @@ public class StoreUserService(
                 LocationLongitude = createStorePosDto.LocationLongitude,
                 CurrencyCode = createStorePosDto.CurrencyCode,
                 TimeZone = createStorePosDto.TimeZone,
+                DefaultFiscalPrinterId = createStorePosDto.DefaultFiscalPrinterId,
+                CashierGroupId = createStorePosDto.CashierGroupId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
                 IsDeleted = false
@@ -1145,6 +1149,8 @@ public class StoreUserService(
             storePos.TerminalIdentifier = updateStorePosDto.TerminalIdentifier;
             storePos.IPAddress = updateStorePosDto.IPAddress;
             storePos.IsOnline = updateStorePosDto.IsOnline;
+            storePos.DefaultFiscalPrinterId = updateStorePosDto.DefaultFiscalPrinterId;
+            storePos.CashierGroupId = updateStorePosDto.CashierGroupId;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = currentUser;
 
@@ -1775,6 +1781,10 @@ public class StoreUserService(
             LocationLongitude = storePos.LocationLongitude,
             CurrencyCode = storePos.CurrencyCode,
             TimeZone = storePos.TimeZone,
+            DefaultFiscalPrinterId = storePos.DefaultFiscalPrinterId,
+            DefaultFiscalPrinterName = storePos.DefaultFiscalPrinter?.Name,
+            CashierGroupId = storePos.CashierGroupId,
+            CashierGroupName = storePos.CashierGroup?.Name,
             CreatedAt = storePos.CreatedAt,
             CreatedBy = storePos.CreatedBy,
             ModifiedAt = storePos.ModifiedAt,

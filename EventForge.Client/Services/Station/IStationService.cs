@@ -25,4 +25,18 @@ public interface IStationService
 
     /// <summary>Gets stations with pagination.</summary>
     Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20);
+
+    // ── Printer endpoints ─────────────────────────────────────
+
+    /// <summary>Gets all printers.</summary>
+    Task<List<PrinterDto>> GetAllPrintersAsync();
+
+    /// <summary>Gets a printer by ID.</summary>
+    Task<PrinterDto?> GetPrinterByIdAsync(Guid id);
+
+    /// <summary>Creates a new printer.</summary>
+    Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto);
+
+    /// <summary>Updates an existing printer.</summary>
+    Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto);
 }

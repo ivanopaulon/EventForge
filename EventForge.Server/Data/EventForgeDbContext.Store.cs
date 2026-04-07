@@ -39,6 +39,24 @@ public partial class EventForgeDbContext
 
         _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_StorePos_ImageDocumentId");
 
+        _ = modelBuilder.Entity<StorePos>()
+            .HasOne(p => p.DefaultFiscalPrinter)
+            .WithMany()
+            .HasForeignKey(p => p.DefaultFiscalPrinterId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.DefaultFiscalPrinterId).HasDatabaseName("IX_StorePos_DefaultFiscalPrinterId");
+
+        _ = modelBuilder.Entity<StorePos>()
+            .HasOne(p => p.CashierGroup)
+            .WithMany()
+            .HasForeignKey(p => p.CashierGroupId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.CashierGroupId).HasDatabaseName("IX_StorePos_CashierGroupId");
+
         _ = modelBuilder.Entity<Printer>()
             .HasOne(p => p.Station)
             .WithMany(s => s.Printers)

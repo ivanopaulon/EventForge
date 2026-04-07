@@ -11,6 +11,7 @@ public class StationService(
     ILogger<StationService> logger) : IStationService
 {
     private const string ApiBase = "api/v1/stations";
+    private const string PrintersBase = "api/v1/stations/printers";
 
     public async Task<List<StationDto>> GetAllAsync()
     {
@@ -51,5 +52,36 @@ public class StationService(
     {
         return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}")
             ?? new PagedResult<StationDto>();
+    }
+
+    // ── Printer methods ───────────────────────────────────────
+
+    public async Task<List<PrinterDto>> GetAllPrintersAsync()
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<PagedResult<PrinterDto>>($"{PrintersBase}?page=1&pageSize=200");
+            return result?.Items?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error getting all printers, returning empty list");
+            return [];
+        }
+    }
+
+    public async Task<PrinterDto?> GetPrinterByIdAsync(Guid id)
+    {
+        return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}");
+    }
+
+    public async Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto)
+    {
+        return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto);
+    }
+
+    public async Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto)
+    {
+        return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto);
     }
 }
