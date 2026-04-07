@@ -26,6 +26,9 @@ public class DailyClosureResultDto
     /// <summary>Total amount reported on the Z-report.</summary>
     public decimal TotalAmount { get; set; }
 
+    /// <summary>Cash portion of the total amount.</summary>
+    public decimal CashAmount { get; set; }
+
     /// <summary>The operator who triggered the closure.</summary>
     public string? Operator { get; set; }
 }
