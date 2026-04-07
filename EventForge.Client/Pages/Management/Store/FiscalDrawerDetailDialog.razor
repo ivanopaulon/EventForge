@@ -1,0 +1,231 @@
+@using EventForge.DTOs.Store
+@using EventForge.Client.Services.Store
+@inject IFiscalDrawerService FiscalDrawerService
+@inject IStorePosService StorePosService
+@inject IStoreUserService StoreUserService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">
+                @(_isNew ? "Nuovo Cassetto Fiscale" : (_entity?.Name ?? "Cassetto Fiscale"))
+            </MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-6">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudForm @ref="_form" Model="@_model">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_model.Name" Label="Nome" Required="true" MaxLength="100"
+                                      Variant="Variant.Outlined" Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_model.Code" Label="Codice" MaxLength="20"
+                                      Variant="Variant.Outlined" Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Description" Label="Descrizione" MaxLength="200"
+                                      Variant="Variant.Outlined" Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="_model.AssignmentType" Label="Tipo Assegnazione"
+                                   Variant="Variant.Outlined" Class="ef-select"
+                                   @bind-Value:after="OnAssignmentTypeChanged">
+                            <MudSelectItem Value="FiscalDrawerAssignmentType.Fixed">Fisso (POS)</MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerAssignmentType.Floating">Flottante (Operatore)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="_model.CurrencyCode" Label="Valuta"
+                                   Variant="Variant.Outlined" Class="ef-select">
+                            <MudSelectItem Value="@("EUR")">🇪🇺 EUR - Euro</MudSelectItem>
+                            <MudSelectItem Value="@("USD")">🇺🇸 USD - Dollaro USA</MudSelectItem>
+                            <MudSelectItem Value="@("GBP")">🇬🇧 GBP - Sterlina</MudSelectItem>
+                            <MudSelectItem Value="@("JPY")">🇯🇵 JPY - Yen</MudSelectItem>
+                            <MudSelectItem Value="@("CNY")">🇨🇳 CNY - Yuan</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    @if (_model.AssignmentType == FiscalDrawerAssignmentType.Fixed)
+                    {
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="_model.PosId" Label="Punto Cassa (POS)"
+                                       Variant="Variant.Outlined" Class="ef-select">
+                                <MudSelectItem Value="@((Guid?)null)">-- Nessuno --</MudSelectItem>
+                                @foreach (var pos in _availablePos)
+                                {
+                                    <MudSelectItem Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="_model.OperatorId" Label="Operatore"
+                                       Variant="Variant.Outlined" Class="ef-select">
+                                <MudSelectItem Value="@((Guid?)null)">-- Nessuno --</MudSelectItem>
+                                @foreach (var op in _availableOperators)
+                                {
+                                    <MudSelectItem Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_model.OpeningBalance" Label="Fondo Cassa Iniziale"
+                                         Min="0" Format="N2" Variant="Variant.Outlined" Class="ef-input"
+                                         Disabled="@(!_isNew)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="_model.Status" Label="Stato" Variant="Variant.Outlined" Class="ef-select">
+                            <MudSelectItem Value="FiscalDrawerStatus.Active">Attivo</MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerStatus.Suspended">Sospeso</MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerStatus.Closed">Chiuso</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Notes" Label="Note" MaxLength="200"
+                                      Variant="Variant.Outlined" Class="ef-input" Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_loading || _saving)">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? DrawerId { get; set; }
+
+    private MudForm? _form;
+    private bool _isNew;
+    private bool _loading = true;
+    private bool _saving;
+    private FiscalDrawerDto? _entity;
+
+    private CreateFiscalDrawerDto _model = new();
+    private List<StorePosDto> _availablePos = [];
+    private List<StoreUserDto> _availableOperators = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isNew = !DrawerId.HasValue;
+        _loading = true;
+
+        var posTask = StorePosService.GetActiveAsync();
+        var opTask = StoreUserService.GetAllAsync();
+
+        await Task.WhenAll(posTask, opTask);
+        _availablePos = posTask.Result;
+        _availableOperators = opTask.Result;
+
+        if (!_isNew && DrawerId.HasValue)
+        {
+            _entity = await FiscalDrawerService.GetByIdAsync(DrawerId.Value);
+            if (_entity is not null)
+            {
+                _model = new CreateFiscalDrawerDto
+                {
+                    Name = _entity.Name,
+                    Code = _entity.Code,
+                    Description = _entity.Description,
+                    AssignmentType = _entity.AssignmentType,
+                    CurrencyCode = _entity.CurrencyCode,
+                    Status = _entity.Status,
+                    OpeningBalance = _entity.OpeningBalance,
+                    PosId = _entity.PosId,
+                    OperatorId = _entity.OperatorId,
+                    Notes = _entity.Notes
+                };
+            }
+        }
+
+        _loading = false;
+    }
+
+    private void OnAssignmentTypeChanged()
+    {
+        _model.PosId = null;
+        _model.OperatorId = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form is null) return;
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            if (_isNew)
+            {
+                var result = await FiscalDrawerService.CreateAsync(_model);
+                if (result is not null)
+                {
+                    AppNotification.ShowSuccess("Cassetto fiscale creato con successo.");
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    AppNotification.ShowError("Errore durante la creazione.");
+                }
+            }
+            else if (DrawerId.HasValue)
+            {
+                var updateDto = new UpdateFiscalDrawerDto
+                {
+                    Name = _model.Name,
+                    Code = _model.Code,
+                    Description = _model.Description,
+                    AssignmentType = _model.AssignmentType,
+                    CurrencyCode = _model.CurrencyCode,
+                    Status = _model.Status,
+                    PosId = _model.PosId,
+                    OperatorId = _model.OperatorId,
+                    Notes = _model.Notes
+                };
+                var result = await FiscalDrawerService.UpdateAsync(DrawerId.Value, updateDto);
+                if (result is not null)
+                {
+                    AppNotification.ShowSuccess("Cassetto fiscale aggiornato.");
+                    MudDialog.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    AppNotification.ShowError("Errore durante l'aggiornamento.");
+                }
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

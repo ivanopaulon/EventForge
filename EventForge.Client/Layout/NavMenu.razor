@@ -181,6 +181,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.posTouch", "Cassa Touch")
                 </MudNavLink>
+                <MudNavLink Href="/sales/dashboard"
+                            Icon="@Icons.Material.Outlined.BarChart"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.salesDashboard", "Dashboard Vendite")
+                </MudNavLink>
             </MudNavGroup>
 
             <!-- Configurazione Store -->
@@ -209,6 +214,11 @@
                                 Icon="@Icons.Material.Outlined.Payment"
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.paymentMethods", "Metodi di Pagamento")
+                    </MudNavLink>
+                    <MudNavLink Href="/store/fiscal-drawers"
+                                Icon="@Icons.Material.Outlined.Inbox"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.fiscalDrawers", "Cassetti Fiscali")
                     </MudNavLink>
                 </MudNavGroup>
             }
