@@ -993,40 +993,6 @@
             </div>
         </div>
 
-        <!-- QzSigning -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent fw-semibold">
-                <i class="bi bi-file-earmark-lock me-2 text-info"></i>QZ Tray &mdash; Percorsi certificati
-            </div>
-            <div class="card-body">
-                <form method="post" asp-page-handler="UpdateQzSigning">
-                    @Html.AntiForgeryToken()
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Chiave privata (.pem)</label>
-                            <input type="text" asp-for="QzSigningPrivateKeyPath" class="form-control font-monospace"
-                                   placeholder="private-key.pem" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Certificato (.txt/.pem)</label>
-                            <input type="text" asp-for="QzSigningCertificatePath" class="form-control font-monospace"
-                                   placeholder="digital-certificate.txt" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Certificato intermedio</label>
-                            <input type="text" asp-for="QzSigningIntermediateCertPath" class="form-control font-monospace"
-                                   placeholder="intermediate-certificate.txt" />
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle me-1"></i>Salva percorsi QzSigning
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Bootstrap -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-transparent fw-semibold">

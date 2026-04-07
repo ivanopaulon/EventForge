@@ -142,11 +142,6 @@ public class SettingsModel : PageModel
     [BindProperty] public bool BootstrapAutoCreateAdmin { get; set; } = false;
     [BindProperty] public string BootstrapStoreOperatorPassword { get; set; } = string.Empty;
 
-    // ── QzSigning ─────────────────────────────────────────────────────
-    [BindProperty] public string QzSigningPrivateKeyPath { get; set; } = string.Empty;
-    [BindProperty] public string QzSigningCertificatePath { get; set; } = string.Empty;
-    [BindProperty] public string QzSigningIntermediateCertPath { get; set; } = string.Empty;
-
     // ── Serilog (programmatic config parameters) ──────────────────────
     [BindProperty] public bool SerilogEnableConsole { get; set; } = false;
     [BindProperty] public string SerilogFilePath { get; set; } = "Logs/log-.log";
@@ -658,27 +653,6 @@ public class SettingsModel : PageModel
         return RedirectToPage(new { tab = "avanzate" });
     }
 
-    // ── QzSigning ─────────────────────────────────────────────────────
-    public async Task<IActionResult> OnPostUpdateQzSigningAsync()
-    {
-        try
-        {
-            var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("QzSigning_PrivateKeyPath", QzSigningPrivateKeyPath, null, ct);
-            await _configService.SetValueAsync("QzSigning_CertificatePath", QzSigningCertificatePath, null, ct);
-            await _configService.SetValueAsync("QzSigning_IntermediateCertPath", QzSigningIntermediateCertPath, null, ct);
-
-            _logger.LogInformation("QzSigning settings updated by {User}", User.Identity?.Name);
-            TempData["SuccessMessage"] = "Percorsi certificati QzSigning salvati. Riavvio necessario per applicare le modifiche.";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving QzSigning settings");
-            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
-        }
-        return RedirectToPage(new { tab = "avanzate" });
-    }
-
     // ── Serilog ───────────────────────────────────────────────────────
     public async Task<IActionResult> OnPostUpdateSerilogAsync()
     {
@@ -836,11 +810,6 @@ public class SettingsModel : PageModel
             BootstrapDefaultAdminEmail = await _configService.GetValueAsync("Bootstrap_DefaultAdminEmail", _configuration["Bootstrap:DefaultAdminEmail"] ?? "superadmin@localhost", ct);
             BootstrapAutoCreateAdmin = (await _configService.GetValueAsync("Bootstrap_AutoCreateAdmin", _configuration["Bootstrap:AutoCreateAdmin"] ?? "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
             // Bootstrap passwords not loaded for security
-
-            // ── QzSigning ──
-            QzSigningPrivateKeyPath = await _configService.GetValueAsync("QzSigning_PrivateKeyPath", _configuration["QzSigning:PrivateKeyPath"] ?? "private-key.pem", ct);
-            QzSigningCertificatePath = await _configService.GetValueAsync("QzSigning_CertificatePath", _configuration["QzSigning:CertificatePath"] ?? "digital-certificate.txt", ct);
-            QzSigningIntermediateCertPath = await _configService.GetValueAsync("QzSigning_IntermediateCertPath", _configuration["QzSigning:IntermediateCertificatePath"] ?? "", ct);
 
             // ── Serilog ──
             SerilogEnableConsole = (await _configService.GetValueAsync("Serilog_EnableConsole", _configuration["Serilog:EnableConsole"] ?? "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);

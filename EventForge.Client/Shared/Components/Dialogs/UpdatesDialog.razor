@@ -219,7 +219,7 @@
                         @if (_selectedPackage is not null)
                         {
                             <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
-                                Pacchetto selezionato: <strong>@_selectedPackage.Component v@_selectedPackage.Version</strong> —
+                                Pacchetto selezionato: <strong>@_selectedPackage.Component v@(_selectedPackage.Version)</strong> —
                                 clicca "Aggiorna" sull'installazione desiderata.
                             </MudAlert>
                         }
@@ -295,7 +295,7 @@
                                              Text="@(context.Component ?? "—")" />
                                 </MudTd>
                                 <MudTd DataLabel="Versione">
-                                    <MudText Typo="Typo.body2"><strong>v@context.Version</strong></MudText>
+                                    <MudText Typo="Typo.body2"><strong>v@(context.Version)</strong></MudText>
                                 </MudTd>
                                 <MudTd DataLabel="Modalità">
                                     @if (context.IsManualInstall)
@@ -325,26 +325,12 @@
                                     }
                                 </MudTd>
                                 <MudTd DataLabel="Azioni">
-                                    <MudStack Row="true" Spacing="1">
-                                        <MudButton Variant="Variant.Filled"
+                                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow"
                                                    Size="Size.Small"
                                                    Color="Color.Success"
-                                                   StartIcon="@Icons.Material.Filled.PlayArrow"
                                                    Disabled="@(!context.IsConnected || _isActioning)"
-                                                   OnClick="@(() => ConfirmInstallNowAsync(context))"
-                                                   Title="@(!context.IsConnected ? "Agente offline" : "Installa immediatamente")">
-                                            Installa ora
-                                        </MudButton>
-                                        <MudButton Variant="Variant.Outlined"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   StartIcon="@Icons.Material.Filled.SkipNext"
-                                                   Disabled="@(!context.IsConnected || _isActioning)"
-                                                   OnClick="@(() => ConfirmSkipAsync(context))"
-                                                   Title="@(!context.IsConnected ? "Agente offline" : "Salta e rimuovi dalla coda")">
-                                            Salta
-                                        </MudButton>
-                                    </MudStack>
+                                                   OnClick="@(() => InstallNowAsync(context))"
+                                                   Title="@(!context.IsConnected ? "Agente offline" : "Installa ora")" />
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
@@ -476,36 +462,14 @@
 
     private void Close() => MudDialog.Close();
 
-    private async Task ConfirmInstallNowAsync(PendingInstallClientDto item)
+    private async Task InstallNowAsync(PendingInstallClientDto item)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Conferma installazione",
-            $"Installare {item.Component} v{item.Version} su \"{item.InstallationName}\" ora?",
-            yesText: "Installa ora", cancelText: "Annulla");
-        if (confirmed != true) return;
         _isActioning = true;
+        StateHasChanged();
         try
         {
             await UpdateNotification.TriggerInstallNowAsync(default, item.PackageId);
             AppNotification.ShowSuccess($"Installazione avviata per {item.Component} v{item.Version}.");
-            await LoadDataAsync();
-        }
-        catch (Exception ex) { AppNotification.ShowError($"Errore: {ex.Message}"); }
-        finally { _isActioning = false; }
-    }
-
-    private async Task ConfirmSkipAsync(PendingInstallClientDto item)
-    {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            "Salta pacchetto",
-            $"Rimuovere {item.Component} v{item.Version} dalla coda?",
-            yesText: "Salta e rimuovi", cancelText: "Annulla");
-        if (confirmed != true) return;
-        _isActioning = true;
-        try
-        {
-            await UpdateNotification.TriggerUnblockQueueAsync(default, item.PackageId, skipAndRemove: true);
-            AppNotification.ShowSuccess($"Pacchetto {item.Component} v{item.Version} rimosso dalla coda.");
             await LoadDataAsync();
         }
         catch (Exception ex) { AppNotification.ShowError($"Errore: {ex.Message}"); }

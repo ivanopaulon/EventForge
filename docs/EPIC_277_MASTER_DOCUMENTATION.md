@@ -891,7 +891,6 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 - Retry mechanism
 
 **Integrations:**
-- QzTray per stampa
 - Email service per invio
 
 **Stima**: 4-6 ore

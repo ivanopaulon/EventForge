@@ -404,11 +404,6 @@ screenshots/
 /EventForge.Server/appsettings.Production.json
 /EventForge.Server/appsettings.Staging.json
 
-# EventForge - Sensitive certificate and key files (QZ Tray digital signing)
-/EventForge.Server/private-key.pem
-/EventForge.Server/digital-certificate.txt
-/EventForge.Server/intermediate-certificate.txt
-
 # Update packages: Applied/ is managed automatically by New-UpdatePackage.ps1
 /Migrations/Applied/
 

@@ -219,7 +219,6 @@ Overall:                   ██████████████░░░�
 #### 3. Integrazioni & Testing
 - ❌ Integrazione API ProductService
 - ❌ Integrazione API SalesService
-- ❌ Integrazione QzTray stampa
 - ❌ E2E tests con Playwright
 - ❌ Testing su tablet reale
 
@@ -268,8 +267,7 @@ Overall:                   ██████████████░░░�
 1. SplitMergeDialog component
 2. OperatorDashboard component
 3. SessionNoteDialog component
-4. Integrazione stampa QzTray
-5. E2E testing completo
+4. E2E testing completo
 
 **Deliverable**: Sistema production-ready
 

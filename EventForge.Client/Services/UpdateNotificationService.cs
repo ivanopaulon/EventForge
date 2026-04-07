@@ -153,13 +153,13 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     }
 
     public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-        => await _http.PostAsync<object>($"api/v1/updatehub-proxy/installations/{installationId}/update", new { PackageId = packageId }, ct);
+        => await _http.PostAsync($"api/v1/updatehub-proxy/installations/{installationId}/update", new { PackageId = packageId }, ct);
 
     public async Task TriggerInstallNowAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-        => await _http.PostAsync<object>("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
+        => await _http.PostAsync("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
 
     public async Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default)
-        => await _http.PostAsync<object>("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
+        => await _http.PostAsync("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
 
     public async Task RefreshAvailableUpdatesCountAsync()
     {

@@ -67,7 +67,7 @@ The SuperAdmin license now includes **16 comprehensive features** organized into
 ### 10. Printing (1 feature)
 - **PrintingManagement** - Printing and label management
   - Controller: `PrintingController`
-  - Includes: QZ Tray integration, label printing, document printing
+  - Includes: label printing, document printing
 
 ### 11. Integrations (2 features)
 - **ApiIntegrations** - Complete API access for external integrations
