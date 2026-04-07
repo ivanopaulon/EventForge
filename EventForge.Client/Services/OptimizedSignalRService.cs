@@ -146,14 +146,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         var connectionTasks = new List<Task>
         {
-            StartConnectionAsync("audit", "/hubs/audit-log"),
-            StartConnectionAsync("notification", "/hubs/notifications"),
+            // AppHub consolidates: audit, notifications, alerts, configuration, update-notifications
+            StartConnectionAsync("app", "/hubs/app"),
             StartConnectionAsync("chat", "/hubs/chat"),
             StartConnectionAsync("document-collaboration", "/hubs/document-collaboration"),
-            StartConnectionAsync("update-notifications", "/hubs/update-notifications"),
-            StartConnectionAsync("fiscal-printer", "/hubs/fiscal-printer"),
-            StartConnectionAsync("alerts", "/hubs/alerts"),
-            StartConnectionAsync("configuration", "/hubs/configuration")
+            StartConnectionAsync("fiscal-printer", "/hubs/fiscal-printer")
         };
 
         await Task.WhenAll(connectionTasks);
@@ -263,11 +260,12 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         switch (connectionKey)
         {
-            case "audit":
+            case "app":
                 RegisterAuditEventHandlers(connection);
-                break;
-            case "notification":
                 RegisterNotificationEventHandlers(connection);
+                RegisterUpdateNotificationEventHandlers(connection);
+                RegisterAlertEventHandlers(connection);
+                RegisterConfigurationEventHandlers(connection);
                 break;
             case "chat":
                 RegisterChatEventHandlers(connection);
@@ -275,17 +273,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             case "document-collaboration":
                 RegisterDocumentCollaborationEventHandlers(connection);
                 break;
-            case "update-notifications":
-                RegisterUpdateNotificationEventHandlers(connection);
-                break;
             case "fiscal-printer":
                 RegisterFiscalPrinterEventHandlers(connection);
-                break;
-            case "alerts":
-                RegisterAlertEventHandlers(connection);
-                break;
-            case "configuration":
-                RegisterConfigurationEventHandlers(connection);
                 break;
         }
     }
@@ -657,10 +646,10 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     private string GetHubPath(string connectionKey) => connectionKey switch
     {
-        "audit" => "/hubs/audit-log",
-        "notification" => "/hubs/notifications",
+        "app" => "/hubs/app",
         "chat" => "/hubs/chat",
         "document-collaboration" => "/hubs/document-collaboration",
+        "fiscal-printer" => "/hubs/fiscal-printer",
         _ => throw new ArgumentException($"Unknown connection key: {connectionKey}")
     };
 
@@ -677,7 +666,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             case "chat":
                 _performanceService.InvalidateCachePattern(CacheKeys.CHAT_MESSAGES_PREFIX);
                 break;
-            case "notification":
+            case "app":
                 _performanceService.InvalidateCache(CacheKeys.NOTIFICATION_LIST);
                 break;
         }
@@ -768,10 +757,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         switch (connectionKey)
         {
-            case "audit":
+            case "app":
                 await JoinAuditGroupAsync();
-                break;
-            case "notification":
                 // Preload notification preferences
                 _performanceService.PreloadData(CacheKeys.NOTIFICATION_LIST,
                     async () => await GetNotificationPreferencesAsync());
@@ -792,7 +779,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     private async Task JoinAuditGroupAsync()
     {
-        if (_connections.TryGetValue("audit", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -902,19 +889,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     }
 
     /// <summary>
-    /// Starts audit connection and joins audit log group.
+    /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
     public async Task StartAuditConnectionAsync()
     {
-        await StartConnectionAsync("audit", "/hubs/audit-log");
+        await StartConnectionAsync("app", "/hubs/app");
     }
 
     /// <summary>
-    /// Starts notification connection.
+    /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
     public async Task StartNotificationConnectionAsync()
     {
-        await StartConnectionAsync("notification", "/hubs/notifications");
+        await StartConnectionAsync("app", "/hubs/app");
     }
 
     /// <summary>
@@ -1154,7 +1141,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1175,7 +1162,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1196,7 +1183,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task AcknowledgeNotificationAsync(Guid notificationId)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1217,7 +1204,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task ArchiveNotificationAsync(Guid notificationId)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1237,15 +1224,17 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     #region Connection State Properties
 
-    public bool IsAuditConnected => GetConnectionState("audit") == HubConnectionState.Connected;
-    public bool IsNotificationConnected => GetConnectionState("notification") == HubConnectionState.Connected;
+    // "app" hub consolidates: audit, notifications, alerts, configuration, update-notifications
+    public bool IsAppConnected => GetConnectionState("app") == HubConnectionState.Connected;
+    public bool IsAuditConnected => IsAppConnected;
+    public bool IsNotificationConnected => IsAppConnected;
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
     public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
-    public bool IsUpdateNotificationConnected => GetConnectionState("update-notifications") == HubConnectionState.Connected;
+    public bool IsUpdateNotificationConnected => IsAppConnected;
     public bool IsFiscalPrinterConnected => GetConnectionState("fiscal-printer") == HubConnectionState.Connected;
-    public bool IsAlertsConnected => GetConnectionState("alerts") == HubConnectionState.Connected;
-    public bool IsConfigurationConnected => GetConnectionState("configuration") == HubConnectionState.Connected;
-    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
+    public bool IsAlertsConnected => IsAppConnected;
+    public bool IsConfigurationConnected => IsAppConnected;
+    public bool IsAllConnected => IsAppConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
     public async Task SubscribeToPrinterAsync(Guid printerId)
     {

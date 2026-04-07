@@ -1,4 +1,5 @@
 using EventForge.DTOs.Notifications;
+using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -29,7 +30,7 @@ public class NotificationService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
     ILogger<NotificationService> logger,
-    IHubContext<NotificationHub> hubContext) : INotificationService
+    IHubContext<AppHub> hubContext) : INotificationService
 {
 
     #region Core Notification Management

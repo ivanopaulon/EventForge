@@ -1,3 +1,4 @@
+using EventForge.Server.Hubs;
 using EventForge.Server.Mappers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace EventForge.Server.Services.Configuration;
 public class BackupService(
     EventForgeDbContext context,
     ITenantContext tenantContext,
-    IHubContext<AuditLogHub> hubContext,
+    IHubContext<AppHub> hubContext,
     ILogger<BackupService> logger,
     IWebHostEnvironment environment) : IBackupService
 {

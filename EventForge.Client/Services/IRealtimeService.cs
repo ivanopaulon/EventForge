@@ -25,6 +25,11 @@ public interface IRealtimeService
     Task StopAllConnectionsAsync();
 
     /// <summary>
+    /// Gets whether the unified app connection (notifications + audit + alerts + config + updates) is active.
+    /// </summary>
+    bool IsAppConnected { get; }
+
+    /// <summary>
     /// Gets whether all connections are active.
     /// </summary>
     bool IsAllConnected { get; }

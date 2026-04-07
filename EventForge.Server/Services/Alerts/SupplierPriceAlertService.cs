@@ -1,4 +1,5 @@
 using EventForge.DTOs.Alerts;
+using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using AlertConfiguration = EventForge.Server.Data.Entities.Alerts.AlertConfiguration;
@@ -19,7 +20,7 @@ public class SupplierPriceAlertService(
     ITenantContext tenantContext,
     IHttpContextAccessor httpContextAccessor,
     ILogger<SupplierPriceAlertService> logger,
-    IHubContext<AlertHub>? hubContext = null) : ISupplierPriceAlertService
+    IHubContext<AppHub>? hubContext = null) : ISupplierPriceAlertService
 {
 
     private string GetCurrentUserId()

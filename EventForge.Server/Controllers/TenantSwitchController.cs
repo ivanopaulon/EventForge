@@ -1,3 +1,4 @@
+using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -15,7 +16,7 @@ namespace EventForge.Server.Controllers;
 public class TenantSwitchController(
     EventForgeDbContext context,
     ITenantContext tenantContext,
-    IHubContext<AuditLogHub> hubContext,
+    IHubContext<AppHub> hubContext,
     ILogger<TenantSwitchController> logger) : BaseApiController
 {
 
