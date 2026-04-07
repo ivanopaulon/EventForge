@@ -1,6 +1,6 @@
-# Prym Bootstrap System
+# EventForge Bootstrap System
 
-This document describes the automatic bootstrap routine implemented for Prym that runs on server startup after applying EF Core migrations to create an initial environment when the database is empty.
+This document describes the automatic bootstrap routine implemented for EventForge that runs on server startup after applying EF Core migrations to create an initial environment when the database is empty.
 
 ## Overview
 
@@ -300,7 +300,7 @@ The system will automatically:
 - **Service:** `BootstrapService` implements `IBootstrapService`
 - **Hosted Service:** `BootstrapHostedService` implements `IHostedService`
 - **Registration:** Automatically registered in DI container
-- **Dependencies:** PrymDbContext, IPasswordService, IConfiguration, ILogger
+- **Dependencies:** EventForgeDbContext, IPasswordService, IConfiguration, ILogger
 - **Database:** Uses EF Core migrations and entity framework
 - **Update Strategy:** Compare-and-update pattern for all bootstrap data
 - **Execution:** Runs on every application startup

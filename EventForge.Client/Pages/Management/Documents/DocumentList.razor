@@ -1,0 +1,283 @@
+@page "/documents/list"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Documents
+@using EventForge.Client.Shared.Management.Adapters
+@using EventForge.Client.Services
+@using MudBlazor
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IDocumentTypeService DocumentTypeService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager NavigationManager
+@inject ILogger<DocumentList> Logger
+
+
+<PageTitle>@TranslationService.GetTranslation("documents.list", "Elenco Documenti")</PageTitle>
+
+<EntityManagementPage TEntity="DocumentHeaderDto"
+                      @ref="_managementPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(async () => NavigationManager.NavigateTo("/documents/create"))"
+                      OnViewEntity="@(async id => NavigationManager.NavigateTo($"/documents/edit/{id}"))">
+    <AdditionalToolbarContent>
+        <MudSelect T="Guid?"
+                   Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                   Class="ef-select"
+                   Value="_service.DocumentTypeId"
+                   ValueChanged="@OnDocumentTypeChanged"
+                   Clearable="true"
+                   Style="min-width: 200px; margin-right: 8px;">
+            @foreach (var type in _documentTypes)
+            {
+                <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect T="DocumentStatus?"
+                   Label="@TranslationService.GetTranslation("documents.status", "Stato")"
+                   Class="ef-select"
+                   Value="_service.Status"
+                   ValueChanged="@OnStatusChanged"
+                   Clearable="true"
+                   Style="min-width: 150px; margin-right: 8px;">
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("status.draft", "Bozza")</MudSelectItem>
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudSelectItem>
+        </MudSelect>
+    </AdditionalToolbarContent>
+
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Number")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Number">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Number))">@TranslationService.GetTranslation("documents.number", "Numero")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DocumentTypeName")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="DocumentTypeName">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documents.type", "Tipo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Date")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Date">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Date))">@TranslationService.GetTranslation("documents.date", "Data")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CustomerName")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="CustomerName">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.BusinessPartyName ?? x.CustomerName ?? string.Empty))">@TranslationService.GetTranslation("documents.customer", "Cliente")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "TotalGrossAmount")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="TotalGrossAmount">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.TotalGrossAmount))">@TranslationService.GetTranslation("documents.amount", "Importo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Status))">@TranslationService.GetTranslation("documents.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Number")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.number", "Numero")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                        @if (!string.IsNullOrEmpty(ctx.Item.Series))
+                        {
+                            <text>@ctx.Item.Series/@ctx.Item.Number</text>
+                        }
+                        else
+                        {
+                            <text>@ctx.Item.Number</text>
+                        }
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "DocumentTypeName")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.type", "Tipo")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Description" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.DocumentTypeName</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Date")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.date", "Data")">
+                    <MudText Typo="Typo.body2">@ctx.Item.Date.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CustomerName")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.customer", "Cliente")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.BusinessPartyName ?? ctx.Item.CustomerName ?? "-")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "TotalGrossAmount")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" Style="text-align:right;">
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.status", "Stato")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">
+                        @TranslationService.GetTranslation($"documents.status.{ctx.Item.Status.ToString().ToLower()}", ctx.Item.Status.ToString())
+                    </MudChip>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="doc">
+        @if (doc.Status == DocumentStatus.Open)
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("documents.close", "Chiudi")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Lock"
+                               Size="Size.Small"
+                               Color="Color.Warning"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => CloseDocumentAsync(doc.Id))" />
+            </MudTooltip>
+        }
+    </AdditionalRowActions>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<DocumentHeaderDto> _managementPage = null!;
+    private DocumentListManagementService _service = null!;
+    private EntityManagementConfig<DocumentHeaderDto> _config = null!;
+    private List<DocumentTypeDto> _documentTypes = new();
+
+    protected override void OnInitialized()
+    {
+        _service = new DocumentListManagementService(DocumentHeaderService);
+        _config = new EntityManagementConfig<DocumentHeaderDto>
+        {
+            ComponentKey = "DocumentManagement",
+            PageTitleKey = "documents.list",
+            PageTitleDefault = "Elenco Documenti",
+            EntityIcon = Icons.Material.Outlined.Description,
+            PageRootCssClass = "document-page-root",
+            BaseRoute = "/documents/edit",
+            ExcelFileName = "Documenti",
+            SearchPlaceholderKey = "documents.search",
+            SearchPlaceholderDefault = "Cerca documenti",
+            CreateTooltip = "documents.create",
+            EntityTypeName = "Document",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            ShowView = true,
+            ShowEdit = true,
+            ShowDelete = true,
+            CanEdit = d => d.Status == DocumentStatus.Draft,
+            CanDelete = d => d.Status == DocumentStatus.Draft,
+            GetDisplayName = d => string.IsNullOrEmpty(d.Series) ? d.Number : $"{d.Series}/{d.Number}",
+            GetId = d => d.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Documenti", null, disabled: true),
+                new BreadcrumbItem("Elenco", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Number", DisplayName = "Numero", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "DocumentTypeName", DisplayName = "Tipo", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Date", DisplayName = "Data", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "CustomerName", DisplayName = "Cliente", IsVisible = true, Order = 3, IsSearchable = true },
+                new() { PropertyName = "TotalGrossAmount", DisplayName = "Importo", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i documenti" },
+                new() { Id = "draft", Label = "Bozze", Predicate = d => d.Status == DocumentStatus.Draft, Color = Color.Default, Icon = Icons.Material.Outlined.Edit, Description = "Documenti in bozza" },
+                new() { Id = "open", Label = "Aperti", Predicate = d => d.Status == DocumentStatus.Open, Color = Color.Info, Icon = Icons.Material.Outlined.Description, Description = "Documenti aperti" },
+                new() { Id = "closed", Label = "Chiusi", Predicate = d => d.Status == DocumentStatus.Closed, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti chiusi" },
+                new() { Id = "cancelled", Label = "Annullati", Predicate = d => d.Status == DocumentStatus.Cancelled, Color = Color.Error, Icon = Icons.Material.Outlined.Cancel, Description = "Documenti annullati" },
+                new() { Id = "recent", Label = "Recenti", Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Documenti degli ultimi 30 giorni" }
+            }
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var allTypes = await DocumentTypeService.GetAllDocumentTypesAsync();
+            _documentTypes = allTypes?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document types");
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"));
+        }
+    }
+
+    private async Task OnDocumentTypeChanged(Guid? value)
+    {
+        _service.DocumentTypeId = value;
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task OnStatusChanged(DocumentStatus? value)
+    {
+        _service.Status = value;
+        await _managementPage.RefreshAsync();
+    }
+
+    private Color GetStatusColor(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Draft => Color.Default,
+        DocumentStatus.Open => Color.Success,
+        DocumentStatus.Closed => Color.Warning,
+        DocumentStatus.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task CloseDocumentAsync(Guid documentId)
+    {
+        try
+        {
+            var result = await DocumentHeaderService.CloseDocumentAsync(documentId);
+            if (result != null)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.closeSuccess", "Documento chiuso con successo"));
+                await _managementPage.RefreshAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error closing document {DocumentId}", documentId);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
+        }
+    }
+}

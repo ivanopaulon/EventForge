@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide outlines the standardized pattern for all SuperAdmin pages in Prym. The standardization effort aims to:
+This guide outlines the standardized pattern for all SuperAdmin pages in EventForge. The standardization effort aims to:
 
 - **Consistency**: Ensure all SuperAdmin pages follow the same structure and UI patterns
 - **Maintainability**: Make the codebase easier to understand and modify
@@ -17,25 +17,25 @@ All SuperAdmin pages MUST follow the same pattern used in Management pages (Prod
 
 These are the **PERFECT EXAMPLES** to follow:
 
-- **Primary Reference**: `Prym.Client/Pages/Management/Products/ProductManagement.razor`
-- **Secondary Reference**: `Prym.Client/Pages/Management/Warehouse/WarehouseManagement.razor`
+- **Primary Reference**: `EventForge.Client/Pages/Management/Products/ProductManagement.razor`
+- **Secondary Reference**: `EventForge.Client/Pages/Management/Warehouse/WarehouseManagement.razor`
 - **SuperAdmin Examples** (Already Standardized):
-  - `Prym.Client/Pages/SuperAdmin/UserManagement.razor`
-  - `Prym.Client/Pages/SuperAdmin/TenantManagement.razor`
-  - `Prym.Client/Pages/SuperAdmin/LicenseManagement.razor`
-  - `Prym.Client/Pages/SuperAdmin/Configuration.razor`
-  - `Prym.Client/Pages/SuperAdmin/ClientLogManagement.razor`
-  - `Prym.Client/Pages/SuperAdmin/ChatModeration.razor`
+  - `EventForge.Client/Pages/SuperAdmin/UserManagement.razor`
+  - `EventForge.Client/Pages/SuperAdmin/TenantManagement.razor`
+  - `EventForge.Client/Pages/SuperAdmin/LicenseManagement.razor`
+  - `EventForge.Client/Pages/SuperAdmin/Configuration.razor`
+  - `EventForge.Client/Pages/SuperAdmin/ClientLogManagement.razor`
+  - `EventForge.Client/Pages/SuperAdmin/ChatModeration.razor`
 
 ### Mandatory HTML Structure
 
 ```razor
 @page "/superadmin/[page-name]"
 @using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.[Namespace]
-@using Prym.DTOs.Common
-@using Prym.Client.Shared.Components
-@using Prym.Client.Shared.Components.Dashboard
+@using EventForge.DTOs.[Namespace]
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize(Roles = "SuperAdmin")]
 @inject IAuthService AuthService
 @inject [IService] Service
@@ -44,7 +44,7 @@ These are the **PERFECT EXAMPLES** to follow:
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 
-<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - Prym Super Admin", TranslationService.GetTranslation("[key]", "[Title]"))</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("superAdmin.pageTitle", "{0} - EventForge Super Admin", TranslationService.GetTranslation("[key]", "[Title]"))</PageTitle>
 
 <PageLoadingOverlay Visible="_isLoading || _isLoadingEntities"
                      Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />

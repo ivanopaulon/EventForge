@@ -10,7 +10,7 @@
 
 ## 🎯 Executive Summary
 
-L'**Epic #277** è stata **completata al 100%** realizzando un sistema di vendita professionale completo per Prym, includendo backend API, servizi client e interfaccia utente wizard multi-step per gestire vendite, pagamenti, tavoli e prenotazioni.
+L'**Epic #277** è stata **completata al 100%** realizzando un sistema di vendita professionale completo per EventForge, includendo backend API, servizi client e interfaccia utente wizard multi-step per gestire vendite, pagamenti, tavoli e prenotazioni.
 
 ### Risultati Raggiunti ✅
 
@@ -35,7 +35,7 @@ Epic #277 Overall Progress: 100% ✅
 ## 🎯 Obiettivi Epic
 
 ### Obiettivo Primario
-Implementare un sistema completo di vendita multi-step per Prym che supporti:
+Implementare un sistema completo di vendita multi-step per EventForge che supporti:
 - Vendite rapide (retail/negozio)
 - Vendite con tavoli (bar/ristorante)
 - Multi-pagamento
@@ -68,7 +68,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 
 #### 1.1 Database Layer
 
-**Percorso**: `/Prym.Server/Data/Entities/Sales/`
+**Percorso**: `/EventForge.Server/Data/Entities/Sales/`
 
 ##### Entità Implementate (8 files, ~950 righe)
 
@@ -148,7 +148,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 
 #### 1.2 API Contract Layer (DTOs)
 
-**Percorso**: `/Prym.DTOs/Sales/`
+**Percorso**: `/EventForge.DTOs/Sales/`
 
 ##### DTOs Implementati (8 files, ~320 righe)
 
@@ -202,7 +202,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 
 #### 1.3 Service Layer
 
-**Percorso**: `/Prym.Server/Services/Sales/`
+**Percorso**: `/EventForge.Server/Services/Sales/`
 
 ##### Servizi Implementati (4 servizi, ~2,100 righe)
 
@@ -318,7 +318,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 
 #### 1.4 Controller Layer (REST API)
 
-**Percorso**: `/Prym.Server/Controllers/`
+**Percorso**: `/EventForge.Server/Controllers/`
 
 ##### Controller Implementati (4 controller, 43 endpoints, ~1,704 righe)
 
@@ -429,7 +429,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 
 ### ✅ Fase 2: Client Services - 100% COMPLETATO
 
-**Percorso**: `/Prym.Client/Services/Sales/`
+**Percorso**: `/EventForge.Client/Services/Sales/`
 
 ##### Servizi Client Implementati (4 servizi, 8 files, ~1,085 righe)
 
@@ -503,7 +503,7 @@ Implementare un sistema completo di vendita multi-step per Prym che supporti:
 - `MarkNoShowAsync(Guid)` → `TableReservationDto?`
 
 **Service Registration Client**: 
-Tutti i 4 servizi registrati in `/Prym.Client/Program.cs` ✅
+Tutti i 4 servizi registrati in `/EventForge.Client/Program.cs` ✅
 ```csharp
 builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
@@ -518,10 +518,10 @@ builder.Services.AddScoped<ITableManagementService, TableManagementService>();
 ### Struttura Directory Completa
 
 ```
-Prym/
-├── Prym.Server/
+EventForge/
+├── EventForge.Server/
 │   ├── Data/
-│   │   ├── PrymDbContext.cs ✅ (aggiornato con DbSet Sales)
+│   │   ├── EventForgeDbContext.cs ✅ (aggiornato con DbSet Sales)
 │   │   └── Entities/Sales/ ✅ (8 entità, ~950 righe)
 │   │       ├── SaleSession.cs
 │   │       ├── SaleItem.cs
@@ -545,7 +545,7 @@ Prym/
 │   │   └── ServiceCollectionExtensions.cs ✅ (aggiornato con 4 servizi)
 │   └── Migrations/
 │       └── 20251002141945_AddSalesEntities.cs ✅ (applicata)
-├── Prym.Client/
+├── EventForge.Client/
 │   ├── Services/Sales/ ✅ (4 servizi client, ~1,085 righe)
 │   │   ├── ISalesService.cs + SalesService.cs
 │   │   ├── IPaymentMethodService.cs + PaymentMethodService.cs
@@ -554,7 +554,7 @@ Prym/
 │   ├── Program.cs ✅ (aggiornato con registrazione servizi)
 │   └── Pages/Sales/ ❌ (DA CREARE - Fase 3)
 │       └── (wizard pages e componenti)
-├── Prym.DTOs/Sales/ ✅ (8 file DTOs, ~320 righe)
+├── EventForge.DTOs/Sales/ ✅ (8 file DTOs, ~320 righe)
 │   ├── SaleSessionDto.cs
 │   ├── CreateUpdateSaleSessionDto.cs
 │   ├── SaleItemDtos.cs
@@ -691,8 +691,8 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ### Percorso Componenti UI
 
-**Base Path**: `/Prym.Client/Pages/Sales/` (DA CREARE)  
-**Shared Path**: `/Prym.Client/Shared/Components/Sales/` (DA CREARE)
+**Base Path**: `/EventForge.Client/Pages/Sales/` (DA CREARE)  
+**Shared Path**: `/EventForge.Client/Shared/Components/Sales/` (DA CREARE)
 
 ### 3.1 Wizard Container (8-10 ore)
 
@@ -978,7 +978,7 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ### 3.3 Shared Components (24-30 ore)
 
-**Percorso**: `/Prym.Client/Shared/Components/Sales/`
+**Percorso**: `/EventForge.Client/Shared/Components/Sales/`
 
 #### ProductKeyboard.razor (12-15 ore)
 **Features:**
@@ -1175,7 +1175,7 @@ UI Layer (Blazor) → Client Services → REST API → Service Layer → Data La
 
 ### 3.4 Styling & UX (8-10 ore)
 
-**Percorso**: `/Prym.Client/wwwroot/css/sales/` (DA CREARE)
+**Percorso**: `/EventForge.Client/wwwroot/css/sales/` (DA CREARE)
 
 **Files:**
 - `sales-wizard.css` - Stili wizard container
@@ -1417,7 +1417,7 @@ Duration: ~1m 32s
 
 #### Unit Tests UI Components
 ```
-Prym.Tests/Components/Sales/
+EventForge.Tests/Components/Sales/
 ├── SalesWizardTests.cs
 ├── Step1_AuthenticationTests.cs
 ├── Step3_ProductsTests.cs
@@ -1430,7 +1430,7 @@ Prym.Tests/Components/Sales/
 
 #### Integration Tests
 ```
-Prym.Tests/Integration/Sales/
+EventForge.Tests/Integration/Sales/
 ├── SalesWizardFlowTests.cs
 ├── RapidSaleFlowTests.cs
 └── TableSaleFlowTests.cs
@@ -1448,7 +1448,7 @@ tests/e2e/sales/
 
 #### 1. Avviare Backend
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet run
 ```
 
@@ -1496,12 +1496,12 @@ Navigare a: `https://localhost:5001/swagger`
 ### Issue GitHub
 
 **Epic Principal**:
-- [#277 - Epic: Wizard Multi-step Documenti e UI Vendita](https://github.com/ivanopaulon/Prym/issues/277) - CLOSED
+- [#277 - Epic: Wizard Multi-step Documenti e UI Vendita](https://github.com/ivanopaulon/EventForge/issues/277) - CLOSED
 
 **Sub-Issues**:
-- [#262 - Progettazione UI wizard vendita](https://github.com/ivanopaulon/Prym/issues/262)
-- [#261 - Refactoring wizard frontend vendita](https://github.com/ivanopaulon/Prym/issues/261)
-- [#267 - Proposta wizard multi-step documenti](https://github.com/ivanopaulon/Prym/issues/267) - SOSPESO
+- [#262 - Progettazione UI wizard vendita](https://github.com/ivanopaulon/EventForge/issues/262)
+- [#261 - Refactoring wizard frontend vendita](https://github.com/ivanopaulon/EventForge/issues/261)
+- [#267 - Proposta wizard multi-step documenti](https://github.com/ivanopaulon/EventForge/issues/267) - SOSPESO
 
 ### Branch
 

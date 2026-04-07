@@ -1,4 +1,4 @@
-# Prym - Correzione Permessi Bootstrap
+# EventForge - Correzione Permessi Bootstrap
 
 ## Problema Identificato
 
@@ -159,7 +159,7 @@ I permessi sono entità di sistema e quindi disponibili per tutti i tenant. Quan
 
 ## File Modificati
 
-- `Prym.Server/Services/Auth/BootstrapService.cs`
+- `EventForge.Server/Services/Auth/BootstrapService.cs`
 
 **Righe modificate:**
 - Linee 639-749: Aggiornata definizione permessi con TenantId e nuovi permessi
@@ -170,13 +170,13 @@ I permessi sono entità di sistema e quindi disponibili per tutti i tenant. Quan
 
 ### Build
 ```bash
-dotnet build Prym.Server/Prym.Server.csproj
+dotnet build EventForge.Server/EventForge.Server.csproj
 ```
 ✅ **Risultato**: Build succeeded (0 errori, solo warning pre-esistenti)
 
 ### Test
 ```bash
-dotnet test Prym.Tests/Prym.Tests.csproj --filter "FullyQualifiedName~BootstrapService"
+dotnet test EventForge.Tests/EventForge.Tests.csproj --filter "FullyQualifiedName~BootstrapService"
 ```
 ✅ **Risultato**: 5/5 test passati
 

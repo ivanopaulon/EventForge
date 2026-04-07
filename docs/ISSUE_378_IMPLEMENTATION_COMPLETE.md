@@ -12,7 +12,7 @@ Implementazione completa della gestione diretta delle entità correlate (Address
 ### 🔧 Modifiche Backend
 
 #### 1. EntityManagementController.cs
-**File**: `Prym.Server/Controllers/EntityManagementController.cs`
+**File**: `EventForge.Server/Controllers/EntityManagementController.cs`
 
 **Modifiche**:
 - Aggiunto supporto completo per Reference con injection di `IReferenceService`
@@ -36,7 +36,7 @@ Implementazione completa della gestione diretta delle entità correlate (Address
 ### 🖥️ Modifiche Client
 
 #### 1. EntityManagementService.cs
-**File**: `Prym.Client/Services/EntityManagementService.cs`
+**File**: `EventForge.Client/Services/EntityManagementService.cs`
 
 **Modifiche**:
 - Aggiunta interfaccia `IEntityManagementService` con metodi Reference
@@ -54,7 +54,7 @@ Implementazione completa della gestione diretta delle entità correlate (Address
 - Null safety
 
 #### 2. BusinessPartyDrawer.razor
-**File**: `Prym.Client/Shared/Components/BusinessPartyDrawer.razor`
+**File**: `EventForge.Client/Shared/Components/BusinessPartyDrawer.razor`
 
 **Modifiche principali**:
 1. **Caricamento entità correlate in Edit mode**:

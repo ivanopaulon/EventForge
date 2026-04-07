@@ -217,13 +217,13 @@ SELECT COUNT(*) FROM DocumentTypes;     -- Dovrebbe restituire 12
 
 ## File Modificati
 
-1. **Prym.Server/Services/Configuration/BootstrapHostedService.cs**
+1. **EventForge.Server/Services/Configuration/BootstrapHostedService.cs**
    - Migliorato il fast-path check per verificare anche i dati base
 
-2. **Prym.Server/Services/Auth/BootstrapService.cs**
+2. **EventForge.Server/Services/Auth/BootstrapService.cs**
    - Aggiunta verifica e seeding per tenant esistenti senza dati base
 
-3. **Prym.Tests/Services/Auth/BootstrapServiceTests.cs**
+3. **EventForge.Tests/Services/Auth/BootstrapServiceTests.cs**
    - Aggiunto test per verificare il fix con database ricreato
 
 ## Conclusione

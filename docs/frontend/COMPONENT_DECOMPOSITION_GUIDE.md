@@ -315,11 +315,11 @@ When extracting a component:
 
 ## References
 
-- **Working Pattern Source**: `Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor` (lines 194-211)
+- **Working Pattern Source**: `EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor` (lines 194-211)
 - **MudBlazor Autocomplete**: https://mudblazor.com/components/autocomplete
 - **Blazor Component Parameters**: https://learn.microsoft.com/en-us/aspnet/core/blazor/components/
 - **Previous Fix Documentation**: `PRODUCT_AUTOCOMPLETE_FIX_SUMMARY.md`
-- **Dialog Styling**: `Prym.Client/Shared/Components/Dialogs/DialogStyleConstants.cs`
+- **Dialog Styling**: `EventForge.Client/Shared/Components/Dialogs/DialogStyleConstants.cs`
 
 ## Conclusion
 

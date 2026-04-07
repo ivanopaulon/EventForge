@@ -8,7 +8,7 @@
 
 ## 🎯 Panoramica
 
-Questa cartella contiene l'analisi approfondita dello stato di implementazione del sistema di gestione documenti di Prym. L'analisi ha rivelato che **lo stato reale è al 60% (non 30% come precedentemente documentato)**.
+Questa cartella contiene l'analisi approfondita dello stato di implementazione del sistema di gestione documenti di EventForge. L'analisi ha rivelato che **lo stato reale è al 60% (non 30% come precedentemente documentato)**.
 
 ### Scoperta Principale
 ```

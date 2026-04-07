@@ -1,4 +1,4 @@
-# Prym - Mappatura Feature delle Licenze - Risoluzione Problema
+# EventForge - Mappatura Feature delle Licenze - Risoluzione Problema
 
 ## Problema Identificato
 
@@ -8,7 +8,7 @@
 
 ### Analisi Completata
 
-È stata effettuata un'analisi completa di tutti i 31 controller presenti nel progetto Prym.Server per identificare:
+È stata effettuata un'analisi completa di tutti i 31 controller presenti nel progetto EventForge.Server per identificare:
 
 1. ✅ Quali controller hanno già protezione tramite `RequireLicenseFeature`
 2. ✅ Quali controller necessitano di protezione con feature di licenza
@@ -57,7 +57,7 @@
 
 ### Modifiche Implementate
 
-#### File Modificato: `Prym.Server/Services/Auth/BootstrapService.cs`
+#### File Modificato: `EventForge.Server/Services/Auth/BootstrapService.cs`
 
 **Funzione aggiornata:** `SyncSuperAdminLicenseFeaturesAsync`
 
@@ -169,7 +169,7 @@ Tutti i test sono stati eseguiti con successo:
 
 | File | Righe Modificate | Descrizione |
 |------|-----------------|-------------|
-| `Prym.Server/Services/Auth/BootstrapService.cs` | +32, -2 | Aggiunte 7 nuove feature alla licenza SuperAdmin |
+| `EventForge.Server/Services/Auth/BootstrapService.cs` | +32, -2 | Aggiunte 7 nuove feature alla licenza SuperAdmin |
 | `docs/LICENSE_FEATURE_MAPPING.md` | +350 (nuovo) | Documentazione completa mappatura feature |
 | `docs/RISOLUZIONE_LICENZE_IT.md` | +250 (nuovo) | Documentazione in italiano della soluzione |
 
@@ -289,7 +289,7 @@ Il sistema è ora completamente configurato per la gestione basata su feature di
 
 ## Riferimenti
 
-- **Codice sorgente:** `Prym.Server/Services/Auth/BootstrapService.cs`
+- **Codice sorgente:** `EventForge.Server/Services/Auth/BootstrapService.cs`
 - **Documentazione completa (EN):** `docs/LICENSE_FEATURE_MAPPING.md`
 - **Documentazione licenze:** `docs/deployment/licensing.md`
 - **Documentazione precedente:** `docs/SUPERADMIN_LICENSE_SUMMARY.md`
@@ -297,6 +297,6 @@ Il sistema è ora completamente configurato per la gestione basata su feature di
 ---
 
 **Data implementazione:** {{ current_date }}  
-**Versione:** Prym v1.0  
+**Versione:** EventForge v1.0  
 **Autore:** GitHub Copilot Agent  
 **Reviewer:** ivanopaulon

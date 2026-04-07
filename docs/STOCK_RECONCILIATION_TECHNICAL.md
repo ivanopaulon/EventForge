@@ -408,5 +408,5 @@ If currently using manual stock adjustments:
 ## Support
 
 For technical support or bug reports:
-- GitHub Issues: https://github.com/ivanopaulon/Prym/issues
+- GitHub Issues: https://github.com/ivanopaulon/EventForge/issues
 - Documentation: `/docs/STOCK_RECONCILIATION_GUIDE.md`

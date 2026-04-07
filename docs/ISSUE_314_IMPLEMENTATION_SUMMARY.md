@@ -32,7 +32,7 @@ Product (1) -----> (0..1) DocumentReference
 - Marked `ImageUrl` as obsolete with `[Obsolete]` attribute
 - Maintained backward compatibility with ImageUrl field
 
-**Configuration:** PrymDbContext
+**Configuration:** EventForgeDbContext
 - Added Product → DocumentReference relationship with Restrict delete behavior
 - Added index on ImageDocumentId for query optimization
 
@@ -317,7 +317,7 @@ Issue #314 has been successfully implemented with:
 - ✅ Backward compatibility maintained
 - ✅ Production-ready code
 
-The implementation follows Prym architectural patterns and best practices, with proper error handling, logging, multi-tenancy support, and comprehensive testing.
+The implementation follows EventForge architectural patterns and best practices, with proper error handling, logging, multi-tenancy support, and comprehensive testing.
 
 **Status:** 🎉 PRODUCTION READY
 **Completion Date:** October 1, 2025

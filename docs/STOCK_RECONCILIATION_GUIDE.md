@@ -151,4 +151,4 @@ A: Sconsigliato. Completa prima l'inventario e poi esegui la riconciliazione.
 
 Per supporto o segnalazione problemi:
 - Documentazione tecnica: `STOCK_RECONCILIATION_TECHNICAL.md`
-- Repository: https://github.com/ivanopaulon/Prym
+- Repository: https://github.com/ivanopaulon/EventForge

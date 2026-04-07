@@ -1,0 +1,370 @@
+@namespace EventForge.Client.Shared.Components.Dialogs
+@using MudBlazor
+
+<MudDialog CloseButton="false"
+           CloseOnEscapeKey="false"
+           Class="efsd-dialog-root"
+           Position="DialogPosition.Center"
+           Style="background:transparent !important; box-shadow:none !important; padding:0 !important; overflow:visible !important;">
+    <DialogContent>
+        <div class="efsd-card" style="@_cardStyle">
+
+            @* Top color strip *@
+            <div class="efsd-topbar @TopBarClass"></div>
+
+            @* Optional progress bar *@
+            @if (ShowProgressBar)
+            {
+                <div class="efsd-progress-wrap">
+                    <MudProgressLinear Color="@ProgressColor"
+                                       Indeterminate="@ProgressIndeterminate"
+                                       Value="@ProgressValue"
+                                       Max="100"
+                                       Style="height:3px; margin:0;" />
+                </div>
+            }
+
+            @* Header: logo + title + subtitle *@
+            <div class="efsd-header">
+                <div class="efsd-logo-col">
+                    <img src="trace.svg" width="72" height="72"
+                         class="efsd-logo @LogoClass" alt="PRYM logo" />
+                </div>
+                <div class="efsd-title-col">
+                    <div class="efsd-title-text">@Title</div>
+                    <div class="efsd-hrdiv"></div>
+                    @if (!string.IsNullOrEmpty(Subtitle))
+                    {
+                        <div class="efsd-subtitle">@Subtitle</div>
+                    }
+                </div>
+            </div>
+
+            @* Body slot *@
+            @if (ChildContent is not null)
+            {
+                <div class="efsd-body">
+                    @ChildContent
+                </div>
+            }
+
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    public enum EFTopBar  { Default, Primary, Success, Error, Warning }
+    public enum EFLogoAnim { None, Pulse, PulseRed, PulseGreen }
+
+    [Parameter] public string Title { get; set; } = "PRYM";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public EFTopBar TopBar { get; set; } = EFTopBar.Primary;
+    [Parameter] public bool ShowProgressBar { get; set; } = false;
+    [Parameter] public Color ProgressColor { get; set; } = Color.Primary;
+    [Parameter] public bool ProgressIndeterminate { get; set; } = true;
+    [Parameter] public double ProgressValue { get; set; } = 0;
+    [Parameter] public EFLogoAnim LogoAnim { get; set; } = EFLogoAnim.Pulse;
+    [Parameter] public string CardWidth { get; set; } = "420px";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string TopBarClass => TopBar switch
+    {
+        EFTopBar.Primary => "efsd-tb-primary",
+        EFTopBar.Success => "efsd-tb-success",
+        EFTopBar.Error   => "efsd-tb-error",
+        EFTopBar.Warning => "efsd-tb-warning",
+        _                => "efsd-tb-default"
+    };
+
+    private string LogoClass => LogoAnim switch
+    {
+        EFLogoAnim.Pulse      => "efsd-logo-pulse",
+        EFLogoAnim.PulseRed   => "efsd-logo-pulse-red",
+        EFLogoAnim.PulseGreen => "efsd-logo-pulse-green",
+        _                     => string.Empty
+    };
+
+    private string _cardStyle => $"width:{CardWidth}; max-width:95vw;";
+}
+
+<style>
+    /* ══════════════════════════════════════════════════════════════════════
+       EFSystemDialog — dark-card shell for non-dismissable system dialogs.
+       Visual layout mirrors LoginOverlay (logo + title + subtitle + topbar).
+       Unlike EFDialog, there is intentionally no close button.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    .efsd-dialog-root,
+    .mud-dialog.efsd-dialog-root {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* ── Dark card ── */
+    .efsd-card {
+        --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+        --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+        --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+        --mud-palette-background:           #12121f;
+        --mud-palette-surface:              #1c1c30;
+        --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+        --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+        --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+        --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+        --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+        --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+        --mud-palette-overlay-dark:         rgba(0, 0, 0, 0.5);
+        --efsd-color-primary-light:         rgba(100, 170, 255, 1);
+        --efsd-color-primary-focus:         rgba(100, 160, 255, 0.9);
+        color: rgba(255, 255, 255, 0.87);
+
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+    }
+
+    /* ── Top color strip ── */
+    .efsd-topbar { height: 4px; width: 100%; flex-shrink: 0; }
+    .efsd-tb-primary { background: #247BFF; }
+    .efsd-tb-success { background: #66bb6a; }
+    .efsd-tb-error   { background: #ef5350; }
+    .efsd-tb-warning { background: #ff9800; }
+    .efsd-tb-default { background: rgba(255, 255, 255, 0.12); }
+
+    /* ── Progress bar ── */
+    .efsd-progress-wrap { line-height: 0; font-size: 0; flex-shrink: 0; }
+
+    /* ── Header: logo (left) + title block (right) ── */
+    .efsd-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px 16px 20px;
+        flex-shrink: 0;
+    }
+
+    .efsd-logo-col {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .efsd-logo {
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    .efsd-title-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .efsd-title-text {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        line-height: 1.2;
+    }
+
+    .efsd-hrdiv {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 5px 0 7px 0;
+    }
+
+    .efsd-subtitle {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.88rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* ── Body slot ── */
+    .efsd-body {
+        padding: 0 24px 22px 24px;
+        color: rgba(255, 255, 255, 0.87);
+        --mud-palette-surface: transparent;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       Input overrides — same as EFOverlay/EFDialog for consistency.
+       ════════════════════════════════════════════════════════════════════ */
+
+    .efsd-body .mud-input,
+    .efsd-body .mud-input-outlined,
+    .efsd-body .mud-input-root,
+    .efsd-body .mud-input-root-outlined,
+    .efsd-body .mud-input-slot,
+    .efsd-body .mud-input-control,
+    .efsd-body .mud-input-control-input-container {
+        background-color: transparent !important;
+    }
+
+    .efsd-body .mud-input-control,
+    .efsd-body .mud-input-control-input-container,
+    .efsd-body .mud-input,
+    .efsd-body .mud-input-outlined {
+        overflow: visible !important;
+    }
+
+    .efsd-body .mud-input-label {
+        z-index: 10 !important;
+        position: absolute !important;
+    }
+
+    .efsd-body .mud-input-root input,
+    .efsd-body .mud-input-root textarea,
+    .efsd-body .mud-input input,
+    .efsd-body .mud-input textarea {
+        color: rgba(255, 255, 255, 0.87) !important;
+        caret-color: white !important;
+        background-color: transparent !important;
+    }
+
+    .efsd-body .mud-input-root,
+    .efsd-body .mud-input-root-outlined {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .efsd-body label.mud-input-label,
+    .efsd-body .mud-input-label {
+        color: rgba(255, 255, 255, 0.85) !important;
+        background-color: transparent !important;
+    }
+
+    .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+        background-color: #12121f !important;
+        padding: 0 6px !important;
+        border-radius: 2px;
+        color: var(--efsd-color-primary-light) !important;
+        font-size: 0.75rem !important;
+    }
+
+    .efsd-body .mud-input-outlined-border,
+    .efsd-body fieldset.mud-input-outlined-border,
+    .efsd-body .mud-input-outlined fieldset {
+        border-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .efsd-body .mud-input-outlined:hover .mud-input-outlined-border,
+    .efsd-body .mud-input-outlined:hover fieldset {
+        border-color: rgba(255, 255, 255, 0.70) !important;
+    }
+
+    .efsd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+    .efsd-body .mud-input-outlined:focus-within fieldset {
+        border-color: var(--efsd-color-primary-focus) !important;
+        border-width: 2px !important;
+    }
+
+    .efsd-body .mud-input-adornment .mud-icon-root,
+    .efsd-body .mud-input-adornment .mud-icon-button {
+        color: rgba(255, 255, 255, 0.55) !important;
+    }
+
+    .efsd-body .mud-select .mud-input-root,
+    .efsd-body .mud-select-input {
+        color: rgba(255, 255, 255, 0.87) !important;
+        background-color: transparent !important;
+    }
+
+    .efsd-body .mud-checkbox .mud-button-label,
+    .efsd-body .mud-checkbox-label,
+    .efsd-body span.mud-button-label {
+        color: rgba(255, 255, 255, 0.80) !important;
+    }
+
+    .efsd-body .mud-checkbox .mud-svg-icon,
+    .efsd-body .mud-checkbox .mud-icon-root {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .efsd-body .mud-alert {
+        background-color: rgba(255, 152, 0, 0.15) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        border: 1px solid rgba(255, 152, 0, 0.4) !important;
+    }
+
+    .efsd-body .mud-button-root.mud-button-text {
+        color: rgba(255, 255, 255, 0.60) !important;
+    }
+
+    .efsd-body .mud-button-root.mud-button-text:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .efsd-body .mud-button-root.mud-button-outlined {
+        border-color: rgba(255, 255, 255, 0.40) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* ── Logo animations ── */
+    .efsd-logo-pulse      { animation: efsd-pulse-blue  1.8s infinite ease-in-out; }
+    .efsd-logo-pulse-red  { animation: efsd-pulse-red   1.8s infinite ease-in-out; }
+    .efsd-logo-pulse-green { animation: efsd-pulse-green 1.2s ease-in-out; }
+
+    @@keyframes efsd-pulse-blue {
+        0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+        50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100, 160, 255, 0.6)); }
+        100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+    }
+
+    @@keyframes efsd-pulse-red {
+        0%   { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
+        50%  { filter: drop-shadow(0 0 20px rgba(239, 83, 80, 0.7)); transform: scale(1.06); }
+        100% { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
+    }
+
+    @@keyframes efsd-pulse-green {
+        0%   { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
+        50%  { filter: drop-shadow(0 0 24px rgba(102, 187, 106, 0.8)); transform: scale(1.08); }
+        100% { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
+    }
+
+    /* ── Mobile ── */
+    @@media (max-width: 480px) {
+        .efsd-card {
+            min-width: unset;
+            max-width: 92vw !important;
+            width: 92vw !important;
+        }
+
+        .efsd-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px 16px 12px 16px;
+        }
+
+        .efsd-body {
+            padding: 0 16px 18px 16px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .efsd-logo-pulse,
+        .efsd-logo-pulse-red,
+        .efsd-logo-pulse-green {
+            animation: none !important;
+        }
+    }
+</style>

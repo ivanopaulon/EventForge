@@ -1,0 +1,29 @@
+@using EventForge.DTOs.Sales
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="2" Class="pa-3 mb-4">
+    <MudRadioGroup T="ScanMode" Value="@Value" ValueChanged="@OnValueChanged">
+        <MudRadio T="ScanMode" Value="ScanMode.AddToCart" Color="Color.Primary">
+            <MudText>
+                <MudIcon Icon="@Icons.Material.Filled.AddShoppingCart" Size="Size.Small" Class="mr-1" />
+                @TranslationService.GetTranslation("sales.addToCart", "Aggiungi al conto")
+            </MudText>
+        </MudRadio>
+        <MudRadio T="ScanMode" Value="ScanMode.PriceCheckOnly" Color="Color.Info">
+            <MudText>
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" />
+                @TranslationService.GetTranslation("sales.priceCheckOnly", "Solo visualizza prezzo")
+            </MudText>
+        </MudRadio>
+    </MudRadioGroup>
+</MudPaper>
+
+@code {
+    [Parameter] public ScanMode Value { get; set; }
+    [Parameter] public EventCallback<ScanMode> ValueChanged { get; set; }
+
+    private Task OnValueChanged(ScanMode newValue)
+    {
+        return ValueChanged.InvokeAsync(newValue);
+    }
+}

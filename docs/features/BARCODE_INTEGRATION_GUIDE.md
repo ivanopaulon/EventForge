@@ -1,8 +1,8 @@
-# Prym Barcode Integration Guide
+# EventForge Barcode Integration Guide
 
 ## Overview
 
-Free Spire.Barcode for .NET has been successfully integrated into the Prym system for server-side barcode and QR code generation.
+Free Spire.Barcode for .NET has been successfully integrated into the EventForge system for server-side barcode and QR code generation.
 
 ## Features
 

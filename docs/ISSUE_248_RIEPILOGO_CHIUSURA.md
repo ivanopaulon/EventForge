@@ -270,5 +270,5 @@ Verifica tecnica completa disponibile in:
 ---
 
 **Report generato**: 1 Ottobre 2025  
-**Autore**: Prym Development Team  
+**Autore**: EventForge Development Team  
 **Versione**: 1.0.0

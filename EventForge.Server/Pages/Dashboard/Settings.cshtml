@@ -1,0 +1,1120 @@
+@page "/dashboard/settings"
+@model EventForge.Server.Pages.Dashboard.SettingsModel
+@using EventForge.DTOs.SuperAdmin
+@{
+    ViewData["Title"] = "System Settings";
+    ViewData["PageSection"] = "Monitoring";
+
+    var activeTab = Request.Query["tab"].ToString() switch
+    {
+        "performance"  => "performance",
+        "features"     => "features",
+        "sicurezza"    => "sicurezza",
+        "parametri"    => "parametri",
+        "integrazioni" => "integrazioni",
+        "avanzate"     => "avanzate",
+        _              => "config"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear me-2"></i>Impostazioni di sistema</h2>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "config" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#config" type="button">
+            <i class="bi bi-sliders me-1"></i>Configurazione
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "performance" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#performance" type="button">
+            <i class="bi bi-speedometer2 me-1"></i>Performance
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "features" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#features" type="button">
+            <i class="bi bi-toggle-on me-1"></i>Feature Flags
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "sicurezza" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#sicurezza" type="button">
+            <i class="bi bi-shield-lock me-1"></i>Sicurezza
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "parametri" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#parametri" type="button">
+            <i class="bi bi-sliders2 me-1"></i>Parametri
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "integrazioni" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#integrazioni" type="button">
+            <i class="bi bi-plug me-1"></i>Integrazioni
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(activeTab == "avanzate" ? "active" : "")"
+                data-bs-toggle="tab" data-bs-target="#avanzate" type="button">
+            <i class="bi bi-tools me-1"></i>Avanzate
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- ── Configuration Tab ────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "config" ? "show active" : "")" id="config">
+
+        <!-- SMTP -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-envelope me-2 text-primary"></i>Configurazione SMTP
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSmtp">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Server SMTP</label>
+                            <input type="text" asp-for="SmtpServer" class="form-control" placeholder="smtp.gmail.com" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Porta</label>
+                            <input type="number" asp-for="SmtpPort" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Usa SSL</label>
+                            <select asp-for="SmtpUseSsl" class="form-select">
+                                <option value="True">S&igrave;</option>
+                                <option value="False">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" asp-for="SmtpUsername" class="form-control" autocomplete="off" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Password
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="SmtpPassword" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                            <small class="text-muted">Per sicurezza, la password salvata non viene visualizzata. Lasciare vuoto per non modificare il valore corrente.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email mittente</label>
+                            <input type="email" asp-for="SmtpFromEmail" class="form-control"
+                                   placeholder="noreply@eventforge.com" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome mittente</label>
+                            <input type="text" asp-for="SmtpFromName" class="form-control" placeholder="PRYM" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva SMTP
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <hr />
+                <!-- Test SMTP -->
+                <form method="post" asp-page-handler="TestSmtp">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label small">Email di destinazione per il test</label>
+                            <input type="email" name="testEmail" class="form-control form-control-sm"
+                                   placeholder="test@esempio.com" required />
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-send me-1"></i>Invia email di test
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                @if (Model.SmtpTestResult != null)
+                {
+                    @if (Model.SmtpTestResult.Success)
+                    {
+                        <div class="alert alert-success mt-3 mb-0 py-2">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <strong>Email inviata</strong> in @(Model.SmtpTestResult.DurationMs) ms
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger mt-3 mb-0 py-2">
+                            <i class="bi bi-x-circle-fill me-1"></i>
+                            <strong>Errore:</strong> @Model.SmtpTestResult.ErrorMessage
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Logging -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-file-text me-2 text-info"></i>Configurazione logging
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateLogging">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Livello di log</label>
+                            <select asp-for="LogLevel" class="form-select">
+                                <option value="Trace">Trace</option>
+                                <option value="Debug">Debug</option>
+                                <option value="Information">Information</option>
+                                <option value="Warning">Warning</option>
+                                <option value="Error">Error</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Retention log (giorni)</label>
+                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="365" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva logging
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Performance Tab ──────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "performance" ? "show active" : "")" id="performance">
+
+        <!-- Rate limiting -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-speedometer me-2 text-warning"></i>Rate limiting API
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+                    Le modifiche ai limiti di rate limiting vengono salvate nel database ma richiedono il <strong>riavvio del server</strong> per essere applicate a runtime.
+                </div>
+                <form method="post" asp-page-handler="UpdateRateLimit">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Login max tentativi (per 5 min)</label>
+                            <input type="number" asp-for="LoginLimit" class="form-control" min="1" max="100" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">API max chiamate (per minuto)</label>
+                            <input type="number" asp-for="ApiLimit" class="form-control" min="10" max="10000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Token refresh max (per minuto)</label>
+                            <input type="number" asp-for="TokenRefreshLimit" class="form-control" min="1" max="60" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva rate limiting
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Performance monitoring -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-activity me-2 text-danger"></i>Monitoraggio performance
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdatePerfMonitoring">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Soglia richieste lente (ms)</label>
+                            <input type="number" asp-for="PerfSlowRequestThresholdMs" class="form-control" min="10" max="60000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Soglia query lente (secondi)</label>
+                            <input type="number" asp-for="PerfSlowQueryThresholdSeconds" class="form-control" min="1" max="300" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max storico query lente</label>
+                            <input type="number" asp-for="PerfMaxSlowQueryHistory" class="form-control" min="10" max="10000" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PerfEnableDetailedLogging" role="switch" />
+                                <label class="form-check-label">Abilita logging dettagliato</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PerfLogAllQueries" role="switch" />
+                                <label class="form-check-label">
+                                    Logga tutte le query
+                                    <small class="text-muted d-block">Impatto elevato sulle performance</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva monitoraggio
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Per cache e metriche in tempo reale visita
+            <a href="/dashboard/maintenance" class="alert-link">Manutenzione</a> e
+            <a href="/dashboard/performance" class="alert-link">Performance</a>.
+        </div>
+    </div>
+
+    <!-- ── Feature Flags Tab ────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "features" ? "show active" : "")" id="features">
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le modifiche alle feature flags vengono salvate nel database ma richiedono il <strong>riavvio del server</strong> per essere applicate a runtime.
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-toggles me-2 text-success"></i>Feature flags
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateFeatures">
+                    @Html.AntiForgeryToken()
+                    <div class="list-group mb-3">
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureDocumentCollaboration" role="switch" />
+                                <label class="form-check-label">
+                                    <strong>Collaborazione documenti (SignalR)</strong><br />
+                                    <small class="text-muted">Abilita la modifica collaborativa in tempo reale</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureAdvancedReporting" role="switch" />
+                                <label class="form-check-label">
+                                    <strong>Reporting avanzato</strong><br />
+                                    <small class="text-muted">Esportazione PDF/Excel e report personalizzati</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="FeatureDetailedAudit" role="switch" />
+                                <label class="form-check-label">
+                                    <strong>Audit log dettagliato</strong><br />
+                                    <small class="text-muted text-warning">Traccia tutte le modifiche alle entit&agrave; (impatto sulle performance)</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>Salva feature flags
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Sicurezza Tab ─────────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "sicurezza" ? "show active" : "")" id="sicurezza">
+
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le modifiche alle impostazioni di sicurezza richiedono il <strong>riavvio del server</strong> per essere applicate.
+        </div>
+
+        <!-- HTTPS / HSTS -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-lock me-2 text-danger"></i>HTTPS e HSTS
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSecurity">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="SecurityEnforceHttps" role="switch" />
+                                <label class="form-check-label">Imponi HTTPS</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="SecurityEnableHsts" role="switch" />
+                                <label class="form-check-label">Abilita HSTS</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">HSTS max-age (secondi)</label>
+                            <input type="number" asp-for="SecurityHstsMaxAge" class="form-control" min="0" />
+                            <small class="text-muted">31536000 = 1 anno</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">JWT scadenza token (minuti)</label>
+                            <input type="number" asp-for="JwtExpirationMinutes" class="form-control" min="1" max="43200" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">JWT clock skew (minuti)</label>
+                            <input type="number" asp-for="JwtClockSkewMinutes" class="form-control" min="0" max="30" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva sicurezza
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Password policy -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-key me-2 text-warning"></i>Politica password
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdatePasswordPolicy">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Lunghezza minima</label>
+                            <input type="number" asp-for="PasswordMinLength" class="form-control" min="4" max="64" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Lunghezza massima</label>
+                            <input type="number" asp-for="PasswordMaxLength" class="form-control" min="8" max="256" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Validit&agrave; max (giorni, 0=illimitata)</label>
+                            <input type="number" asp-for="PasswordMaxAge" class="form-control" min="0" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Storico password</label>
+                            <input type="number" asp-for="PasswordHistory" class="form-control" min="0" max="24" />
+                            <small class="text-muted">Impedisce il riutilizzo delle ultime N password</small>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PasswordRequireUppercase" role="switch" />
+                                <label class="form-check-label">Richiedi maiuscole</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PasswordRequireLowercase" role="switch" />
+                                <label class="form-check-label">Richiedi minuscole</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PasswordRequireDigits" role="switch" />
+                                <label class="form-check-label">Richiedi cifre</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="PasswordRequireSpecialChars" role="switch" />
+                                <label class="form-check-label">Richiedi caratteri speciali</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Caratteri speciali ammessi</label>
+                            <input type="text" asp-for="PasswordSpecialCharacters" class="form-control font-monospace" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva politica password
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account lockout -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-person-lock me-2 text-secondary"></i>Blocco account
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateLockout">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Max tentativi falliti</label>
+                            <input type="number" asp-for="LockoutMaxFailedAttempts" class="form-control" min="1" max="100" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Durata blocco (minuti)</label>
+                            <input type="number" asp-for="LockoutDurationMinutes" class="form-control" min="1" max="10080" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" asp-for="LockoutResetOnSuccess" role="switch" />
+                                <label class="form-check-label">Reset tentativi su login riuscito</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva blocco account
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CORS -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-diagram-3 me-2 text-info"></i>CORS - Origini consentite
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateCors">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Origini consentite</label>
+                            <textarea asp-for="CorsAllowedOrigins" class="form-control font-monospace" rows="4"
+                                      placeholder="https://app.example.com&#10;http://localhost:7009"></textarea>
+                            <small class="text-muted">Una URL per riga. Esempio: <code>https://app.example.com</code></small>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva CORS
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Parametri Tab ─────────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "parametri" ? "show active" : "")" id="parametri">
+
+        <!-- Pagination -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-list-ol me-2 text-primary"></i>Paginazione
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdatePagination">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Pagina di default</label>
+                            <input type="number" asp-for="PaginationDefaultPageSize" class="form-control" min="1" max="1000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max pagina</label>
+                            <input type="number" asp-for="PaginationMaxPageSize" class="form-control" min="1" max="100000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max pagina export</label>
+                            <input type="number" asp-for="PaginationMaxExportPageSize" class="form-control" min="1" max="1000000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pagina consigliata</label>
+                            <input type="number" asp-for="PaginationRecommendedPageSize" class="form-control" min="1" max="10000" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva paginazione
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CSV Import -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-filetype-csv me-2 text-success"></i>Importazione CSV
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateCsvImport">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Max dimensione file (MB)</label>
+                            <input type="number" asp-for="CsvMaxFileSizeMb" class="form-control" min="1" max="500" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Dimensione batch</label>
+                            <input type="number" asp-for="CsvBatchSize" class="form-control" min="10" max="10000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valuta di default</label>
+                            <input type="text" asp-for="CsvDefaultCurrency" class="form-control" maxlength="3" placeholder="EUR" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max righe anteprima</label>
+                            <input type="number" asp-for="CsvMaxRowsPreview" class="form-control" min="1" max="100" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva CSV import
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Price history -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-graph-up-arrow me-2 text-info"></i>Storico prezzi
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdatePriceHistory">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Retention (giorni)</label>
+                            <input type="number" asp-for="PriceHistoryRetentionDays" class="form-control" min="30" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cache statistiche (minuti)</label>
+                            <input type="number" asp-for="PriceHistoryCacheMinutes" class="form-control" min="1" max="1440" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pagina di default</label>
+                            <input type="number" asp-for="PriceHistoryDefaultPageSize" class="form-control" min="1" max="500" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max pagina</label>
+                            <input type="number" asp-for="PriceHistoryMaxPageSize" class="form-control" min="1" max="10000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Variazione significativa (%)</label>
+                            <input type="number" asp-for="PriceHistorySignificantChangePercent" class="form-control" min="0.1" max="100" step="0.1" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" asp-for="PriceHistoryEnableAutoLogging" role="switch" />
+                                <label class="form-check-label">Logging automatico variazioni</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva storico prezzi
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Supplier suggestion -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-stars me-2 text-warning"></i>Suggerimento fornitori
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSupplierSuggestion">
+                    @Html.AntiForgeryToken()
+                    <p class="text-muted small mb-3">I pesi devono sommare 1.0. Vengono usati per calcolare lo score del fornitore.</p>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Peso prezzo</label>
+                            <input type="number" asp-for="SuggestionWeightPrice" class="form-control" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Peso lead time</label>
+                            <input type="number" asp-for="SuggestionWeightLeadTime" class="form-control" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Peso affidabilit&agrave;</label>
+                            <input type="number" asp-for="SuggestionWeightReliability" class="form-control" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Peso trend</label>
+                            <input type="number" asp-for="SuggestionWeightTrend" class="form-control" min="0" max="1" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Min punti dati per trend</label>
+                            <input type="number" asp-for="SuggestionMinDataPoints" class="form-control" min="2" max="100" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Periodo analisi trend (giorni)</label>
+                            <input type="number" asp-for="SuggestionTrendPeriodDays" class="form-control" min="7" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cache score (minuti)</label>
+                            <input type="number" asp-for="SuggestionCacheMinutes" class="form-control" min="1" max="1440" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Soglia variazione prezzo (%)</label>
+                            <input type="number" asp-for="SuggestionPriceChangeThreshold" class="form-control" min="0.1" max="100" step="0.1" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Confidenza bassa (%)</label>
+                            <input type="number" asp-for="SuggestionConfidenceLow" class="form-control" min="0" max="100" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Confidenza alta (%)</label>
+                            <input type="number" asp-for="SuggestionConfidenceHigh" class="form-control" min="0" max="100" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" asp-for="SuggestionEnableAuto" role="switch" />
+                                <label class="form-check-label">Abilita suggerimento automatico</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva suggerimento fornitori
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Supplier alerts -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-bell me-2 text-danger"></i>Alert fornitori
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSupplierAlerts">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Soglia aumento prezzo (%)</label>
+                            <input type="number" asp-for="AlertPriceIncreasePercent" class="form-control" min="0.1" max="100" step="0.1" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Soglia riduzione prezzo (%)</label>
+                            <input type="number" asp-for="AlertPriceDecreasePercent" class="form-control" min="0.1" max="100" step="0.1" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Soglia volatilit&agrave; (%)</label>
+                            <input type="number" asp-for="AlertVolatilityPercent" class="form-control" min="0.1" max="100" step="0.1" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Giorni senza aggiornamento</label>
+                            <input type="number" asp-for="AlertDaysWithoutUpdate" class="form-control" min="1" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Max alert per digest</label>
+                            <input type="number" asp-for="AlertMaxPerDigest" class="form-control" min="1" max="1000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Retention alert risolti (giorni)</label>
+                            <input type="number" asp-for="AlertRetentionResolvedDays" class="form-control" min="1" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Retention alert ignorati (giorni)</label>
+                            <input type="number" asp-for="AlertRetentionDismissedDays" class="form-control" min="1" max="3650" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Heartbeat SignalR (secondi)</label>
+                            <input type="number" asp-for="AlertHeartbeatSeconds" class="form-control" min="5" max="300" />
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="AlertEnableEmail" role="switch" />
+                                <label class="form-check-label">Abilita notifiche email</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva alert fornitori
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Integrazioni Tab ──────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "integrazioni" ? "show active" : "")" id="integrazioni">
+
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le modifiche alle impostazioni di integrazione richiedono il <strong>riavvio del server</strong> per essere applicate.
+        </div>
+
+        <!-- VAT Lookup -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-receipt me-2 text-success"></i>Lookup IVA (VAT)
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateVatLookup">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-9">
+                            <label class="form-label">URL template provider REST</label>
+                            <input type="text" asp-for="VatLookupUrlTemplate" class="form-control font-monospace"
+                                   placeholder="https://api.vatcomply.com/vat?vat={country}{vat}" />
+                            <small class="text-muted">Usare <code>{country}</code> e <code>{vat}</code> come segnaposto</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Timeout (secondi)</label>
+                            <input type="number" asp-for="VatLookupTimeoutSeconds" class="form-control" min="1" max="120" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva lookup IVA
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- UpdateHub -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-cloud-upload me-2 text-primary"></i>UpdateHub
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateHub">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">URL base UpdateHub</label>
+                            <input type="text" asp-for="UpdateHubBaseUrl" class="form-control" placeholder="http://localhost:7243" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Admin API Key
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="UpdateHubAdminApiKey" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Maintenance Secret
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="UpdateHubMaintenanceSecret" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva UpdateHub
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Agent -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-robot me-2 text-secondary"></i>Update Agent
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateAgent">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">URL locale Agent</label>
+                            <input type="text" asp-for="AgentLocalUrl" class="form-control" placeholder="http://localhost:5780" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" asp-for="AgentUsername" class="form-control" autocomplete="off" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Password
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="AgentPassword" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Intervallo polling (secondi)</label>
+                            <input type="number" asp-for="AgentPollIntervalSeconds" class="form-control" min="5" max="3600" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Auto-restart dopo (minuti, 0=disabilitato)</label>
+                            <input type="number" asp-for="AgentAutoRestartAfterMinutes" class="form-control" min="0" max="1440" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva Agent
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Avanzate Tab ──────────────────────────────────────────── -->
+    <div class="tab-pane fade @(activeTab == "avanzate" ? "show active" : "")" id="avanzate">
+
+        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+            Le impostazioni avanzate richiedono il <strong>riavvio del server</strong> per essere applicate.
+        </div>
+
+        <!-- Infrastruttura (read-only) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-database me-2 text-secondary"></i>Infrastruttura
+                <span class="badge bg-secondary ms-2 fw-normal" style="font-size:.7rem">sola lettura</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Questi parametri sono definiti in <code>appsettings.json</code> e richiedono la modifica diretta del file + riavvio.
+                    Le password nelle stringhe di connessione sono oscurate.
+                </p>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Database provider</label>
+                        <input type="text" class="form-control" readonly value="@(Model.InfoDatabaseProvider ?? "—")" />
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label">Connection string principale</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringDefault ?? "—")" style="font-size:.78rem" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Connection string log (LogDb)</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringLogDb ?? "—")" style="font-size:.78rem" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Redis</label>
+                        <input type="text" class="form-control font-monospace" readonly
+                               value="@(Model.InfoConnectionStringRedis ?? "—")" style="font-size:.78rem" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HttpClient -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-hdd-network me-2 text-primary"></i>HttpClient — URL del server
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">URL base e porta con cui il server si riferisce a s&eacute; stesso per le chiamate interne.</p>
+                <form method="post" asp-page-handler="UpdateHttpClient">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Base address</label>
+                            <input type="text" asp-for="HttpClientBaseAddress" class="form-control"
+                                   placeholder="https://localhost" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Porta</label>
+                            <input type="number" asp-for="HttpClientPort" class="form-control" min="1" max="65535" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva HttpClient
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Syncfusion -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-key me-2 text-warning"></i>Licenza Syncfusion
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateSyncfusion">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Chiave di licenza</label>
+                            <input type="text" asp-for="SyncfusionLicenseKey" class="form-control font-monospace"
+                                   placeholder="Ngo9BigBOggjHTQ..." style="font-size:.78rem" />
+                            <small class="text-muted">La chiave viene usata all'avvio per registrare Syncfusion. Richiede riavvio.</small>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva chiave Syncfusion
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- QzSigning -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-file-earmark-lock me-2 text-info"></i>QZ Tray &mdash; Percorsi certificati
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateQzSigning">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Chiave privata (.pem)</label>
+                            <input type="text" asp-for="QzSigningPrivateKeyPath" class="form-control font-monospace"
+                                   placeholder="private-key.pem" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Certificato (.txt/.pem)</label>
+                            <input type="text" asp-for="QzSigningCertificatePath" class="form-control font-monospace"
+                                   placeholder="digital-certificate.txt" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Certificato intermedio</label>
+                            <input type="text" asp-for="QzSigningIntermediateCertPath" class="form-control font-monospace"
+                                   placeholder="intermediate-certificate.txt" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva percorsi QzSigning
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bootstrap -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-person-fill-gear me-2 text-success"></i>Bootstrap &mdash; Inizializzazione DB
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 flex-shrink-0"></i>
+                    Questi parametri vengono usati <strong>solo al primo avvio</strong> per creare l'utente superadmin,
+                    se il database non &egrave; gi&agrave; inizializzato. Non influenzano un'installazione gi&agrave; in esecuzione.
+                </div>
+                <form method="post" asp-page-handler="UpdateBootstrap">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Username admin di default</label>
+                            <input type="text" asp-for="BootstrapDefaultAdminUsername" class="form-control"
+                                   placeholder="superadmin" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Email admin di default</label>
+                            <input type="email" asp-for="BootstrapDefaultAdminEmail" class="form-control"
+                                   placeholder="superadmin@localhost" />
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" asp-for="BootstrapAutoCreateAdmin" role="switch" />
+                                <label class="form-check-label">Auto-crea admin</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Password operatore store
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="BootstrapStoreOperatorPassword" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva bootstrap
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Serilog -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-journal-code me-2 text-danger"></i>Serilog &mdash; Log su file
+                <small class="text-muted ms-2">(riavvio necessario per applicare)</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-secondary d-flex align-items-center mb-3" role="alert" style="font-size:.85rem">
+                    <i class="bi bi-info-circle me-2 flex-shrink-0"></i>
+                    Serilog &egrave; configurato programmaticamente all'avvio da <code>ServiceCollectionExtensions.cs</code>.
+                    Queste impostazioni override vengono salvate nel DB e lette all'avvio successivo.
+                </div>
+                <form method="post" asp-page-handler="UpdateSerilog">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" asp-for="SerilogEnableConsole" role="switch" />
+                                <label class="form-check-label">Abilita output console</label>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Percorso file di log</label>
+                            <input type="text" asp-for="SerilogFilePath" class="form-control font-monospace"
+                                   placeholder="Logs/log-.log" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Retention file (giorni)</label>
+                            <input type="number" asp-for="SerilogFileRetention" class="form-control" min="1" max="365" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva Serilog
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+</div>

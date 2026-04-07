@@ -1,6 +1,6 @@
 # Migration & Completion Reports
 
-Documentazione completa di migrazioni, refactoring e report di completamento per Prym.
+Documentazione completa di migrazioni, refactoring e report di completamento per EventForge.
 
 ## 📋 Indice
 
@@ -37,7 +37,7 @@ Documentazione completa di migrazioni, refactoring e report di completamento per
 ### ✅ Backend Refactoring (Completato)
 **Obiettivo**: Modernizzazione architettura backend
 - **Model Cleanup**: Rimozione proprietà ridondanti, consistenza soft delete
-- **DTO Consolidation**: Consolidamento DTOs in Prym.DTOs
+- **DTO Consolidation**: Consolidamento DTOs in EventForge.DTOs
 - **Services Refactoring**: Async/await, exception handling, standardizzazione
 - **Controllers Reorganization**: Convenzioni RESTful, rimozione duplicati
 
@@ -132,7 +132,7 @@ DocumentHeader (Enhanced)
 Epic #274 "Backend Refactoring Unificato" completato con successo, consolidando tutte le attività di refactoring backend con standardizzazione e ottimizzazioni tecniche:
 
 #### ✅ Phase 1: DTO Review and Organization
-- Complete DTO consolidation in Prym.DTOs project
+- Complete DTO consolidation in EventForge.DTOs project
 - 88 DTO files organized in 20 domain folders
 - Update DTOs synchronized with only updatable fields
 - Data annotations aligned between DTOs and models
@@ -167,7 +167,7 @@ Epic #274 "Backend Refactoring Unificato" completato con successo, consolidando 
 Backend Architecture (Refactored)
 ├── Controllers → BaseApiController + RFC7807 errors
 ├── Services → Unified async patterns + audit integration
-├── DTOs → Prym.DTOs (88 files, 20 domains)
+├── DTOs → EventForge.DTOs (88 files, 20 domains)
 ├── Entities → AuditableEntity + soft delete consistency
 ├── Health → Database + Cache + Service monitoring
 └── Configuration → Environment-aware behavior

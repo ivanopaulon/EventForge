@@ -1,6 +1,6 @@
 # Feature Implementation Guides
 
-Guide dettagliate per l'implementazione di funzionalità specifiche di Prym.
+Guide dettagliate per l'implementazione di funzionalità specifiche di EventForge.
 
 ## 📋 Indice
 

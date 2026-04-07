@@ -1,7 +1,7 @@
 # HttpClient Usage Alignment - Status Report
 
 ## Summary
-This document tracks the alignment of HttpClient usage patterns across Prym client services to use the standardized `IHttpClientService` pattern.
+This document tracks the alignment of HttpClient usage patterns across EventForge client services to use the standardized `IHttpClientService` pattern.
 
 ## Problem Statement
 Some services were using different HttpClient patterns:
@@ -197,17 +197,17 @@ When migrating services, verify:
 - `docs/frontend/HTTPCLIENT_BEST_PRACTICES.md` - HttpClient best practices
 
 ### Example Services (Correct Pattern)
-- `Prym.Client/Services/BusinessPartyService.cs`
-- `Prym.Client/Services/FinancialService.cs`
-- `Prym.Client/Services/UMService.cs` (recently fixed)
-- `Prym.Client/Services/WarehouseService.cs` (recently fixed)
+- `EventForge.Client/Services/BusinessPartyService.cs`
+- `EventForge.Client/Services/FinancialService.cs`
+- `EventForge.Client/Services/UMService.cs` (recently fixed)
+- `EventForge.Client/Services/WarehouseService.cs` (recently fixed)
 
 ### Server Endpoints
 All services interact with these server controllers:
-- `Prym.Server/Controllers/ProductManagementController.cs`
-- `Prym.Server/Controllers/WarehouseManagementController.cs`
-- `Prym.Server/Controllers/FinancialManagementController.cs`
-- `Prym.Server/Controllers/BusinessPartiesController.cs`
+- `EventForge.Server/Controllers/ProductManagementController.cs`
+- `EventForge.Server/Controllers/WarehouseManagementController.cs`
+- `EventForge.Server/Controllers/FinancialManagementController.cs`
+- `EventForge.Server/Controllers/BusinessPartiesController.cs`
 
 ## Conclusion
 

@@ -149,5 +149,5 @@ Closing as completed. 🎉
 ---
 
 **Report Generated**: October 1, 2025  
-**Author**: Prym Development Team  
+**Author**: EventForge Development Team  
 **Version**: 1.0.0

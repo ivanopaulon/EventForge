@@ -120,7 +120,7 @@ Stili touch-first responsive:
 ### 4. Struttura Directory Creata ✅
 
 ```
-Prym.Client/
+EventForge.Client/
 ├── Pages/
 │   └── Sales/
 │       └── SalesWizard.razor ✅ NUOVO
@@ -280,7 +280,7 @@ Overall:                   ██████████████░░░�
 ### 1. Avviare l'Applicazione
 
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet run
 ```
 
@@ -329,7 +329,7 @@ Dopo login, navigare a: `/sales/wizard`
    - Metriche implementazione
    - Prossimi passi dettagliati
 
-3. **Prym.Client/Shared/Components/Sales/README.md**
+3. **EventForge.Client/Shared/Components/Sales/README.md**
    - Guida uso componenti
    - Esempi integrazione
    - Troubleshooting

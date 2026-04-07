@@ -1,4 +1,4 @@
-# Prym Client Services - Creation Guide
+# EventForge Client Services - Creation Guide
 
 ## ⚠️ IMPORTANTE - Pattern Standard Aggiornato
 
@@ -85,7 +85,7 @@ I seguenti servizi sono stati verificati e utilizzano il pattern corretto:
 ---
 
 ## Overview
-This guide provides the standard patterns and best practices for creating client-side services in Prym. Following these patterns ensures consistency, proper error handling, authentication management, and maintainability.
+This guide provides the standard patterns and best practices for creating client-side services in EventForge. Following these patterns ensures consistency, proper error handling, authentication management, and maintainability.
 
 ## Table of Contents
 1. [Service Architecture](#service-architecture)
@@ -101,7 +101,7 @@ This guide provides the standard patterns and best practices for creating client
 
 ## Service Architecture
 
-Prym uses a layered architecture for HTTP communication:
+EventForge uses a layered architecture for HTTP communication:
 
 ```
 Blazor Components
@@ -112,7 +112,7 @@ Blazor Components
        ↓
   Named HttpClient ("ApiClient")
        ↓
-  Prym.Server API
+  EventForge.Server API
 ```
 
 ### Why IHttpClientService?
@@ -132,7 +132,7 @@ The `IHttpClientService` provides:
 ### Service Interface
 
 ```csharp
-namespace Prym.Client.Services
+namespace EventForge.Client.Services
 {
     public interface IMyEntityService
     {
@@ -155,7 +155,7 @@ namespace Prym.Client.Services
 ### Service Implementation
 
 ```csharp
-namespace Prym.Client.Services
+namespace EventForge.Client.Services
 {
     public class MyEntityService : IMyEntityService
     {
@@ -306,13 +306,13 @@ public class MyService
 
 ### Step 1: Define the Interface
 
-Create `IMyEntityService.cs` in `Prym.Client/Services/`:
+Create `IMyEntityService.cs` in `EventForge.Client/Services/`:
 
 ```csharp
-using Prym.DTOs.Common;
-using Prym.DTOs.MyEntity;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.MyEntity;
 
-namespace Prym.Client.Services
+namespace EventForge.Client.Services
 {
     public interface IMyEntityService
     {
@@ -327,13 +327,13 @@ namespace Prym.Client.Services
 
 ### Step 2: Implement the Service
 
-Create `MyEntityService.cs` in `Prym.Client/Services/`:
+Create `MyEntityService.cs` in `EventForge.Client/Services/`:
 
 ```csharp
-using Prym.DTOs.Common;
-using Prym.DTOs.MyEntity;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.MyEntity;
 
-namespace Prym.Client.Services
+namespace EventForge.Client.Services
 {
     public class MyEntityService : IMyEntityService
     {
@@ -355,7 +355,7 @@ namespace Prym.Client.Services
 
 ### Step 3: Register the Service
 
-Add to `Prym.Client/Program.cs`:
+Add to `EventForge.Client/Program.cs`:
 
 ```csharp
 // Add custom services

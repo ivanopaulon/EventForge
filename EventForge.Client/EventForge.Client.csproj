@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NuGetAudit>True</NuGetAudit>
+    <ApplicationIcon>wwwroot\icons\favicon.ico</ApplicationIcon>
+    <!-- Assembly version — managed automatically by Nerdbank.GitVersioning via version.json -->
+    <!-- InvariantGlobalization must be false: Syncfusion components (SfSchedule) use
+         System.Globalization for date/time formatting, culture-specific calendar rendering
+         and JS interop. Setting this to true removes all ICU culture data from the WASM bundle
+         and causes the scheduler to throw during initialization, freezing the entire app. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- MudBlazor Analyzer Configuration: Disable strict attribute pattern checking -->
+    <MudAllowedAttributePattern>Any</MudAllowedAttributePattern>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
+    <PackageReference Include="Blazored.LocalStorage" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="MudBlazor" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Syncfusion.Blazor.Schedule" />
+    <PackageReference Include="Syncfusion.Blazor.Themes" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="wwwroot\trace.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- Write version.txt to publish folder so UpdateAgent can read it without loading the DLL -->
+  <Target Name="WriteVersionFile" AfterTargets="Publish">
+    <WriteLinesToFile
+      File="$(PublishDir)version.txt"
+      Lines="$(InformationalVersion)"
+      Overwrite="true" />
+  </Target>
+
+</Project>

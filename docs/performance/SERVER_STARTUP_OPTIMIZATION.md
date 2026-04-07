@@ -93,7 +93,7 @@ SQL Server logging has been **RESTORED** at user's request. All logs are now wri
 ## Ottimizzazioni Implementate / Implemented Optimizations
 
 ### 1. ✅ Background Bootstrap con Fast-Path
-**File**: `Prym.Server/Services/Configuration/BootstrapHostedService.cs`
+**File**: `EventForge.Server/Services/Configuration/BootstrapHostedService.cs`
 
 **Modifiche / Changes**:
 - Bootstrap eseguito in Task.Run() background
@@ -104,7 +104,7 @@ SQL Server logging has been **RESTORED** at user's request. All logs are now wri
 **Beneficio / Benefit**: -10-25 secondi avvio / -10-25s startup
 
 ### 2. ✅ Serilog Console/File Logging
-**File**: `Prym.Server/Extensions/ServiceCollectionExtensions.cs`
+**File**: `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
 
 **Modifiche / Changes**:
 - Rimossa connessione SQL Server bloccante
@@ -115,7 +115,7 @@ SQL Server logging has been **RESTORED** at user's request. All logs are now wri
 **Beneficio / Benefit**: -2-5 secondi avvio / -2-5s startup
 
 ### 3. ✅ Startup Performance Monitoring
-**File**: `Prym.Server/Middleware/StartupPerformanceMiddleware.cs` (NUOVO / NEW)
+**File**: `EventForge.Server/Middleware/StartupPerformanceMiddleware.cs` (NUOVO / NEW)
 
 **Funzionalità / Features**:
 - Misura tempo dalla creazione app a prima richiesta
@@ -151,7 +151,7 @@ SQL Server logging has been **RESTORED** at user's request. All logs are now wri
 
 1. **Avvio Pulito / Clean Start**:
    ```bash
-   dotnet run --project Prym.Server/Prym.Server.csproj
+   dotnet run --project EventForge.Server/EventForge.Server.csproj
    ```
 
 2. **Osservare Log / Observe Logs**:
@@ -212,7 +212,7 @@ SQL Server logging has been **RESTORED** at user's request. All logs are now wri
 
 ## Conclusioni / Conclusions
 
-Le ottimizzazioni implementate riducono drasticamente i tempi di avvio del server Prym:
+Le ottimizzazioni implementate riducono drasticamente i tempi di avvio del server EventForge:
 
 - **70-80%** più veloce al primo avvio
 - **80-85%** più veloce ai riavvii successivi
@@ -220,7 +220,7 @@ Le ottimizzazioni implementate riducono drasticamente i tempi di avvio del serve
 - Bootstrap continua in background senza impatto sull'utente
 - Monitoring integrato per validare performance nel tempo
 
-The implemented optimizations drastically reduce Prym server startup times:
+The implemented optimizations drastically reduce EventForge server startup times:
 
 - **70-80%** faster on first start
 - **80-85%** faster on subsequent restarts

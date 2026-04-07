@@ -1,4 +1,4 @@
-# Critical Missing Translations for Prym
+# Critical Missing Translations for EventForge
 
 > **⚠️ UPDATE (2024):** Spanish and French language support has been removed from the project.
 > The system now only supports Italian (it) and English (en), which have been fully aligned with 1615 keys each.
@@ -40,7 +40,7 @@ These translations enable the entire Activity Feed page (`Pages/Notifications/Ac
   "thisMonth": "Questo mese",
   "thisWeek": "Questa settimana",
   "timeRange": "Intervallo temporale",
-  "title": "Feed Attività - Prym",
+  "title": "Feed Attività - EventForge",
   "today": "Oggi",
   "viewDetails": "Visualizza dettagli"
 }
@@ -76,7 +76,7 @@ These translations enable the entire Activity Feed page (`Pages/Notifications/Ac
   "thisMonth": "This month",
   "thisWeek": "This week",
   "timeRange": "Time range",
-  "title": "Activity Feed - Prym",
+  "title": "Activity Feed - EventForge",
   "today": "Today",
   "viewDetails": "View details"
 }
@@ -112,7 +112,7 @@ These translations enable the entire Activity Feed page (`Pages/Notifications/Ac
   "thisMonth": "Este mes",
   "thisWeek": "Esta semana",
   "timeRange": "Rango de tiempo",
-  "title": "Feed de Actividad - Prym",
+  "title": "Feed de Actividad - EventForge",
   "today": "Hoy",
   "viewDetails": "Ver detalles"
 }
@@ -148,7 +148,7 @@ These translations enable the entire Activity Feed page (`Pages/Notifications/Ac
   "thisMonth": "Ce mois-ci",
   "thisWeek": "Cette semaine",
   "timeRange": "Plage de temps",
-  "title": "Flux d'Activité - Prym",
+  "title": "Flux d'Activité - EventForge",
   "today": "Aujourd'hui",
   "viewDetails": "Voir les détails"
 }
@@ -288,7 +288,7 @@ Simple action translations used in buttons and UI elements.
 
 ## Implementation Instructions
 
-1. Open each language file in `Prym.Client/wwwroot/i18n/`
+1. Open each language file in `EventForge.Client/wwwroot/i18n/`
 2. Add the sections above in the appropriate location within the JSON structure
 3. Ensure proper JSON syntax (commas between sections, no trailing commas)
 4. Validate JSON syntax before saving

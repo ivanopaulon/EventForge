@@ -1,7 +1,7 @@
 # Checklist per l'Analisi e Risoluzione Conflitti Route HTTP - Swagger/OpenAPI
 
 ## Panoramica
-Questa checklist fornisce una procedura dettagliata per identificare e risolvere i conflitti di route HTTP che possono impedire la corretta generazione del file Swagger/OpenAPI nel progetto Prym.
+Questa checklist fornisce una procedura dettagliata per identificare e risolvere i conflitti di route HTTP che possono impedire la corretta generazione del file Swagger/OpenAPI nel progetto EventForge.
 
 ## 📋 Checklist Analisi Manuale
 
@@ -106,7 +106,7 @@ public async Task<ActionResult<PagedResult<UserDto>>> GetUsersWithFilter(string 
 ## 📝 Template Report Manuale
 
 ```
-REPORT CONFLITTI ROUTE - Prym
+REPORT CONFLITTI ROUTE - EventForge
 Data: [DATA]
 Analizzato da: [NOME]
 

@@ -1,0 +1,51 @@
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="3" Class="pa-4" 
+         Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <MudText Typo="Typo.subtitle1" Class="mb-3" Style="font-weight: 600;">
+        <MudIcon Icon="@Icons.Material.Outlined.Summarize" Class="mr-2" Size="Size.Small" />
+        @TranslationService.GetTranslation("documents.rowSummary", "Riepilogo Riga")
+    </MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">
+                @TranslationService.GetTranslation("documents.netSubtotal", "Subtotale Netto")
+            </MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                @NetSubtotal.ToString("C2")
+            </MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">
+                @TranslationService.GetTranslation("documents.vatTax", "Imposta IVA")
+            </MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                @VatAmount.ToString("C2")
+            </MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">
+                @TranslationService.GetTranslation("documents.totalDiscount", "Sconto Totale")
+            </MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #90EE90;">
+                -@TotalDiscount.ToString("C2")
+            </MudText>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudText Typo="Typo.caption">
+                💎 @TranslationService.GetTranslation("documents.lineTotal", "TOTALE RIGA")
+            </MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 700;">
+                @LineTotal.ToString("C2")
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    [Parameter] public decimal NetSubtotal { get; set; } = 0m;
+    [Parameter] public decimal VatAmount { get; set; } = 0m;
+    [Parameter] public decimal TotalDiscount { get; set; } = 0m;
+    [Parameter] public decimal LineTotal { get; set; } = 0m;
+}

@@ -2,7 +2,7 @@
 
 ## 📋 Executive Summary
 
-**Progetto:** Miglioramento Procedura di Inventario Prym  
+**Progetto:** Miglioramento Procedura di Inventario EventForge  
 **Data Completamento:** Gennaio 2025  
 **Stato:** ✅ **COMPLETATO E TESTATO**  
 **Test Status:** 208/208 PASSED ✅  
@@ -266,7 +266,7 @@ window.downloadCsv(fileName, csvContent)
 
 ### File Modificati
 ```
-Prym.Client/Pages/Management/InventoryProcedure.razor
+EventForge.Client/Pages/Management/InventoryProcedure.razor
 ├── Linee aggiunte: +383
 ├── Linee rimosse: -26
 └── Net change: +357 linee

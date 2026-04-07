@@ -1,20 +1,20 @@
-# Service Layer Standards - Prym
+# Service Layer Standards - EventForge
 
 ## Overview
-This document defines the coding standards and best practices for service layer implementations in Prym. All service classes should follow these patterns for consistency, performance, and maintainability.
+This document defines the coding standards and best practices for service layer implementations in EventForge. All service classes should follow these patterns for consistency, performance, and maintainability.
 
 ## Standard Service Template
 
 ```csharp
 public class MyEntityService : IMyEntityService
 {
-    private readonly PrymDbContext _context;
+    private readonly EventForgeDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly ITenantContext _tenantContext;
     private readonly ILogger<MyEntityService> _logger;
 
     public MyEntityService(
-        PrymDbContext context,
+        EventForgeDbContext context,
         IAuditLogService auditLogService,
         ITenantContext tenantContext,
         ILogger<MyEntityService> logger)

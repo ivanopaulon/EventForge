@@ -1,0 +1,463 @@
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.VatRates
+@using EventForge.DTOs.UnitOfMeasures
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IFinancialService FinancialService
+@inject IAppNotificationService AppNotification
+@inject ILogger<QuickCreateProductDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.AddShoppingCart"
+          Title="@(IsEditMode 
+              ? TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto")
+              : TranslationService.GetTranslation("warehouse.quickCreateProduct", "Nuovo Prodotto"))"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
+        <PageLoadingOverlay Visible="_isLoading" />
+
+            @if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3" Variant="Variant.Filled">
+                    <MudText Typo="Typo.body2">
+                        <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
+                        Il codice <strong>@PrefilledCode</strong> sarà assegnato automaticamente
+                    </MudText>
+                </MudAlert>
+            }
+
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+                    
+                    <!-- Codice -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudTextField @bind-Value="_model.Code"
+                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                      MaxLength="100"
+                                      Counter="100"
+                                      Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                    </MudPaper>
+
+                    <!-- Descrizione -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudTextField @bind-Value="_model.Description"
+                                      Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                      Lines="3"
+                                      MaxLength="500"
+                                      Counter="500" />
+                    </MudPaper>
+
+                    <!-- Dati Commerciali -->
+                    <MudPaper Elevation="2" Class="pa-4 mb-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
+                        </MudText>
+                        
+                        <MudGrid Spacing="2">
+                            <!-- Unità di Misura -->
+                            <MudItem xs="12" sm="4">
+                                <MudSelect @bind-Value="_model.UnitOfMeasureId"
+                                          Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Required="true">
+                                    @if (_availableUnits != null && _availableUnits.Any())
+                                    {
+                                        @foreach (var unit in _availableUnits)
+                                        {
+                                            <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            
+                            <!-- Prezzo -->
+                            <MudItem xs="12" sm="4">
+                                <MudNumericField @bind-Value="_model.DefaultPrice"
+                                               Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
+                                               Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
+                                               Required="true"
+                                               Min="0"
+                                               Format="F2" />
+                            </MudItem>
+                            
+                            <!-- Aliquota IVA -->
+                            <MudItem xs="12" sm="4">
+                                <MudSelect @bind-Value="_model.VatRateId"
+                                          Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Required="true">
+                                    @if (_vatRates != null && _vatRates.Any())
+                                    {
+                                        @foreach (var vat in _vatRates)
+                                        {
+                                            <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
+                                        }
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                </MudStack>
+            </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text"
+                   Disabled="@_isLoading">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton StartIcon="@Icons.Material.Outlined.Save"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CreateProduct"
+                   Disabled="@(!_isFormValid || _isLoading)">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] 
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string PrefilledCode { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool AutoAssignCode { get; set; } = false;
+
+    [Parameter]
+    public bool IsEditMode { get; set; } = false;
+
+    [Parameter]
+    public Guid? ProductId { get; set; }
+
+    [Parameter]
+    public ProductDto? ExistingProduct { get; set; }
+
+    private bool _isLoading = false;
+    private bool _isFormValid = false;
+    private MudForm? _form;
+    private ProductDto _model = new();
+    private IEnumerable<VatRateDto>? _vatRates;
+    private IEnumerable<UMDto>? _availableUnits;
+    private ProductDto? _cachedExistingProduct = null; // Cache for complete product data
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadVatRates(),
+            LoadAvailableUnitsAsync()
+        );
+        
+        if (IsEditMode && ExistingProduct != null)
+        {
+            // OPTIMIZATION: Load and cache the complete product data once at initialization
+            Logger.LogInformation("Loading complete product data for ProductId {ProductId}", ProductId);
+            try
+            {
+                _cachedExistingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (_cachedExistingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found during initialization", ProductId);
+                    AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
+                    return;
+                }
+                Logger.LogInformation("Cached complete product data for {ProductCode}", _cachedExistingProduct.Code);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading product {ProductId} during initialization", ProductId);
+            }
+            
+            // Load existing product data for display
+            _model = new ProductDto
+            {
+                Id = ExistingProduct.Id,
+                Code = ExistingProduct.Code,
+                Name = ExistingProduct.Name,
+                Description = ExistingProduct.Description,
+                DefaultPrice = ExistingProduct.DefaultPrice,
+                VatRateId = ExistingProduct.VatRateId,
+                UnitOfMeasureId = ExistingProduct.UnitOfMeasureId,
+                IsVatIncluded = ExistingProduct.IsVatIncluded,
+                Status = ExistingProduct.Status
+            };
+        }
+        else
+        {
+            // Pre-fill the code if provided
+            if (!string.IsNullOrWhiteSpace(PrefilledCode))
+            {
+                _model.Code = PrefilledCode;
+            }
+
+            // Set defaults
+            _model.Status = ProductStatus.Active;
+            _model.IsVatIncluded = true; // Always VAT included as per requirements
+            _model.Name = string.Empty; // Will use Description as Name initially
+        }
+    }
+
+    private async Task LoadVatRates()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await FinancialService.GetVatRatesAsync(1, 100);
+            _vatRates = result?.Items ?? Enumerable.Empty<VatRateDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading VAT rates");
+            AppNotification.ShowError(TranslationService.GetTranslation("products.vatRatesLoadError", "Errore nel caricamento delle aliquote IVA"));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadAvailableUnitsAsync()
+    {
+        try
+        {
+            var units = await ProductService.GetUnitsOfMeasureAsync();
+            _availableUnits = units ?? Enumerable.Empty<UMDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading units of measure");
+            AppNotification.ShowError(TranslationService.GetTranslation("products.unitsLoadError", "Errore nel caricamento delle unità di misura"));
+            _availableUnits = Enumerable.Empty<UMDto>();
+        }
+    }
+
+    private async Task CreateProduct()
+    {
+        if (IsEditMode)
+        {
+            await UpdateProduct();
+        }
+        else
+        {
+            await CreateNewProduct();
+        }
+    }
+
+    private async Task UpdateProduct()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.ValidateAsync();
+                if (!_isFormValid)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"));
+                    return;
+                }
+            }
+
+            Logger.LogInformation("Starting product update for ProductId {ProductId}", ProductId);
+
+            // OPTIMIZATION: Use cached product data if available, otherwise load from server
+            ProductDto? existingProduct = _cachedExistingProduct;
+            if (existingProduct == null)
+            {
+                Logger.LogInformation("Cached product not available, loading from server");
+                existingProduct = await ProductService.GetProductByIdAsync(ProductId!.Value);
+                if (existingProduct == null)
+                {
+                    Logger.LogError("Product {ProductId} not found when attempting to update", ProductId);
+                    AppNotification.ShowError(TranslationService.GetTranslation("products.notFound", "Prodotto non trovato"));
+                    return;
+                }
+            }
+            else
+            {
+                Logger.LogInformation("Using cached product data for update");
+            }
+
+            Logger.LogInformation("Loaded existing product {ProductCode} - {ProductName}", existingProduct.Code, existingProduct.Name);
+
+            // Use Description as Name if Name is empty (simplified creation)
+            if (string.IsNullOrWhiteSpace(_model.Name))
+            {
+                _model.Name = _model.Description?.Length > 100 
+                    ? _model.Description.Substring(0, 100) 
+                    : _model.Description ?? "Prodotto";
+            }
+
+            // CRITICAL FIX: Create UpdateProductDto with ALL fields from existing product
+            // This preserves all values that are not modified in this quick edit dialog
+            var updateDto = new UpdateProductDto
+            {
+                // Fields modified in this dialog
+                Name = _model.Name,
+                Description = _model.Description ?? string.Empty,
+                DefaultPrice = _model.DefaultPrice,
+                VatRateId = _model.VatRateId,
+                UnitOfMeasureId = _model.UnitOfMeasureId,
+                IsVatIncluded = true, // Always true as per requirements
+                Status = _model.Status,
+                
+                // FIXED: Preserve all other fields from existing product
+                ShortDescription = existingProduct.ShortDescription,
+                ImageUrl = existingProduct.ImageUrl,
+                ImageDocumentId = existingProduct.ImageDocumentId,
+                CategoryNodeId = existingProduct.CategoryNodeId,
+                FamilyNodeId = existingProduct.FamilyNodeId,
+                GroupNodeId = existingProduct.GroupNodeId,
+                StationId = existingProduct.StationId,
+                BrandId = existingProduct.BrandId,
+                ModelId = existingProduct.ModelId,
+                PreferredSupplierId = existingProduct.PreferredSupplierId,
+                ReorderPoint = existingProduct.ReorderPoint,
+                SafetyStock = existingProduct.SafetyStock,
+                TargetStockLevel = existingProduct.TargetStockLevel,
+                AverageDailyDemand = existingProduct.AverageDailyDemand
+            };
+
+            Logger.LogInformation("Updating product {ProductId} with DTO - Name: {Name}, Description: {Description}, Price: {Price}, VatRateId: {VatRateId}",
+                ProductId, updateDto.Name, updateDto.Description, updateDto.DefaultPrice, updateDto.VatRateId);
+
+            var updatedProduct = await ProductService.UpdateProductAsync(ProductId!.Value, updateDto);
+            
+            if (updatedProduct != null)
+            {
+                Logger.LogInformation("Product {ProductId} updated successfully - Name: {Name}, Description: {Description}",
+                    updatedProduct.Id, updatedProduct.Name, updatedProduct.Description);
+                
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
+                
+                // Close dialog and return the updated product
+                MudDialog.Close(DialogResult.Ok(updatedProduct));
+            }
+            else
+            {
+                Logger.LogError("Product update returned null for ProductId {ProductId}", ProductId);
+                AppNotification.ShowError(TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating product {ProductId}: {Message}", ProductId, ex.Message);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.updateError", "Errore nell'aggiornamento del prodotto: {0}", ex.Message));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateNewProduct()
+    {
+        _isLoading = true;
+        
+        try
+        {
+            // Validate form
+            if (_form != null)
+            {
+                await _form.ValidateAsync();
+                if (!_isFormValid)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Compila tutti i campi obbligatori"));
+                    return;
+                }
+            }
+
+            // Use Description as Name if Name is empty (simplified creation)
+            if (string.IsNullOrWhiteSpace(_model.Name))
+            {
+                _model.Name = _model.Description?.Length > 100 
+                    ? _model.Description.Substring(0, 100) 
+                    : _model.Description ?? "Prodotto";
+            }
+
+            // Create the product via API
+            var createDto = new CreateProductDto
+            {
+                Code = _model.Code,
+                Name = _model.Name,
+                Description = _model.Description ?? string.Empty,
+                DefaultPrice = _model.DefaultPrice,
+                VatRateId = _model.VatRateId,
+                UnitOfMeasureId = _model.UnitOfMeasureId,
+                IsVatIncluded = true, // Always true as per requirements
+                Status = ProductStatus.Active
+            };
+
+            var createdProduct = await ProductService.CreateProductAsync(createDto);
+            
+            if (createdProduct != null)
+            {
+                // If AutoAssignCode is enabled, also create the product code
+                if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+                {
+                    try
+                    {
+                        var codeDto = new CreateProductCodeDto
+                        {
+                            ProductId = createdProduct.Id,
+                            Code = PrefilledCode,
+                            CodeType = "Barcode", // Default to Barcode for scanned codes
+                            Status = ProductCodeStatus.Active
+                        };
+                        
+                        await ProductService.CreateProductCodeAsync(codeDto);
+                        
+                        Logger.LogInformation("Auto-assigned code {Code} to product {ProductId}", PrefilledCode, createdProduct.Id);
+                    }
+                    catch (Exception codeEx)
+                    {
+                        Logger.LogError(codeEx, "Error auto-assigning code to product");
+                        // Don't fail the whole operation if code assignment fails
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("products.codeAssignmentWarning", "Prodotto creato ma codice non assegnato automaticamente"));
+                    }
+                }
+                
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
+                
+                // Close dialog and return the created product
+                MudDialog.Close(DialogResult.Ok(createdProduct));
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating product");
+            AppNotification.ShowError(TranslationService.GetTranslation("products.createError", "Errore nella creazione del prodotto: {0}", ex.Message));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

@@ -21,12 +21,12 @@ The `AuditHistoryDialog` provides several advantages over the drawer approach:
 ## Components
 
 ### Old: AuditHistoryDrawer
-- **Location**: `Prym.Client/Shared/Components/Drawers/AuditHistoryDrawer.razor`
+- **Location**: `EventForge.Client/Shared/Components/Drawers/AuditHistoryDrawer.razor`
 - **Status**: ⚠️ DEPRECATED (see deprecation comment in file)
 - **Display**: Side drawer (700px wide)
 
 ### New: AuditHistoryDialog
-- **Location**: `Prym.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
+- **Location**: `EventForge.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
 - **Status**: ✅ ACTIVE
 - **Display**: Fullscreen dialog
 
@@ -321,7 +321,7 @@ Potential improvements to the dialog:
 
 - **Issue #542**: Migrazione Audit: Drawer → Dialog fullscreen
 - **DRAWER_DEPRECATION_STATUS.md**: Overall drawer deprecation status
-- **Component**: `Prym.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
+- **Component**: `EventForge.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
 
 ## Support
 

@@ -1,8 +1,8 @@
-# EFTable Standard Pattern - Prym
+# EFTable Standard Pattern - EventForge
 
 ## Overview
 
-This document defines the **standard pattern** for all management pages using EFTable in Prym. Following this pattern ensures consistency, maintainability, and a unified user experience across all management interfaces.
+This document defines the **standard pattern** for all management pages using EFTable in EventForge. Following this pattern ensures consistency, maintainability, and a unified user experience across all management interfaces.
 
 ### Goals
 - ✅ **Uniform toolbar structure** across all management pages
@@ -33,10 +33,10 @@ All management pages MUST follow this exact HTML structure:
 ```razor
 @page "/path/to/page"
 @using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.[Namespace]
-@using Prym.DTOs.Common
-@using Prym.Client.Shared.Components
-@using Prym.Client.Shared.Components.Dashboard
+@using EventForge.DTOs.[Namespace]
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 
 <!-- Standard service injections -->
@@ -574,10 +574,10 @@ This is the **gold standard** example to follow:
 ```razor
 @page "/warehouse/facilities"
 @using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.Warehouse
-@using Prym.DTOs.Common
-@using Prym.Client.Shared.Components
-@using Prym.Client.Shared.Components.Dashboard
+@using EventForge.DTOs.Warehouse
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IWarehouseService WarehouseService
@@ -773,7 +773,7 @@ After implementing this pattern:
 
 **Document Version:** 1.0  
 **Last Updated:** 2026-02-02  
-**Author:** Prym Team  
+**Author:** EventForge Team  
 **Status:** ✅ Active Standard
 
 ## Row Click Navigation Pattern
@@ -820,7 +820,7 @@ Implement searchable column configuration for better UX and performance.
 ### Step 1: Add using statement
 
 ```csharp
-@using Prym.Client.Extensions
+@using EventForge.Client.Extensions
 ```
 
 ### Step 2: Define searchable columns

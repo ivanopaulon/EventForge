@@ -1,0 +1,174 @@
+@using EventForge.Client.Services.Schema
+@using EventForge.DTOs.Dashboard
+@inject IEntitySchemaProvider SchemaProvider
+
+<MudStack Spacing="2">
+    <MudSelect @bind-Value="SelectedFieldPath"
+               Label="Seleziona Campo"
+               Variant="Variant.Outlined"
+               Required="@Required"
+               Disabled="@(AvailableFields.Count == 0)"
+               HelperText="@GetHelperText()"
+               T="string">
+        @foreach (var field in AvailableFields)
+        {
+            <MudSelectItem Value="@field.Path">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@GetIconForDataType(field.DataType)" 
+                             Size="Size.Small" 
+                             Class="mr-2" />
+                    <span>@field.Name</span>
+                    <MudChip T="string" 
+                             Size="Size.Small" 
+                             Color="Color.Default" 
+                             Class="ml-2">
+                        @GetTypeDisplayName(field.DataType)
+                    </MudChip>
+                </div>
+            </MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (!string.IsNullOrEmpty(SelectedFieldPath) && SelectedField != null)
+    {
+        <MudCard Outlined="true" Class="pa-3">
+            <MudCardContent>
+                <MudStack Spacing="1">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@GetIconForDataType(SelectedField.DataType)" 
+                                 Color="Color.Primary" 
+                                 Class="mr-2" />
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">
+                            <strong>@SelectedField.Name</strong>
+                        </MudText>
+                    </div>
+                    
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @SelectedField.Description
+                    </MudText>
+
+                    <div class="d-flex gap-2 mt-2">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                            Tipo: @GetTypeDisplayName(SelectedField.DataType)
+                        </MudChip>
+                        @if (SelectedField.IsNullable)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                Nullable
+                            </MudChip>
+                        }
+                        @if (SelectedField.IsNumeric)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
+                                Numerico
+                            </MudChip>
+                        }
+                    </div>
+
+                    @if (SelectedField.Examples.Any())
+                    {
+                        <MudText Typo="Typo.caption" Class="mt-2">
+                            <strong>Esempi:</strong> @string.Join(", ", SelectedField.Examples)
+                        </MudText>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public string EntityType { get; set; } = string.Empty;
+
+    [Parameter]
+    public MetricType? MetricType { get; set; }
+
+    [Parameter]
+    public string? SelectedFieldPath { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> SelectedFieldPathChanged { get; set; }
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    private List<FieldMetadata> AvailableFields { get; set; } = new();
+    private FieldMetadata? SelectedField => AvailableFields.FirstOrDefault(f => f.Path == SelectedFieldPath);
+
+    protected override void OnParametersSet()
+    {
+        LoadAvailableFields();
+    }
+
+    private void LoadAvailableFields()
+    {
+        if (string.IsNullOrEmpty(EntityType))
+        {
+            AvailableFields = new List<FieldMetadata>();
+            return;
+        }
+
+        if (MetricType.HasValue && MetricType.Value != DTOs.Dashboard.MetricType.Count)
+        {
+            // For aggregation metrics, only show numeric fields
+            AvailableFields = SchemaProvider.GetCompatibleFields(EntityType, MetricType.Value, false);
+        }
+        else
+        {
+            // For Count or when metric type is not specified, show all fields
+            AvailableFields = SchemaProvider.GetAvailableFields(EntityType, false);
+        }
+    }
+
+    private string GetHelperText()
+    {
+        if (AvailableFields.Count == 0)
+        {
+            if (MetricType == DTOs.Dashboard.MetricType.Count)
+            {
+                return "Il conteggio non richiede la selezione di un campo";
+            }
+            return "Nessun campo disponibile per questo tipo di metrica";
+        }
+
+        return MetricType switch
+        {
+            DTOs.Dashboard.MetricType.Sum => "Seleziona un campo numerico da sommare",
+            DTOs.Dashboard.MetricType.Average => "Seleziona un campo numerico per calcolare la media",
+            DTOs.Dashboard.MetricType.Min => "Seleziona un campo numerico per trovare il minimo",
+            DTOs.Dashboard.MetricType.Max => "Seleziona un campo numerico per trovare il massimo",
+            _ => "Seleziona il campo da utilizzare per il calcolo"
+        };
+    }
+
+    private string GetIconForDataType(FieldDataType dataType)
+    {
+        return dataType switch
+        {
+            FieldDataType.String => Icons.Material.Outlined.TextFields,
+            FieldDataType.Integer => Icons.Material.Outlined.Numbers,
+            FieldDataType.Decimal => Icons.Material.Outlined.MonetizationOn,
+            FieldDataType.Boolean => Icons.Material.Outlined.ToggleOn,
+            FieldDataType.DateTime => Icons.Material.Outlined.CalendarToday,
+            FieldDataType.Guid => Icons.Material.Outlined.Key,
+            FieldDataType.Enum => Icons.Material.Outlined.List,
+            _ => Icons.Material.Outlined.Help
+        };
+    }
+
+    private string GetTypeDisplayName(FieldDataType dataType)
+    {
+        return dataType switch
+        {
+            FieldDataType.String => "Testo",
+            FieldDataType.Integer => "Intero",
+            FieldDataType.Decimal => "Decimale",
+            FieldDataType.Boolean => "Booleano",
+            FieldDataType.DateTime => "Data/Ora",
+            FieldDataType.Guid => "ID",
+            FieldDataType.Enum => "Enumerazione",
+            _ => "Sconosciuto"
+        };
+    }
+}

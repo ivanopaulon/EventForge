@@ -1,7 +1,7 @@
 # Automatic Stock Movement Creation
 
 ## Overview
-Prym automatically creates stock movements when purchase/sales documents (DDT, invoices) are approved or closed. This ensures warehouse stock quantities are always accurate without manual intervention.
+EventForge automatically creates stock movements when purchase/sales documents (DDT, invoices) are approved or closed. This ensures warehouse stock quantities are always accurate without manual intervention.
 
 ## When Stock Movements Are Created
 

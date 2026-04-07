@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Transfer Orders feature enables Prym to manage stock transfers between warehouses with full workflow control, audit trail, and real-time tracking. This enterprise-grade functionality ensures complete visibility and control over inter-warehouse movements.
+The Transfer Orders feature enables EventForge to manage stock transfers between warehouses with full workflow control, audit trail, and real-time tracking. This enterprise-grade functionality ensures complete visibility and control over inter-warehouse movements.
 
 ## Features
 
@@ -333,7 +333,7 @@ For issues or questions:
 - Check audit logs for detailed error information
 - Review stock movements for transfer history
 - Contact system administrator
-- Consult Prym documentation
+- Consult EventForge documentation
 
 ## Version History
 

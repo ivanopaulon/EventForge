@@ -1,7 +1,7 @@
-# Prym DTO Review and Update - Summary Report
+# EventForge DTO Review and Update - Summary Report
 
 ## Overview
-This document summarizes the comprehensive review and update of Data Transfer Objects (DTOs) in the Prym application, addressing issues with duplication, validation consistency, and architectural alignment.
+This document summarizes the comprehensive review and update of Data Transfer Objects (DTOs) in the EventForge application, addressing issues with duplication, validation consistency, and architectural alignment.
 
 ## Issues Identified and Resolved
 
@@ -10,37 +10,37 @@ This document summarizes the comprehensive review and update of Data Transfer Ob
 **Problem**: Multiple enums were defined in both entity files and shared DTOs, creating potential synchronization issues.
 
 **Duplicated Enums Found**:
-- `AddressType` - in `Prym.Server.Data.Entities.Common.Address.cs` and `Prym.DTOs.Common.CommonEnums.cs`
-- `ContactType` - in `Prym.Server.Data.Entities.Common.Contact.cs` and `Prym.DTOs.Common.CommonEnums.cs`
-- `ProductClassificationType` - in `Prym.Server.Data.Entities.Common.ClassificationNode.cs` and `Prym.DTOs.Common.CommonEnums.cs`
-- `ProductClassificationNodeStatus` - in `Prym.Server.Data.Entities.Common.ClassificationNode.cs` and `Prym.DTOs.Common.CommonEnums.cs`
-- `CashierStatus` - only in `Prym.Server.Data.Entities.Store.StoreUser.cs`
+- `AddressType` - in `EventForge.Server.Data.Entities.Common.Address.cs` and `EventForge.DTOs.Common.CommonEnums.cs`
+- `ContactType` - in `EventForge.Server.Data.Entities.Common.Contact.cs` and `EventForge.DTOs.Common.CommonEnums.cs`
+- `ProductClassificationType` - in `EventForge.Server.Data.Entities.Common.ClassificationNode.cs` and `EventForge.DTOs.Common.CommonEnums.cs`
+- `ProductClassificationNodeStatus` - in `EventForge.Server.Data.Entities.Common.ClassificationNode.cs` and `EventForge.DTOs.Common.CommonEnums.cs`
+- `CashierStatus` - only in `EventForge.Server.Data.Entities.Store.StoreUser.cs`
 
 **Resolution**:
-- **Created** `Prym.DTOs.Common.StoreEnums.cs` for `CashierStatus` enum
+- **Created** `EventForge.DTOs.Common.StoreEnums.cs` for `CashierStatus` enum
 - **Removed** duplicate enum definitions from entity files
 - **Updated** all entity files to import and use shared enums from DTOs project
 - **Updated** `EnumMappingExtensions.cs` to handle unified enum structure
 
 **Files Modified**:
-- `Prym.Server.Data.Entities.Common.Address.cs`
-- `Prym.Server.Data.Entities.Common.Contact.cs`
-- `Prym.Server.Data.Entities.Common.ClassificationNode.cs`
-- `Prym.Server.Data.Entities.Store.StoreUser.cs`
-- `Prym.Server.DTOs.Store/*.cs` (3 files)
-- `Prym.Server.Extensions.EnumMappingExtensions.cs`
-- `Prym.Server.Services.Common.ClassificationNodeService.cs`
+- `EventForge.Server.Data.Entities.Common.Address.cs`
+- `EventForge.Server.Data.Entities.Common.Contact.cs`
+- `EventForge.Server.Data.Entities.Common.ClassificationNode.cs`
+- `EventForge.Server.Data.Entities.Store.StoreUser.cs`
+- `EventForge.Server.DTOs.Store/*.cs` (3 files)
+- `EventForge.Server.Extensions.EnumMappingExtensions.cs`
+- `EventForge.Server.Services.Common.ClassificationNodeService.cs`
 
 ### 2. Missing Enum Definitions ✅ RESOLVED
 
 **Problem**: Server DTOs referenced enums (`AdminAccessLevel`, `AuditOperationType`) that weren't defined in shared DTOs, causing compilation issues.
 
 **Missing Enums**:
-- `AdminAccessLevel` - only in `Prym.Server.Data.Entities.Auth.AdminTenant.cs`
+- `AdminAccessLevel` - only in `EventForge.Server.Data.Entities.Auth.AdminTenant.cs`
 - `AuditOperationType` - duplicated in multiple files with different values
 
 **Resolution**:
-- **Created** `Prym.DTOs.Common.AuthEnums.cs` with comprehensive enum definitions
+- **Created** `EventForge.DTOs.Common.AuthEnums.cs` with comprehensive enum definitions
 - **Consolidated** all `AuditOperationType` values from different sources
 - **Removed** duplicate enum definitions from entity files
 - **Updated** all references to use shared enums
@@ -69,10 +69,10 @@ public enum AuditOperationType
 ```
 
 **Files Modified**:
-- `Prym.Server.Data.Entities.Auth.AdminTenant.cs`
-- `Prym.Server.Data.Entities.Auth.AuditTrail.cs`
-- `Prym.Server.DTOs.Tenants.TenantDtos.cs`
-- `Prym.Server.Models.AuditOperationType.cs`
+- `EventForge.Server.Data.Entities.Auth.AdminTenant.cs`
+- `EventForge.Server.Data.Entities.Auth.AuditTrail.cs`
+- `EventForge.Server.DTOs.Tenants.TenantDtos.cs`
+- `EventForge.Server.Models.AuditOperationType.cs`
 - Controllers: `TenantsController.cs`, `TenantSwitchController.cs`, `UserManagementController.cs`
 - Services: `TenantContext.cs`, `TenantService.cs`
 
@@ -81,7 +81,7 @@ public enum AuditOperationType
 **Problem**: Shared DTOs lacked proper validation attributes or had inconsistent validation compared to entity constraints.
 
 **Resolution**:
-- **Enhanced** `Prym.DTOs.Tenants.TenantDtos.cs` with comprehensive validation
+- **Enhanced** `EventForge.DTOs.Tenants.TenantDtos.cs` with comprehensive validation
 - **Added** proper error messages to all validation attributes
 - **Ensured** MaxLength values match entity constraints
 - **Added** EmailAddress validation and Range validation
@@ -107,12 +107,12 @@ public int MaxUsers { get; set; } = 100;
 
 The existing architecture uses a two-tier DTO approach:
 
-1. **Shared DTOs** (`Prym.DTOs`): 
+1. **Shared DTOs** (`EventForge.DTOs`): 
    - Client-facing, simplified DTOs for UI consumption
    - Used by Blazor client for data binding and validation
    - Focus on user-friendly field names and validation messages
 
-2. **Server DTOs** (`Prym.Server.DTOs`):
+2. **Server DTOs** (`EventForge.Server.DTOs`):
    - Internal server DTOs with additional fields for complex operations
    - Include audit fields, administrative metadata, and server-specific data
    - Used for detailed server-side operations and admin functions
@@ -124,7 +124,7 @@ The existing architecture uses a two-tier DTO approach:
 
 ### Client Usage Verification ✅ CONFIRMED
 
-**Analysis**: Verified that the Blazor client consistently uses shared DTOs (`Prym.DTOs.Tenants`) across all components:
+**Analysis**: Verified that the Blazor client consistently uses shared DTOs (`EventForge.DTOs.Tenants`) across all components:
 - `TenantDrawer.razor`
 - `UserDrawer.razor` 
 - `SuperAdminService.cs`
@@ -174,8 +174,8 @@ The existing architecture uses a two-tier DTO approach:
 ## Files Modified Summary
 
 ### Created Files (3)
-- `Prym.DTOs/Common/StoreEnums.cs` - CashierStatus enum
-- `Prym.DTOs/Common/AuthEnums.cs` - AdminAccessLevel, AuditOperationType enums
+- `EventForge.DTOs/Common/StoreEnums.cs` - CashierStatus enum
+- `EventForge.DTOs/Common/AuthEnums.cs` - AdminAccessLevel, AuditOperationType enums
 - Documentation files
 
 ### Modified Files (21)
@@ -202,4 +202,4 @@ The existing architecture uses a two-tier DTO approach:
 
 ## Conclusion
 
-The Prym DTO review and update has successfully addressed all identified issues while maintaining backward compatibility. The solution now has a cleaner, more maintainable DTO architecture with proper validation consistency and eliminated duplication issues.
+The EventForge DTO review and update has successfully addressed all identified issues while maintaining backward compatibility. The solution now has a cleaner, more maintainable DTO architecture with proper validation consistency and eliminated duplication issues.

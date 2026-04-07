@@ -1,4 +1,4 @@
-# Prym Management Pages & Drawers - Creation Guide
+# EventForge Management Pages & Drawers - Creation Guide
 
 > **⚠️ IMPORTANTE**: Questa guida presuppone che tu stia usando il pattern standard per i servizi client.  
 > **DEVI sempre usare `IHttpClientService`** per le chiamate API.  
@@ -51,7 +51,7 @@ public class MyEntityService
 ---
 
 ## Overview
-This guide provides the standard patterns and best practices for creating management pages and drawer components in Prym. Following these patterns ensures UI consistency, proper data flow, and maintainability.
+This guide provides the standard patterns and best practices for creating management pages and drawer components in EventForge. Following these patterns ensures UI consistency, proper data flow, and maintainability.
 
 **Last Updated:** January 2025  
 **Recent Implementations:** Brand Management, Model Management, Product Management, VatRate Management
@@ -106,7 +106,7 @@ Management Page (.razor)
 
 ### File Structure
 ```
-Prym.Client/Pages/Management/
+EventForge.Client/Pages/Management/
 └── MyEntityManagement.razor
 ```
 
@@ -117,9 +117,9 @@ Recent implementations use this cleaner pattern with MudTable instead of MudData
 ```razor
 @page "/management/my-entities"
 @using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.MyEntity
-@using Prym.DTOs.Common
-@using Prym.Client.Shared.Components
+@using EventForge.DTOs.MyEntity
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IMyEntityService MyEntityService
@@ -1021,15 +1021,15 @@ When a child entity references a parent entity, use MudAutocomplete for selectio
 
 ### File Structure
 ```
-Prym.Client/Shared/Components/
+EventForge.Client/Shared/Components/
 └── MyEntityDrawer.razor
 ```
 
 ### Standard Template
 
 ```razor
-@using Prym.DTOs.MyEntity
-@using Prym.Client.Services
+@using EventForge.DTOs.MyEntity
+@using EventForge.Client.Services
 @inject IMyEntityService MyEntityService
 @inject ISnackbar Snackbar
 @inject ITranslationService TranslationService
@@ -1332,21 +1332,21 @@ Follow the [Service Creation Guide](./SERVICE_CREATION_GUIDE.md)
 
 #### 2. Create the Drawer Component
 ```bash
-Prym.Client/Shared/Components/MyEntityDrawer.razor
+EventForge.Client/Shared/Components/MyEntityDrawer.razor
 ```
 
 Use the [Drawer Template](#drawer-component-pattern) as starting point.
 
 #### 3. Create the Management Page
 ```bash
-Prym.Client/Pages/Management/MyEntityManagement.razor
+EventForge.Client/Pages/Management/MyEntityManagement.razor
 ```
 
 Use the [Management Page Template](#management-page-pattern) as starting point.
 
 #### 4. Add Navigation Menu Item
 
-Edit `Prym.Client/Layout/NavMenu.razor`:
+Edit `EventForge.Client/Layout/NavMenu.razor`:
 
 ```razor
 @* Add to Administration section *@
@@ -1359,7 +1359,7 @@ Edit `Prym.Client/Layout/NavMenu.razor`:
 
 #### 5. Add Translations
 
-Edit `Prym.Client/wwwroot/i18n/it.json`:
+Edit `EventForge.Client/wwwroot/i18n/it.json`:
 
 ```json
 {

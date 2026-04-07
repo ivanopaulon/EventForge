@@ -31,7 +31,7 @@ Sebbene i messaggi non causino problemi funzionali, possono:
 
 ### 1. Configurazione Runtime Mono (`runtimeconfig.template.json`)
 
-È stato creato il file `Prym.Client/runtimeconfig.template.json` per configurare il livello di logging del runtime Mono:
+È stato creato il file `EventForge.Client/runtimeconfig.template.json` per configurare il livello di logging del runtime Mono:
 
 ```json
 {
@@ -51,7 +51,7 @@ Sebbene i messaggi non causino problemi funzionali, possono:
 
 ### 2. Filtro Console JavaScript (`console-filter.js`)
 
-È stato creato il file `Prym.Client/wwwroot/js/console-filter.js` che intercetta e filtra i messaggi della console del browser:
+È stato creato il file `EventForge.Client/wwwroot/js/console-filter.js` che intercetta e filtra i messaggi della console del browser:
 
 ```javascript
 /**
@@ -100,13 +100,13 @@ Il filtro console è stato integrato nell'`index.html` **prima** del caricamento
 
 ## File Modificati
 
-1. **`Prym.Client/runtimeconfig.template.json`** (nuovo)
+1. **`EventForge.Client/runtimeconfig.template.json`** (nuovo)
    - Configura il livello di logging del runtime Mono
 
-2. **`Prym.Client/wwwroot/js/console-filter.js`** (nuovo)
+2. **`EventForge.Client/wwwroot/js/console-filter.js`** (nuovo)
    - Implementa il filtro JavaScript per la console del browser
 
-3. **`Prym.Client/wwwroot/index.html`** (modificato)
+3. **`EventForge.Client/wwwroot/index.html`** (modificato)
    - Aggiunge il riferimento allo script console-filter.js
 
 ## Testing
@@ -126,7 +126,7 @@ Per verificare che la soluzione funzioni:
 
 1. **Durante lo sviluppo:**
    ```bash
-   dotnet run --project Prym.Client
+   dotnet run --project EventForge.Client
    ```
 
 2. **Aprire la console del browser (F12)**
@@ -136,7 +136,7 @@ Per verificare che la soluzione funzioni:
 
 3. **Per il deploy:**
    ```bash
-   dotnet publish Prym.Client -c Release
+   dotnet publish EventForge.Client -c Release
    ```
    - Verificare che `wwwroot/js/console-filter.js` sia presente nel output di publish
    - Verificare che `index.html` includa il riferimento allo script

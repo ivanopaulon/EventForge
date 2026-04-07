@@ -1,0 +1,234 @@
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.Warehouse
+@using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Warehouse
+@inject ITranslationService TranslationService
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IStockService StockService
+@inject IProductService ProductService
+@inject ILogger<StockInventoryTab> Logger
+
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Class="mr-2" />
+            @TranslationService.GetTranslation("product.stockInfo", "Informazioni Magazzino")
+        </MudText>
+
+        <!-- Two column layout: procurement data (left) and stock summary (right) -->
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-3" Style="height:100%; border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-1" Size="Size.Small" />
+                        @TranslationService.GetTranslation("product.procurementData", "Dati Approvvigionamento")
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Value="@(Product.ReorderPoint ?? 0)"
+                                             Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" 
+                                             Format="N2"
+                                             HelperText="@TranslationService.GetTranslation("helper.reorderPoint", "Livello di riordino")" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Value="@(Product.SafetyStock ?? 0)"
+                                             Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" 
+                                             Format="N2"
+                                             HelperText="@TranslationService.GetTranslation("helper.safetyStock", "Scorta minima")" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Value="@(Product.TargetStockLevel ?? 0)"
+                                             Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Obiettivo")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" 
+                                             Format="N2"
+                                             HelperText="@TranslationService.GetTranslation("helper.targetStockLevel", "Stock target")" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField Value="@(Product.AverageDailyDemand ?? 0)"
+                                             Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Giornaliera")"
+                                             Variant="Variant.Outlined"
+                                             ReadOnly="true"
+                                             Min="0" 
+                                             Format="N2"
+                                             HelperText="@TranslationService.GetTranslation("helper.averageDailyDemand", "Media giornaliera")" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="0" Class="pa-3" Style="height:100%; border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Store" Class="mr-1" Size="Size.Small" />
+                        @TranslationService.GetTranslation("product.availabilityStock", "Disponibilità e Giacenza")
+                    </MudText>
+                    @if (_stockLevels?.Any() == true)
+                    {
+                        <MudTable Items="@_stockLevels" Hover="true" Striped="true" Dense="true" Class="mb-0" GroupBy="@_groupDefinition">
+                            <HeaderContent>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.location", "Ubicazione")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTh>
+                                <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                                <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.reserved", "Riservata")</MudTh>
+                                <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.available", "Disponibile")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("warehouse.lastMovement", "Ultimo Movimento")</MudTh>
+                            </HeaderContent>
+                            <GroupHeaderTemplate>
+                                <MudTh colspan="7" Class="mud-table-cell-custom-group">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Warehouse" Size="Size.Small" Class="mr-2" />
+                                    <strong>@($"{context.Key ?? TranslationService.GetTranslation("warehouse.unknownWarehouse", "Magazzino Sconosciuto")}")</strong>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2">
+                                        @context.Items.Sum(x => x.AvailableQuantity).ToString("N2") @TranslationService.GetTranslation("warehouse.available", "disponibili")
+                                    </MudChip>
+                                </MudTh>
+                            </GroupHeaderTemplate>
+                            <RowTemplate>
+                                <MudTd>@(context.WarehouseName ?? "-")</MudTd>
+                                <MudTd>
+                                    <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Class="mr-1" />
+                                    @(context.StorageLocationCode ?? "-")
+                                </MudTd>
+                                <MudTd>@(context.LotCode ?? "-")</MudTd>
+                                <MudTd Class="text-right">@context.Quantity.ToString("N2")</MudTd>
+                                <MudTd Class="text-right">@context.ReservedQuantity.ToString("N2")</MudTd>
+                                <MudTd Class="text-right">
+                                    <strong>@context.AvailableQuantity.ToString("N2")</strong>
+                                </MudTd>
+                                <MudTd>@(context.LastMovementDate?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Class="mb-0 mt-2">
+                            @TranslationService.GetTranslation("product.noStockFound", "Nessuna giacenza trovata per questo prodotto")
+                        </MudAlert>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Stock Trend Chart -->
+    <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" ProductId="@Product.Id" />
+
+    <!-- Info message about document integration -->
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        @TranslationService.GetTranslation("product.documentsMovedToCharts", "La lista dei documenti che hanno movimentato il prodotto è ora disponibile nel pannello 'Andamento Giacenza'.")
+    </MudAlert>
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = default!;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public EventCallback OnProductUpdated { get; set; }
+
+    [Parameter]
+    public EventCallback OnProductUpdatedPersisted { get; set; }
+
+    private bool _isLoadingTrend = false;
+    private bool _stockTrendLoaded = false;
+    private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
+    private StockTrendDto? _stockTrend;
+
+    // Group definition for warehouse grouping
+    private TableGroupDefinition<StockDto> _groupDefinition = new()
+    {
+        GroupName = "Warehouse",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = (e) => e.WarehouseName ?? string.Empty
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Load stock levels and trends - trends are loaded only once
+        var tasks = new List<Task>
+        {
+            LoadStockLevelsAsync()
+        };
+
+        // Load stock trend only once on first load
+        if (!_stockTrendLoaded)
+        {
+            tasks.Add(LoadStockTrendAsync());
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task LoadStockLevelsAsync()
+    {
+        try
+        {
+            _stockLevels = await StockService.GetStockByProductIdAsync(Product.Id);
+            var totalFromTable = _stockLevels?.Sum(x => x.AvailableQuantity) ?? 0;
+            Logger.LogDebug("StockInventoryTab: totalFromTable={TotalFromTable} for ProductId={ProductId}", totalFromTable, Product.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stock levels for product {ProductId}", Product.Id);
+            _stockLevels = Enumerable.Empty<StockDto>();
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadStockTrendAsync()
+    {
+        _isLoadingTrend = true;
+        try
+        {
+            _stockTrend = await ProductService.GetProductStockTrendAsync(Product.Id);
+            _stockTrendLoaded = true;
+            var lastPoint = _stockTrend?.DataPoints?.MaxBy(dp => dp.Date);
+            Logger.LogDebug("StockInventoryTab: stockTrend.CurrentStock={CurrentStock}, lastPointDate={Date}, lastPointQty={Qty} for ProductId={ProductId}",
+                _stockTrend?.CurrentStock, lastPoint?.Date, lastPoint?.Quantity, Product.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading stock trend for product {ProductId}", Product.Id);
+            _stockTrend = null;
+        }
+        finally
+        {
+            _isLoadingTrend = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task NotifyUpdated()
+    {
+        try
+        {
+            if (OnProductUpdated.HasDelegate)
+                await OnProductUpdated.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking OnProductUpdated from StockInventoryTab");
+        }
+    }
+}

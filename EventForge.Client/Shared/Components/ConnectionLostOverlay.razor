@@ -1,0 +1,75 @@
+@namespace EventForge.Client.Shared.Components
+@inject IConnectionMonitorService ConnectionMonitor
+@inject IDialogService DialogService
+@implements IDisposable
+
+@code {
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
+
+    private IDialogReference? _dialogRef;
+    private System.Threading.Timer? _visibilityDelayTimer;
+    private DateTimeOffset? _problemDetectedAt;
+
+    protected override void OnInitialized()
+    {
+        ConnectionMonitor.StatusChanged += OnStatusChanged;
+        ConnectionMonitor.Start();
+    }
+
+    private void OnStatusChanged(ConnectionStatus newStatus)
+    {
+        InvokeAsync(() =>
+        {
+            if (newStatus == ConnectionStatus.Connected || newStatus == ConnectionStatus.Unknown)
+            {
+                StopVisibilityDelayTimer();
+                _problemDetectedAt = null;
+            }
+            else if (_dialogRef is null && _problemDetectedAt is null)
+            {
+                _problemDetectedAt = DateTimeOffset.UtcNow;
+                StartVisibilityDelayTimer();
+            }
+        });
+    }
+
+    private void StartVisibilityDelayTimer()
+    {
+        StopVisibilityDelayTimer();
+        _visibilityDelayTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                var s = ConnectionMonitor.Status;
+                if ((s == ConnectionStatus.Degraded || s == ConnectionStatus.Disconnected) && _dialogRef is null)
+                {
+                    _dialogRef = await DialogService.ShowAsync<ConnectionLostSystemDialog>(string.Empty, _options);
+                    _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() =>
+                    {
+                        _dialogRef = null;
+                        _problemDetectedAt = null;
+                    }));
+                }
+            });
+        }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+    }
+
+    private void StopVisibilityDelayTimer()
+    {
+        _visibilityDelayTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _visibilityDelayTimer?.Dispose();
+        _visibilityDelayTimer = null;
+    }
+
+    public void Dispose()
+    {
+        ConnectionMonitor.StatusChanged -= OnStatusChanged;
+        StopVisibilityDelayTimer();
+    }
+}

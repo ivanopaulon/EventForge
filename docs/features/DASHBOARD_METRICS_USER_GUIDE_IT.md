@@ -290,4 +290,4 @@ Per ulteriore assistenza o segnalazione bug:
 
 **Versione**: 1.0  
 **Data**: Novembre 2025  
-**Autore**: Prym Development Team
+**Autore**: EventForge Development Team

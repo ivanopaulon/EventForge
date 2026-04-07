@@ -23,8 +23,8 @@ This guide helps you migrate management pages from the old `ManagementDashboard`
 
 ### Step 1: Remove Dashboard Import
 ```diff
-@using Prym.Client.Shared.Components
-- @using Prym.Client.Shared.Components.Dashboard
+@using EventForge.Client.Shared.Components
+- @using EventForge.Client.Shared.Components.Dashboard
 ```
 
 ### Step 2: Remove Dashboard Markup
@@ -217,7 +217,7 @@ These metrics should be moved to the table footer or a summary section:
 
 ### Before
 ```razor
-@using Prym.Client.Shared.Components.Dashboard
+@using EventForge.Client.Shared.Components.Dashboard
 
 <div class="warehouse-page-root">
     <div class="warehouse-top">

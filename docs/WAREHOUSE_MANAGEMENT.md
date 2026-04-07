@@ -1,12 +1,12 @@
 # Warehouse and Storage Location Management Implementation
 
 ## Overview
-This implementation adds warehouse (storage facility) and storage location management functionality to Prym, following the same pattern used for VAT rate management.
+This implementation adds warehouse (storage facility) and storage location management functionality to EventForge, following the same pattern used for VAT rate management.
 
 ## Components Created
 
 ### 1. StorageFacilityDrawer Component
-**Location:** `Prym.Client/Shared/Components/StorageFacilityDrawer.razor`
+**Location:** `EventForge.Client/Shared/Components/StorageFacilityDrawer.razor`
 
 A reusable drawer component for creating, viewing, and editing warehouses (storage facilities). Features:
 - Full CRUD operations (Create, Read, Update, Delete)
@@ -30,7 +30,7 @@ A reusable drawer component for creating, viewing, and editing warehouses (stora
 - Notes (optional): Additional notes
 
 ### 2. WarehouseManagement Page
-**Location:** `Prym.Client/Pages/Management/WarehouseManagement.razor`
+**Location:** `EventForge.Client/Pages/Management/WarehouseManagement.razor`
 **Route:** `/warehouse/facilities`
 
 A full-featured management page for warehouses with:
@@ -45,7 +45,7 @@ A full-featured management page for warehouses with:
 - Location count display (total and active)
 
 ### 3. StorageLocationDrawer Component
-**Location:** `Prym.Client/Shared/Components/StorageLocationDrawer.razor`
+**Location:** `EventForge.Client/Shared/Components/StorageLocationDrawer.razor`
 
 A reusable drawer component for creating, viewing, and editing storage locations. Features:
 - Full CRUD operations (Create, Read, Update, Delete)
@@ -73,7 +73,7 @@ A reusable drawer component for creating, viewing, and editing storage locations
 - Notes (optional): Additional notes
 
 ### 4. StorageLocationManagement Page
-**Location:** `Prym.Client/Pages/Management/StorageLocationManagement.razor`
+**Location:** `EventForge.Client/Pages/Management/StorageLocationManagement.razor`
 **Route:** `/warehouse/locations`
 
 A full-featured management page for storage locations with:
@@ -89,7 +89,7 @@ A full-featured management page for storage locations with:
 - Position display (Row, Column, Level)
 
 ### 5. Navigation Integration
-**Location:** `Prym.Client/Layout/NavMenu.razor`
+**Location:** `EventForge.Client/Layout/NavMenu.razor`
 
 Added to the Administration section of the navigation menu:
 - **Warehouse Management:**
@@ -133,7 +133,7 @@ The existing `WarehouseManagementController` already provides all necessary endp
 
 ## Translations
 
-All Italian translations have been added to `Prym.Client/wwwroot/i18n/it.json`:
+All Italian translations have been added to `EventForge.Client/wwwroot/i18n/it.json`:
 
 ### Navigation
 - `nav.warehouseManagement`: "Gestione Magazzini"
@@ -323,7 +323,7 @@ Access is controlled through the `@attribute [Authorize]` directive and the navi
 - All warehouses and storage locations are tenant-scoped (multi-tenant support)
 - The implementation follows the same patterns as VAT Rate Management for consistency
 - The components are fully localized with Italian translations
-- The UI is responsive and follows the Prym design patterns
+- The UI is responsive and follows the EventForge design patterns
 - All CRUD operations include proper error handling and user feedback via Snackbar
 - The storage location drawer loads available warehouses from the warehouse service
 - Occupancy is displayed with color-coded progress bars (green < 50%, blue < 75%, orange < 90%, red >= 90%)

@@ -72,13 +72,13 @@ private async Task<IEnumerable<BrandDto>> SearchBrands(string value, Cancellatio
 
 #### A. Integrazione API Reale in ProductSearch
 
-**File**: `Prym.Client/Shared/Components/Sales/ProductSearch.razor`
+**File**: `EventForge.Client/Shared/Components/Sales/ProductSearch.razor`
 
 **Modifiche**:
 1. ✅ Aggiunto `@inject IProductService ProductService`
 2. ✅ Rimosso mock data e classe ProductDto nested
 3. ✅ Implementato ricerca reale con `ProductService.GetProductsAsync()`
-4. ✅ Utilizzo di `Prym.DTOs.Products.ProductDto` reale
+4. ✅ Utilizzo di `EventForge.DTOs.Products.ProductDto` reale
 5. ✅ Aggiunto error handling e logging
 
 **Prima**:
@@ -95,7 +95,7 @@ private async Task<IEnumerable<BrandDto>> SearchBrands(string value, Cancellatio
 
 #### B. Aggiornamento SalesWizard per API Reale
 
-**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
+**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
 
 **Modifiche in HandleProductSelected**:
 ```csharp
@@ -106,7 +106,7 @@ private void HandleProductSelected(ProductSearch.ProductDto product)
 }
 
 // After
-private void HandleProductSelected(Prym.DTOs.Products.ProductDto product)
+private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
 {
     // Validation
     if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
@@ -128,7 +128,7 @@ private void HandleProductSelected(Prym.DTOs.Products.ProductDto product)
 
 #### C. Completamento ProcessSaleAsync
 
-**File**: `Prym.Client/Pages/Sales/SalesWizard.razor`
+**File**: `EventForge.Client/Pages/Sales/SalesWizard.razor`
 
 **Implementazione Completa**:
 
@@ -301,7 +301,7 @@ Il wizard di vendita è ora **completamente funzionante** con:
 
 1. **Avvia applicazione**
    ```bash
-   dotnet run --project Prym.Server
+   dotnet run --project EventForge.Server
    ```
 
 2. **Login** su http://localhost:5000
@@ -407,7 +407,7 @@ Un **sistema POS completo e funzionante** con:
 
 ### Link Utili
 
-- **Epic GitHub**: https://github.com/ivanopaulon/Prym/issues/277
+- **Epic GitHub**: https://github.com/ivanopaulon/EventForge/issues/277
 - **Branch**: `copilot/fix-3c9bdfda-47e2-416d-a1c1-4fa195c53e88`
 - **API Docs**: https://localhost:5001/swagger
 

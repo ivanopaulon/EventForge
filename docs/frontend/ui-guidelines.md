@@ -1,7 +1,7 @@
-# Prym UI/UX Layout Guidelines
+# EventForge UI/UX Layout Guidelines
 
 ## Overview
-This document outlines the standardized UI/UX layout guidelines for Prym, established as part of issue #164 to optimize container sizes, component dimensions, and spacing for improved user experience.
+This document outlines the standardized UI/UX layout guidelines for EventForge, established as part of issue #164 to optimize container sizes, component dimensions, and spacing for improved user experience.
 
 ## Container Width Standards
 

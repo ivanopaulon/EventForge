@@ -1,152 +1,152 @@
-Prym.Client/ViewModels/VatRateDetailViewModel.cs(106,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
-Prym.Client/ViewModels/VatRateDetailViewModel.cs(111,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
-Prym.Client/Pages/Management/Business/BusinessPartyManagement.razor(425,19): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/ViewModels/VatNatureDetailViewModel.cs(63,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
-Prym.Client/ViewModels/VatNatureDetailViewModel.cs(68,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
-Prym.Client/Pages/Sales/POS.razor(567,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Sales/POS.razor(783,26): warning CS0168: The variable 'ex' is declared but never used 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1409,13): warning CS0162: Unreachable code detected 
-Prym.Client/Shared/Atoms/GroupBadge.razor(12,25): warning CS8604: Possible null reference argument for parameter 'callback' in 'EventCallback<MudChip<string>> EventCallbackFactory.Create<MudChip<string>>(object receiver, Func<Task> callback)'. 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2089,13): warning CS0162: Unreachable code detected 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2144,94): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2226,94): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Services/SignalRService.cs(170,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(302,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(577,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(647,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/ViewModels/PaymentTermDetailViewModel.cs(72,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
-Prym.Client/ViewModels/PaymentTermDetailViewModel.cs(77,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
-Prym.Client/Services/Documents/CsvImportService.cs(179,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/ModelDialog.razor(94,26): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(330,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(428,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(345,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(346,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(347,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(153,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(154,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(155,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(156,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(157,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(523,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(524,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(525,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(526,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(527,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(528,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(529,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/DevTools/GenerateProductsButton.razor(95,49): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
-Prym.Client/Shared/Components/DevTools/GenerateProductsButton.razor(275,53): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(467,18): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(514,18): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/Sales/POSReceipt.razor(13,19): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(323,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(337,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(350,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/DocumentTypeDetailDialog.razor(301,27): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/StockInventoryTab.razor(160,27): warning CS8603: Possible null reference return. 
-Prym.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(605,15): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(615,15): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(447,17): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(900,30): warning CS8601: Possible null reference assignment. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1032,45): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1079,28): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1132,39): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1206,43): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1345,40): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Warehouse/StockOverview.razor(616,38): warning CS0649: Field 'StockOverview._searchDebounceCts' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(53,35): warning CS0649: Field 'AddDocumentRowDialog._barcodeField' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(54,39): warning CS0649: Field 'AddDocumentRowDialog._quantityField' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(56,39): warning CS0649: Field 'AddDocumentRowDialog._quantityPriceRef' is never assigned to, and will always have its default value null 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(137,18): warning CS0414: The field 'ClassificationTab._isLoading' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(156,18): warning CS0414: The field 'AddDocumentRowDialog._isLoadingProductData' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(148,18): warning CS0414: The field 'AddDocumentRowDialog._isValidating' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(157,18): warning CS0414: The field 'AddDocumentRowDialog._isApplyingPrice' is assigned but its value is never used 
-Prym.Client/Pages/Management/Promotions/PromotionDetailDialog.razor(768,18): warning CS0414: The field 'PromotionDetailDialog._isLoadingProducts' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(136,18): warning CS0414: The field 'AddDocumentRowDialog._productJustSelected' is assigned but its value is never used 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/PricingFinancialTab.razor(82,18): warning CS0414: The field 'PricingFinancialTab._isLoading' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(135,18): warning CS0414: The field 'AddDocumentRowDialog._shouldAnimatePriceField' is assigned but its value is never used 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(140,22): warning CS0414: The field 'UnifiedProductScanner._isEditMode' is assigned but its value is never used 
-Prym.Client/Pages/Management/PriceLists/PriceListDetailDialog.razor(713,18): warning CS0414: The field 'PriceListDetailDialog._isLoadingBusinessParties' is assigned but its value is never used 
-Prym.Client/Pages/Management/Warehouse/StockOverview.razor(704,18): warning CS0414: The field 'StockOverview._isCalculatingReconciliation' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(805,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1299,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Services/Documents/CsvImportService.cs(44,21): warning CA2024: Do not use 'reader.EndOfStream' in an async method (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2024) 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(245,49): warning MUD0012: External access of 'Text' parameter state property is not allowed. Use GetState(x => x.Text) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Shared/Components/Sales/BarcodeScanner.razor(98,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/ViewModels/VatRateDetailViewModel.cs(106,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
-Prym.Client/ViewModels/VatRateDetailViewModel.cs(111,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
-Prym.Client/Pages/Management/Business/BusinessPartyManagement.razor(425,19): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/ViewModels/VatNatureDetailViewModel.cs(63,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
-Prym.Client/ViewModels/VatNatureDetailViewModel.cs(68,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
-Prym.Client/Pages/Sales/POS.razor(567,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Sales/POS.razor(783,26): warning CS0168: The variable 'ex' is declared but never used 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1409,13): warning CS0162: Unreachable code detected 
-Prym.Client/Shared/Atoms/GroupBadge.razor(12,25): warning CS8604: Possible null reference argument for parameter 'callback' in 'EventCallback<MudChip<string>> EventCallbackFactory.Create<MudChip<string>>(object receiver, Func<Task> callback)'. 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2089,13): warning CS0162: Unreachable code detected 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2144,94): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2226,94): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Services/SignalRService.cs(170,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(302,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(577,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/Services/SignalRService.cs(647,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
-Prym.Client/ViewModels/PaymentTermDetailViewModel.cs(72,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
-Prym.Client/ViewModels/PaymentTermDetailViewModel.cs(77,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
-Prym.Client/Services/Documents/CsvImportService.cs(179,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/ModelDialog.razor(94,26): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(330,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(428,31): warning CS8601: Possible null reference assignment. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(345,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(346,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(347,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(153,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(154,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(155,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(156,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(157,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(523,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(524,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(525,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(526,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(527,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(528,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/EnhancedMessageComposer.razor(529,25): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/DevTools/GenerateProductsButton.razor(95,49): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
-Prym.Client/Shared/Components/DevTools/GenerateProductsButton.razor(275,53): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(467,18): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(514,18): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Shared/Components/Sales/POSReceipt.razor(13,19): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(323,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(337,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/PriceLists/PriceListManagement.razor(350,14): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/DocumentTypeDetailDialog.razor(301,27): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/StockInventoryTab.razor(160,27): warning CS8603: Possible null reference return. 
-Prym.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(605,15): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(615,15): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(447,17): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(900,30): warning CS8601: Possible null reference assignment. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1032,45): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1079,28): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1132,39): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1206,43): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
-Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1345,40): warning CS8602: Dereference of a possibly null reference. 
-Prym.Client/Pages/Management/Warehouse/StockOverview.razor(616,38): warning CS0649: Field 'StockOverview._searchDebounceCts' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(53,35): warning CS0649: Field 'AddDocumentRowDialog._barcodeField' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(54,39): warning CS0649: Field 'AddDocumentRowDialog._quantityField' is never assigned to, and will always have its default value null 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(56,39): warning CS0649: Field 'AddDocumentRowDialog._quantityPriceRef' is never assigned to, and will always have its default value null 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(137,18): warning CS0414: The field 'ClassificationTab._isLoading' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(156,18): warning CS0414: The field 'AddDocumentRowDialog._isLoadingProductData' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(148,18): warning CS0414: The field 'AddDocumentRowDialog._isValidating' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(157,18): warning CS0414: The field 'AddDocumentRowDialog._isApplyingPrice' is assigned but its value is never used 
-Prym.Client/Pages/Management/Promotions/PromotionDetailDialog.razor(768,18): warning CS0414: The field 'PromotionDetailDialog._isLoadingProducts' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(136,18): warning CS0414: The field 'AddDocumentRowDialog._productJustSelected' is assigned but its value is never used 
-Prym.Client/Pages/Management/Products/ProductDetailTabs/PricingFinancialTab.razor(82,18): warning CS0414: The field 'PricingFinancialTab._isLoading' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(135,18): warning CS0414: The field 'AddDocumentRowDialog._shouldAnimatePriceField' is assigned but its value is never used 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(140,22): warning CS0414: The field 'UnifiedProductScanner._isEditMode' is assigned but its value is never used 
-Prym.Client/Pages/Management/PriceLists/PriceListDetailDialog.razor(713,18): warning CS0414: The field 'PriceListDetailDialog._isLoadingBusinessParties' is assigned but its value is never used 
-Prym.Client/Pages/Management/Warehouse/StockOverview.razor(704,18): warning CS0414: The field 'StockOverview._isCalculatingReconciliation' is assigned but its value is never used 
-Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(805,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1299,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Services/Documents/CsvImportService.cs(44,21): warning CA2024: Do not use 'reader.EndOfStream' in an async method (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2024) 
-Prym.Client/Shared/Components/UnifiedProductScanner.razor.cs(245,49): warning MUD0012: External access of 'Text' parameter state property is not allowed. Use GetState(x => x.Text) instead. (https://mudblazor.com/features/analyzers) 
-Prym.Client/Shared/Components/Sales/BarcodeScanner.razor(98,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/ViewModels/VatRateDetailViewModel.cs(106,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
+EventForge.Client/ViewModels/VatRateDetailViewModel.cs(111,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
+EventForge.Client/Pages/Management/Business/BusinessPartyManagement.razor(425,19): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/ViewModels/VatNatureDetailViewModel.cs(63,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
+EventForge.Client/ViewModels/VatNatureDetailViewModel.cs(68,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
+EventForge.Client/Pages/Sales/POS.razor(567,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Sales/POS.razor(783,26): warning CS0168: The variable 'ex' is declared but never used 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1409,13): warning CS0162: Unreachable code detected 
+EventForge.Client/Shared/Atoms/GroupBadge.razor(12,25): warning CS8604: Possible null reference argument for parameter 'callback' in 'EventCallback<MudChip<string>> EventCallbackFactory.Create<MudChip<string>>(object receiver, Func<Task> callback)'. 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2089,13): warning CS0162: Unreachable code detected 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2144,94): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2226,94): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Services/SignalRService.cs(170,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(302,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(577,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(647,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs(72,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
+EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs(77,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
+EventForge.Client/Services/Documents/CsvImportService.cs(179,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/ModelDialog.razor(94,26): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(330,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(428,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(345,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(346,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(347,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(153,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(154,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(155,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(156,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(157,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(523,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(524,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(525,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(526,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(527,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(528,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(529,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/DevTools/GenerateProductsButton.razor(95,49): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
+EventForge.Client/Shared/Components/DevTools/GenerateProductsButton.razor(275,53): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(467,18): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(514,18): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/Sales/POSReceipt.razor(13,19): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(323,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(337,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(350,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/DocumentTypeDetailDialog.razor(301,27): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/StockInventoryTab.razor(160,27): warning CS8603: Possible null reference return. 
+EventForge.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(605,15): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(615,15): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(447,17): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(900,30): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1032,45): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1079,28): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1132,39): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1206,43): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1345,40): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Warehouse/StockOverview.razor(616,38): warning CS0649: Field 'StockOverview._searchDebounceCts' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(53,35): warning CS0649: Field 'AddDocumentRowDialog._barcodeField' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(54,39): warning CS0649: Field 'AddDocumentRowDialog._quantityField' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(56,39): warning CS0649: Field 'AddDocumentRowDialog._quantityPriceRef' is never assigned to, and will always have its default value null 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(137,18): warning CS0414: The field 'ClassificationTab._isLoading' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(156,18): warning CS0414: The field 'AddDocumentRowDialog._isLoadingProductData' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(148,18): warning CS0414: The field 'AddDocumentRowDialog._isValidating' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(157,18): warning CS0414: The field 'AddDocumentRowDialog._isApplyingPrice' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Promotions/PromotionDetailDialog.razor(768,18): warning CS0414: The field 'PromotionDetailDialog._isLoadingProducts' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(136,18): warning CS0414: The field 'AddDocumentRowDialog._productJustSelected' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/PricingFinancialTab.razor(82,18): warning CS0414: The field 'PricingFinancialTab._isLoading' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(135,18): warning CS0414: The field 'AddDocumentRowDialog._shouldAnimatePriceField' is assigned but its value is never used 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(140,22): warning CS0414: The field 'UnifiedProductScanner._isEditMode' is assigned but its value is never used 
+EventForge.Client/Pages/Management/PriceLists/PriceListDetailDialog.razor(713,18): warning CS0414: The field 'PriceListDetailDialog._isLoadingBusinessParties' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Warehouse/StockOverview.razor(704,18): warning CS0414: The field 'StockOverview._isCalculatingReconciliation' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(805,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1299,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Services/Documents/CsvImportService.cs(44,21): warning CA2024: Do not use 'reader.EndOfStream' in an async method (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2024) 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(245,49): warning MUD0012: External access of 'Text' parameter state property is not allowed. Use GetState(x => x.Text) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Shared/Components/Sales/BarcodeScanner.razor(98,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/ViewModels/VatRateDetailViewModel.cs(106,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
+EventForge.Client/ViewModels/VatRateDetailViewModel.cs(111,16): warning CS8619: Nullability of reference types in value of type 'Task<VatRateDto>' doesn't match target type 'Task<VatRateDto?>'. 
+EventForge.Client/Pages/Management/Business/BusinessPartyManagement.razor(425,19): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/ViewModels/VatNatureDetailViewModel.cs(63,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
+EventForge.Client/ViewModels/VatNatureDetailViewModel.cs(68,16): warning CS8619: Nullability of reference types in value of type 'Task<VatNatureDto>' doesn't match target type 'Task<VatNatureDto?>'. 
+EventForge.Client/Pages/Sales/POS.razor(567,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Sales/POS.razor(783,26): warning CS0168: The variable 'ex' is declared but never used 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1409,13): warning CS0162: Unreachable code detected 
+EventForge.Client/Shared/Atoms/GroupBadge.razor(12,25): warning CS8604: Possible null reference argument for parameter 'callback' in 'EventCallback<MudChip<string>> EventCallbackFactory.Create<MudChip<string>>(object receiver, Func<Task> callback)'. 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2089,13): warning CS0162: Unreachable code detected 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2144,94): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(2226,94): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Services/SignalRService.cs(170,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(302,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(577,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/Services/SignalRService.cs(647,57): warning CS8619: Nullability of reference types in value of type 'Task<string>' doesn't match target type 'Task<string?>'. 
+EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs(72,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
+EventForge.Client/ViewModels/PaymentTermDetailViewModel.cs(77,16): warning CS8619: Nullability of reference types in value of type 'Task<PaymentTermDto>' doesn't match target type 'Task<PaymentTermDto?>'. 
+EventForge.Client/Services/Documents/CsvImportService.cs(179,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/ModelDialog.razor(94,26): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(330,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/QuickCreateProductDialog.razor(428,31): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(345,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(346,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/Warehouse/InventoryViewDialog.razor(347,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(153,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(154,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(155,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(156,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/Dialogs/DocumentViewerDialog.razor(157,17): warning CS8619: Nullability of reference types in value of type '<anonymous type: string PropertyName, string DisplayName, string NumberFormat, bool IsVisible>' doesn't match target type '<anonymous type: string PropertyName, string DisplayName, string? NumberFormat, bool IsVisible>'. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(523,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(524,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(525,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(526,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(527,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(528,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/EnhancedMessageComposer.razor(529,25): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/DevTools/GenerateProductsButton.razor(95,49): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
+EventForge.Client/Shared/Components/DevTools/GenerateProductsButton.razor(275,53): warning CS8604: Possible null reference argument for parameter 'parameters' in 'string ITranslationService.GetTranslation(string key, params object
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(467,18): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(514,18): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Shared/Components/Sales/POSReceipt.razor(13,19): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(323,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(337,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/PriceLists/PriceListManagement.razor(350,14): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/DocumentTypeDetailDialog.razor(301,27): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/StockInventoryTab.razor(160,27): warning CS8603: Possible null reference return. 
+EventForge.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(605,15): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ClassificationNodeDetailDialog.razor(615,15): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(447,17): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(900,30): warning CS8601: Possible null reference assignment. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1032,45): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1079,28): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1132,39): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1206,43): warning CS8604: Possible null reference argument for parameter 'source' in 'DocumentRowDto? Enumerable.FirstOrDefault<DocumentRowDto>(IEnumerable<DocumentRowDto> source, Func<DocumentRowDto, bool> predicate)'. 
+EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor(1345,40): warning CS8602: Dereference of a possibly null reference. 
+EventForge.Client/Pages/Management/Warehouse/StockOverview.razor(616,38): warning CS0649: Field 'StockOverview._searchDebounceCts' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(53,35): warning CS0649: Field 'AddDocumentRowDialog._barcodeField' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(54,39): warning CS0649: Field 'AddDocumentRowDialog._quantityField' is never assigned to, and will always have its default value null 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(56,39): warning CS0649: Field 'AddDocumentRowDialog._quantityPriceRef' is never assigned to, and will always have its default value null 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/ClassificationTab.razor(137,18): warning CS0414: The field 'ClassificationTab._isLoading' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(156,18): warning CS0414: The field 'AddDocumentRowDialog._isLoadingProductData' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(148,18): warning CS0414: The field 'AddDocumentRowDialog._isValidating' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(157,18): warning CS0414: The field 'AddDocumentRowDialog._isApplyingPrice' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Promotions/PromotionDetailDialog.razor(768,18): warning CS0414: The field 'PromotionDetailDialog._isLoadingProducts' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(136,18): warning CS0414: The field 'AddDocumentRowDialog._productJustSelected' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Products/ProductDetailTabs/PricingFinancialTab.razor(82,18): warning CS0414: The field 'PricingFinancialTab._isLoading' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(135,18): warning CS0414: The field 'AddDocumentRowDialog._shouldAnimatePriceField' is assigned but its value is never used 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(140,22): warning CS0414: The field 'UnifiedProductScanner._isEditMode' is assigned but its value is never used 
+EventForge.Client/Pages/Management/PriceLists/PriceListDetailDialog.razor(713,18): warning CS0414: The field 'PriceListDetailDialog._isLoadingBusinessParties' is assigned but its value is never used 
+EventForge.Client/Pages/Management/Warehouse/StockOverview.razor(704,18): warning CS0414: The field 'StockOverview._isCalculatingReconciliation' is assigned but its value is never used 
+EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs(805,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor(1299,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Services/Documents/CsvImportService.cs(44,21): warning CA2024: Do not use 'reader.EndOfStream' in an async method (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2024) 
+EventForge.Client/Shared/Components/UnifiedProductScanner.razor.cs(245,49): warning MUD0012: External access of 'Text' parameter state property is not allowed. Use GetState(x => x.Text) instead. (https://mudblazor.com/features/analyzers) 
+EventForge.Client/Shared/Components/Sales/BarcodeScanner.razor(98,46): warning MUD0012: External access of 'Value' parameter state property is not allowed. Use GetState(x => x.Value) instead. (https://mudblazor.com/features/analyzers) 

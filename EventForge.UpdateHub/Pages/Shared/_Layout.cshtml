@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — EventForge Update Hub</title>
+    <link rel="icon" type="image/svg+xml" href="~/images/trace.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;700;750&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/css/sidebar.css" />
+</head>
+<body>
+<div id="wrapper">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────── -->
+    <nav id="sidebar-wrapper" aria-label="Navigazione principale">
+
+        <!-- Brand -->
+        <div class="sidebar-brand">
+            <div class="sidebar-logo-row">
+                <img src="~/images/trace.svg" class="sidebar-logo-trace" alt="EventForge" />
+                <img src="~/images/logoWhite.svg" class="sidebar-logo-wordmark" alt="EventForge" />
+            </div>
+            <div class="sidebar-brand-product">Update Hub</div>
+            <button class="sidebar-brand-close d-lg-none" id="sidebarToggle" aria-label="Chiudi menu">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-nav">
+
+            <!-- Hub -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <i class="bi bi-display"></i>Hub
+                </div>
+                <a href="/"
+                   class="sidebar-item @(Context.Request.Path.Equals("/", StringComparison.OrdinalIgnoreCase) || Context.Request.Path.Equals("/index", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-grid-1x2-fill"></i>Dashboard
+                </a>
+                <a href="/installations"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/installations", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-pc-display-horizontal"></i>Installazioni
+                </a>
+                <a href="/packages"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/packages", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-box-seam-fill"></i>Pacchetti
+                </a>
+                <a href="/history"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/history", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-clock-history"></i>Cronologia
+                </a>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Sistema -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <i class="bi bi-sliders"></i>Sistema
+                </div>
+                <a href="/apikeys"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/apikeys", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-key-fill"></i>Chiavi API
+                </a>
+                <a href="/logs"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-file-text"></i>Log
+                </a>
+                <a href="/settings"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-gear-fill"></i>Impostazioni
+                </a>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Developer -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">
+                    <i class="bi bi-terminal"></i>Developer
+                </div>
+                <a href="/swagger" target="_blank" class="sidebar-item">
+                    <i class="bi bi-braces-asterisk"></i>Swagger API
+                    <i class="bi bi-box-arrow-up-right sidebar-item-ext"></i>
+                </a>
+                <a href="/health" target="_blank" class="sidebar-item">
+                    <i class="bi bi-activity"></i>Health JSON
+                    <i class="bi bi-box-arrow-up-right sidebar-item-ext"></i>
+                </a>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-avatar"><i class="bi bi-cloud-upload-fill" style="font-size:.85rem"></i></div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">Update Hub</div>
+                    @{
+                        var _hubVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "—";
+                    }
+                    <div class="sidebar-user-role">v@_hubVersion</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── Page content ─────────────────────────────────────────────── -->
+    <div id="page-content-wrapper">
+
+        <!-- Top bar -->
+        <header class="ef-topbar">
+            <button class="ef-topbar-toggle" id="sidebarToggleTop" aria-label="Toggle menu">
+                <i class="bi bi-layout-sidebar"></i>
+            </button>
+
+            <nav class="ef-breadcrumb" aria-label="breadcrumb">
+                <a href="/"><i class="bi bi-cloud-upload me-1"></i>Update Hub</a>
+                @if (!string.IsNullOrEmpty(ViewData["PageSection"]?.ToString()))
+                {
+                    <i class="bi bi-chevron-right ef-breadcrumb-sep"></i>
+                    <span>@ViewData["PageSection"]</span>
+                }
+                @if (!string.IsNullOrEmpty(ViewData["Title"]?.ToString()) && ViewData["Title"]?.ToString() != "Dashboard")
+                {
+                    <i class="bi bi-chevron-right ef-breadcrumb-sep"></i>
+                    <span class="ef-breadcrumb-active">@ViewData["Title"]</span>
+                }
+            </nav>
+
+            <div class="ef-topbar-meta">
+                <div class="ef-status-dot" title="Sistema operativo" id="topStatusDot"></div>
+                <span class="ef-version-badge">v@_hubVersion</span>
+            </div>
+        </header>
+
+        @if (TempData["Error"] is string errMsg)
+        {
+            <div class="alert alert-danger alert-dismissible mx-3 mt-3 mb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@errMsg
+            </div>
+        }
+        @if (TempData["Warning"] is string warnMsg)
+        {
+            <div class="alert alert-warning alert-dismissible mx-3 mt-3 mb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <i class="bi bi-exclamation-circle-fill me-2"></i>@warnMsg
+            </div>
+        }
+        @if (TempData["Success"] is string okMsg)
+        {
+            <div class="alert alert-success alert-dismissible mx-3 mt-3 mb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <i class="bi bi-check-circle-fill me-2"></i>@okMsg
+            </div>
+        }
+
+        <!-- Content -->
+        <main class="ef-main">
+            @RenderBody()
+        </main>
+
+        <!-- Footer -->
+        <footer class="ef-footer">
+            <span>EventForge Update Hub &copy; @DateTime.Now.Year</span>
+            <span>Pannello di distribuzione aggiornamenti</span>
+        </footer>
+
+    </div>
+</div>
+
+<!-- ── Navigation guard overlay ─────────────────────────────────────── -->
+<div id="ef-nav-guard-overlay" aria-hidden="true" aria-live="assertive">
+    <div class="ef-nav-guard-card">
+        <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+        <span class="ef-nav-guard-msg">Operazione in corso, attendere…</span>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/sidebar.js"></script>
+<script src="~/js/navigation-guard.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -27,9 +27,9 @@ Questo documento fornisce le istruzioni dettagliate per completare la conversion
 @page "/route-base/new"
 @page "/route-base/{EntityId:guid}"
 @using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.[Namespace]
-@using Prym.DTOs.Common
-@using Prym.Client.Shared.Components
+@using EventForge.DTOs.[Namespace]
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject [IService] Service
 @inject NavigationManager NavigationManager
@@ -339,7 +339,7 @@ OnCreate="@CreateEntity"
 - VatNatureId (Select da lista VatNatures, opzionale)
 - Notes (multilinea, opzionale)
 
-**Riferimento**: Prym.Client/Shared/Components/VatRateDrawer.razor (linee 1-150)
+**Riferimento**: EventForge.Client/Shared/Components/VatRateDrawer.razor (linee 1-150)
 
 ### VatNatureDetail.razor
 
@@ -352,7 +352,7 @@ OnCreate="@CreateEntity"
 
 **Nota**: Backend service potrebbe non essere completo (vedi TODO nel drawer originale)
 
-**Riferimento**: Prym.Client/Shared/Components/VatNatureDrawer.razor
+**Riferimento**: EventForge.Client/Shared/Components/VatNatureDrawer.razor
 
 ### WarehouseDetail.razor (StorageFacilityDetail)
 
@@ -365,7 +365,7 @@ OnCreate="@CreateEntity"
 - Indirizzo
 - Capacità
 
-**Riferimento**: Prym.Client/Shared/Components/StorageFacilityDrawer.razor
+**Riferimento**: EventForge.Client/Shared/Components/StorageFacilityDrawer.razor
 
 ### SupplierDetail.razor / CustomerDetail.razor (BusinessPartyDetail)
 
@@ -398,7 +398,7 @@ OnCreate="@CreateEntity"
 - Riferimenti multipli
 - Prodotti forniti (per fornitori)
 
-**Riferimento**: Prym.Client/Shared/Components/BusinessPartyDrawer.razor
+**Riferimento**: EventForge.Client/Shared/Components/BusinessPartyDrawer.razor
 
 ## Checklist per Ogni Conversione
 
@@ -443,7 +443,7 @@ Dopo ogni conversione:
 Per domande o problemi durante l'implementazione:
 - Riferimento pattern: BrandDetail.razor e UnitOfMeasureDetail.razor
 - Riferimento originale: ProductDetail.razor
-- Drawer originali in: Prym.Client/Shared/Components/
+- Drawer originali in: EventForge.Client/Shared/Components/
 
 ## Esempi Completati
 

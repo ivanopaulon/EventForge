@@ -2,7 +2,7 @@
 
 ## 1. Introduzione
 
-`EntityManagementPage<TEntity>` è un componente Blazor generico che implementa il pattern standard per le pagine di gestione delle entità in Prym. Fornisce out-of-the-box:
+`EntityManagementPage<TEntity>` è un componente Blazor generico che implementa il pattern standard per le pagine di gestione delle entità in EventForge. Fornisce out-of-the-box:
 
 - Intestazione pagina con titolo, icona e breadcrumb
 - Tabella dati (`EFTable`) con ricerca, ordinamento, paginazione, selezione multipla e export Excel

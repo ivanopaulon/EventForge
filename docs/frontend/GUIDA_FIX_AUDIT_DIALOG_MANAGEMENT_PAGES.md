@@ -227,8 +227,8 @@ Prima di considerare la correzione completa, verifica:
 
 - **Issue Originale**: #542 - Migrazione Audit: Drawer → Dialog fullscreen
 - **Guida Migrazione**: `AUDIT_DRAWER_TO_DIALOG_MIGRATION_GUIDE.md`
-- **Componente Dialog**: `Prym.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
-- **Componente Action Group**: `Prym.Client/Shared/Components/ActionButtonGroup.razor`
+- **Componente Dialog**: `EventForge.Client/Shared/Components/Dialogs/AuditHistoryDialog.razor`
+- **Componente Action Group**: `EventForge.Client/Shared/Components/ActionButtonGroup.razor`
 
 ## 🔍 Troubleshooting
 

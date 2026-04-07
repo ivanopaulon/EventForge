@@ -252,9 +252,9 @@ The inventory procedure has been successfully enhanced to provide a **complete, 
 
 ```
 Modified (3):
-  - Prym.Server/Controllers/WarehouseManagementController.cs
-  - Prym.Server/Services/Warehouse/IStockService.cs
-  - Prym.Server/Services/Warehouse/StockService.cs
+  - EventForge.Server/Controllers/WarehouseManagementController.cs
+  - EventForge.Server/Services/Warehouse/IStockService.cs
+  - EventForge.Server/Services/Warehouse/StockService.cs
 
 Created (3):
   - docs/INVENTORY_PROCEDURE_EXPLANATION.md (Italian)

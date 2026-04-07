@@ -1,0 +1,95 @@
+@* EventForge.Client/Pages/Management/Business/BusinessPartyDetailTabs/RecapitiTab.razor *@
+
+@using EventForge.DTOs.Business
+@using EventForge.Client.Pages.Management.Business.BusinessPartyDetailTabs
+@inject ITranslationService TranslationService
+
+<MudExpansionPanels MultiExpansion="true" Class="mt-2">
+    
+    <!-- ========== ACCORDION 1: INDIRIZZI ========== -->
+    <MudExpansionPanel IsInitiallyExpanded="true">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Outlined.LocationOn" />
+                <MudText Typo="Typo.subtitle1">
+                    @TranslationService.GetTranslation("businessParty.addresses", "Indirizzi")
+                </MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">
+                    @Party.AddressCount
+                </MudChip>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="pa-3">
+                <AddressesTab Party="@Party" 
+                              IsEditMode="@IsEditMode" 
+                              OnPartyUpdated="@OnPartyUpdated" />
+            </div>
+        </ChildContent>
+    </MudExpansionPanel>
+    
+    <!-- ========== ACCORDION 2: CONTATTI ========== -->
+    <MudExpansionPanel IsInitiallyExpanded="false">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Outlined.Phone" />
+                <MudText Typo="Typo.subtitle1">
+                    @TranslationService.GetTranslation("businessParty.contacts", "Contatti")
+                </MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">
+                    @Party.ContactCount
+                </MudChip>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="pa-3">
+                <ContactsTab Party="@Party" 
+                             IsEditMode="@IsEditMode" 
+                             OnPartyUpdated="@OnPartyUpdated" />
+            </div>
+        </ChildContent>
+    </MudExpansionPanel>
+    
+    <!-- ========== ACCORDION 3: RIFERIMENTI ========== -->
+    <MudExpansionPanel IsInitiallyExpanded="false">
+        <TitleContent>
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Outlined.People" />
+                <MudText Typo="Typo.subtitle1">
+                    @TranslationService.GetTranslation("businessParty.references", "Persone di Riferimento")
+                </MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">
+                    @Party.ReferenceCount
+                </MudChip>
+            </div>
+        </TitleContent>
+        <ChildContent>
+            <div class="pa-3">
+                <ReferencesTab Party="@Party" 
+                               IsEditMode="@IsEditMode" 
+                               OnPartyUpdated="@OnPartyUpdated" />
+            </div>
+        </ChildContent>
+    </MudExpansionPanel>
+    
+</MudExpansionPanels>
+
+@code {
+    /// <summary>
+    /// Business Party da visualizzare
+    /// </summary>
+    [Parameter, EditorRequired]
+    public BusinessPartyDto Party { get; set; } = null!;
+    
+    /// <summary>
+    /// Indica se la tab è in modalità edit
+    /// </summary>
+    [Parameter]
+    public bool IsEditMode { get; set; } = true;
+    
+    /// <summary>
+    /// Callback quando il party viene aggiornato
+    /// </summary>
+    [Parameter]
+    public EventCallback OnPartyUpdated { get; set; }
+}

@@ -2,7 +2,7 @@
 
 ## Panoramica
 
-Il sistema Prym è stato aggiornato per creare automaticamente le entità base necessarie durante l'inizializzazione di un nuovo tenant. Questo fornisce una base completa per la gestione del magazzino e dei prodotti sin dall'inizio.
+Il sistema EventForge è stato aggiornato per creare automaticamente le entità base necessarie durante l'inizializzazione di un nuovo tenant. Questo fornisce una base completa per la gestione del magazzino e dei prodotti sin dall'inizio.
 
 ## Cosa è Stato Implementato
 
@@ -190,15 +190,15 @@ Durante il bootstrap, nei log dovrebbero apparire questi messaggi:
 ## File Modificati/Creati
 
 ### Nuovi File
-1. `Prym.Server/Data/Entities/Common/VatNature.cs` - Nuova entità per le nature IVA
-2. `Prym.Server/Migrations/20251005223454_AddVatNatureAndBootstrapEnhancements.cs` - Migration EF Core
+1. `EventForge.Server/Data/Entities/Common/VatNature.cs` - Nuova entità per le nature IVA
+2. `EventForge.Server/Migrations/20251005223454_AddVatNatureAndBootstrapEnhancements.cs` - Migration EF Core
 3. `docs/BOOTSTRAP_BASE_ENTITIES.md` - Documentazione completa in inglese
 4. `docs/BOOTSTRAP_BASE_ENTITIES_IT.md` - Questa documentazione in italiano
 
 ### File Modificati
-1. `Prym.Server/Data/Entities/Common/VatRate.cs` - Aggiunto VatNatureId
-2. `Prym.Server/Data/PrymDbContext.cs` - Aggiunto DbSet<VatNature>
-3. `Prym.Server/Services/Auth/BootstrapService.cs` - Aggiunti metodi di seeding
+1. `EventForge.Server/Data/Entities/Common/VatRate.cs` - Aggiunto VatNatureId
+2. `EventForge.Server/Data/EventForgeDbContext.cs` - Aggiunto DbSet<VatNature>
+3. `EventForge.Server/Services/Auth/BootstrapService.cs` - Aggiunti metodi di seeding
 
 ## Benefici dell'Implementazione
 
@@ -231,7 +231,7 @@ Durante il bootstrap, nei log dovrebbero apparire questi messaggi:
 
 ## Note Finali
 
-Questa implementazione fornisce una base solida per la gestione fiscale e del magazzino in Prym. Tutti i dati sono tenant-scoped e rispettano le best practice di auditing e soft delete ereditate da `AuditableEntity`.
+Questa implementazione fornisce una base solida per la gestione fiscale e del magazzino in EventForge. Tutti i dati sono tenant-scoped e rispettano le best practice di auditing e soft delete ereditate da `AuditableEntity`.
 
 Il sistema è stato progettato per essere:
 - **Robusto**: Gestione errori completa

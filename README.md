@@ -1,16 +1,16 @@
-# Prym
+# EventForge
 
-Prym is a comprehensive event management and monitoring system built with Blazor Server and MudBlazor.
+EventForge is a comprehensive event management and monitoring system built with Blazor Server and MudBlazor.
 
 ## 🎨 UI Design Principles
 
 ### Multi-Theme Support
 
-Prym supports 6 distinct color themes to accommodate different user preferences and accessibility needs:
+EventForge supports 6 distinct color themes to accommodate different user preferences and accessibility needs:
 
 #### Available Themes
 
-1. **Light Theme** - Modern bright theme with Prym navy blue and electric blue colors
+1. **Light Theme** - Modern bright theme with EventForge navy blue and electric blue colors
 2. **Dark Theme** - Classic dark theme for low-light environments with light blue accents
 3. **Warm Theme** - Cozy theme with orange, red, and earthy tones for a welcoming feel
 4. **Cool Theme** - Refreshing theme with blue, green, and turquoise colors inspired by nature
@@ -109,7 +109,7 @@ The system supports dynamic language switching without page reload:
 ## 🔧 Development Guidelines
 
 ### Adding New Translations
-1. Add the key to `Prym.Client/wwwroot/i18n/en.json` (English as reference)
+1. Add the key to `EventForge.Client/wwwroot/i18n/en.json` (English as reference)
 2. Add corresponding translations to `it.json`, `es.json`, `fr.json`
 3. Use the TranslationService in your components
 4. Always provide fallback text as the second parameter
@@ -189,9 +189,9 @@ Always provide translated tooltips for better accessibility:
 ## 🏗️ Architecture
 
 ### Project Structure
-- **Prym.Client** - Blazor WebAssembly client application
-- **Prym.Server** - ASP.NET Core server application  
-- **Prym.DTOs** - Shared data transfer objects
+- **EventForge.Client** - Blazor WebAssembly client application
+- **EventForge.Server** - ASP.NET Core server application  
+- **EventForge.DTOs** - Shared data transfer objects
 
 ### Key Services
 - **TranslationService** - Handles multi-language support
@@ -204,12 +204,12 @@ Always provide translated tooltips for better accessibility:
 
 1. **Prerequisites**: .NET 8.0 SDK
 2. **Build**: `dotnet build`
-3. **Run**: `dotnet run --project Prym.Server`
+3. **Run**: `dotnet run --project EventForge.Server`
 4. **Browse**: Navigate to `https://localhost:7241` (HTTPS) or `http://localhost:5240` (HTTP)
 
 ### SQL Server Configuration
 
-Prym uses SQL Server as its database backend. If you encounter "Login failed for user 'vsapp'" errors during testing database connections in `/settings` page, you need to create the SQL Server user.
+EventForge uses SQL Server as its database backend. If you encounter "Login failed for user 'vsapp'" errors during testing database connections in `/settings` page, you need to create the SQL Server user.
 
 #### Create SQL Server User
 
@@ -231,7 +231,7 @@ ALTER ROLE db_owner ADD MEMBER vsapp;
 
 #### Update Connection String
 
-Edit your `Prym.Server/appsettings.json` (or `appsettings.overrides.json` for local development) to match your SQL Server configuration:
+Edit your `EventForge.Server/appsettings.json` (or `appsettings.overrides.json` for local development) to match your SQL Server configuration:
 
 ```json
 {
@@ -252,13 +252,13 @@ Edit your `Prym.Server/appsettings.json` (or `appsettings.overrides.json` for lo
 
 ### Configurazione Porte Server
 
-Il server Prym è configurato per ascoltare su:
+Il server EventForge è configurato per ascoltare su:
 - **HTTPS**: `https://localhost:7241` (porta predefinita)
 - **HTTP**: `http://localhost:5240` (porta predefinita)
 
 #### Modifica Porte in Sviluppo
 
-Per modificare le porte durante lo sviluppo locale, edita il file `Prym.Server/Properties/launchSettings.json`:
+Per modificare le porte durante lo sviluppo locale, edita il file `EventForge.Server/Properties/launchSettings.json`:
 
 ```json
 {
@@ -288,7 +288,7 @@ set ASPNETCORE_URLS=https://localhost:7241;http://localhost:5240
 
 **Opzione 2 - Parametro da riga di comando:**
 ```bash
-dotnet run --project Prym.Server --urls "https://localhost:7241;http://localhost:5240"
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
 **Opzione 3 - Configurazione IIS:**
@@ -296,7 +296,7 @@ IIS gestisce automaticamente le porte tramite i binding configurati nel sito web
 
 #### Configurazione Porte Client
 
-Il client Blazor WebAssembly è configurato per comunicare con il server tramite il file `Prym.Client/wwwroot/appsettings.json`:
+Il client Blazor WebAssembly è configurato per comunicare con il server tramite il file `EventForge.Client/wwwroot/appsettings.json`:
 
 ```json
 {
@@ -307,7 +307,7 @@ Il client Blazor WebAssembly è configurato per comunicare con il server tramite
 ```
 
 Per modificare la porta API del client:
-1. Edita `Prym.Client/wwwroot/appsettings.json` (o il file specifico per ambiente)
+1. Edita `EventForge.Client/wwwroot/appsettings.json` (o il file specifico per ambiente)
 2. Cambia il valore di `ApiSettings:BaseUrl` con la nuova porta
 3. Ricompila il progetto client
 
@@ -318,12 +318,12 @@ Per modificare la porta API del client:
 
 **Note importanti:**
 - Se modifichi la porta del server, aggiorna anche `appsettings.json` del client
-- Se modifichi la porta del server, aggiorna anche la configurazione CORS in `Prym.Server/Program.cs`
+- Se modifichi la porta del server, aggiorna anche la configurazione CORS in `EventForge.Server/Program.cs`
 - Per retrocompatibilità, è disponibile il profilo "Legacy" con le porte `7001` (HTTPS) e `5000` (HTTP)
 
 ## 🔍 Route Conflict Detection & Swagger Maintenance
 
-Prym include un sistema automatizzato per rilevare conflitti di route HTTP che possono impedire la generazione corretta del file Swagger/OpenAPI.
+EventForge include un sistema automatizzato per rilevare conflitti di route HTTP che possono impedire la generazione corretta del file Swagger/OpenAPI.
 
 ### Strumenti Disponibili
 
@@ -342,10 +342,10 @@ analyze-routes.bat
 #### 2. Test-Based Route Analysis
 ```bash
 # Esegui analisi route tramite test
-dotnet test Prym.Tests --filter Category=RouteAnalysis
+dotnet test EventForge.Tests --filter Category=RouteAnalysis
 
 # Con variabili d'ambiente personalizzate
-CONTROLLERS_PATH="Prym.Server/Controllers" OUTPUT_FILE="custom_report.txt" dotnet test Prym.Tests --filter Category=RouteAnalysis
+CONTROLLERS_PATH="EventForge.Server/Controllers" OUTPUT_FILE="custom_report.txt" dotnet test EventForge.Tests --filter Category=RouteAnalysis
 ```
 
 ### Output dell'Analisi
@@ -389,11 +389,11 @@ public async Task<ActionResult<UserDto>> GetUserDetails(Guid id) { }
 
 ## 🧪 Testing
 
-Prym utilizza un sistema di test unificato basato su xUnit con categorizzazione tramite traits per permettere l'esecuzione selettiva dei test.
+EventForge utilizza un sistema di test unificato basato su xUnit con categorizzazione tramite traits per permettere l'esecuzione selettiva dei test.
 
 ### Struttura dei Test
 
-Tutti i test sono consolidati nel progetto `Prym.Tests` e categorizzati usando attributi `[Trait("Category", "...")]`:
+Tutti i test sono consolidati nel progetto `EventForge.Tests` e categorizzati usando attributi `[Trait("Category", "...")]`:
 
 - **Unit Tests**: `[Trait("Category", "Unit")]` - Test unitari per la logica di business
 - **Integration Tests**: `[Trait("Category", "Integration")]` - Test di integrazione per endpoint e funzionalità end-to-end
@@ -427,10 +427,10 @@ Il sistema di analisi route è integrato come test e sostituisce la precedente a
 
 ```bash
 # Analisi route con parametri di default
-dotnet test Prym.Tests --filter Category=RouteAnalysis
+dotnet test EventForge.Tests --filter Category=RouteAnalysis
 
 # Analisi route con percorsi personalizzati
-CONTROLLERS_PATH="percorso/custom" OUTPUT_FILE="report.txt" dotnet test Prym.Tests --filter Category=RouteAnalysis
+CONTROLLERS_PATH="percorso/custom" OUTPUT_FILE="report.txt" dotnet test EventForge.Tests --filter Category=RouteAnalysis
 ```
 
 ### Configurazione CI/CD

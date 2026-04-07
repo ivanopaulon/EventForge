@@ -1,0 +1,74 @@
+@using EventForge.DTOs.Sales
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="2" Class="pa-4">
+    @if (Session?.Items.Any() == true)
+    {
+        @if (Session.IsFullyPaid)
+        {
+            @if (IsSessionClosed)
+            {
+                <!-- Post-closure: Print button -->
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Print"
+                           OnClick="@(() => OnPrintReceipt.InvokeAsync())">
+                    @TranslationService.GetTranslation("sales.printReceipt", "🖨️ STAMPA SCONTRINO")
+                </MudButton>
+            }
+            else
+            {
+                <!-- Fully paid: Close sale -->
+                <MudButton Color="Color.Success"
+                           Variant="Variant.Filled"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                           OnClick="@(() => OnCloseSale.InvokeAsync())">
+                    @TranslationService.GetTranslation("sales.closeSale", "✅ CHIUDI VENDITA")
+                </MudButton>
+            }
+        }
+        else
+        {
+            <!-- Incomplete payment -->
+            <MudButton Color="Color.Warning"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Payment"
+                       OnClick="@(() => OnAddPayment.InvokeAsync())">
+                @TranslationService.GetTranslation("sales.addPayment", "AGGIUNGI PAGAMENTO") 
+                @if (RemainingAmount > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ml-2">
+                        @TranslationService.GetTranslation("sales.missing", "Mancano") @RemainingAmount.ToString("C")
+                    </MudChip>
+                }
+            </MudButton>
+        }
+    }
+    else
+    {
+        <!-- Empty cart -->
+        <MudButton Color="Color.Default"
+                   Variant="Variant.Filled"
+                   FullWidth="true"
+                   Size="Size.Large"
+                   Disabled="true">
+            @TranslationService.GetTranslation("sales.closeSale", "CHIUDI VENDITA")
+        </MudButton>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public SaleSessionDto? Session { get; set; }
+    [Parameter] public bool IsSessionClosed { get; set; }
+    [Parameter] public EventCallback OnAddPayment { get; set; }
+    [Parameter] public EventCallback OnCloseSale { get; set; }
+    [Parameter] public EventCallback OnPrintReceipt { get; set; }
+
+    private decimal RemainingAmount => Session?.RemainingAmount ?? 0m;
+}

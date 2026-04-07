@@ -59,7 +59,7 @@ Questa sessione di implementazione ha completato con successo la **Fase 2 (Clien
 - **Righe**: ~420 totali
 
 ### 3. Service Registration
-- ✅ Modificato `Prym.Client/Program.cs`
+- ✅ Modificato `EventForge.Client/Program.cs`
 - ✅ Registrati tutti i 4 servizi client come Scoped
 - ✅ Pattern consistente con servizi esistenti
 - ✅ Dependency Injection configurato
@@ -237,20 +237,20 @@ Questa sessione di implementazione ha completato con successo la **Fase 2 (Clien
 ### Files Creati (9 totali)
 
 #### Client Services (8 files)
-1. `Prym.Client/Services/Sales/ISalesService.cs`
-2. `Prym.Client/Services/Sales/SalesService.cs`
-3. `Prym.Client/Services/Sales/IPaymentMethodService.cs`
-4. `Prym.Client/Services/Sales/PaymentMethodService.cs`
-5. `Prym.Client/Services/Sales/INoteFlagService.cs`
-6. `Prym.Client/Services/Sales/NoteFlagService.cs`
-7. `Prym.Client/Services/Sales/ITableManagementService.cs`
-8. `Prym.Client/Services/Sales/TableManagementService.cs`
+1. `EventForge.Client/Services/Sales/ISalesService.cs`
+2. `EventForge.Client/Services/Sales/SalesService.cs`
+3. `EventForge.Client/Services/Sales/IPaymentMethodService.cs`
+4. `EventForge.Client/Services/Sales/PaymentMethodService.cs`
+5. `EventForge.Client/Services/Sales/INoteFlagService.cs`
+6. `EventForge.Client/Services/Sales/NoteFlagService.cs`
+7. `EventForge.Client/Services/Sales/ITableManagementService.cs`
+8. `EventForge.Client/Services/Sales/TableManagementService.cs`
 
 #### Documentazione (1 file)
 9. `docs/EPIC_277_CLIENT_SERVICES_COMPLETE.md`
 
 ### Files Modificati (4 totali)
-1. `Prym.Client/Program.cs` (service registration)
+1. `EventForge.Client/Program.cs` (service registration)
 2. `docs/EPIC_277_PROGRESS_UPDATE.md`
 3. `docs/EPIC_277_BACKEND_COMPLETE_SUMMARY.md`
 4. `docs/IMPLEMENTATION_STATUS_DASHBOARD.md`

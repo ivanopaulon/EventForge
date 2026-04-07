@@ -258,12 +258,12 @@ Dialog Dettagli con Footer Azioni:
 
 ### File Modificati
 
-1. **Prym.Client/Pages/Management/InventoryList.razor**
+1. **EventForge.Client/Pages/Management/InventoryList.razor**
    - Linee modificate: ~150
    - Aggiunte: ActionButtonGroup (toolbar + row), metodi finalizzazione
    - Layout: MudPaper → MudCard
 
-2. **Prym.Client/Pages/Management/InventoryDocumentDetailsDialog.razor**
+2. **EventForge.Client/Pages/Management/InventoryDocumentDetailsDialog.razor**
    - Linee modificate: ~80
    - Aggiunte: TitleContent, DialogActions, metodo finalizzazione
    - Stato: _isProcessing per feedback visivo

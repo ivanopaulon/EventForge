@@ -1,0 +1,145 @@
+@using EventForge.DTOs.Auth
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@implements IDisposable
+
+@if (_currentUser != null)
+{
+    <MudMenu Class="ef-account-menu">
+        <ActivatorContent>
+            <div @onclick="@context.ToggleAsync" style="cursor: pointer">
+                <MudAvatar Size="Size.Small">
+                    @if (!string.IsNullOrEmpty(_currentUser.AvatarUrl))
+                    {
+                        <MudImage Src="@_currentUser.AvatarUrl" Alt="Avatar" />
+                    }
+                    else
+                    {
+                        @GetUserInitials()
+                    }
+                </MudAvatar>
+            </div>
+        </ActivatorContent>
+        <ChildContent>
+            <MudMenuItem Icon="@Icons.Material.Filled.Person"
+                         OnClick="@NavigateToProfile"
+                         aria-label="@TranslationService.GetTranslation("profile.viewProfile", "View profile")">
+                @TranslationService.GetTranslation("navigation.profile", "Profile")
+            </MudMenuItem>
+            
+            @* If SuperAdmin, show link Admin Dashboard *@
+            @if (_currentUser?.Roles?.Contains("SuperAdmin") == true)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Outlined.AdminPanelSettings"
+                             Href="/Dashboard/Index"
+                             Target="_blank"
+                             aria-label="@TranslationService.GetTranslation("menu.adminDashboardDescription", "Open admin dashboard")">
+                    @TranslationService.GetTranslation("menu.adminDashboard", "Admin Dashboard")
+                </MudMenuItem>
+            }
+            
+            <MudDivider />
+
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout"
+                         OnClick="@HandleLogout"
+                         aria-label="@TranslationService.GetTranslation("auth.logoutDescription", "Logout from system")">
+                @TranslationService.GetTranslation("auth.logout", "Logout")
+            </MudMenuItem>
+        </ChildContent>
+    </MudMenu>
+}
+
+@code {
+    private UserDto? _currentUser;
+
+    /// <summary>
+    /// Event callback fired when user logs out successfully.
+    /// </summary>
+    [Parameter] public EventCallback OnLogout { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthenticationState();
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+        _currentUser = isAuthenticated ? await AuthService.GetCurrentUserAsync() : null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // Avoid async void: schedule async work on the renderer
+    private void OnAuthenticationStateChanged()
+        => _ = InvokeAsync(CheckAuthenticationState);
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.logoutSuccess", "Successfully logged out"));
+
+            // Trigger the logout callback if provided
+            if (OnLogout.HasDelegate)
+            {
+                await OnLogout.InvokeAsync();
+            }
+            // Do not show login overlay after logout — user must request login explicitly
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.logoutError", "Logout error: {0}", ex.Message));
+        }
+    }
+
+    private void NavigateToProfile()
+        => NavigationManager.NavigateTo("/profile");
+
+    /// <summary>
+    /// Generates user initials from first and last name, falling back to username if names are not available.
+    /// This provides a consistent visual identity for users in the avatar.
+    /// </summary>
+    private string GetUserInitials()
+    {
+        if (_currentUser == null) return "?";
+
+        var first = string.IsNullOrWhiteSpace(_currentUser.FirstName) ? null : _currentUser.FirstName!.Trim();
+        var last = string.IsNullOrWhiteSpace(_currentUser.LastName) ? null : _currentUser.LastName!.Trim();
+
+        if (string.IsNullOrEmpty(first) && string.IsNullOrEmpty(last))
+        {
+            var uname = _currentUser.Username ?? string.Empty;
+            return !string.IsNullOrEmpty(uname) ? char.ToUpperInvariant(uname[0]).ToString() : "?";
+        }
+
+        var fi = !string.IsNullOrEmpty(first) ? char.ToUpperInvariant(first![0]).ToString() : "";
+        var li = !string.IsNullOrEmpty(last) ? char.ToUpperInvariant(last![0]).ToString() : "";
+
+        return $"{fi}{li}";
+    }
+
+    /// <summary>
+    /// Formats the user's roles for display in the UI.
+    /// Shows single role name or role count for multiple roles to maintain compact presentation.
+    /// </summary>
+    private string GetRolesDisplayText()
+    {
+        if (_currentUser?.Roles == null || !_currentUser.Roles.Any())
+            return TranslationService.GetTranslation("auth.noRole", "No Role");
+
+        if (_currentUser.Roles.Count == 1)
+            return _currentUser.Roles.First();
+
+        return $"{_currentUser.Roles.Count} Roles";
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}

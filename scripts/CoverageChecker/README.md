@@ -218,7 +218,7 @@ dotnet test
 - `.github/workflows/quality-gate.yml` - CI workflow using this tool
 - `.github/workflows/benchmark.yml` - Performance benchmarking workflow
 - `scripts/coverage-report.sh` - Local coverage report script
-- `Prym.Benchmarks/` - BenchmarkDotNet project
+- `EventForge.Benchmarks/` - BenchmarkDotNet project
 
 ## References
 

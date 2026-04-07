@@ -1,7 +1,7 @@
 # Event Management Architecture - Current State
 
 ## Overview
-Events in Prym represent real-world events like festivals, parties, and gatherings (feste, sagre).
+Events in EventForge represent real-world events like festivals, parties, and gatherings (feste, sagre).
 
 ## Server Architecture (EventsController)
 
@@ -47,7 +47,7 @@ Events have the following properties:
 ## Client Architecture
 
 ### EventService
-Located at: `Prym.Client/Services/EventService.cs`
+Located at: `EventForge.Client/Services/EventService.cs`
 
 The EventService provides a clean interface to interact with the EventsController:
 

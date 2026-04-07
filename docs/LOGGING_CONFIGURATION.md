@@ -2,7 +2,7 @@
 
 ## Overview
 
-Prym uses Serilog for centralized logging of both server-side and client-side logs.
+EventForge uses Serilog for centralized logging of both server-side and client-side logs.
 
 ## Server-Side Logging
 

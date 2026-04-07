@@ -1,0 +1,134 @@
+@using EventForge.DTOs.Products
+@inject ITranslationService TranslationService
+
+@if (Product != null)
+{
+    <MudPaper Elevation="3" Class="pa-4 mb-4">
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.h6" Color="Color.Primary">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-2" />
+                @TranslationService.GetTranslation("sales.productFound", "Prodotto Trovato")
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                           Size="Size.Small" 
+                           OnClick="@(() => OnClose.InvokeAsync())"
+                           Title="@TranslationService.GetTranslation("common.close", "Chiudi")" />
+        </div>
+
+        <MudGrid Spacing="3">
+            <!-- Product Image -->
+            <MudItem xs="12" sm="4" md="3">
+                @if (!string.IsNullOrWhiteSpace(Product.ImageUrl))
+                {
+                    <MudImage Src="@Product.ImageUrl" 
+                              Alt="@Product.Name"
+                              Elevation="2" 
+                              Class="rounded-lg cursor-pointer"
+                              ObjectFit="ObjectFit.Contain"
+                              Height="200"
+                              @onclick="@(() => OnImageClick.InvokeAsync())" />
+                }
+                else
+                {
+                    <div class="d-flex align-center justify-center" style="height: 200px; background-color: var(--mud-palette-background-grey);">
+                        <MudIcon Icon="@Icons.Material.Outlined.Image" Size="Size.Large" Color="Color.Default" />
+                    </div>
+                }
+            </MudItem>
+
+            <!-- Product Details -->
+            <MudItem xs="12" sm="8" md="9">
+                <MudStack Spacing="2">
+                    <!-- Product Name -->
+                    <MudText Typo="Typo.h5">@Product.Name</MudText>
+
+                    <!-- Product Code -->
+                    @if (!string.IsNullOrWhiteSpace(Product.Code) || Code != null)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">
+                            <MudIcon Icon="@Icons.Material.Outlined.QrCode" Size="Size.Small" Class="mr-1" />
+                            <strong>@TranslationService.GetTranslation("products.code", "Codice"):</strong>
+                            @(Code?.Code ?? Product.Code)
+                        </MudText>
+                    }
+
+                    <!-- Brand -->
+                    @if (!string.IsNullOrWhiteSpace(Product.BrandName))
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">
+                            <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
+                            <strong>@TranslationService.GetTranslation("products.brand", "Marca"):</strong>
+                            @Product.BrandName
+                        </MudText>
+                    }
+
+                    <!-- Price -->
+                    <MudText Typo="Typo.h6" Color="Color.Success">
+                        <MudIcon Icon="@Icons.Material.Outlined.EuroSymbol" Size="Size.Small" Class="mr-1" />
+                        <strong>@TranslationService.GetTranslation("sales.price", "Prezzo"):</strong>
+                        @((Product.DefaultPrice ?? 0m).ToString("C"))
+                    </MudText>
+
+                    <!-- VAT Rate -->
+                    @if (!string.IsNullOrWhiteSpace(Product.VatRateName))
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">
+                            <MudIcon Icon="@Icons.Material.Outlined.Percent" Size="Size.Small" Class="mr-1" />
+                            <strong>@TranslationService.GetTranslation("sales.vat", "IVA"):</strong>
+                            @Product.VatRateName
+                        </MudText>
+                    }
+
+                    <!-- Unit of Measure -->
+                    @if (Code?.UnitOfMeasureName != null)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">
+                            <MudIcon Icon="@Icons.Material.Outlined.Scale" Size="Size.Small" Class="mr-1" />
+                            <strong>@TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura"):</strong>
+                            @Code.UnitOfMeasureName
+                        </MudText>
+                    }
+
+                    <!-- Action Buttons -->
+                    <MudStack Row="true" Spacing="2" Class="mt-2">
+                        @if (Mode == ScanMode.PriceCheckOnly)
+                        {
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                       OnClick="@(() => OnAddToCart.InvokeAsync())">
+                                @TranslationService.GetTranslation("sales.addToCart", "Aggiungi al Conto")
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                @TranslationService.GetTranslation("sales.addedToCart", "Aggiunto al Conto")
+                            </MudChip>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public ProductDto? Product { get; set; }
+
+    [Parameter]
+    public ProductCodeDto? Code { get; set; }
+
+    [Parameter]
+    public ScanMode Mode { get; set; } = ScanMode.AddToCart;
+
+    [Parameter]
+    public EventCallback OnAddToCart { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnImageClick { get; set; }
+}

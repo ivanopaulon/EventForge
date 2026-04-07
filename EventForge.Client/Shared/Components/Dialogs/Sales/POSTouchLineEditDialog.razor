@@ -1,0 +1,175 @@
+@using EventForge.DTOs.Sales
+@using MudBlazor
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Edit"
+          Title="@(Item?.ProductName ?? TranslationService.GetTranslation("sales.editItem", "Modifica articolo"))"
+          IsProcessing="false"
+          MinWidth="min(420px, 96vw)"
+          OnClose="Cancel">
+
+    <ChildContent>
+        <MudStack Spacing="4">
+
+            @if (Item != null)
+            {
+                <!-- Item info bar -->
+                <MudPaper Elevation="0"
+                          Style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px;">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.55);">
+                                @if (!string.IsNullOrEmpty(Item.ProductCode))
+                                {
+                                    @Item.ProductCode
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">
+                                @Item.ProductName
+                            </MudText>
+                        </MudStack>
+                        <MudText Typo="Typo.h6" Style="font-weight: 700; color: var(--mud-palette-primary);">
+                            @_lineTotal.ToString("C")
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Quantity row -->
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                        @TranslationService.GetTranslation("sales.quantity", "Quantità")
+                    </MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Size="Size.Large"
+                                       Style="min-width: 52px; height: 52px;"
+                                       OnClick="@DecreaseQty"
+                                       Disabled="@(_qty <= 1)" />
+                        <MudNumericField @bind-Value="_qty"
+                                         Variant="Variant.Outlined"
+                                         Min="1"
+                                         HideSpinButtons="true"
+                                         Style="max-width: 100px; text-align: center; font-size: 1.3rem; font-weight: 700;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                       Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Size="Size.Large"
+                                       Style="min-width: 52px; height: 52px;"
+                                       OnClick="@IncreaseQty" />
+                    </MudStack>
+                </MudStack>
+
+                <!-- Price row -->
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                        @TranslationService.GetTranslation("sales.unitPrice", "Prezzo unitario (€)")
+                    </MudText>
+                    <MudNumericField @bind-Value="_unitPrice"
+                                     Variant="Variant.Outlined"
+                                     Min="0m"
+                                     Format="F2"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="€"
+                                     Style="font-size: 1.1rem;" />
+                </MudStack>
+
+                <!-- Discount row -->
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                        @TranslationService.GetTranslation("sales.discountPercent", "Sconto (%)")
+                    </MudText>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        @foreach (var preset in _discountPresets)
+                        {
+                            <MudButton Variant="@(_discountPercent == preset ? Variant.Filled : Variant.Outlined)"
+                                       Color="@(_discountPercent == preset ? Color.Warning : Color.Default)"
+                                       Size="Size.Medium"
+                                       Style="min-width: 56px; font-weight: 600;"
+                                       OnClick="@(() => _discountPercent = preset)">
+                                @preset%
+                            </MudButton>
+                        }
+                        <MudNumericField @bind-Value="_discountPercent"
+                                         Variant="Variant.Outlined"
+                                         Min="0"
+                                         Max="100"
+                                         Suffix="%"
+                                         Style="max-width: 100px;" />
+                    </MudStack>
+                    @if (_discountPercent > 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            @TranslationService.GetTranslation("sales.discount", "Sconto"):
+                            -@(_unitPrice * _qty * _discountPercent / 100m).ToString("C")
+                        </MudText>
+                    }
+                </MudStack>
+            }
+
+        </MudStack>
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Size="Size.Large">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Check"
+                   OnClick="Submit"
+                   Disabled="@(!_isValid)">
+            @TranslationService.GetTranslation("common.apply", "Applica")
+        </MudButton>
+    </DialogActions>
+
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public SaleItemDto? Item { get; set; }
+
+    public record EditResult(decimal Quantity, decimal UnitPrice, decimal DiscountPercent);
+
+    private decimal _qty;
+    private decimal _unitPrice;
+    private decimal _discountPercent;
+
+    private static readonly decimal[] _discountPresets = [0m, 5m, 10m, 15m, 20m];
+
+    private decimal _lineTotal =>
+        _qty * _unitPrice * (1m - _discountPercent / 100m);
+
+    private bool _isValid =>
+        _qty > 0 && _unitPrice >= 0 && _discountPercent >= 0 && _discountPercent <= 100;
+
+    protected override void OnParametersSet()
+    {
+        if (Item != null)
+        {
+            _qty = Item.Quantity;
+            _unitPrice = Item.UnitPrice;
+            _discountPercent = Item.DiscountPercent;
+        }
+    }
+
+    private void IncreaseQty() => _qty++;
+
+    private void DecreaseQty()
+    {
+        if (_qty > 1) _qty--;
+    }
+
+    private void Submit()
+    {
+        if (!_isValid) return;
+        MudDialog.Close(DialogResult.Ok(new EditResult(_qty, _unitPrice, _discountPercent)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

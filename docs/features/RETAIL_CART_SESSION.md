@@ -1,8 +1,8 @@
-# Prym Retail Cart Session
+# EventForge Retail Cart Session
 
 ## Overview
 
-The Prym Retail Cart Session service provides a comprehensive solution for managing shopping cart sessions with automatic promotion application, tenant isolation, and real-time total calculations.
+The EventForge Retail Cart Session service provides a comprehensive solution for managing shopping cart sessions with automatic promotion application, tenant isolation, and real-time total calculations.
 
 ## Features
 

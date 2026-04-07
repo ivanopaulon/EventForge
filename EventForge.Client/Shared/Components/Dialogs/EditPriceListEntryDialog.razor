@@ -1,0 +1,274 @@
+@using EventForge.DTOs.PriceLists
+@using EventForge.DTOs.Common
+@using EventForge.DTOs.UnitOfMeasures
+@using MudBlazor
+@inject ITranslationService TranslationService
+@inject IPriceListService PriceListService
+@inject IUMService UMService
+@inject IAppNotificationService AppNotification
+@inject ILogger<EditPriceListEntryDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.PriceChange"
+          Title="Modifica Voce Listino"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
+            <PageLoadingOverlay Visible="_isLoading" />
+
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+                <MudStack Spacing="3">
+
+                    <!-- Product info (read-only) -->
+                    @if (!string.IsNullOrWhiteSpace(Entry?.ProductName))
+                    {
+                        <MudPaper Elevation="1" Class="pa-3">
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("field.product", "Prodotto")
+                            </MudText>
+                            <MudText Typo="Typo.body1">@Entry.ProductName</MudText>
+                        </MudPaper>
+                    }
+
+                    <!-- Price and Currency -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Euro" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("pricelist.priceSettings", "Prezzo")
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="8">
+                                <MudNumericField @bind-Value="_model.Price"
+                                                 Label="@($"{TranslationService.GetTranslation("field.price", "Prezzo")} *")"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Required="true"
+                                                 Min="0"
+                                                 Step="0.01M"
+                                                 Format="N2"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Filled.Euro" />
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudTextField @bind-Value="_model.Currency"
+                                              Label="@TranslationService.GetTranslation("field.currency", "Valuta")"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              MaxLength="3" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Quantity Range -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Numbers" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("pricelist.quantityRange", "Fascia Quantità")
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_model.MinQuantity"
+                                                 Label="@TranslationService.GetTranslation("field.minQuantity", "Qtà Minima")"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="1"
+                                                 HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHint", "Quantità minima per applicare il prezzo")" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_model.MaxQuantity"
+                                                 Label="@TranslationService.GetTranslation("field.maxQuantity", "Qtà Massima")"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0"
+                                                 HelperText="@TranslationService.GetTranslation("pricelist.maxQuantityHint", "0 = nessun limite")" />
+                            </MudItem>
+                        </MudGrid>
+                        @if (_quantityRangeError)
+                        {
+                            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
+                                @TranslationService.GetTranslation("validation.minQtyGreaterThanMax", "La quantità minima non può essere maggiore della quantità massima (quando > 0)")
+                            </MudAlert>
+                        }
+                    </MudPaper>
+
+                    <!-- Unit of Measure -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Scale" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12">
+                                <MudSelect T="Guid?"
+                                           @bind-Value="_model.UnitOfMeasureId"
+                                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Clearable="true"
+                                           AdornmentIcon="@Icons.Material.Outlined.Scale"
+                                           Adornment="Adornment.Start"
+                                           HelperText="@TranslationService.GetTranslation("pricelist.uomHint", "Lasciare vuoto per usare l'UoM del prodotto")">
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">
+                                        @TranslationService.GetTranslation("common.none", "Nessuna (usa UoM prodotto)")
+                                    </MudSelectItem>
+                                    @foreach (var uom in _unitsOfMeasure)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)uom.Id)">
+                                            @uom.Name (@uom.Symbol)
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Options -->
+                    <MudPaper Elevation="1" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Tune" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("common.options", "Opzioni")
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_model.Score"
+                                                 Label="@TranslationService.GetTranslation("field.score", "Score")"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0" Max="100" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect @bind-Value="_model.Status"
+                                           Label="@TranslationService.GetTranslation("common.status", "Stato")"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Outlined.ToggleOn">
+                                    <MudSelectItem Value="PriceListEntryStatus.Active">
+                                        @TranslationService.GetTranslation("status.active", "Attivo")
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="PriceListEntryStatus.Deleted">
+                                        @TranslationService.GetTranslation("status.deleted", "Eliminato")
+                                    </MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSwitch @bind-Value="_model.IsEditableInFrontend"
+                                           Label="@TranslationService.GetTranslation("pricelist.editablePrice", "Prezzo editabile in frontend")"
+                                           Color="Color.Primary" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSwitch @bind-Value="_model.IsDiscountable"
+                                           Label="@TranslationService.GetTranslation("pricelist.discountable", "Scontabile")"
+                                           Color="Color.Success" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_model.Notes"
+                                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Lines="2"
+                                              MaxLength="500" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                </MudStack>
+            </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="Save"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isFormValid || _isSaving || _quantityRangeError)">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    /// <summary>The price list entry to edit.</summary>
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>The price list entry being edited.</summary>
+    [Parameter] public PriceListEntryDto? Entry { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isFormValid;
+    private bool _isLoading = true;
+    private bool _isSaving;
+
+    private UpdatePriceListEntryDto _model = new();
+    private List<UMDto> _unitsOfMeasure = new();
+
+    private bool _quantityRangeError => _model.MaxQuantity > 0 && _model.MinQuantity > _model.MaxQuantity;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _unitsOfMeasure = (await UMService.GetUnitsOfMeasureAsync()).ToList();
+
+            if (Entry is not null)
+            {
+                _model = new UpdatePriceListEntryDto
+                {
+                    Price = Entry.Price,
+                    Currency = Entry.Currency,
+                    Score = Entry.Score,
+                    IsEditableInFrontend = Entry.IsEditableInFrontend,
+                    IsDiscountable = Entry.IsDiscountable,
+                    Status = Entry.Status,
+                    MinQuantity = Entry.MinQuantity,
+                    MaxQuantity = Entry.MaxQuantity,
+                    UnitOfMeasureId = Entry.UnitOfMeasureId,
+                    Notes = Entry.Notes
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing EditPriceListEntryDialog");
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.loadFailed", "Errore durante il caricamento dei dati"));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_quantityRangeError) return;
+
+        await _form.ValidateAsync();
+        if (!_isFormValid) return;
+
+        if (Entry is null) return;
+
+        _isSaving = true;
+        try
+        {
+            var updated = await PriceListService.UpdateEntryAsync(Entry.Id, _model);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.entryUpdated", "Voce aggiornata con successo"));
+            MudDialog.Close(DialogResult.Ok(updated));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating price list entry {EntryId}", Entry.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.entryUpdateError", "Errore durante l'aggiornamento della voce"));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

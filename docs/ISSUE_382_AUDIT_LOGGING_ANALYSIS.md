@@ -1,7 +1,7 @@
 # Issue #382 - Analisi Approfondita: Audit e Logging nei Servizi Server
 
 **Data Analisi:** 2025-01-14  
-**Issue:** [#382](https://github.com/ivanopaulon/Prym/issues/382)  
+**Issue:** [#382](https://github.com/ivanopaulon/EventForge/issues/382)  
 **Stato:** 🟢 In Corso
 
 ---
@@ -23,7 +23,7 @@
 
 ### 1. Audit Automatico (DbContext)
 
-**File:** `Prym.Server/Data/PrymDbContext.cs`
+**File:** `EventForge.Server/Data/EventForgeDbContext.cs`
 
 Il `DbContext` implementa l'override di `SaveChangesAsync` che:
 - ✅ Aggiorna automaticamente campi audit (CreatedAt, CreatedBy, ModifiedAt, ModifiedBy)
@@ -51,7 +51,7 @@ public abstract class AuditableEntity
 
 ### 2. Audit Esplicito (IAuditLogService)
 
-**File:** `Prym.Server/Services/Audit/AuditLogService.cs`
+**File:** `EventForge.Server/Services/Audit/AuditLogService.cs`
 
 Fornisce metodi per:
 - `LogEntityChangeAsync` - Log singola modifica
@@ -207,7 +207,7 @@ Servizi stateless o con audit già gestito a livello superiore - nessun interven
 
 ### 4. DbContext Audit Verification
 
-Verificato che `PrymDbContext.SaveChangesAsync`:
+Verificato che `EventForgeDbContext.SaveChangesAsync`:
 - ✅ Intercetta tutti i cambiamenti su `AuditableEntity`
 - ✅ Aggiorna campi audit automaticamente
 - ✅ Crea `EntityChangeLog` per ogni modifica

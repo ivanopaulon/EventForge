@@ -1,4 +1,4 @@
-# Fix per Logging Client - Prym
+# Fix per Logging Client - EventForge
 
 **Data**: 2 Ottobre 2025  
 **Problema**: Il client non scriveva nessun log sul server  
@@ -40,7 +40,7 @@ Cambiato `[Authorize]` con `[AllowAnonymous]` per permettere il logging senza au
 public class ClientLogsController : BaseApiController
 ```
 
-**File Modificato**: `Prym.Server/Controllers/ClientLogsController.cs`
+**File Modificato**: `EventForge.Server/Controllers/ClientLogsController.cs`
 
 ### 2. Documentazione Aggiornata
 
@@ -58,7 +58,7 @@ Aggiornata la documentazione XML del controller per spiegare il motivo dell'acce
 
 Creati test completi per verificare il funzionamento:
 
-**File Creato**: `Prym.Tests/Integration/ClientLogsControllerIntegrationTests.cs`
+**File Creato**: `EventForge.Tests/Integration/ClientLogsControllerIntegrationTests.cs`
 
 Test implementati:
 1. ✅ `LogClientEntry_WithoutAuthentication_ShouldSucceed` - Verifica invio singolo log senza auth
@@ -72,7 +72,7 @@ Tutti i test **PASSANO** ✅
 ### Test Eseguiti
 
 ```bash
-dotnet test Prym.Tests/Prym.Tests.csproj --filter "FullyQualifiedName~ClientLogsControllerIntegrationTests"
+dotnet test EventForge.Tests/EventForge.Tests.csproj --filter "FullyQualifiedName~ClientLogsControllerIntegrationTests"
 ```
 
 **Risultato**: 
@@ -89,10 +89,10 @@ I log del server mostrano che il sistema funziona correttamente:
 
 ```
 [09:21:25 INF] Request starting HTTP/1.1 POST http://localhost/api/ClientLogs - application/json
-[09:21:25 INF] Executing endpoint 'Prym.Server.Controllers.ClientLogsController.LogClientEntry'
+[09:21:25 INF] Executing endpoint 'EventForge.Server.Controllers.ClientLogsController.LogClientEntry'
 [09:21:25 INF] Test log message from unauthenticated client 
 {
-  "SourceContext": "Prym.Server.Controllers.ClientLogsController",
+  "SourceContext": "EventForge.Server.Controllers.ClientLogsController",
   "Source": "Client",
   "Page": "/test-page",
   "UserAgent": "Unknown",
@@ -156,8 +156,8 @@ Quando un utente NON è autenticato:
 ### 1. Test Automatici
 
 ```bash
-cd /home/runner/work/Prym/Prym
-dotnet test Prym.Tests/Prym.Tests.csproj --filter "ClientLogsController"
+cd /home/runner/work/EventForge/EventForge
+dotnet test EventForge.Tests/EventForge.Tests.csproj --filter "ClientLogsController"
 ```
 
 ### 2. Test Manuale nel Browser
@@ -221,8 +221,8 @@ Per miglioramenti futuri (non necessari ora):
 
 ## Riferimenti
 
-- Controller: `Prym.Server/Controllers/ClientLogsController.cs`
-- Service: `Prym.Client/Services/ClientLogService.cs`
-- DTO: `Prym.DTOs/Common/ClientLogDto.cs`
-- Tests: `Prym.Tests/Integration/ClientLogsControllerIntegrationTests.cs`
+- Controller: `EventForge.Server/Controllers/ClientLogsController.cs`
+- Service: `EventForge.Client/Services/ClientLogService.cs`
+- DTO: `EventForge.DTOs/Common/ClientLogDto.cs`
+- Tests: `EventForge.Tests/Integration/ClientLogsControllerIntegrationTests.cs`
 - Docs: `docs/migration/CLIENT_LOGGING_IMPLEMENTATION.md`

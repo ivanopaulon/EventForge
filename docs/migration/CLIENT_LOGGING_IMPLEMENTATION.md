@@ -1,6 +1,6 @@
 # Client-Side Centralized Logging Implementation
 
-This document describes the implementation of centralized client-side logging for Prym, allowing Blazor client logs to be sent to the existing server logging infrastructure (Serilog).
+This document describes the implementation of centralized client-side logging for EventForge, allowing Blazor client logs to be sent to the existing server logging infrastructure (Serilog).
 
 ## Overview
 

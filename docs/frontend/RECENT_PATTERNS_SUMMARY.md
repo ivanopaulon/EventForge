@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the new patterns and best practices identified from recent management page and drawer implementations in Prym. These patterns represent the evolution of the codebase towards more consistent, maintainable, and user-friendly components.
+This document summarizes the new patterns and best practices identified from recent management page and drawer implementations in EventForge. These patterns represent the evolution of the codebase towards more consistent, maintainable, and user-friendly components.
 
 **Recent Implementations Analyzed:**
 - BrandManagement + BrandDrawer (January 2025)
@@ -490,10 +490,10 @@ The recent implementations demonstrate a clear evolution towards:
 - **Improved accessibility** (ARIA support, helper texts)
 - **Cleaner code** (ActionButtonGroup, consistent patterns)
 
-These patterns should be followed for all new management pages and drawers to maintain consistency and quality across the Prym codebase.
+These patterns should be followed for all new management pages and drawers to maintain consistency and quality across the EventForge codebase.
 
 ---
 
 **Document Version:** 1.0  
 **Last Updated:** January 2025  
-**Repository:** ivanopaulon/Prym
+**Repository:** ivanopaulon/EventForge

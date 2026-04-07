@@ -1,0 +1,70 @@
+@using EventForge.DTOs.Documents
+@inject ITranslationService TranslationService
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Outlined.Receipt" Class="mr-2" />
+        @TranslationService.GetTranslation("documents.vatSummary", "Riepilogo IVA")
+    </MudText>
+
+    @if (Rows == null || !Rows.Any())
+    {
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
+            @TranslationService.GetTranslation("documents.noVatData", "Nessun dato IVA disponibile")
+        </MudAlert>
+    }
+    else
+    {
+        var vatGroups = Rows
+            .GroupBy(r => new { r.VatRate, r.VatDescription })
+            .Select(g => new
+            {
+                VatRate = g.Key.VatRate,
+                VatDescription = g.Key.VatDescription ?? TranslationService.GetTranslation("documents.standardVat", "IVA Standard"),
+                NetTotal = g.Sum(r => r.LineTotal),
+                VatTotal = g.Sum(r => r.VatTotal),
+                GrossTotal = g.Sum(r => r.LineTotal + r.VatTotal)
+            })
+            .OrderBy(g => g.VatRate)
+            .ToList();
+
+        <MudTable Items="@vatGroups" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0">
+            <HeaderContent>
+                <MudTh Style="white-space: nowrap;">@TranslationService.GetTranslation("documents.vatRate", "Aliq.")</MudTh>
+                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.netAmount", "Netto")</MudTh>
+                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.vatAmount", "IVA")</MudTh>
+                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.grossAmount", "Lordo")</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.vatRate", "Aliq.")">
+                    <MudTooltip Text="@context.VatDescription">
+                        <span>@context.VatRate.ToString("N2")%</span>
+                    </MudTooltip>
+                </MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.netAmount", "Netto")" Style="text-align: right;">
+                    @context.NetTotal.ToString("C2")
+                </MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.vatAmount", "IVA")" Style="text-align: right;">
+                    @context.VatTotal.ToString("C2")
+                </MudTd>
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.grossAmount", "Lordo")" Style="text-align: right;">
+                    @context.GrossTotal.ToString("C2")
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd Style="font-weight: bold;">@TranslationService.GetTranslation("documents.total", "Totale")</MudTd>
+                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.NetTotal).ToString("C2")</MudTd>
+                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.VatTotal).ToString("C2")</MudTd>
+                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.GrossTotal).ToString("C2")</MudTd>
+            </FooterContent>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>
+    /// Document rows to display VAT summary for
+    /// </summary>
+    [Parameter]
+    public IEnumerable<DocumentRowDto>? Rows { get; set; }
+}

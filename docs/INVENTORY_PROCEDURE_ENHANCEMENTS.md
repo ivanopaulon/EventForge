@@ -2,7 +2,7 @@
 
 ## Panoramica
 
-Questo documento descrive i miglioramenti apportati alla procedura di inventario in Prym, con focus su UX/UI, logging delle operazioni e gestione documentale.
+Questo documento descrive i miglioramenti apportati alla procedura di inventario in EventForge, con focus su UX/UI, logging delle operazioni e gestione documentale.
 
 **Data:** Gennaio 2025  
 **Versione:** 2.0  
@@ -213,7 +213,7 @@ UTF-8 con BOM per compatibilità Excel
 ### Modifiche al Codice
 
 #### File Modificato
-- `Prym.Client/Pages/Management/InventoryProcedure.razor`
+- `EventForge.Client/Pages/Management/InventoryProcedure.razor`
 
 #### Righe Aggiunte/Modificate
 - **Aggiunte**: +383 righe
@@ -348,8 +348,8 @@ In caso di problemi, il rollback è semplice:
 ## 📞 Supporto
 
 Per domande o problemi:
-- Issues GitHub: https://github.com/ivanopaulon/Prym/issues
-- Team Development: Prym Team
+- Issues GitHub: https://github.com/ivanopaulon/EventForge/issues
+- Team Development: EventForge Team
 
 ---
 

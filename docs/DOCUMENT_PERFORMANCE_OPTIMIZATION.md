@@ -82,7 +82,7 @@ await LoadRowForEdit(RowId.Value);   // Fetch 4 (edit mode)
 ### Commit 1: Incremental Row Updates
 
 **Files Modified**:
-- `Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
+- `EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
 
 **Changes**:
 
@@ -152,12 +152,12 @@ foreach (var rowId in deletedRowIds)
 ### Commit 2: Cache Service for Dialog Data
 
 **Files Created**:
-- `Prym.Client/Services/Documents/IDocumentDialogCacheService.cs`
-- `Prym.Client/Services/Documents/DocumentDialogCacheService.cs`
+- `EventForge.Client/Services/Documents/IDocumentDialogCacheService.cs`
+- `EventForge.Client/Services/Documents/DocumentDialogCacheService.cs`
 
 **Files Modified**:
-- `Prym.Client/Program.cs` (DI registration)
-- `Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs`
+- `EventForge.Client/Program.cs` (DI registration)
+- `EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs`
 
 **Implementation**:
 
@@ -213,7 +213,7 @@ private async Task LoadUnitsOfMeasureAsync()
 ### Commit 3: Debouncing Product Autocomplete
 
 **Files Modified**:
-- `Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor`
+- `EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor`
 
 **Change**:
 ```razor
@@ -235,8 +235,8 @@ private async Task LoadUnitsOfMeasureAsync()
 ### Commit 4: Virtual Scrolling for Document Rows
 
 **Files Modified**:
-- `Prym.Client/Shared/Components/EFTable.razor`
-- `Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
+- `EventForge.Client/Shared/Components/EFTable.razor`
+- `EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
 
 **Implementation**:
 
@@ -276,7 +276,7 @@ private async Task LoadUnitsOfMeasureAsync()
 ### Commit 5: Calculation Caching Optimization
 
 **Files Modified**:
-- `Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs`
+- `EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor.cs`
 
 **Implementation**:
 

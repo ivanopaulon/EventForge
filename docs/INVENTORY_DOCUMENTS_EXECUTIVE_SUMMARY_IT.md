@@ -466,8 +466,8 @@ La pagina è **pronta per la produzione** con:
 ## 📞 Riferimenti Rapidi
 
 ### File Modificati
-- `Prym.Client/Pages/Management/InventoryList.razor`
-- `Prym.Client/Pages/Management/InventoryDocumentDetailsDialog.razor`
+- `EventForge.Client/Pages/Management/InventoryList.razor`
+- `EventForge.Client/Pages/Management/InventoryDocumentDetailsDialog.razor`
 
 ### Documentazione
 - `docs/INVENTORY_DOCUMENTS_PAGE_IMPROVEMENTS_IT.md` (Tecnica)
@@ -475,8 +475,8 @@ La pagina è **pronta per la produzione** con:
 - `docs/INVENTORY_DOCUMENTS_EXECUTIVE_SUMMARY_IT.md` (Questo documento)
 
 ### Riferimenti Pattern
-- `Prym.Client/Pages/SuperAdmin/TenantManagement.razor`
-- `Prym.Client/Shared/Components/ActionButtonGroup.razor`
+- `EventForge.Client/Pages/SuperAdmin/TenantManagement.razor`
+- `EventForge.Client/Shared/Components/ActionButtonGroup.razor`
 - `IMPLEMENTATION_SUMMARY.md`
 
 ### API Endpoints

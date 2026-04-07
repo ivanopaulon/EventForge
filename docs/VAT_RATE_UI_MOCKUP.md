@@ -4,7 +4,7 @@
 
 ```
 ╔════════════════════════════════════════════════════════════════════════╗
-║  Prym - Gestione Aliquote IVA                                   ║
+║  EventForge - Gestione Aliquote IVA                                   ║
 ╠════════════════════════════════════════════════════════════════════════╣
 ║                                                                        ║
 ║  📊 Gestione Aliquote IVA                                             ║
@@ -142,7 +142,7 @@
 
 ```
 ╔══════════════════════════════════════╗
-║ Prym                           ║
+║ EventForge                           ║
 ╠══════════════════════════════════════╣
 ║                                      ║
 ║ 🔧 Super Amministrazione             ║
@@ -268,7 +268,7 @@ Deleted:   [✗ Eliminato]  (Red background)
 
 ## Color Scheme
 
-Based on Prym theme:
+Based on EventForge theme:
 - Primary: Blue (#1976D2)
 - Success: Green (#4CAF50) - Active status
 - Warning: Orange (#FF9800) - Suspended status

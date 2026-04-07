@@ -1,0 +1,248 @@
+@page "/dashboard/auditlog"
+@model EventForge.Server.Pages.Dashboard.AuditLogModel
+@{
+    ViewData["Title"] = "Audit Log";
+    ViewData["PageSection"] = "Monitoring";
+}
+
+<!-- Header with Export -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-clock-history"></i> Audit Log Viewer</h2>
+    <button type="button" class="btn btn-success" onclick="exportAuditLog(event)">
+        <i class="bi bi-download"></i> Export CSV
+    </button>
+</div>
+
+<!-- Statistics Cards (5 cards in row) -->
+<div class="row g-3 mb-4" id="auditStatsCards">
+    <div class="col-md">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-2">Total Logs</h6>
+                <h2 class="display-6 mb-0">@Model.Statistics.TotalLogs</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-2">Today</h6>
+                <h2 class="display-6 mb-0">@Model.Statistics.TodayLogs</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-2">This Week</h6>
+                <h2 class="display-6 mb-0">@Model.Statistics.ThisWeekLogs</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-2">SuperAdmin</h6>
+                <h2 class="display-6 mb-0">@Model.Statistics.SuperAdminLogs</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-2">Deletions</h6>
+                <h2 class="display-6 mb-0">@Model.Statistics.DeleteLogs</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters (Collapsible) -->
+<div class="card mb-4">
+    <div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+        <i class="bi bi-funnel"></i> Advanced Filters
+        <i class="bi bi-chevron-down float-end"></i>
+    </div>
+    <div id="filtersCollapse" class="collapse show">
+        <div class="card-body">
+            <form method="get" id="auditFilterForm">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label small">Entity Type</label>
+                        <select asp-for="EntityFilter" class="form-select form-select-sm">
+                            <option value="">All Entities</option>
+                            <option value="Tenant">Tenant</option>
+                            <option value="User">User</option>
+                            <option value="License">License</option>
+                            <option value="Role">Role</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Operation</label>
+                        <select asp-for="OperationFilter" class="form-select form-select-sm">
+                            <option value="">All Operations</option>
+                            <option value="Insert">Insert</option>
+                            <option value="Update">Update</option>
+                            <option value="Delete">Delete</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Changed By</label>
+                        <select asp-for="UserFilter" class="form-select form-select-sm">
+                            <option value="">All Users</option>
+                            @foreach (var user in Model.AvailableUsers)
+                            {
+                                <option value="@user">@user</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">From Date</label>
+                        <input type="date" asp-for="FromDate" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">To Date</label>
+                        <input type="date" asp-for="ToDate" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Search</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" asp-for="SearchTerm" class="form-control" placeholder="Entity ID..." />
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <a href="/dashboard/auditlog" class="btn btn-sm btn-secondary">
+                        <i class="bi bi-x-circle"></i> Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="card">
+    <div class="card-body">
+        @if (!Model.AuditLogs.Any())
+        {
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> No audit logs found matching the current filters.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 140px;">Timestamp</th>
+                            <th style="width: 100px;">Entity</th>
+                            <th style="width: 100px;">Operation</th>
+                            <th style="width: 150px;">Changed By</th>
+                            <th style="width: 150px;">Property</th>
+                            <th>Entity ID</th>
+                            <th style="width: 80px;" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.AuditLogs)
+                        {
+                            <tr>
+                                <td>
+                                    <small class="d-block">@log.ChangedAt.ToString("dd/MM/yyyy")</small>
+                                    <small class="text-muted">@log.ChangedAt.ToString("HH:mm:ss")</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">@log.EntityName</span>
+                                </td>
+                                <td>
+                                    @{
+                                        var operationClass = log.OperationType switch
+                                        {
+                                            "Insert" => "bg-success",
+                                            "Update" => "bg-warning text-dark",
+                                            "Delete" => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @operationClass">@log.OperationType</span>
+                                </td>
+                                <td><small>@log.ChangedBy</small></td>
+                                <td><code class="small">@log.PropertyName</code></td>
+                                <td>
+                                    @{
+                                        var entityIdStr = log.EntityId.ToString();
+                                        var displayId = entityIdStr.Length >= 8 
+                                            ? entityIdStr.Substring(0, 8) + "..." 
+                                            : entityIdStr;
+                                    }
+                                    <code class="small text-muted" title="@log.EntityId">
+                                        @displayId
+                                    </code>
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary"
+                                            onclick="showAuditDetail('@log.Id')">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="?page=@(Model.CurrentPage - 1)@Model.GetFilterQueryString()">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="?page=@i@Model.GetFilterQueryString()">@i</a>
+                            </li>
+                        }
+                        
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="?page=@(Model.CurrentPage + 1)@Model.GetFilterQueryString()">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</div>
+
+<!-- Detail Panel (Bootstrap Offcanvas) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="auditDetailPanel" style="width: 500px;">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title"><i class="bi bi-file-earmark-text"></i> Audit Log Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body" id="auditDetailContent">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="~/css/auditlog.css" />
+    <script src="~/js/auditlog.js"></script>
+}

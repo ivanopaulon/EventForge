@@ -31,9 +31,9 @@ Verifica del codice:
 - ✅ 24 unit tests passing
 
 ### File Verificati
-- `Prym.Server/Data/Entities/Products/ProductUnit.cs` - ConversionFactor già decimal
-- `Prym.Server/Services/UnitOfMeasures/UnitConversionService.cs` - AwayFromZero implementato
-- `Prym.Tests/Services/UnitOfMeasures/UnitConversionServiceTests.cs` - 24 tests
+- `EventForge.Server/Data/Entities/Products/ProductUnit.cs` - ConversionFactor già decimal
+- `EventForge.Server/Services/UnitOfMeasures/UnitConversionService.cs` - AwayFromZero implementato
+- `EventForge.Tests/Services/UnitOfMeasures/UnitConversionServiceTests.cs` - 24 tests
 
 ### Conclusione Issue #244
 **Nessuna modifica necessaria** - L'issue era già completamente implementata.
@@ -144,8 +144,8 @@ Aggiunti 7 nuovi test in `EnhancedPriceListServiceTests.cs`:
 **Test Results:** 14/14 tests passing
 
 ### File Modificati
-- `Prym.Server/Services/PriceLists/PriceListService.cs` (+489 lines, -13 lines)
-- `Prym.Tests/Services/PriceLists/EnhancedPriceListServiceTests.cs` (+139 lines, -4 lines)
+- `EventForge.Server/Services/PriceLists/PriceListService.cs` (+489 lines, -13 lines)
+- `EventForge.Tests/Services/PriceLists/EnhancedPriceListServiceTests.cs` (+139 lines, -4 lines)
 
 ### Conclusione Issue #245
 **✅ 100% COMPLETATO** - Tutti i 4 metodi mancanti sono stati implementati con test completi.

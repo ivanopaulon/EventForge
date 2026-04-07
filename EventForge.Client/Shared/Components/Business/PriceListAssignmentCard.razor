@@ -1,0 +1,54 @@
+@using EventForge.DTOs.PriceLists
+
+<MudPaper Outlined="true" Class="pa-3">
+    <MudStack Spacing="2">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                @PriceList.Name
+            </MudText>
+            @if (PriceList.IsDefault)
+            {
+                <MudChip T="string" Size="Size.Small" 
+                         Color="Color.Success" 
+                         Icon="@Icons.Material.Filled.Star">
+                    Predefinito
+                </MudChip>
+            }
+        </MudStack>
+        
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Validità: 
+            @(PriceList.ValidFrom?.ToString("dd/MM/yyyy") ?? "∞") - @(PriceList.ValidTo?.ToString("dd/MM/yyyy") ?? "∞")
+        </MudText>
+        
+        @if (!string.IsNullOrEmpty(PriceList.Description))
+        {
+            <MudText Typo="Typo.caption">@PriceList.Description</MudText>
+        }
+        
+        <MudStack Row="true" Spacing="1" Class="mt-2">
+            <MudIconButton Icon="@Icons.Material.Outlined.RemoveRedEye"
+                           Color="Color.Info"
+                           Size="Size.Small"
+                           OnClick="@(() => OnPreview.InvokeAsync())"
+                           title="Anteprima rapida" />
+            
+            <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           OnClick="@(() => OnOpenDetail.InvokeAsync())"
+                           title="Apri dettaglio listino" />
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired]
+    public PriceListDto PriceList { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback OnPreview { get; set; }
+    
+    [Parameter]
+    public EventCallback OnOpenDetail { get; set; }
+}

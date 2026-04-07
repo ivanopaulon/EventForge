@@ -1,0 +1,195 @@
+@page "/product-management/products"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Management.Adapters
+@using EventForge.Client.Shared.Components.Dialogs
+@using MudBlazor
+@attribute [Authorize]
+@inject IProductService ProductService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("product.management", "Gestione Prodotti")</PageTitle>
+<EntityManagementPage @ref="_entityPage"
+                      TEntity="ProductDto"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ShortDescription")
+            {
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription">
+                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DefaultPrice")
+            {
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="DefaultPrice">
+                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.DefaultPrice ?? 0))">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                        @ctx.Item.Code
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ShortDescription")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                        @(string.IsNullOrEmpty(ctx.Item.ShortDescription) ? "-" : ctx.Item.ShortDescription)
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "DefaultPrice")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align:right;">
+                    @if (ctx.Item.DefaultPrice.HasValue)
+                    {
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@ctx.Item.DefaultPrice.Value.ToString("C2")</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">-</MudText>
+                    }
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+    <AdditionalRowActions Context="item">
+        <MudTooltip Text="@TranslationService.GetTranslation("audit.viewHistory", "Cronologia Modifiche")">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           Class="ef-row-actionbutton"
+                           OnClick="@(() => ViewProductAuditLog(item))" />
+        </MudTooltip>
+    </AdditionalRowActions>
+</EntityManagementPage>
+
+@code {
+    private readonly DialogOptions _auditDialogOptions = new()
+    {
+        FullScreen = true,
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+
+    private EntityManagementPage<ProductDto>? _entityPage;
+    private IEntityManagementService<ProductDto> _service = null!;
+    private EntityManagementConfig<ProductDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new ProductManagementService(ProductService);
+        _config = new EntityManagementConfig<ProductDto>
+        {
+            ComponentKey = "ProductManagement",
+            PageTitleKey = "product.management",
+            PageTitleDefault = "Gestione Prodotti",
+            EntityIcon = Icons.Material.Outlined.Inventory2,
+            PageRootCssClass = "product-page-root",
+            BaseRoute = "/product-management/products",
+            ExcelFileName = "Prodotti",
+            SearchPlaceholderKey = "product.search",
+            SearchPlaceholderDefault = "Cerca prodotti",
+            CreateTooltip = "product.createNew",
+            EntityTypeName = "Product",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            GetDisplayName = p => p.Name,
+            GetId = p => p.Id,
+            DeleteConfirmMessageKey = "product.confirmDelete",
+            BulkDeleteConfirmMessageKey = "product.confirmDeleteMultiple",
+            DeleteSuccessMessageKey = "product.productDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Catalogo", null, disabled: true),
+                new BreadcrumbItem("Prodotti", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true },
+                new() { Id = "active", Label = "Attivi", Predicate = p => p.Status == ProductStatus.Active, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
+                new() { Id = "bundle", Label = "Bundle", Predicate = p => p.IsBundle, Color = Color.Info, Icon = Icons.Material.Outlined.Inventory },
+                new() { Id = "simple", Label = "Semplici", Predicate = p => !p.IsBundle, Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingBag },
+                new() { Id = "with_images", Label = "Con Immagini", Predicate = p => p.ImageDocumentId != null, Color = Color.Secondary, Icon = Icons.Material.Outlined.Image },
+                new() { Id = "recent", Label = "Recenti", Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases }
+            }
+        };
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ProductDetailDialog.EntityId)] = id
+        };
+        var dialog = await DialogService.ShowAsync<ProductDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+
+    private async Task ViewProductAuditLog(ProductDto product)
+    {
+        var parameters = new DialogParameters<AuditHistoryDialog>
+        {
+            { x => x.EntityType, "Product" },
+            { x => x.EntityId, product.Id },
+            { x => x.EntityName, product.Name }
+        };
+
+        await DialogService.ShowAsync<AuditHistoryDialog>(
+            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+            parameters,
+            _auditDialogOptions);
+    }
+}

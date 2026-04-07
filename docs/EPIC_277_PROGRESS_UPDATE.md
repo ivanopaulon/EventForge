@@ -17,7 +17,7 @@ Completamento dell'implementazione dell'Epic #277 (UI Vendita) - Backend complet
 ### 8. Service Layer - TableManagement (100% Completato) ✅ **NUOVO**
 
 #### Interface
-**File**: `Prym.Server/Services/Sales/ITableManagementService.cs` (82 righe)
+**File**: `EventForge.Server/Services/Sales/ITableManagementService.cs` (82 righe)
 
 Metodi implementati:
 - `GetAllTablesAsync()` - Lista tutti i tavoli
@@ -37,7 +37,7 @@ Metodi implementati:
 - `MarkNoShowAsync()` - Marca no-show
 
 #### Implementation
-**File**: `Prym.Server/Services/Sales/TableManagementService.cs` (~480 righe)
+**File**: `EventForge.Server/Services/Sales/TableManagementService.cs` (~480 righe)
 
 Caratteristiche:
 - ✅ CRUD completo per tavoli
@@ -51,14 +51,14 @@ Caratteristiche:
 - ✅ Mapping completo a DTOs
 
 #### Service Registration
-**File**: `Prym.Server/Extensions/ServiceCollectionExtensions.cs`
+**File**: `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
 
 - ✅ Registrato `ITableManagementService` → `TableManagementService` come Scoped
 
 ### 9. Controller Layer - TableManagement (100% Completato) ✅ **NUOVO**
 
 #### REST API Controller
-**File**: `Prym.Server/Controllers/TableManagementController.cs` (~450 righe)
+**File**: `EventForge.Server/Controllers/TableManagementController.cs` (~450 righe)
 
 #### Endpoints Implementati (16 endpoints)
 
@@ -141,13 +141,13 @@ Caratteristiche:
 ### 10. DTOs Layer - Table Management (100% Completato) ✅ **NUOVO**
 
 #### Files Creati
-**File**: `Prym.DTOs/Sales/TableSessionDtos.cs` (~80 righe)
+**File**: `EventForge.DTOs/Sales/TableSessionDtos.cs` (~80 righe)
 - `TableSessionDto` - DTO completo tavolo
 - `CreateTableSessionDto` - Creazione tavolo
 - `UpdateTableSessionDto` - Aggiornamento tavolo
 - `UpdateTableStatusDto` - Aggiornamento stato
 
-**File**: `Prym.DTOs/Sales/TableReservationDtos.cs` (~80 righe)
+**File**: `EventForge.DTOs/Sales/TableReservationDtos.cs` (~80 righe)
 - `TableReservationDto` - DTO completo prenotazione
 - `CreateTableReservationDto` - Creazione prenotazione
 - `UpdateTableReservationDto` - Aggiornamento prenotazione
@@ -159,7 +159,7 @@ Caratteristiche:
 ### 4. Service Layer - SaleSession (100% Completato) ✅
 
 #### Interface
-**File**: `Prym.Server/Services/Sales/ISaleSessionService.cs` (145 righe)
+**File**: `EventForge.Server/Services/Sales/ISaleSessionService.cs` (145 righe)
 
 Metodi implementati:
 - `CreateSessionAsync()` - Creazione nuova sessione
@@ -178,7 +178,7 @@ Metodi implementati:
 - `GetOperatorSessionsAsync()` - Lista sessioni per operatore
 
 #### Implementation
-**File**: `Prym.Server/Services/Sales/SaleSessionService.cs` (~700 righe)
+**File**: `EventForge.Server/Services/Sales/SaleSessionService.cs` (~700 righe)
 
 Caratteristiche:
 - ✅ CRUD completo per sessioni vendita
@@ -194,14 +194,14 @@ Caratteristiche:
 - ✅ Mapping completo a DTOs
 
 #### Service Registration
-**File**: `Prym.Server/Extensions/ServiceCollectionExtensions.cs`
+**File**: `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
 
 - ✅ Registrato `ISaleSessionService` → `SaleSessionService` come Scoped
 
 ### 5. Controller Layer - Sales (100% Completato) ✅
 
 #### REST API Controller
-**File**: `Prym.Server/Controllers/SalesController.cs` (~550 righe)
+**File**: `EventForge.Server/Controllers/SalesController.cs` (~550 righe)
 
 #### Endpoints Implementati (13 endpoints)
 
@@ -274,7 +274,7 @@ Caratteristiche:
 ### 6. Service Layer - NoteFlag (100% Completato) ✅
 
 #### Interface
-**File**: `Prym.Server/Services/Sales/INoteFlagService.cs` (62 righe)
+**File**: `EventForge.Server/Services/Sales/INoteFlagService.cs` (62 righe)
 
 Metodi implementati:
 - `GetAllAsync()` - Lista tutti i flag note
@@ -285,7 +285,7 @@ Metodi implementati:
 - `DeleteAsync()` - Soft delete flag
 
 #### Implementation
-**File**: `Prym.Server/Services/Sales/NoteFlagService.cs` (~240 righe)
+**File**: `EventForge.Server/Services/Sales/NoteFlagService.cs` (~240 righe)
 
 Caratteristiche:
 - ✅ CRUD completo con validazioni
@@ -296,20 +296,20 @@ Caratteristiche:
 - ✅ Soft delete con tracking
 
 #### DTOs Created
-**File**: `Prym.DTOs/Sales/SessionNoteDtos.cs` (aggiornato)
+**File**: `EventForge.DTOs/Sales/SessionNoteDtos.cs` (aggiornato)
 
 - ✅ `CreateNoteFlagDto` - Creazione nuovo flag
 - ✅ `UpdateNoteFlagDto` - Aggiornamento flag esistente
 
 #### Service Registration
-**File**: `Prym.Server/Extensions/ServiceCollectionExtensions.cs`
+**File**: `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
 
 - ✅ Registrato `INoteFlagService` → `NoteFlagService` come Scoped
 
 ### 7. Controller Layer - NoteFlags (100% Completato) ✅
 
 #### REST API Controller
-**File**: `Prym.Server/Controllers/NoteFlagsController.cs` (~260 righe)
+**File**: `EventForge.Server/Controllers/NoteFlagsController.cs` (~260 righe)
 
 #### Endpoints Implementati (6 endpoints)
 
@@ -458,10 +458,10 @@ Solo per scenari bar/ristorante:
 ## 🏗️ Architettura Implementata
 
 ```
-Prym/
-├── Prym.Server/
+EventForge/
+├── EventForge.Server/
 │   ├── Data/
-│   │   ├── PrymDbContext.cs ✅ (aggiornato)
+│   │   ├── EventForgeDbContext.cs ✅ (aggiornato)
 │   │   └── Entities/Sales/ ✅ (6 entità)
 │   ├── Services/Sales/
 │   │   ├── IPaymentMethodService.cs ✅ (nuovo)
@@ -472,7 +472,7 @@ Prym/
 │   │   └── ServiceCollectionExtensions.cs ✅ (aggiornato)
 │   └── Migrations/
 │       └── 20251002141945_AddSalesEntities.cs ✅ (nuovo)
-├── Prym.DTOs/Sales/ ✅ (6 file DTOs)
+├── EventForge.DTOs/Sales/ ✅ (6 file DTOs)
 └── docs/
     ├── EPIC_277_SALES_UI_IMPLEMENTATION_STATUS.md ✅
     ├── EPIC_277_SALES_UI_FINAL_REPORT.md ✅
@@ -486,14 +486,14 @@ Prym/
 ### 1. Applicare Migration (Ambiente Locale)
 
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet ef database update
 ```
 
 ### 2. Avviare Applicazione
 
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet run
 ```
 

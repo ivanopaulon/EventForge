@@ -71,7 +71,7 @@ Following the successful pattern from Issue #314 (Product image management)
   - `PermissionKey` (string?, MaxLength 200) - Unique key (e.g., "store.users.manage")
 
 #### 5. Database Configuration
-- ✅ Updated `PrymDbContext` with DocumentReference relationships
+- ✅ Updated `EventForgeDbContext` with DocumentReference relationships
 - ✅ Added foreign key constraints with `OnDelete(DeleteBehavior.Restrict)`
 - ✅ Created database indexes for all DocumentId columns
 - ✅ Created EF Core migration: `20251001065848_AddImageManagementToStoreEntities`
@@ -174,7 +174,7 @@ Following the successful pattern from Issue #314 (Product image management)
   - MapToDocumentReferenceDto helper added
 - **1 Controller file** updated (StoreUsersController)
   - 9 new API endpoints added
-- **1 DbContext file** updated (PrymDbContext)
+- **1 DbContext file** updated (EventForgeDbContext)
 - **1 Enum file** updated (CommonEnums)
 - **1 Migration file** created
 
@@ -309,15 +309,15 @@ If desired, the following could be added incrementally:
 - 🔄 **Issue #315**: Store Entities Extension (this implementation)
 
 ### Key Files Modified
-1. `Prym.Server/Data/Entities/Store/StoreUser.cs`
-2. `Prym.Server/Data/Entities/Store/StoreUserGroup.cs`
-3. `Prym.Server/Data/Entities/Store/StorePos.cs`
-4. `Prym.Server/Data/Entities/Store/StoreUserPrivilege.cs`
-5. `Prym.Server/Data/PrymDbContext.cs`
-6. `Prym.Server/Services/Store/StoreUserService.cs`
-7. `Prym.DTOs/Store/*` (12 DTO files)
-8. `Prym.DTOs/Common/CommonEnums.cs`
-9. `Prym.Server/Migrations/20251001065848_AddImageManagementToStoreEntities.cs`
+1. `EventForge.Server/Data/Entities/Store/StoreUser.cs`
+2. `EventForge.Server/Data/Entities/Store/StoreUserGroup.cs`
+3. `EventForge.Server/Data/Entities/Store/StorePos.cs`
+4. `EventForge.Server/Data/Entities/Store/StoreUserPrivilege.cs`
+5. `EventForge.Server/Data/EventForgeDbContext.cs`
+6. `EventForge.Server/Services/Store/StoreUserService.cs`
+7. `EventForge.DTOs/Store/*` (12 DTO files)
+8. `EventForge.DTOs/Common/CommonEnums.cs`
+9. `EventForge.Server/Migrations/20251001065848_AddImageManagementToStoreEntities.cs`
 
 ---
 

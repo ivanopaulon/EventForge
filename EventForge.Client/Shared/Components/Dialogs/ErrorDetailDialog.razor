@@ -1,0 +1,75 @@
+@using MudBlazor
+@using EventForge.Client.Services
+
+<EFDialog Icon="@Icons.Material.Outlined.BugReport"
+          Title="Dettagli errore"
+          OnClose="Cancel"
+          MinWidth="min(560px, 95vw)">
+    <ChildContent>
+        @if (ErrorInfo != null)
+        {
+            <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+
+                @* Main error message *@
+                <div>
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Messaggio</MudText>
+                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.87); margin-top: 4px;">@ErrorInfo.Message</MudText>
+                </div>
+
+                @* Technical details from server *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.Details) && ErrorInfo.Details != ErrorInfo.Message)
+                {
+                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Dettagli tecnici</MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace; word-break: break-word;">@ErrorInfo.Details</MudText>
+                    </div>
+                }
+
+                @* Exception info *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionMessage))
+                {
+                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Eccezione@(!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionType) ? $" ({ErrorInfo.ExceptionType})" : "")</MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace; word-break: break-word;">@ErrorInfo.ExceptionMessage</MudText>
+                    </div>
+                }
+
+                @* Correlation ID for server-side log tracing *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.CorrelationId))
+                {
+                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">ID Correlazione</MudText>
+                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@ErrorInfo.CorrelationId</MudText>
+                    </div>
+                }
+
+                @* Timestamp *@
+                <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                <div>
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Timestamp</MudText>
+                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@ErrorInfo.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
+                </div>
+
+            </div>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Size="Size.Small">
+            Chiudi
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public AppErrorInfo? ErrorInfo { get; set; }
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+}

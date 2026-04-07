@@ -1,0 +1,132 @@
+@page
+@model EventForge.Server.Pages.Dashboard.IndexModel
+@using EventForge.DTOs.Dashboard
+@{
+    ViewData["Title"] = "Overview";
+    ViewData["PageSection"] = "Monitoring";
+
+    var s = Model.Status;
+    var memPct = s != null && s.TotalMemoryMB > 0
+        ? (int)Math.Round((double)s.UsedMemoryMB / s.TotalMemoryMB * 100) : 0;
+    var uptimeStr = s != null
+        ? $"{(int)s.Uptime.TotalDays}g {s.Uptime.Hours}h {s.Uptime.Minutes}m" : "—";
+
+    string bannerType, bannerIcon, bannerText;
+    if (s == null)                  { bannerType = "danger";  bannerIcon = "bi-x-circle-fill";     bannerText = "Impossibile caricare lo stato del server"; }
+    else if (s.Status == "Maintenance") { bannerType = "warning"; bannerIcon = "bi-cone-striped";      bannerText = "Modalità manutenzione attiva"; }
+    else if (!s.DatabaseConnected)  { bannerType = "danger";  bannerIcon = "bi-database-fill-x";   bannerText = "Database non raggiungibile"; }
+    else                            { bannerType = "success"; bannerIcon = "bi-check-circle-fill";  bannerText = "Tutti i servizi operativi"; }
+
+    var memBarClass = memPct > 85 ? "bg-danger" : memPct > 65 ? "bg-warning" : "bg-primary";
+}
+
+<!-- Page header -->
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-grid-1x2-fill"></i></div>
+        <div>
+            <h1>Overview</h1>
+            <p class="ef-page-subtitle">Stato del server in tempo reale</p>
+        </div>
+    </div>
+    <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-clockwise"></i>Aggiorna
+    </a>
+</div>
+
+<!-- Status banner -->
+<div class="alert alert-@bannerType d-flex align-items-center gap-2 mb-4">
+    <i class="bi @bannerIcon fs-5"></i>
+    <strong>@bannerText</strong>
+    <span class="ms-auto" style="font-size:.75rem;opacity:.7">@DateTime.Now.ToString("HH:mm:ss")</span>
+</div>
+
+@if (s != null)
+{
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card blue">
+                <div class="ef-kpi-label"><i class="bi bi-clock-history me-1"></i>Uptime</div>
+                <div class="ef-kpi-value">@uptimeStr</div>
+                <div class="ef-kpi-sub">@s.Version &mdash; @s.Environment</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card cyan">
+                <div class="ef-kpi-label"><i class="bi bi-memory me-1"></i>Memoria</div>
+                <div class="ef-kpi-value">@s.UsedMemoryMB <small>/ @s.TotalMemoryMB MB</small></div>
+                <div class="progress mt-1 mb-1" style="height:5px">
+                    <div class="progress-bar @memBarClass" style="width:@(memPct)%"></div>
+                </div>
+                <div class="ef-kpi-sub">@memPct% utilizzata</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card green">
+                <div class="ef-kpi-label"><i class="bi bi-people-fill me-1"></i>Utenti attivi</div>
+                <div class="ef-kpi-value">@s.ActiveUsers</div>
+                <div class="ef-kpi-sub">Negli ultimi 5 min</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="ef-kpi-card amber">
+                <div class="ef-kpi-label"><i class="bi bi-lightning-fill me-1"></i>Req / min</div>
+                <div class="ef-kpi-value">@s.RequestsPerMinute.ToString("N0")</div>
+                <div class="ef-kpi-sub">Nell'ultimo minuto</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System info + Quick nav -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="ef-card h-100">
+                <div class="ef-card-header">
+                    <i class="bi bi-server"></i>Informazioni sistema
+                </div>
+                <div class="ef-card-body p-0">
+                    <table class="ef-table">
+                        <tbody>
+                            <tr><td class="text-muted ps-3" style="width:45%">Sistema operativo</td><td>@s.OperatingSystem</td></tr>
+                            <tr><td class="text-muted ps-3">Runtime .NET</td><td>@s.RuntimeVersion</td></tr>
+                            <tr><td class="text-muted ps-3">Machine name</td><td>@s.MachineName</td></tr>
+                            <tr><td class="text-muted ps-3">CPU core</td><td>@s.CpuCores</td></tr>
+                            <tr>
+                                <td class="text-muted ps-3">Database</td>
+                                <td>
+                                    @if (s.DatabaseConnected)
+                                    {
+                                        <span class="ef-badge ef-badge-success"><i class="bi bi-check"></i>Connesso</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ef-badge ef-badge-danger"><i class="bi bi-x"></i>Non raggiungibile</span>
+                                    }
+                                </td>
+                            </tr>
+                            <tr><td class="text-muted ps-3">Cache</td><td>@s.CacheType</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="ef-card h-100">
+                <div class="ef-card-header">
+                    <i class="bi bi-grid-3x2-gap"></i>Accesso rapido
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-2">
+                        <div class="col-6"><a href="/dashboard/health"       class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-heart-pulse-fill text-danger me-2"></i>Health checks</a></div>
+                        <div class="col-6"><a href="/dashboard/performance"  class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-speedometer2 text-warning me-2"></i>Performance</a></div>
+                        <div class="col-6"><a href="/dashboard/logs"         class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-journals text-info me-2"></i>Log sistema</a></div>
+                        <div class="col-6"><a href="/dashboard/maintenance"  class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-tools text-primary me-2"></i>Manutenzione</a></div>
+                        <div class="col-6"><a href="/dashboard/tenants"      class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-building-fill text-success me-2"></i>Tenants</a></div>
+                        <div class="col-6"><a href="/swagger" target="_blank" class="btn btn-outline-secondary w-100 text-start"><i class="bi bi-braces-asterisk text-secondary me-2"></i>Swagger API</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

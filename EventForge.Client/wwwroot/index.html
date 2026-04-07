@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PRYM</title>
+    <base href="/" />
+    
+    <!-- Preconnect per performance ottimali Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts - Famiglia Noto Completa per Multi-Contesto -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Sans+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Mono:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+    <!-- Google Fonts - Famiglia Roboto Completa -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Roboto+Slab:wght@400;600;700&family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- MudBlazor base -->
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    
+    <!-- Syncfusion Blazor Scheduler theme -->
+    <link href="_content/Syncfusion.Blazor.Themes/fluent2-dark.css" rel="stylesheet" />
+    
+    <!-- Variabili CSS fallback -->
+    <link rel="stylesheet" href="css/variables.css" />
+    
+    <!-- Tema EventForge (SOLO colori) -->
+    <!--<link rel="stylesheet" href="css/themes/carbon-neon-theme.css" />-->
+    
+    <!-- MudBlazor personalizzazioni centralizzate -->
+    <link rel="stylesheet" href="css/components/mud-components.css" />
+    
+    <!-- Shared overlay styles (PageLoadingOverlay, ConnectionLostOverlay, etc.) -->
+    <link rel="stylesheet" href="css/components/overlays.css" />
+    
+    <!-- Stili globali applicazione -->
+    <link rel="stylesheet" href="css/app.css" />
+    
+    <!-- Dialog styles - consistent across all dialogs -->
+    <link rel="stylesheet" href="css/dialogs.css" />
+    
+    <!-- Componenti specifici -->
+    <!--<link rel="stylesheet" href="css/sidepanel.css" />
+    <link rel="stylesheet" href="css/icon-color-override.css" />
+    <link rel="stylesheet" href="css/help-system.css" />
+    <link rel="stylesheet" href="css/components/entity-drawer.css" />
+    <link rel="stylesheet" href="css/components/action-button-group.css" />
+    <link rel="stylesheet" href="css/components/language-selector.css" />-->
+    
+    <!-- Moduli specifici -->
+    <link rel="stylesheet" href="css/sales.css" />
+    <link rel="stylesheet" href="css/document.css" />
+    <link rel="stylesheet" href="css/management.css" />
+    
+    <!-- Updated to use trace.svg as main favicon and logo asset -->
+    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="trace.svg" />
+
+    <!-- PWA: manifest e meta tag per installabilitÃ  -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#1F2F46" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EventForge" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link href="EventForge.Client.styles.css" rel="stylesheet" />
+    
+    <!-- Dynamic Branding Script - Load and apply branding configuration -->
+    <script>
+        (function() {
+            // Function to load and apply branding
+            async function loadBranding() {
+                try {
+                    const response = await fetch('/api/v1/branding');
+                    if (response.ok) {
+                        const branding = await response.json();
+                        
+                        // Update favicon
+                        const favicon = document.getElementById('dynamic-favicon');
+                        if (favicon && branding.faviconUrl) {
+                            favicon.href = branding.faviconUrl;
+                        }
+                        
+                        // Update page title
+                        if (branding.applicationName) {
+                            document.title = branding.applicationName;
+                        }
+                        
+                        console.log('Branding loaded:', branding.applicationName);
+                    } else {
+                        console.warn('Failed to load branding, using defaults');
+                    }
+                } catch (error) {
+                    console.warn('Error loading branding, using defaults:', error);
+                }
+            }
+            
+            // Load branding when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', loadBranding);
+            } else {
+                loadBranding();
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">ðŸ—™</a>
+    </div>
+    <!-- Console filter to suppress harmless Mono runtime diagnostics (must load before Blazor) -->
+    <script src="js/console-filter.js"></script>
+
+    <!-- Blazor runtime (must load first) -->
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <!-- Syncfusion Blazor scripts (required for interactive components) -->
+    <script src="_content/Syncfusion.Blazor.Core/scripts/syncfusion-blazor.min.js" type="text/javascript"></script>
+
+    <!-- Application scripts -->
+    <script src="js/font-preferences.js"></script>
+    <script src="js/help-system.js"></script>
+    <script src="js/excelExport.js"></script>
+    <script src="js/pos-print.js"></script>
+    <script src="js/pos-shortcuts.js"></script>
+    <script src="js/continuous-scan-beep.js"></script>
+    
+    <!-- Keyboard Shortcuts - PR #2c-Part1 -->
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script>
+        // Helper function for downloading files from client-side
+        window.downloadFile = function (filename, contentType, content) {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    </script>
+</body>
+
+</html>

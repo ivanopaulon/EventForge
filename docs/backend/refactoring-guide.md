@@ -6,7 +6,7 @@ This document provides a comprehensive guide for implementing the backend refact
 
 The backend refactoring involves:
 1. **Model Review and Cleanup** - Remove redundant properties, ensure soft delete consistency
-2. **DTOs Review and Organization** - Consolidate DTOs in Prym.DTOs, group by functionality
+2. **DTOs Review and Organization** - Consolidate DTOs in EventForge.DTOs, group by functionality
 3. **Services Review and Refactoring** - Ensure proper async/await, exception handling, standardize methods
 4. **Controller Review and Endpoint Reorganization** - RESTful conventions, remove duplicates
 5. **Documentation and Final Cleanup** - Update documentation
@@ -22,7 +22,7 @@ The backend refactoring involves:
   - Pattern established: Remove state-related properties unless explicitly required by domain logic
 
 #### Phase 2: DTO Consolidation (Demo)
-- **Created**: `Prym.DTOs/Products/ProductManagementDTOs.cs` as demonstration
+- **Created**: `EventForge.DTOs/Products/ProductManagementDTOs.cs` as demonstration
 - **Approach**: Group related DTOs by functionality in single files
 - **Naming Convention**: Use descriptive names like `ProductManagementDTOs.cs`, `EventCRUDDTOs.cs`
 
@@ -39,7 +39,7 @@ The backend refactoring involves:
 #### 1.1 Identify Remaining Redundant Status Properties
 ```bash
 # Find entities with redundant status properties
-cd Prym.Server/Data/Entities
+cd EventForge.Server/Data/Entities
 find . -name "*.cs" -exec grep -l "Status.*{.*Active" {} \;
 ```
 
@@ -85,11 +85,11 @@ Add comprehensive XML documentation following the established pattern:
 ### Phase 2: Complete DTO Consolidation
 
 #### 2.1 Group DTOs by Functionality
-Create consolidated DTO files in `Prym.DTOs`:
+Create consolidated DTO files in `EventForge.DTOs`:
 
 **Target Structure:**
 ```
-Prym.DTOs/
+EventForge.DTOs/
 ├── Auth/AuthenticationDTOs.cs
 ├── Business/BusinessPartyDTOs.cs  
 ├── Events/EventManagementDTOs.cs
@@ -104,7 +104,7 @@ For each functional group:
 
 1. **Create consolidated file**:
 ```csharp
-namespace Prym.DTOs.[GroupName];
+namespace EventForge.DTOs.[GroupName];
 
 /// <summary>
 /// DTO for [Entity] output/display operations.
@@ -123,7 +123,7 @@ public class Update[Entity]Dto { ... }
 ```
 
 2. **Update namespace references** in server project
-3. **Remove original DTOs** from Prym.Server/DTOs
+3. **Remove original DTOs** from EventForge.Server/DTOs
 4. **Test build** after each consolidation
 
 #### 2.3 Validate DTO Requirements
@@ -231,12 +231,12 @@ Ensure all endpoints have proper OpenAPI documentation:
 ### Phase 5: Final Steps
 
 #### 5.1 Update Project References
-After DTO consolidation, update `Prym.Server.csproj` if needed and ensure all using statements point to the correct namespace.
+After DTO consolidation, update `EventForge.Server.csproj` if needed and ensure all using statements point to the correct namespace.
 
 #### 5.2 Remove Legacy DTOs Directory
 Once all DTOs are moved:
 ```bash
-rm -rf Prym.Server/DTOs
+rm -rf EventForge.Server/DTOs
 ```
 
 #### 5.3 Final Build and Test

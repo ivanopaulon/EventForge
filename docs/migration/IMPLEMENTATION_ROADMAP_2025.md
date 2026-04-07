@@ -1,4 +1,4 @@
-# 🗺️ Roadmap di Implementazione Issue Aperte - Prym
+# 🗺️ Roadmap di Implementazione Issue Aperte - EventForge
 
 > **Pianificazione strategica** per l'implementazione delle 21 issue aperte con prioritizzazione, timeline e allocazione risorse.
 

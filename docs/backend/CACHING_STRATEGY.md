@@ -2,14 +2,14 @@
 
 ## Overview
 
-This document describes the strategic caching implementation for Prym, designed to significantly reduce database load while maintaining multi-tenant security and data consistency.
+This document describes the strategic caching implementation for EventForge, designed to significantly reduce database load while maintaining multi-tenant security and data consistency.
 
 ## Architecture
 
 ### Core Components
 
 #### ICacheService Interface
-Located in `Prym.Server/Services/Caching/ICacheService.cs`
+Located in `EventForge.Server/Services/Caching/ICacheService.cs`
 
 Provides a generic caching service with multi-tenant isolation:
 - `GetOrCreateAsync<T>`: Retrieves cached data or creates it using a factory function
@@ -18,7 +18,7 @@ Provides a generic caching service with multi-tenant isolation:
 - `InvalidatePattern`: Removes cache entries matching a pattern
 
 #### CacheService Implementation
-Located in `Prym.Server/Services/Caching/CacheService.cs`
+Located in `EventForge.Server/Services/Caching/CacheService.cs`
 
 Features:
 - **Multi-tenant isolation**: Each cache key includes the tenant ID
@@ -29,7 +29,7 @@ Features:
 
 ### Configuration
 
-Located in `Prym.Server/Program.cs`:
+Located in `EventForge.Server/Program.cs`:
 
 ```csharp
 builder.Services.AddMemoryCache(options =>
@@ -159,7 +159,7 @@ public async Task<VatNatureDto> UpdateVatNatureAsync(...)
 
 ## Testing
 
-Comprehensive unit tests are located in `Prym.Tests/Services/Caching/CacheServiceTests.cs`.
+Comprehensive unit tests are located in `EventForge.Tests/Services/Caching/CacheServiceTests.cs`.
 
 ### Test Coverage
 

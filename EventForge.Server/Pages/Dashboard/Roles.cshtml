@@ -1,0 +1,125 @@
+@page "/dashboard/roles"
+@model EventForge.Server.Pages.Dashboard.RolesModel
+@{
+    ViewData["Title"] = "Roles & Permissions";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-shield-lock-fill"></i> Gestione Ruoli e Permessi</h2>
+</div>
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5>Totali Ruoli</h5>
+                <h2 class="display-4">@Model.TotalRoles</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>Ruoli Sistema</h5>
+                <h2 class="display-4">@Model.SystemRoles</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>Permessi Totali</h5>
+                <h2 class="display-4">@Model.TotalPermissions</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Roles Table -->
+<div class="card">
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ruolo</th>
+                        <th>Descrizione</th>
+                        <th>Tipo</th>
+                        <th>Permessi</th>
+                        <th>Utenti Assegnati</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in Model.Roles)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@role.DisplayName</strong><br/>
+                                <small class="text-muted">@role.Name</small>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(role.Description))
+                                {
+                                    <small>@role.Description</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (role.IsSystemRole)
+                                {
+                                    <span class="badge bg-info">Sistema</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Custom</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">@role.PermissionCount permessi</span>
+                            </td>
+                            <td>
+                                @if (role.UserCount > 0)
+                                {
+                                    <span class="badge bg-success">@role.UserCount utenti</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Nessun utente</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a href="/dashboard/rolepermissions?id=@role.Id" 
+                                   class="btn btn-sm btn-outline-warning"
+                                   title="Gestisci Permessi">
+                                    <i class="bi bi-key"></i> Permessi
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if (!Model.Roles.Any())
+        {
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> 
+                Nessun ruolo trovato.
+            </div>
+        }
+    </div>
+</div>

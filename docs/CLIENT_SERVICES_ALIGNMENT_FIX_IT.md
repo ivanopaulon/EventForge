@@ -9,7 +9,7 @@
 
 ## 📋 Sommario Esecutivo
 
-È stata identificata e corretta un'inconsistenza nei servizi client Prym dove alcuni servizi utilizzavano `IHttpClientFactory` direttamente invece del servizio centralizzato `IHttpClientService`. Questo causava:
+È stata identificata e corretta un'inconsistenza nei servizi client EventForge dove alcuni servizi utilizzavano `IHttpClientFactory` direttamente invece del servizio centralizzato `IHttpClientService`. Questo causava:
 
 - ❌ Gestione errori inconsistente
 - ❌ Autenticazione duplicata/mancante
@@ -96,7 +96,7 @@ public class ProductService : IProductService
 ## 🔧 Servizi Corretti
 
 ### 1. ProductService
-**File**: `Prym.Client/Services/ProductService.cs`  
+**File**: `EventForge.Client/Services/ProductService.cs`  
 **Linee cambiate**: -330 righe  
 **Metodi aggiornati**: 13
 
@@ -111,7 +111,7 @@ public class ProductService : IProductService
 **Riduzione**: ~40%
 
 ### 2. LotService
-**File**: `Prym.Client/Services/LotService.cs`  
+**File**: `EventForge.Client/Services/LotService.cs`  
 **Linee cambiate**: -140 righe  
 **Metodi aggiornati**: 11
 
@@ -125,7 +125,7 @@ public class ProductService : IProductService
 **Riduzione**: ~40%
 
 ### 3. StorageLocationService
-**File**: `Prym.Client/Services/StorageLocationService.cs`  
+**File**: `EventForge.Client/Services/StorageLocationService.cs`  
 **Linee cambiate**: -120 righe  
 **Metodi aggiornati**: 7
 
@@ -139,7 +139,7 @@ public class ProductService : IProductService
 **Riduzione**: ~50%
 
 ### 4. SalesService
-**File**: `Prym.Client/Services/Sales/SalesService.cs`  
+**File**: `EventForge.Client/Services/Sales/SalesService.cs`  
 **Linee cambiate**: -170 righe  
 **Metodi aggiornati**: 13
 
@@ -153,7 +153,7 @@ public class ProductService : IProductService
 **Riduzione**: ~46%
 
 ### 5. PaymentMethodService
-**File**: `Prym.Client/Services/Sales/PaymentMethodService.cs`  
+**File**: `EventForge.Client/Services/Sales/PaymentMethodService.cs`  
 **Linee cambiate**: -80 righe  
 **Metodi aggiornati**: 6
 
@@ -166,7 +166,7 @@ public class ProductService : IProductService
 **Riduzione**: ~40%
 
 ### 6. NoteFlagService
-**File**: `Prym.Client/Services/Sales/NoteFlagService.cs`  
+**File**: `EventForge.Client/Services/Sales/NoteFlagService.cs`  
 **Linee cambiate**: -80 righe  
 **Metodi aggiornati**: 6
 
@@ -178,7 +178,7 @@ public class ProductService : IProductService
 **Riduzione**: ~40%
 
 ### 7. TableManagementService
-**File**: `Prym.Client/Services/Sales/TableManagementService.cs`  
+**File**: `EventForge.Client/Services/Sales/TableManagementService.cs`  
 **Linee cambiate**: -200 righe  
 **Metodi aggiornati**: 15
 
@@ -381,7 +381,7 @@ I seguenti servizi sono esempi perfetti del pattern corretto:
 ### Build Verification
 
 ```bash
-cd /home/runner/work/Prym/Prym
+cd /home/runner/work/EventForge/EventForge
 dotnet build
 ```
 

@@ -3,14 +3,14 @@
 ## ✅ Requirements Fulfilled
 
 ### 1. Preserve Existing Files (COMPLETED)
-- ✅ `Prym.Server/private-key.pem` - **PRESERVED** (not removed, not modified)
-- ✅ `Prym.Server/digital-certificate.txt` - **PRESERVED** (not removed, not modified)  
+- ✅ `EventForge.Server/private-key.pem` - **PRESERVED** (not removed, not modified)
+- ✅ `EventForge.Server/digital-certificate.txt` - **PRESERVED** (not removed, not modified)  
 - ✅ `.gitignore` - **UNCHANGED** (no new rules added to ignore key files)
 
 ### 2. New Services Created (COMPLETED)
 
 #### QzSigner.cs
-- ✅ **Location**: `Prym.Server/Services/QzSigner.cs`
+- ✅ **Location**: `EventForge.Server/Services/QzSigner.cs`
 - ✅ **Environment Variable Support**: 
   - `QZ_PRIVATE_KEY_PATH` (fallback: `private-key.pem`)
 - ✅ **Key Import**: RSA.ImportFromPem (supports PKCS#8 and PKCS#1)
@@ -21,7 +21,7 @@
 - ✅ **Return Format**: Base64-encoded signature
 
 #### QzWebSocketClient.cs  
-- ✅ **Location**: `Prym.Server/Services/QzWebSocketClient.cs`
+- ✅ **Location**: `EventForge.Server/Services/QzWebSocketClient.cs`
 - ✅ **Environment Variable Support**:
   - `QZ_WS_URI` (fallback: `ws://localhost:8181`)
 - ✅ **WebSocket Connection**: Connects to configurable URI
@@ -88,21 +88,21 @@ var response = await wsClient.SendRequestAsync("qz.printers.find", new object[] 
 ## 📋 Files Created/Modified
 
 ### New Files
-- `Prym.Server/Services/QzSigner.cs`
-- `Prym.Server/Services/QzWebSocketClient.cs`
-- `Prym.Tests/Services/QzSignerTests.cs`
-- `Prym.Tests/Services/QzWebSocketClientTests.cs`
+- `EventForge.Server/Services/QzSigner.cs`
+- `EventForge.Server/Services/QzWebSocketClient.cs`
+- `EventForge.Tests/Services/QzSignerTests.cs`
+- `EventForge.Tests/Services/QzWebSocketClientTests.cs`
 - `docs/QZ_TRAY_INTEGRATION.md`
 - `docs/QzTrayIntegrationExample.cs`
 - `docs/IMPLEMENTATION_SUMMARY.md` (this file)
 
 ### Modified Files
-- `Prym.Server/Extensions/ServiceCollectionExtensions.cs` (added service registrations)
-- `Prym.Server/Controllers/PrintingController.cs` (added demo endpoint)
+- `EventForge.Server/Extensions/ServiceCollectionExtensions.cs` (added service registrations)
+- `EventForge.Server/Controllers/PrintingController.cs` (added demo endpoint)
 
 ### Preserved Files (UNCHANGED)
-- `Prym.Server/private-key.pem` ✅
-- `Prym.Server/digital-certificate.txt` ✅
+- `EventForge.Server/private-key.pem` ✅
+- `EventForge.Server/digital-certificate.txt` ✅
 - `.gitignore` ✅
 
 ## ✨ Key Achievements

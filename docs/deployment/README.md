@@ -1,6 +1,6 @@
 # Deployment & Infrastructure Documentation
 
-Documentazione completa per deployment e configurazione infrastrutturale di Prym.
+Documentazione completa per deployment e configurazione infrastrutturale di EventForge.
 
 ## 📋 Indice
 
@@ -54,7 +54,7 @@ Documentazione completa per deployment e configurazione infrastrutturale di Prym
 3. **Database Setup**
    ```bash
    # Run migrations
-   dotnet ef database update --project Prym.Server
+   dotnet ef database update --project EventForge.Server
    ```
 
 4. **Deploy & Start**
@@ -130,19 +130,19 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["Prym.Server/Prym.Server.csproj", "Prym.Server/"]
-RUN dotnet restore "Prym.Server/Prym.Server.csproj"
+COPY ["EventForge.Server/EventForge.Server.csproj", "EventForge.Server/"]
+RUN dotnet restore "EventForge.Server/EventForge.Server.csproj"
 COPY . .
-WORKDIR "/src/Prym.Server"
-RUN dotnet build "Prym.Server.csproj" -c Release -o /app/build
+WORKDIR "/src/EventForge.Server"
+RUN dotnet build "EventForge.Server.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Prym.Server.csproj" -c Release -o /app/publish
+RUN dotnet publish "EventForge.Server.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Prym.Server.dll"]
+ENTRYPOINT ["dotnet", "EventForge.Server.dll"]
 ```
 
 ### Docker Compose

@@ -1,0 +1,413 @@
+@namespace EventForge.Client.Shared.Components.Dialogs.SystemDialogs
+@using MudBlazor
+@inject IUpdateNotificationService UpdateNotification
+@implements IDisposable
+
+@*
+  Step-by-step update dialog.
+  – Active download (Downloading): shows a rich download card with progress bar, size, speed, ETA.
+  – Install phases (Backup → Deploy → Start → Migrate → Health): ordered step list with
+    ✓ completed, ⟳ current (spinner + detail), ○ pending.
+  – ServerMaintenance (server restarting): waiting banner.
+  – ClientUpdateDeployed: "Reload page" action.
+*@
+
+<EFSystemDialog Title="PRYM"
+                Subtitle="@_subtitle"
+                TopBar="@_topBar"
+                LogoAnim="EFSystemDialog.EFLogoAnim.Pulse"
+                ShowProgressBar="@_showProgressBar"
+                ProgressIndeterminate="@_progressIndeterminate"
+                ProgressValue="@_progressValue"
+                ProgressColor="@_progressColor"
+                CardWidth="460px">
+
+    @* ── Component / version header ── *@
+    @if (UpdateNotification.IsActiveUpdate)
+    {
+        var p = UpdateNotification.CurrentProgress!;
+        <div class="umsd-header-row">
+            <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Size="Size.Small" Style="color:#247BFF" />
+            <span class="umsd-comp">@(p.Component ?? "—")</span>
+            @if (!string.IsNullOrEmpty(p.Version))
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Text="@($"v{p.Version}")"
+                         Class="umsd-version-chip" />
+            }
+        </div>
+
+        @* ── DOWNLOAD phase ── *@
+        @if (IsDownloading(p.Phase))
+        {
+            <div class="umsd-download-card">
+                <div class="umsd-dl-title">
+                    <MudIcon Icon="@Icons.Material.Outlined.CloudDownload" Size="Size.Small" Style="color:#64aaff" />
+                    <span>Download in corso…</span>
+                    @if (p.PercentComplete.HasValue)
+                    {
+                        <span class="umsd-dl-pct">@p.PercentComplete%</span>
+                    }
+                </div>
+
+                <MudProgressLinear Color="Color.Primary"
+                                   Value="@(p.PercentComplete ?? 0)"
+                                   Max="100"
+                                   Indeterminate="@(p.PercentComplete == null)"
+                                   Rounded="true"
+                                   Size="Size.Medium"
+                                   Class="umsd-dl-bar" />
+
+                <div class="umsd-dl-metrics">
+                    @if (p.FormattedDownloaded != null)
+                    {
+                        <span class="umsd-metric">
+                            <MudIcon Icon="@Icons.Material.Outlined.Download" Size="Size.Small" />
+                            @if (p.FormattedTotal != null)
+                            { <span>@p.FormattedDownloaded / @p.FormattedTotal</span> }
+                            else
+                            { <span>@p.FormattedDownloaded</span> }
+                        </span>
+                    }
+                    @if (p.FormattedSpeed != null)
+                    {
+                        <span class="umsd-metric">
+                            <MudIcon Icon="@Icons.Material.Outlined.Speed" Size="Size.Small" />
+                            <span>@p.FormattedSpeed</span>
+                        </span>
+                    }
+                    @if (p.Eta != null)
+                    {
+                        <span class="umsd-metric umsd-eta">
+                            <MudIcon Icon="@Icons.Material.Outlined.Timer" Size="Size.Small" />
+                            <span>ETA @p.Eta</span>
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── INSTALL step list ── *@
+        @if (!IsDownloading(p.Phase) && !IsIdle(p.Phase))
+        {
+            var steps = GetSteps(p.Component);
+            var currentIdx = PhaseIndex(p.Phase, steps);
+
+            <div class="umsd-steps">
+                @for (var i = 0; i < steps.Length; i++)
+                {
+                    var step = steps[i];
+                    var isDone    = i < currentIdx;
+                    var isCurrent = i == currentIdx;
+                    var isPending = i > currentIdx;
+                    var isError   = isCurrent && IsErrorPhase(p.Phase);
+
+                    <div class="umsd-step @(isDone ? "umsd-step--done" : isCurrent ? (isError ? "umsd-step--error" : "umsd-step--active") : "umsd-step--pending")">
+                        <div class="umsd-step-icon">
+                            @if (isDone)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" />
+                            }
+                            else if (isCurrent && !isError)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                            }
+                            else if (isError)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Size="Size.Small" />
+                            }
+                        </div>
+                        <div class="umsd-step-body">
+                            <span class="umsd-step-label">@step.Label</span>
+                            @if (isCurrent && !string.IsNullOrWhiteSpace(p.Detail))
+                            {
+                                <span class="umsd-step-detail">@p.Detail</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+
+    @* ── Server maintenance (IIS restarting — Server sent "Started" event) ── *@
+    @if (UpdateNotification.IsServerMaintenance)
+    {
+        <div class="umsd-maint-banner">
+            <MudIcon Icon="@Icons.Material.Outlined.Autorenew" Size="Size.Small" Class="umsd-spin me-2" />
+            <span>Server in riavvio — attendere la riconnessione automatica…</span>
+        </div>
+        @if (!string.IsNullOrEmpty(UpdateNotification.MaintenanceVersion))
+        {
+            <div class="umsd-status-row mt-1">
+                <MudIcon Icon="@Icons.Material.Outlined.NewReleases" Size="Size.Small" Style="color:#ffa726" />
+                <span class="umsd-label">Versione</span>
+                <span class="umsd-value umsd-warn">@UpdateNotification.MaintenanceVersion</span>
+            </div>
+        }
+    }
+
+    @* ── Client update deployed ── *@
+    @if (UpdateNotification.HasPendingClientUpdate)
+    {
+        <div class="umsd-client-banner">
+            <MudIcon Icon="@Icons.Material.Filled.BrowserUpdated" Size="Size.Small" Class="me-2" />
+            <span>
+                Nuovo client disponibile
+                @if (!string.IsNullOrEmpty(UpdateNotification.ClientUpdateVersion))
+                { <strong> v@UpdateNotification.ClientUpdateVersion</strong> }
+            </span>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="ReloadPage" Class="mt-2">
+            Ricarica la pagina
+        </MudButton>
+    }
+
+</EFSystemDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    // ── Computed dialog properties ────────────────────────────────────────
+    private bool _showProgressBar =>
+        UpdateNotification.IsActiveUpdate || UpdateNotification.IsServerMaintenance;
+
+    private bool _progressIndeterminate =>
+        UpdateNotification.CurrentProgress?.PercentComplete == null ||
+        !IsDownloading(UpdateNotification.CurrentProgress.Phase);
+
+    private double _progressValue =>
+        UpdateNotification.CurrentProgress?.PercentComplete ?? 0;
+
+    private Color _progressColor => UpdateNotification.IsServerMaintenance ? Color.Warning : Color.Primary;
+
+    private EFSystemDialog.EFTopBar _topBar
+    {
+        get
+        {
+            if (UpdateNotification.HasPendingClientUpdate && !UpdateNotification.IsActiveUpdate)
+                return EFSystemDialog.EFTopBar.Success;
+            if (UpdateNotification.IsServerMaintenance)
+                return EFSystemDialog.EFTopBar.Warning;
+            if (IsErrorPhase(UpdateNotification.CurrentProgress?.Phase))
+                return EFSystemDialog.EFTopBar.Error;
+            return EFSystemDialog.EFTopBar.Primary;
+        }
+    }
+
+    private string _subtitle
+    {
+        get
+        {
+            var phase = UpdateNotification.CurrentProgress?.Phase;
+            if (IsDownloading(phase)) return "Download aggiornamento in corso…";
+            if (UpdateNotification.IsActiveUpdate) return "Installazione aggiornamento in corso…";
+            if (UpdateNotification.IsServerMaintenance) return "Server in aggiornamento — attendere prego";
+            return "Nuovo client disponibile";
+        }
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────
+    protected override void OnInitialized() =>
+        UpdateNotification.StateChanged += OnStateChanged;
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void ReloadPage() =>
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+
+    public void Dispose() =>
+        UpdateNotification.StateChanged -= OnStateChanged;
+
+    // ── Step helpers ──────────────────────────────────────────────────────
+
+    private record StepDef(string Phase, string Label);
+
+    private static readonly StepDef[] ServerSteps =
+    [
+        new("Downloading",             "Download pacchetto"),
+        new("VerifyingChecksum",       "Verifica integrità"),
+        new("BackingUp",               "Backup corrente"),
+        new("RunningPreMigrations",    "Migrazioni pre-deploy"),
+        new("StoppingService",         "Arresto servizio IIS"),
+        new("DeployingBinaries",       "Deploy file"),
+        new("StartingService",         "Avvio servizio IIS"),
+        new("RunningPostMigrations",   "Migrazioni post-deploy"),
+        new("VerifyingHealth",         "Verifica salute"),
+        new("VerifyingDeploy",         "Verifica deploy su disco"),
+        new("Completed",               "Completato"),
+    ];
+
+    private static readonly StepDef[] ClientSteps =
+    [
+        new("Downloading",             "Download pacchetto"),
+        new("VerifyingChecksum",       "Verifica integrità"),
+        new("BackingUp",               "Backup corrente"),
+        new("DeployingBinaries",       "Deploy file client"),
+        new("VerifyingDeploy",         "Verifica deploy su disco"),
+        new("Completed",               "Completato"),
+    ];
+
+    private static StepDef[] GetSteps(string? component) =>
+        component?.Equals("Client", StringComparison.OrdinalIgnoreCase) == true
+            ? ClientSteps : ServerSteps;
+
+    private static int PhaseIndex(string? phase, StepDef[] steps)
+    {
+        if (string.IsNullOrEmpty(phase)) return 0;
+        for (var i = 0; i < steps.Length; i++)
+            if (steps[i].Phase.Equals(phase, StringComparison.OrdinalIgnoreCase))
+                return i;
+        return 0;
+    }
+
+    private static bool IsDownloading(string? phase) =>
+        string.Equals(phase, "Downloading", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(phase, "VerifyingChecksum", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsIdle(string? phase) =>
+        string.IsNullOrEmpty(phase) ||
+        string.Equals(phase, "PackageReceived", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsErrorPhase(string? phase) =>
+        string.Equals(phase, "Rollback", StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    .umsd-header-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .umsd-comp {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #64aaff;
+        flex: 1;
+    }
+    .umsd-version-chip { margin-left: auto; }
+
+    /* Download card */
+    .umsd-download-card {
+        background: rgba(36, 123, 255, 0.08);
+        border: 1px solid rgba(36, 123, 255, 0.25);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+    }
+    .umsd-dl-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.88rem;
+        margin-bottom: 8px;
+        color: rgba(255,255,255,0.85);
+    }
+    .umsd-dl-pct {
+        margin-left: auto;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #64aaff;
+    }
+    .umsd-dl-bar { margin-bottom: 10px; }
+    .umsd-dl-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .umsd-metric {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.80rem;
+        color: rgba(255,255,255,0.70);
+    }
+    .umsd-eta { margin-left: auto; }
+
+    /* Step list */
+    .umsd-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 2px;
+    }
+    .umsd-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        transition: background .15s;
+    }
+    .umsd-step--done    { color: rgba(255,255,255,0.40); }
+    .umsd-step--active  { background: rgba(36,123,255,0.12); color: rgba(255,255,255,0.95); }
+    .umsd-step--error   { background: rgba(244,67,54,0.12); color: #ef5350; }
+    .umsd-step--pending { color: rgba(255,255,255,0.25); }
+
+    .umsd-step--done .mud-icon-root    { color: #66bb6a !important; }
+    .umsd-step--active .mud-icon-root  { color: #64aaff !important; }
+    .umsd-step--error .mud-icon-root   { color: #ef5350 !important; }
+
+    .umsd-step-icon { padding-top: 2px; flex-shrink: 0; }
+    .umsd-step-body { display: flex; flex-direction: column; gap: 2px; }
+    .umsd-step-label { font-size: 0.85rem; font-weight: 500; }
+    .umsd-step-detail {
+        font-size: 0.76rem;
+        color: rgba(255,255,255,0.55);
+        font-style: italic;
+        word-break: break-all;
+    }
+    .umsd-step--active .umsd-step-detail { color: rgba(255,255,255,0.65); }
+
+    /* Maintenance banner */
+    .umsd-maint-banner {
+        display: flex;
+        align-items: center;
+        background: rgba(255,167,38,0.10);
+        border: 1px solid rgba(255,167,38,0.30);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.84rem;
+        color: #ffa726;
+        margin-bottom: 6px;
+    }
+    .umsd-spin {
+        animation: umsd-rotate 1.2s linear infinite;
+    }
+    @@keyframes umsd-rotate {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+    }
+
+    /* Client update banner */
+    .umsd-client-banner {
+        display: flex;
+        align-items: center;
+        background: rgba(102,187,106,0.10);
+        border: 1px solid rgba(102,187,106,0.30);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        color: #66bb6a;
+        margin-bottom: 4px;
+    }
+
+    /* Legacy helpers used by old version — kept for safety */
+    .umsd-status-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .umsd-label { color: rgba(255,255,255,0.55); min-width: 70px; }
+    .umsd-value { font-weight: 600; }
+    .umsd-warn  { color: #ffa726; }
+
+    @@media (max-width: 480px) {
+        .umsd-dl-metrics { flex-direction: column; gap: 6px; }
+        .umsd-eta { margin-left: 0; }
+    }
+</style>

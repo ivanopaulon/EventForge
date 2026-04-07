@@ -2,18 +2,18 @@
 
 ## Implementation Completed
 
-This implementation adds comprehensive VAT rate management functionality to Prym, following the established patterns from tenant management.
+This implementation adds comprehensive VAT rate management functionality to EventForge, following the established patterns from tenant management.
 
 ## Files Created/Modified
 
 ### New Files
-1. **Prym.Client/Shared/Components/VatRateDrawer.razor** (400+ lines)
+1. **EventForge.Client/Shared/Components/VatRateDrawer.razor** (400+ lines)
    - Reusable drawer component for VAT rate CRUD operations
    - Three modes: Create, Edit, View
    - Full form validation and error handling
    - Localized with Italian translations
 
-2. **Prym.Client/Pages/Management/VatRateManagement.razor** (380+ lines)
+2. **EventForge.Client/Pages/Management/VatRateManagement.razor** (380+ lines)
    - Complete management page with data table
    - Search and filter functionality
    - Action buttons for CRUD operations
@@ -25,12 +25,12 @@ This implementation adds comprehensive VAT rate management functionality to Prym
    - API endpoints reference
 
 ### Modified Files
-1. **Prym.Client/Layout/NavMenu.razor**
+1. **EventForge.Client/Layout/NavMenu.razor**
    - Added navigation link to VAT rate management
    - Placed in Administration section
    - Icon: Percent symbol
 
-2. **Prym.Client/wwwroot/i18n/it.json**
+2. **EventForge.Client/wwwroot/i18n/it.json**
    - Added ~30 new translation keys
    - Sections: financial, drawer.field, drawer.helperText, drawer.error, drawer.title, drawer.status, field, nav
 

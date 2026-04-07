@@ -2,7 +2,7 @@
 
 ## 🎉 Benvenuto alla Procedura di Inventario Potenziata!
 
-Questa guida ti aiuterà a utilizzare al meglio le nuove funzionalità aggiunte alla procedura di inventario di Prym.
+Questa guida ti aiuterà a utilizzare al meglio le nuove funzionalità aggiunte alla procedura di inventario di EventForge.
 
 ---
 

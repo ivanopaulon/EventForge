@@ -10,7 +10,7 @@ class Program
         var directoryOption = new Option<DirectoryInfo>(
             name: "--directory",
             description: "Directory containing translation JSON files",
-            getDefaultValue: () => new DirectoryInfo("Prym.Client/wwwroot/i18n"));
+            getDefaultValue: () => new DirectoryInfo("EventForge.Client/wwwroot/i18n"));
 
         var baseLanguageOption = new Option<string>(
             name: "--base-language",

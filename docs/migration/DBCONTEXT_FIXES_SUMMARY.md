@@ -1,6 +1,6 @@
-# Prym DbContext Fixes Summary
+# EventForge DbContext Fixes Summary
 
-This document summarizes the fixes applied to the Prym DbContext to resolve foreign key definition errors, prevent cascade delete cycles, and improve SQL Server compatibility.
+This document summarizes the fixes applied to the EventForge DbContext to resolve foreign key definition errors, prevent cascade delete cycles, and improve SQL Server compatibility.
 
 ## Issues Fixed
 
@@ -102,4 +102,4 @@ The fixes were validated by:
 - Monitor query performance with the new index configurations
 - Review relationship configurations when adding new entities that reference User
 
-This refactoring ensures the Prym DbContext is robust, maintainable, and compatible with SQL Server's cascade delete limitations while providing optimal query performance.
+This refactoring ensures the EventForge DbContext is robust, maintainable, and compatible with SQL Server's cascade delete limitations while providing optimal query performance.

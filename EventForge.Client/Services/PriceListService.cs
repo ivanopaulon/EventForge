@@ -1,0 +1,452 @@
+using EventForge.DTOs.Common;
+using EventForge.DTOs.PriceLists;
+
+namespace EventForge.Client.Services;
+
+/// <summary>
+/// Service implementation for managing price lists.
+/// </summary>
+public class PriceListService(
+    IHttpClientService httpClientService,
+    ILogger<PriceListService> logger) : IPriceListService
+{
+    private const string BaseUrl = "api/v1/product-management/price-lists";
+
+    public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
+    {
+        return await GetPagedAsync(page, pageSize, null, null, ct);
+    }
+
+    public async Task<PagedResult<PriceListDto>> GetPagedAsync(int page, int pageSize, PriceListDirection? direction = null, PriceListStatus? status = null, CancellationToken ct = default)
+    {
+        try
+        {
+            List<string> queryParams =
+            [
+                $"page={page}",
+                $"pageSize={pageSize}"
+            ];
+
+            if (direction.HasValue)
+                queryParams.Add($"direction={direction.Value}");
+
+            if (status.HasValue)
+                queryParams.Add($"status={status.Value}");
+
+            var queryString = string.Join("&", queryParams);
+
+            var result = await httpClientService.GetAsync<PagedResult<PriceListDto>>(
+                $"{BaseUrl}?{queryString}", ct);
+
+            return result ?? new PagedResult<PriceListDto>
+            {
+                Items = [],
+                TotalCount = 0,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving price lists with filters");
+            throw;
+        }
+    }
+
+    public async Task<PriceListDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<PriceListDto>($"{BaseUrl}/{id}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving price list with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<PriceListDetailDto?> GetDetailAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<PriceListDetailDto>($"{BaseUrl}/{id}/detail", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving price list detail with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<PriceListDto> CreateAsync(CreatePriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<CreatePriceListDto, PriceListDto>(BaseUrl, dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to create price list");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating price list");
+            throw;
+        }
+    }
+
+    public async Task<PriceListDto?> UpdateAsync(Guid id, UpdatePriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PutAsync<UpdatePriceListDto, PriceListDto>($"{BaseUrl}/{id}", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating price list with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting price list with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<PriceListDto>> GetByEventAsync(Guid eventId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListDto>>($"{BaseUrl}/event/{eventId}", ct);
+            return result ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving price lists for event {EventId}", eventId);
+            throw;
+        }
+    }
+
+    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-purchases/preview", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to preview price list generation");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error previewing price list generation from purchases");
+            throw;
+        }
+    }
+
+    public async Task<Guid> GenerateFromPurchasesAsync(GeneratePriceListFromPurchasesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<GeneratePriceListFromPurchasesDto, Guid>($"{BaseUrl}/generate-from-purchases", dto, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating price list from purchases");
+            throw;
+        }
+    }
+
+    public async Task<GeneratePriceListPreviewDto> PreviewGenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<GenerateFromDefaultPricesDto, GeneratePriceListPreviewDto>($"{BaseUrl}/generate-from-defaults/preview", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to preview price list generation from default prices");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error previewing price list generation from default prices");
+            throw;
+        }
+    }
+
+    public async Task<Guid> GenerateFromDefaultPricesAsync(GenerateFromDefaultPricesDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<GenerateFromDefaultPricesDto, Guid>($"{BaseUrl}/generate-from-defaults", dto, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating price list from default prices");
+            throw;
+        }
+    }
+
+    public async Task<PriceListEntryDto> AddEntryAsync(CreatePriceListEntryDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<CreatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/{dto.PriceListId}/entries", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to add entry to price list");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error adding entry to price list");
+            throw;
+        }
+    }
+
+    public async Task<PriceListEntryDto> UpdateEntryAsync(Guid id, UpdatePriceListEntryDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PutAsync<UpdatePriceListEntryDto, PriceListEntryDto>($"{BaseUrl}/entries/{id}", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to update price list entry");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteEntryAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.DeleteAsync($"{BaseUrl}/entries/{id}", ct);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting price list entry with ID {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<int> AddEntriesBulkAsync(List<CreatePriceListEntryDto> entries, CancellationToken ct = default)
+    {
+        try
+        {
+            if (entries == null || !entries.Any())
+                return 0;
+
+            // Safely get the first entry for priceListId
+            var firstEntry = entries.FirstOrDefault();
+            if (firstEntry == null)
+                return 0;
+
+            var priceListId = firstEntry.PriceListId;
+            var result = await httpClientService.PostAsync<List<CreatePriceListEntryDto>, int>($"{BaseUrl}/{priceListId}/entries/bulk", entries, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error bulk adding entries to price list");
+            throw;
+        }
+    }
+
+    public async Task AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.PostAsync($"{BaseUrl}/{priceListId}/business-parties", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error assigning business party to price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task UnassignBusinessPartyAsync(Guid priceListId, Guid businessPartyId, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.DeleteAsync($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error unassigning business party {BusinessPartyId} from price list {PriceListId}", businessPartyId, priceListId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<PriceListBusinessPartyDto>> GetAssignedBusinessPartiesAsync(Guid priceListId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListBusinessPartyDto>>($"{BaseUrl}/{priceListId}/business-parties", ct);
+            return result ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting assigned business parties for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<PriceListBusinessPartyDto> UpdateBusinessPartyAssignmentAsync(Guid priceListId, Guid businessPartyId, UpdateBusinessPartyAssignmentDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PutAsync<UpdateBusinessPartyAssignmentDto, PriceListBusinessPartyDto>($"{BaseUrl}/{priceListId}/business-parties/{businessPartyId}", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to update business party assignment");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating business party assignment for price list {PriceListId}, business party {BusinessPartyId}", priceListId, businessPartyId);
+            throw;
+        }
+    }
+
+    public async Task<BulkUpdatePreviewDto> PreviewBulkUpdateAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdatePreviewDto>(
+                $"{BaseUrl}/{priceListId}/bulk-update-preview", dto, ct);
+            return result ?? throw new InvalidOperationException("Preview failed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error previewing bulk update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<BulkUpdateResultDto> BulkUpdatePricesAsync(Guid priceListId, BulkPriceUpdateDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<BulkPriceUpdateDto, BulkUpdateResultDto>(
+                $"{BaseUrl}/{priceListId}/bulk-update", dto, ct);
+            return result ?? throw new InvalidOperationException("Bulk update failed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error applying bulk update for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<BulkImportResultDto> BulkImportEntriesAsync(Guid priceListId, List<CreatePriceListEntryDto> entries, bool replaceExisting, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<List<CreatePriceListEntryDto>, BulkImportResultDto>(
+                $"{BaseUrl}/{priceListId}/entries/bulk?replaceExisting={replaceExisting}", entries, ct);
+            return result ?? throw new InvalidOperationException("Import failed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error bulk importing entries for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<List<ExportablePriceListEntryDto>> ExportEntriesAsync(Guid priceListId, bool includeInactive, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<List<ExportablePriceListEntryDto>>(
+                $"{BaseUrl}/{priceListId}/export?includeInactive={includeInactive}", ct);
+            return result ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error exporting entries for price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<DuplicatePriceListResultDto> DuplicatePriceListAsync(Guid priceListId, DuplicatePriceListDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<DuplicatePriceListDto, DuplicatePriceListResultDto>(
+                $"{BaseUrl}/{priceListId}/duplicate", dto, ct);
+            return result ?? throw new InvalidOperationException("Duplication failed");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error duplicating price list {PriceListId}", priceListId);
+            throw;
+        }
+    }
+
+    public async Task<List<PriceListDto>> GetActivePriceListsAsync(PriceListDirection direction, CancellationToken ct = default)
+    {
+        try
+        {
+            var queryString = $"direction={direction}&status=Active&pageSize=1000";
+
+            logger.LogDebug("Fetching active price lists: {QueryString}", queryString);
+
+            var result = await httpClientService.GetAsync<PagedResult<PriceListDto>>(
+                $"{BaseUrl}?{queryString}", ct
+            );
+
+            if (result == null || result.Items == null)
+            {
+                logger.LogWarning("GetActivePriceListsAsync returned null for direction {Direction}", direction);
+                return [];
+            }
+
+            logger.LogInformation("Fetched active price lists for direction: " + direction);
+
+            return result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error fetching active price lists for direction {Direction}", direction);
+            return [];
+        }
+    }
+
+    public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(
+        Guid businessPartyId,
+        PriceListType? type = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            List<string> queryParams = [];
+            if (type.HasValue)
+                queryParams.Add($"type={type.Value}");
+
+            var queryString = queryParams.Any()
+                ? "?" + string.Join("&", queryParams)
+                : string.Empty;
+
+            var url = $"api/v1/product-management/business-parties/{businessPartyId}/price-lists{queryString}";
+
+            var result = await httpClientService.GetAsync<IEnumerable<PriceListDto>>(url, ct);
+            return result ?? Enumerable.Empty<PriceListDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex,
+                "Error fetching price lists for business party {BusinessPartyId}",
+                businessPartyId);
+            return Enumerable.Empty<PriceListDto>();
+        }
+    }
+}

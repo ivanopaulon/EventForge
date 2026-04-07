@@ -1,0 +1,47 @@
+@using EventForge.Client.Models.Fidelity
+@using EventForge.Client.Services.Mock
+
+<MudStack Spacing="3">
+    @if (Cards != null && Cards.Any())
+    {
+        @foreach (var card in Cards)
+        {
+            <FidelityCardItem Card="@card"
+                              OnViewHistory="@OnViewHistory"
+                              OnManagePoints="@OnManagePoints"
+                              OnEdit="@OnEdit"
+                              OnSuspend="@OnSuspend"
+                              OnActivate="@OnActivate"
+                              OnRevoke="@OnRevoke" />
+        }
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+            Nessuna card fedeltà presente
+        </MudAlert>
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public IEnumerable<FidelityCardViewModel>? Cards { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnViewHistory { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnManagePoints { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnEdit { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnSuspend { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnActivate { get; set; }
+    
+    [Parameter]
+    public EventCallback<FidelityCardViewModel> OnRevoke { get; set; }
+}

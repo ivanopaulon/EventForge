@@ -1,0 +1,224 @@
+@page "/dashboard/tenants"
+@model EventForge.Server.Pages.Dashboard.TenantsModel
+@{
+    ViewData["Title"] = "Tenants";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-building"></i> Gestione Tenant</h2>
+    <a href="/dashboard/tenantdetail" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuovo Tenant
+    </a>
+</div>
+
+<!-- Card Statistiche Tenant -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>Totali</h5>
+                <h2 class="display-4">@Model.TotalTenants</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>Attivi</h5>
+                <h2 class="display-4">@Model.ActiveTenants</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>Utenti Totali</h5>
+                <h2 class="display-4">@Model.TotalUsers</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h5>Con Licenza</h5>
+                <h2 class="display-4">@Model.TenantsWithLicense</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <input type="text" asp-for="SearchTerm" class="form-control" 
+                       placeholder="Cerca per nome, codice, dominio..." />
+            </div>
+            <div class="col-md-3">
+                <select asp-for="StatusFilter" class="form-select">
+                    <option value="">Tutti gli stati</option>
+                    <option value="active">Solo Attivi</option>
+                    <option value="inactive">Solo Disabilitati</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">
+                    <i class="bi bi-search"></i> Cerca
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="/dashboard/tenants" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x-circle"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabella Tenant -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Codice</th>
+                        <th>Dominio</th>
+                        <th>Utenti</th>
+                        <th>Stato</th>
+                        <th>Licenza</th>
+                        <th>Scadenza</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tenant in Model.Tenants)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@tenant.DisplayName</strong><br/>
+                                <small class="text-muted">@tenant.Name</small>
+                            </td>
+                            <td><code>@tenant.Code</code></td>
+                            <td><small>@(tenant.Domain ?? "-")</small></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>@tenant.UserCount / @tenant.MaxUsers</span>
+                                    <div class="progress flex-grow-1" style="height: 8px; min-width: 60px;">
+                                        @{
+                                            var percentage = tenant.MaxUsers > 0 
+                                                ? (tenant.UserCount * 100.0 / tenant.MaxUsers) 
+                                                : 0;
+                                            var progressClass = percentage > 90 ? "bg-danger" 
+                                                : percentage > 75 ? "bg-warning" 
+                                                : "bg-success";
+                                        }
+                                        <div class="progress-bar @progressClass" 
+                                             style="width: @percentage%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if (tenant.IsActive)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Attivo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> Disabilitato
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (tenant.License != null)
+                                {
+                                    <span class="badge bg-info">@tenant.License.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Nessuna</span>
+                                }
+                            </td>
+                            <td>
+                                @if (tenant.SubscriptionExpiresAt.HasValue)
+                                {
+                                    var daysLeft = (tenant.SubscriptionExpiresAt.Value - DateTime.UtcNow).Days;
+                                    var expiryClass = daysLeft < 30 ? "text-danger fw-bold" 
+                                        : daysLeft < 60 ? "text-warning" 
+                                        : "text-muted";
+                                    
+                                    <span class="@expiryClass">
+                                        @tenant.SubscriptionExpiresAt.Value.ToString("dd/MM/yyyy")
+                                        @if (daysLeft < 30)
+                                        {
+                                            <br/><small>(@daysLeft giorni)</small>
+                                        }
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group" role="group">
+                                    <a href="/dashboard/tenantdetail?id=@tenant.Id" 
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Modifica">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    
+                                    @if (tenant.IsActive)
+                                    {
+                                        <form method="post" asp-page-handler="Disable" 
+                                              asp-route-id="@tenant.Id" class="d-inline">
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    title="Disabilita"
+                                                    onclick="return confirm('Disabilitare il tenant @tenant.Name?\n\nGli utenti non potranno più accedere.')">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Enable" 
+                                              asp-route-id="@tenant.Id" class="d-inline">
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-outline-success"
+                                                    title="Abilita">
+                                                <i class="bi bi-play-circle"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if (!Model.Tenants.Any())
+        {
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i> 
+                @if (string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <span>Nessun tenant configurato nel sistema.</span>
+                }
+                else
+                {
+                    <span>Nessun tenant trovato con i criteri di ricerca specificati.</span>
+                }
+            </div>
+        }
+    </div>
+</div>

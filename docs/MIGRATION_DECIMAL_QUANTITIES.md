@@ -148,7 +148,7 @@ If you prefer to use EF Core migrations:
 2. Run the migration using dotnet ef tools:
 
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet ef database update
 ```
 
@@ -244,20 +244,20 @@ If you encounter issues:
 ## Related Changes in This PR
 
 ### Server-Side
-- `Prym.Server/Data/Entities/Documents/DocumentRow.cs` - Entity model updated
-- `Prym.Server/Data/PrymDbContext.cs` - DbContext configuration updated
-- `Prym.Server/Services/Documents/DocumentHeaderService.cs` - Business logic updated
-- `Prym.Server/Controllers/WarehouseManagementController.cs` - Controller updated
+- `EventForge.Server/Data/Entities/Documents/DocumentRow.cs` - Entity model updated
+- `EventForge.Server/Data/EventForgeDbContext.cs` - DbContext configuration updated
+- `EventForge.Server/Services/Documents/DocumentHeaderService.cs` - Business logic updated
+- `EventForge.Server/Controllers/WarehouseManagementController.cs` - Controller updated
 
 ### DTOs
-- `Prym.DTOs/Documents/CreateDocumentRowDto.cs`
-- `Prym.DTOs/Documents/UpdateDocumentRowDto.cs`
-- `Prym.DTOs/Documents/DocumentRowDto.cs`
+- `EventForge.DTOs/Documents/CreateDocumentRowDto.cs`
+- `EventForge.DTOs/Documents/UpdateDocumentRowDto.cs`
+- `EventForge.DTOs/Documents/DocumentRowDto.cs`
 
 ### Client-Side
-- `Prym.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor`
-- `Prym.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
+- `EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor`
+- `EventForge.Client/Pages/Management/Documents/GenericDocumentProcedure.razor`
 
 ### Tests
-- `Prym.Tests/Services/Documents/DocumentHeaderStockMovementTests.cs`
-- `Prym.Tests/Services/Documents/DocumentRowMergeTests.cs`
+- `EventForge.Tests/Services/Documents/DocumentHeaderStockMovementTests.cs`
+- `EventForge.Tests/Services/Documents/DocumentRowMergeTests.cs`

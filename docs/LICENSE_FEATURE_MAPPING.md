@@ -1,8 +1,8 @@
-# Prym - License Feature Mapping
+# EventForge - License Feature Mapping
 
 ## Overview
 
-This document provides a comprehensive mapping of all controllers in the Prym.Server project to their required license features. It ensures that the SuperAdmin license in the bootstrap process has all necessary features enabled for complete system management.
+This document provides a comprehensive mapping of all controllers in the EventForge.Server project to their required license features. It ensures that the SuperAdmin license in the bootstrap process has all necessary features enabled for complete system management.
 
 ## Problem Statement (Italian)
 
@@ -222,8 +222,8 @@ var expectedFeatures = new[]
 
 - `docs/SUPERADMIN_LICENSE_SUMMARY.md` - Previous SuperAdmin license implementation
 - `docs/deployment/licensing.md` - License management system overview
-- `Prym.Server/Services/Auth/BootstrapService.cs` - Bootstrap implementation
-- `Prym.Server/Filters/RequireLicenseFeatureAttribute.cs` - License feature filter
+- `EventForge.Server/Services/Auth/BootstrapService.cs` - Bootstrap implementation
+- `EventForge.Server/Filters/RequireLicenseFeatureAttribute.cs` - License feature filter
 
 ## Testing
 
@@ -237,7 +237,7 @@ All changes have been tested and verified:
 
 ## Conclusion
 
-The SuperAdmin license now provides **complete coverage** of all functional areas in the Prym system. The bootstrap process automatically ensures that:
+The SuperAdmin license now provides **complete coverage** of all functional areas in the EventForge system. The bootstrap process automatically ensures that:
 
 - All 16 license features are created and enabled
 - The default tenant has access to all features

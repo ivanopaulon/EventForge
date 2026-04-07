@@ -1,0 +1,346 @@
+@page "/management/monitoring"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Monitoring
+@using EventForge.Client.Shared.Components
+@using MudBlazor
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+@inject IMonitoringClientService MonitoringService
+@inject IAuthService AuthService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<MonitoringDashboard> Logger
+
+<PageTitle>@TranslationService.GetTranslation("monitoring.title", "Monitoring Dashboard")</PageTitle>
+<PageLoadingOverlay Visible="_isLoading"
+                    Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...")" />
+
+@if (!_isLoading)
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+
+        <!-- Header -->
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Color="Color.Primary" Size="Size.Large" Class="mr-2" />
+            <MudText Typo="Typo.h4">
+                @TranslationService.GetTranslation("monitoring.title", "Monitoring Dashboard")
+            </MudText>
+            <MudSpacer />
+            @if (_dashboard is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("monitoring.snapshotAt", "Snapshot:") @_dashboard.SnapshotAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                </MudText>
+            }
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="@LoadDataAsync"
+                       Disabled="_isLoadingData"
+                       Class="ml-2">
+                @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+            </MudButton>
+        </MudStack>
+
+        @if (_isLoadingData)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+        }
+
+        @if (_dashboard is not null)
+        {
+            <!-- ============================================================ -->
+            <!-- SECTION 1 — Performance Metrics                               -->
+            <!-- ============================================================ -->
+            <MudText Typo="Typo.h6" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Speed" Class="mr-1" />
+                @TranslationService.GetTranslation("monitoring.performance", "Performance")
+            </MudText>
+            <MudGrid Spacing="2" Class="mb-6">
+
+                <!-- Pricing Operations -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("monitoring.totalOps", "Operazioni Pricing")
+                        </MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mt-1">
+                            @_dashboard.PricingMetrics.TotalPricingOperations.ToString("N0")
+                        </MudText>
+                        <MudChip T="string"
+                                 Color="@(_dashboard.PricingMetrics.SuccessRatePercent >= 95 ? Color.Success : Color.Warning)"
+                                 Size="Size.Small" Class="mt-1">
+                            @_dashboard.PricingMetrics.SuccessRatePercent.ToString("F1")% OK
+                        </MudChip>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Avg Resolution Time -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("monitoring.avgResolution", "Risoluzione Media")
+                        </MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mt-1">
+                            @_dashboard.PricingMetrics.AveragePricingResolutionMs.ToString("F1") ms
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("monitoring.pricing", "Pricing")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Cache Hit Rate -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("monitoring.cacheHitRate", "Cache Hit Rate")
+                        </MudText>
+                        <MudText Typo="Typo.h5"
+                                 Color="@(_dashboard.PricingMetrics.CacheHitRatePercent >= 70 ? Color.Success : Color.Warning)"
+                                 Class="mt-1">
+                            @_dashboard.PricingMetrics.CacheHitRatePercent.ToString("F1")%
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @_dashboard.PricingMetrics.CacheHits.ToString("N0") / @_dashboard.PricingMetrics.TotalCacheLookups.ToString("N0")
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- DB Queries -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4 d-flex flex-column align-center">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("monitoring.dbQueries", "Query DB")
+                        </MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mt-1">
+                            @_dashboard.PricingMetrics.TotalDbQueries.ToString("N0")
+                        </MudText>
+                        <MudChip T="string"
+                                 Color="@(_dashboard.PricingMetrics.SlowDbQueries == 0 ? Color.Success : Color.Warning)"
+                                 Size="Size.Small" Class="mt-1">
+                            @_dashboard.PricingMetrics.SlowDbQueries lente (@_dashboard.PricingMetrics.AverageDbQueryMs.ToString("F0") ms avg)
+                        </MudChip>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 2 — Promotion Usage                                   -->
+            <!-- ============================================================ -->
+            <MudGrid Spacing="3" Class="mb-6">
+
+                <!-- Top 10 promotions -->
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Class="mr-1" />
+                        @TranslationService.GetTranslation("monitoring.topPromotions", "Top Promozioni per Utilizzo")
+                    </MudText>
+                    @if (_dashboard.TopPromotions.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("monitoring.noPromotions", "Nessuna promozione trovata.")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudDataGrid T="PromotionUsageItemDto"
+                                     Items="_dashboard.TopPromotions"
+                                     Dense="true"
+                                     Striped="true"
+                                     Hover="true"
+                                     Elevation="2">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Name"
+                                                Title="@TranslationService.GetTranslation("field.name", "Nome")" />
+                                <PropertyColumn Property="x => x.CurrentUses"
+                                                Title="@TranslationService.GetTranslation("monitoring.uses", "Utilizzi")" />
+                                <TemplateColumn Title="@TranslationService.GetTranslation("monitoring.limit", "Limite")">
+                                    <CellTemplate>
+                                        @if (context.Item.MaxUses.HasValue)
+                                        {
+                                            <MudText>@context.Item.MaxUses.Value.ToString("N0")</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Color="Color.Secondary">∞</MudText>
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <TemplateColumn Title="@TranslationService.GetTranslation("monitoring.usagePct", "%")">
+                                    <CellTemplate>
+                                        @if (context.Item.UsagePercentage.HasValue)
+                                        {
+                                            <MudProgressLinear Value="@context.Item.UsagePercentage!.Value"
+                                                               Color="@GetUsageColor(context.Item.UsagePercentage!.Value)"
+                                                               Size="Size.Small"
+                                                               Rounded="true"
+                                                               Min="0" Max="100" />
+                                            <MudText Typo="Typo.caption">@context.Item.UsagePercentage.Value.ToString("F0")%</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Color="Color.Secondary">—</MudText>
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <TemplateColumn Title="@TranslationService.GetTranslation("field.active", "Attiva")">
+                                    <CellTemplate>
+                                        <MudIcon Icon="@(context.Item.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                                 Color="@(context.Item.IsActive ? Color.Success : Color.Default)"
+                                                 Size="Size.Small" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                        </MudDataGrid>
+                    }
+                </MudItem>
+
+                <!-- Near-limit promotions -->
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Class="mr-1" />
+                        @TranslationService.GetTranslation("monitoring.nearLimit", "Promozioni Vicine al Limite (>80%)")
+                    </MudText>
+                    @if (_dashboard.NearLimitPromotions.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Success">
+                            @TranslationService.GetTranslation("monitoring.noNearLimit", "Nessuna promozione vicina al limite.")
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var promo in _dashboard.NearLimitPromotions)
+                            {
+                                <MudAlert Severity="@(promo.UsagePercentage >= 100 ? Severity.Error : Severity.Warning)"
+                                          Dense="true">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudText><strong>@promo.Name</strong></MudText>
+                                        <MudText Typo="Typo.caption">
+                                            @promo.CurrentUses / @promo.MaxUses (@promo.UsagePercentage?.ToString("F0")%)
+                                        </MudText>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    }
+                </MudItem>
+            </MudGrid>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 3 — Recent Errors                                     -->
+            <!-- ============================================================ -->
+            <MudText Typo="Typo.h6" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.BugReport" Color="Color.Error" Class="mr-1" />
+                @TranslationService.GetTranslation("monitoring.recentErrors", "Ultimi Errori di Sistema")
+            </MudText>
+            @if (_dashboard.RecentErrors.Count == 0)
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-4">
+                    @TranslationService.GetTranslation("monitoring.noErrors", "Nessun errore recente trovato.")
+                </MudAlert>
+            }
+            else
+            {
+                <MudDataGrid T="SystemHealthEntryDto"
+                             Items="_dashboard.RecentErrors"
+                             Dense="true"
+                             Striped="true"
+                             Hover="true"
+                             Elevation="2"
+                             Class="mb-4">
+                    <Columns>
+                        <TemplateColumn Title="@TranslationService.GetTranslation("field.timestamp", "Timestamp")" SortBy="x => x.Timestamp">
+                            <CellTemplate>
+                                <MudText Typo="Typo.caption">@context.Item.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="@TranslationService.GetTranslation("field.severity", "Severità")">
+                            <CellTemplate>
+                                <MudChip T="string"
+                                         Color="@GetSeverityColor(context.Item.Severity)"
+                                         Size="Size.Small">
+                                    @context.Item.Severity
+                                </MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.OperationType"
+                                        Title="@TranslationService.GetTranslation("field.operationType", "Tipo Operazione")" />
+                        <PropertyColumn Property="x => x.Operation"
+                                        Title="@TranslationService.GetTranslation("field.operation", "Operazione")" />
+                        <TemplateColumn Title="@TranslationService.GetTranslation("field.details", "Dettagli")">
+                            <CellTemplate>
+                                @if (!string.IsNullOrWhiteSpace(context.Item.Details))
+                                {
+                                    <MudTooltip Text="@context.Item.Details" Placement="Placement.Top">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
+                                    </MudTooltip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+        }
+        else if (!_isLoadingData)
+        {
+            <MudAlert Severity="Severity.Warning">
+                @TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring.")
+            </MudAlert>
+        }
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isLoadingData = false;
+    private MonitoringDashboardDto? _dashboard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        await LoadDataAsync();
+        _isLoading = false;
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoadingData = true;
+        StateHasChanged();
+
+        try
+        {
+            _dashboard = await MonitoringService.GetDashboardAsync(topN: 10, recentErrorCount: 20);
+            if (_dashboard is null)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading monitoring dashboard");
+            AppNotification.ShowError(TranslationService.GetTranslation("monitoring.loadError", "Impossibile caricare i dati del monitoring."));
+        }
+        finally
+        {
+            _isLoadingData = false;
+            StateHasChanged();
+        }
+    }
+
+    private static Color GetUsageColor(double pct) => pct switch
+    {
+        >= 100 => Color.Error,
+        >= 80  => Color.Warning,
+        >= 50  => Color.Info,
+        _      => Color.Success
+    };
+
+    private static Color GetSeverityColor(string severity) => severity?.ToLowerInvariant() switch
+    {
+        "critical" => Color.Error,
+        "error"    => Color.Error,
+        "warning"  => Color.Warning,
+        _          => Color.Default
+    };
+}

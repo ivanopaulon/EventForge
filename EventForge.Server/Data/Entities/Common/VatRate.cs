@@ -1,0 +1,89 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace EventForge.Server.Data.Entities.Common;
+
+
+/// <summary>
+/// Represents a VAT rate entity.
+/// </summary>
+public class VatRate : AuditableEntity
+{
+    /// <summary>
+    /// Name of the VAT rate (e.g., "VAT 22%").
+    /// </summary>
+    [Required(ErrorMessage = "The name is required.")]
+    [MaxLength(50, ErrorMessage = "The name cannot exceed 50 characters.")]
+    [Display(Name = "Name", Description = "Name of the VAT rate.")]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Percentage of the VAT rate (e.g., 22).
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "The percentage must be between 0 and 100.")]
+    [Display(Name = "Percentage", Description = "Percentage of the VAT rate.")]
+    public decimal Percentage { get; set; } = 0m;
+
+    /// <summary>
+    /// Status of the VAT rate.
+    /// </summary>
+    [Required]
+    [Display(Name = "Status", Description = "Current status of the VAT rate.")]
+    public ProductVatRateStatus Status { get; set; } = ProductVatRateStatus.Active;
+
+    /// <summary>
+    /// Start date of the VAT rate validity.
+    /// </summary>
+    [Display(Name = "Valid From", Description = "Start date of the VAT rate validity.")]
+    public DateTime? ValidFrom { get; set; }
+
+    /// <summary>
+    /// End date of the VAT rate validity.
+    /// </summary>
+    [Display(Name = "Valid To", Description = "End date of the VAT rate validity.")]
+    public DateTime? ValidTo { get; set; }
+
+    /// <summary>
+    /// Additional notes about the VAT rate.
+    /// </summary>
+    [MaxLength(200, ErrorMessage = "The notes cannot exceed 200 characters.")]
+    [Display(Name = "Notes", Description = "Additional notes about the VAT rate.")]
+    public string? Notes { get; set; }
+
+    /// <summary>
+    /// Foreign key to the VAT nature (optional, used for Italian tax compliance).
+    /// </summary>
+    [Display(Name = "VAT Nature", Description = "Reference to the VAT nature for Italian tax compliance.")]
+    public Guid? VatNatureId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the VAT nature.
+    /// </summary>
+    [Display(Name = "VAT Nature", Description = "VAT nature for Italian tax compliance.")]
+    public VatNature? VatNature { get; set; }
+
+    /// <summary>
+    /// Products associated with this VAT rate.
+    /// </summary>
+    [Display(Name = "Products", Description = "Products associated with this VAT rate.")]
+    public ICollection<Product> Products { get; set; } = new List<Product>();
+
+    // --- Fiscal Printer Support ---
+
+    /// <summary>
+    /// Fiscal code for fiscal printer integration (1-10).
+    /// </summary>
+    [Range(1, 10, ErrorMessage = "Fiscal code must be between 1 and 10.")]
+    [Display(Name = "Fiscal Code", Description = "Code for fiscal printer integration (1-10).")]
+    public int? FiscalCode { get; set; }
+}
+
+/// <summary>
+/// Status for VAT rates.
+/// </summary>
+public enum ProductVatRateStatus
+{
+    Active,     // VAT rate is active and usable
+    Suspended,  // VAT rate is temporarily suspended
+    Expired,    // VAT rate is expired (no longer valid)
+    Deleted     // VAT rate is deleted/disabled
+}

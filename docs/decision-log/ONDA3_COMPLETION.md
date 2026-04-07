@@ -14,7 +14,7 @@ Onda 3 completes the architectural refactoring initiative by implementing Busine
 ### 1. ✅ BusinessParty ViewModels (Priorità Alta)
 
 #### BusinessPartyDetailViewModel
-**Location:** `Prym.Client/ViewModels/BusinessPartyDetailViewModel.cs`
+**Location:** `EventForge.Client/ViewModels/BusinessPartyDetailViewModel.cs`
 
 **Implementation Details:**
 - ✅ Extends `BaseEntityDetailViewModel<BusinessPartyDto, CreateBusinessPartyDto, UpdateBusinessPartyDto>`
@@ -42,7 +42,7 @@ Onda 3 completes the architectural refactoring initiative by implementing Busine
 After architectural review, a separate `BusinessPartyListViewModel` was deemed unnecessary. The application does not use a `BaseEntityListViewModel` pattern. List/search functionality is handled directly in Blazor pages/components using services directly, which is the established pattern in the codebase (verified by examining existing Product, Inventory, and Warehouse management pages).
 
 #### Unit Tests
-**Location:** `Prym.Tests/ViewModels/BusinessPartyDetailViewModelTests.cs`
+**Location:** `EventForge.Tests/ViewModels/BusinessPartyDetailViewModelTests.cs`
 
 **Test Coverage: 100% (13 tests, all passing)**
 
@@ -69,11 +69,11 @@ After architectural review, a separate `BusinessPartyListViewModel` was deemed u
 - Resource disposal via `IDisposable`
 
 #### DI Registration
-**Location:** `Prym.Client/Program.cs`
+**Location:** `EventForge.Client/Program.cs`
 
 ```csharp
 // Onda 3: BusinessParty ViewModels
-builder.Services.AddScoped<Prym.Client.ViewModels.BusinessPartyDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.BusinessPartyDetailViewModel>();
 ```
 
 ### 2. ✅ Service Interfaces Audit (Priorità Alta)
@@ -280,12 +280,12 @@ builder.Services.AddScoped<Prym.Client.ViewModels.BusinessPartyDetailViewModel>(
 
 ## References
 
-- **Issue:** [#687 - Obiettivo Onda 3](https://github.com/ivanopaulon/Prym/issues/687)
+- **Issue:** [#687 - Obiettivo Onda 3](https://github.com/ivanopaulon/EventForge/issues/687)
 - **Pattern References:**
   - PR #673 - ProductDetailViewModel
   - PR #694 - InventoryDetailViewModel
   - PR #691 - Onda 1 Logging
-- **Test Pattern Reference:** `Prym.Tests/ViewModels/ProductDetailViewModelTests.cs`
+- **Test Pattern Reference:** `EventForge.Tests/ViewModels/ProductDetailViewModelTests.cs`
 - **Service Interface Pattern:** `IBusinessPartyService`, `IProductService`, `IInventoryService`
 
 ## Contributors

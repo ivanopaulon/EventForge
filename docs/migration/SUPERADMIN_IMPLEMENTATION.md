@@ -1,7 +1,7 @@
-# SuperAdmin Area Implementation - Prym
+# SuperAdmin Area Implementation - EventForge
 
 ## Overview
-Implemented a complete SuperAdmin area for Prym with expandable menu structure, stub pages, and protection mechanisms. **All SuperAdmin functionality now uses Drawer components exclusively** for consistent user experience and improved maintainability.
+Implemented a complete SuperAdmin area for EventForge with expandable menu structure, stub pages, and protection mechanisms. **All SuperAdmin functionality now uses Drawer components exclusively** for consistent user experience and improved maintainability.
 
 ## Features Implemented
 
@@ -161,7 +161,7 @@ All drawer components support full Italian localization through the TranslationS
 
 ## File Structure
 ```
-Prym.Client/
+EventForge.Client/
 ├── Pages/SuperAdmin/
 │   ├── TenantManagement.razor
 │   ├── UserManagement.razor

@@ -330,7 +330,7 @@ Note:
 ║ 🎯 MESSAGGI CHIAVE                                           ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║ 1️⃣ Sistema documenti Prym è AL 60% (non 30%)          ║
+║ 1️⃣ Sistema documenti EventForge è AL 60% (non 30%)          ║
 ║    → Gap documentazione: +30 punti percentuali              ║
 ║                                                              ║
 ║ 2️⃣ Funzionalità core COMPLETE e production-ready            ║

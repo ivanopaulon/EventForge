@@ -2,7 +2,7 @@
 
 ## Panoramica
 
-Questo documento descrive la strategia per il refactoring progressivo delle pagine SuperAdmin complesse in Prym, seguendo le linee guida dell'issue #98. L'approccio è progettato per mantenere la funzionalità esistente mentre si migliora gradualmente l'interfaccia utente, la localizzazione e l'accessibilità.
+Questo documento descrive la strategia per il refactoring progressivo delle pagine SuperAdmin complesse in EventForge, seguendo le linee guida dell'issue #98. L'approccio è progettato per mantenere la funzionalità esistente mentre si migliora gradualmente l'interfaccia utente, la localizzazione e l'accessibilità.
 
 ## Classificazione delle Pagine
 

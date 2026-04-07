@@ -1,0 +1,155 @@
+@page
+@model EventForge.Server.Pages.Dashboard.LogsModel
+@{
+    ViewData["Title"] = "Logs";
+    ViewData["PageSection"] = "Monitoring";
+}
+
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-journals"></i></div>
+        <div><h1>Log di sistema</h1><p class="ef-page-subtitle">Log applicativi Serilog dal database EventLogger</p></div>
+    </div>
+    <span class="ef-badge ef-badge-neutral" style="font-size:.78rem;padding:.35rem .8rem">
+        @Model.TotalCount.ToString("N0") voci
+    </span>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<!-- Filters -->
+<div class="ef-card mb-4">
+    <div class="ef-card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Ricerca nel messaggio</label>
+                <input type="text" asp-for="SearchTerm" class="form-control"
+                       placeholder="Testo del messaggio..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Livello</label>
+                <select asp-for="LevelFilter" class="form-select">
+                    <option value="">Tutti</option>
+                    <option value="Verbose">Verbose</option>
+                    <option value="Debug">Debug</option>
+                    <option value="Information">Information</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Error">Error</option>
+                    <option value="Fatal">Fatal</option>
+                </select>
+            </div>
+            <div class="col-md-2 pt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" asp-for="ErrorsOnly" />
+                    <label class="form-check-label" style="font-size:.82rem">Solo con eccezioni</label>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-search"></i>Cerca
+                </button>
+                <a href="/dashboard/logs" class="btn btn-outline-secondary" title="Reset filtri">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="ef-card">
+    <div class="ef-card-body p-0">
+        @if (!Model.Logs.Any())
+        {
+            <div class="p-5 text-center" style="color:var(--ef-text-muted)">
+                <i class="bi bi-inbox d-block mb-2" style="font-size:2.5rem;opacity:.3"></i>
+                Nessun log trovato con i filtri selezionati.
+            </div>
+        }
+        else
+        {
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th style="width:145px">Timestamp</th>
+                            <th style="width:100px">Livello</th>
+                            <th style="width:130px">Sorgente</th>
+                            <th>Messaggio</th>
+                            <th style="width:110px">Utente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs)
+                        {
+                            bool hasException = !string.IsNullOrEmpty(log.Exception);
+                            string rowCls = log.Level is "Error" or "Fatal" or "Critical"
+                                          ? "row-danger"
+                                          : log.Level == "Warning" ? "row-warning" : "";
+                            string levelCls = log.Level switch
+                            {
+                                "Fatal"    => "ef-badge-danger",
+                                "Critical" => "ef-badge-danger",
+                                "Error"    => "ef-badge-danger",
+                                "Warning"  => "ef-badge-warning",
+                                "Debug"    => "ef-badge-neutral",
+                                "Verbose"  => "ef-badge-neutral",
+                                _          => "ef-badge-neutral"
+                            };
+                            <tr class="@rowCls">
+                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.Timestamp.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(log.Level))
+                                    {
+                                        <span class="ef-badge @levelCls">@log.Level</span>
+                                    }
+                                </td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted);word-break:break-all">@(log.Source ?? log.Category)</td>
+                                <td>
+                                    <div style="font-size:.8rem;font-weight:550">@log.Message</div>
+                                    @if (hasException)
+                                    {
+                                        <div style="font-size:.73rem;color:var(--ef-danger)">
+                                            <i class="bi bi-bug me-1"></i>@log.Exception
+                                        </div>
+                                    }
+                                </td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted)">@log.Username</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center p-3" style="border-top:1px solid var(--ef-border)">
+                    <span style="font-size:.75rem;color:var(--ef-text-muted)">
+                        Pagina @Model.CurrentPage di @Model.TotalPages &mdash; @Model.TotalCount.ToString("N0") record
+                    </span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            @if (Model.CurrentPage > 1)
+                            {
+                                <li class="page-item"><a class="page-link" href="?CurrentPage=@(Model.CurrentPage-1)@Model.GetFilterQueryString()"><i class="bi bi-chevron-left"></i></a></li>
+                            }
+                            @for (int p = Math.Max(1, Model.CurrentPage-2); p <= Math.Min(Model.TotalPages, Model.CurrentPage+2); p++)
+                            {
+                                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="?CurrentPage=@p@Model.GetFilterQueryString()">@p</a>
+                                </li>
+                            }
+                            @if (Model.CurrentPage < Model.TotalPages)
+                            {
+                                <li class="page-item"><a class="page-link" href="?CurrentPage=@(Model.CurrentPage+1)@Model.GetFilterQueryString()"><i class="bi bi-chevron-right"></i></a></li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>

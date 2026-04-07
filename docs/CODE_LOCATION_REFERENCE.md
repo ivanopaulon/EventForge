@@ -8,7 +8,7 @@ Questa guida mostra esattamente dove trovare ogni modifica nel codice sorgente.
 
 ## 📁 File 1: ProductNotFoundDialog.razor
 
-**Path:** `Prym.Client/Shared/Components/ProductNotFoundDialog.razor`
+**Path:** `EventForge.Client/Shared/Components/ProductNotFoundDialog.razor`
 
 ### Modifica 1: Parametro IsInventoryContext
 ```
@@ -73,7 +73,7 @@ public bool IsInventoryContext { get; set; } = false;
 
 ## 📁 File 2: InventoryProcedure.razor
 
-**Path:** `Prym.Client/Pages/Management/InventoryProcedure.razor`
+**Path:** `EventForge.Client/Pages/Management/InventoryProcedure.razor`
 
 ### Modifica 1: Passaggio Parametro al Dialog
 ```
@@ -142,7 +142,7 @@ if (!result.Canceled && result.Data is string action)
 
 ## 📁 File 3: it.json (Traduzioni Italiane)
 
-**Path:** `Prym.Client/wwwroot/i18n/it.json`
+**Path:** `EventForge.Client/wwwroot/i18n/it.json`
 
 ### Chiavi Aggiunte nella Sezione "warehouse"
 ```
@@ -163,16 +163,16 @@ if (!result.Canceled && result.Data is string action)
 
 **Per trovare velocemente:**
 ```bash
-grep -n "inventoryProductNotFoundPrompt" Prym.Client/wwwroot/i18n/it.json
-grep -n "productSkipped" Prym.Client/wwwroot/i18n/it.json
-grep -n "skipProduct" Prym.Client/wwwroot/i18n/it.json
+grep -n "inventoryProductNotFoundPrompt" EventForge.Client/wwwroot/i18n/it.json
+grep -n "productSkipped" EventForge.Client/wwwroot/i18n/it.json
+grep -n "skipProduct" EventForge.Client/wwwroot/i18n/it.json
 ```
 
 ---
 
 ## 📁 File 4: en.json (Traduzioni Inglesi)
 
-**Path:** `Prym.Client/wwwroot/i18n/en.json`
+**Path:** `EventForge.Client/wwwroot/i18n/en.json`
 
 ### Chiavi Aggiunte nella Sezione "warehouse"
 ```
@@ -193,9 +193,9 @@ grep -n "skipProduct" Prym.Client/wwwroot/i18n/it.json
 
 **Per trovare velocemente:**
 ```bash
-grep -n "inventoryProductNotFoundPrompt" Prym.Client/wwwroot/i18n/en.json
-grep -n "productSkipped" Prym.Client/wwwroot/i18n/en.json
-grep -n "skipProduct" Prym.Client/wwwroot/i18n/en.json
+grep -n "inventoryProductNotFoundPrompt" EventForge.Client/wwwroot/i18n/en.json
+grep -n "productSkipped" EventForge.Client/wwwroot/i18n/en.json
+grep -n "skipProduct" EventForge.Client/wwwroot/i18n/en.json
 ```
 
 ---
@@ -205,7 +205,7 @@ grep -n "skipProduct" Prym.Client/wwwroot/i18n/en.json
 ### Verificare ProductNotFoundDialog.razor
 ```bash
 # Verificare presenza parametro IsInventoryContext
-grep -n "IsInventoryContext" Prym.Client/Shared/Components/ProductNotFoundDialog.razor
+grep -n "IsInventoryContext" EventForge.Client/Shared/Components/ProductNotFoundDialog.razor
 
 # Output atteso:
 # 11:        @if (IsInventoryContext)
@@ -216,22 +216,22 @@ grep -n "IsInventoryContext" Prym.Client/Shared/Components/ProductNotFoundDialog
 ### Verificare InventoryProcedure.razor
 ```bash
 # Verificare passaggio del parametro
-grep -A2 "IsInventoryContext" Prym.Client/Pages/Management/InventoryProcedure.razor
+grep -A2 "IsInventoryContext" EventForge.Client/Pages/Management/InventoryProcedure.razor
 
 # Output atteso:
 # 972:            { "IsInventoryContext", true }
 
 # Verificare handler skip
-grep -A5 "action == \"skip\"" Prym.Client/Pages/Management/InventoryProcedure.razor
+grep -A5 "action == \"skip\"" EventForge.Client/Pages/Management/InventoryProcedure.razor
 ```
 
 ### Verificare Traduzioni
 ```bash
 # Italiano
-grep "skipProduct\|productSkipped\|inventoryProductNotFoundPrompt" Prym.Client/wwwroot/i18n/it.json
+grep "skipProduct\|productSkipped\|inventoryProductNotFoundPrompt" EventForge.Client/wwwroot/i18n/it.json
 
 # Inglese
-grep "skipProduct\|productSkipped\|inventoryProductNotFoundPrompt" Prym.Client/wwwroot/i18n/en.json
+grep "skipProduct\|productSkipped\|inventoryProductNotFoundPrompt" EventForge.Client/wwwroot/i18n/en.json
 ```
 
 ---

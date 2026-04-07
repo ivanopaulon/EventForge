@@ -1,0 +1,201 @@
+@page "/documents/types"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Documents
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IDocumentTypeService DocumentTypeService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("documentType.management", "Gestione Tipi Documento")</PageTitle>
+<EntityManagementPage TEntity="DocumentTypeDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentTypeDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<DocumentTypeDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsFiscal")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="IsFiscal">
+                    <MudTh>@TranslationService.GetTranslation("field.isFiscal", "Fiscale")</MudTh>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsStockIncrease")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="IsStockIncrease">
+                    <MudTh>@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")</MudTh>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "RequiredPartyType")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="RequiredPartyType">
+                    <MudTh>@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")</MudTh>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DefaultWarehouseName")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="DefaultWarehouseName">
+                    <MudTh>@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")</MudTh>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="DocumentTypeDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentTypeDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@ctx.Item.Code</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <strong>@ctx.Item.Name</strong>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsFiscal")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.isFiscal", "Fiscale")">
+                    @if (ctx.Item.IsFiscal)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsStockIncrease")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.isStockIncrease", "Aumento Stock")">
+                    @if (ctx.Item.IsStockIncrease)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Success" Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Error" Size="Size.Small" />
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "RequiredPartyType")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte")">
+                    @GetBusinessPartyTypeText(ctx.Item.RequiredPartyType)
+                </MudTd>
+            }
+            else if (column.PropertyName == "DefaultWarehouseName")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")">
+                    @(ctx.Item.DefaultWarehouseName ?? "-")
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    @ctx.Item.CreatedAt.ToString("dd/MM/yyyy")
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<DocumentTypeDto>? _entityPage;
+    private IEntityManagementService<DocumentTypeDto> _service = null!;
+    private EntityManagementConfig<DocumentTypeDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new DocumentTypeManagementService(DocumentTypeService);
+        _config = new EntityManagementConfig<DocumentTypeDto>
+        {
+            ComponentKey = "DocumentTypeManagement",
+            PageTitleKey = "documentType.management",
+            PageTitleDefault = "Gestione Tipi Documento",
+            EntityIcon = Icons.Material.Outlined.Description,
+            PageRootCssClass = "document-type-page-root",
+            BaseRoute = "/documents/types",
+            ExcelFileName = "TipiDocumento",
+            SearchPlaceholderKey = "documentType.search",
+            SearchPlaceholderDefault = "Cerca tipi documento",
+            CreateTooltip = "documentType.createNew",
+            EntityTypeName = "DocumentType",
+            ShowToggleStatus = false,
+            GetDisplayName = dt => dt.Name,
+            GetId = dt => dt.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Documenti", null, disabled: true),
+                new BreadcrumbItem("Tipi Documento", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "IsFiscal", DisplayName = "Fiscale", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "IsStockIncrease", DisplayName = "Aumento Stock", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "RequiredPartyType", DisplayName = "Tipo Controparte", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "DefaultWarehouseName", DisplayName = "Magazzino Predefinito", IsVisible = true, Order = 5, IsSearchable = true },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 6, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i tipi documento" },
+                new() { Id = "fiscal", Label = "Fiscali", Predicate = dt => dt.IsFiscal, Color = Color.Primary, Icon = Icons.Material.Outlined.Receipt, Description = "Solo documenti fiscali" },
+                new() { Id = "stock_increase", Label = "Aumento Stock", Predicate = dt => dt.IsStockIncrease, Color = Color.Success, Icon = Icons.Material.Outlined.Inventory, Description = "Documenti che aumentano lo stock" },
+                new() { Id = "both", Label = "Fiscali + Stock", Predicate = dt => dt.IsFiscal && dt.IsStockIncrease, Color = Color.Info, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti fiscali che aumentano stock" },
+                new() { Id = "recent", Label = "Recenti", Predicate = dt => dt.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Default, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
+            }
+        };
+    }
+
+    private string GetBusinessPartyTypeText(BusinessPartyType type) => type switch
+    {
+        BusinessPartyType.Customer => TranslationService.GetTranslation("businessPartyType.customer", "Cliente"),
+        BusinessPartyType.Supplier => TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore"),
+        BusinessPartyType.Both => TranslationService.GetTranslation("businessPartyType.both", "Entrambi"),
+        _ => "-"
+    };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(DocumentTypeDetailDialog.EntityId)] = id
+        };
+        var options = EFDialogDefaults.Options;
+        var dialog = await DialogService.ShowAsync<DocumentTypeDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await _entityPage!.RefreshAsync();
+    }
+}

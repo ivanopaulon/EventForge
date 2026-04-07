@@ -1,0 +1,381 @@
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.External
+@using EventForge.Client.Services.External
+@inject IVatLookupService VatLookupService
+@inject IBusinessPartyService BusinessPartyService
+@inject ITranslationService TranslationService
+@inject ILogger<BulkVatUpdateDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.ManageSearch"
+          Title="Aggiornamento massivo ragione sociale da P.IVA"
+          IsProcessing="@_isRunning"
+          OnClose="Cancel"
+          MinWidth="min(720px, 95vw)">
+    <ChildContent>
+
+        <MudStepper @ref="_stepper"
+                    ActiveIndex="@_step"
+                    ActiveIndexChanged="@(i => _step = i)"
+                    NonLinear="false"
+                    Color="Color.Primary"
+                    Variant="Variant.Filled"
+                    DisableAnimation="false"
+                    Style="min-height:0;">
+            <MudStep Title="Configurazione" Icon="@Icons.Material.Outlined.Settings">
+            <div class="d-flex flex-column gap-3">
+                <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Outlined.Info">
+                    La procedura interroga il servizio <strong>VIES (EU VAT Information Exchange System)</strong>
+                    per ogni Partita IVA e aggiorna automaticamente la ragione sociale quando risulta diversa da quella registrata.
+                </MudAlert>
+
+                <MudPaper Outlined="true" Class="pa-4">
+                    <MudStack Row AlignItems="AlignItems.Center" Spacing="3">
+                        <MudIcon Icon="@(SelectedParties.Count > 0 ? Icons.Material.Outlined.Checklist : Icons.Material.Outlined.Group)"
+                                 Color="Color.Primary" Size="Size.Large" />
+                        <div>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
+                                @_partiesToProcess.Count @(SelectedParties.Count > 0 ? "selezionati" : "business party") da elaborare
+                            </MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @if (SelectedParties.Count > 0)
+                                {
+                                    @($"Elaborazione limitata ai {SelectedParties.Count} elementi selezionati con P.IVA registrata")
+                                }
+                                else
+                                {
+                                    @("Elaborazione di tutti i business party con Partita IVA registrata")
+                                }
+                            </MudText>
+                        </div>
+                    </MudStack>
+                </MudPaper>
+
+                @if (_partiesToProcess.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Outlined.Warning">
+                        Nessun business party con Partita IVA da elaborare.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-flex align-center gap-1">
+                        <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" />
+                        Durata stimata: circa @_estimatedTimeLabel — ogni richiesta include un breve ritardo per rispettare i limiti di frequenza del servizio VIES.
+                    </MudText>
+                }
+            </div>
+            </MudStep>
+            <MudStep Title="Esecuzione" Icon="@Icons.Material.Outlined.PlayArrow">
+            <div class="d-flex flex-column gap-3">
+
+                @* Progress bar *@
+                <div>
+                    <div class="d-flex justify-space-between align-center mb-1">
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">
+                            @_current / @_partiesToProcess.Count
+                        </MudText>
+                        @if (_isRunning)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                Tempo trascorso: @ElapsedLabel
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@(_failed == 0 ? Color.Success : Color.Warning)"
+                                     Variant="Variant.Filled">
+                                @(_failed == 0 ? "Completato" : "Completato con errori")
+                            </MudChip>
+                        }
+                    </div>
+                    <MudProgressLinear Value="@ProgressPercent"
+                                       Color="@(_isRunning ? Color.Primary : _failed == 0 ? Color.Success : Color.Warning)"
+                                       Rounded="true" Size="Size.Medium" />
+                </div>
+
+                @* Summary counters *@
+                <MudGrid Spacing="2">
+                    <MudItem xs="3">
+                        <MudPaper Class="pa-2 text-center" Elevation="1"
+                                  Style="border-left:3px solid var(--mud-palette-success);">
+                            <MudText Typo="Typo.h6" Color="Color.Success">@_updated</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Aggiornati</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudPaper Class="pa-2 text-center" Elevation="1">
+                            <MudText Typo="Typo.h6">@_unchanged</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Invariati</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudPaper Class="pa-2 text-center" Elevation="1"
+                                  Style="@(_notFound > 0 ? "border-left:3px solid var(--mud-palette-warning);" : "")">
+                            <MudText Typo="Typo.h6" Color="@(_notFound > 0 ? Color.Warning : Color.Default)">@_notFound</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Non trovati</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudPaper Class="pa-2 text-center" Elevation="1"
+                                  Style="@(_failed > 0 ? "border-left:3px solid var(--mud-palette-error);" : "")">
+                            <MudText Typo="Typo.h6" Color="@(_failed > 0 ? Color.Error : Color.Default)">@_failed</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Errori</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
+                @* Live / full log *@
+                @if (_log.Count > 0)
+                {
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">
+                            @(_isRunning ? "Avanzamento in tempo reale" : "Dettaglio elaborazione")
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2" Style="display:inline;">
+                                (@_log.Count @(_log.Count == 1 ? "elemento" : "elementi"))
+                            </MudText>
+                        </MudText>
+                        <div style="max-height:240px; overflow-y:auto;">
+                            <MudTable Items="@_log" Dense="true" Striped="true" Hover="false" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh Style="width:32px;"></MudTh>
+                                    <MudTh>Business Party</MudTh>
+                                    <MudTh>P.IVA</MudTh>
+                                    <MudTh>Esito</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>
+                                        @if (context.Status == StatusUpdated)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" />
+                                        }
+                                        else if (context.Status == StatusUnchanged)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.RemoveCircleOutline" Size="Size.Small" Color="Color.Default" />
+                                        }
+                                        else if (context.Status == StatusNotFound)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.HelpOutline" Size="Size.Small" Color="Color.Warning" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Size="Size.Small" Color="Color.Error" />
+                                        }
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:180px;" title="@context.PartyName">
+                                            @context.PartyName
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.VatNumber</MudText>
+                                    </MudTd>
+                                    <MudTd>
+                                        @if (context.Status == StatusUpdated)
+                                        {
+                                            <MudText Typo="Typo.body2" Color="Color.Success"
+                                                     Class="text-truncate" Style="max-width:200px;" title="@context.Detail">
+                                                → @context.Detail
+                                            </MudText>
+                                        }
+                                        else if (context.Status == StatusUnchanged)
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">nessuna variazione</MudText>
+                                        }
+                                        else if (context.Status == StatusNotFound)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Warning">non trovato su VIES</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Error"
+                                                     Class="text-truncate" Style="max-width:200px;" title="@context.Detail">
+                                                @context.Detail
+                                            </MudText>
+                                        }
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </div>
+                    </div>
+                }
+                else if (_isRunning)
+                {
+                    <div class="d-flex align-center gap-2 pa-2">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Avvio elaborazione...</MudText>
+                    </div>
+                }
+
+            </div>
+            </MudStep>
+        </MudStepper>
+    </ChildContent>
+
+    <DialogActions>
+        @if (_step == 0)
+        {
+            <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+            <MudButton OnClick="StartAsync"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Outlined.PlayArrow"
+                       Disabled="@(_partiesToProcess.Count == 0)">
+                Avvia aggiornamento
+            </MudButton>
+        }
+        else if (!_isRunning)
+        {
+            <MudButton OnClick="Close"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Outlined.Check">
+                Chiudi
+            </MudButton>
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public List<BusinessPartyDto> AllParties { get; set; } = new();
+
+    [Parameter]
+    public HashSet<BusinessPartyDto> SelectedParties { get; set; } = new();
+
+    // ── Status constants (avoid nested quotes in Razor) ──
+    private const string StatusUpdated   = "Updated";
+    private const string StatusUnchanged = "Unchanged";
+    private const string StatusNotFound  = "NotFound";
+    private const string StatusError     = "Error";
+
+    private record LogEntry(string PartyName, string VatNumber, string Status, string? Detail);
+
+    // ── State ──
+    private int _step = 0;
+    private bool _isRunning = false;
+    private List<BusinessPartyDto> _partiesToProcess = new();
+    private int _current = 0;
+    private int _updated = 0;
+    private int _unchanged = 0;
+    private int _notFound = 0;
+    private int _failed = 0;
+    private readonly List<LogEntry> _log = new();
+    private DateTimeOffset _startTime;
+    private string _estimatedTimeLabel = string.Empty;
+    private MudStepper? _stepper;
+
+    // ── Computed helpers ──
+    private int ProgressPercent =>
+        _partiesToProcess.Count > 0 ? (int)((double)_current / _partiesToProcess.Count * 100) : 0;
+
+    private string ElapsedLabel
+    {
+        get
+        {
+            var e = DateTimeOffset.UtcNow - _startTime;
+            return e.ToString(@"mm\:ss");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _partiesToProcess = (SelectedParties.Count > 0
+                ? SelectedParties.AsEnumerable()
+                : AllParties.AsEnumerable())
+            .Where(p => !string.IsNullOrWhiteSpace(p.VatNumber))
+            .ToList();
+
+        var secs = _partiesToProcess.Count * 0.5;
+        _estimatedTimeLabel = secs < 60
+            ? $"{secs:N0}s"
+            : $"{(int)(secs / 60)}m {(int)(secs % 60):00}s";
+    }
+
+    private async Task StartAsync()
+    {
+        _step = 1;
+        _isRunning = true;
+        _current = 0;
+        _updated = 0;
+        _unchanged = 0;
+        _notFound = 0;
+        _failed = 0;
+        _log.Clear();
+        _startTime = DateTimeOffset.UtcNow;
+        StateHasChanged();
+
+        foreach (var party in _partiesToProcess)
+        {
+            _current++;
+            await InvokeAsync(StateHasChanged);
+
+            try
+            {
+                var result = await VatLookupService.LookupAsync(party.VatNumber!);
+                if (result == null || !result.IsValid)
+                {
+                    _notFound++;
+                    AddLog(party.Name, party.VatNumber!, StatusNotFound,
+                        result?.ErrorMessage);
+                }
+                else if (!string.IsNullOrEmpty(result.Name) &&
+                         !string.Equals(result.Name, party.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    var updateDto = new UpdateBusinessPartyDto
+                    {
+                        PartyType  = party.PartyType,
+                        Name       = result.Name,
+                        TaxCode    = party.TaxCode,
+                        VatNumber  = party.VatNumber,
+                        SdiCode    = party.SdiCode,
+                        Pec        = party.Pec,
+                        Notes      = party.Notes,
+                        DefaultSalesPriceListId = party.DefaultSalesPriceListId,
+                        DefaultPurchasePriceListId = party.DefaultPurchasePriceListId,
+                        DefaultPriceApplicationMode = party.DefaultPriceApplicationMode,
+                        ForcedPriceListId = party.ForcedPriceListId,
+                        RowVersion = party.RowVersion
+                    };
+                    await BusinessPartyService.UpdateBusinessPartyAsync(party.Id, updateDto);
+                    AddLog(party.Name, party.VatNumber!, StatusUpdated, result.Name);
+                    party.Name = result.Name;
+                    _updated++;
+                }
+                else
+                {
+                    _unchanged++;
+                    AddLog(party.Name, party.VatNumber!, StatusUnchanged, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                _failed++;
+                AddLog(party.Name, party.VatNumber!, StatusError, ex.Message);
+                Logger.LogError(ex, "Bulk VAT update failed for party {PartyId}", party.Id);
+            }
+
+            await Task.Delay(300);
+        }
+
+        _isRunning = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void AddLog(string name, string vat, string status, string? detail)
+    {
+        // Insert at front so the most recent entry is at the top of the table
+        _log.Insert(0, new LogEntry(name, vat, status, detail));
+    }
+
+    private void Cancel()
+    {
+        if (_isRunning) return;
+        MudDialog.Cancel();
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(_updated > 0));
+}

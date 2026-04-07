@@ -1,10 +1,10 @@
-# Prym - Project Overview
+# EventForge - Project Overview
 
-Prym is a comprehensive event management and monitoring system built with Blazor Server and MudBlazor.
+EventForge is a comprehensive event management and monitoring system built with Blazor Server and MudBlazor.
 
 ## 🎯 Project Mission
 
-Prym provides a modern, scalable platform for event management with advanced features including:
+EventForge provides a modern, scalable platform for event management with advanced features including:
 - Multi-tenant architecture
 - Real-time notifications and chat
 - Document management and workflow
@@ -24,11 +24,11 @@ Prym provides a modern, scalable platform for event management with advanced fea
 
 ### Multi-Theme Support
 
-Prym supports 6 distinct color themes to accommodate different user preferences and accessibility needs:
+EventForge supports 6 distinct color themes to accommodate different user preferences and accessibility needs:
 
 #### Available Themes
 
-1. **Light Theme** - Modern bright theme with Prym navy blue and electric blue colors
+1. **Light Theme** - Modern bright theme with EventForge navy blue and electric blue colors
 2. **Dark Theme** - Classic dark theme for low-light environments with light blue accents
 3. **Warm Theme** - Cozy theme with orange, red, and earthy tones for a welcoming feel
 4. **Cool Theme** - Refreshing theme with blue, green, and turquoise colors inspired by nature

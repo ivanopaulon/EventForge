@@ -1,4 +1,4 @@
-# 📊 Stato Completo Issue Aperte - Prym (Gennaio 2025)
+# 📊 Stato Completo Issue Aperte - EventForge (Gennaio 2025)
 
 ## 📋 Overview Generale
 

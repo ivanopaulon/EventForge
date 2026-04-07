@@ -1,4 +1,4 @@
-# 🔍 Analisi Tecnica Dettagliata Issue Aperte - Prym
+# 🔍 Analisi Tecnica Dettagliata Issue Aperte - EventForge
 
 > **Dettaglio tecnico completo** per l'implementazione delle 21 issue aperte organizzate per tema con roadmap di sviluppo, analisi di impatto e requisiti implementativi.
 

@@ -1,6 +1,6 @@
 # Backend Development Documentation
 
-Documentazione completa per lo sviluppo backend di Prym.
+Documentazione completa per lo sviluppo backend di EventForge.
 
 ## 📋 Indice
 

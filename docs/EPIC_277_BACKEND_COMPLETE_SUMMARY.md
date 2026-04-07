@@ -180,26 +180,26 @@ Duration: 1m 34s
 ### Nuovi Files (Gennaio 2025)
 
 #### DTOs
-1. `Prym.DTOs/Sales/TableSessionDtos.cs` (80 righe)
+1. `EventForge.DTOs/Sales/TableSessionDtos.cs` (80 righe)
    - TableSessionDto
    - CreateTableSessionDto
    - UpdateTableSessionDto
    - UpdateTableStatusDto
 
-2. `Prym.DTOs/Sales/TableReservationDtos.cs` (80 righe)
+2. `EventForge.DTOs/Sales/TableReservationDtos.cs` (80 righe)
    - TableReservationDto
    - CreateTableReservationDto
    - UpdateTableReservationDto
 
 #### Services
-3. `Prym.Server/Services/Sales/ITableManagementService.cs` (82 righe)
-4. `Prym.Server/Services/Sales/TableManagementService.cs` (480 righe)
+3. `EventForge.Server/Services/Sales/ITableManagementService.cs` (82 righe)
+4. `EventForge.Server/Services/Sales/TableManagementService.cs` (480 righe)
 
 #### Controllers
-5. `Prym.Server/Controllers/TableManagementController.cs` (450 righe)
+5. `EventForge.Server/Controllers/TableManagementController.cs` (450 righe)
 
 ### Files Modificati
-6. `Prym.Server/Extensions/ServiceCollectionExtensions.cs`
+6. `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
    - Aggiunta registrazione `ITableManagementService`
 
 ### Documentazione
@@ -213,7 +213,7 @@ Duration: 1m 34s
 ### 1. Avviare l'Applicazione
 
 ```bash
-cd Prym.Server
+cd EventForge.Server
 dotnet run
 ```
 
@@ -276,20 +276,20 @@ Navigare a: `https://localhost:5001/swagger`
    - Stati tavoli e workflow prenotazioni
 
 5. ✅ **Service Registration**
-   - Tutti i servizi registrati in `Prym.Client/Program.cs`
+   - Tutti i servizi registrati in `EventForge.Client/Program.cs`
    - Pattern consistente con servizi esistenti
    - Dependency Injection configurato
 
 **Files Creati** (Gennaio 2025):
-- `Prym.Client/Services/Sales/ISalesService.cs`
-- `Prym.Client/Services/Sales/SalesService.cs`
-- `Prym.Client/Services/Sales/IPaymentMethodService.cs`
-- `Prym.Client/Services/Sales/PaymentMethodService.cs`
-- `Prym.Client/Services/Sales/INoteFlagService.cs`
-- `Prym.Client/Services/Sales/NoteFlagService.cs`
-- `Prym.Client/Services/Sales/ITableManagementService.cs`
-- `Prym.Client/Services/Sales/TableManagementService.cs`
-- `Prym.Client/Program.cs` (aggiornato con registrazioni)
+- `EventForge.Client/Services/Sales/ISalesService.cs`
+- `EventForge.Client/Services/Sales/SalesService.cs`
+- `EventForge.Client/Services/Sales/IPaymentMethodService.cs`
+- `EventForge.Client/Services/Sales/PaymentMethodService.cs`
+- `EventForge.Client/Services/Sales/INoteFlagService.cs`
+- `EventForge.Client/Services/Sales/NoteFlagService.cs`
+- `EventForge.Client/Services/Sales/ITableManagementService.cs`
+- `EventForge.Client/Services/Sales/TableManagementService.cs`
+- `EventForge.Client/Program.cs` (aggiornato con registrazioni)
 
 **Totale**: ~1,085 righe di codice client services
 
@@ -315,7 +315,7 @@ Implementare servizi client Blazor per consumare le API REST:
    - Real-time status updates (SignalR opzionale)
 
 5. **Service Registration**
-   - Registrare in `Prym.Client/Program.cs`
+   - Registrare in `EventForge.Client/Program.cs`
 
 ### Fase 3: UI Components (72-93 ore stimato)
 
@@ -383,7 +383,7 @@ Implementare servizi client Blazor per consumare le API REST:
 - Request/Response examples inclusi
 
 ### Issue Tracking
-- Epic #277: https://github.com/ivanopaulon/Prym/issues/277
+- Epic #277: https://github.com/ivanopaulon/EventForge/issues/277
 - Issue #262 (UI Design): Da implementare
 - Issue #261 (Technical Specs): Da implementare
 - Issue #267 (Wizard Documenti): Sospeso

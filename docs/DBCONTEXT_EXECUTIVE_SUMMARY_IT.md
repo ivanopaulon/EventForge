@@ -238,7 +238,7 @@ Amount:           decimal(18,6) ✅
 
 ### ✅ Verifica Completata
 
-Il DbContext di Prym è stato analizzato approfonditamente e risulta:
+Il DbContext di EventForge è stato analizzato approfonditamente e risulta:
 
 ```
 ✅ COMPLETO
@@ -290,7 +290,7 @@ Nessun intervento urgente richiesto. Il sistema è:
 
 **Analisi Eseguita da**: GitHub Copilot Agent  
 **Data**: Gennaio 2025  
-**Repository**: ivanopaulon/Prym  
+**Repository**: ivanopaulon/EventForge  
 **Branch**: copilot/analyze-dbcontext-configuration
 
 ---

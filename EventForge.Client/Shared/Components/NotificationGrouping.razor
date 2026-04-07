@@ -1,0 +1,270 @@
+@using EventForge.DTOs.Notifications
+@inject ITranslationService TranslationService
+
+<div class="notification-group mb-4">
+    <MudCard Elevation="2" Class="group-header">
+        <MudCardContent Class="pa-3">
+            <div class="d-flex justify-space-between align-center" @onclick="ToggleGroup" style="cursor: pointer;">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@(Group.IsCollapsed ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ExpandLess)" 
+                             Class="mr-2" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
+                            @Group.Title
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @GetGroupSubtitle()
+                        </MudText>
+                    </div>
+                </div>
+                <div class="d-flex align-center ga-2">
+                    @if (Group.UnreadCount > 0)
+                    {
+                        <MudBadge Content="@Group.UnreadCount.ToString()" 
+                                  Color="Color.Error" 
+                                  BadgeClass="badge-small">
+                        </MudBadge>
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                        @TranslationService.GetTranslation("notifications.groupCount", "{0} notifiche", Group.Count)
+                    </MudText>
+                    
+                    <!-- Group Actions -->
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" 
+                             Size="Size.Small"
+                             Dense="true"
+                             @onclick:stopPropagation="true">
+                        <MudMenuItem OnClick="@MarkGroupAsRead" 
+                                     Disabled="@(Group.UnreadCount == 0)">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.DoneAll" Class="mr-2" />
+                                @TranslationService.GetTranslation("notifications.markGroupAsRead", "Segna gruppo come letto")
+                            </div>
+                        </MudMenuItem>
+                        <MudMenuItem OnClick="@ArchiveGroup">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Archive" Class="mr-2" />
+                                @TranslationService.GetTranslation("notifications.archiveGroup", "Archivia gruppo")
+                            </div>
+                        </MudMenuItem>
+                        <MudMenuItem OnClick="@UngroupNotifications">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Unarchive" Class="mr-2" />
+                                @TranslationService.GetTranslation("notifications.ungroup", "Separa notifiche")
+                            </div>
+                        </MudMenuItem>
+                    </MudMenu>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Group Content -->
+    <MudCollapse Expanded="@(!Group.IsCollapsed)">
+        <div class="group-content mt-2">
+            @if (Group.IsCollapsed && Group.PreviewNotifications?.Any() == true)
+            {
+                <!-- Preview mode - show summary -->
+                <div class="group-preview pa-2">
+                    @foreach (var preview in Group.PreviewNotifications.Take(3))
+                    {
+                        <div class="preview-item d-flex align-center pa-1 mb-1">
+                            <MudIcon Icon="@GetNotificationIcon(preview.Type)" 
+                                     Color="@GetNotificationColor(preview.Priority)"
+                                     Size="Size.Small"
+                                     Class="mr-2" />
+                            <MudText Typo="Typo.body2" Class="flex-grow-1 text-truncate">
+                                @preview.Payload.Title
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                                @FormatTimestamp(preview.CreatedAt)
+                            </MudText>
+                        </div>
+                    }
+                    @if (Group.Count > 3)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+                            @TranslationService.GetTranslation("notifications.andMore", "e altre {0} notifiche...", Group.Count - 3)
+                        </MudText>
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- Expanded mode - show all notifications -->
+                <div class="group-notifications">
+                    @foreach (var notification in GetNotificationsToShow())
+                    {
+                        <div class="mb-2">
+                            <RichNotificationCard Notification="@notification"
+                                                  OnMarkAsRead="@OnNotificationMarkAsRead"
+                                                  OnArchive="@OnNotificationArchive"
+                                                  OnShowDetails="@OnNotificationShowDetails"
+                                                  OnActionExecuted="@OnNotificationActionExecuted" />
+                        </div>
+                    }
+                    
+                    @if (Group.Count > 10 && _showingLimited)
+                    {
+                        <div class="text-center mt-3">
+                            <MudButton Variant="Variant.Text" 
+                                       Color="Color.Primary"
+                                       OnClick="@ShowAllNotifications">
+                                @TranslationService.GetTranslation("notifications.showAll", "Mostra tutte ({0})", Group.Count)
+                            </MudButton>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </MudCollapse>
+</div>
+
+@code {
+    [Parameter] public NotificationGroupDto Group { get; set; } = new();
+    [Parameter] public List<NotificationResponseDto> AllNotifications { get; set; } = new();
+    [Parameter] public EventCallback<NotificationGroupDto> OnGroupToggle { get; set; }
+    [Parameter] public EventCallback<NotificationGroupDto> OnGroupMarkAsRead { get; set; }
+    [Parameter] public EventCallback<NotificationGroupDto> OnGroupArchive { get; set; }
+    [Parameter] public EventCallback<NotificationGroupDto> OnGroupUngroup { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationMarkAsRead { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationArchive { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnNotificationShowDetails { get; set; }
+    [Parameter] public EventCallback<NotificationActionDto> OnNotificationActionExecuted { get; set; }
+
+    private bool _showingLimited = true;
+
+    private string GetGroupSubtitle()
+    {
+        if (Group.LatestNotification != null)
+        {
+            return TranslationService.GetTranslation("notifications.latestActivity", "Ultima: {0}", 
+                FormatTimestamp(Group.LatestNotification.CreatedAt));
+        }
+        return TranslationService.GetTranslation("notifications.lastUpdated", "Aggiornato: {0}", 
+            FormatTimestamp(Group.UpdatedAt));
+    }
+
+    private IEnumerable<NotificationResponseDto> GetNotificationsToShow()
+    {
+        var groupNotifications = AllNotifications
+            .Where(n => n.Payload.GroupId == Group.GroupId)
+            .OrderByDescending(n => n.CreatedAt);
+
+        if (_showingLimited)
+        {
+            return groupNotifications.Take(10);
+        }
+
+        return groupNotifications;
+    }
+
+    private void ShowAllNotifications()
+    {
+        _showingLimited = false;
+    }
+
+    private async Task ToggleGroup()
+    {
+        Group.IsCollapsed = !Group.IsCollapsed;
+        await OnGroupToggle.InvokeAsync(Group);
+    }
+
+    private async Task MarkGroupAsRead()
+    {
+        await OnGroupMarkAsRead.InvokeAsync(Group);
+    }
+
+    private async Task ArchiveGroup()
+    {
+        await OnGroupArchive.InvokeAsync(Group);
+    }
+
+    private async Task UngroupNotifications()
+    {
+        await OnGroupUngroup.InvokeAsync(Group);
+    }
+
+    private string GetNotificationIcon(NotificationTypes type)
+    {
+        return type switch
+        {
+            NotificationTypes.System => Icons.Material.Filled.Settings,
+            NotificationTypes.Event => Icons.Material.Filled.Event,
+            NotificationTypes.User => Icons.Material.Filled.Person,
+            NotificationTypes.Security => Icons.Material.Filled.Security,
+            NotificationTypes.Audit => Icons.Material.Filled.Visibility,
+            NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
+            _ => Icons.Material.Filled.Notifications
+        };
+    }
+
+    private Color GetNotificationColor(NotificationPriority priority)
+    {
+        return priority switch
+        {
+            NotificationPriority.Critical => Color.Error,
+            NotificationPriority.High => Color.Warning,
+            NotificationPriority.Normal => Color.Primary,
+            NotificationPriority.Low => Color.Default,
+            _ => Color.Default
+        };
+    }
+
+    private string FormatTimestamp(DateTime timestamp)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp;
+
+        if (diff.TotalMinutes < 1)
+            return TranslationService.GetTranslation("notifications.justNow", "Ora");
+        else if (diff.TotalMinutes < 60)
+            return TranslationService.GetTranslation("notifications.minutesAgo", "{0}m fa", (int)diff.TotalMinutes);
+        else if (diff.TotalHours < 24)
+            return TranslationService.GetTranslation("notifications.hoursAgo", "{0}h fa", (int)diff.TotalHours);
+        else if (diff.TotalDays < 7)
+            return TranslationService.GetTranslation("notifications.daysAgo", "{0}g fa", (int)diff.TotalDays);
+        else
+            return timestamp.ToString("dd/MM/yyyy");
+    }
+}
+
+<style>
+    .notification-group {
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .group-header {
+        background-color: var(--mud-palette-surface);
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .group-header:hover {
+        background-color: var(--mud-palette-action-hover);
+    }
+
+    .group-content {
+        background-color: var(--mud-palette-background-grey);
+        padding: 8px;
+    }
+
+    .group-preview {
+        background-color: var(--mud-palette-surface);
+        border-radius: 4px;
+    }
+
+    .preview-item {
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .preview-item:hover {
+        background-color: var(--mud-palette-action-hover);
+    }
+
+    .badge-small {
+        transform: scale(0.8);
+    }
+</style>

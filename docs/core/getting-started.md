@@ -1,6 +1,6 @@
-# Getting Started with Prym
+# Getting Started with EventForge
 
-Benvenuto in Prym! Questa guida ti aiuterà a configurare rapidamente l'ambiente di sviluppo e a comprendere la struttura del progetto.
+Benvenuto in EventForge! Questa guida ti aiuterà a configurare rapidamente l'ambiente di sviluppo e a comprendere la struttura del progetto.
 
 ## 📋 Prerequisiti
 
@@ -26,8 +26,8 @@ sqllocaldb info
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/ivanopaulon/Prym.git
-cd Prym
+git clone https://github.com/ivanopaulon/EventForge.git
+cd EventForge
 ```
 
 ### 2. Configurazione Database
@@ -36,7 +36,7 @@ cd Prym
 # Modifica appsettings.Development.json se necessario
 
 # Esegui migrazioni database
-dotnet ef database update --project Prym.Server
+dotnet ef database update --project EventForge.Server
 ```
 
 ### 3. Build Progetto
@@ -54,7 +54,7 @@ echo "Build Status: $?"
 ### 4. Avvio Applicazione
 ```bash
 # Avvia server
-dotnet run --project Prym.Server
+dotnet run --project EventForge.Server
 
 # L'applicazione sarà disponibile su:
 # https://localhost:7241 (HTTPS - porta predefinita)
@@ -63,14 +63,14 @@ dotnet run --project Prym.Server
 
 ### 5. Configurazione Porte
 
-#### Porte Server (Prym.Server)
+#### Porte Server (EventForge.Server)
 
 **Porte predefinite:**
 - HTTPS: `7241`
 - HTTP: `5240`
 
 **Modifica porte in sviluppo:**
-Edita `Prym.Server/Properties/launchSettings.json`:
+Edita `EventForge.Server/Properties/launchSettings.json`:
 ```json
 {
   "profiles": {
@@ -87,15 +87,15 @@ Edita `Prym.Server/Properties/launchSettings.json`:
 export ASPNETCORE_URLS="https://localhost:7241;http://localhost:5240"
 
 # Parametro da riga di comando
-dotnet run --project Prym.Server --urls "https://localhost:7241;http://localhost:5240"
+dotnet run --project EventForge.Server --urls "https://localhost:7241;http://localhost:5240"
 ```
 
-#### Porte Client (Prym.Client)
+#### Porte Client (EventForge.Client)
 
 **Porta predefinita server API:** `https://localhost:7241/`
 
 **Modifica porta API del client:**
-Edita `Prym.Client/wwwroot/appsettings.json`:
+Edita `EventForge.Client/wwwroot/appsettings.json`:
 ```json
 {
   "ApiSettings": {
@@ -110,12 +110,12 @@ Per ambienti diversi, crea file specifici:
 
 **Importante:** Se modifichi la porta del server, aggiorna anche:
 1. Il file `appsettings.json` del client con la nuova porta
-2. La configurazione CORS in `Prym.Server/Program.cs`
+2. La configurazione CORS in `EventForge.Server/Program.cs`
 
 ## 🎯 Prima Configurazione
 
 ### Default Admin User
-Al primo avvio, Prym crea automaticamente un utente amministratore:
+Al primo avvio, EventForge crea automaticamente un utente amministratore:
 - **Email**: admin@eventforge.local
 - **Password**: Admin123!
 - **Ruolo**: SuperAdmin
@@ -132,17 +132,17 @@ Al primo avvio, Prym crea automaticamente un utente amministratore:
 
 ### Organizzazione Solution
 ```
-Prym/
-├── Prym.Server/          # Backend Blazor Server
+EventForge/
+├── EventForge.Server/          # Backend Blazor Server
 │   ├── Controllers/            # API Controllers
 │   ├── Data/                   # Entity Framework setup
 │   │   ├── Entities/          # Database entities
 │   │   └── Contexts/          # DbContext classes
 │   ├── Services/              # Business logic services
 │   └── Components/            # Blazor components
-├── Prym.Client/         # Frontend (se applicabile)
-├── Prym.DTOs/           # Data Transfer Objects
-├── Prym.Tests/          # Test project
+├── EventForge.Client/         # Frontend (se applicabile)
+├── EventForge.DTOs/           # Data Transfer Objects
+├── EventForge.Tests/          # Test project
 └── docs/                      # Documentazione
     ├── core/                  # Documentazione core
     ├── backend/               # Documentazione backend
@@ -201,7 +201,7 @@ Prym/
 dotnet build && dotnet test
 
 # Avvio con hot reload
-dotnet watch run --project Prym.Server
+dotnet watch run --project EventForge.Server
 
 # Analisi route conflicts
 ./analyze-routes.sh
@@ -243,8 +243,8 @@ dotnet build
 ### Database Issues
 ```bash
 # Reset database
-dotnet ef database drop --project Prym.Server
-dotnet ef database update --project Prym.Server
+dotnet ef database drop --project EventForge.Server
+dotnet ef database update --project EventForge.Server
 ```
 
 ### Port Conflicts
@@ -252,16 +252,16 @@ Se le porte predefinite (7241/5240) sono già in uso:
 
 **Opzione 1 - Modifica launchSettings.json:**
 ```bash
-# Edita Prym.Server/Properties/launchSettings.json
+# Edita EventForge.Server/Properties/launchSettings.json
 # Cambia applicationUrl con le tue porte
 ```
 
 **Opzione 2 - Usa parametro da riga di comando:**
 ```bash
-dotnet run --project Prym.Server --urls "https://localhost:TUA_PORTA"
+dotnet run --project EventForge.Server --urls "https://localhost:TUA_PORTA"
 ```
 
-**Importante:** Ricorda di aggiornare anche il file `Prym.Client/wwwroot/appsettings.json` con la nuova porta del server!
+**Importante:** Ricorda di aggiornare anche il file `EventForge.Client/wwwroot/appsettings.json` con la nuova porta del server!
 
 ### Permission Issues
 - Verifica ruoli utente nel database
@@ -283,9 +283,9 @@ Se vedi messaggi `[MONO] /__w/1/s/src/mono/mono/metadata/mono-hash.c` nella cons
 - [Testing Strategy](../testing/testing-guide.md)
 
 ### Community & Support
-- **Repository**: [GitHub Prym](https://github.com/ivanopaulon/Prym)
-- **Issues**: [GitHub Issues](https://github.com/ivanopaulon/Prym/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ivanopaulon/Prym/discussions)
+- **Repository**: [GitHub EventForge](https://github.com/ivanopaulon/EventForge)
+- **Issues**: [GitHub Issues](https://github.com/ivanopaulon/EventForge/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ivanopaulon/EventForge/discussions)
 
 ### Learning Resources
 - **Blazor**: [Microsoft Blazor Docs](https://docs.microsoft.com/aspnet/core/blazor/)
@@ -294,6 +294,6 @@ Se vedi messaggi `[MONO] /__w/1/s/src/mono/mono/metadata/mono-hash.c` nella cons
 
 ---
 
-🎉 **Congratulazioni!** Hai completato il setup di Prym. Ora sei pronto per iniziare lo sviluppo!
+🎉 **Congratulazioni!** Hai completato il setup di EventForge. Ora sei pronto per iniziare lo sviluppo!
 
 Per domande o problemi, consulta la [documentazione completa](../README.md) o apri una issue nel repository.

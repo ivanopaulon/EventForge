@@ -1,0 +1,175 @@
+using EventForge.DTOs.Audit;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.SuperAdmin;
+
+namespace EventForge.Client.Services
+{
+    public interface ILogsService
+    {
+        // Application Logs
+        Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams);
+        Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id);
+        Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync();
+        Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto);
+
+        // Audit Logs  
+        Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams);
+        Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id);
+        Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync();
+        Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto);
+
+        // Real-time subscriptions
+        Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived, CancellationToken ct = default);
+        Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived, CancellationToken ct = default);
+        Task UnsubscribeFromLogsAsync(CancellationToken ct = default);
+    }
+
+    public class LogsService(
+        IHttpClientService httpClientService,
+        IRealtimeService realtimeService,
+        ILogger<LogsService> logger) : ILogsService
+    {
+
+        #region Application Logs
+
+        public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
+        {
+            var queryString = BuildQueryString(queryParams);
+            return await httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
+                   new PagedResult<ApplicationLogDto>();
+        }
+
+        public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
+        {
+            return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
+        }
+
+        public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
+        {
+            return await httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
+                   new ApplicationLogStatisticsDto();
+        }
+
+        public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto)
+        {
+            return await httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
+        }
+
+        #endregion
+
+        #region Audit Logs
+
+        public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
+        {
+            var queryString = BuildQueryString(queryParams);
+            return await httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
+                   new PagedResult<EntityChangeLogDto>();
+        }
+
+        public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id)
+        {
+            return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
+        }
+
+        public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
+        {
+            return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
+                   new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
+        }
+
+        public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
+        {
+            return await httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
+        }
+
+        #endregion
+
+        #region Real-time Subscriptions
+
+        public async Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived, CancellationToken ct = default)
+        {
+            try
+            {
+                await realtimeService.StartAuditConnectionAsync();
+                // SignalR subscription will be implemented in future version
+                logger.LogInformation("Application log subscription requested");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to subscribe to application logs");
+                throw;
+            }
+        }
+
+        public async Task SubscribeToAuditLogsAsync(Func<EntityChangeLogDto, Task> onLogReceived, CancellationToken ct = default)
+        {
+            try
+            {
+                await realtimeService.StartAuditConnectionAsync();
+                // SignalR subscription will be implemented in future version
+                logger.LogInformation("Audit log subscription requested");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to subscribe to audit logs");
+                throw;
+            }
+        }
+
+        public async Task UnsubscribeFromLogsAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                // SignalR unsubscription will be implemented in future version
+                logger.LogInformation("Log unsubscription requested");
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to unsubscribe from logs");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private static string BuildQueryString(Dictionary<string, object> queryParams)
+        {
+            var queryItems = new List<string>();
+
+            foreach (var kvp in queryParams)
+            {
+                var value = kvp.Value;
+                if (value is not null)
+                {
+                    if (value is DateTime dateTime && dateTime != default)
+                    {
+                        queryItems.Add($"{kvp.Key}={dateTime:yyyy-MM-ddTHH:mm:ss}");
+                    }
+                    else if (value is bool boolValue)
+                    {
+                        queryItems.Add($"{kvp.Key}={boolValue.ToString().ToLower()}");
+                    }
+                    else if (value is int intValue && intValue > 0)
+                    {
+                        queryItems.Add($"{kvp.Key}={intValue}");
+                    }
+                    else if (value is string stringValue && !string.IsNullOrEmpty(stringValue))
+                    {
+                        queryItems.Add($"{kvp.Key}={Uri.EscapeDataString(stringValue)}");
+                    }
+                    else if (value is Guid guidValue && guidValue != Guid.Empty)
+                    {
+                        queryItems.Add($"{kvp.Key}={guidValue}");
+                    }
+                }
+            }
+
+            return string.Join("&", queryItems);
+        }
+
+        #endregion
+    }
+}

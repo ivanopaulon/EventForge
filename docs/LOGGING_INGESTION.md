@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Prym log ingestion pipeline provides a resilient, non-blocking mechanism for processing client-side logs. It uses a bounded channel for queuing, background processing with retry logic, circuit breaker patterns, and fallback file logging to ensure reliability even under high load or system failures.
+The EventForge log ingestion pipeline provides a resilient, non-blocking mechanism for processing client-side logs. It uses a bounded channel for queuing, background processing with retry logic, circuit breaker patterns, and fallback file logging to ensure reliability even under high load or system failures.
 
 ## Architecture
 

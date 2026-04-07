@@ -1,4 +1,4 @@
-# Prym Management Pages Improvements Summary
+# EventForge Management Pages Improvements Summary
 
 ## Issues Addressed
 
@@ -11,7 +11,7 @@
 - Aligned with the pattern used in Tenant Management page
 
 **Changes Made**:
-- Updated `Prym.Client/Pages/SuperAdmin/LicenseManagement.razor`
+- Updated `EventForge.Client/Pages/SuperAdmin/LicenseManagement.razor`
 - Replaced lines 164-181 (individual MudIconButton elements) with ActionButtonGroup component
 - Added consistent toolbar actions using ActionButtonGroup pattern
 
@@ -24,8 +24,8 @@
 - Maintained separation between SuperAdmin system-level events and regular event management
 
 **Changes Made**:
-- Created `Prym.Client/Pages/Management/EventManagement.razor` - New admin-level page
-- Updated `Prym.Client/Layout/NavMenu.razor` - Navigation route updated to `/management/event-management`
+- Created `EventForge.Client/Pages/Management/EventManagement.razor` - New admin-level page
+- Updated `EventForge.Client/Layout/NavMenu.razor` - Navigation route updated to `/management/event-management`
 - Authorization: `[Authorize(Roles = "SuperAdmin,Admin,Manager")]`
 
 ### 3. **Layout Inconsistency (ALLINEARE LAYOUT E FUNZIONALITÀ)**
@@ -37,7 +37,7 @@
 - Standardized ActionButtonGroup usage across all management pages
 
 **Changes Made**:
-- Updated `Prym.Client/Pages/SuperAdmin/EventManagement.razor`
+- Updated `EventForge.Client/Pages/SuperAdmin/EventManagement.razor`
 - Replaced custom MudContainer layout with SuperAdminPageLayout
 - Converted custom div-based collapsible sections to SuperAdminCollapsibleSection components
 - Replaced custom toolbar with ActionButtonGroup
@@ -92,24 +92,24 @@
 
 ## Files Modified
 
-1. **`Prym.Client/Pages/SuperAdmin/LicenseManagement.razor`**
+1. **`EventForge.Client/Pages/SuperAdmin/LicenseManagement.razor`**
    - Fixed icon visibility by implementing ActionButtonGroup pattern
    - Added toolbar actions with proper icons
    - Standardized table structure and NoRecordsContent
 
-2. **`Prym.Client/Pages/SuperAdmin/EventManagement.razor`** 
+2. **`EventForge.Client/Pages/SuperAdmin/EventManagement.razor`** 
    - Converted to SuperAdminPageLayout
    - Replaced custom sections with SuperAdminCollapsibleSection
    - Implemented ActionButtonGroup for all actions
    - Standardized initialization and state management
 
-3. **`Prym.Client/Pages/Management/EventManagement.razor`** (NEW)
+3. **`EventForge.Client/Pages/Management/EventManagement.razor`** (NEW)
    - Created admin-level event management page
    - Accessible to SuperAdmin, Admin, Manager roles
    - Follows same patterns as SuperAdmin pages but without tenant selection
    - Route: `/management/event-management`
 
-4. **`Prym.Client/Layout/NavMenu.razor`**
+4. **`EventForge.Client/Layout/NavMenu.razor`**
    - Updated navigation route from `/admin/event-management` to `/management/event-management`
    - Maintained role-based access control
 

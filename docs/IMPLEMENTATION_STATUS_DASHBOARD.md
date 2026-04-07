@@ -1,4 +1,4 @@
-# 📊 Dashboard di Stato Implementazioni - Prym
+# 📊 Dashboard di Stato Implementazioni - EventForge
 
 > **Vista d'insieme** dello stato di avanzamento delle implementazioni per tutte le issue aperte, con KPI e metriche di progresso.
 

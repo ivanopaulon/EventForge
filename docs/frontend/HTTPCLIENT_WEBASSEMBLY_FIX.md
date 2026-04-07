@@ -23,7 +23,7 @@ In Blazor WebAssembly, HttpClient uses `BrowserHttpHandler` internally, which ha
 
 ## Solution
 
-**File:** `Prym.Client/Program.cs`
+**File:** `EventForge.Client/Program.cs`
 
 **Before:**
 ```csharp
@@ -32,7 +32,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.BaseAddress = new Uri("https://localhost:7241/");
     client.Timeout = TimeSpan.FromSeconds(30);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
     client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {
@@ -53,7 +53,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
     // Add default headers for API requests
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-Client/1.0");
     // Enable compression for better mobile performance
     client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate, br");
 });

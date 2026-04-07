@@ -1,8 +1,8 @@
-# 🎯 Riepilogo Chiusura Issue - Prym (Gennaio 2025)
+# 🎯 Riepilogo Chiusura Issue - EventForge (Gennaio 2025)
 
 ## 📊 Sommario Esecutivo
 
-Questo documento fornisce un riepilogo in italiano delle issue Prym che hanno raggiunto uno stato di sviluppo superiore al 90% e sono pronte per la chiusura su GitHub.
+Questo documento fornisce un riepilogo in italiano delle issue EventForge che hanno raggiunto uno stato di sviluppo superiore al 90% e sono pronte per la chiusura su GitHub.
 
 ---
 
