@@ -1,5 +1,4 @@
 using EventForge.DTOs.Notifications;
-using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
@@ -12,14 +11,11 @@ namespace EventForge.Server.Controllers;
 /// REST API controller for notification management and history export.
 /// Provides comprehensive endpoints for notification operations, statistics,
 /// and data export capabilities with multi-tenant support.
-/// 
-/// This controller implements stub endpoints for Step 3 requirements while
-/// preparing for future full implementation with advanced features.
+/// Notifications are always available to all authenticated users.
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
-[RequireLicenseFeature("NotificationManagement")]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

@@ -32,30 +32,24 @@ public interface IDevToolsService
 /// <summary>
 /// Implementazione del servizio DevTools usando HTTP client.
 /// </summary>
-public class DevToolsService : IDevToolsService
+public class DevToolsService(
+    IHttpClientService httpClientService,
+    ILogger<DevToolsService> logger) : IDevToolsService
 {
-    private readonly IHttpClientService _httpClientService;
-    private readonly ILogger<DevToolsService> _logger;
     private const string BaseUrl = "api/v1/devtools";
-
-    public DevToolsService(IHttpClientService httpClientService, ILogger<DevToolsService> logger)
-    {
-        _httpClientService = httpClientService ?? throw new ArgumentNullException(nameof(httpClientService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     public async Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request)
     {
         try
         {
-            var response = await _httpClientService.PostAsync<GenerateProductsRequestDto, GenerateProductsResponseDto>(
+            var response = await httpClientService.PostAsync<GenerateProductsRequestDto, GenerateProductsResponseDto>(
                 $"{BaseUrl}/generate-products",
                 request);
             return response;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nell'avvio della generazione prodotti");
+            logger.LogError(ex, "Errore nell'avvio della generazione prodotti");
             return null;
         }
     }
@@ -64,12 +58,12 @@ public class DevToolsService : IDevToolsService
     {
         try
         {
-            return await _httpClientService.GetAsync<GenerateProductsStatusDto>(
+            return await httpClientService.GetAsync<GenerateProductsStatusDto>(
                 $"{BaseUrl}/generate-products/status/{Uri.EscapeDataString(jobId)}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nel recupero dello stato del job {JobId}", jobId);
+            logger.LogError(ex, "Errore nel recupero dello stato del job {JobId}", jobId);
             return null;
         }
     }
@@ -78,7 +72,7 @@ public class DevToolsService : IDevToolsService
     {
         try
         {
-            await _httpClientService.PostAsync(
+            await httpClientService.PostAsync(
                 $"{BaseUrl}/generate-products/cancel/{Uri.EscapeDataString(jobId)}",
                 new { }); // Empty object as payload
 
@@ -86,7 +80,7 @@ public class DevToolsService : IDevToolsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nella cancellazione del job {JobId}", jobId);
+            logger.LogError(ex, "Errore nella cancellazione del job {JobId}", jobId);
             return false;
         }
     }

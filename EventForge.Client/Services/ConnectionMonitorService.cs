@@ -21,11 +21,11 @@ public interface IConnectionMonitorService : IDisposable
     Task CheckNowAsync();
 }
 
-public class ConnectionMonitorService : IConnectionMonitorService
+public class ConnectionMonitorService(
+    IHealthService healthService,
+    IRealtimeService realtimeService,
+    ILogger<ConnectionMonitorService> logger) : IConnectionMonitorService
 {
-    private readonly IHealthService _healthService;
-    private readonly IRealtimeService _realtimeService;
-    private readonly ILogger<ConnectionMonitorService> _logger;
     private Timer? _timer;
     private bool _isRunning;
     private bool _signalRWasEverConnected = false;
@@ -37,16 +37,6 @@ public class ConnectionMonitorService : IConnectionMonitorService
     public string? StatusMessage { get; private set; }
 
     public event Action<ConnectionStatus>? StatusChanged;
-
-    public ConnectionMonitorService(
-        IHealthService healthService,
-        IRealtimeService realtimeService,
-        ILogger<ConnectionMonitorService> logger)
-    {
-        _healthService = healthService;
-        _realtimeService = realtimeService;
-        _logger = logger;
-    }
 
     public void Start()
     {
@@ -72,7 +62,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
 
         try
         {
-            var health = await _healthService.GetHealthAsync();
+            var health = await healthService.GetHealthAsync();
             IsApiReachable = health != null;
         }
         catch
@@ -80,7 +70,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
             IsApiReachable = false;
         }
 
-        IsSignalRConnected = _realtimeService.IsChatConnected || _realtimeService.IsNotificationConnected;
+        IsSignalRConnected = realtimeService.IsChatConnected || realtimeService.IsNotificationConnected;
         if (IsSignalRConnected) _signalRWasEverConnected = true;
 
         // Only treat SignalR as a problem if it was previously established.
@@ -118,7 +108,7 @@ public class ConnectionMonitorService : IConnectionMonitorService
 
         if (newStatus != previousStatus)
         {
-            _logger.LogWarning("Connection status changed: {Previous} -> {New}", previousStatus, newStatus);
+            logger.LogWarning("Connection status changed: {Previous} -> {New}", previousStatus, newStatus);
             StatusChanged?.Invoke(newStatus);
         }
     }

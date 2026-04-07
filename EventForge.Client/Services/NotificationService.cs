@@ -76,12 +76,13 @@ public class NotificationService : INotificationService
 
             var query = string.Join("&", queryParams);
             var pagedResult = await _httpClientService.GetAsync<PagedResult<NotificationResponseDto>>($"api/v1/notifications?{query}", cancellationToken);
-            return pagedResult?.Items?.ToList() ?? new List<NotificationResponseDto>();
+            return pagedResult?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notifications");
-            return new List<NotificationResponseDto>();
+            _logger.LogError(ex, "Error getting notifications (page={Page}, pageSize={PageSize}, filter={Filter}): {ExceptionType} - {Message}",
+                page, pageSize, filter, ex.GetType().Name, ex.Message);
+            return [];
         }
     }
 
@@ -93,7 +94,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notification {Id}", id);
+            _logger.LogError(ex, "Error getting notification {Id}: {ExceptionType} - {Message}", id, ex.GetType().Name, ex.Message);
             return null;
         }
     }
@@ -103,11 +104,12 @@ public class NotificationService : INotificationService
         try
         {
             var result = await _httpClientService.PostAsync<CreateNotificationDto, NotificationResponseDto>("api/v1/notifications", createDto, cancellationToken);
-            return result ?? throw new InvalidOperationException("Failed to send notification");
+            return result ?? throw new InvalidOperationException("Failed to send notification: server returned null result");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending notification");
+            _logger.LogError(ex, "Error sending notification (Type={Type}): {ExceptionType} - {Message}",
+                createDto.Type, ex.GetType().Name, ex.Message);
             throw;
         }
     }
@@ -121,7 +123,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking notification {Id} as read", id);
+            _logger.LogError(ex, "Error marking notification {Id} as read: {ExceptionType} - {Message}", id, ex.GetType().Name, ex.Message);
             return false;
         }
     }
@@ -135,7 +137,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error marking all notifications as read");
+            _logger.LogError(ex, "Error marking all notifications as read: {ExceptionType} - {Message}", ex.GetType().Name, ex.Message);
             return false;
         }
     }
@@ -149,7 +151,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error archiving notification {Id}", id);
+            _logger.LogError(ex, "Error archiving notification {Id}: {ExceptionType} - {Message}", id, ex.GetType().Name, ex.Message);
             return false;
         }
     }
@@ -163,7 +165,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error archiving read notifications");
+            _logger.LogError(ex, "Error archiving read notifications: {ExceptionType} - {Message}", ex.GetType().Name, ex.Message);
             return false;
         }
     }
@@ -177,7 +179,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error silencing notification {Id}", id);
+            _logger.LogError(ex, "Error silencing notification {Id}: {ExceptionType} - {Message}", id, ex.GetType().Name, ex.Message);
             return false;
         }
     }
@@ -190,7 +192,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notification stats");
+            _logger.LogError(ex, "Error getting notification stats: {ExceptionType} - {Message}", ex.GetType().Name, ex.Message);
             return new NotificationStatsDto();
         }
     }
@@ -199,12 +201,12 @@ public class NotificationService : INotificationService
     {
         try
         {
-            return await _httpClientService.GetAsync<List<NotificationTypes>>("api/v1/notifications/subscriptions", cancellationToken) ?? new List<NotificationTypes>();
+            return await _httpClientService.GetAsync<List<NotificationTypes>>("api/v1/notifications/subscriptions", cancellationToken) ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting notification subscriptions");
-            return new List<NotificationTypes>();
+            _logger.LogError(ex, "Error getting notification subscriptions: {ExceptionType} - {Message}", ex.GetType().Name, ex.Message);
+            return [];
         }
     }
 
@@ -217,7 +219,8 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating notification subscriptions");
+            _logger.LogError(ex, "Error updating notification subscriptions ({Count} items): {ExceptionType} - {Message}",
+                subscriptions.Count, ex.GetType().Name, ex.Message);
             return false;
         }
     }
