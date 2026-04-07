@@ -24,6 +24,7 @@ public class FiscalDrawer : AuditableEntity
 
     [Required]
     [MaxLength(3)]
+    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Invalid currency code. Use ISO 4217 format (e.g., EUR, USD).")]
     public string CurrencyCode { get; set; } = "EUR";
 
     [Required]
