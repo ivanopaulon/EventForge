@@ -6,14 +6,14 @@ namespace EventForge.Server.Services.Updates;
 /// <summary>
 /// BackgroundService that periodically queries the UpdateHub for the count of packages
 /// with status <c>ReadyToDeploy</c> and broadcasts the result to all SuperAdmin clients
-/// via the <see cref="UpdateNotificationHub"/> ("superadmin" group, event "UpdatesAvailable").
+/// via the <see cref="AppHub"/> ("superadmin" group, event "UpdatesAvailable").
 ///
 /// This keeps the FAB badge on the client up-to-date without requiring the SuperAdmin to
 /// manually open the updates dialog.
 /// </summary>
 public sealed class UpdatesAvailableRefreshService(
     IUpdateHubProxyService hubProxy,
-    IHubContext<UpdateNotificationHub> hubContext,
+    IHubContext<AppHub> hubContext,
     IConfiguration configuration,
     ILogger<UpdatesAvailableRefreshService> logger) : BackgroundService
 {

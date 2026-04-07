@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace EventForge.Server.Services.Updates;
 
@@ -13,6 +14,21 @@ public sealed class UpdateHubProxyService : IUpdateHubProxyService
     private readonly HttpClient _http;
     private readonly ILogger<UpdateHubProxyService> _logger;
     private readonly bool _configured;
+
+    /// <summary>
+    /// Options used when deserialising UpdateHub API responses.
+    /// <para>
+    /// PropertyNameCaseInsensitive ensures that camelCase JSON properties (e.g. "component")
+    /// are matched to PascalCase DTO properties (e.g. "Component").
+    /// JsonStringEnumConverter ensures enum-valued fields serialised as strings by the Hub are
+    /// accepted — but since the DTOs use <see langword="string"/> properties the converter also
+    /// avoids a hard failure when an older Hub binary emits integer enum values.
+    /// </para>
+    /// </summary>
+    private static readonly JsonSerializerOptions _hubJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public UpdateHubProxyService(
         IConfiguration configuration,
@@ -38,14 +54,14 @@ public sealed class UpdateHubProxyService : IUpdateHubProxyService
     public async Task<IReadOnlyList<PackageSummaryDto>> GetPackagesAsync(CancellationToken ct = default)
     {
         EnsureConfigured();
-        var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", ct) ?? [];
+        var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", _hubJsonOptions, ct) ?? [];
         return [.. list.OrderByDescending(p => p.UploadedAt)];
     }
 
     public async Task<IReadOnlyList<InstallationSummaryDto>> GetInstallationsAsync(CancellationToken ct = default)
     {
         EnsureConfigured();
-        return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", ct) ?? [];
+        return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", _hubJsonOptions, ct) ?? [];
     }
 
     public async Task SendUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)

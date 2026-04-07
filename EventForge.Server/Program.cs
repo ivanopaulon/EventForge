@@ -541,15 +541,13 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false
 });
 
-// Map SignalR hubs (preserve existing mappings)
-app.MapHub<AuditLogHub>("/hubs/audit-log");
-app.MapHub<NotificationHub>("/hubs/notifications");
+// SignalR hub endpoints.
+// AppHub consolidates: notifications, audit-log, alerts, configuration and update-notifications.
+// ChatHub, DocumentCollaborationHub and FiscalPrinterHub remain separate (complex group/lock management).
+app.MapHub<EventForge.Server.Hubs.AppHub>("/hubs/app");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
-app.MapHub<AlertHub>("/hubs/alerts");
-app.MapHub<EventForge.Server.Hubs.ConfigurationHub>("/hubs/configuration");
 app.MapHub<EventForge.Server.Hubs.FiscalPrinterHub>("/hubs/fiscal-printer");
-app.MapHub<EventForge.Server.Hubs.UpdateNotificationHub>("/hubs/update-notifications");
 
 app.Run();
 

@@ -43,6 +43,13 @@ public partial class EventForgeDbContext
             .HasOne(p => p.Station)
             .WithMany(s => s.Printers)
             .HasForeignKey(p => p.StationId);
+
+        _ = modelBuilder.Entity<Station>()
+            .HasOne(s => s.AssignedPrinter)
+            .WithMany()
+            .HasForeignKey(s => s.AssignedPrinterId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 
 }

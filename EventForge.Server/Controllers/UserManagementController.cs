@@ -1,3 +1,4 @@
+using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -15,7 +16,7 @@ public class UserManagementController(
     EventForgeDbContext context,
     ITenantContext tenantContext,
     IAuditLogService auditLogService,
-    IHubContext<AuditLogHub> hubContext,
+    IHubContext<AppHub> hubContext,
     ILogger<UserManagementController> logger) : BaseApiController
 {
 

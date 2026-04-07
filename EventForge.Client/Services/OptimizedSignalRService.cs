@@ -1,6 +1,7 @@
 using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.FiscalPrinting;
 using EventForge.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
@@ -80,6 +81,25 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
     #endregion
 
+    #region Events - Fiscal Printer
+    public event Action<Guid, FiscalPrinterStatus>? PrinterStatusUpdated;
+    public event Action<Guid, string>? PrinterClosureRequired;
+    public event Action<Guid>? PrinterCriticalClosureMissing;
+    #endregion
+
+    #region Events - Alerts
+    public event Action<object>? PriceAlertReceived;
+    #endregion
+
+    #region Events - Configuration
+    public event Action<object>? ConfigurationChanged;
+    public event Action<object>? RestartRequired;
+    public event Action<object>? SystemOperationReceived;
+    #endregion
+
+    // Reference counting for fiscal printer group subscriptions (printerId → subscriber count)
+    private readonly ConcurrentDictionary<Guid, int> _printerSubscriptions = new();
+
     private class BatchedEvent
     {
         public string Type { get; set; } = string.Empty;
@@ -126,11 +146,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         var connectionTasks = new List<Task>
         {
-            StartConnectionAsync("audit", "/hubs/audit-log"),
-            StartConnectionAsync("notification", "/hubs/notifications"),
+            // AppHub consolidates: audit, notifications, alerts, configuration, update-notifications
+            StartConnectionAsync("app", "/hubs/app"),
             StartConnectionAsync("chat", "/hubs/chat"),
             StartConnectionAsync("document-collaboration", "/hubs/document-collaboration"),
-            StartConnectionAsync("update-notifications", "/hubs/update-notifications")
+            StartConnectionAsync("fiscal-printer", "/hubs/fiscal-printer")
         };
 
         await Task.WhenAll(connectionTasks);
@@ -240,11 +260,12 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         switch (connectionKey)
         {
-            case "audit":
+            case "app":
                 RegisterAuditEventHandlers(connection);
-                break;
-            case "notification":
                 RegisterNotificationEventHandlers(connection);
+                RegisterUpdateNotificationEventHandlers(connection);
+                RegisterAlertEventHandlers(connection);
+                RegisterConfigurationEventHandlers(connection);
                 break;
             case "chat":
                 RegisterChatEventHandlers(connection);
@@ -252,8 +273,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             case "document-collaboration":
                 RegisterDocumentCollaborationEventHandlers(connection);
                 break;
-            case "update-notifications":
-                RegisterUpdateNotificationEventHandlers(connection);
+            case "fiscal-printer":
+                RegisterFiscalPrinterEventHandlers(connection);
                 break;
         }
     }
@@ -462,6 +483,57 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         });
     }
 
+    private void RegisterFiscalPrinterEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<Guid, FiscalPrinterStatus>("PrinterStatusUpdated", (printerId, status) =>
+        {
+            try { PrinterStatusUpdated?.Invoke(printerId, status); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process PrinterStatusUpdated"); }
+        });
+
+        _ = connection.On<Guid, string>("ClosureRequired", (printerId, printerName) =>
+        {
+            try { PrinterClosureRequired?.Invoke(printerId, printerName); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ClosureRequired"); }
+        });
+
+        _ = connection.On<Guid>("CriticalClosureMissing", printerId =>
+        {
+            try { PrinterCriticalClosureMissing?.Invoke(printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process CriticalClosureMissing"); }
+        });
+    }
+
+    private void RegisterAlertEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<System.Text.Json.JsonElement>("NewAlert", data =>
+        {
+            try { PriceAlertReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NewAlert"); }
+        });
+    }
+
+    private void RegisterConfigurationEventHandlers(HubConnection connection)
+    {
+        _ = connection.On<System.Text.Json.JsonElement>("ConfigurationChanged", data =>
+        {
+            try { ConfigurationChanged?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ConfigurationChanged"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("RestartRequired", data =>
+        {
+            try { RestartRequired?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process RestartRequired"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("SystemOperation", data =>
+        {
+            try { SystemOperationReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process SystemOperation"); }
+        });
+    }
+
     #endregion
 
     #region Event Batching and Processing
@@ -574,10 +646,10 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     private string GetHubPath(string connectionKey) => connectionKey switch
     {
-        "audit" => "/hubs/audit-log",
-        "notification" => "/hubs/notifications",
+        "app" => "/hubs/app",
         "chat" => "/hubs/chat",
         "document-collaboration" => "/hubs/document-collaboration",
+        "fiscal-printer" => "/hubs/fiscal-printer",
         _ => throw new ArgumentException($"Unknown connection key: {connectionKey}")
     };
 
@@ -594,7 +666,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             case "chat":
                 _performanceService.InvalidateCachePattern(CacheKeys.CHAT_MESSAGES_PREFIX);
                 break;
-            case "notification":
+            case "app":
                 _performanceService.InvalidateCache(CacheKeys.NOTIFICATION_LIST);
                 break;
         }
@@ -685,10 +757,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     {
         switch (connectionKey)
         {
-            case "audit":
+            case "app":
                 await JoinAuditGroupAsync();
-                break;
-            case "notification":
                 // Preload notification preferences
                 _performanceService.PreloadData(CacheKeys.NOTIFICATION_LIST,
                     async () => await GetNotificationPreferencesAsync());
@@ -709,7 +779,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     private async Task JoinAuditGroupAsync()
     {
-        if (_connections.TryGetValue("audit", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -819,19 +889,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     }
 
     /// <summary>
-    /// Starts audit connection and joins audit log group.
+    /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
     public async Task StartAuditConnectionAsync()
     {
-        await StartConnectionAsync("audit", "/hubs/audit-log");
+        await StartConnectionAsync("app", "/hubs/app");
     }
 
     /// <summary>
-    /// Starts notification connection.
+    /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
     public async Task StartNotificationConnectionAsync()
     {
-        await StartConnectionAsync("notification", "/hubs/notifications");
+        await StartConnectionAsync("app", "/hubs/app");
     }
 
     /// <summary>
@@ -1071,7 +1141,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1092,7 +1162,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1113,7 +1183,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task AcknowledgeNotificationAsync(Guid notificationId)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1134,7 +1204,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     public async Task ArchiveNotificationAsync(Guid notificationId)
     {
-        if (_connections.TryGetValue("notification", out var connection) &&
+        if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
         {
             try
@@ -1154,12 +1224,35 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     #region Connection State Properties
 
-    public bool IsAuditConnected => GetConnectionState("audit") == HubConnectionState.Connected;
-    public bool IsNotificationConnected => GetConnectionState("notification") == HubConnectionState.Connected;
+    // "app" hub consolidates: audit, notifications, alerts, configuration, update-notifications
+    public bool IsAppConnected => GetConnectionState("app") == HubConnectionState.Connected;
+    public bool IsAuditConnected => IsAppConnected;
+    public bool IsNotificationConnected => IsAppConnected;
     public bool IsChatConnected => GetConnectionState("chat") == HubConnectionState.Connected;
     public bool IsDocumentCollaborationConnected => GetConnectionState("document-collaboration") == HubConnectionState.Connected;
-    public bool IsUpdateNotificationConnected => GetConnectionState("update-notifications") == HubConnectionState.Connected;
-    public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
+    public bool IsUpdateNotificationConnected => IsAppConnected;
+    public bool IsFiscalPrinterConnected => GetConnectionState("fiscal-printer") == HubConnectionState.Connected;
+    public bool IsAlertsConnected => IsAppConnected;
+    public bool IsConfigurationConnected => IsAppConnected;
+    public bool IsAllConnected => IsAppConnected && IsChatConnected && IsDocumentCollaborationConnected;
+
+    public async Task SubscribeToPrinterAsync(Guid printerId)
+    {
+        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        {
+            try { await conn.InvokeAsync("SubscribeToPrinter", printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to subscribe to printer {PrinterId}", printerId); }
+        }
+    }
+
+    public async Task UnsubscribeFromPrinterAsync(Guid printerId)
+    {
+        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        {
+            try { await conn.InvokeAsync("UnsubscribeFromPrinter", printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to unsubscribe from printer {PrinterId}", printerId); }
+        }
+    }
 
     private HubConnectionState GetConnectionState(string connectionKey)
     {

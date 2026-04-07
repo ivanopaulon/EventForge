@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.StationMonitor;
@@ -55,6 +56,7 @@ public class Station : AuditableEntity
     /// Collection of printers assigned to this station.
     /// </summary>
     [Display(Name = "Printers", Description = "Printers assigned to the station.")]
+    [InverseProperty(nameof(Printer.Station))]
     public ICollection<Printer> Printers { get; set; } = new List<Printer>();
 
     // --- Printing & KDS Configuration ---
@@ -74,6 +76,7 @@ public class Station : AuditableEntity
     /// <summary>
     /// Navigation property for the assigned printer.
     /// </summary>
+    [ForeignKey(nameof(AssignedPrinterId))]
     public Printer? AssignedPrinter { get; set; }
 
     /// <summary>

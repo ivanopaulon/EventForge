@@ -16,7 +16,7 @@ public partial class EventForgeDbContext
 
         _ = modelBuilder.Entity<User>()
             .HasOne(u => u.Tenant)
-            .WithMany()
+            .WithMany(t => t.Users)
             .HasForeignKey(u => u.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 

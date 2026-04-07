@@ -3,6 +3,7 @@ using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 
 namespace EventForge.Server.HostedServices;
 
@@ -27,6 +28,14 @@ public class FiscalPrinterMonitorService : BackgroundService
     private readonly IHubContext<FiscalPrinterHub> _hubContext;
     private readonly ILogger<FiscalPrinterMonitorService> _logger;
     private readonly TimeSpan _pollingInterval;
+
+    // Per-printer consecutive-error tracking to throttle log noise.
+    // Key: printerId  Value: (consecutive error count, last-logged-at UTC)
+    private readonly ConcurrentDictionary<Guid, (int Count, DateTime LastLoggedAt)> _errorState = new();
+
+    // After this many consecutive errors the service silences to WARNING (then DEBUG every N minutes).
+    private const int ErrorThresholdForDemotion = 3;
+    private static readonly TimeSpan ErrorLogCooldown = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Initializes a new instance of <see cref="FiscalPrinterMonitorService"/>.
@@ -133,6 +142,9 @@ public class FiscalPrinterMonitorService : BackgroundService
 
             _statusCache.UpdateStatus(printerId, status);
 
+            // Reset per-printer error counter when the poll succeeds.
+            _errorState.TryRemove(printerId, out _);
+
             // ── Notify all SignalR clients subscribed to this printer ──────────
             var groupName = FiscalPrinterHub.PrinterGroupName(printerId);
 
@@ -194,10 +206,38 @@ public class FiscalPrinterMonitorService : BackgroundService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(
-                ex,
-                "FiscalPrinterMonitorService: unexpected error polling printer {Name} ({Id}).",
-                printerName, printerId);
+            var now = DateTime.UtcNow;
+            var (count, lastLogged) = _errorState.GetOrAdd(printerId, _ => (0, DateTime.MinValue));
+            count++;
+
+            // Log at ERROR for the first few occurrences; after threshold only repeat every cooldown period.
+            var isSuppressed = count > ErrorThresholdForDemotion && (now - lastLogged) < ErrorLogCooldown;
+            if (!isSuppressed)
+            {
+                // Update the last-logged timestamp BEFORE the log so subsequent checks use this time.
+                _errorState[printerId] = (count, now);
+
+                if (count <= ErrorThresholdForDemotion)
+                {
+                    _logger.LogError(
+                        ex,
+                        "FiscalPrinterMonitorService: unexpected error polling printer {Name} ({Id}). " +
+                        "(occurrence {Count})",
+                        printerName, printerId, count);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "FiscalPrinterMonitorService: repeated error polling printer {Name} ({Id}) " +
+                        "({Count} consecutive failures, {Ex}). Further errors suppressed for {Cooldown}.",
+                        printerName, printerId, count, ex.Message, ErrorLogCooldown);
+                }
+            }
+            else
+            {
+                // Update error count only (keep lastLogged unchanged so cooldown keeps running).
+                _errorState[printerId] = (count, lastLogged);
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ public class NotificationServiceTests : IDisposable
     private readonly EventForgeDbContext _context;
     private readonly Mock<IAuditLogService> _auditLogServiceMock;
     private readonly Mock<ILogger<NotificationService>> _loggerMock;
-    private readonly Mock<IHubContext<NotificationHub>> _hubContextMock;
+    private readonly Mock<IHubContext<AppHub>> _hubContextMock;
     private readonly NotificationService _service;
     private readonly Guid _testTenantId;
     private readonly Guid _testUserId;
@@ -36,7 +36,7 @@ public class NotificationServiceTests : IDisposable
         _context = new EventForgeDbContext(options);
         _auditLogServiceMock = new Mock<IAuditLogService>();
         _loggerMock = new Mock<ILogger<NotificationService>>();
-        _hubContextMock = new Mock<IHubContext<NotificationHub>>();
+        _hubContextMock = new Mock<IHubContext<AppHub>>();
 
         // Setup SignalR mock
         var clientProxyMock = new Mock<IClientProxy>();

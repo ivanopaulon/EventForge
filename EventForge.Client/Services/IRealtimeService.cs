@@ -1,6 +1,7 @@
 using EventForge.Client.Services.Updates;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Documents;
+using EventForge.DTOs.FiscalPrinting;
 using EventForge.DTOs.Notifications;
 
 namespace EventForge.Client.Services;
@@ -22,6 +23,11 @@ public interface IRealtimeService
     /// Stops all SignalR connections gracefully.
     /// </summary>
     Task StopAllConnectionsAsync();
+
+    /// <summary>
+    /// Gets whether the unified app connection (notifications + audit + alerts + config + updates) is active.
+    /// </summary>
+    bool IsAppConnected { get; }
 
     /// <summary>
     /// Gets whether all connections are active.
@@ -52,6 +58,21 @@ public interface IRealtimeService
     /// Gets whether the update-notifications connection is active.
     /// </summary>
     bool IsUpdateNotificationConnected { get; }
+
+    /// <summary>
+    /// Gets whether the fiscal-printer connection is active.
+    /// </summary>
+    bool IsFiscalPrinterConnected { get; }
+
+    /// <summary>
+    /// Gets whether the alerts connection is active.
+    /// </summary>
+    bool IsAlertsConnected { get; }
+
+    /// <summary>
+    /// Gets whether the configuration hub connection is active.
+    /// </summary>
+    bool IsConfigurationConnected { get; }
 
     #endregion
 
@@ -316,6 +337,71 @@ public interface IRealtimeService
     /// Releases the edit lock for a document.
     /// </summary>
     Task ReleaseDocumentEditLockAsync(Guid documentId);
+
+    #endregion
+
+    #region Fiscal Printer Events
+
+    /// <summary>
+    /// Fired when a fiscal printer's status is updated by the monitoring service.
+    /// Arguments: (printerId, status).
+    /// </summary>
+    event Action<Guid, FiscalPrinterStatus>? PrinterStatusUpdated;
+
+    /// <summary>
+    /// Fired when a fiscal printer requires a daily closure.
+    /// Arguments: (printerId, printerName).
+    /// </summary>
+    event Action<Guid, string>? PrinterClosureRequired;
+
+    /// <summary>
+    /// Fired when a fiscal printer has a critical missing closure (fiscal memory full).
+    /// Arguments: printerId.
+    /// </summary>
+    event Action<Guid>? PrinterCriticalClosureMissing;
+
+    #endregion
+
+    #region Fiscal Printer Methods
+
+    /// <summary>
+    /// Subscribes to real-time status updates for the given printer.
+    /// Reference-counted: the hub group is joined on the first subscriber and left only when all unsubscribe.
+    /// </summary>
+    Task SubscribeToPrinterAsync(Guid printerId);
+
+    /// <summary>
+    /// Decrements the subscriber count for the printer and leaves the hub group when it reaches zero.
+    /// </summary>
+    Task UnsubscribeFromPrinterAsync(Guid printerId);
+
+    #endregion
+
+    #region Alert Events
+
+    /// <summary>
+    /// Fired when a new supplier price alert is broadcast to the tenant.
+    /// </summary>
+    event Action<object>? PriceAlertReceived;
+
+    #endregion
+
+    #region Configuration Events
+
+    /// <summary>
+    /// Fired when a configuration key is changed by a SuperAdmin.
+    /// </summary>
+    event Action<object>? ConfigurationChanged;
+
+    /// <summary>
+    /// Fired when a server restart is required.
+    /// </summary>
+    event Action<object>? RestartRequired;
+
+    /// <summary>
+    /// Fired when a system operation completes (backup, migration, etc.).
+    /// </summary>
+    event Action<object>? SystemOperationReceived;
 
     #endregion
 }

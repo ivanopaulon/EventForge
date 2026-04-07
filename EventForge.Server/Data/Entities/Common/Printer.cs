@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Common;
 
@@ -61,6 +62,8 @@ public class Printer : AuditableEntity
     /// <summary>
     /// Navigation property for the station.
     /// </summary>
+    [ForeignKey(nameof(StationId))]
+    [InverseProperty(nameof(Station.Printers))]
     public Station? Station { get; set; }
 
     // --- Fiscal Printer Support ---

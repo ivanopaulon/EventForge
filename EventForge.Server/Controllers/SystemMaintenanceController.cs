@@ -6,7 +6,7 @@ namespace EventForge.Server.Controllers;
 
 /// <summary>
 /// Receives maintenance notifications from co-located (or remote) UpdateAgents
-/// and broadcasts them to all connected browser clients via <see cref="UpdateNotificationHub"/>.
+/// and broadcasts them to all connected browser clients via <see cref="AppHub"/>.
 ///
 /// Authentication: shared secret in <c>X-Maintenance-Secret</c> header,
 /// compared against <c>UpdateHub:MaintenanceSecret</c> from configuration.
@@ -16,7 +16,7 @@ namespace EventForge.Server.Controllers;
 [ApiController]
 [Route("api/v1/system/maintenance")]
 public class SystemMaintenanceController(
-    IHubContext<UpdateNotificationHub> hub,
+    IHubContext<AppHub> hub,
     IConfiguration configuration,
     ILogger<SystemMaintenanceController> logger) : ControllerBase
 {

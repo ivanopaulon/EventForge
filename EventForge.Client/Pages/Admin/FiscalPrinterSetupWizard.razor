@@ -30,13 +30,13 @@
 </MudText>
 
 @* ──────────────────── STEP INDICATOR ──────────────────── *@
-<MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="true" Class="mb-4">
+<MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="false" Class="mb-4">
     <MudStep Title="Connessione"         Icon="@Icons.Material.Filled.SettingsEthernet" />
     <MudStep Title="Impostazioni"        Icon="@Icons.Material.Filled.Tune" />
     <MudStep Title="Info Stampante"      Icon="@Icons.Material.Filled.Info" />
-    <MudStep Title="Configurazione Base" Icon="@Icons.Material.Filled.TextFields" />
-    <MudStep Title="Tipo Stampante"      Icon="@Icons.Material.Filled.Print" />
-    <MudStep Title="Codici Fiscali"      Icon="@Icons.Material.Filled.Code" />
+    <MudStep Title="Configurazione"      Icon="@Icons.Material.Filled.TextFields" />
+    <MudStep Title="Tipo &amp; Carta"    Icon="@Icons.Material.Filled.Print" />
+    <MudStep Title="Dati Fiscali"        Icon="@Icons.Material.Filled.Code" />
     <MudStep Title="Associa POS"         Icon="@Icons.Material.Filled.PointOfSale" />
     <MudStep Title="Test &amp; Salva"    Icon="@Icons.Material.Filled.CheckCircle" />
 </MudStepper>
