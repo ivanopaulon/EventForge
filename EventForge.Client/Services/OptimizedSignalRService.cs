@@ -1247,6 +1247,24 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsConfigurationConnected => GetConnectionState("configuration") == HubConnectionState.Connected;
     public bool IsAllConnected => IsAuditConnected && IsNotificationConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
+    public async Task SubscribeToPrinterAsync(Guid printerId)
+    {
+        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        {
+            try { await conn.InvokeAsync("SubscribeToPrinter", printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to subscribe to printer {PrinterId}", printerId); }
+        }
+    }
+
+    public async Task UnsubscribeFromPrinterAsync(Guid printerId)
+    {
+        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        {
+            try { await conn.InvokeAsync("UnsubscribeFromPrinter", printerId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to unsubscribe from printer {PrinterId}", printerId); }
+        }
+    }
+
     private HubConnectionState GetConnectionState(string connectionKey)
     {
         return _connections.TryGetValue(connectionKey, out var connection)

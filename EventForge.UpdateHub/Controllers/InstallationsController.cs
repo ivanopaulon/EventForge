@@ -34,7 +34,7 @@ public class InstallationsController(
         {
             i.Id, i.Name, i.Location, i.Components,
             i.InstalledVersionServer, i.InstalledVersionClient,
-            i.Status, i.LastSeen, i.RegisteredAt,
+            Status = i.Status.ToString(), i.LastSeen, i.RegisteredAt,
             IsConnected = onlineIds.Contains(i.Id)
         }));
     }

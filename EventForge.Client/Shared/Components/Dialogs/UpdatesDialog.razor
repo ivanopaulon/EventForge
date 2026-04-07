@@ -57,7 +57,8 @@
                                   Striped="true"
                                   Dense="true"
                                   Elevation="1"
-                                  @bind-SelectedItem="_selectedPackage">
+                                  SelectedItem="_selectedPackage"
+                                  SelectedItemChanged="@((PackageSummaryClientDto? p) => _selectedPackage = p)">
                             <HeaderContent>
                                 <MudTh>Componente</MudTh>
                                 <MudTh>Versione</MudTh>
@@ -70,25 +71,25 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Componente">
                                     <MudChip T="string" Size="Size.Small"
-                                             Color="@(context.Component == "Server" ? Color.Primary : Color.Info)"
-                                             Text="@context.Component" />
+                                             Color="@(context!.Component == "Server" ? Color.Primary : Color.Info)"
+                                             Text="@context!.Component" />
                                 </MudTd>
                                 <MudTd DataLabel="Versione">
-                                    <MudText Typo="Typo.body2"><strong>v@context.Version</strong></MudText>
+                                    <MudText Typo="Typo.body2"><strong>v@context!.Version</strong></MudText>
                                 </MudTd>
                                 <MudTd DataLabel="Data caricamento">
-                                    <MudText Typo="Typo.body2">@context.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                    <MudText Typo="Typo.body2">@context!.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                                 </MudTd>
                                 <MudTd DataLabel="Dimensione">
-                                    <MudText Typo="Typo.body2">@FormatBytes(context.FileSizeBytes)</MudText>
+                                    <MudText Typo="Typo.body2">@FormatBytes(context!.FileSizeBytes)</MudText>
                                 </MudTd>
                                 <MudTd DataLabel="Stato">
                                     <MudChip T="string" Size="Size.Small"
-                                             Color="@GetPackageStatusColor(context.Status)"
-                                             Text="@GetPackageStatusLabel(context.Status)" />
+                                             Color="@GetPackageStatusColor(context!.Status)"
+                                             Text="@GetPackageStatusLabel(context!.Status)" />
                                 </MudTd>
                                 <MudTd DataLabel="Modalità">
-                                    @if (context.IsManualInstall)
+                                    @if (context!.IsManualInstall)
                                     {
                                         <MudChip T="string" Size="Size.Small" Color="Color.Warning"
                                                  Icon="@Icons.Material.Outlined.PanTool"
@@ -105,7 +106,7 @@
                                     <MudIconButton Icon="@Icons.Material.Outlined.Info"
                                                    Size="Size.Small"
                                                    Color="Color.Info"
-                                                   OnClick="@(() => ShowPackageDetails(context))"
+                                                   OnClick="@(() => { if (context is not null) ShowPackageDetails(context); })"
                                                    Title="Dettagli" />
                                 </MudTd>
                             </RowTemplate>

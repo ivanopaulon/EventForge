@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Auth;
 
@@ -185,6 +186,7 @@ public class User : AuditableEntity
     /// <summary>
     /// Navigation property: The tenant this user belongs to.
     /// </summary>
+    [ForeignKey(nameof(AuditableEntity.TenantId))]
     public virtual Tenant Tenant { get; set; } = null!;
 
     /// <summary>

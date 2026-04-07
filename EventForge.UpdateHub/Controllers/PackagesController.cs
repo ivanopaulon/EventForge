@@ -29,8 +29,15 @@ public class PackagesController(
         var packages = await packageService.GetAllAsync();
         return Ok(packages.Select(p => new
         {
-            p.Id, p.Version, p.Component, p.ReleaseNotes,
-            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status, p.IsManualInstall
+            p.Id,
+            p.Version,
+            Component = p.Component.ToString(),
+            p.ReleaseNotes,
+            p.Checksum,
+            p.FileSizeBytes,
+            p.UploadedAt,
+            Status = p.Status.ToString(),
+            p.IsManualInstall
         }));
     }
 

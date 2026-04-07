@@ -1,5 +1,6 @@
 using EventForge.UpdateAgent.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace EventForge.UpdateAgent.Controllers;
@@ -120,5 +121,107 @@ public sealed class PrinterProxyController(
         logger.LogDebug("PrinterProxy list devices: found {Count}", devices.Count);
 
         return Task.FromResult<IActionResult>(Ok(new { devices }));
+    }
+
+    /// <summary>
+    /// Returns all printers installed at OS level on the machine running this agent.
+    /// On Windows this queries installed printer queues via PowerShell <c>Get-Printer</c>.
+    /// On Linux/macOS it uses <c>lpstat -a</c> (CUPS). Falls back to an empty list when
+    /// neither is available.
+    /// </summary>
+    /// <returns>200 OK with a <c>printers</c> array of display-name strings.</returns>
+    [HttpGet("system-printers")]
+    public IActionResult ListSystemPrinters()
+    {
+        var printerNames = new List<string>();
+
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                printerNames = GetWindowsPrintersAsync();
+            }
+            else
+            {
+                printerNames = GetLinuxPrinters();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "PrinterProxy: failed to enumerate system printers");
+        }
+
+        logger.LogDebug("PrinterProxy system-printers: found {Count}", printerNames.Count);
+        return Ok(new { printers = printerNames });
+    }
+
+    private static List<string> GetWindowsPrintersAsync()
+    {
+        var printers = new List<string>();
+        try
+        {
+            // Use PowerShell to enumerate installed printer queues.
+            // Get-Printer returns rich objects; we only need the Name field.
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-NoProfile -NonInteractive -Command " +
+                            "\"Get-Printer | Select-Object -ExpandProperty Name\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc is not null)
+            {
+                var output = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit(5000);
+
+                foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var name = line.Trim();
+                    if (!string.IsNullOrEmpty(name))
+                        printers.Add(name);
+                }
+            }
+        }
+        catch { /* PowerShell not available — return empty list */ }
+
+        return printers;
+    }
+
+    private static List<string> GetLinuxPrinters()
+    {
+        var printers = new List<string>();
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("lpstat", "-a")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc is not null)
+            {
+                var output = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit(3000);
+
+                // lpstat -a format: "PrinterName accepting requests since ..."
+                foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var parts = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+                        printers.Add(parts[0]);
+                }
+            }
+        }
+        catch { /* lpstat not available — return empty list */ }
+
+        return printers;
     }
 }
