@@ -181,9 +181,12 @@ public class EnhancedPriceListServiceTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new MockPriceListBulkOperationsService();
+        var bulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(
+            context,
+            auditLogService,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>.Instance);
 
-        _priceListService = new PriceListService(context, auditLogService, logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        _priceListService = new PriceListService(context, auditLogService, logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, bulkOperationsService);
     }
 
     [Fact]

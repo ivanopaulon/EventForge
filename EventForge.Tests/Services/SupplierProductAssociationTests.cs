@@ -14,6 +14,7 @@ namespace EventForge.Tests.Services;
 public class SupplierProductAssociationTests
 {
     private readonly DbContextOptions<EventForgeDbContext> _dbContextOptions;
+    private readonly Guid _tenantId = Guid.NewGuid();
 
     public SupplierProductAssociationTests()
     {
@@ -36,9 +37,9 @@ public class SupplierProductAssociationTests
 
         // Add products
         context.Products.AddRange(
-            new Product { Id = product1Id, Name = "Product 1", Code = "P001" },
-            new Product { Id = product2Id, Name = "Product 2", Code = "P002" },
-            new Product { Id = product3Id, Name = "Product 3", Code = "P003" }
+            new Product { Id = product1Id, Name = "Product 1", Code = "P001", TenantId = _tenantId },
+            new Product { Id = product2Id, Name = "Product 2", Code = "P002", TenantId = _tenantId },
+            new Product { Id = product3Id, Name = "Product 3", Code = "P003", TenantId = _tenantId }
         );
 
         // Add association for product 1 only
@@ -48,7 +49,8 @@ public class SupplierProductAssociationTests
             ProductId = product1Id,
             SupplierId = supplierId,
             UnitCost = 10.50m,
-            SupplierProductCode = "SUP-P001"
+            SupplierProductCode = "SUP-P001",
+            TenantId = _tenantId
         });
 
         await context.SaveChangesAsync();
@@ -87,8 +89,8 @@ public class SupplierProductAssociationTests
         var product2Id = Guid.NewGuid();
 
         context.Products.AddRange(
-            new Product { Id = product1Id, Name = "Product 1", Code = "P001" },
-            new Product { Id = product2Id, Name = "Product 2", Code = "P002" }
+            new Product { Id = product1Id, Name = "Product 1", Code = "P001", TenantId = _tenantId },
+            new Product { Id = product2Id, Name = "Product 2", Code = "P002", TenantId = _tenantId }
         );
         await context.SaveChangesAsync();
 
@@ -120,15 +122,15 @@ public class SupplierProductAssociationTests
         var product3Id = Guid.NewGuid();
 
         context.Products.AddRange(
-            new Product { Id = product1Id, Name = "Product 1", Code = "P001" },
-            new Product { Id = product2Id, Name = "Product 2", Code = "P002" },
-            new Product { Id = product3Id, Name = "Product 3", Code = "P003" }
+            new Product { Id = product1Id, Name = "Product 1", Code = "P001", TenantId = _tenantId },
+            new Product { Id = product2Id, Name = "Product 2", Code = "P002", TenantId = _tenantId },
+            new Product { Id = product3Id, Name = "Product 3", Code = "P003", TenantId = _tenantId }
         );
 
         // Add associations for products 1 and 2
         context.ProductSuppliers.AddRange(
-            new ProductSupplier { Id = Guid.NewGuid(), ProductId = product1Id, SupplierId = supplierId },
-            new ProductSupplier { Id = Guid.NewGuid(), ProductId = product2Id, SupplierId = supplierId }
+            new ProductSupplier { Id = Guid.NewGuid(), ProductId = product1Id, SupplierId = supplierId, TenantId = _tenantId },
+            new ProductSupplier { Id = Guid.NewGuid(), ProductId = product2Id, SupplierId = supplierId, TenantId = _tenantId }
         );
         await context.SaveChangesAsync();
 
@@ -167,8 +169,8 @@ public class SupplierProductAssociationTests
         var product2Id = Guid.NewGuid();
 
         context.Products.AddRange(
-            new Product { Id = product1Id, Name = "Product 1", Code = "P001" },
-            new Product { Id = product2Id, Name = "Product 2", Code = "P002" }
+            new Product { Id = product1Id, Name = "Product 1", Code = "P001", TenantId = _tenantId },
+            new Product { Id = product2Id, Name = "Product 2", Code = "P002", TenantId = _tenantId }
         );
 
         // Add existing association with data
@@ -179,7 +181,8 @@ public class SupplierProductAssociationTests
             SupplierId = supplierId,
             UnitCost = 10.50m,
             SupplierProductCode = "SUP-P001",
-            Preferred = true
+            Preferred = true,
+            TenantId = _tenantId
         };
         context.ProductSuppliers.Add(existingAssociation);
         await context.SaveChangesAsync();
@@ -208,8 +211,8 @@ public class SupplierProductAssociationTests
         var tenantContextMock = new Mock<EventForge.Server.Services.Tenants.ITenantContext>();
         var codeGeneratorMock = new Mock<EventForge.Server.Services.CodeGeneration.IDailyCodeGenerator>();
 
-        // Setup tenant context to return a valid tenant ID
-        tenantContextMock.Setup(x => x.CurrentTenantId).Returns((Guid?)Guid.NewGuid());
+        // Setup tenant context to return the shared tenant ID
+        tenantContextMock.Setup(x => x.CurrentTenantId).Returns((Guid?)_tenantId);
 
         var priceHistoryServiceMock = new Mock<EventForge.Server.Services.PriceHistory.ISupplierProductPriceHistoryService>();
 

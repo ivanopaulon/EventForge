@@ -10,6 +10,34 @@ public static class DependencyValidationService
 {
     /// <summary>
     /// Validates all registered services for circular dependencies.
+    /// Accepts an <see cref="IServiceCollection"/> directly so descriptors are
+    /// available without relying on reflection into the built <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <param name="services">Service collection to validate</param>
+    /// <param name="logger">Logger for validation messages</param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when circular dependencies are detected
+    /// </exception>
+    public static void ValidateDependencies(
+        IServiceCollection services,
+        ILogger? logger = null)
+    {
+        logger?.LogInformation("Starting dependency validation for {Count} registered services", services.Count);
+        var graph = BuildDependencyGraph(services);
+        var cycles = DetectCycles(graph);
+
+        if (cycles.Any())
+        {
+            var errorMessage = FormatCycleError(cycles);
+            logger?.LogCritical("Circular dependencies detected:\n{ErrorMessage}", errorMessage);
+            throw new InvalidOperationException($"Circular dependencies detected:\n{errorMessage}");
+        }
+
+        logger?.LogInformation("Dependency validation completed successfully. No circular dependencies found.");
+    }
+
+    /// <summary>
+    /// Validates all registered services for circular dependencies.
     /// </summary>
     /// <param name="services">Service provider to validate</param>
     /// <param name="logger">Logger for validation messages</param>
@@ -20,6 +48,7 @@ public static class DependencyValidationService
         IServiceProvider services,
         ILogger? logger = null)
     {
+        logger?.LogInformation("Starting dependency validation via IServiceProvider reflection");
         var serviceDescriptors = GetServiceDescriptors(services);
         var graph = BuildDependencyGraph(serviceDescriptors);
         var cycles = DetectCycles(graph);
@@ -126,6 +155,12 @@ public static class DependencyValidationService
 
         return null;
     }
+
+    /// <summary>
+    /// Builds a dependency graph directly from an <see cref="IServiceCollection"/>.
+    /// </summary>
+    private static Dictionary<Type, List<Type>> BuildDependencyGraph(IServiceCollection services)
+        => BuildDependencyGraph((IEnumerable<ServiceDescriptor>)services);
 
     /// <summary>
     /// Builds a dependency graph from service descriptors.

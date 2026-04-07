@@ -24,11 +24,10 @@ public class DependencyValidationServiceTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton<SimpleServiceA>();
-        var provider = services.BuildServiceProvider();
 
         // Act & Assert
         var exception = Record.Exception(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         Assert.Null(exception);
     }
@@ -40,11 +39,10 @@ public class DependencyValidationServiceTests
         var services = new ServiceCollection();
         services.AddSingleton<SimpleServiceA>();
         services.AddSingleton<ServiceDependsOnA>();
-        var provider = services.BuildServiceProvider();
 
         // Act & Assert
         var exception = Record.Exception(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         Assert.Null(exception);
     }
@@ -56,11 +54,10 @@ public class DependencyValidationServiceTests
         var services = new ServiceCollection();
         services.AddSingleton<ICircularServiceA, CircularServiceA>();
         services.AddSingleton<ICircularServiceB, CircularServiceB>();
-        var provider = services.BuildServiceProvider();
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         Assert.Contains("Circular dependencies detected", exception.Message);
         Assert.Contains("ICircularServiceA", exception.Message);
@@ -75,11 +72,10 @@ public class DependencyValidationServiceTests
         services.AddSingleton<IComplexCircularA, ComplexCircularA>();
         services.AddSingleton<IComplexCircularB, ComplexCircularB>();
         services.AddSingleton<IComplexCircularC, ComplexCircularC>();
-        var provider = services.BuildServiceProvider();
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         Assert.Contains("Circular dependencies detected", exception.Message);
         Assert.Contains("CYCLE", exception.Message);
@@ -93,11 +89,10 @@ public class DependencyValidationServiceTests
         services.AddSingleton<ChainServiceA>();
         services.AddSingleton<ChainServiceB>();
         services.AddSingleton<ChainServiceC>();
-        var provider = services.BuildServiceProvider();
 
         // Act & Assert
         var exception = Record.Exception(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         Assert.Null(exception);
     }
@@ -108,12 +103,11 @@ public class DependencyValidationServiceTests
         // Arrange
         var services = new ServiceCollection();
         services.AddSingleton<SimpleServiceA>();
-        var provider = services.BuildServiceProvider();
 
         var loggerMock = new Mock<ILogger>();
 
         // Act
-        DependencyValidationService.ValidateDependencies(provider, loggerMock.Object);
+        DependencyValidationService.ValidateDependencies(services, loggerMock.Object);
 
         // Assert - Verify logging occurred
         loggerMock.Verify(
@@ -133,11 +127,10 @@ public class DependencyValidationServiceTests
         var services = new ServiceCollection();
         services.AddSingleton<ICircularServiceA, CircularServiceA>();
         services.AddSingleton<ICircularServiceB, CircularServiceB>();
-        var provider = services.BuildServiceProvider();
 
         // Act
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            DependencyValidationService.ValidateDependencies(provider, _loggerMock.Object));
+            DependencyValidationService.ValidateDependencies(services, _loggerMock.Object));
 
         // Assert - Error message contains helpful suggestions
         Assert.Contains("SOLUTION", exception.Message);

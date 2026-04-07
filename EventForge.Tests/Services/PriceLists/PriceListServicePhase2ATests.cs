@@ -173,7 +173,7 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new MockPriceListBusinessPartyService();
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
         var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
@@ -221,7 +221,7 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new MockPriceListBusinessPartyService();
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
         var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
@@ -269,7 +269,7 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new MockPriceListBusinessPartyService();
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
         var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
