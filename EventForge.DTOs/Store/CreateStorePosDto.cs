@@ -88,5 +88,17 @@ namespace EventForge.DTOs.Store
         [MaxLength(50, ErrorMessage = "The time zone cannot exceed 50 characters.")]
         [Display(Name = "Time Zone", Description = "IANA time zone (e.g., Europe/Rome).")]
         public string? TimeZone { get; set; }
+
+        /// <summary>
+        /// Default fiscal printer assigned to this POS.
+        /// </summary>
+        [Display(Name = "Default Fiscal Printer", Description = "Default fiscal printer for this POS.")]
+        public Guid? DefaultFiscalPrinterId { get; set; }
+
+        /// <summary>
+        /// Cashier group assigned to this POS (operators authorized to use it).
+        /// </summary>
+        [Display(Name = "Cashier Group", Description = "Operator group assigned to this POS.")]
+        public Guid? CashierGroupId { get; set; }
     }
 }

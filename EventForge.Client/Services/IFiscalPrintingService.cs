@@ -79,6 +79,15 @@ public interface IFiscalPrintingService
     /// <summary>Downloads the PDF Z-report for a closure. Returns null on failure.</summary>
     Task<byte[]?> DownloadClosurePdfAsync(Guid closureId, CancellationToken ct = default);
 
+    // ── Agent proxy endpoints ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the list of system printers available on the machine running the specified agent.
+    /// Proxied through the EventForge Server to the UpdateAgent's <c>/api/printer-proxy/system-printers</c>.
+    /// Returns an empty list if the agent is unreachable or not configured.
+    /// </summary>
+    Task<List<string>> GetAgentSystemPrintersAsync(Guid agentId, CancellationToken ct = default);
+
     // ── Overdue closure tracking (SignalR push, consumed by MainLayout) ───────
 
     /// <summary>True when at least one printer has signalled an overdue daily closure.</summary>

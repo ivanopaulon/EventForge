@@ -186,7 +186,7 @@
             <!-- Configurazione Store -->
             @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
             {
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.storeConfig", "🏪 Configurazione Store")"
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.storeConfig", "Configurazione Store")"
                              Icon="@Icons.Material.Outlined.Store"
                              Expanded="@(_openGroup == "storeConfig")"
                              ExpandedChanged="@(v => OnGroupExpanded("storeConfig", v))">
@@ -216,7 +216,7 @@
             <!-- Stampanti & Stazioni -->
             @if (_isSuperAdmin || _isAdmin || _isManager || _isStoreManager)
             {
-                <MudNavGroup title="@TranslationService.GetTranslation("nav.printersAndStations", "🖨️ Stampanti & Stazioni")"
+                <MudNavGroup title="@TranslationService.GetTranslation("nav.printersAndStations", "Stampanti & Stazioni")"
                              Icon="@Icons.Material.Outlined.Print"
                              Expanded="@(_openGroup == "printersAndStations")"
                              ExpandedChanged="@(v => OnGroupExpanded("printersAndStations", v))">

@@ -74,7 +74,7 @@
 
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
                         <MudGrid>
-                            <MudItem xs="12" md="6">
+                            <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.Code"
                                               Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                               Required="true"
@@ -84,7 +84,7 @@
                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
-                            <MudItem xs="12" md="6">
+                            <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.Name"
                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
                                               Required="true"
@@ -94,7 +94,7 @@
                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
-                            <MudItem xs="12" md="6">
+                            <MudItem xs="12" sm="6">
                                 <MudSelect @bind-Value="ViewModel.Entity.Status"
                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
                                            Variant="Variant.Outlined"
@@ -107,7 +107,7 @@
                                 </MudSelect>
                             </MudItem>
 
-                            <MudItem xs="12" md="6">
+                            <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.ColorHex"
                                               Label="@TranslationService.GetTranslation("field.colorHex", "Colore (Hex)")"
                                               MaxLength="7"
@@ -116,23 +116,30 @@
                                               Disabled="@(ViewModel.Entity.IsSystemGroup && !ViewModel.IsNewEntity)"
                                               Pattern="^#([A-Fa-f0-9]{6})$"
                                               @bind-Value:after="HandleEntityChanged"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Outlined.Palette"
+                                              AdornmentColor="@(string.IsNullOrEmpty(ViewModel.Entity.ColorHex) ? Color.Default : Color.Primary)"
                                               HelperText="@TranslationService.GetTranslation("field.colorHexHelper", "Formato: #RRGGBB")" />
                             </MudItem>
 
                             @if (ViewModel.IsNewEntity)
                             {
-                                <MudItem xs="12" md="6">
-                                    <MudSwitch @bind-Value="ViewModel.Entity.IsSystemGroup"
-                                               Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")"
-                                               Color="Color.Primary"
-                                               @bind-Value:after="HandleEntityChanged" />
+                                <MudItem xs="12" sm="6">
+                                    <MudField Label="@TranslationService.GetTranslation("field.isSystemGroup", "Gruppo di Sistema")" Variant="Variant.Outlined">
+                                        <MudSwitch @bind-Value="ViewModel.Entity.IsSystemGroup"
+                                                   Label="@TranslationService.GetTranslation("field.isSystemGroupHelp", "Gruppo di sistema (non modificabile)")"
+                                                   Color="Color.Primary"
+                                                   @bind-Value:after="HandleEntityChanged" />
+                                    </MudField>
                                 </MudItem>
 
-                                <MudItem xs="12" md="6">
-                                    <MudSwitch @bind-Value="ViewModel.Entity.IsDefault"
-                                               Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")"
-                                               Color="Color.Primary"
-                                               @bind-Value:after="HandleEntityChanged" />
+                                <MudItem xs="12" sm="6">
+                                    <MudField Label="@TranslationService.GetTranslation("field.isDefault", "Gruppo Default")" Variant="Variant.Outlined">
+                                        <MudSwitch @bind-Value="ViewModel.Entity.IsDefault"
+                                                   Label="@TranslationService.GetTranslation("field.isDefaultHelp", "Assegnato automaticamente ai nuovi operatori")"
+                                                   Color="Color.Primary"
+                                                   @bind-Value:after="HandleEntityChanged" />
+                                    </MudField>
                                 </MudItem>
                             }
 

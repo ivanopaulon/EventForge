@@ -66,5 +66,17 @@ namespace EventForge.DTOs.Store
         /// </summary>
         [Display(Name = "Is Online", Description = "POS is currently online.")]
         public bool IsOnline { get; set; } = false;
+
+        /// <summary>
+        /// Default fiscal printer assigned to this POS.
+        /// </summary>
+        [Display(Name = "Default Fiscal Printer", Description = "Default fiscal printer for this POS.")]
+        public Guid? DefaultFiscalPrinterId { get; set; }
+
+        /// <summary>
+        /// Cashier group assigned to this POS (operators authorized to use it).
+        /// </summary>
+        [Display(Name = "Cashier Group", Description = "Operator group assigned to this POS.")]
+        public Guid? CashierGroupId { get; set; }
     }
 }

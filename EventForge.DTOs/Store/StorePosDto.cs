@@ -130,5 +130,17 @@ namespace EventForge.DTOs.Store
         /// Name of the default fiscal printer (for display purposes).
         /// </summary>
         public string? DefaultFiscalPrinterName { get; set; }
+
+        // --- Cashier Group Assignment ---
+
+        /// <summary>
+        /// Cashier group assigned to this POS (operators authorized to use it).
+        /// </summary>
+        public Guid? CashierGroupId { get; set; }
+
+        /// <summary>
+        /// Name of the cashier group (for display purposes).
+        /// </summary>
+        public string? CashierGroupName { get; set; }
     }
 }
