@@ -253,13 +253,41 @@ namespace EventForge.Client.Services
 
         private ClientLogDto CreateClientLog(string level, string message, string? category, Dictionary<string, object>? properties, Exception? exception = null)
         {
+            // Build enriched properties that include exception details for better debugging
+            Dictionary<string, object>? enrichedProperties = null;
+            if (exception != null || properties != null)
+            {
+                enrichedProperties = properties != null
+                    ? new Dictionary<string, object>(properties)
+                    : new Dictionary<string, object>();
+
+                if (exception != null)
+                {
+                    enrichedProperties["ExceptionType"] = exception.GetType().FullName ?? exception.GetType().Name;
+                    if (exception.InnerException != null)
+                    {
+                        enrichedProperties["InnerExceptionType"] = exception.InnerException.GetType().FullName ?? exception.InnerException.GetType().Name;
+                        enrichedProperties["InnerExceptionMessage"] = exception.InnerException.Message;
+                    }
+                    // Capture Data dictionary entries (e.g., ProblemDetails attached by HttpClientService)
+                    if (exception.Data.Count > 0)
+                    {
+                        foreach (System.Collections.DictionaryEntry entry in exception.Data)
+                        {
+                            if (entry.Key is string key && entry.Value != null)
+                                enrichedProperties[$"ExceptionData_{key}"] = entry.Value?.ToString() ?? string.Empty;
+                        }
+                    }
+                }
+            }
+
             return new ClientLogDto
             {
                 Level = level,
                 Message = message,
                 Category = category,
                 Exception = exception?.ToString(),
-                Properties = properties != null ? JsonSerializer.Serialize(properties) : null,
+                Properties = enrichedProperties != null ? JsonSerializer.Serialize(enrichedProperties) : null,
                 Timestamp = DateTime.UtcNow,
                 CorrelationId = Guid.NewGuid().ToString()
             };
@@ -269,12 +297,12 @@ namespace EventForge.Client.Services
         {
             try
             {
-                // Get current page URL
-                var currentUrl = await _jsRuntime.InvokeAsync<string>("eval", "window.location.pathname + window.location.search");
+                // Get current page URL using safe JSInterop (no eval)
+                var currentUrl = await _jsRuntime.InvokeAsync<string>("eventforge_getLocationPath");
                 clientLog.Page = currentUrl;
 
-                // Get user agent
-                var userAgent = await _jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+                // Get user agent using safe JSInterop (no eval)
+                var userAgent = await _jsRuntime.InvokeAsync<string>("eventforge_getUserAgent");
                 clientLog.UserAgent = userAgent;
 
                 // Get user ID if authenticated

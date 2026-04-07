@@ -13,37 +13,24 @@ public interface IFontPreferencesService
     Task ApplyPreferencesAsync();
 }
 
-public class FontPreferencesService : IFontPreferencesService
+public class FontPreferencesService(
+    IJSRuntime jsRuntime,
+    ILocalStorageService localStorage,
+    IProfileService profileService,
+    ILogger<FontPreferencesService> logger) : IFontPreferencesService
 {
-    private readonly IJSRuntime _jsRuntime;
-    private readonly ILocalStorageService _localStorage;
-    private readonly IProfileService _profileService;
-    private readonly ILogger<FontPreferencesService> _logger;
-
     private const string StorageKey = "eventforge-font-preferences";
     private UserDisplayPreferencesDto _currentPreferences = new();
 
     public UserDisplayPreferencesDto CurrentPreferences => _currentPreferences;
     public event Action? OnPreferencesChanged;
 
-    public FontPreferencesService(
-        IJSRuntime jsRuntime,
-        ILocalStorageService localStorage,
-        IProfileService profileService,
-        ILogger<FontPreferencesService> logger)
-    {
-        _jsRuntime = jsRuntime;
-        _localStorage = localStorage;
-        _profileService = profileService;
-        _logger = logger;
-    }
-
     public async Task InitializeAsync()
     {
         try
         {
             // 1. Prova a caricare dal profilo server
-            var profile = await _profileService.GetProfileAsync();
+            var profile = await profileService.GetProfileAsync();
             if (profile?.DisplayPreferences != null)
             {
                 _currentPreferences = profile.DisplayPreferences;
@@ -52,7 +39,7 @@ public class FontPreferencesService : IFontPreferencesService
             }
 
             // 2. Fallback a localStorage
-            var stored = await _localStorage.GetItemAsync<UserDisplayPreferencesDto>(StorageKey);
+            var stored = await localStorage.GetItemAsync<UserDisplayPreferencesDto>(StorageKey);
             if (stored != null)
             {
                 _currentPreferences = stored;
@@ -77,7 +64,7 @@ public class FontPreferencesService : IFontPreferencesService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initializing font preferences");
+            logger.LogError(ex, "Error initializing font preferences");
         }
     }
 
@@ -86,7 +73,7 @@ public class FontPreferencesService : IFontPreferencesService
         _currentPreferences = preferences;
 
         // Salva in localStorage
-        await _localStorage.SetItemAsync(StorageKey, preferences);
+        await localStorage.SetItemAsync(StorageKey, preferences);
 
         // Applica CSS
         await ApplyPreferencesAsync();
@@ -96,7 +83,7 @@ public class FontPreferencesService : IFontPreferencesService
         {
             try
             {
-                var profile = await _profileService.GetProfileAsync();
+                var profile = await profileService.GetProfileAsync();
                 if (profile != null)
                 {
                     var updateDto = new UpdateProfileDto
@@ -109,13 +96,13 @@ public class FontPreferencesService : IFontPreferencesService
                         TimeZone = profile.TimeZone,
                         DisplayPreferences = preferences
                     };
-                    await _profileService.UpdateProfileAsync(updateDto);
+                    await profileService.UpdateProfileAsync(updateDto);
                 }
             }
             catch (HttpRequestException ex)
             {
                 // Background sync failed, not critical (already logged by HttpClientService)
-                _logger.LogDebug(ex, "Background sync font preferences failed");
+                logger.LogDebug(ex, "Background sync font preferences failed");
             }
         });
 
@@ -145,17 +132,17 @@ public class FontPreferencesService : IFontPreferencesService
             var fontSize = $"{_currentPreferences.BaseFontSize}px";
 
             // Apply CSS properties using the new multi-context function
-            await _jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences",
+            await jsRuntime.InvokeVoidAsync("EventForge.setFontPreferences",
                 bodyFamily, headingsFamily, monoFamily, contentFamily, fontSize);
 
-            _logger.LogInformation("Applied font preferences: Body={Body}, Headings={Headings}, Size={Size}px",
+            logger.LogInformation("Applied font preferences: Body={Body}, Headings={Headings}, Size={Size}px",
                 _currentPreferences.BodyFont,
                 _currentPreferences.HeadingsFont,
                 _currentPreferences.BaseFontSize);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error applying font preferences");
+            logger.LogError(ex, "Error applying font preferences");
         }
     }
 }

@@ -72,42 +72,21 @@ public interface IHttpClientService
 /// <summary>
 /// Implementation of centralized HTTP client service.
 /// </summary>
-public class HttpClientService : IHttpClientService
+public class HttpClientService(
+    IHttpClientFactory httpClientFactory,
+    IAuthService authService,
+    ILogger<HttpClientService> logger,
+    IServerConfigService serverConfigService,
+    IClientLogService? clientLogService = null,
+    ISnackbar? snackbar = null,
+    IAppNotificationService? appNotification = null) : IHttpClientService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IAuthService _authService;
-    private readonly ILogger<HttpClientService> _logger;
-    private readonly IClientLogService? _clientLogService;
-    private readonly ISnackbar? _snackbar;
-    private readonly IAppNotificationService? _appNotification;
-    private readonly IServerConfigService _serverConfigService;
-    private readonly JsonSerializerOptions _jsonOptions;
-
-    public HttpClientService(
-        IHttpClientFactory httpClientFactory,
-        IAuthService authService,
-        ILogger<HttpClientService> logger,
-        IServerConfigService serverConfigService,
-        IClientLogService? clientLogService = null,
-        ISnackbar? snackbar = null,
-        IAppNotificationService? appNotification = null)
+    private readonly JsonSerializerOptions _jsonOptions = new()
     {
-        _httpClientFactory = httpClientFactory;
-        _authService = authService;
-        _logger = logger;
-        _serverConfigService = serverConfigService;
-        _clientLogService = clientLogService;
-        _snackbar = snackbar;
-        _appNotification = appNotification;
-
-        // Configure JSON options for consistent serialization
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
 
     public async Task<T?> GetAsync<T>(string endpoint, CancellationToken cancellationToken = default)
     {
@@ -115,14 +94,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("GET request to {Endpoint}", endpoint);
+            logger.LogDebug("GET request to {Endpoint}", endpoint);
 
             var response = await httpClient.GetAsync(endpoint, cancellationToken);
             return await HandleResponseAsync<T>(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GET request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "GET request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -133,7 +112,7 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("GET stream request to {Endpoint}", endpoint);
+            logger.LogDebug("GET stream request to {Endpoint}", endpoint);
 
             var response = await httpClient.GetAsync(endpoint, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
@@ -142,7 +121,7 @@ public class HttpClientService : IHttpClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GET stream request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "GET stream request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -153,7 +132,7 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("POST stream request to {Endpoint}", endpoint);
+            logger.LogDebug("POST stream request to {Endpoint}", endpoint);
 
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
@@ -162,7 +141,7 @@ public class HttpClientService : IHttpClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "POST stream request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "POST stream request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -173,14 +152,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("POST request to {Endpoint}", endpoint);
+            logger.LogDebug("POST request to {Endpoint}", endpoint);
 
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "POST request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "POST request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -191,14 +170,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("POST request (no response) to {Endpoint}", endpoint);
+            logger.LogDebug("POST request (no response) to {Endpoint}", endpoint);
 
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "POST request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "POST request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -209,14 +188,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("PUT request to {Endpoint}", endpoint);
+            logger.LogDebug("PUT request to {Endpoint}", endpoint);
 
             var response = await httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "PUT request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "PUT request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -227,14 +206,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("PUT request (no response) to {Endpoint}", endpoint);
+            logger.LogDebug("PUT request (no response) to {Endpoint}", endpoint);
 
             var response = await httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "PUT request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "PUT request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -245,14 +224,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("DELETE request to {Endpoint}", endpoint);
+            logger.LogDebug("DELETE request to {Endpoint}", endpoint);
 
             var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
             await EnsureSuccessStatusCodeAsync(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DELETE request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "DELETE request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -263,14 +242,14 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("DELETE request to {Endpoint}", endpoint);
+            logger.LogDebug("DELETE request to {Endpoint}", endpoint);
 
             var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DELETE request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "DELETE request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -281,7 +260,7 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("PATCH request to {Endpoint}", endpoint);
+            logger.LogDebug("PATCH request to {Endpoint}", endpoint);
 
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
@@ -291,7 +270,7 @@ public class HttpClientService : IHttpClientService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "PATCH request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "PATCH request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
@@ -302,33 +281,33 @@ public class HttpClientService : IHttpClientService
 
         try
         {
-            _logger.LogDebug("POST (long-running) request to {Endpoint}", endpoint);
+            logger.LogDebug("POST (long-running) request to {Endpoint}", endpoint);
 
             var response = await httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken);
             return await HandleResponseAsync<TResponse>(response, endpoint);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "POST long-running request failed for endpoint {Endpoint}", endpoint);
+            logger.LogError(ex, "POST long-running request failed for endpoint {Endpoint}", endpoint);
             throw;
         }
     }
 
     private async Task<HttpClient> GetConfiguredHttpClientAsync(string clientName = "ApiClient")
     {
-        var httpClient = _httpClientFactory.CreateClient(clientName);
+        var httpClient = httpClientFactory.CreateClient(clientName);
 
         // IHttpClientFactory.CreateClient() returns a NEW HttpClient instance on every call
         // (the underlying handler is pooled for connection reuse, but the wrapper is not shared).
         // Setting BaseAddress here is therefore safe and does not affect other callers.
-        var serverUrl = await _serverConfigService.GetServerUrlAsync();
+        var serverUrl = await serverConfigService.GetServerUrlAsync();
         if (!string.IsNullOrWhiteSpace(serverUrl))
         {
             httpClient.BaseAddress = new Uri(serverUrl);
         }
 
         // Ensure authentication header is set
-        var token = await _authService.GetAccessTokenAsync();
+        var token = await authService.GetAccessTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
             if (httpClient.DefaultRequestHeaders.Authorization?.Parameter != token)
@@ -365,7 +344,7 @@ public class HttpClientService : IHttpClientService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to deserialize response from {Endpoint}", endpoint);
+            logger.LogError(ex, "Failed to deserialize response from {Endpoint}", endpoint);
             throw new InvalidOperationException($"Failed to deserialize response from {endpoint}", ex);
         }
     }
@@ -377,7 +356,7 @@ public class HttpClientService : IHttpClientService
 
         var content = await response.Content.ReadAsStringAsync();
 
-        _logger.LogWarning(
+        logger.LogWarning(
             "HTTP request failed. Endpoint: {Endpoint}, Status: {StatusCode}, Content: {Content}",
             endpoint, response.StatusCode, content);
 
@@ -418,17 +397,17 @@ public class HttpClientService : IHttpClientService
             response.StatusCode == (HttpStatusCode)429 ||
             response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            if (_appNotification != null)
+            if (appNotification != null)
             {
-                _appNotification.ShowError(errorMessage, details: detail,
+                appNotification.ShowError(errorMessage, details: detail,
                     correlationId: problemDetails?.Extensions != null &&
                         problemDetails.Extensions.TryGetValue("correlationId", out var corrId)
                         ? corrId?.ToString()
                         : null);
             }
-            else if (_snackbar != null)
+            else if (snackbar != null)
             {
-                _ = _snackbar.Add(errorMessage, Severity.Error, config =>
+                _ = snackbar.Add(errorMessage, Severity.Error, config =>
                 {
                     config.VisibleStateDuration = 5000;
                     config.ShowCloseIcon = true;
@@ -437,7 +416,7 @@ public class HttpClientService : IHttpClientService
         }
 
         // Log the error to client logging service
-        if (_clientLogService != null)
+        if (clientLogService != null)
         {
             try
             {
@@ -453,7 +432,7 @@ public class HttpClientService : IHttpClientService
                     logProperties["ProblemDetails"] = JsonSerializer.Serialize(problemDetails);
                 }
 
-                await _clientLogService.LogErrorAsync(
+                await clientLogService.LogErrorAsync(
                     $"HTTP {(int)response.StatusCode} error on {endpoint}: {errorMessage}",
                     null,
                     "HttpClientService",

@@ -49,25 +49,14 @@ public interface IBrandingService
 /// <summary>
 /// Service for managing branding configuration from the client with caching.
 /// </summary>
-public class BrandingService : IBrandingService
+public class BrandingService(
+    IHttpClientService httpClientService,
+    IMemoryCache cache,
+    ILogger<BrandingService> logger) : IBrandingService
 {
     private const string BaseUrl = "api/v1/branding";
     private const string CacheKeyPrefix = "branding_client_";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
-
-    private readonly IHttpClientService _httpClientService;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<BrandingService> _logger;
-
-    public BrandingService(
-        IHttpClientService httpClientService,
-        IMemoryCache cache,
-        ILogger<BrandingService> logger)
-    {
-        _httpClientService = httpClientService;
-        _cache = cache;
-        _logger = logger;
-    }
 
     public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null)
     {
@@ -76,14 +65,14 @@ public class BrandingService : IBrandingService
             var cacheKey = $"{CacheKeyPrefix}{tenantId?.ToString() ?? "global"}";
 
             // Try to get from cache
-            if (_cache.TryGetValue(cacheKey, out BrandingConfigurationDto? cached) && cached != null)
+            if (cache.TryGetValue(cacheKey, out BrandingConfigurationDto? cached) && cached != null)
             {
-                _logger.LogDebug("Returning branding configuration from cache for {CacheKey}", cacheKey);
+                logger.LogDebug("Returning branding configuration from cache for {CacheKey}", cacheKey);
                 return cached;
             }
 
             var url = tenantId.HasValue ? $"{BaseUrl}?tenantId={tenantId}" : BaseUrl;
-            var branding = await _httpClientService.GetAsync<BrandingConfigurationDto>(url);
+            var branding = await httpClientService.GetAsync<BrandingConfigurationDto>(url);
 
             if (branding != null)
             {
@@ -93,7 +82,7 @@ public class BrandingService : IBrandingService
                     AbsoluteExpirationRelativeToNow = CacheDuration,
                     Size = 1
                 };
-                _cache.Set(cacheKey, branding, cacheOptions);
+                cache.Set(cacheKey, branding, cacheOptions);
                 return branding;
             }
 
@@ -102,7 +91,7 @@ public class BrandingService : IBrandingService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving branding configuration, using defaults");
+            logger.LogError(ex, "Error retrieving branding configuration, using defaults");
             // Return default branding on error
             return GetDefaultBranding(tenantId);
         }
@@ -112,17 +101,17 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBrandingDto, BrandingConfigurationDto>(
+            var result = await httpClientService.PutAsync<UpdateBrandingDto, BrandingConfigurationDto>(
                 $"{BaseUrl}/global", updateDto);
 
             // Invalidate cache
-            _cache.Remove($"{CacheKeyPrefix}global");
+            cache.Remove($"{CacheKeyPrefix}global");
 
             return result ?? throw new InvalidOperationException("Failed to update global branding");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating global branding");
+            logger.LogError(ex, "Error updating global branding");
             throw;
         }
     }
@@ -131,17 +120,17 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            var result = await _httpClientService.PutAsync<UpdateBrandingDto, BrandingConfigurationDto>(
+            var result = await httpClientService.PutAsync<UpdateBrandingDto, BrandingConfigurationDto>(
                 $"{BaseUrl}/tenant/{tenantId}", updateDto);
 
             // Invalidate cache
-            _cache.Remove($"{CacheKeyPrefix}{tenantId}");
+            cache.Remove($"{CacheKeyPrefix}{tenantId}");
 
             return result ?? throw new InvalidOperationException("Failed to update tenant branding");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -150,14 +139,14 @@ public class BrandingService : IBrandingService
     {
         try
         {
-            await _httpClientService.DeleteAsync($"{BaseUrl}/tenant/{tenantId}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/tenant/{tenantId}");
 
             // Invalidate cache
-            _cache.Remove($"{CacheKeyPrefix}{tenantId}");
+            cache.Remove($"{CacheKeyPrefix}{tenantId}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
+            logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -173,7 +162,7 @@ public class BrandingService : IBrandingService
 
             var url = tenantId.HasValue ? $"{BaseUrl}/upload?tenantId={tenantId}" : $"{BaseUrl}/upload";
 
-            var result = await _httpClientService.PostAsync<MultipartFormDataContent, dynamic>(url, formContent);
+            var result = await httpClientService.PostAsync<MultipartFormDataContent, dynamic>(url, formContent);
 
             if (result == null)
             {
@@ -185,13 +174,13 @@ public class BrandingService : IBrandingService
 
             // Invalidate cache
             var cacheKey = $"{CacheKeyPrefix}{tenantId?.ToString() ?? "global"}";
-            _cache.Remove(cacheKey);
+            cache.Remove(cacheKey);
 
             return logoUrl;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error uploading logo");
+            logger.LogError(ex, "Error uploading logo");
             throw;
         }
     }

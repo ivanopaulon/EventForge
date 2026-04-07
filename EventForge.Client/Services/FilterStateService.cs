@@ -102,10 +102,8 @@ public interface IFilterStateService
 /// <summary>
 /// Implementation of filter state service using localStorage for persistence.
 /// </summary>
-public class FilterStateService : IFilterStateService
+public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService> logger) : IFilterStateService
 {
-    private readonly IJSRuntime _jsRuntime;
-    private readonly ILogger<FilterStateService> _logger;
     private const string FilterKeyPrefix = "eventforge-filter-";
     private const string PanelKeyPrefix = "eventforge-panel-";
 
@@ -115,23 +113,17 @@ public class FilterStateService : IFilterStateService
         WriteIndented = false
     };
 
-    public FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService> logger)
-    {
-        _jsRuntime = jsRuntime;
-        _logger = logger;
-    }
-
     public async Task SaveFilterStateAsync(string pageKey, PageFilterState state)
     {
         try
         {
             state.Touch();
             var json = JsonSerializer.Serialize(state, JsonOptions);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{FilterKeyPrefix}{pageKey}", json);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{FilterKeyPrefix}{pageKey}", json);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving filter state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error saving filter state for {PageKey}", pageKey);
         }
     }
 
@@ -139,7 +131,7 @@ public class FilterStateService : IFilterStateService
     {
         try
         {
-            var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", $"{FilterKeyPrefix}{pageKey}");
+            var json = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", $"{FilterKeyPrefix}{pageKey}");
             if (string.IsNullOrEmpty(json))
             {
                 return null;
@@ -149,7 +141,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error loading filter state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error loading filter state for {PageKey}", pageKey);
             return null;
         }
     }
@@ -158,11 +150,11 @@ public class FilterStateService : IFilterStateService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", $"{FilterKeyPrefix}{pageKey}");
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", $"{FilterKeyPrefix}{pageKey}");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error clearing filter state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error clearing filter state for {PageKey}", pageKey);
         }
     }
 
@@ -172,11 +164,11 @@ public class FilterStateService : IFilterStateService
         {
             state.Touch();
             var json = JsonSerializer.Serialize(state, JsonOptions);
-            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{PanelKeyPrefix}{pageKey}", json);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", $"{PanelKeyPrefix}{pageKey}", json);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error saving panel state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error saving panel state for {PageKey}", pageKey);
         }
     }
 
@@ -184,7 +176,7 @@ public class FilterStateService : IFilterStateService
     {
         try
         {
-            var json = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", $"{PanelKeyPrefix}{pageKey}");
+            var json = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", $"{PanelKeyPrefix}{pageKey}");
             if (string.IsNullOrEmpty(json))
             {
                 return null;
@@ -194,7 +186,7 @@ public class FilterStateService : IFilterStateService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error loading panel state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error loading panel state for {PageKey}", pageKey);
             return null;
         }
     }
@@ -203,11 +195,11 @@ public class FilterStateService : IFilterStateService
     {
         try
         {
-            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", $"{PanelKeyPrefix}{pageKey}");
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", $"{PanelKeyPrefix}{pageKey}");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error clearing panel state for {PageKey}", pageKey);
+            logger.LogWarning(ex, "Error clearing panel state for {PageKey}", pageKey);
         }
     }
 }
