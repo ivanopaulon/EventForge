@@ -1,10 +1,10 @@
 #Requires -RunAsAdministrator
 # ==============================================================================
-#  Prym UpdateHub - IIS Full Setup Script
-#  Deploy path : C:\Prym\UpdateHub
+#  Prym Hub - IIS Full Setup Script
+#  Deploy path : C:\Prym\Hub
 #  Port        : 7244
 #  App Pool    : PrymHub
-#  IIS Site    : Prym UpdateHub
+#  IIS Site    : Prym Hub
 #  .NET Target : 10
 # ==============================================================================
 
@@ -14,17 +14,17 @@ $ErrorActionPreference = "Continue"
 # ------------------------------------------------------------------------------
 # Config
 # ------------------------------------------------------------------------------
-$DEPLOY_PATH        = "C:\Prym\UpdateHub"
+$DEPLOY_PATH        = "C:\Prym\Hub"
 $LOG_DIR            = "C:\Prym\SetupLogs"
-$TRANSCRIPT         = "$LOG_DIR\setup_updatehub_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$TRANSCRIPT         = "$LOG_DIR\setup_hub_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $TEMP_DIR           = "C:\Prym\_tmp"
-$SITE_NAME          = "Prym UpdateHub"
+$SITE_NAME          = "Prym Hub"
 $POOL_NAME          = "PrymHub"
 $SITE_PORT          = 7244   # HTTPS IIS port; overridden below from UpdateHub.UI.HttpsPort in appsettings.json
-$SITE_CERT_FRIENDLY = "Prym UpdateHub IIS"
+$SITE_CERT_FRIENDLY = "Prym Hub IIS"
 $APP_DLL            = "Prym.Hub.dll"
 $PACKAGES_PATH      = "$DEPLOY_PATH\packages"
-$DB_FILE            = "$DEPLOY_PATH\updatehub.db"
+$DB_FILE            = "$DEPLOY_PATH\hub.db"
 
 # ------------------------------------------------------------------------------
 # Helpers
@@ -43,7 +43,7 @@ New-Item -ItemType Directory -Force -Path $TEMP_DIR | Out-Null
 Start-Transcript -Path $TRANSCRIPT -Append
 
 Write-Host "================================================================" -ForegroundColor Magenta
-Write-Host "  Prym UpdateHub IIS Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Magenta
+Write-Host "  Prym Hub IIS Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Magenta
 Write-Host "  Transcript: $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 
@@ -555,13 +555,13 @@ try {
 # ==============================================================================
 Write-Step "STEP 12 - Windows Firewall (porta $SITE_PORT)"
 
-$oldHttpRule = Get-NetFirewallRule -DisplayName "Prym UpdateHub HTTP $SITE_PORT" -ErrorAction SilentlyContinue
+$oldHttpRule = Get-NetFirewallRule -DisplayName "Prym Hub HTTP $SITE_PORT" -ErrorAction SilentlyContinue
 if ($oldHttpRule) {
-    Remove-NetFirewallRule -DisplayName "Prym UpdateHub HTTP $SITE_PORT" -ErrorAction SilentlyContinue
+    Remove-NetFirewallRule -DisplayName "Prym Hub HTTP $SITE_PORT" -ErrorAction SilentlyContinue
     Write-OK "Vecchia regola 'HTTP $SITE_PORT' rimossa"
 }
 
-$ruleName     = "Prym UpdateHub HTTPS $SITE_PORT"
+$ruleName     = "Prym Hub HTTPS $SITE_PORT"
 $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 
 if ($existingRule) {
@@ -588,7 +588,7 @@ if (Test-Path $appSettingsEarly) {
 }
 
 if ($standaloneHttpPort -gt 0) {
-    $httpRuleName     = "Prym UpdateHub HTTP $standaloneHttpPort"
+    $httpRuleName     = "Prym Hub HTTP $standaloneHttpPort"
     $existingHttpRule = Get-NetFirewallRule -DisplayName $httpRuleName -ErrorAction SilentlyContinue
     if ($existingHttpRule) {
         Write-INFO "Regola firewall HTTP gia presente: '$httpRuleName'"

@@ -48,7 +48,7 @@ Write-Host "================================================================" -F
 
 # Read HTTPS port from appsettings.json if already deployed at $DEPLOY_PATH.
 # Keeps the IIS binding in sync with Environments:Production:HttpClient:Port in appsettings.json
-# without requiring manual script edits (same pattern used by Setup-Prym-UpdateHub.ps1).
+# without requiring manual script edits (same pattern used by Setup-Prym-Hub.ps1).
 $appSettingsEarly = Join-Path $DEPLOY_PATH "appsettings.json"
 if (Test-Path $appSettingsEarly) {
     try {

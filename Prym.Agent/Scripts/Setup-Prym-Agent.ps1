@@ -1,9 +1,9 @@
 #Requires -RunAsAdministrator
 # ==============================================================================
-#  Prym UpdateAgent - Windows Service Setup Script
-#  Deploy path   : C:\Prym\UpdateAgent
-#  Service name  : PrymUpdateAgent
-#  Display name  : Prym Update Agent
+#  Prym Agent - Windows Service Setup Script
+#  Deploy path   : C:\Prym\Agent
+#  Service name  : PrymAgent
+#  Display name  : Prym Agent
 #  .NET Target   : 10
 # ==============================================================================
 
@@ -13,13 +13,13 @@ $ErrorActionPreference = "Continue"
 # ------------------------------------------------------------------------------
 # Config
 # ------------------------------------------------------------------------------
-$DEPLOY_PATH     = "C:\Prym\UpdateAgent"
+$DEPLOY_PATH     = "C:\Prym\Agent"
 $LOG_DIR         = "C:\Prym\SetupLogs"
-$TRANSCRIPT      = "$LOG_DIR\setup_updateagent_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$TRANSCRIPT      = "$LOG_DIR\setup_agent_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $TEMP_DIR        = "C:\Prym\_tmp"
-$SERVICE_NAME    = "PrymUpdateAgent"
-$SERVICE_DISPLAY = "Prym Update Agent"
-$SERVICE_DESC    = "Manages Prym installation updates by communicating with the remote Prym UpdateHub."
+$SERVICE_NAME    = "PrymAgent"
+$SERVICE_DISPLAY = "Prym Agent"
+$SERVICE_DESC    = "Manages Prym installation updates by communicating with the remote Prym Hub."
 $APP_EXE         = "Prym.Agent.exe"
 $APP_SETTINGS    = "appsettings.json"
 
@@ -40,7 +40,7 @@ New-Item -ItemType Directory -Force -Path $TEMP_DIR | Out-Null
 Start-Transcript -Path $TRANSCRIPT -Append
 
 Write-Host "================================================================" -ForegroundColor Magenta
-Write-Host "  Prym UpdateAgent Service Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Magenta
+Write-Host "  Prym Agent Service Setup - $(Get-Date -Format 'dd/MM/yyyy HH:mm:ss')" -ForegroundColor Magenta
 Write-Host "  Transcript: $TRANSCRIPT" -ForegroundColor Magenta
 Write-Host "================================================================" -ForegroundColor Magenta
 
@@ -195,7 +195,7 @@ if (Test-Path $appSettingsPath) {
         # ApiKey
         $apiKey = $agentConfig.ApiKey
         if ([string]::IsNullOrWhiteSpace($apiKey) -or $apiKey -eq "REPLACE_WITH_INSTALLATION_API_KEY") {
-            Write-WARN "ApiKey non configurata. Genera una chiave dall'UpdateHub e imposta in: $appSettingsPath"
+            Write-WARN "ApiKey non configurata. Genera una chiave dalil Hub e imposta in: $appSettingsPath"
         } else {
             Write-OK "ApiKey: configurata ($($apiKey.Substring(0, [Math]::Min(8, $apiKey.Length)))...)"
         }
@@ -203,7 +203,7 @@ if (Test-Path $appSettingsPath) {
         # InstallationId
         $installId = $agentConfig.InstallationId
         if ([string]::IsNullOrWhiteSpace($installId) -or $installId -eq "00000000-0000-0000-0000-000000000000") {
-            Write-WARN "InstallationId non configurato. Registra questa installazione nell'UpdateHub e imposta l'ID."
+            Write-WARN "InstallationId non configurato. Registra questa installazione nelil Hub e imposta l'ID."
         } else {
             Write-OK "InstallationId: $installId"
         }
@@ -415,7 +415,7 @@ try {
 # ==============================================================================
 Write-Step "STEP 9 - Windows Firewall"
 
-Write-INFO "L'agente avvia solo connessioni OUTBOUND verso l'UpdateHub."
+Write-INFO "L'agente avvia solo connessioni OUTBOUND verso il Hub."
 Write-INFO "Le connessioni outbound HTTPS (443) sono generalmente permesse di default."
 Write-INFO "Nessuna regola inbound necessaria per l'agente."
 
@@ -423,7 +423,7 @@ Write-INFO "Nessuna regola inbound necessaria per l'agente."
 $blockedOutbound = Get-NetFirewallRule -Direction Outbound -Action Block -Enabled True -ErrorAction SilentlyContinue |
     Where-Object { $_.Profile -match "Domain|Private|Public" }
 if ($blockedOutbound) {
-    Write-WARN "Trovate regole outbound block attive. Verificare che l'agente possa raggiungere l'UpdateHub."
+    Write-WARN "Trovate regole outbound block attive. Verificare che l'agente possa raggiungere il Hub."
 } else {
     Write-OK "Nessuna regola outbound block attiva"
 }

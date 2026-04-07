@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Builds an Prym update package (zip) ready for upload to the UpdateHub.
+    Builds a Prym update package (zip) ready for upload to the Hub.
 
 .DESCRIPTION
     This script:
@@ -15,7 +15,7 @@
            rollback/        <- SQL scripts run on rollback
            manifest.json    <- version, checksum, script list
       5. Calculates SHA-256 of the final zip
-      6. Optionally uploads the package to the UpdateHub via HTTP
+      6. Optionally uploads the package to the Hub via HTTP
       7. Archives the consumed pending scripts to Migrations/Applied/<component>-<version>/
 
 .PARAMETER Component
@@ -26,11 +26,11 @@
 
 .PARAMETER OutDir
     Directory where the final .zip is saved. Defaults to './artifacts'.
-    To have the UpdateHub auto-ingest the package, point this to the Hub's
+    To have the Hub auto-ingest the package, point this to the Hub's
     IncomingPackagesPath (e.g. a network share or \\hubserver\packages\incoming).
 
 .PARAMETER IncomingPath
-    Shorthand for pointing OutDir directly at the UpdateHub's IncomingPackagesPath.
+    Shorthand for pointing OutDir directly at the Hub's IncomingPackagesPath.
     When specified, it overrides -OutDir.
     Example: -IncomingPath \\\\hubserver\\packages\\incoming
 
@@ -41,11 +41,11 @@
     Path to an existing publish folder. Used with -SkipPublish or as explicit override.
 
 .PARAMETER HubUrl
-    Base URL of the UpdateHub (e.g. https://updatehub.company.com).
+    Base URL of the Hub (e.g. https://updatehub.company.com).
     If specified, the package is uploaded automatically after building.
 
 .PARAMETER AdminKey
-    Admin API key for the UpdateHub. Required when -HubUrl is specified.
+    Admin API key for the Hub. Required when -HubUrl is specified.
 
 .PARAMETER ReleaseNotes
     Optional release notes string embedded in manifest.json.
@@ -333,9 +333,9 @@ try {
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
-# STEP 7 — Upload opzionale all'UpdateHub
+# STEP 7 — Upload opzionale all'Hub
 # ──────────────────────────────────────────────────────────────────────────────
-Write-Step "STEP 7 - Upload all'UpdateHub"
+Write-Step "STEP 7 - Upload all'Hub"
 
 $UploadedId = $null
 
