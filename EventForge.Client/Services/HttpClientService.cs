@@ -408,7 +408,7 @@ public class HttpClientService : IHttpClientService
             HttpStatusCode.NotFound => "La risorsa richiesta non è stata trovata.",
             HttpStatusCode.BadRequest => detail ?? problemDetails?.Title ?? "Richiesta non valida. Verifica i dati inseriti.",
             HttpStatusCode.InternalServerError => "Errore interno del server. Riprova più tardi.",
-            HttpStatusCode.ServiceUnavailable => "Servizio temporaneamente non disponibile.",
+            HttpStatusCode.ServiceUnavailable => detail ?? "Servizio temporaneamente non disponibile.",
             (HttpStatusCode)429 => detail ?? "Limite di chiamate API superato. Riprova più tardi o aggiorna la tua licenza.",
             _ => detail ?? $"Errore HTTP {(int)response.StatusCode}: {response.ReasonPhrase}"
         };

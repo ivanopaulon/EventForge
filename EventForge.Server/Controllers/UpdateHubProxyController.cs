@@ -28,13 +28,13 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Message = ex.Message });
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error fetching packages from UpdateHub");
             return StatusCode(StatusCodes.Status502BadGateway,
-                new { Message = "Unable to reach UpdateHub", Detail = ex.Message });
+                new { Detail = ex.Message });
         }
     }
 
@@ -50,13 +50,13 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Message = ex.Message });
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error fetching installations from UpdateHub");
             return StatusCode(StatusCodes.Status502BadGateway,
-                new { Message = "Unable to reach UpdateHub", Detail = ex.Message });
+                new { Detail = ex.Message });
         }
     }
 
@@ -74,13 +74,13 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Message = ex.Message });
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error sending update Installation={InstallationId}", installationId);
             return StatusCode(StatusCodes.Status502BadGateway,
-                new { Message = "Unable to reach UpdateHub", Detail = ex.Message });
+                new { Detail = ex.Message });
         }
     }
 }
