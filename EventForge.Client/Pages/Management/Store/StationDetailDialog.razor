@@ -9,6 +9,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StationDetailDialog> Logger
+@inject IAppNotificationService AppNotification
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Kitchen"
@@ -180,10 +181,18 @@
             if (!_form.IsValid) return;
         }
 
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
+        try
         {
-            MudDialog.Close(DialogResult.Ok(true));
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving station.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio.");
         }
     }
 

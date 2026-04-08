@@ -121,7 +121,15 @@
     protected override async Task OnInitializedAsync()
     {
         ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product {ProductId}.", EntityId);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nel caricamento del prodotto.");
+        }
     }
 
     private void OnViewModelStateChanged()
@@ -136,14 +144,30 @@
 
     private async Task HandleProductPersistedChange()
     {
-        await ViewModel.ReloadEntityAsync();
+        try
+        {
+            await ViewModel.ReloadEntityAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reloading product {ProductId}.", EntityId);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nel ricaricamento del prodotto.");
+        }
     }
 
     private async Task SaveProductAsync()
     {
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
-            MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving product {ProductId}.", EntityId);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio del prodotto.");
+        }
     }
 
     private async Task Cancel()

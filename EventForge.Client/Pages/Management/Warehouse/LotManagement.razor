@@ -249,15 +249,23 @@
 
         if (confirmed == true)
         {
-            var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
-            if (result)
+            try
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
-                await _managementPage.RefreshAsync();
+                var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
+                if (result)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
+                    await _managementPage.RefreshAsync();
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+                Logger.LogError(ex, "Error blocking lot {LotId}.", lot.Id);
+                await AppNotification.ShowWarningAsync("Si è verificato un errore nel blocco del lotto.");
             }
         }
     }
@@ -272,15 +280,23 @@
 
         if (confirmed == true)
         {
-            var result = await LotService.UnblockLotAsync(lot.Id);
-            if (result)
+            try
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"));
-                await _managementPage.RefreshAsync();
+                var result = await LotService.UnblockLotAsync(lot.Id);
+                if (result)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"));
+                    await _managementPage.RefreshAsync();
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+                Logger.LogError(ex, "Error unblocking lot {LotId}.", lot.Id);
+                await AppNotification.ShowWarningAsync("Si è verificato un errore nello sblocco del lotto.");
             }
         }
     }

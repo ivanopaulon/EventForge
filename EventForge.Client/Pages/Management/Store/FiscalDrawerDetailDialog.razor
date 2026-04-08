@@ -415,7 +415,15 @@
 
     private async Task UpdateDenominationAsync(Guid denominationId, int quantity)
     {
-        await ViewModel.UpdateDenominationQuantityAsync(denominationId, quantity);
+        try
+        {
+            await ViewModel.UpdateDenominationQuantityAsync(denominationId, quantity);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating denomination {DenominationId} quantity.", denominationId);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'aggiornamento della denominazione.");
+        }
     }
 
     private async Task SaveAsync()
@@ -426,9 +434,17 @@
             if (!_form.IsValid) return;
         }
 
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
-            MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving fiscal drawer.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio.");
+        }
     }
 
     private async Task Cancel()
