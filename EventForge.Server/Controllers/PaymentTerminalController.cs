@@ -2,14 +2,22 @@ using EventForge.DTOs.PaymentTerminal;
 using EventForge.Server.Services.PaymentTerminal;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace EventForge.Server.Controllers;
 
+/// <summary>
+/// REST API controller for Protocol 17 (ECR17) POS payment terminal operations.
+/// Supports CRUD management and payment transaction commands (pay, void, refund).
+/// All operations require the <c>RequireStoreConfig</c> policy.
+/// </summary>
 [Route("api/v1/payment-terminals")]
-[Authorize]
+[Authorize(Policy = "RequireStoreConfig")]
 public class PaymentTerminalController(
     IPaymentTerminalService paymentTerminalService,
-    ITenantContext tenantContext) : BaseApiController
+    ITenantContext tenantContext,
+    IConfiguration configuration,
+    ILogger<PaymentTerminalController> logger) : BaseApiController
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<PaymentTerminalDto>), StatusCodes.Status200OK)]
@@ -146,7 +154,7 @@ public class PaymentTerminalController(
         }
     }
 
-    [HttpPost("{id:guid}/test-connection")]
+    [HttpGet("{id:guid}/test-connection")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> TestConnection(Guid id, CancellationToken ct = default)
@@ -155,45 +163,62 @@ public class PaymentTerminalController(
         try
         {
             await paymentTerminalService.TestConnectionAsync(id, ct);
-            return Ok(new { message = "Connection successful." });
+            return Ok(new { message = "Connessione riuscita." });
         }
         catch (Exception ex)
         {
-            return CreateServiceUnavailableProblem($"Connection test failed: {ex.Message}");
+            logger.LogWarning(ex, "TestConnection failed for terminal {Id}", id);
+            return CreateServiceUnavailableProblem($"Test di connessione fallito: {ex.Message}");
         }
     }
 
-    [HttpPost("test-tcp")]
+    [HttpGet("test-tcp")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> TestTcp([FromQuery] string host, [FromQuery] int port, [FromQuery] int timeoutMs = 5000, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
+        if (string.IsNullOrWhiteSpace(host))
+            return CreateValidationProblemDetails();
+        if (port is < 1 or > 65535)
+            return CreateValidationProblemDetails();
         try
         {
             await paymentTerminalService.TestTcpConnectionAsync(host, port, timeoutMs, ct);
-            return Ok(new { message = "Connection successful." });
+            return Ok(new { host, port, message = "Connessione riuscita." });
         }
         catch (Exception ex)
         {
-            return CreateServiceUnavailableProblem($"TCP test failed: {ex.Message}");
+            logger.LogWarning(ex, "TestTcp failed for {Host}:{Port}", host, port);
+            return CreateServiceUnavailableProblem($"Test TCP fallito: {ex.Message}");
         }
     }
 
-    [HttpPost("test-tcp-via-agent")]
+    [HttpGet("test-tcp-via-agent")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> TestTcpViaAgent([FromQuery] string agentBaseUrl, [FromQuery] string host, [FromQuery] int port, [FromQuery] int timeoutMs = 5000, CancellationToken ct = default)
+    public async Task<IActionResult> TestTcpViaAgent([FromQuery] Guid agentId, [FromQuery] string host, [FromQuery] int port, [FromQuery] int timeoutMs = 5000, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
+        if (string.IsNullOrWhiteSpace(host))
+            return CreateValidationProblemDetails();
+        if (port is < 1 or > 65535)
+            return CreateValidationProblemDetails();
+
+        var agentUrl = configuration[$"AgentProxies:{agentId}"];
+        if (string.IsNullOrWhiteSpace(agentUrl))
+            return CreateNotFoundProblem($"Agente '{agentId}' non configurato. Aggiungere 'AgentProxies:{agentId}' alla configurazione.");
+
         try
         {
-            await paymentTerminalService.TestTcpViaAgentAsync(agentBaseUrl, host, port, timeoutMs, ct);
-            return Ok(new { message = "Connection successful." });
+            await paymentTerminalService.TestTcpViaAgentAsync(agentUrl, host, port, timeoutMs, ct);
+            return Ok(new { agentId, host, port, message = "Connessione riuscita." });
         }
         catch (Exception ex)
         {
-            return CreateServiceUnavailableProblem($"Agent TCP test failed: {ex.Message}");
+            logger.LogWarning(ex, "TestTcpViaAgent failed for agent {AgentId} {Host}:{Port}", agentId, host, port);
+            return CreateServiceUnavailableProblem($"Test TCP via agente fallito: {ex.Message}");
         }
     }
 }

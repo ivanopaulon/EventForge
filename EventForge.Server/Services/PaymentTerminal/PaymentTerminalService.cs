@@ -8,7 +8,6 @@ namespace EventForge.Server.Services.PaymentTerminal;
 
 public class PaymentTerminalService(
     EventForgeDbContext context,
-    IAuditLogService auditLogService,
     ITenantContext tenantContext,
     ILogger<PaymentTerminalService> logger,
     IHttpClientFactory httpClientFactory,
@@ -212,14 +211,14 @@ public class PaymentTerminalService(
             ?? throw new InvalidOperationException($"Payment terminal {terminalId} not found.");
 
         if (string.IsNullOrEmpty(terminal.IpAddress))
-            throw new InvalidOperationException("Terminal has no IP address configured.");
+            throw new InvalidOperationException("Il terminale non ha un indirizzo IP configurato.");
 
         if (terminal.ConnectionType == "TcpViaAgent")
         {
             if (!terminal.AgentId.HasValue)
-                throw new InvalidOperationException("Terminal is configured for agent proxy but no AgentId is set.");
-            var agentBaseUrl = configuration[$"Agents:{terminal.AgentId.Value}:BaseUrl"]
-                ?? throw new InvalidOperationException($"Agent {terminal.AgentId.Value} base URL not configured.");
+                throw new InvalidOperationException("Il terminale è configurato per proxy agente ma AgentId non è impostato.");
+            var agentBaseUrl = configuration[$"AgentProxies:{terminal.AgentId.Value}"]
+                ?? throw new InvalidOperationException($"URL agente '{terminal.AgentId.Value}' non configurato. Aggiungere 'AgentProxies:{terminal.AgentId.Value}' alla configurazione.");
             var httpClient = httpClientFactory.CreateClient();
             return new Protocol17AgentChannel(httpClient, agentBaseUrl, terminal.IpAddress, terminal.Port, terminal.TimeoutMs);
         }
@@ -229,7 +228,7 @@ public class PaymentTerminalService(
 
     private static PaymentResultDto MapResult(Protocol17Response r, decimal requestedAmount) => new()
     {
-        Success = true,
+        Success = r.Approved,
         Approved = r.Approved,
         ResponseCode = r.ResponseCode,
         AuthorizationCode = r.AuthorizationCode,

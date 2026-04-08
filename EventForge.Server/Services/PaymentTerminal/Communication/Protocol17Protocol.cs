@@ -64,8 +64,17 @@ internal static class Protocol17Protocol
             return new Protocol17ParsedResponse(false, "XX", null, 0m, "Payload too short");
 
         var responseCode = payload[..2];
-        var authCode = payload.Length >= 8 ? payload.Substring(2, 6).Trim() : null;
 
+        // Extract auth code (positions 2-7, 6 chars) — only if payload is long enough
+        string? authCode = null;
+        if (payload.Length >= 8)
+        {
+            var raw = payload.Substring(2, 6).Trim();
+            if (!string.IsNullOrWhiteSpace(raw))
+                authCode = raw;
+        }
+
+        // Extract amount (positions 8-17, 10 chars) — only if payload is long enough
         decimal amount = 0m;
         if (payload.Length >= 18)
         {
@@ -75,11 +84,9 @@ internal static class Protocol17Protocol
         }
 
         bool approved = responseCode == "00";
-        string? errorMessage = approved ? null : $"Terminal declined: response code {responseCode}";
+        string? errorMessage = approved ? null : $"Terminale: risposta {responseCode}";
 
-        return new Protocol17ParsedResponse(approved, responseCode,
-            string.IsNullOrWhiteSpace(authCode) ? null : authCode,
-            amount, errorMessage);
+        return new Protocol17ParsedResponse(approved, responseCode, authCode, amount, errorMessage);
     }
 }
 

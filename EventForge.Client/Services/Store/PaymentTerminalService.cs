@@ -134,7 +134,7 @@ public class PaymentTerminalService(
 
     public async Task TestConnectionAsync(Guid terminalId)
     {
-        var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/test-connection", null);
+        var response = await httpClient.GetAsync($"{ApiBase}/{terminalId}/test-connection");
         response.EnsureSuccessStatusCode();
     }
 }
