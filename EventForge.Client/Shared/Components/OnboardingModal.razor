@@ -1,6 +1,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
+@inject ILogger<OnboardingModal> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.HelpOutline"
           Title="@CurrentStepTitle"
@@ -189,7 +190,10 @@
         await MarkStepCompletedAsync();
 
         if (DontShowAgain)
-            await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed");
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to persist DontShowAgain for {ComponentId}.", ComponentId); }
+        }
 
         MudDialog.Close(DialogResult.Ok(true));
     }
@@ -197,7 +201,10 @@
     private async Task SkipOnboardingAsync()
     {
         if (DontShowAgain)
-            await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed");
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to persist DontShowAgain for {ComponentId}.", ComponentId); }
+        }
 
         MudDialog.Cancel();
     }
@@ -205,7 +212,10 @@
     private async Task MarkStepCompletedAsync()
     {
         if (CurrentStep < Steps.Count)
-            await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_{Steps[CurrentStep].Id}");
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_{Steps[CurrentStep].Id}"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to mark onboarding step {StepId} completed.", Steps[CurrentStep].Id); }
+        }
     }
 
     private record OnboardingStep(string Id, string Title, string Content, string? ImagePath = null, List<string>? Tips = null)

@@ -835,8 +835,9 @@
 
             AppNotification.ShowInfo(TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error invoking printReceipt.");
             AppNotification.ShowError(TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"));
         }
     }

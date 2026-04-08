@@ -141,6 +141,7 @@
     private string? _errorMessage;
 
     private Timer? _pollingTimer;
+    private bool _disposed;
 
     private async Task StartGenerationAsync()
     {
@@ -179,7 +180,7 @@
 
     private async void PollJobStatus(object? state)
     {
-        if (string.IsNullOrEmpty(_currentJobId))
+        if (_disposed || string.IsNullOrEmpty(_currentJobId))
             return;
 
         try
@@ -268,5 +269,9 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    public void Dispose() => _pollingTimer?.Dispose();
+    public void Dispose()
+    {
+        _disposed = true;
+        _pollingTimer?.Dispose();
+    }
 }
