@@ -265,7 +265,10 @@
         if (_changePasswordIsMandatory)
             MudDialog.Close(DialogResult.Ok(true));
         else
+        {
             _isChangePasswordMode = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandlePasswordChangeCancelled()

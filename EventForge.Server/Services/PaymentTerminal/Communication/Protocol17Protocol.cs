@@ -49,6 +49,8 @@ internal static class Protocol17Protocol
         if (etxIdx < 0)
             return new Protocol17ParsedResponse(false, "XX", null, 0m, "ETX non trovato nella risposta.");
 
+        // Validate BCC existence before accessing data[etxIdx+1]; prevents IndexOutOfRangeException
+        // on truncated frames received over unreliable network connections.
         if (etxIdx + 1 >= data.Length)
             return new Protocol17ParsedResponse(false, "XX", null, 0m, "BCC mancante nella risposta.");
 

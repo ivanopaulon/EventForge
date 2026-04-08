@@ -66,12 +66,12 @@
             <MudStack Row="true" Spacing="2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Search"
-                           OnClick="ApplyFiltersAsync">
+                           OnClick="ApplyFilters">
                     Cerca
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.Clear"
-                           OnClick="ClearFiltersAsync">
+                           OnClick="ClearFilters">
                     Pulisci
                 </MudButton>
                 <MudSpacer />
@@ -293,12 +293,12 @@
         _closuresFiltered = query.ToList();
     }
 
-    private void ApplyFiltersAsync()
+    private void ApplyFilters()
     {
         ApplyLocalFilters();
     }
 
-    private void ClearFiltersAsync()
+    private void ClearFilters()
     {
         _filterFromDate = null;
         _filterToDate = null;

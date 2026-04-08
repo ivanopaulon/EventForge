@@ -266,8 +266,12 @@
                 .Where(p => p.IsFiscalPrinter)
                 .ToList() ?? new();
 
-            // Fetch all statuses in parallel
-            var statusTasks = printers.Select(p => FiscalPrintingService.GetStatusAsync(p.Id)).ToList();
+            // Fetch all statuses in parallel; individual failures return null (non-fatal)
+            var statusTasks = printers.Select(async p =>
+            {
+                try { return await FiscalPrintingService.GetStatusAsync(p.Id); }
+                catch (Exception ex) { Logger.LogWarning(ex, "Failed to fetch status for printer {PrinterId}.", p.Id); return null; }
+            }).ToList();
             var statuses = await Task.WhenAll(statusTasks);
 
             var newRows = printers
