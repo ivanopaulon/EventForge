@@ -191,18 +191,34 @@
 
     private async Task LoadDocumentsAsync()
     {
-        if (_efTable != null)
+        try
         {
-            await _efTable.ReloadServerDataAsync();
+            if (_efTable != null)
+            {
+                await _efTable.ReloadServerDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel caricamento dei documenti della controparte commerciale.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei documenti.");
         }
     }
 
     private async Task ResetFiltersAsync()
     {
-        _dateRange = null;
-        _searchNumber = null;
-        _selectedApprovalStatus = null;
-        await LoadDocumentsAsync();
+        try
+        {
+            _dateRange = null;
+            _searchNumber = null;
+            _selectedApprovalStatus = null;
+            await LoadDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel ripristino dei filtri documenti.");
+            AppNotification.ShowWarning("Si è verificato un errore nel ripristino dei filtri.");
+        }
     }
 
     private async Task ViewDocumentAsync(Guid documentId)
