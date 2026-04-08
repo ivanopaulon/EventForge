@@ -448,7 +448,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Errore durante l'inizializzazione: {ex.Message}");
         }
     }
@@ -490,7 +490,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel caricamento delle chat: {ex.Message}");
         }
         finally
@@ -546,7 +546,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel caricamento dei messaggi: {ex.Message}");
         }
         finally
@@ -668,7 +668,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'invio del messaggio: {ex.Message}");
         }
         finally
@@ -910,7 +910,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowWarning($"Error starting walkthrough: {ex.Message}");
         }
     }
@@ -927,7 +927,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowWarning($"Impossibile aprire l'onboarding: {ex.Message}");
         }
     }
@@ -944,7 +944,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowWarning($"Error completing walkthrough: {ex.Message}");
         }
     }
@@ -1027,7 +1027,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Error adding reaction: {ex.Message}");
         }
     }
@@ -1068,7 +1068,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "ChatInterface.");
+                Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
                 AppNotification.ShowError($"Error deleting message: {ex.Message}");
             }
         }
@@ -1116,7 +1116,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ChatInterface.");
+            Logger.LogError(ex, "Unhandled exception in ChatInterface: {Message}", ex.Message);
             AppNotification.ShowError($"Error downloading file: {ex.Message}");
         }
     }

@@ -390,7 +390,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore durante l'inizializzazione: {ex.Message}");
         }
     }
@@ -422,7 +422,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowWarning($"Errore nel controllo dello stato onboarding: {ex.Message}");
         }
     }
@@ -440,7 +440,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowWarning($"Error starting walkthrough: {ex.Message}");
         }
     }
@@ -457,7 +457,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowWarning($"Impossibile aprire l'onboarding: {ex.Message}");
         }
     }
@@ -474,7 +474,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowWarning($"Error completing walkthrough: {ex.Message}");
         }
     }
@@ -506,7 +506,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel caricamento delle notifiche: {ex.Message}");
         }
         finally
@@ -527,7 +527,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel caricamento delle statistiche: {ex.Message}");
         }
     }
@@ -543,7 +543,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel caricamento delle preferenze: {ex.Message}");
         }
     }
@@ -577,7 +577,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'operazione: {ex.Message}");
         }
         finally
@@ -610,7 +610,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'archiviazione: {ex.Message}");
         }
     }
@@ -645,7 +645,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'operazione: {ex.Message}");
         }
     }
@@ -669,7 +669,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'archiviazione: {ex.Message}");
         }
     }
@@ -714,7 +714,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel salvataggio: {ex.Message}");
         }
         finally
@@ -888,7 +888,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nel raggruppamento: {ex.Message}");
         }
         return Task.CompletedTask;
@@ -938,7 +938,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
@@ -960,7 +960,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
@@ -987,7 +987,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore: {ex.Message}");
         }
     }
@@ -1021,7 +1021,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NotificationCenter.");
+            Logger.LogError(ex, "Unhandled exception in NotificationCenter: {Message}", ex.Message);
             AppNotification.ShowError($"Errore nell'esecuzione dell'azione: {ex.Message}");
         }
         return Task.CompletedTask;
