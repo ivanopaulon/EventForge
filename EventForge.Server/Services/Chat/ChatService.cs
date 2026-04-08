@@ -301,6 +301,8 @@ public class ChatService(
         ChatSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         // Base query: threads where the user is an active member
         var query = context.ChatThreads
             .AsNoTracking()
@@ -487,6 +489,12 @@ public class ChatService(
             Page = page,
             PageSize = pageSize
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in SearchChatsAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -499,6 +507,8 @@ public class ChatService(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
@@ -524,6 +534,12 @@ public class ChatService(
             PreferredLocale = updateDto.PreferredLocale,
             UpdatedAt = DateTime.UtcNow
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateChatAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -537,6 +553,8 @@ public class ChatService(
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
@@ -563,6 +581,12 @@ public class ChatService(
                 ["Reason"] = reason ?? "No reason provided"
             }
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteChatAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     #endregion
@@ -1501,6 +1525,8 @@ public class ChatService(
         MediaProcessingOptionsDto processingOptions,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Processing media {AttachmentId} with options: Thumbnails={GenerateThumbnails}, Optimize={OptimizeForWeb}",
             attachmentId, processingOptions.GenerateThumbnails, processingOptions.OptimizeForWeb);
@@ -1549,6 +1575,12 @@ public class ChatService(
             Success = true,
             GeneratedVariants = variants
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ProcessMediaAsync for attachment {AttachmentId}.", attachmentId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1561,6 +1593,8 @@ public class ChatService(
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "MessageAttachment",
             entityId: attachmentId,
@@ -1584,6 +1618,12 @@ public class ChatService(
             AttachmentId = attachmentId,
             Success = true
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteFileAsync for attachment {AttachmentId}.", attachmentId);
+            throw;
+        }
     }
 
     #endregion
@@ -1602,6 +1642,8 @@ public class ChatService(
         string? welcomeMessage = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1655,6 +1697,12 @@ public class ChatService(
             FailureCount = userIds.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in AddMembersAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1668,6 +1716,8 @@ public class ChatService(
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1720,6 +1770,12 @@ public class ChatService(
             FailureCount = userIds.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in RemoveMembersAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1732,6 +1788,8 @@ public class ChatService(
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1785,6 +1843,12 @@ public class ChatService(
             FailureCount = roleUpdates.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateMemberRolesAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -2074,6 +2138,8 @@ public class ChatService(
         ChatAuditQueryDto auditQuery,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Retrieving chat audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
             auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
@@ -2088,6 +2154,12 @@ public class ChatService(
             PageSize = auditQuery.PageSize,
             TotalCount = 0
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetChatAuditTrailAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -2097,6 +2169,8 @@ public class ChatService(
     public async Task<ChatSystemHealthDto> GetChatSystemHealthAsync(
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogDebug("Checking chat system health");
 
         // TODO: Implement health checks
@@ -2117,6 +2191,12 @@ public class ChatService(
             },
             Alerts = new List<string>()
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetChatSystemHealthAsync.");
+            throw;
+        }
     }
 
     #endregion
@@ -2132,6 +2212,8 @@ public class ChatService(
         Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Localizing message {MessageId} to locale {Locale} for user {UserId}",
             message.Id, targetLocale, userId);
@@ -2166,6 +2248,12 @@ public class ChatService(
 
         // 4. Return localized ChatMessageDto
         return message;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in LocalizeChatMessageAsync for message {MessageId}.", message.Id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -2416,6 +2504,8 @@ public class ChatService(
         MessageReactionActionDto reactionDto,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Toggling reaction {Emoji} on message {MessageId} by user {UserId}",
             reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
@@ -2434,6 +2524,12 @@ public class ChatService(
             Success = true,
             MessageId = reactionDto.MessageId
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ToggleMessageReactionAsync for message {MessageId}.", reactionDto.MessageId);
+            throw;
+        }
     }
 
     #endregion
