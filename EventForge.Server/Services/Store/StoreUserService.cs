@@ -1065,6 +1065,7 @@ public class StoreUserService(
             var storePos = await context.StorePoses
                 .Include(sp => sp.ImageDocument)
                 .Include(sp => sp.DefaultFiscalPrinter)
+                .Include(sp => sp.DefaultPaymentTerminal)
                 .Include(sp => sp.CashierGroup)
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1104,6 +1105,7 @@ public class StoreUserService(
                 TimeZone = createStorePosDto.TimeZone,
                 DefaultFiscalPrinterId = createStorePosDto.DefaultFiscalPrinterId,
                 CashierGroupId = createStorePosDto.CashierGroupId,
+                DefaultPaymentTerminalId = createStorePosDto.DefaultPaymentTerminalId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser,
                 IsDeleted = false
@@ -1151,6 +1153,7 @@ public class StoreUserService(
             storePos.IsOnline = updateStorePosDto.IsOnline;
             storePos.DefaultFiscalPrinterId = updateStorePosDto.DefaultFiscalPrinterId;
             storePos.CashierGroupId = updateStorePosDto.CashierGroupId;
+            storePos.DefaultPaymentTerminalId = updateStorePosDto.DefaultPaymentTerminalId;
             storePos.ModifiedAt = DateTime.UtcNow;
             storePos.ModifiedBy = currentUser;
 
@@ -1783,6 +1786,8 @@ public class StoreUserService(
             TimeZone = storePos.TimeZone,
             DefaultFiscalPrinterId = storePos.DefaultFiscalPrinterId,
             DefaultFiscalPrinterName = storePos.DefaultFiscalPrinter?.Name,
+            DefaultPaymentTerminalId = storePos.DefaultPaymentTerminalId,
+            DefaultPaymentTerminalName = storePos.DefaultPaymentTerminal?.Name,
             CashierGroupId = storePos.CashierGroupId,
             CashierGroupName = storePos.CashierGroup?.Name,
             CreatedAt = storePos.CreatedAt,

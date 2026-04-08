@@ -130,6 +130,15 @@ public partial class EventForgeDbContext
             .HasForeignKey(d => d.FiscalDrawerId)
             .OnDelete(DeleteBehavior.Cascade);
         _ = modelBuilder.Entity<CashDenomination>().HasIndex(d => d.FiscalDrawerId).HasDatabaseName("IX_CashDenomination_FiscalDrawerId");
+
+        _ = modelBuilder.Entity<StorePos>()
+            .HasOne(p => p.DefaultPaymentTerminal)
+            .WithMany()
+            .HasForeignKey(p => p.DefaultPaymentTerminalId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.DefaultPaymentTerminalId).HasDatabaseName("IX_StorePos_DefaultPaymentTerminalId");
     }
 
 }

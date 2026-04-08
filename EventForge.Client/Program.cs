@@ -286,6 +286,14 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IFiscalDrawerSer
 })
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
+builder.Services.AddHttpClient<EventForge.Client.Services.Store.IPaymentTerminalService, EventForge.Client.Services.Store.PaymentTerminalService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
+
 builder.Services.AddScoped<EventForge.Client.Services.Station.IStationService, EventForge.Client.Services.Station.StationService>();
 
 // Add authentication services
