@@ -25,7 +25,7 @@ public class FontPreferencesService(
     public UserDisplayPreferencesDto CurrentPreferences => _currentPreferences;
     public event Action? OnPreferencesChanged;
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -68,7 +68,7 @@ public class FontPreferencesService(
         }
     }
 
-    public async Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences)
+    public async Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default)
     {
         _currentPreferences = preferences;
 
@@ -109,7 +109,7 @@ public class FontPreferencesService(
         OnPreferencesChanged?.Invoke();
     }
 
-    public async Task ApplyPreferencesAsync()
+    public async Task ApplyPreferencesAsync(CancellationToken ct = default)
     {
         try
         {

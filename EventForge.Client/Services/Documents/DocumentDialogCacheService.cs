@@ -34,7 +34,7 @@ public class DocumentDialogCacheService(
     private static readonly TimeSpan PriceListsCacheDuration = TimeSpan.FromMinutes(5);
 
     /// <inheritdoc />
-    public async Task<List<UMDto>> GetUnitsOfMeasureAsync()
+    public async Task<List<UMDto>> GetUnitsOfMeasureAsync(CancellationToken ct = default)
     {
         // Return cached data if valid
         if (_cachedUnits is not null && IsCacheValid())
@@ -73,7 +73,7 @@ public class DocumentDialogCacheService(
     }
 
     /// <inheritdoc />
-    public async Task<List<VatRateDto>> GetVatRatesAsync()
+    public async Task<List<VatRateDto>> GetVatRatesAsync(CancellationToken ct = default)
     {
         // Return cached data if valid
         if (_cachedVatRates is not null && IsCacheValid())
@@ -136,7 +136,7 @@ public class DocumentDialogCacheService(
     }
 
     /// <inheritdoc />
-    public async Task<List<PriceListDto>> GetActiveSalesPriceListsAsync()
+    public async Task<List<PriceListDto>> GetActiveSalesPriceListsAsync(CancellationToken ct = default)
     {
         if (_activeSalesPriceLists is null || IsPriceListsCacheExpired())
         {
@@ -178,7 +178,7 @@ public class DocumentDialogCacheService(
     }
 
     /// <inheritdoc />
-    public async Task<List<PriceListDto>> GetActivePurchasePriceListsAsync()
+    public async Task<List<PriceListDto>> GetActivePurchasePriceListsAsync(CancellationToken ct = default)
     {
         if (_activePurchasePriceLists is null || IsPriceListsCacheExpired())
         {
@@ -220,7 +220,7 @@ public class DocumentDialogCacheService(
     }
 
     /// <inheritdoc />
-    public async Task<List<PriceListDto>> GetAllActivePriceListsAsync()
+    public async Task<List<PriceListDto>> GetAllActivePriceListsAsync(CancellationToken ct = default)
     {
         // Carica in parallelo per performance
         var salesTask = GetActiveSalesPriceListsAsync();
@@ -236,7 +236,7 @@ public class DocumentDialogCacheService(
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetPriceListNameAsync(Guid priceListId)
+    public async Task<string?> GetPriceListNameAsync(Guid priceListId, CancellationToken ct = default)
     {
         // Lazy-load cache dictionary se non esiste o scaduto
         if (_priceListNamesCache is null || IsPriceListsCacheExpired())

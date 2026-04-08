@@ -15,7 +15,7 @@ public class NoteFlagService(
 {
     private const string BaseUrl = "api/v1/note-flags";
 
-    public async Task<List<NoteFlagDto>?> GetAllAsync()
+    public async Task<List<NoteFlagDto>?> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -28,7 +28,7 @@ public class NoteFlagService(
         }
     }
 
-    public async Task<List<NoteFlagDto>?> GetActiveAsync()
+    public async Task<List<NoteFlagDto>?> GetActiveAsync(CancellationToken ct = default)
     {
         // Try cache first
         if (cache.TryGetValue(CacheHelper.ACTIVE_NOTE_FLAGS, out List<NoteFlagDto>? cached) && cached != null)
@@ -67,7 +67,7 @@ public class NoteFlagService(
         }
     }
 
-    public async Task<NoteFlagDto?> GetByIdAsync(Guid id)
+    public async Task<NoteFlagDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -80,7 +80,7 @@ public class NoteFlagService(
         }
     }
 
-    public async Task<NoteFlagDto?> CreateAsync(CreateNoteFlagDto createDto)
+    public async Task<NoteFlagDto?> CreateAsync(CreateNoteFlagDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -99,7 +99,7 @@ public class NoteFlagService(
         }
     }
 
-    public async Task<NoteFlagDto?> UpdateAsync(Guid id, UpdateNoteFlagDto updateDto)
+    public async Task<NoteFlagDto?> UpdateAsync(Guid id, UpdateNoteFlagDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -118,7 +118,7 @@ public class NoteFlagService(
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

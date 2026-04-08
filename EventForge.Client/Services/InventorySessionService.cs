@@ -113,7 +113,7 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
 {
     private const string SessionKey = "eventforge-inventory-session";
 
-    public async Task SaveSessionAsync(InventorySessionState state)
+    public async Task SaveSessionAsync(InventorySessionState state, CancellationToken ct = default)
     {
         try
         {
@@ -126,7 +126,7 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
     }
 
-    public async Task<InventorySessionState?> LoadSessionAsync()
+    public async Task<InventorySessionState?> LoadSessionAsync(CancellationToken ct = default)
     {
         try
         {
@@ -145,7 +145,7 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
     }
 
-    public async Task ClearSessionAsync()
+    public async Task ClearSessionAsync(CancellationToken ct = default)
     {
         try
         {
@@ -157,7 +157,7 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
     }
 
-    public async Task<bool> HasActiveSessionAsync()
+    public async Task<bool> HasActiveSessionAsync(CancellationToken ct = default)
     {
         var session = await LoadSessionAsync();
         return session != null;

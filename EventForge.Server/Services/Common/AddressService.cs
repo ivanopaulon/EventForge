@@ -63,6 +63,7 @@ public class AddressService(
             }
 
             var addresses = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.OwnerId == ownerId && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                 .OrderBy(a => a.AddressType)
                 .ToListAsync(cancellationToken);
@@ -81,6 +82,7 @@ public class AddressService(
         try
         {
             var address = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -148,6 +150,7 @@ public class AddressService(
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
             var address = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -201,6 +204,7 @@ public class AddressService(
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
             var address = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.Id == id && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -248,6 +252,7 @@ public class AddressService(
         try
         {
             return await context.Addresses
+                .AsNoTracking()
                 .AnyAsync(a => a.Id == addressId && !a.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

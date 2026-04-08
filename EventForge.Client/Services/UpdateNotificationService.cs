@@ -161,7 +161,7 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     public async Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default)
         => await _http.PostAsync("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
 
-    public async Task RefreshAvailableUpdatesCountAsync()
+    public async Task RefreshAvailableUpdatesCountAsync(CancellationToken ct = default)
     {
         try
         {

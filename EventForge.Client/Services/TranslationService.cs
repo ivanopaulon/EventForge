@@ -115,7 +115,7 @@ public class TranslationService(
     /// <summary>
     /// Initializes the translation service and loads the user's preferred language.
     /// </summary>
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -179,7 +179,7 @@ public class TranslationService(
     /// - Caching mechanisms can be added without affecting HttpClient configuration
     /// </summary>
     /// <param name="language">Language code (it, en, es, fr)</param>
-    public async Task SetLanguageAsync(string language)
+    public async Task SetLanguageAsync(string language, CancellationToken ct = default)
     {
         if (!_availableLanguages.ContainsKey(language))
         {
@@ -374,7 +374,7 @@ public class TranslationService(
     /// - The ApiClient is pre-configured with BaseAddress in Program.cs
     /// - Dynamic language switching is supported without creating new HttpClient instances
     /// </summary>
-    public async Task LoadTranslationsFromApiAsync()
+    public async Task LoadTranslationsFromApiAsync(CancellationToken ct = default)
     {
         try
         {

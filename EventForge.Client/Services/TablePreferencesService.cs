@@ -64,7 +64,7 @@ namespace EventForge.Client.Services
         }
 
         /// <inheritdoc />
-        public async Task ClearPreferencesAsync(string componentKey)
+        public async Task ClearPreferencesAsync(string componentKey, CancellationToken ct = default)
         {
             try
             {

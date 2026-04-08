@@ -56,7 +56,7 @@ public class ConnectionMonitorService(
         _timer = null;
     }
 
-    public async Task CheckNowAsync()
+    public async Task CheckNowAsync(CancellationToken ct = default)
     {
         var previousStatus = Status;
 

@@ -13,7 +13,7 @@ public class StationService(
     private const string ApiBase = "api/v1/stations";
     private const string PrintersBase = "api/v1/stations/printers";
 
-    public async Task<List<StationDto>> GetAllAsync()
+    public async Task<List<StationDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -27,28 +27,28 @@ public class StationService(
         }
     }
 
-    public async Task<StationDto?> GetByIdAsync(Guid id)
+    public async Task<StationDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await httpClientService.GetAsync<StationDto>($"{ApiBase}/{id}");
     }
 
-    public async Task<StationDto?> CreateAsync(CreateStationDto createDto)
+    public async Task<StationDto?> CreateAsync(CreateStationDto createDto, CancellationToken ct = default)
     {
         return await httpClientService.PostAsync<CreateStationDto, StationDto>(ApiBase, createDto);
     }
 
-    public async Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto)
+    public async Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto, CancellationToken ct = default)
     {
         return await httpClientService.PutAsync<UpdateStationDto, StationDto>($"{ApiBase}/{id}", updateDto);
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         await httpClientService.DeleteAsync($"{ApiBase}/{id}");
         return true;
     }
 
-    public async Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}")
             ?? new PagedResult<StationDto>();
@@ -56,7 +56,7 @@ public class StationService(
 
     // ── Printer methods ───────────────────────────────────────
 
-    public async Task<List<PrinterDto>> GetAllPrintersAsync()
+    public async Task<List<PrinterDto>> GetAllPrintersAsync(CancellationToken ct = default)
     {
         try
         {
@@ -70,17 +70,17 @@ public class StationService(
         }
     }
 
-    public async Task<PrinterDto?> GetPrinterByIdAsync(Guid id)
+    public async Task<PrinterDto?> GetPrinterByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}");
     }
 
-    public async Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto)
+    public async Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto, CancellationToken ct = default)
     {
         return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto);
     }
 
-    public async Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto)
+    public async Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto, CancellationToken ct = default)
     {
         return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto);
     }

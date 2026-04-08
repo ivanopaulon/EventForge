@@ -11,7 +11,7 @@ public class DocumentCounterService(
 {
     private const string BaseUrl = "api/v1/documentcounters";
 
-    public async Task<IEnumerable<DocumentCounterDto>?> GetAllDocumentCountersAsync()
+    public async Task<IEnumerable<DocumentCounterDto>?> GetAllDocumentCountersAsync(CancellationToken ct = default)
     {
         try
         {
@@ -24,7 +24,7 @@ public class DocumentCounterService(
         }
     }
 
-    public async Task<IEnumerable<DocumentCounterDto>?> GetDocumentCountersByTypeAsync(Guid documentTypeId)
+    public async Task<IEnumerable<DocumentCounterDto>?> GetDocumentCountersByTypeAsync(Guid documentTypeId, CancellationToken ct = default)
     {
         try
         {
@@ -37,7 +37,7 @@ public class DocumentCounterService(
         }
     }
 
-    public async Task<DocumentCounterDto?> GetDocumentCounterByIdAsync(Guid id)
+    public async Task<DocumentCounterDto?> GetDocumentCounterByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -50,7 +50,7 @@ public class DocumentCounterService(
         }
     }
 
-    public async Task<DocumentCounterDto?> CreateDocumentCounterAsync(CreateDocumentCounterDto createDto)
+    public async Task<DocumentCounterDto?> CreateDocumentCounterAsync(CreateDocumentCounterDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -63,7 +63,7 @@ public class DocumentCounterService(
         }
     }
 
-    public async Task<DocumentCounterDto?> UpdateDocumentCounterAsync(Guid id, UpdateDocumentCounterDto updateDto)
+    public async Task<DocumentCounterDto?> UpdateDocumentCounterAsync(Guid id, UpdateDocumentCounterDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -76,7 +76,7 @@ public class DocumentCounterService(
         }
     }
 
-    public async Task<bool> DeleteDocumentCounterAsync(Guid id)
+    public async Task<bool> DeleteDocumentCounterAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

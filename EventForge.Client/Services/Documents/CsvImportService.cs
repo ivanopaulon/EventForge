@@ -11,7 +11,7 @@ public class CsvImportService(
     ILogger<CsvImportService> logger) : ICsvImportService
 {
     /// <inheritdoc />
-    public async Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options)
+    public async Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options, CancellationToken ct = default)
     {
         var result = new CsvImportResult
         {

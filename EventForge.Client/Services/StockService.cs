@@ -47,7 +47,7 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> GetStockByIdAsync(Guid id)
+    public async Task<StockDto?> GetStockByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -60,7 +60,7 @@ public class StockService(
         }
     }
 
-    public async Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId)
+    public async Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId, CancellationToken ct = default)
     {
         try
         {
@@ -127,7 +127,7 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto)
+    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -140,7 +140,7 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto)
+    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -153,7 +153,7 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto)
+    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, CancellationToken ct = default)
     {
         try
         {

@@ -14,7 +14,7 @@ public class StoreUserGroupService(
     private const string ApiBase = "api/v1/storeusers/groups";
     private const int MaxPageSize = 1000;
 
-    public async Task<List<StoreUserGroupDto>> GetAllAsync()
+    public async Task<List<StoreUserGroupDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -26,14 +26,13 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error getting all store user groups: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error getting all store user groups");
             throw;
         }
     }
 
-    public async Task<PagedResult<StoreUserGroupDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<StoreUserGroupDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
@@ -56,14 +55,13 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error getting paged store user groups (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error getting paged store user groups (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento dei gruppi.", ex);
         }
     }
 
-    public async Task<StoreUserGroupDto?> GetByIdAsync(Guid id)
+    public async Task<StoreUserGroupDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -75,14 +73,13 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error getting store user group {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error getting store user group {Id}", id);
             throw;
         }
     }
 
-    public async Task<StoreUserGroupDto?> CreateAsync(CreateStoreUserGroupDto createDto)
+    public async Task<StoreUserGroupDto?> CreateAsync(CreateStoreUserGroupDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -103,14 +100,13 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error creating store user group: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error creating store user group");
             throw new InvalidOperationException("Errore nella creazione del gruppo. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<StoreUserGroupDto?> UpdateAsync(Guid id, UpdateStoreUserGroupDto updateDto)
+    public async Task<StoreUserGroupDto?> UpdateAsync(Guid id, UpdateStoreUserGroupDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -131,14 +127,13 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error updating store user group {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error updating store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del gruppo. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -159,8 +154,7 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserGroupService] Error deleting store user group {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserGroupService] StackTrace: {ex.StackTrace}");
+
             logger.LogError(ex, "Error deleting store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del gruppo.", ex);
         }

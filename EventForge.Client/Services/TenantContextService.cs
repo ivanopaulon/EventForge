@@ -59,7 +59,7 @@ public class TenantContextService(
     /// <summary>
     /// Initializes the service and loads any persisted tenant selection from browser storage.
     /// </summary>
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -81,7 +81,7 @@ public class TenantContextService(
     /// </summary>
     /// <param name="tenantId">Tenant ID to set as current</param>
     /// <param name="tenant">Optional tenant details</param>
-    public async Task SetCurrentTenantAsync(Guid? tenantId, TenantResponseDto? tenant = null)
+    public async Task SetCurrentTenantAsync(Guid? tenantId, TenantResponseDto? tenant = null, CancellationToken ct = default)
     {
         try
         {
@@ -116,7 +116,7 @@ public class TenantContextService(
     /// <summary>
     /// Clears the current tenant context.
     /// </summary>
-    public async Task ClearCurrentTenantAsync()
+    public async Task ClearCurrentTenantAsync(CancellationToken ct = default)
     {
         await SetCurrentTenantAsync(null);
     }

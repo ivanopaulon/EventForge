@@ -79,7 +79,7 @@ public class PriceResolutionService(
         return query;
     }
 
-    public async Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request)
+    public async Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request, CancellationToken ct = default)
     {
         try
         {

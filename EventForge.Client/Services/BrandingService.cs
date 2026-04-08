@@ -58,7 +58,7 @@ public class BrandingService(
     private const string CacheKeyPrefix = "branding_client_";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
-    public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null)
+    public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null, CancellationToken ct = default)
     {
         try
         {
@@ -97,7 +97,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto)
+    public async Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -116,7 +116,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto)
+    public async Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -135,7 +135,7 @@ public class BrandingService(
         }
     }
 
-    public async Task DeleteTenantBrandingAsync(Guid tenantId)
+    public async Task DeleteTenantBrandingAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -151,7 +151,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null)
+    public async Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null, CancellationToken ct = default)
     {
         try
         {

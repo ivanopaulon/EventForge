@@ -12,7 +12,7 @@ public class InventoryService(
 {
     private const string BaseUrl = "api/v1/warehouse/inventory";
 
-    public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
@@ -25,7 +25,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto)
+    public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -38,7 +38,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto)
+    public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -51,7 +51,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentAsync(Guid documentId, UpdateInventoryDocumentDto updateDto)
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentAsync(Guid documentId, UpdateInventoryDocumentDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -64,7 +64,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto)
+    public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto, CancellationToken ct = default)
     {
         try
         {
@@ -77,7 +77,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentRowAsync(Guid documentId, Guid rowId, UpdateInventoryDocumentRowDto rowDto)
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentRowAsync(Guid documentId, Guid rowId, UpdateInventoryDocumentRowDto rowDto, CancellationToken ct = default)
     {
         try
         {
@@ -90,7 +90,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId)
+    public async Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId, CancellationToken ct = default)
     {
         try
         {
@@ -104,7 +104,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -117,7 +117,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -130,7 +130,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false)
+    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false, CancellationToken ct = default)
     {
         try
         {
@@ -166,7 +166,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync()
+    public async Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync(CancellationToken ct = default)
     {
         try
         {
@@ -182,7 +182,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -195,7 +195,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync()
+    public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -208,7 +208,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync()
+    public async Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync(CancellationToken ct = default)
     {
         try
         {
@@ -221,7 +221,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50)
+    public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
@@ -233,7 +233,7 @@ public class InventoryService(
             return null;
         }
     }
-    public async Task<bool> CancelInventoryDocumentAsync(Guid documentId)
+    public async Task<bool> CancelInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -247,7 +247,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync()
+    public async Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -260,7 +260,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<int> CancelAllOpenInventoriesAsync()
+    public async Task<int> CancelAllOpenInventoriesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -274,7 +274,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null)
+    public async Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null, CancellationToken ct = default)
     {
         try
         {
@@ -288,7 +288,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds)
+    public async Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds, CancellationToken ct = default)
     {
         try
         {
@@ -302,7 +302,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto)
+    public async Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto, CancellationToken ct = default)
     {
         try
         {
@@ -316,7 +316,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -329,7 +329,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options)
+    public async Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options, CancellationToken ct = default)
     {
         try
         {
@@ -342,7 +342,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData)
+    public async Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData, CancellationToken ct = default)
     {
         try
         {
@@ -356,7 +356,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds)
+    public async Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds, CancellationToken ct = default)
     {
         try
         {

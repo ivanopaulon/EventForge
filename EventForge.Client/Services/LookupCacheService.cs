@@ -74,7 +74,7 @@ public class LookupCacheService(
                 logger.LogWarning(ex, "Transient lookup failure on attempt {Attempt} after {Delay}ms",
                     attempt, delay.TotalMilliseconds));
 
-    public async Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false)
+    public async Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -128,7 +128,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false)
+    public async Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false, CancellationToken ct = default)
     {
         var key = brandId.HasValue ? $"{ModelsByBrandCacheKeyPrefix}{brandId}" : ModelsCacheKey;
 
@@ -188,7 +188,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false)
+    public async Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -242,7 +242,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false)
+    public async Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -309,7 +309,7 @@ public class LookupCacheService(
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false) =>
         (await GetUnitsOfMeasureAsync(forceRefresh)).Items;
 
-    public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId)
+    public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId, CancellationToken ct = default)
     {
         try
         {
@@ -328,7 +328,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<ModelDto?> GetModelByIdAsync(Guid modelId)
+    public async Task<ModelDto?> GetModelByIdAsync(Guid modelId, CancellationToken ct = default)
     {
         try
         {
@@ -347,7 +347,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId)
+    public async Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId, CancellationToken ct = default)
     {
         try
         {
@@ -366,7 +366,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId)
+    public async Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId, CancellationToken ct = default)
     {
         try
         {

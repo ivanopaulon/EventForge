@@ -30,6 +30,7 @@ public class BusinessPartyGroupService(
             }
 
             var query = context.BusinessPartyGroups
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
                 .AsQueryable();
@@ -74,6 +75,7 @@ public class BusinessPartyGroupService(
             }
 
             var group = await context.BusinessPartyGroups
+                .AsNoTracking()
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -107,6 +109,7 @@ public class BusinessPartyGroupService(
             if (!string.IsNullOrWhiteSpace(dto.Code))
             {
                 var codeExists = await context.BusinessPartyGroups
+                    .AsNoTracking()
                     .AnyAsync(g => g.Code == dto.Code && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
 
                 if (codeExists)
@@ -166,6 +169,7 @@ public class BusinessPartyGroupService(
             }
 
             var group = await context.BusinessPartyGroups
+                .AsNoTracking()
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -194,6 +198,7 @@ public class BusinessPartyGroupService(
             if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != group.Code)
             {
                 var codeExists = await context.BusinessPartyGroups
+                    .AsNoTracking()
                     .AnyAsync(g => g.Code == dto.Code && g.Id != id && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
 
                 if (codeExists)
@@ -255,6 +260,7 @@ public class BusinessPartyGroupService(
             }
 
             var group = await context.BusinessPartyGroups
+                .AsNoTracking()
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -327,6 +333,7 @@ public class BusinessPartyGroupService(
             }
 
             var query = context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Where(m => m.BusinessPartyGroupId == groupId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Group)
                 .Include(m => m.BusinessParty);
@@ -374,6 +381,7 @@ public class BusinessPartyGroupService(
 
             // Verify group exists
             var groupExists = await context.BusinessPartyGroups
+                .AsNoTracking()
                 .AnyAsync(g => g.Id == groupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
 
             if (!groupExists)
@@ -383,6 +391,7 @@ public class BusinessPartyGroupService(
 
             // Verify business party exists
             var businessPartyExists = await context.BusinessParties
+                .AsNoTracking()
                 .AnyAsync(bp => bp.Id == dto.BusinessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
 
             if (!businessPartyExists)
@@ -392,6 +401,7 @@ public class BusinessPartyGroupService(
 
             // Check if already a member
             var existingMember = await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Where(m => m.BusinessPartyGroupId == groupId
                     && m.BusinessPartyId == dto.BusinessPartyId
                     && m.TenantId == currentTenantId.Value
@@ -458,6 +468,7 @@ public class BusinessPartyGroupService(
 
             // Verify group exists
             var groupExists = await context.BusinessPartyGroups
+                .AsNoTracking()
                 .AnyAsync(g => g.Id == dto.BusinessPartyGroupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
 
             if (!groupExists)
@@ -473,6 +484,7 @@ public class BusinessPartyGroupService(
                 {
                     // Verify business party exists
                     var businessPartyExists = await context.BusinessParties
+                        .AsNoTracking()
                         .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
 
                     if (!businessPartyExists)
@@ -484,6 +496,7 @@ public class BusinessPartyGroupService(
 
                     // Check if already a member
                     var existingMember = await context.BusinessPartyGroupMembers
+                        .AsNoTracking()
                         .AnyAsync(m => m.BusinessPartyGroupId == dto.BusinessPartyGroupId
                             && m.BusinessPartyId == businessPartyId
                             && m.TenantId == currentTenantId.Value
@@ -556,6 +569,7 @@ public class BusinessPartyGroupService(
             }
 
             var member = await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Where(m => m.BusinessPartyGroupId == groupId
                     && m.BusinessPartyId == businessPartyId
                     && m.TenantId == currentTenantId.Value
@@ -616,6 +630,7 @@ public class BusinessPartyGroupService(
             }
 
             var member = await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Include(m => m.Group)
                 .Include(m => m.BusinessParty)
                 .Where(m => m.Id == membershipId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
@@ -681,6 +696,7 @@ public class BusinessPartyGroupService(
             }
 
             var groups = await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Where(m => m.BusinessPartyId == businessPartyId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Group.Members.Where(mem => !mem.IsDeleted && mem.TenantId == currentTenantId.Value))
                 .Select(m => m.Group)
@@ -713,6 +729,7 @@ public class BusinessPartyGroupService(
             var evalDate = evaluationDate ?? DateTime.UtcNow;
 
             var groupIds = await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .Where(m => m.BusinessPartyId == businessPartyId
                     && m.TenantId == currentTenantId.Value
                     && !m.IsDeleted
@@ -751,6 +768,7 @@ public class BusinessPartyGroupService(
             }
 
             return await context.BusinessPartyGroupMembers
+                .AsNoTracking()
                 .AnyAsync(m => m.BusinessPartyId == businessPartyId
                     && m.BusinessPartyGroupId == groupId
                     && m.TenantId == currentTenantId.Value

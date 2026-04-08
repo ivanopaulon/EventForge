@@ -32,25 +32,25 @@ namespace EventForge.Client.Services
 
         #region Application Logs
 
-        public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams)
+        public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default)
         {
             var queryString = BuildQueryString(queryParams);
             return await httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
                    new PagedResult<ApplicationLogDto>();
         }
 
-        public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id)
+        public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
         }
 
-        public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync()
+        public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync(CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
                    new ApplicationLogStatisticsDto();
         }
 
-        public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto)
+        public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto, CancellationToken ct = default)
         {
             return await httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
         }
@@ -59,25 +59,25 @@ namespace EventForge.Client.Services
 
         #region Audit Logs
 
-        public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams)
+        public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default)
         {
             var queryString = BuildQueryString(queryParams);
             return await httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
                    new PagedResult<EntityChangeLogDto>();
         }
 
-        public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id)
+        public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
         }
 
-        public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync()
+        public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
                    new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
         }
 
-        public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto)
+        public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto, CancellationToken ct = default)
         {
             return await httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
         }

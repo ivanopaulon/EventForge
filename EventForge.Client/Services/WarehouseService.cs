@@ -12,7 +12,7 @@ public class WarehouseService(
 {
     private const string BaseUrl = "api/v1/warehouse/facilities";
 
-    public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
@@ -25,7 +25,7 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> GetStorageFacilityAsync(Guid id)
+    public async Task<StorageFacilityDto?> GetStorageFacilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -38,7 +38,7 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> CreateStorageFacilityAsync(CreateStorageFacilityDto dto)
+    public async Task<StorageFacilityDto?> CreateStorageFacilityAsync(CreateStorageFacilityDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -51,7 +51,7 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto dto)
+    public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -64,7 +64,7 @@ public class WarehouseService(
         }
     }
 
-    public async Task<bool> DeleteStorageFacilityAsync(Guid id)
+    public async Task<bool> DeleteStorageFacilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

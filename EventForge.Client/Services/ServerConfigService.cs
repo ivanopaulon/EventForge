@@ -18,7 +18,7 @@ public class ServerConfigService(
     private bool _initialized = false;
     private string _url = "";
 
-    public async Task<string> GetServerUrlAsync()
+    public async Task<string> GetServerUrlAsync(CancellationToken ct = default)
     {
         if (!_initialized)
         {
@@ -28,7 +28,7 @@ public class ServerConfigService(
         return _url;
     }
 
-    public async Task SetServerUrlAsync(string url)
+    public async Task SetServerUrlAsync(string url, CancellationToken ct = default)
     {
         url = NormalizeUrl(url);
         await jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, url);
@@ -36,13 +36,13 @@ public class ServerConfigService(
         _initialized = true;
     }
 
-    public async Task<bool> IsConfiguredAsync()
+    public async Task<bool> IsConfiguredAsync(CancellationToken ct = default)
     {
         var url = await GetServerUrlAsync();
         return !string.IsNullOrWhiteSpace(url);
     }
 
-    public async Task<bool> TestConnectionAsync(string url)
+    public async Task<bool> TestConnectionAsync(string url, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(url))
             return false;
@@ -64,7 +64,7 @@ public class ServerConfigService(
         }
     }
 
-    public async Task ResetToDefaultAsync()
+    public async Task ResetToDefaultAsync(CancellationToken ct = default)
     {
         try
         {

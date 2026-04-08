@@ -7,7 +7,7 @@ public class AuthenticationDialogService : IAuthenticationDialogService
 {
     public event Func<TaskCompletionSource<bool>, Task>? LoginRequested;
 
-    public async Task<bool> ShowLoginDialogAsync()
+    public async Task<bool> ShowLoginDialogAsync(CancellationToken ct = default)
     {
         var tcs = new TaskCompletionSource<bool>();
 

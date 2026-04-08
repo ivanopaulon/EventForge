@@ -14,7 +14,7 @@ public class FiscalDrawerService(
 {
     private const string ApiBase = "api/v1/fiscal-drawers";
 
-    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null)
+    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
     {
         try
         {
@@ -30,7 +30,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<FiscalDrawerDto>> GetAllAsync()
+    public async Task<List<FiscalDrawerDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -44,7 +44,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByIdAsync(Guid id)
+    public async Task<FiscalDrawerDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -61,7 +61,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByPosIdAsync(Guid posId)
+    public async Task<FiscalDrawerDto?> GetByPosIdAsync(Guid posId, CancellationToken ct = default)
     {
         try
         {
@@ -78,7 +78,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByOperatorIdAsync(Guid operatorId)
+    public async Task<FiscalDrawerDto?> GetByOperatorIdAsync(Guid operatorId, CancellationToken ct = default)
     {
         try
         {
@@ -95,7 +95,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> CreateAsync(CreateFiscalDrawerDto dto)
+    public async Task<FiscalDrawerDto?> CreateAsync(CreateFiscalDrawerDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -110,7 +110,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> UpdateAsync(Guid id, UpdateFiscalDrawerDto dto)
+    public async Task<FiscalDrawerDto?> UpdateAsync(Guid id, UpdateFiscalDrawerDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -125,7 +125,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -139,7 +139,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> GetCurrentSessionAsync(Guid fiscalDrawerId)
+    public async Task<FiscalDrawerSessionDto?> GetCurrentSessionAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
@@ -156,7 +156,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<PagedResult<FiscalDrawerSessionDto>?> GetSessionsAsync(Guid fiscalDrawerId, int page = 1, int pageSize = 20)
+    public async Task<PagedResult<FiscalDrawerSessionDto>?> GetSessionsAsync(Guid fiscalDrawerId, int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
@@ -169,7 +169,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto)
+    public async Task<FiscalDrawerSessionDto?> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -184,7 +184,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> CloseSessionAsync(Guid fiscalDrawerId, CloseFiscalDrawerSessionDto dto)
+    public async Task<FiscalDrawerSessionDto?> CloseSessionAsync(Guid fiscalDrawerId, CloseFiscalDrawerSessionDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -199,7 +199,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<PagedResult<FiscalDrawerTransactionDto>?> GetTransactionsAsync(Guid fiscalDrawerId, Guid? sessionId = null, int page = 1, int pageSize = 50)
+    public async Task<PagedResult<FiscalDrawerTransactionDto>?> GetTransactionsAsync(Guid fiscalDrawerId, Guid? sessionId = null, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
@@ -214,7 +214,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerTransactionDto?> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto)
+    public async Task<FiscalDrawerTransactionDto?> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -229,7 +229,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<CashDenominationDto>> GetDenominationsAsync(Guid fiscalDrawerId)
+    public async Task<List<CashDenominationDto>> GetDenominationsAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
@@ -242,7 +242,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<CashDenominationDto>> InitializeDenominationsAsync(Guid fiscalDrawerId, string currencyCode = "EUR")
+    public async Task<List<CashDenominationDto>> InitializeDenominationsAsync(Guid fiscalDrawerId, string currencyCode = "EUR", CancellationToken ct = default)
     {
         try
         {
@@ -259,7 +259,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<CashDenominationDto?> UpdateDenominationAsync(Guid denominationId, UpdateCashDenominationDto dto)
+    public async Task<CashDenominationDto?> UpdateDenominationAsync(Guid denominationId, UpdateCashDenominationDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -274,7 +274,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<CalculateChangeResponseDto?> CalculateChangeAsync(Guid fiscalDrawerId, CalculateChangeRequestDto request)
+    public async Task<CalculateChangeResponseDto?> CalculateChangeAsync(Guid fiscalDrawerId, CalculateChangeRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -289,7 +289,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSummaryDto?> GetSummaryAsync(Guid fiscalDrawerId)
+    public async Task<FiscalDrawerSummaryDto?> GetSummaryAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
@@ -302,7 +302,7 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<SalesDashboardDto?> GetSalesDashboardAsync()
+    public async Task<SalesDashboardDto?> GetSalesDashboardAsync(CancellationToken ct = default)
     {
         try
         {

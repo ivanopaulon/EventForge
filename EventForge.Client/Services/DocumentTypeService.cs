@@ -11,7 +11,7 @@ public class DocumentTypeService(
 {
     private const string BaseUrl = "api/v1/documents/types";
 
-    public async Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync()
+    public async Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -24,7 +24,7 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id)
+    public async Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -37,7 +37,7 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto)
+    public async Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -50,7 +50,7 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto)
+    public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -63,7 +63,7 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<bool> DeleteDocumentTypeAsync(Guid id)
+    public async Task<bool> DeleteDocumentTypeAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

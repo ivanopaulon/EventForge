@@ -12,7 +12,7 @@ public class StorageLocationService(
 {
     private const string BaseUrl = "api/v1/warehouse/locations";
 
-    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
@@ -25,7 +25,7 @@ public class StorageLocationService(
         }
     }
 
-    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsByWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 100)
+    public async Task<PagedResult<StorageLocationDto>?> GetStorageLocationsByWarehouseAsync(Guid warehouseId, int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
@@ -38,7 +38,7 @@ public class StorageLocationService(
         }
     }
 
-    public async Task<StorageLocationDto?> GetStorageLocationAsync(Guid id)
+    public async Task<StorageLocationDto?> GetStorageLocationAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -51,7 +51,7 @@ public class StorageLocationService(
         }
     }
 
-    public async Task<StorageLocationDto?> CreateStorageLocationAsync(CreateStorageLocationDto dto)
+    public async Task<StorageLocationDto?> CreateStorageLocationAsync(CreateStorageLocationDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -64,7 +64,7 @@ public class StorageLocationService(
         }
     }
 
-    public async Task<StorageLocationDto?> UpdateStorageLocationAsync(Guid id, UpdateStorageLocationDto dto)
+    public async Task<StorageLocationDto?> UpdateStorageLocationAsync(Guid id, UpdateStorageLocationDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -77,7 +77,7 @@ public class StorageLocationService(
         }
     }
 
-    public async Task<bool> DeleteStorageLocationAsync(Guid id)
+    public async Task<bool> DeleteStorageLocationAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

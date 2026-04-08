@@ -12,7 +12,7 @@ public class LicenseService(
     private const string BaseUrl = "api/v1/license";
 
     // License Management
-    public async Task<IEnumerable<LicenseDto>> GetLicensesAsync()
+    public async Task<IEnumerable<LicenseDto>> GetLicensesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -25,7 +25,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto?> GetLicenseAsync(Guid id)
+    public async Task<LicenseDto?> GetLicenseAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -38,7 +38,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> CreateLicenseAsync(CreateLicenseDto createDto)
+    public async Task<LicenseDto> CreateLicenseAsync(CreateLicenseDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -52,7 +52,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> UpdateLicenseAsync(Guid id, LicenseDto updateDto)
+    public async Task<LicenseDto> UpdateLicenseAsync(Guid id, LicenseDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -66,7 +66,7 @@ public class LicenseService(
         }
     }
 
-    public async Task DeleteLicenseAsync(Guid id)
+    public async Task DeleteLicenseAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -80,7 +80,7 @@ public class LicenseService(
     }
 
     // Tenant License Management
-    public async Task<IEnumerable<TenantLicenseDto>> GetTenantLicensesAsync()
+    public async Task<IEnumerable<TenantLicenseDto>> GetTenantLicensesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -93,7 +93,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<TenantLicenseDto?> GetTenantLicenseAsync(Guid tenantId)
+    public async Task<TenantLicenseDto?> GetTenantLicenseAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -106,7 +106,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<TenantLicenseDto> AssignLicenseAsync(AssignLicenseDto assignDto)
+    public async Task<TenantLicenseDto> AssignLicenseAsync(AssignLicenseDto assignDto, CancellationToken ct = default)
     {
         try
         {
@@ -120,7 +120,7 @@ public class LicenseService(
         }
     }
 
-    public async Task RemoveTenantLicenseAsync(Guid tenantId)
+    public async Task RemoveTenantLicenseAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -134,7 +134,7 @@ public class LicenseService(
     }
 
     // License Features
-    public async Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId)
+    public async Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId, CancellationToken ct = default)
     {
         try
         {
@@ -147,7 +147,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync()
+    public async Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -160,7 +160,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto)
+    public async Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -175,7 +175,7 @@ public class LicenseService(
     }
 
     // API Usage and Statistics
-    public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId)
+    public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -189,7 +189,7 @@ public class LicenseService(
     }
 
     // Feature Template Management (SuperAdmin)
-    public async Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync()
+    public async Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -203,7 +203,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id)
+    public async Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -216,7 +216,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto)
+    public async Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -230,7 +230,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto)
+    public async Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto, CancellationToken ct = default)
     {
         try
         {
@@ -244,7 +244,7 @@ public class LicenseService(
         }
     }
 
-    public async Task DeleteFeatureTemplateAsync(Guid id)
+    public async Task DeleteFeatureTemplateAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -257,7 +257,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id)
+    public async Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

@@ -60,7 +60,7 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
     public string CurrentTheme => _currentTheme;
     public event Action? OnThemeChanged;
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -84,7 +84,7 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
         }
     }
 
-    public async Task ToggleThemeAsync()
+    public async Task ToggleThemeAsync(CancellationToken ct = default)
     {
         var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
             ? ThemeInfo.CarbonNeonLight.Key
@@ -93,10 +93,10 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
         await SetThemeAsync(next);
     }
 
-    public Task SetThemeAsync(bool isDarkMode)
+    public Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default)
         => SetThemeAsync(isDarkMode ? ThemeInfo.CarbonNeonDark.Key : ThemeInfo.CarbonNeonLight.Key);
 
-    public async Task SetThemeAsync(string themeKey)
+    public async Task SetThemeAsync(string themeKey, CancellationToken ct = default)
     {
         if (!AvailableThemes.Any(t => t.Key == themeKey))
             themeKey = ThemeInfo.CarbonNeonLight.Key;

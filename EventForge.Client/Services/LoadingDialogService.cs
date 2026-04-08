@@ -45,7 +45,7 @@ public class LoadingDialogService : ILoadingDialogService
 
     public event Action<LoadingDialogState>? StateChanged;
 
-    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false)
+    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default)
     {
         _currentState = new LoadingDialogState
         {
@@ -60,7 +60,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task UpdateOperationAsync(string operation)
+    public async Task UpdateOperationAsync(string operation, CancellationToken ct = default)
     {
         if (_currentState.IsVisible)
         {
@@ -70,7 +70,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task UpdateProgressAsync(double progress)
+    public async Task UpdateProgressAsync(double progress, CancellationToken ct = default)
     {
         if (_currentState.IsVisible && _currentState.ShowProgress)
         {
@@ -80,7 +80,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task HideAsync()
+    public async Task HideAsync(CancellationToken ct = default)
     {
         if (_currentState.IsVisible)
         {

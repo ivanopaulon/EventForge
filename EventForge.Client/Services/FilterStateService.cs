@@ -113,7 +113,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         WriteIndented = false
     };
 
-    public async Task SaveFilterStateAsync(string pageKey, PageFilterState state)
+    public async Task SaveFilterStateAsync(string pageKey, PageFilterState state, CancellationToken ct = default)
     {
         try
         {
@@ -127,7 +127,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         }
     }
 
-    public async Task<PageFilterState?> LoadFilterStateAsync(string pageKey)
+    public async Task<PageFilterState?> LoadFilterStateAsync(string pageKey, CancellationToken ct = default)
     {
         try
         {
@@ -146,7 +146,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         }
     }
 
-    public async Task ClearFilterStateAsync(string pageKey)
+    public async Task ClearFilterStateAsync(string pageKey, CancellationToken ct = default)
     {
         try
         {
@@ -158,7 +158,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         }
     }
 
-    public async Task SavePanelStateAsync(string pageKey, PagePanelState state)
+    public async Task SavePanelStateAsync(string pageKey, PagePanelState state, CancellationToken ct = default)
     {
         try
         {
@@ -172,7 +172,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         }
     }
 
-    public async Task<PagePanelState?> LoadPanelStateAsync(string pageKey)
+    public async Task<PagePanelState?> LoadPanelStateAsync(string pageKey, CancellationToken ct = default)
     {
         try
         {
@@ -191,7 +191,7 @@ public class FilterStateService(IJSRuntime jsRuntime, ILogger<FilterStateService
         }
     }
 
-    public async Task ClearPanelStateAsync(string pageKey)
+    public async Task ClearPanelStateAsync(string pageKey, CancellationToken ct = default)
     {
         try
         {

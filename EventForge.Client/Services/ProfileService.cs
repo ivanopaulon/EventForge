@@ -14,7 +14,7 @@ public class ProfileService(
     ITranslationService translationService) : IProfileService
 {
 
-    public async Task<UserProfileDto?> GetProfileAsync()
+    public async Task<UserProfileDto?> GetProfileAsync(CancellationToken ct = default)
     {
         try
         {
@@ -31,7 +31,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UpdateProfileAsync(UpdateProfileDto updateDto)
+    public async Task<UserProfileDto?> UpdateProfileAsync(UpdateProfileDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -56,7 +56,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType)
+    public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
     {
         var httpClient = httpClientFactory.CreateClient("ApiClient");
         try
@@ -110,7 +110,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> DeleteAvatarAsync()
+    public async Task<bool> DeleteAvatarAsync(CancellationToken ct = default)
     {
         try
         {
@@ -130,7 +130,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> ChangePasswordAsync(ChangePasswordDto changePasswordDto)
+    public async Task<bool> ChangePasswordAsync(ChangePasswordDto changePasswordDto, CancellationToken ct = default)
     {
         try
         {
@@ -150,7 +150,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UpdateNotificationPreferencesAsync(UpdateNotificationPreferencesDto preferencesDto)
+    public async Task<UserProfileDto?> UpdateNotificationPreferencesAsync(UpdateNotificationPreferencesDto preferencesDto, CancellationToken ct = default)
     {
         try
         {
@@ -177,7 +177,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync()
+    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -194,7 +194,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> TerminateSessionAsync(Guid sessionId)
+    public async Task<bool> TerminateSessionAsync(Guid sessionId, CancellationToken ct = default)
     {
         try
         {
@@ -214,7 +214,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> TerminateAllOtherSessionsAsync()
+    public async Task<bool> TerminateAllOtherSessionsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -234,7 +234,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<List<LoginHistoryDto>> GetLoginHistoryAsync(int days = 30)
+    public async Task<List<LoginHistoryDto>> GetLoginHistoryAsync(int days = 30, CancellationToken ct = default)
     {
         try
         {

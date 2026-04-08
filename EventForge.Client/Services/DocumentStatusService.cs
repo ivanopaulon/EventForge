@@ -12,7 +12,7 @@ public class DocumentStatusService(
 {
     private const string BaseUrl = "api/v1/documents";
 
-    public async Task<DocumentHeaderDto?> ChangeStatusAsync(Guid documentId, DocumentStatus newStatus, string? reason = null)
+    public async Task<DocumentHeaderDto?> ChangeStatusAsync(Guid documentId, DocumentStatus newStatus, string? reason = null, CancellationToken ct = default)
     {
         try
         {
@@ -33,7 +33,7 @@ public class DocumentStatusService(
         }
     }
 
-    public async Task<List<DocumentStatusHistoryDto>?> GetStatusHistoryAsync(Guid documentId)
+    public async Task<List<DocumentStatusHistoryDto>?> GetStatusHistoryAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -47,7 +47,7 @@ public class DocumentStatusService(
         }
     }
 
-    public async Task<List<DocumentStatus>?> GetAvailableTransitionsAsync(Guid documentId)
+    public async Task<List<DocumentStatus>?> GetAvailableTransitionsAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {

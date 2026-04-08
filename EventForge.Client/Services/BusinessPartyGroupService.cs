@@ -12,7 +12,7 @@ public class BusinessPartyGroupService(
 {
     private const string BaseUrl = "api/v1/business-party-groups";
 
-    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 20, BusinessPartyGroupType? groupType = null)
+    public async Task<PagedResult<BusinessPartyGroupDto>> GetGroupsAsync(int page = 1, int pageSize = 20, BusinessPartyGroupType? groupType = null, CancellationToken ct = default)
     {
         try
         {
@@ -32,7 +32,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id)
+    public async Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -45,7 +45,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto)
+    public async Task<BusinessPartyGroupDto> CreateGroupAsync(CreateBusinessPartyGroupDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -59,7 +59,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto)
+    public async Task<BusinessPartyGroupDto?> UpdateGroupAsync(Guid id, UpdateBusinessPartyGroupDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -72,7 +72,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<bool> DeleteGroupAsync(Guid id)
+    public async Task<bool> DeleteGroupAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -92,7 +92,7 @@ public class BusinessPartyGroupService(
 
     // Member Management Methods
 
-    public async Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100)
+    public async Task<PagedResult<BusinessPartyGroupMemberDto>> GetGroupMembersAsync(Guid groupId, int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
@@ -107,7 +107,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto createDto)
+    public async Task<BusinessPartyGroupMemberDto> AddMemberAsync(Guid groupId, AddBusinessPartyToGroupDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -123,7 +123,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto)
+    public async Task<BulkOperationResultDto> AddMembersBulkAsync(BulkAddMembersDto bulkDto, CancellationToken ct = default)
     {
         try
         {
@@ -139,7 +139,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto)
+    public async Task<BusinessPartyGroupMemberDto> UpdateMemberAsync(Guid membershipId, UpdateBusinessPartyGroupMemberDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -155,7 +155,7 @@ public class BusinessPartyGroupService(
         }
     }
 
-    public async Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId)
+    public async Task<bool> RemoveMemberAsync(Guid groupId, Guid businessPartyId, CancellationToken ct = default)
     {
         try
         {

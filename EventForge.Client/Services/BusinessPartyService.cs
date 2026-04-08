@@ -65,30 +65,30 @@ namespace EventForge.Client.Services
 
         #region BusinessParty Management
 
-        public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20)
+        public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}")
                 ?? new PagedResult<BusinessPartyDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
-        public async Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id)
+        public async Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}");
         }
 
-        public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType)
+        public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
                 ?? [];
         }
 
-        public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync()
+        public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays")
                 ?? [];
         }
 
-        public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50)
+        public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken ct = default)
         {
             var query = $"api/v1/businessparties/search?searchTerm={Uri.EscapeDataString(searchTerm)}&pageSize={pageSize}";
             if (partyType.HasValue)
@@ -99,19 +99,19 @@ namespace EventForge.Client.Services
                 ?? [];
         }
 
-        public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto)
+        public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto, CancellationToken ct = default)
         {
             var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto);
             return result ?? throw new InvalidOperationException("Failed to create business party");
         }
 
-        public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto)
+        public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto, CancellationToken ct = default)
         {
             return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto) ??
                    throw new InvalidOperationException("Failed to update business party");
         }
 
-        public async Task DeleteBusinessPartyAsync(Guid id)
+        public async Task DeleteBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
             await httpClientService.DeleteAsync($"api/v1/businessparties/{id}");
         }
@@ -120,7 +120,7 @@ namespace EventForge.Client.Services
 
         #region BusinessPartyAccounting Management
 
-        public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId)
+        public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId, CancellationToken ct = default)
         {
             return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
         }
@@ -237,14 +237,14 @@ namespace EventForge.Client.Services
 
         #region Supplier Product Bulk Operations
 
-        public async Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
+        public async Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default)
         {
             return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-preview",
                 request);
         }
 
-        public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request)
+        public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default)
         {
             return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-update",

@@ -38,7 +38,7 @@ public class DevToolsService(
 {
     private const string BaseUrl = "api/v1/devtools";
 
-    public async Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request)
+    public async Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -54,7 +54,7 @@ public class DevToolsService(
         }
     }
 
-    public async Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId)
+    public async Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId, CancellationToken ct = default)
     {
         try
         {
@@ -68,7 +68,7 @@ public class DevToolsService(
         }
     }
 
-    public async Task<bool> CancelGenerateProductsAsync(string jobId)
+    public async Task<bool> CancelGenerateProductsAsync(string jobId, CancellationToken ct = default)
     {
         try
         {

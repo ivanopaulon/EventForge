@@ -11,7 +11,7 @@ public class TableManagementService(
 {
     private const string BaseUrl = "api/v1/tables";
 
-    public async Task<List<TableSessionDto>?> GetAllTablesAsync()
+    public async Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -24,7 +24,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableSessionDto?> GetTableAsync(Guid id)
+    public async Task<TableSessionDto?> GetTableAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -37,7 +37,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<List<TableSessionDto>?> GetAvailableTablesAsync()
+    public async Task<List<TableSessionDto>?> GetAvailableTablesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -50,7 +50,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableSessionDto?> CreateTableAsync(CreateTableSessionDto createDto)
+    public async Task<TableSessionDto?> CreateTableAsync(CreateTableSessionDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -63,7 +63,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableSessionDto?> UpdateTableAsync(Guid id, UpdateTableSessionDto updateDto)
+    public async Task<TableSessionDto?> UpdateTableAsync(Guid id, UpdateTableSessionDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -76,7 +76,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableSessionDto?> UpdateTableStatusAsync(Guid id, UpdateTableStatusDto statusDto)
+    public async Task<TableSessionDto?> UpdateTableStatusAsync(Guid id, UpdateTableStatusDto statusDto, CancellationToken ct = default)
     {
         try
         {
@@ -89,7 +89,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<bool> DeleteTableAsync(Guid id)
+    public async Task<bool> DeleteTableAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -103,7 +103,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<List<TableReservationDto>?> GetReservationsByDateAsync(DateTime date)
+    public async Task<List<TableReservationDto>?> GetReservationsByDateAsync(DateTime date, CancellationToken ct = default)
     {
         try
         {
@@ -117,7 +117,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> GetReservationAsync(Guid id)
+    public async Task<TableReservationDto?> GetReservationAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -130,7 +130,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> CreateReservationAsync(CreateTableReservationDto createDto)
+    public async Task<TableReservationDto?> CreateReservationAsync(CreateTableReservationDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -143,7 +143,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> UpdateReservationAsync(Guid id, UpdateTableReservationDto updateDto)
+    public async Task<TableReservationDto?> UpdateReservationAsync(Guid id, UpdateTableReservationDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -156,7 +156,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> ConfirmReservationAsync(Guid id)
+    public async Task<TableReservationDto?> ConfirmReservationAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -169,7 +169,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> MarkArrivedAsync(Guid id)
+    public async Task<TableReservationDto?> MarkArrivedAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -182,7 +182,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<bool> CancelReservationAsync(Guid id)
+    public async Task<bool> CancelReservationAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -196,7 +196,7 @@ public class TableManagementService(
         }
     }
 
-    public async Task<TableReservationDto?> MarkNoShowAsync(Guid id)
+    public async Task<TableReservationDto?> MarkNoShowAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

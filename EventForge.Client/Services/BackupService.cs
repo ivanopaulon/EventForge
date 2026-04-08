@@ -22,7 +22,7 @@ public class BackupService(
 {
     private const string BaseUrl = "api/v1/backup";
 
-    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request)
+    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -50,7 +50,7 @@ public class BackupService(
         }
     }
 
-    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId)
+    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {
@@ -67,7 +67,7 @@ public class BackupService(
         }
     }
 
-    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50)
+    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default)
     {
         try
         {
@@ -81,7 +81,7 @@ public class BackupService(
         }
     }
 
-    public async Task CancelBackupAsync(Guid backupId)
+    public async Task CancelBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {
@@ -94,7 +94,7 @@ public class BackupService(
         }
     }
 
-    public Task<string> GetDownloadUrlAsync(Guid backupId)
+    public Task<string> GetDownloadUrlAsync(Guid backupId, CancellationToken ct = default)
     {
         // This method constructs a URL and doesn't make HTTP call, so it doesn't need to be changed
         // However, I should get the base address from the HttpClientService somehow
@@ -102,7 +102,7 @@ public class BackupService(
         return Task.FromResult($"api/v1/super-admin/backup/{backupId}/download");
     }
 
-    public async Task DeleteBackupAsync(Guid backupId)
+    public async Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {

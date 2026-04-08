@@ -82,7 +82,7 @@ public class HelpService(
         ]
     };
 
-    public async Task<Dictionary<string, bool>> GetOnboardingProgressAsync()
+    public async Task<Dictionary<string, bool>> GetOnboardingProgressAsync(CancellationToken ct = default)
     {
         try
         {
@@ -103,7 +103,7 @@ public class HelpService(
         }
     }
 
-    public async Task SetOnboardingStepCompletedAsync(string stepId)
+    public async Task SetOnboardingStepCompletedAsync(string stepId, CancellationToken ct = default)
     {
         try
         {
@@ -121,7 +121,7 @@ public class HelpService(
         }
     }
 
-    public async Task<bool> IsOnboardingStepCompletedAsync(string stepId)
+    public async Task<bool> IsOnboardingStepCompletedAsync(string stepId, CancellationToken ct = default)
     {
         try
         {
@@ -135,7 +135,7 @@ public class HelpService(
         }
     }
 
-    public async Task StartWalkthroughAsync(string componentId)
+    public async Task StartWalkthroughAsync(string componentId, CancellationToken ct = default)
     {
         try
         {
@@ -157,7 +157,7 @@ public class HelpService(
         }
     }
 
-    public async Task ResetOnboardingProgressAsync()
+    public async Task ResetOnboardingProgressAsync(CancellationToken ct = default)
     {
         try
         {
@@ -170,7 +170,7 @@ public class HelpService(
         }
     }
 
-    public async Task<string> GetHelpContentAsync(string componentId, string? section = null)
+    public async Task<string> GetHelpContentAsync(string componentId, string? section = null, CancellationToken ct = default)
     {
         try
         {

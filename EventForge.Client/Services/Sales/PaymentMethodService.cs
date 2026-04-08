@@ -16,7 +16,7 @@ public class PaymentMethodService(
     private const string BaseUrl = "api/v1/payment-methods";
     private const int DefaultPageSize = 100;
 
-    public async Task<List<PaymentMethodDto>?> GetAllAsync()
+    public async Task<List<PaymentMethodDto>?> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -59,7 +59,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50)
+    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
@@ -76,7 +76,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<List<PaymentMethodDto>?> GetActiveAsync()
+    public async Task<List<PaymentMethodDto>?> GetActiveAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(CacheHelper.ACTIVE_PAYMENT_METHODS, out List<PaymentMethodDto>? cached) && cached != null)
         {
@@ -114,7 +114,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<PaymentMethodDto?> GetByIdAsync(Guid id)
+    public async Task<PaymentMethodDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -129,7 +129,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<PaymentMethodDto?> CreateAsync(CreatePaymentMethodDto createDto)
+    public async Task<PaymentMethodDto?> CreateAsync(CreatePaymentMethodDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -150,7 +150,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<PaymentMethodDto?> UpdateAsync(Guid id, UpdatePaymentMethodDto updateDto)
+    public async Task<PaymentMethodDto?> UpdateAsync(Guid id, UpdatePaymentMethodDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -171,7 +171,7 @@ public class PaymentMethodService(
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

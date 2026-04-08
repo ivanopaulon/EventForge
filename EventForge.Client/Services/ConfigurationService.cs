@@ -23,7 +23,7 @@ public class ConfigurationService(
     ILogger<ConfigurationService> logger) : IConfigurationService
 {
 
-    public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync()
+    public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -37,7 +37,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category)
+    public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category, CancellationToken ct = default)
     {
         try
         {
@@ -51,7 +51,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<IEnumerable<string>> GetCategoriesAsync()
+    public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -65,7 +65,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<ConfigurationDto?> GetConfigurationAsync(string key)
+    public async Task<ConfigurationDto?> GetConfigurationAsync(string key, CancellationToken ct = default)
     {
         try
         {
@@ -82,7 +82,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto)
+    public async Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto, CancellationToken ct = default)
     {
         try
         {
@@ -96,7 +96,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto)
+    public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -110,7 +110,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task DeleteConfigurationAsync(string key)
+    public async Task DeleteConfigurationAsync(string key, CancellationToken ct = default)
     {
         try
         {
@@ -123,7 +123,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto)
+    public async Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto, CancellationToken ct = default)
     {
         try
         {
@@ -137,7 +137,7 @@ public class ConfigurationService(
         }
     }
 
-    public async Task ReloadConfigurationAsync()
+    public async Task ReloadConfigurationAsync(CancellationToken ct = default)
     {
         try
         {

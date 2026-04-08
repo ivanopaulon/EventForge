@@ -27,6 +27,7 @@ public class StoreUserService(
             }
 
             var query = context.StoreUsers
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
@@ -67,6 +68,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
@@ -98,6 +100,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .Where(su => su.Username == username && !su.IsDeleted && su.TenantId == currentTenantId.Value)
@@ -129,6 +132,7 @@ public class StoreUserService(
             }
 
             var storeUsers = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.CashierGroup)
                 .Where(su => su.CashierGroupId == groupId && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .OrderBy(su => su.Name)
@@ -162,6 +166,7 @@ public class StoreUserService(
             if (createStoreUserDto.CashierGroupId.HasValue)
             {
                 var groupExists = await context.StoreUserGroups
+                    .AsNoTracking()
                     .AnyAsync(g => g.Id == createStoreUserDto.CashierGroupId.Value
                                 && g.TenantId == currentTenantId.Value
                                 && !g.IsDeleted,
@@ -202,6 +207,7 @@ public class StoreUserService(
 
             // Reload with includes
             var createdStoreUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == storeUser.Id, cancellationToken);
@@ -226,6 +232,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -268,6 +275,7 @@ public class StoreUserService(
 
             // Reload with includes
             var updatedStoreUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.CashierGroup)
                 .Include(su => su.PhotoDocument)
                 .FirstAsync(su => su.Id == id, cancellationToken);
@@ -296,6 +304,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -357,6 +366,7 @@ public class StoreUserService(
             }
 
             var query = context.StoreUserGroups
+                .AsNoTracking()
                 .Include(sug => sug.LogoDocument)
                 .Where(sug => !sug.IsDeleted && sug.TenantId == currentTenantId.Value);
 
@@ -371,8 +381,10 @@ public class StoreUserService(
             foreach (var group in storeUserGroups)
             {
                 var cashierCount = await context.StoreUsers
+                    .AsNoTracking()
                     .CountAsync(su => su.CashierGroupId == group.Id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
                 var privilegeCount = await context.StoreUserPrivileges
+                    .AsNoTracking()
                     .CountAsync(sup => sup.Groups.Any(g => g.Id == group.Id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserGroupDtos.Add(MapToStoreUserGroupDto(group, cashierCount, privilegeCount));
@@ -404,6 +416,7 @@ public class StoreUserService(
             }
 
             var storeUserGroup = await context.StoreUserGroups
+                .AsNoTracking()
                 .Include(sug => sug.LogoDocument)
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -415,8 +428,10 @@ public class StoreUserService(
             }
 
             var cashierCount = await context.StoreUsers
+                .AsNoTracking()
                 .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
             var privilegeCount = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
@@ -492,6 +507,7 @@ public class StoreUserService(
             }
 
             var storeUserGroup = await context.StoreUserGroups
+                .AsNoTracking()
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -525,8 +541,10 @@ public class StoreUserService(
             logger.LogInformation("Store user group {StoreUserGroupId} updated by {User}", id, currentUser);
 
             var cashierCount = await context.StoreUsers
+                .AsNoTracking()
                 .CountAsync(su => su.CashierGroupId == id && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
             var privilegeCount = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .CountAsync(sup => sup.Groups.Any(g => g.Id == id) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
@@ -564,6 +582,7 @@ public class StoreUserService(
             }
 
             var storeUserGroup = await context.StoreUserGroups
+                .AsNoTracking()
                 .Where(sug => sug.Id == id && !sug.IsDeleted && sug.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -621,6 +640,7 @@ public class StoreUserService(
             }
 
             var query = context.StoreUserPrivileges
+                .AsNoTracking()
                 .Where(sup => !sup.IsDeleted && sup.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -635,6 +655,7 @@ public class StoreUserService(
             foreach (var privilege in storeUserPrivileges)
             {
                 var groupCount = await context.StoreUserGroups
+                    .AsNoTracking()
                     .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
@@ -666,6 +687,7 @@ public class StoreUserService(
             }
 
             var storeUserPrivilege = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -676,6 +698,7 @@ public class StoreUserService(
             }
 
             var groupCount = await context.StoreUserGroups
+                .AsNoTracking()
                 .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
@@ -698,6 +721,7 @@ public class StoreUserService(
             }
 
             var storeUserPrivileges = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .Where(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .OrderBy(sup => sup.SortOrder)
                 .ThenBy(sup => sup.Name)
@@ -707,6 +731,7 @@ public class StoreUserService(
             foreach (var privilege in storeUserPrivileges)
             {
                 var groupCount = await context.StoreUserGroups
+                    .AsNoTracking()
                     .CountAsync(sug => sug.Privileges.Any(p => p.Id == privilege.Id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
                 storeUserPrivilegeDtos.Add(MapToStoreUserPrivilegeDto(privilege, groupCount));
@@ -789,6 +814,7 @@ public class StoreUserService(
             }
 
             var storeUserPrivilege = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -818,6 +844,7 @@ public class StoreUserService(
             logger.LogInformation("Store user privilege {StoreUserPrivilegeId} updated by {User}", id, currentUser);
 
             var groupCount = await context.StoreUserGroups
+                .AsNoTracking()
                 .CountAsync(sug => sug.Privileges.Any(p => p.Id == id) && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
@@ -851,6 +878,7 @@ public class StoreUserService(
             }
 
             var storeUserPrivilege = await context.StoreUserPrivileges
+                .AsNoTracking()
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -887,39 +915,66 @@ public class StoreUserService(
 
     public async Task<bool> StoreUserExistsAsync(Guid storeUserId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for store user operations.");
-        }
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
 
-        return await context.StoreUsers
-            .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+            return await context.StoreUsers
+                .AsNoTracking()
+                .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking existence of store user {StoreUserId}.", storeUserId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue) return Enumerable.Empty<StoreUserDto>();
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue) return Enumerable.Empty<StoreUserDto>();
 
-        var storeUsers = await context.StoreUsers
-            .Where(su => !su.IsDeleted && su.DateOfBirth.HasValue && su.TenantId == currentTenantId.Value)
-            .OrderBy(su => su.Name)
-            .ToListAsync(cancellationToken);
+            var storeUsers = await context.StoreUsers
+                .AsNoTracking()
+                .Where(su => !su.IsDeleted && su.DateOfBirth.HasValue && su.TenantId == currentTenantId.Value)
+                .OrderBy(su => su.Name)
+                .ToListAsync(cancellationToken);
 
-        return storeUsers.Select(MapToStoreUserDto);
+            return storeUsers.Select(MapToStoreUserDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading store users with birthday.");
+            throw;
+        }
     }
 
     public async Task<bool> StoreUserGroupExistsAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for store user group operations.");
-        }
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user group operations.");
+            }
 
-        return await context.StoreUserGroups
-            .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
+            return await context.StoreUserGroups
+                .AsNoTracking()
+                .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking existence of store user group {GroupId}.", groupId);
+            throw;
+        }
     }
 
     private static StoreUserDto MapToStoreUserDto(StoreUser storeUser)
@@ -1023,6 +1078,7 @@ public class StoreUserService(
             logger.LogDebug("Querying store POS terminals for tenant {TenantId}", currentTenantId.Value);
 
             var query = context.StorePoses
+                .AsNoTracking()
                 .Where(sp => !sp.IsDeleted && sp.TenantId == currentTenantId.Value)
                 .OrderBy(sp => sp.Name);
 
@@ -1063,6 +1119,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
                 .Include(sp => sp.DefaultFiscalPrinter)
                 .Include(sp => sp.DefaultPaymentTerminal)
@@ -1135,6 +1192,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
             if (storePos is null)
@@ -1180,6 +1238,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .FirstOrDefaultAsync(sp => sp.Id == id && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
             if (storePos is null)
@@ -1219,6 +1278,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.PhotoDocument)
                 .Include(su => su.CashierGroup)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
@@ -1273,6 +1333,7 @@ public class StoreUserService(
             if (storeUser.PhotoDocumentId.HasValue)
             {
                 var oldDocument = await context.DocumentReferences
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == storeUser.PhotoDocumentId.Value, cancellationToken);
 
                 if (oldDocument is not null)
@@ -1322,6 +1383,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.PhotoDocument)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1351,6 +1413,7 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
+                .AsNoTracking()
                 .Include(su => su.PhotoDocument)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1398,6 +1461,7 @@ public class StoreUserService(
             }
 
             var group = await context.StoreUserGroups
+                .AsNoTracking()
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1445,6 +1509,7 @@ public class StoreUserService(
             if (group.LogoDocumentId.HasValue)
             {
                 var oldDocument = await context.DocumentReferences
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == group.LogoDocumentId.Value, cancellationToken);
 
                 if (oldDocument is not null)
@@ -1476,7 +1541,7 @@ public class StoreUserService(
             group.LogoDocument = documentReference;
 
             // Get counts for DTO
-            var cashierCount = await context.StoreUsers.CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
+            var cashierCount = await context.StoreUsers.AsNoTracking().CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
             var privilegeCount = 0; // Placeholder - would need StoreUserGroupPrivilege relationship
 
             return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
@@ -1499,6 +1564,7 @@ public class StoreUserService(
             }
 
             var group = await context.StoreUserGroups
+                .AsNoTracking()
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1528,6 +1594,7 @@ public class StoreUserService(
             }
 
             var group = await context.StoreUserGroups
+                .AsNoTracking()
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1575,6 +1642,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1622,6 +1690,7 @@ public class StoreUserService(
             if (storePos.ImageDocumentId.HasValue)
             {
                 var oldDocument = await context.DocumentReferences
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == storePos.ImageDocumentId.Value, cancellationToken);
 
                 if (oldDocument is not null)
@@ -1671,6 +1740,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1700,6 +1770,7 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
+                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
