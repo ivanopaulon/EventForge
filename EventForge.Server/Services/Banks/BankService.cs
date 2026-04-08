@@ -59,6 +59,7 @@ public class BankService(
         try
         {
             var bank = await context.Banks
+                .AsNoTracking()
                 .Where(b => b.Id == id && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

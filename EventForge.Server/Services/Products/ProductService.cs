@@ -87,6 +87,7 @@ public class ProductService(
         try
         {
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -124,6 +125,7 @@ public class ProductService(
         try
         {
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -643,6 +645,7 @@ public class ProductService(
         try
         {
             var codes = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.ProductId == productId && !pc.IsDeleted)
                 .OrderBy(pc => pc.CodeType)
                 .ThenBy(pc => pc.Code)
@@ -662,6 +665,7 @@ public class ProductService(
         try
         {
             var code = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Id == id && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -681,6 +685,7 @@ public class ProductService(
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -706,6 +711,7 @@ public class ProductService(
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.VatRate)       // ✅ Include VatRate for continuous scan
@@ -904,6 +910,7 @@ public class ProductService(
         try
         {
             var units = await context.ProductUnits
+                .AsNoTracking()
                 .Where(pu => pu.ProductId == productId && !pu.IsDeleted)
                 .OrderBy(pu => pu.UnitType)
                 .ThenBy(pu => pu.ConversionFactor)
@@ -923,6 +930,7 @@ public class ProductService(
         try
         {
             var unit = await context.ProductUnits
+                .AsNoTracking()
                 .Where(pu => pu.Id == id && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1106,6 +1114,7 @@ public class ProductService(
         try
         {
             var bundleItems = await context.ProductBundleItems
+                .AsNoTracking()
                 .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
                 .OrderBy(pbi => pbi.ComponentProductId)
                 .ToListAsync(cancellationToken);
@@ -1124,6 +1133,7 @@ public class ProductService(
         try
         {
             var bundleItem = await context.ProductBundleItems
+                .AsNoTracking()
                 .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1702,6 +1712,7 @@ public class ProductService(
             }
 
             var suppliers = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.ProductId == productId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)

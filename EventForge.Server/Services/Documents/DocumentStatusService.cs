@@ -91,6 +91,7 @@ public class DocumentStatusService(
         try
         {
             var history = await context.DocumentStatusHistories
+                .AsNoTracking()
                 .Where(h => h.DocumentHeaderId == documentId && !h.IsDeleted)
                 .OrderByDescending(h => h.ChangedAt)
                 .ToListAsync(cancellationToken);

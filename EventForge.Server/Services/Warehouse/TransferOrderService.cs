@@ -32,6 +32,7 @@ public class TransferOrderService(
             }
 
             var query = context.TransferOrders
+                .AsNoTracking()
                 .Include(t => t.SourceWarehouse)
                 .Include(t => t.DestinationWarehouse)
                 .Include(t => t.Rows)
@@ -94,6 +95,7 @@ public class TransferOrderService(
             }
 
             var transferOrder = await context.TransferOrders
+                .AsNoTracking()
                 .Include(t => t.SourceWarehouse)
                 .Include(t => t.DestinationWarehouse)
                 .Include(t => t.Rows)

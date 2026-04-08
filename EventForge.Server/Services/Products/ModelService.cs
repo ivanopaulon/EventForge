@@ -122,6 +122,7 @@ public class ModelService(
             }
 
             var model = await context.Models
+                .AsNoTracking()
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Brand)
                 .FirstOrDefaultAsync(cancellationToken);

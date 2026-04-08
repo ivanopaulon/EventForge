@@ -69,6 +69,7 @@ public class DocumentHeaderService(
         try
         {
             var query = context.DocumentHeaders
+                .AsNoTracking()
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.PriceList)
                 .Where(dh => dh.Id == id && !dh.IsDeleted);
@@ -102,6 +103,7 @@ public class DocumentHeaderService(
         try
         {
             var documentHeaders = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(dh => dh.BusinessPartyId == businessPartyId && !dh.IsDeleted)
                 .OrderByDescending(dh => dh.Date)
                 .Include(dh => dh.DocumentType)
@@ -575,7 +577,7 @@ public class DocumentHeaderService(
 
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
-        var query = context.DocumentHeaders.Where(dh => !dh.IsDeleted);
+        var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
 
         if (parameters.DocumentTypeId.HasValue)
             query = query.Where(dh => dh.DocumentTypeId == parameters.DocumentTypeId.Value);

@@ -71,6 +71,7 @@ public class VatNatureService(
         try
         {
             var vatNature = await context.VatNatures
+                .AsNoTracking()
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

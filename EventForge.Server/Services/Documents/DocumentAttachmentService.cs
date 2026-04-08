@@ -22,6 +22,7 @@ public class DocumentAttachmentService(
         try
         {
             var query = context.DocumentAttachments
+                .AsNoTracking()
                 .Where(a => a.DocumentHeaderId == documentHeaderId && !a.IsDeleted);
 
             if (!includeHistory)
@@ -51,6 +52,7 @@ public class DocumentAttachmentService(
         try
         {
             var query = context.DocumentAttachments
+                .AsNoTracking()
                 .Where(a => a.DocumentRowId == documentRowId && !a.IsDeleted);
 
             if (!includeHistory)
@@ -79,6 +81,7 @@ public class DocumentAttachmentService(
         try
         {
             var attachment = await context.DocumentAttachments
+                .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
             return attachment is not null ? MapToDto(attachment) : null;
@@ -405,6 +408,7 @@ public class DocumentAttachmentService(
             }
 
             var attachments = await context.DocumentAttachments
+                .AsNoTracking()
                 .Where(a => a.Category == categoryEnum && a.IsCurrentVersion && !a.IsDeleted)
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync(cancellationToken);

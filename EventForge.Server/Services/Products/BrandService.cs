@@ -70,6 +70,7 @@ public class BrandService(
             }
 
             var brand = await context.Brands
+                .AsNoTracking()
                 .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
