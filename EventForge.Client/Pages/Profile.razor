@@ -7,6 +7,7 @@
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<Profile> Logger
 
 <PageTitle>@TranslationService.GetTranslation("profile.title", "Profilo") - PRYM</PageTitle>
 
@@ -453,26 +454,34 @@ else if (_profile != null)
 
     private async Task LoadProfile()
     {
-        _profile = await ProfileService.GetProfileAsync();
-        if (_profile != null)
+        try
         {
-            // Initialize edit models
-            _updateProfile = new UpdateProfileDto
+            _profile = await ProfileService.GetProfileAsync();
+            if (_profile != null)
             {
-                FirstName = _profile.FirstName,
-                LastName = _profile.LastName,
-                Email = _profile.Email,
-                PhoneNumber = _profile.PhoneNumber,
-                PreferredLanguage = _profile.PreferredLanguage,
-                TimeZone = _profile.TimeZone
-            };
+                // Initialize edit models
+                _updateProfile = new UpdateProfileDto
+                {
+                    FirstName = _profile.FirstName,
+                    LastName = _profile.LastName,
+                    Email = _profile.Email,
+                    PhoneNumber = _profile.PhoneNumber,
+                    PreferredLanguage = _profile.PreferredLanguage,
+                    TimeZone = _profile.TimeZone
+                };
 
-            _notificationPreferences = new UpdateNotificationPreferencesDto
-            {
-                EmailNotificationsEnabled = _profile.EmailNotificationsEnabled,
-                PushNotificationsEnabled = _profile.PushNotificationsEnabled,
-                InAppNotificationsEnabled = _profile.InAppNotificationsEnabled
-            };
+                _notificationPreferences = new UpdateNotificationPreferencesDto
+                {
+                    EmailNotificationsEnabled = _profile.EmailNotificationsEnabled,
+                    PushNotificationsEnabled = _profile.PushNotificationsEnabled,
+                    InAppNotificationsEnabled = _profile.InAppNotificationsEnabled
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading user profile.");
+            AppNotification.ShowError("Si è verificato un errore nel caricamento del profilo.");
         }
     }
 
@@ -491,7 +500,15 @@ else if (_profile != null)
 
     private async Task LoadLoginHistory()
     {
-        _loginHistory = await ProfileService.GetLoginHistoryAsync(30);
+        try
+        {
+            _loginHistory = await ProfileService.GetLoginHistoryAsync(30);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading login history.");
+            AppNotification.ShowError("Si è verificato un errore nel caricamento della cronologia.");
+        }
     }
 
     private async Task UpdateProfile()
@@ -570,38 +587,70 @@ else if (_profile != null)
 
     private async Task DeleteAvatar()
     {
-        var success = await ProfileService.DeleteAvatarAsync();
-        if (success)
+        try
         {
-            await LoadProfile();
+            var success = await ProfileService.DeleteAvatarAsync();
+            if (success)
+            {
+                await LoadProfile();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting avatar.");
+            AppNotification.ShowError("Si è verificato un errore nell'eliminazione dell'avatar.");
         }
     }
 
     private async Task TerminateSession(Guid sessionId)
     {
-        var success = await ProfileService.TerminateSessionAsync(sessionId);
-        if (success)
+        try
         {
-            await LoadSessions();
+            var success = await ProfileService.TerminateSessionAsync(sessionId);
+            if (success)
+            {
+                await LoadSessions();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error terminating session {SessionId}.", sessionId);
+            AppNotification.ShowError("Si è verificato un errore nella terminazione della sessione.");
         }
     }
 
     private async Task TerminateAllOtherSessions()
     {
-        var success = await ProfileService.TerminateAllOtherSessionsAsync();
-        if (success)
+        try
         {
-            await LoadSessions();
+            var success = await ProfileService.TerminateAllOtherSessionsAsync();
+            if (success)
+            {
+                await LoadSessions();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error terminating all other sessions.");
+            AppNotification.ShowError("Si è verificato un errore nella terminazione delle sessioni.");
         }
     }
 
     private async Task ShowLoginDialog()
     {
-        var result = await AuthenticationDialogService.ShowLoginDialogAsync();
-        if (result)
+        try
         {
-            // Reload the page after successful login
-            await OnInitializedAsync();
+            var result = await AuthenticationDialogService.ShowLoginDialogAsync();
+            if (result)
+            {
+                // Reload the page after successful login
+                await OnInitializedAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error showing login dialog.");
+            AppNotification.ShowError("Si è verificato un errore.");
         }
     }
 

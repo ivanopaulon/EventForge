@@ -263,6 +263,8 @@ public class PaymentTerminalService(
         if (string.IsNullOrWhiteSpace(ipAddress))
             throw new ArgumentException("L'indirizzo IP è obbligatorio per la connessione TCP.");
     }
+
+    private static PaymentResultDto MapResult(Protocol17Response r, decimal requestedAmount) => new()
     {
         Success = r.Approved,
         Approved = r.Approved,

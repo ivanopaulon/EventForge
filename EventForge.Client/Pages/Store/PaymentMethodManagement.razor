@@ -8,6 +8,8 @@
 @inject IPaymentMethodService PaymentMethodService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<PaymentMethodManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("paymentMethod.management", "Gestione Metodi di Pagamento")</PageTitle>
 <EntityManagementPage TEntity="PaymentMethodDto"
@@ -219,17 +221,25 @@
 
     private async Task ViewPaymentMethodAuditLog(PaymentMethodDto paymentMethod)
     {
-        var parameters = new DialogParameters<AuditHistoryDialog>
+        try
         {
-            { x => x.EntityType, "PaymentMethod" },
-            { x => x.EntityId, paymentMethod.Id },
-            { x => x.EntityName, paymentMethod.Name }
-        };
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, "PaymentMethod" },
+                { x => x.EntityId, paymentMethod.Id },
+                { x => x.EntityName, paymentMethod.Name }
+            };
 
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening audit log for payment method {Id}.", paymentMethod.Id);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del registro modifiche.");
+        }
     }
 
     private string GetMaterialIcon(string? iconName) => iconName switch
@@ -245,10 +255,18 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(PaymentMethodDetailDialog.EntityId)] = id };
-        var dialog = await DialogService.ShowAsync<PaymentMethodDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PaymentMethodDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<PaymentMethodDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening payment method detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }
