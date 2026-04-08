@@ -353,11 +353,19 @@
 
     private async Task ReprintAsync(Guid closureId, int zNumber)
     {
-        var result = await FiscalPrintingService.ReprintZReportAsync(closureId);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess($"Z-Report #{zNumber} ristampato.");
-        else
-            AppNotification.ShowError($"Ristampa fallita: {result?.ErrorMessage ?? "errore"}");
+        try
+        {
+            var result = await FiscalPrintingService.ReprintZReportAsync(closureId);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess($"Z-Report #{zNumber} ristampato.");
+            else
+                AppNotification.ShowError($"Ristampa fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ristampa del Z-Report #{ZNumber} per la chiusura {ClosureId}.", zNumber, closureId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task ExportCsvAsync()

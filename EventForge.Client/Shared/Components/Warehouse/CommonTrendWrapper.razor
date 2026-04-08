@@ -4,6 +4,7 @@
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
 @inject ILogger<CommonTrendWrapper> Logger
+@inject IAppNotificationService AppNotification
 
 <MudPaper Elevation="1" Class="pa-4 mb-4" Style="width:100%;">
     <MudStack Spacing="2">
@@ -126,6 +127,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading documents for product {ProductId}", ProductId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
             _docs = Array.Empty<ProductDocumentMovementDto>();
             _documentCount = 0;
         }
@@ -144,8 +146,16 @@
 
     private async Task OpenDocument(Guid documentHeaderId)
     {
-        var parameters = new DialogParameters { ["DocumentHeaderId"] = documentHeaderId };
-        var options = new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true };
-        await DialogService.ShowAsync<DocumentViewerDialog>(TranslationService.GetTranslation("documents.view","Visualizza documento"), parameters, options);
+        try
+        {
+            var parameters = new DialogParameters { ["DocumentHeaderId"] = documentHeaderId };
+            var options = new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true };
+            await DialogService.ShowAsync<DocumentViewerDialog>(TranslationService.GetTranslation("documents.view","Visualizza documento"), parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nell'apertura del documento {DocumentHeaderId}.", documentHeaderId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 }

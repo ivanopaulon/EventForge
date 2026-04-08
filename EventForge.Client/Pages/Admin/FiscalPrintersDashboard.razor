@@ -376,26 +376,42 @@
 
     private async Task PrintTestAsync(Guid printerId)
     {
-        var testReceipt = new FiscalReceiptData
+        try
         {
-            Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
-            Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
-        };
+            var testReceipt = new FiscalReceiptData
+            {
+                Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
+                Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
+            };
 
-        var result = await FiscalPrintingService.PrintReceiptAsync(printerId, testReceipt);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess("Scontrino di test stampato.");
-        else
-            AppNotification.ShowError($"Stampa test fallita: {result?.ErrorMessage ?? "errore"}");
+            var result = await FiscalPrintingService.PrintReceiptAsync(printerId, testReceipt);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Scontrino di test stampato.");
+            else
+                AppNotification.ShowError($"Stampa test fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la stampa del test per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task OpenDrawerAsync(Guid printerId)
     {
-        var result = await FiscalPrintingService.OpenDrawerAsync(printerId);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess("Cassetto aperto.");
-        else
-            AppNotification.ShowError($"Apertura cassetto fallita: {result?.ErrorMessage ?? "errore"}");
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(printerId);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowError($"Apertura cassetto fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del cassetto per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 @inject ITranslationService TranslationService
 @inject IInventoryService InventoryService
 @inject ILogger<InventoryHistoryStep> Logger
+@inject IAppNotificationService AppNotification
 
 <MudStack Spacing="3">
     <!-- History Header -->
@@ -110,15 +111,31 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadHistoryAsync();
+        try
+        {
+            await LoadHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione dello storico inventario per il prodotto {ProductId}.", ProductId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        // Reload history if ProductId changes
-        if (ProductId != Guid.Empty && _historyRows == null)
+        try
         {
-            await LoadHistoryAsync();
+            // Reload history if ProductId changes
+            if (ProductId != Guid.Empty && _historyRows == null)
+            {
+                await LoadHistoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il ricaricamento dello storico inventario per il prodotto {ProductId}.", ProductId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 

@@ -1134,22 +1134,31 @@
 
     private async Task ScanNetworkAsync()
     {
-        if (string.IsNullOrWhiteSpace(_tcpIpAddress))
+        try
         {
-            _isScanRunning = true;
-            StateHasChanged();
-            _scanResults = await FiscalPrintingService.ScanNetworkAsync("192.168.1", _tcpPort, 300);
-        }
-        else
-        {
-            var parts = _tcpIpAddress.Split('.');
-            var subnet = parts.Length >= 3 ? string.Join('.', parts[0], parts[1], parts[2]) : "192.168.1";
-            _isScanRunning = true;
-            StateHasChanged();
-            _scanResults = await FiscalPrintingService.ScanNetworkAsync(subnet, _tcpPort, 300);
-        }
+            if (string.IsNullOrWhiteSpace(_tcpIpAddress))
+            {
+                _isScanRunning = true;
+                StateHasChanged();
+                _scanResults = await FiscalPrintingService.ScanNetworkAsync("192.168.1", _tcpPort, 300);
+            }
+            else
+            {
+                var parts = _tcpIpAddress.Split('.');
+                var subnet = parts.Length >= 3 ? string.Join('.', parts[0], parts[1], parts[2]) : "192.168.1";
+                _isScanRunning = true;
+                StateHasChanged();
+                _scanResults = await FiscalPrintingService.ScanNetworkAsync(subnet, _tcpPort, 300);
+            }
 
-        _isScanRunning = false;
+            _isScanRunning = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la scansione della rete.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+            _isScanRunning = false;
+        }
     }
 
     private void SelectDiscoveredPrinter(NetworkScanResultDto result)
@@ -1195,16 +1204,32 @@
 
     private async Task AdvanceFromStep1Tcp()
     {
-        _activeStep = 2;
-        await LoadPrinterInfoAsync();
+        try
+        {
+            _activeStep = 2;
+            await LoadPrinterInfoAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'avanzamento al passo 2 (TCP).");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task AdvanceFromStep1TcpViaAgent()
     {
-        _activeStep = 2;
-        // For TcpViaAgent we skip the printer-info query (requires direct TCP from server).
-        _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
-        await Task.CompletedTask;
+        try
+        {
+            _activeStep = 2;
+            // For TcpViaAgent we skip the printer-info query (requires direct TCP from server).
+            _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'avanzamento al passo 2 (TCP via agente).");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -1228,8 +1253,16 @@
 
     private async Task AdvanceFromStep1Serial()
     {
-        _activeStep = 2;
-        _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+        try
+        {
+            _activeStep = 2;
+            _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'avanzamento al passo 2 (seriale).");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -1238,9 +1271,17 @@
 
     private async Task AdvanceFromStep1Agent()
     {
-        _activeStep = 2;
-        _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
-        await Task.CompletedTask;
+        try
+        {
+            _activeStep = 2;
+            _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'avanzamento al passo 2 (agente).");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task LoadAgentSystemPrintersAsync()
@@ -1288,9 +1329,17 @@
 
     private async Task LoadPrinterInfoAsync()
     {
-        _printerInfo = null;
-        StateHasChanged();
-        _printerInfo = await FiscalPrintingService.GetPrinterInfoByAddressAsync(_tcpIpAddress, _tcpPort);
+        try
+        {
+            _printerInfo = null;
+            StateHasChanged();
+            _printerInfo = await FiscalPrintingService.GetPrinterInfoByAddressAsync(_tcpIpAddress, _tcpPort);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento delle informazioni della stampante {IpAddress}:{Port}.", _tcpIpAddress, _tcpPort);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────
