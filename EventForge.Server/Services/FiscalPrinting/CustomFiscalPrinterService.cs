@@ -84,6 +84,36 @@ public partial class CustomFiscalPrinterService(
                 httpClientFactory);
         }
 
+        // TCP-via-Agent channel: network printer reachable from agent's local network
+        if (printer.ConnectionType == PrinterConnectionType.TcpViaAgent)
+        {
+            if (printer.AgentId is null)
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as TcpViaAgent but has no AgentId.");
+
+            if (string.IsNullOrWhiteSpace(printer.Address))
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as TcpViaAgent but has no IP address.");
+
+            if (printer.Port is null or 0)
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as TcpViaAgent but has no port.");
+
+            var agentUrl = GetAgentBaseUrl(printer.AgentId.Value);
+
+            logger.LogDebug(
+                "Creating agent-TCP-proxy channel for printer {Name} (agent={AgentId} printer={Host}:{Port} url={Url})",
+                printer.Name, printer.AgentId, printer.Address, printer.Port, agentUrl);
+
+            return new AgentTcpProxyCommunication(
+                agentUrl,
+                printer.Address,
+                printer.Port.Value,
+                timeoutMs: 30_000,
+                loggerFactory.CreateLogger<AgentTcpProxyCommunication>(),
+                httpClientFactory);
+        }
+
         // TCP channel: requires Address + Port
         if (!string.IsNullOrWhiteSpace(printer.Address) && printer.Port > 0)
         {

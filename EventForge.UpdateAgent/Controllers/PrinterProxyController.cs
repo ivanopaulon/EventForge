@@ -1,3 +1,5 @@
+using EventForge.Hardware.Exceptions;
+using EventForge.Hardware.PrinterProxy;
 using EventForge.UpdateAgent.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Runtime.InteropServices;
@@ -6,10 +8,13 @@ using System.Text.RegularExpressions;
 namespace EventForge.UpdateAgent.Controllers;
 
 /// <summary>
-/// Exposes USB printer proxy endpoints consumed by the EventForge Server when a printer
-/// is configured with <c>ConnectionType = UsbViaAgent</c>.
-/// The Server posts raw command bytes (base64); this controller forwards them to the
-/// locally-attached USB printer via <see cref="IAgentPrinterService"/>.
+/// Exposes printer proxy endpoints consumed by the EventForge Server when a printer
+/// is configured with <c>ConnectionType = UsbViaAgent</c> or <c>ConnectionType = TcpViaAgent</c>.
+/// <list type="bullet">
+///   <item>USB printers: Server posts raw command bytes (base64); forwarded to the locally-attached USB device.</item>
+///   <item>TCP network printers: Server posts raw command bytes (base64) with host/port; forwarded via TCP socket.</item>
+///   <item>HTTP/WebAPI printers (e.g. Epson ePOS-Print): Server posts XML body; forwarded via HTTP to printer's URL on the agent's local network.</item>
+/// </list>
 /// </summary>
 [ApiController]
 [Route("api/printer-proxy")]
@@ -29,13 +34,13 @@ public sealed class PrinterProxyController(
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
-    /// 200 OK with <see cref="PrinterProxyResponse"/> on success;
+    /// 200 OK with <see cref="PrinterProxySendResponse"/> on success;
     /// 400 Bad Request for invalid input;
     /// 500 Internal Server Error on device I/O failure.
     /// </returns>
     [HttpPost("send")]
     public async Task<IActionResult> SendAsync(
-        [FromBody] PrinterProxyRequest request,
+        [FromBody] PrinterProxySendRequest request,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.DeviceId))
@@ -68,7 +73,7 @@ public sealed class PrinterProxyController(
                 .SendCommandAsync(request.DeviceId, commandBytes, ct)
                 .ConfigureAwait(false);
 
-            return Ok(new PrinterProxyResponse(Convert.ToBase64String(responseBytes)));
+            return Ok(new PrinterProxySendResponse(Convert.ToBase64String(responseBytes)));
         }
         catch (InvalidOperationException ex)
         {
@@ -153,6 +158,146 @@ public sealed class PrinterProxyController(
 
         logger.LogDebug("PrinterProxy system-printers: found {Count}", printerNames.Count);
         return Ok(new { printers = printerNames });
+    }
+
+    // ── TCP proxy (TcpViaAgent) ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Sends a raw command to a TCP/IP network printer on the agent's local network
+    /// and returns the response bytes. The server cannot reach this printer directly;
+    /// the agent opens the TCP connection on behalf of the server.
+    /// </summary>
+    /// <param name="request">JSON body with host, port, and base64-encoded command bytes.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// 200 OK with <see cref="PrinterProxySendResponse"/> on success;
+    /// 400 Bad Request for invalid input;
+    /// 500 Internal Server Error on TCP I/O failure.
+    /// </returns>
+    [HttpPost("tcp-send")]
+    public async Task<IActionResult> TcpSendAsync(
+        [FromBody] PrinterProxyTcpSendRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Host))
+            return BadRequest("host is required.");
+
+        if (request.Port is < 1 or > 65535)
+            return BadRequest("port must be between 1 and 65535.");
+
+        if (string.IsNullOrWhiteSpace(request.Command))
+            return BadRequest("command is required.");
+
+        byte[] commandBytes;
+        try
+        {
+            commandBytes = Convert.FromBase64String(request.Command);
+        }
+        catch (FormatException ex)
+        {
+            logger.LogWarning(ex, "Invalid base64 command for TCP proxy {Host}:{Port}", request.Host, request.Port);
+            return BadRequest("command must be a valid base64 string.");
+        }
+
+        logger.LogDebug(
+            "PrinterProxy tcp-send: {Host}:{Port} bytes={Bytes}",
+            request.Host, request.Port, commandBytes.Length);
+
+        try
+        {
+            var responseBytes = await printerService
+                .SendTcpCommandAsync(request.Host, request.Port, commandBytes, ct)
+                .ConfigureAwait(false);
+
+            return Ok(new PrinterProxySendResponse(Convert.ToBase64String(responseBytes)));
+        }
+        catch (FiscalPrinterCommunicationException ex)
+        {
+            logger.LogError(ex, "PrinterProxy tcp-send failed for {Host}:{Port}", request.Host, request.Port);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Tests TCP connectivity to a network printer on the agent's local network.
+    /// </summary>
+    /// <param name="host">Printer IP address or hostname.</param>
+    /// <param name="port">TCP port on the printer.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>200 OK when reachable; 503 Service Unavailable when not reachable.</returns>
+    [HttpGet("tcp-test")]
+    public async Task<IActionResult> TcpTestAsync(
+        [FromQuery] string host,
+        [FromQuery] int port,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            return BadRequest("host query parameter is required.");
+
+        if (port is < 1 or > 65535)
+            return BadRequest("port must be between 1 and 65535.");
+
+        logger.LogDebug("PrinterProxy tcp-test: {Host}:{Port}", host, port);
+
+        try
+        {
+            await printerService.TestTcpConnectionAsync(host, port, ct).ConfigureAwait(false);
+            return Ok(new { host, port, status = "ok" });
+        }
+        catch (FiscalPrinterCommunicationException ex)
+        {
+            logger.LogWarning(ex, "PrinterProxy tcp-test failed for {Host}:{Port}", host, port);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, ex.Message);
+        }
+    }
+
+    // ── HTTP forward (TcpViaAgent – Epson WebAPI, etc.) ──────────────────────
+
+    /// <summary>
+    /// Forwards an HTTP POST request to a printer's WebAPI endpoint on the agent's local network
+    /// (e.g. Epson ePOS-Print XML at <c>http://192.168.1.100/api/1/request</c>) and returns
+    /// the raw response body. Used when the printer is reachable from the agent but not the server.
+    /// </summary>
+    /// <param name="request">JSON body with target URL, content type, and request body.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// 200 OK with <see cref="PrinterProxyHttpForwardResponse"/> on success;
+    /// 400 Bad Request for invalid input;
+    /// 502 Bad Gateway when the printer returns a non-success HTTP status;
+    /// 500 Internal Server Error on network failure.
+    /// </returns>
+    [HttpPost("http-forward")]
+    public async Task<IActionResult> HttpForwardAsync(
+        [FromBody] PrinterProxyHttpForwardRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.TargetUrl))
+            return BadRequest("targetUrl is required.");
+
+        if (!Uri.TryCreate(request.TargetUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return BadRequest("targetUrl must be a valid absolute HTTP/HTTPS URL.");
+
+        if (string.IsNullOrWhiteSpace(request.ContentType))
+            return BadRequest("contentType is required.");
+
+        logger.LogDebug(
+            "PrinterProxy http-forward → {Url} contentType={ContentType} chars={Chars}",
+            request.TargetUrl, request.ContentType, request.Body?.Length ?? 0);
+
+        try
+        {
+            var responseBody = await printerService
+                .ForwardHttpAsync(request.TargetUrl, request.ContentType, request.Body ?? string.Empty, ct)
+                .ConfigureAwait(false);
+
+            return Ok(new PrinterProxyHttpForwardResponse(responseBody));
+        }
+        catch (FiscalPrinterCommunicationException ex)
+        {
+            logger.LogError(ex, "PrinterProxy http-forward failed for {Url}", request.TargetUrl);
+            return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
+        }
     }
 
     private static List<string> GetWindowsPrinters()

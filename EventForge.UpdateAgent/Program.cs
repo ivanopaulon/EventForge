@@ -87,6 +87,7 @@ try
     builder.Services.AddSingleton<CommandTrackingService>();
 
     // ── Printer proxy ─────────────────────────────────────────────────────
+    builder.Services.AddHttpClient();
     builder.Services.AddSingleton<IAgentPrinterService, AgentPrinterService>();
 
     // ── Background workers ────────────────────────────────────────────────

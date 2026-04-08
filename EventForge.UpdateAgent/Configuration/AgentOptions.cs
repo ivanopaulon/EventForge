@@ -23,6 +23,19 @@ public class AgentOptions
     /// <summary>Optional classification tags (e.g. ["production", "milan"]).</summary>
     public List<string> Tags { get; set; } = [];
 
+    // ── Standalone / printer-proxy-only mode ─────────────────────────────
+    /// <summary>
+    /// When <see langword="true"/>, this agent runs in standalone (printer-proxy-only) mode:
+    /// it does <b>not</b> connect to the UpdateHub, does not manage Server/Client component
+    /// updates, and serves exclusively as a printer proxy for fiscal printers on its local network.
+    /// <para>
+    /// Use this mode on dedicated POS terminals or print servers that have no EventForge
+    /// Server/Client installed locally but need to expose USB or TCP printers to the
+    /// EventForge Server over HTTP.
+    /// </para>
+    /// </summary>
+    public bool StandaloneMode { get; set; }
+
     // ── Auto-enrollment ───────────────────────────────────────────────────
     /// <summary>
     /// Shared secret used to request a new API key from the Hub automatically.

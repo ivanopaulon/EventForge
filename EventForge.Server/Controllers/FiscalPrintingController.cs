@@ -466,6 +466,80 @@ public class FiscalPrintingController(
     }
 
     /// <summary>
+    /// Tests a TCP connection to a network printer on an agent's local network (wizard Step 2A – TcpViaAgent).
+    /// The request is forwarded to the agent which opens the TCP socket on its side.
+    /// </summary>
+    /// <param name="agentId">GUID of the UpdateAgent that will perform the TCP test.</param>
+    /// <param name="ipAddress">Printer IP address on the agent's local network.</param>
+    /// <param name="port">Printer TCP port (default 9100).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    [HttpPost("test-tcp-via-agent")]
+    [ProducesResponseType(typeof(FiscalPrintResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<FiscalPrintResult>> TestTcpViaAgentAsync(
+        [FromQuery] Guid agentId,
+        [FromQuery] string ipAddress,
+        [FromQuery] int port = 9100,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(ipAddress))
+            return CreateValidationProblemDetails();
+
+        var agentUrl = configuration[$"AgentProxies:{agentId}"];
+        if (string.IsNullOrWhiteSpace(agentUrl))
+            return NotFound(new ProblemDetails
+            {
+                Title = "Agent not found.",
+                Detail = $"No base URL configured for agent ID '{agentId}'. Add 'AgentProxies:{agentId}' to application configuration."
+            });
+
+        try
+        {
+            logger.LogDebug(
+                "TestTcpViaAgentAsync | Agent={AgentId} Printer={Ip}:{Port}",
+                agentId, ipAddress, port);
+
+            var url = $"{agentUrl.TrimEnd('/')}/api/printer-proxy/tcp-test" +
+                      $"?host={Uri.EscapeDataString(ipAddress)}&port={port}";
+
+            using var client = httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(20);
+
+            using var response = await client.GetAsync(url, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(new FiscalPrintResult { Success = true, PrintDate = DateTime.UtcNow });
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                return Ok(new FiscalPrintResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Agent {agentId} cannot reach printer {ipAddress}:{port}: {body}"
+                });
+            }
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogWarning(ex, "Timeout testing TCP via agent {AgentId} to {Ip}:{Port}", agentId, ipAddress, port);
+            return Ok(new FiscalPrintResult
+            {
+                Success = false,
+                ErrorMessage = $"Connection test to {ipAddress}:{port} via agent timed out."
+            });
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error testing TCP connection to {ipAddress}:{port} via agent {agentId}.", ex);
+        }
+    }
+
+    /// <summary>
     /// Tests a serial connection to an arbitrary port/baud rate (wizard Step 2B).
     /// Does not require a printer DB record.
     /// </summary>
@@ -530,10 +604,11 @@ public class FiscalPrintingController(
 
             var connectionType = setup.ConnectionType switch
             {
-                "Serial" => PrinterConnectionType.Serial,
-                "UsbViaAgent" => PrinterConnectionType.UsbViaAgent,
+                "Serial"       => PrinterConnectionType.Serial,
+                "UsbViaAgent"  => PrinterConnectionType.UsbViaAgent,
                 "NetworkShare" => PrinterConnectionType.NetworkShare,
-                _ => PrinterConnectionType.Tcp
+                "TcpViaAgent"  => PrinterConnectionType.TcpViaAgent,
+                _              => PrinterConnectionType.Tcp
             };
 
             var createDto = new CreatePrinterDto
@@ -554,7 +629,7 @@ public class FiscalPrintingController(
                 PrintLanguage = setup.PrintLanguage
             };
 
-            if (setup.ConnectionType == "TCP")
+            if (setup.ConnectionType == "TCP" || setup.ConnectionType == "TcpViaAgent")
             {
                 createDto.Address = setup.IpAddress;
                 createDto.Port = setup.TcpPort;
@@ -569,6 +644,9 @@ public class FiscalPrintingController(
                 createDto.AgentId = setup.AgentId;
                 createDto.UsbDeviceId = setup.UsbDeviceId;
             }
+
+            if (setup.ConnectionType == "TcpViaAgent")
+                createDto.AgentId = setup.AgentId;
 
             var printer = await stationService.CreatePrinterAsync(
                 createDto, GetCurrentUser(), cancellationToken);
@@ -631,10 +709,11 @@ public class FiscalPrintingController(
 
             var connectionType = printer.ConnectionType switch
             {
-                PrinterConnectionType.Serial => "Serial",
+                PrinterConnectionType.Serial      => "Serial",
                 PrinterConnectionType.UsbViaAgent => "UsbViaAgent",
                 PrinterConnectionType.NetworkShare => "NetworkShare",
-                _ => "TCP"
+                PrinterConnectionType.TcpViaAgent => "TcpViaAgent",
+                _                                 => "TCP"
             };
 
             var setupDto = new FiscalPrinterSetupDto
@@ -709,10 +788,11 @@ public class FiscalPrintingController(
 
             var connectionType = setup.ConnectionType switch
             {
-                "Serial" => PrinterConnectionType.Serial,
-                "UsbViaAgent" => PrinterConnectionType.UsbViaAgent,
+                "Serial"       => PrinterConnectionType.Serial,
+                "UsbViaAgent"  => PrinterConnectionType.UsbViaAgent,
                 "NetworkShare" => PrinterConnectionType.NetworkShare,
-                _ => PrinterConnectionType.Tcp
+                "TcpViaAgent"  => PrinterConnectionType.TcpViaAgent,
+                _              => PrinterConnectionType.Tcp
             };
 
             var updateDto = new UpdatePrinterDto
@@ -734,7 +814,7 @@ public class FiscalPrintingController(
                 PrintLanguage = setup.PrintLanguage
             };
 
-            if (setup.ConnectionType == "TCP")
+            if (setup.ConnectionType == "TCP" || setup.ConnectionType == "TcpViaAgent")
             {
                 updateDto.Address = setup.IpAddress;
                 updateDto.Port = setup.TcpPort;

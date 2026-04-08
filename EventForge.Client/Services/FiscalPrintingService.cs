@@ -210,6 +210,23 @@ public class FiscalPrintingService(
     }
 
     /// <inheritdoc />
+    public async Task<FiscalPrintResult?> TestTcpViaAgentAsync(
+        Guid agentId, string ipAddress, int port, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FiscalPrintResult>(
+                $"{BaseUrl}/test-tcp-via-agent?agentId={agentId}&ipAddress={Uri.EscapeDataString(ipAddress)}&port={port}",
+                new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "TestTcpViaAgentAsync failed for agent={AgentId} {Ip}:{Port}", agentId, ipAddress, port);
+            return new FiscalPrintResult { Success = false, ErrorMessage = ex.Message, PrintDate = DateTime.UtcNow };
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult?> TestSerialConnectionAsync(
         string serialPortName, int baudRate, CancellationToken ct = default)
     {

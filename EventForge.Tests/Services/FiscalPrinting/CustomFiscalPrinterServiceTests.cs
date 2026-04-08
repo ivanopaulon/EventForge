@@ -1,4 +1,5 @@
 using EventForge.DTOs.FiscalPrinting;
+using EventForge.Hardware.Exceptions;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;

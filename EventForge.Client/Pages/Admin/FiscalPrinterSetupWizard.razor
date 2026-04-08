@@ -57,8 +57,16 @@
                 <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
                     <MudRadio Value="@("TCP")" Color="Color.Primary">
                         <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>TCP/IP</b> – Rete Ethernet / Wi-Fi</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa in rete e accessibile via indirizzo IP (porta 9100)</MudText>
+                            <MudText Typo="Typo.body1"><b>TCP/IP – Diretto</b></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete e raggiungibile direttamente dal <b>Server</b> via IP (porta 9100). L'indirizzo IP deve essere visibile dalla macchina server.</MudText>
+                        </MudStack>
+                    </MudRadio>
+                </MudPaper>
+                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    <MudRadio Value="@("TcpViaAgent")" Color="Color.Primary">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body1"><b>TCP/IP via Agente</b> – stampante in rete dell'Agent</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete ma raggiungibile solo dall'<b>Agente</b> (es. fiscale al POS, su rete locale del negozio). Il server non vede l'IP direttamente; la comunicazione passa per l'Agente installato sul dispositivo.</MudText>
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
@@ -100,7 +108,7 @@
 }
 
 @* ══════════════════════════════════════════════════════════════
-   STEP 1 – TCP / Serial / UsbViaAgent / NetworkShare config
+   STEP 1 – TCP / TcpViaAgent / Serial / UsbViaAgent / NetworkShare config
    ══════════════════════════════════════════════════════════════ *@
 @if (_activeStep == 1)
 {
@@ -220,6 +228,99 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                EndIcon="@Icons.Material.Filled.ArrowForward"
                                OnClick="AdvanceFromStep1Tcp"
+                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
+                        Avanti
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        }
+        else if (_connectionType == "TcpViaAgent")
+        {
+            @* ── TCP via Agent config ── *@
+            <MudText Typo="Typo.subtitle1" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.SettingsEthernet" Class="mr-2" />
+                Configurazione TCP/IP via Agente
+            </MudText>
+
+            <MudAlert Severity="Severity.Info" Class="mb-4" Dense="true">
+                L'indirizzo IP qui inserito è quello visto dall'<b>Agente</b>, non dal Server.
+                Assicurati che l'Agente selezionato sia installato sulla stessa rete della stampante fiscale.
+            </MudAlert>
+
+            <MudGrid>
+                @* Agent selector *@
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_agentId"
+                                  Label="ID Agente *"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="GUID dell'agente (es. a1b2c3d4-...)"
+                                  HelperText="Inserisci il GUID dell'agente UpdateAgent installato sul dispositivo POS / cassa"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Computer"
+                                  Immediate="true"
+                                  @oninput="@(() => { _testConnectionResult = null; })" />
+                </MudItem>
+
+                @* IP / Port *@
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_tcpIpAddress"
+                                  Label="Indirizzo IP stampante *"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="es. 192.168.1.100"
+                                  HelperText="Indirizzo IP della stampante sulla rete locale dell'Agente"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Router" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="int" @bind-Value="_tcpPort"
+                                     Label="Porta *"
+                                     Variant="Variant.Outlined"
+                                     Min="1" Max="65535" />
+                </MudItem>
+
+                @if (_protocolType == "Epson")
+                {
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_usbDeviceId"
+                                      Label="Device ID Epson"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="local_printer"
+                                      HelperText="Identificativo dispositivo Epson (default: local_printer)"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Print" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (_testConnectionResult is not null)
+            {
+                <MudAlert Severity="@(_testConnectionResult.Success ? Severity.Success : Severity.Error)"
+                          Dense="true" Class="mt-3">
+                    @(_testConnectionResult.Success
+                        ? "✅ L'Agente raggiunge la stampante! Connessione riuscita."
+                        : $"❌ Connessione fallita: {_testConnectionResult.ErrorMessage}")
+                </MudAlert>
+            }
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
+                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
+                           StartIcon="@Icons.Material.Filled.ArrowBack">
+                    Indietro
+                </MudButton>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.NetworkCheck"
+                               OnClick="TestTcpViaAgentAsync"
+                               Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_tcpIpAddress) || string.IsNullOrWhiteSpace(_agentId))">
+                        @if (_isTesting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        Test via Agente
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               EndIcon="@Icons.Material.Filled.ArrowForward"
+                               OnClick="AdvanceFromStep1TcpViaAgent"
                                Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
                         Avanti
                     </MudButton>
@@ -396,6 +497,21 @@
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2" />
             </MudAlert>
         }
+        else if (_connectionType is "TcpViaAgent" or "UsbViaAgent" or "Serial" or "NetworkShare")
+        {
+            @* For agent-proxied, serial, and network-share connections the server
+               cannot query the printer directly — skip the info read and continue. *@
+            <MudAlert Severity="Severity.Info">
+                @if (_connectionType == "TcpViaAgent")
+                {
+                    <span>La stampante è raggiungibile tramite Agente: le informazioni hardware non possono essere lette direttamente dal server. Il wizard continuerà con la configurazione manuale.</span>
+                }
+                else
+                {
+                    <span>Per questo tipo di connessione le informazioni hardware non sono disponibili direttamente. Il wizard continuerà con la configurazione manuale.</span>
+                }
+            </MudAlert>
+        }
         else if (!_printerInfo.IsOnline)
         {
             <MudAlert Severity="Severity.Error">
@@ -441,7 +557,7 @@
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        EndIcon="@Icons.Material.Filled.ArrowForward"
                        OnClick="@(() => _activeStep = 3)"
-                       Disabled="@(_printerInfo is null)">
+                       Disabled="@(_printerInfo is null && _connectionType is not "TcpViaAgent" and not "UsbViaAgent" and not "Serial" and not "NetworkShare")">
                 Avanti
             </MudButton>
         </MudStack>
@@ -1057,10 +1173,38 @@
         }
     }
 
+    private async Task TestTcpViaAgentAsync()
+    {
+        if (!Guid.TryParse(_agentId, out var agentGuid))
+        {
+            _testConnectionResult = new FiscalPrintResult { Success = false, ErrorMessage = "ID agente non valido (GUID richiesto)." };
+            return;
+        }
+
+        _isTesting = true;
+        _testConnectionResult = null;
+        try
+        {
+            _testConnectionResult = await FiscalPrintingService.TestTcpViaAgentAsync(agentGuid, _tcpIpAddress, _tcpPort);
+        }
+        finally
+        {
+            _isTesting = false;
+        }
+    }
+
     private async Task AdvanceFromStep1Tcp()
     {
         _activeStep = 2;
         await LoadPrinterInfoAsync();
+    }
+
+    private async Task AdvanceFromStep1TcpViaAgent()
+    {
+        _activeStep = 2;
+        // For TcpViaAgent we skip the printer-info query (requires direct TCP from server).
+        _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+        await Task.CompletedTask;
     }
 
     // ──────────────────────────────────────────────────────────
@@ -1164,11 +1308,14 @@
     {
         _protocolType = newProtocol;
 
-        // When Epson WebAPI is selected, enforce TCP as connection type
+        // When Epson WebAPI is selected, enforce TCP or TcpViaAgent as connection type
         // and default the port to 80 (embedded web server port).
         if (string.Equals(newProtocol, "Epson", StringComparison.OrdinalIgnoreCase))
         {
-            _connectionType = "TCP";
+            // Only switch to TCP if not already on a TCP variant
+            if (_connectionType != "TCP" && _connectionType != "TcpViaAgent")
+                _connectionType = "TCP";
+
             if (_tcpPort is 0 or 9100)
                 _tcpPort = 80;
         }
@@ -1236,11 +1383,12 @@
 
     private string GetConnectionSummary() => _connectionType switch
     {
-        "TCP" => $"{_tcpIpAddress}:{_tcpPort}",
-        "Serial" => $"{_serialPortName} @ {_serialBaudRate}",
+        "TCP"         => $"{_tcpIpAddress}:{_tcpPort} (diretto dal Server)",
+        "TcpViaAgent" => $"{_tcpIpAddress}:{_tcpPort} via Agente {_agentId}",
+        "Serial"      => $"{_serialPortName} @ {_serialBaudRate}",
         "UsbViaAgent" => $"Agente: {_agentId}, Dispositivo: {_usbDeviceId}",
         "NetworkShare" => $"Network Share",
-        _ => _connectionType
+        _             => _connectionType
     };
 
     // ──────────────────────────────────────────────────────────
@@ -1283,11 +1431,11 @@
             var setup = new FiscalPrinterSetupDto
             {
                 ConnectionType = _connectionType,
-                IpAddress = _connectionType == "TCP" ? _tcpIpAddress : null,
-                TcpPort = _connectionType == "TCP" ? _tcpPort : null,
+                IpAddress = (_connectionType == "TCP" || _connectionType == "TcpViaAgent") ? _tcpIpAddress : null,
+                TcpPort = (_connectionType == "TCP" || _connectionType == "TcpViaAgent") ? _tcpPort : null,
                 SerialPortName = _connectionType == "Serial" ? _serialPortName : null,
                 BaudRate = _connectionType == "Serial" ? _serialBaudRate : null,
-                AgentId = _connectionType == "UsbViaAgent" ? agentGuid : null,
+                AgentId = (_connectionType == "UsbViaAgent" || _connectionType == "TcpViaAgent") ? agentGuid : null,
                 UsbDeviceId = (_connectionType == "UsbViaAgent" || _protocolType == "Epson")
                     ? _usbDeviceId
                     : null,

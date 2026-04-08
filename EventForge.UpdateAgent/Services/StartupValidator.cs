@@ -79,17 +79,20 @@ public static class StartupValidator
         }
 
         // ── Hub connection ────────────────────────────────────────────────────
-        if (string.IsNullOrWhiteSpace(options.HubUrl))
-            logger.LogWarning("[StartupValidator] HubUrl is empty — Agent will not connect to UpdateHub. Set the Hub SignalR endpoint.");
+        if (!options.StandaloneMode && string.IsNullOrWhiteSpace(options.HubUrl))
+            logger.LogWarning("[StartupValidator] HubUrl is empty — Agent will not connect to UpdateHub. Set the Hub SignalR endpoint or enable StandaloneMode.");
 
-        if (string.IsNullOrWhiteSpace(options.InstallationName))
+        if (options.StandaloneMode)
+            logger.LogInformation("[StartupValidator] StandaloneMode=true — Hub connection and update management are disabled. Agent runs as printer proxy only.");
+
+        if (!options.StandaloneMode && string.IsNullOrWhiteSpace(options.InstallationName))
             logger.LogWarning("[StartupValidator] InstallationName is empty — the Agent will register without a human-readable name.");
 
         // ── Security ──────────────────────────────────────────────────────────
         if (options.UI.Password == "Admin#123!")
             logger.LogWarning("[StartupValidator] Agent UI password is still the default. Change it in Settings before going to production.");
 
-        if (string.IsNullOrWhiteSpace(options.ApiKey) && string.IsNullOrWhiteSpace(options.EnrollmentToken))
+        if (!options.StandaloneMode && string.IsNullOrWhiteSpace(options.ApiKey) && string.IsNullOrWhiteSpace(options.EnrollmentToken))
             logger.LogWarning("[StartupValidator] Both ApiKey and EnrollmentToken are empty — Agent cannot authenticate with the Hub.");
 
         // ── IIS appcmd.exe presence check (only if Server component enabled) ──

@@ -25,6 +25,24 @@ public class AgentWorker(
         logger.LogInformation("EventForge UpdateAgent starting. InstallationId={Id} Name={Name}",
             options.InstallationId, options.InstallationName);
 
+        // Standalone mode: printer-proxy only — skip Hub connection entirely.
+        if (options.StandaloneMode || string.IsNullOrWhiteSpace(options.HubUrl))
+        {
+            agentStatus.HubConnectionState = "Standalone";
+            if (options.StandaloneMode)
+                logger.LogInformation(
+                    "Agent running in standalone (printer-proxy-only) mode. Hub connection disabled.");
+            else
+                logger.LogWarning(
+                    "HubUrl is not configured — Agent running without Hub connection. " +
+                    "Set UpdateAgent:HubUrl or enable UpdateAgent:StandaloneMode to suppress this warning.");
+
+            // Keep the hosted service alive while the application is running.
+            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
+            agentStatus.HubConnectionState = "Stopped";
+            return;
+        }
+
         // Restore persisted pending queue from previous runs.
         pendingInstallService.LoadFromDisk();
 

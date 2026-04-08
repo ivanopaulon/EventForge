@@ -1,5 +1,4 @@
 using System.Text;
-using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
@@ -15,7 +14,7 @@ namespace EventForge.Server.Services.FiscalPrinting.Communication;
 /// Each instance holds an <see cref="HttpClient"/> created via
 /// <see cref="IHttpClientFactory"/> and must be disposed after use.
 /// </remarks>
-public sealed class EpsonWebApiCommunication : IAsyncDisposable
+public sealed class EpsonWebApiCommunication : IEpsonChannel
 {
     // -------------------------------------------------------------------------
     //  Fields
@@ -98,7 +97,7 @@ public sealed class EpsonWebApiCommunication : IAsyncDisposable
 
         var uri = BuildRequestUri();
         _logger.LogDebug(
-            "Epson → {Uri} | devid={DevId} | {Bytes} bytes",
+            "[EpsonWebApiCommunication] → {Uri} | devid={DevId} | {Bytes} bytes",
             uri, _devid, Encoding.UTF8.GetByteCount(xmlBody));
 
         using var content = new StringContent(xmlBody, Encoding.UTF8, EpsonProtocolConstants.ContentType);
@@ -114,7 +113,7 @@ public sealed class EpsonWebApiCommunication : IAsyncDisposable
                 .ConfigureAwait(false);
 
             _logger.LogDebug(
-                "Epson ← {Uri} | HTTP {Status} | {Bytes} bytes",
+                "[EpsonWebApiCommunication] ← {Uri} | HTTP {Status} | {Bytes} bytes",
                 uri, (int)response.StatusCode, Encoding.UTF8.GetByteCount(responseBody));
 
             if (!response.IsSuccessStatusCode)
@@ -166,7 +165,7 @@ public sealed class EpsonWebApiCommunication : IAsyncDisposable
         }
 
         _logger.LogInformation(
-            "Epson connection test successful | {Host}:{Port} devid={DevId}",
+            "[EpsonWebApiCommunication] Connection test OK | {Host}:{Port} devid={DevId}",
             _host, _port, _devid);
     }
 

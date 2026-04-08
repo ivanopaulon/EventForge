@@ -41,6 +41,12 @@ public interface IFiscalPrintingService
     /// <summary>Tests a TCP connection to an arbitrary IP/port (wizard Step 2A).</summary>
     Task<FiscalPrintResult?> TestTcpConnectionAsync(string ipAddress, int port, CancellationToken ct = default);
 
+    /// <summary>
+    /// Tests TCP connectivity to a network printer on an agent's local network (wizard Step 2A – TcpViaAgent).
+    /// The test is forwarded to the specified agent which opens the TCP socket.
+    /// </summary>
+    Task<FiscalPrintResult?> TestTcpViaAgentAsync(Guid agentId, string ipAddress, int port, CancellationToken ct = default);
+
     /// <summary>Tests a serial connection to an arbitrary port (wizard Step 2B).</summary>
     Task<FiscalPrintResult?> TestSerialConnectionAsync(string serialPortName, int baudRate, CancellationToken ct = default);
 
