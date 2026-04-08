@@ -322,14 +322,12 @@
         StateHasChanged();
         try
         {
-            // For unsaved terminal, test directly; for saved terminal, use the saved config
             if (ViewModel.Entity.Id != Guid.Empty)
             {
                 await PaymentTerminalService.TestConnectionAsync(ViewModel.Entity.Id);
             }
             else
             {
-                // Unsaved: not supported — inform user to save first
                 _testResult = "Salva il terminale prima di testare la connessione.";
                 _testSuccess = false;
                 return;
@@ -346,7 +344,6 @@
         finally
         {
             _isTesting = false;
-            StateHasChanged();
         }
     }
 
@@ -358,18 +355,26 @@
             if (!_form.IsValid) return;
         }
 
-        var isNew = ViewModel.IsNewEntity;
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
+        try
         {
-            AppNotification.ShowSuccess(isNew
-                ? "Terminale POS creato con successo."
-                : "Terminale POS aggiornato con successo.");
-            MudDialog.Close(DialogResult.Ok(true));
+            var isNew = ViewModel.IsNewEntity;
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                AppNotification.ShowSuccess(isNew
+                    ? "Terminale POS creato con successo."
+                    : "Terminale POS aggiornato con successo.");
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                AppNotification.ShowError("Errore nel salvataggio del terminale POS.");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            AppNotification.ShowError("Errore nel salvataggio del terminale POS.");
+            Logger.LogError(ex, "Errore nel salvataggio del terminale POS.");
+            AppNotification.ShowError("Errore imprevisto nel salvataggio del terminale POS.");
         }
     }
 

@@ -22,11 +22,11 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentTerminalDto?> GetByIdAsync(Guid id)
+    public async Task<PaymentTerminalDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<PaymentTerminalDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<PaymentTerminalDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -39,13 +39,13 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentTerminalDto?> CreateAsync(CreatePaymentTerminalDto dto)
+    public async Task<PaymentTerminalDto?> CreateAsync(CreatePaymentTerminalDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, dto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, dto, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>();
+            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>(ct);
         }
         catch (Exception ex)
         {
@@ -54,13 +54,13 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentTerminalDto?> UpdateAsync(Guid id, UpdatePaymentTerminalDto dto)
+    public async Task<PaymentTerminalDto?> UpdateAsync(Guid id, UpdatePaymentTerminalDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", dto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", dto, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>();
+            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>(ct);
         }
         catch (Exception ex)
         {
@@ -69,11 +69,11 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
             response.EnsureSuccessStatusCode();
             return true;
         }
@@ -84,13 +84,13 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentResultDto> SendPaymentAsync(Guid terminalId, PaymentRequestDto request)
+    public async Task<PaymentResultDto> SendPaymentAsync(Guid terminalId, PaymentRequestDto request, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/pay", request);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/pay", request, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>(ct)
                 ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
         }
         catch (Exception ex)
@@ -100,13 +100,13 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentResultDto> SendVoidAsync(Guid terminalId)
+    public async Task<PaymentResultDto> SendVoidAsync(Guid terminalId, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/void", null);
+            var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/void", null, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>(ct)
                 ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
         }
         catch (Exception ex)
@@ -116,13 +116,13 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task<PaymentResultDto> SendRefundAsync(Guid terminalId, PaymentRequestDto request)
+    public async Task<PaymentResultDto> SendRefundAsync(Guid terminalId, PaymentRequestDto request, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/refund", request);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/refund", request, ct);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>(ct)
                 ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
         }
         catch (Exception ex)
@@ -132,9 +132,9 @@ public class PaymentTerminalService(
         }
     }
 
-    public async Task TestConnectionAsync(Guid terminalId)
+    public async Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
     {
-        var response = await httpClient.GetAsync($"{ApiBase}/{terminalId}/test-connection");
+        var response = await httpClient.GetAsync($"{ApiBase}/{terminalId}/test-connection", ct);
         response.EnsureSuccessStatusCode();
     }
 }

@@ -189,21 +189,45 @@ public class PaymentTerminalService(
 
     public async Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
     {
-        await using var channel = await CreateChannelAsync(terminalId, ct);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            await using var channel = await CreateChannelAsync(terminalId, ct);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test di connessione al terminale {TerminalId}.", terminalId);
+            throw;
+        }
     }
 
     public async Task TestTcpConnectionAsync(string host, int port, int timeoutMs, CancellationToken ct = default)
     {
-        await using var channel = new Protocol17TcpChannel(host, port, timeoutMs);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            await using var channel = new Protocol17TcpChannel(host, port, timeoutMs);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test TCP diretto {Host}:{Port}.", host, port);
+            throw;
+        }
     }
 
     public async Task TestTcpViaAgentAsync(string agentBaseUrl, string host, int port, int timeoutMs, CancellationToken ct = default)
     {
-        var httpClient = httpClientFactory.CreateClient();
-        await using var channel = new Protocol17AgentChannel(httpClient, agentBaseUrl, host, port, timeoutMs);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            var httpClient = httpClientFactory.CreateClient();
+            await using var channel = new Protocol17AgentChannel(httpClient, agentBaseUrl, host, port, timeoutMs);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test TCP via agente {AgentBaseUrl} {Host}:{Port}.", agentBaseUrl, host, port);
+            throw;
+        }
     }
 
     private async Task<IPaymentTerminalChannel> CreateChannelAsync(Guid terminalId, CancellationToken ct)
