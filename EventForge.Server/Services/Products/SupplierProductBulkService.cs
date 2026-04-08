@@ -142,53 +142,61 @@ public class SupplierProductBulkService(
         BulkUpdateSupplierProductsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var previews = new List<SupplierProductPreview>();
-
-        if (request.ProductIds.Count == 0)
+        try
         {
+            var previews = new List<SupplierProductPreview>();
+
+            if (request.ProductIds.Count == 0)
+            {
+                return previews;
+            }
+
+            // Load all product suppliers
+            var productSuppliers = await context.ProductSuppliers
+                .Include(ps => ps.Product)
+                .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var ps in productSuppliers)
+            {
+                var preview = new SupplierProductPreview
+                {
+                    ProductId = ps.ProductId,
+                    ProductName = ps.Product?.Name,
+                    CurrentUnitCost = ps.UnitCost,
+                    CurrentLeadTimeDays = ps.LeadTimeDays,
+                    CurrentCurrency = ps.Currency,
+                    CurrentMinOrderQty = ps.MinOrderQty,
+                    CurrentPreferred = ps.Preferred
+                };
+
+                // Calculate new values
+                if (request.UpdateMode.HasValue && request.UnitCostValue.HasValue)
+                {
+                    preview.NewUnitCost = CalculateNewPrice(ps.UnitCost, request.UpdateMode.Value, request.UnitCostValue.Value);
+                    preview.Delta = preview.NewUnitCost - ps.UnitCost;
+                }
+                else
+                {
+                    preview.NewUnitCost = ps.UnitCost;
+                    preview.Delta = 0;
+                }
+
+                preview.NewLeadTimeDays = request.LeadTimeDays ?? ps.LeadTimeDays;
+                preview.NewCurrency = request.Currency ?? ps.Currency;
+                preview.NewMinOrderQty = request.MinOrderQuantity ?? ps.MinOrderQty;
+                preview.NewPreferred = request.IsPreferred ?? ps.Preferred;
+
+                previews.Add(preview);
+            }
+
             return previews;
         }
-
-        // Load all product suppliers
-        var productSuppliers = await context.ProductSuppliers
-            .Include(ps => ps.Product)
-            .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
-            .ToListAsync(cancellationToken);
-
-        foreach (var ps in productSuppliers)
+        catch (Exception ex)
         {
-            var preview = new SupplierProductPreview
-            {
-                ProductId = ps.ProductId,
-                ProductName = ps.Product?.Name,
-                CurrentUnitCost = ps.UnitCost,
-                CurrentLeadTimeDays = ps.LeadTimeDays,
-                CurrentCurrency = ps.Currency,
-                CurrentMinOrderQty = ps.MinOrderQty,
-                CurrentPreferred = ps.Preferred
-            };
-
-            // Calculate new values
-            if (request.UpdateMode.HasValue && request.UnitCostValue.HasValue)
-            {
-                preview.NewUnitCost = CalculateNewPrice(ps.UnitCost, request.UpdateMode.Value, request.UnitCostValue.Value);
-                preview.Delta = preview.NewUnitCost - ps.UnitCost;
-            }
-            else
-            {
-                preview.NewUnitCost = ps.UnitCost;
-                preview.Delta = 0;
-            }
-
-            preview.NewLeadTimeDays = request.LeadTimeDays ?? ps.LeadTimeDays;
-            preview.NewCurrency = request.Currency ?? ps.Currency;
-            preview.NewMinOrderQty = request.MinOrderQuantity ?? ps.MinOrderQty;
-            preview.NewPreferred = request.IsPreferred ?? ps.Preferred;
-
-            previews.Add(preview);
+            logger.LogError(ex, "Error in PreviewBulkUpdateAsync for supplier {SupplierId}.", supplierId);
+            throw;
         }
-
-        return previews;
     }
 
     /// <summary>

@@ -34,37 +34,61 @@ public sealed class AgentUpdateProxyService : IAgentUpdateProxyService
 
     public async Task<IReadOnlyList<AgentPendingInstallDto>> GetPendingInstallsAsync(CancellationToken ct = default)
     {
-        EnsureConfigured();
-        return await _http.GetFromJsonAsync<List<AgentPendingInstallDto>>("api/agent/pending-installs", ct) ?? [];
+        try
+        {
+            EnsureConfigured();
+            return await _http.GetFromJsonAsync<List<AgentPendingInstallDto>>("api/agent/pending-installs", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetPendingInstallsAsync.");
+            throw;
+        }
     }
 
     public async Task TriggerInstallNowAsync(Guid packageId, CancellationToken ct = default)
     {
-        EnsureConfigured();
-        var content = new StringContent(
-            JsonSerializer.Serialize(new { PackageId = packageId }),
-            Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync("api/agent/install-now", content, ct);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var err = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogError("Agent InstallNow failed {Status}: {Body}", response.StatusCode, err);
-            response.EnsureSuccessStatusCode();
+            EnsureConfigured();
+            var content = new StringContent(
+                JsonSerializer.Serialize(new { PackageId = packageId }),
+                Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync("api/agent/install-now", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Agent InstallNow failed {Status}: {Body}", response.StatusCode, err);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in TriggerInstallNowAsync for package {PackageId}.", packageId);
+            throw;
         }
     }
 
     public async Task TriggerUnblockQueueAsync(Guid packageId, bool skipAndRemove, CancellationToken ct = default)
     {
-        EnsureConfigured();
-        var content = new StringContent(
-            JsonSerializer.Serialize(new { PackageId = packageId, SkipAndRemove = skipAndRemove }),
-            Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync("api/agent/unblock-queue", content, ct);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var err = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogError("Agent UnblockQueue failed {Status}: {Body}", response.StatusCode, err);
-            response.EnsureSuccessStatusCode();
+            EnsureConfigured();
+            var content = new StringContent(
+                JsonSerializer.Serialize(new { PackageId = packageId, SkipAndRemove = skipAndRemove }),
+                Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync("api/agent/unblock-queue", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Agent UnblockQueue failed {Status}: {Body}", response.StatusCode, err);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in TriggerUnblockQueueAsync for package {PackageId}.", packageId);
+            throw;
         }
     }
 
