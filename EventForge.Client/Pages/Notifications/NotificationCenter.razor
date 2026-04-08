@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Notifications
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject INotificationService NotificationService
@@ -441,20 +443,13 @@
         }
     }
 
-    /// <summary>
-    /// Called when onboarding is completed.
-    /// </summary>
-    private async Task OnOnboardingCompleted()
+    private async Task OpenOnboardingAsync()
     {
-        try
+        var parameters = new DialogParameters
         {
-            await HelpService.SetOnboardingStepCompletedAsync("notifications_onboarding_completed");
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"));
-        }
-        catch (Exception ex)
-        {
-            AppNotification.ShowWarning($"Error completing onboarding: {ex.Message}");
-        }
+            [nameof(OnboardingModal.ComponentId)] = "notifications"
+        };
+        await DialogService.ShowAsync<OnboardingModal>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
     /// <summary>

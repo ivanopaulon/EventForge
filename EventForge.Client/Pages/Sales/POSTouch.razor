@@ -1186,14 +1186,7 @@ else
             [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId.Value,
             [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
         };
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = false,
-            CloseButton      = false,
-            MaxWidth         = MaxWidth.Small,
-            FullWidth        = true
-        };
-        var dialog = await DialogService.ShowAsync<DailyClosureDialog>("Chiusura Giornaliera", parameters, options);
+        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
         if (result?.Canceled == false)
         {

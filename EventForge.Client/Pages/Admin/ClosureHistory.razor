@@ -3,6 +3,7 @@
 @using EventForge.DTOs.FiscalPrinting
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.FiscalPrinting
+@using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -319,16 +320,8 @@
             [nameof(DailyClosureDialog.PrinterName)] = _printerName
         };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = false,
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
         var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-            "Chiusura Giornaliera", parameters, options);
+            string.Empty, parameters, EFDialogDefaults.Options);
 
         var result = await dialog.Result;
         if (result?.Canceled == false)

@@ -2,6 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
 @using Microsoft.JSInterop
 @attribute [Authorize]
 @inject IAuthService AuthService
@@ -55,7 +57,7 @@
                            Variant="Variant.Text" 
                            Color="Color.Info"
                            StartIcon="@Icons.Material.Filled.Help"
-                           OnClick="@(() => _showOnboarding = true)">
+                           OnClick="@OpenOnboardingAsync">
                     @TranslationService.GetTranslation("help.quickStart", "Quick Start")
                 </MudButton>
                 <MudButton Size="Size.Small" 
@@ -375,10 +377,7 @@
     </MudMainContent>
 </MudDrawerContainer>
 
-<!-- Help Components -->
-<OnboardingModal ComponentId="chat" 
-                 @bind-Visible="_showOnboarding"
-                 OnOnboardingCompleted="@OnOnboardingCompleted" />
+@* Onboarding opened programmatically via DialogService *@
 
 <InteractiveWalkthrough ComponentId="chat" 
                         @bind-IsActive="_showWalkthrough"
@@ -392,7 +391,6 @@
     private bool _isSendingMessage = false;
     
     // Help system state
-    private bool _showOnboarding = false;
     private bool _showWalkthrough = false;
     private string _searchText = "";
     private string _chatFilter = "all";
@@ -911,20 +909,13 @@
         }
     }
 
-    /// <summary>
-    /// Called when onboarding is completed.
-    /// </summary>
-    private async Task OnOnboardingCompleted()
+    private async Task OpenOnboardingAsync()
     {
-        try
+        var parameters = new DialogParameters
         {
-            await HelpService.SetOnboardingStepCompletedAsync("chat_onboarding_completed");
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("onboarding.completed", "Onboarding completed successfully!"));
-        }
-        catch (Exception ex)
-        {
-            AppNotification.ShowWarning($"Error completing onboarding: {ex.Message}");
-        }
+            [nameof(OnboardingModal.ComponentId)] = "chat"
+        };
+        await DialogService.ShowAsync<OnboardingModal>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
     /// <summary>
