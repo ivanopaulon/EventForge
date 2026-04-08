@@ -16,7 +16,7 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl) ?? Enumerable.Empty<LicenseDto>(, ct);
+            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl, ct) ?? Enumerable.Empty<LicenseDto>();
 
         }
         catch (Exception ex)
@@ -88,7 +88,7 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses") ?? Enumerable.Empty<TenantLicenseDto>(, ct);
+            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses", ct) ?? Enumerable.Empty<TenantLicenseDto>();
 
         }
         catch (Exception ex)
@@ -145,7 +145,7 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features") ?? Enumerable.Empty<LicenseFeatureDto>(, ct);
+            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features", ct) ?? Enumerable.Empty<LicenseFeatureDto>();
 
         }
         catch (Exception ex)
@@ -159,7 +159,7 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features") ?? Enumerable.Empty<AvailableFeatureDto>(, ct);
+            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features", ct) ?? Enumerable.Empty<AvailableFeatureDto>();
 
         }
         catch (Exception ex)
