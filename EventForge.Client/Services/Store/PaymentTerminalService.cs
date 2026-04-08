@@ -9,15 +9,15 @@ public class PaymentTerminalService(
 {
     private const string ApiBase = "api/v1/payment-terminals";
 
-    public async Task<List<PaymentTerminalDto>> GetAllAsync()
+    public async Task<List<PaymentTerminalDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<List<PaymentTerminalDto>>(ApiBase) ?? [];
+            return await httpClient.GetFromJsonAsync<List<PaymentTerminalDto>>(ApiBase, ct) ?? [];
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment terminals.");
+            logger.LogError(ex, "Errore nel recupero dei terminali di pagamento.");
             return [];
         }
     }
@@ -34,7 +34,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nel recupero del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -49,7 +49,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating payment terminal.");
+            logger.LogError(ex, "Errore nella creazione del terminale di pagamento.");
             throw new InvalidOperationException("Errore nella creazione del terminale POS.", ex);
         }
     }
@@ -64,7 +64,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nell'aggiornamento del terminale di pagamento {Id}.", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del terminale POS.", ex);
         }
     }
@@ -79,7 +79,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nell'eliminazione del terminale di pagamento {Id}.", id);
             throw new InvalidOperationException("Errore nell'eliminazione del terminale POS.", ex);
         }
     }
@@ -95,7 +95,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending payment to terminal {Id}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio del pagamento al terminale {Id}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }
@@ -107,11 +107,11 @@ public class PaymentTerminalService(
             var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/void", null);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
-                ?? new PaymentResultDto { Success = false };
+                ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending void to terminal {Id}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio dello storno al terminale {Id}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }
@@ -123,11 +123,11 @@ public class PaymentTerminalService(
             var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/refund", request);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
-                ?? new PaymentResultDto { Success = false };
+                ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending refund to terminal {Id}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio del rimborso al terminale {Id}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }

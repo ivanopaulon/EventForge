@@ -39,15 +39,15 @@ internal static class Protocol17Protocol
     public static Protocol17ParsedResponse Parse(byte[] data)
     {
         if (data is null || data.Length < 4)
-            return new Protocol17ParsedResponse(false, "XX", null, 0m, "Response too short");
+            return new Protocol17ParsedResponse(false, "XX", null, 0m, "Risposta troppo corta.");
 
         int stxIdx = Array.IndexOf(data, STX);
         if (stxIdx < 0)
-            return new Protocol17ParsedResponse(false, "XX", null, 0m, "STX not found in response");
+            return new Protocol17ParsedResponse(false, "XX", null, 0m, "STX non trovato nella risposta.");
 
         int etxIdx = Array.IndexOf(data, ETX, stxIdx + 1);
         if (etxIdx < 0)
-            return new Protocol17ParsedResponse(false, "XX", null, 0m, "ETX not found in response");
+            return new Protocol17ParsedResponse(false, "XX", null, 0m, "ETX non trovato nella risposta.");
 
         if (etxIdx + 1 < data.Length)
         {
@@ -55,13 +55,13 @@ internal static class Protocol17Protocol
             for (int i = stxIdx + 1; i <= etxIdx; i++)
                 expectedBcc ^= data[i];
             if (data[etxIdx + 1] != expectedBcc)
-                return new Protocol17ParsedResponse(false, "XX", null, 0m, "BCC mismatch in response");
+                return new Protocol17ParsedResponse(false, "XX", null, 0m, "Errore BCC nella risposta.");
         }
 
         var payload = Encoding.ASCII.GetString(data, stxIdx + 1, etxIdx - stxIdx - 1);
 
         if (payload.Length < 2)
-            return new Protocol17ParsedResponse(false, "XX", null, 0m, "Payload too short");
+            return new Protocol17ParsedResponse(false, "XX", null, 0m, "Payload troppo corto.");
 
         var responseCode = payload[..2];
 

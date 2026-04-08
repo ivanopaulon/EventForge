@@ -44,7 +44,7 @@ internal sealed class Protocol17AgentChannel(
         {
             var body = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
             throw new InvalidOperationException(
-                $"Agent TCP test failed for {host}:{port} (HTTP {(int)response.StatusCode}): {body}");
+                $"Test TCP agente fallito per {host}:{port} (HTTP {(int)response.StatusCode}): {body}");
         }
     }
 
@@ -64,7 +64,7 @@ internal sealed class Protocol17AgentChannel(
         {
             var body = await httpResponse.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
             throw new InvalidOperationException(
-                $"Agent TCP send failed for {host}:{port} (HTTP {(int)httpResponse.StatusCode}): {body}");
+                $"Invio TCP agente fallito per {host}:{port} (HTTP {(int)httpResponse.StatusCode}): {body}");
         }
 
         var proxyResponse = await httpResponse.Content

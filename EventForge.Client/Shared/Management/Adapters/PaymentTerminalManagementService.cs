@@ -19,7 +19,7 @@ public class PaymentTerminalManagementService(IPaymentTerminalService paymentTer
         Dictionary<string, object?>? filters = null,
         CancellationToken ct = default)
     {
-        var all = await paymentTerminalService.GetAllAsync();
+        var all = await paymentTerminalService.GetAllAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
