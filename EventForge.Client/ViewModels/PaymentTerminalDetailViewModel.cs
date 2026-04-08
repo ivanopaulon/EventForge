@@ -59,4 +59,10 @@ public class PaymentTerminalDetailViewModel(
         => await paymentTerminalService.UpdateAsync(entityId, updateDto);
 
     protected override Guid GetEntityId(PaymentTerminalDto entity) => entity.Id;
+
+    /// <summary>
+    /// Tests the saved terminal's connection. Only valid for persisted terminals (Id != Guid.Empty).
+    /// </summary>
+    public Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
+        => paymentTerminalService.TestConnectionAsync(terminalId, ct);
 }

@@ -134,7 +134,15 @@ public class PaymentTerminalService(
 
     public async Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
     {
-        var response = await httpClient.GetAsync($"{ApiBase}/{terminalId}/test-connection", ct);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/test-connection", null, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test di connessione al terminale {Id}.", terminalId);
+            throw;
+        }
     }
 }

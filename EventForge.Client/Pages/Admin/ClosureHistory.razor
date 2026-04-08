@@ -177,7 +177,7 @@
                 $"api/v1/stations/printers/{PrinterId}");
             _printerName = printer?.Name;
         }
-        catch { /* non-fatal */ }
+        catch (Exception ex) { Logger.LogWarning(ex, "Could not load printer name for {PrinterId}.", PrinterId); }
 
         _breadcrumbs =
         [

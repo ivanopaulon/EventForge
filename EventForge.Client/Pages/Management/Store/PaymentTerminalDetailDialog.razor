@@ -3,10 +3,8 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.ViewModels
-@using EventForge.Client.Services.Store
 @attribute [Authorize]
 @inject PaymentTerminalDetailViewModel ViewModel
-@inject IPaymentTerminalService PaymentTerminalService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject ILogger<PaymentTerminalDetailDialog> Logger
@@ -324,7 +322,7 @@
         {
             if (ViewModel.Entity.Id != Guid.Empty)
             {
-                await PaymentTerminalService.TestConnectionAsync(ViewModel.Entity.Id);
+                await ViewModel.TestConnectionAsync(ViewModel.Entity.Id);
             }
             else
             {

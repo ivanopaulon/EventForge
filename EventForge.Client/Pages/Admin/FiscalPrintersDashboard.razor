@@ -232,11 +232,18 @@
         _refreshTimer = new System.Threading.Timer(
             async _ =>
             {
-                await InvokeAsync(async () =>
+                try
                 {
-                    await RefreshAsync();
-                    StateHasChanged();
-                });
+                    await InvokeAsync(async () =>
+                    {
+                        await RefreshAsync();
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Auto-refresh timer failed.");
+                }
             },
             null,
             TimeSpan.FromSeconds(10),
@@ -259,14 +266,18 @@
                 .Where(p => p.IsFiscalPrinter)
                 .ToList() ?? new();
 
-            var newRows = new List<FiscalPrinterRow>();
-            foreach (var printer in printers)
-            {
-                var status = await FiscalPrintingService.GetStatusAsync(printer.Id);
-                newRows.Add(new FiscalPrinterRow { Printer = printer, Status = status });
+            // Fetch all statuses in parallel
+            var statusTasks = printers.Select(p => FiscalPrintingService.GetStatusAsync(p.Id)).ToList();
+            var statuses = await Task.WhenAll(statusTasks);
 
-                // Subscribe newly loaded printers to SignalR
-                if (_hubConnection?.State == HubConnectionState.Connected)
+            var newRows = printers
+                .Zip(statuses, (p, s) => new FiscalPrinterRow { Printer = p, Status = s })
+                .ToList();
+
+            // Subscribe newly loaded printers to SignalR
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                foreach (var printer in printers)
                 {
                     try { await _hubConnection.SendAsync("SubscribeToPrinter", printer.Id); }
                     catch { /* non-fatal */ }

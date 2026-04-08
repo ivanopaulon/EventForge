@@ -15,6 +15,7 @@
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
 @inject IJSRuntime JSRuntime
+@inject ILogger<ChatInterface> Logger
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("chat.title", "Chat - PRYM")</PageTitle>
@@ -447,6 +448,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Errore durante l'inizializzazione: {ex.Message}");
         }
     }
@@ -488,6 +490,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Errore nel caricamento delle chat: {ex.Message}");
         }
         finally
@@ -506,7 +509,7 @@
         if (_selectedChatId.HasValue && _selectedChatId != chat.Id)
         {
             try { await RealtimeService.LeaveChatAsync(_selectedChatId.Value); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogWarning(ex, "Could not leave chat {ChatId}.", _selectedChatId.Value); }
         }
 
         _selectedChatId = chat.Id;
@@ -529,7 +532,7 @@
 
             // Join the chat room for real-time updates
             try { await RealtimeService.JoinChatAsync(chat.Id); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogWarning(ex, "Could not join chat {ChatId}.", chat.Id); }
 
             // Load members (prefer chat.Members if already populated, otherwise fetch)
             if (chat.Members.Count > 0)
@@ -543,6 +546,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Errore nel caricamento dei messaggi: {ex.Message}");
         }
         finally
@@ -664,6 +668,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Errore nell'invio del messaggio: {ex.Message}");
         }
         finally
@@ -905,6 +910,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowWarning($"Error starting walkthrough: {ex.Message}");
         }
     }
@@ -921,6 +927,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowWarning($"Impossibile aprire l'onboarding: {ex.Message}");
         }
     }
@@ -937,6 +944,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowWarning($"Error completing walkthrough: {ex.Message}");
         }
     }
@@ -1019,6 +1027,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Error adding reaction: {ex.Message}");
         }
     }
@@ -1059,6 +1068,7 @@
             }
             catch (Exception ex)
             {
+                Logger.LogError(ex, "ChatInterface.");
                 AppNotification.ShowError($"Error deleting message: {ex.Message}");
             }
         }
@@ -1106,6 +1116,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "ChatInterface.");
             AppNotification.ShowError($"Error downloading file: {ex.Message}");
         }
     }

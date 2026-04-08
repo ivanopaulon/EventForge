@@ -257,7 +257,7 @@
         _changePasswordIsMandatory = false;
     }
 
-    private async Task HandlePasswordChangeCompleted()
+    private void HandlePasswordChangeCompleted()
     {
         if (_changePasswordIsMandatory)
             MudDialog.Close(DialogResult.Ok(true));
