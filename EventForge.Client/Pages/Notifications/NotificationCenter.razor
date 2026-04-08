@@ -414,15 +414,13 @@
             var hasCompletedOnboarding = await HelpService.IsOnboardingStepCompletedAsync("notifications_onboarding_completed");
             if (!hasCompletedOnboarding)
             {
-                // Add a small delay to ensure the page is fully loaded
                 await Task.Delay(1000);
                 await OpenOnboardingAsync();
             }
         }
         catch (Exception ex)
         {
-            // Non-critical error, just log it
-            Console.WriteLine($"Error checking onboarding status: {ex.Message}");
+            AppNotification.ShowWarning($"Errore nel controllo dello stato onboarding: {ex.Message}");
         }
     }
 
@@ -445,11 +443,18 @@
 
     private async Task OpenOnboardingAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(OnboardingModal.ComponentId)] = "notifications"
-        };
-        await DialogService.ShowAsync<OnboardingModal>(string.Empty, parameters, EFDialogDefaults.Options);
+            var parameters = new DialogParameters
+            {
+                [nameof(OnboardingModal.ComponentId)] = "notifications"
+            };
+            await DialogService.ShowAsync<OnboardingModal>(string.Empty, parameters, EFDialogDefaults.Options);
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowWarning($"Impossibile aprire l'onboarding: {ex.Message}");
+        }
     }
 
     /// <summary>
