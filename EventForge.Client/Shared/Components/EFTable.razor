@@ -507,17 +507,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initialize column configurations
-        _columnConfigurations = InitialColumnConfigurations.Select(c => new EFTableColumnConfiguration
+        try
         {
-            PropertyName = c.PropertyName,
-            DisplayName = c.DisplayName,
-            IsVisible = c.IsVisible,
-            Order = c.Order
-        }).ToList();
+            // Initialize column configurations
+            _columnConfigurations = InitialColumnConfigurations.Select(c => new EFTableColumnConfiguration
+            {
+                PropertyName = c.PropertyName,
+                DisplayName = c.DisplayName,
+                IsVisible = c.IsVisible,
+                Order = c.Order
+            }).ToList();
 
-        // Load preferences
-        await LoadPreferencesAsync();
+            // Load preferences
+            await LoadPreferencesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione della tabella.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -757,37 +765,53 @@
 
     private async Task HandleGroupPanelDrop(DragEventArgs e)
     {
-        if (!string.IsNullOrEmpty(_draggedColumnProperty) && ServerData == null)
+        try
         {
-            // Add to grouping if not already present
-            if (!_groupByProperties.Contains(_draggedColumnProperty))
+            if (!string.IsNullOrEmpty(_draggedColumnProperty) && ServerData == null)
             {
-                _groupByProperties.Add(_draggedColumnProperty);
-                _lastGroupValues.Clear();
+                // Add to grouping if not already present
+                if (!_groupByProperties.Contains(_draggedColumnProperty))
+                {
+                    _groupByProperties.Add(_draggedColumnProperty);
+                    _lastGroupValues.Clear();
+                    
+                    await SavePreferencesAsync();
+                    StateHasChanged();
+                }
                 
-                await SavePreferencesAsync();
-                StateHasChanged();
+                _draggedColumnProperty = null;
             }
-            
-            _draggedColumnProperty = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il drag-and-drop del raggruppamento.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task RemoveGrouping(string? propertyName = null)
     {
-        if (propertyName != null)
+        try
         {
-            _groupByProperties.Remove(propertyName);
+            if (propertyName != null)
+            {
+                _groupByProperties.Remove(propertyName);
+            }
+            else
+            {
+                _groupByProperties.Clear();
+            }
+            
+            _lastGroupValues.Clear();
+            
+            await SavePreferencesAsync();
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            _groupByProperties.Clear();
+            Logger.LogError(ex, "Errore durante la rimozione del raggruppamento.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
-        
-        _lastGroupValues.Clear();
-        
-        await SavePreferencesAsync();
-        StateHasChanged();
     }
 
     private string GetColumnDisplayName(string propertyName)
@@ -842,56 +866,80 @@
     // Search methods
     private async Task OnSearchTermChanged(string value)
     {
-        _searchTerm = value;
-        
-        // Cancel previous timer if exists
-        _searchTimer?.Dispose();
-        
-        // Create new timer for debounce
-        if (SearchDebounce > 0)
+        try
         {
-            _searchTimer = new System.Threading.Timer(async _ =>
+            _searchTerm = value;
+            
+            // Cancel previous timer if exists
+            _searchTimer?.Dispose();
+            
+            // Create new timer for debounce
+            if (SearchDebounce > 0)
             {
-                await InvokeAsync(async () =>
+                _searchTimer = new System.Threading.Timer(async _ =>
                 {
-                    if (OnSearch.HasDelegate)
+                    await InvokeAsync(async () =>
                     {
-                        await OnSearch.InvokeAsync(_searchTerm);
-                    }
-                    StateHasChanged();
-                });
-            }, null, SearchDebounce, Timeout.Infinite);
-        }
-        else
-        {
-            if (OnSearch.HasDelegate)
-            {
-                await OnSearch.InvokeAsync(_searchTerm);
+                        if (OnSearch.HasDelegate)
+                        {
+                            await OnSearch.InvokeAsync(_searchTerm);
+                        }
+                        StateHasChanged();
+                    });
+                }, null, SearchDebounce, Timeout.Infinite);
             }
+            else
+            {
+                if (OnSearch.HasDelegate)
+                {
+                    await OnSearch.InvokeAsync(_searchTerm);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ricerca.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task OnFiltersToggledChanged()
     {
-        // _filtersExpanded is already updated by @bind-Toggled
-        if (OnToggleFilters.HasDelegate)
+        try
         {
-            await OnToggleFilters.InvokeAsync();
+            // _filtersExpanded is already updated by @bind-Toggled
+            if (OnToggleFilters.HasDelegate)
+            {
+                await OnToggleFilters.InvokeAsync();
+            }
+            StateHasChanged();
         }
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il toggle dei filtri.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task HandleExportClick()
     {
-        if (!ShowExportDialog)
+        try
         {
-            // Legacy: export diretto senza dialog
-            await HandleExportToExcel();
-            return;
+            if (!ShowExportDialog)
+            {
+                // Legacy: export diretto senza dialog
+                await HandleExportToExcel();
+                return;
+            }
+            
+            // NEW: mostra dialog selezione colonne
+            await OpenExportDialog();
         }
-        
-        // NEW: mostra dialog selezione colonne
-        await OpenExportDialog();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura dell'export.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
     
     private async Task OpenExportDialog()
@@ -1072,54 +1120,62 @@
 
     private async Task HandleExportToExcelAdvanced(List<Export.ExportColumnConfig> selectedColumns)
     {
-        var displayItems = GetDisplayItems().ToList();
-
-        if (!displayItems.Any())
+        try
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
-            return;
-        }
+            var displayItems = GetDisplayItems().ToList();
 
-        var excelFileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export";
-
-        var exportData = new
-        {
-            data = displayItems,
-            options = new
+            if (!displayItems.Any())
             {
-                fileName = excelFileName,
-                sheetName = Title ?? "Data",
-                columns = selectedColumns.Select(c => new 
-                { 
-                    propertyName = ToCamelCase(c.PropertyName), 
-                    displayName = c.DisplayName, 
-                    numberFormat = c.NumberFormat, 
-                    isVisible = true 
-                }).ToList(),
-                formatting = new 
-                { 
-                    headerBackgroundColor = "#1976D2", 
-                    headerFontColor = "#FFFFFF", 
-                    headerBold = true, 
-                    headerBorders = true,
-                    alternateRowColors = true, 
-                    alternateRowColor = "#F5F5F5",
-                    dataBorders = true
-                },
-                autoFitColumns = true,
-                freezeHeader = true,
-                addAutoFilter = true
+                AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
+                return;
             }
-        };
 
-        var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportData);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        var bytes = ms.ToArray();
+            var excelFileName = !string.IsNullOrEmpty(ExcelFileName) ? ExcelFileName : Title ?? "Export";
 
-        await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
+            var exportData = new
+            {
+                data = displayItems,
+                options = new
+                {
+                    fileName = excelFileName,
+                    sheetName = Title ?? "Data",
+                    columns = selectedColumns.Select(c => new 
+                    { 
+                        propertyName = ToCamelCase(c.PropertyName), 
+                        displayName = c.DisplayName, 
+                        numberFormat = c.NumberFormat, 
+                        isVisible = true 
+                    }).ToList(),
+                    formatting = new 
+                    { 
+                        headerBackgroundColor = "#1976D2", 
+                        headerFontColor = "#FFFFFF", 
+                        headerBold = true, 
+                        headerBorders = true,
+                        alternateRowColors = true, 
+                        alternateRowColor = "#F5F5F5",
+                        dataBorders = true
+                    },
+                    autoFitColumns = true,
+                    freezeHeader = true,
+                    addAutoFilter = true
+                }
+            };
 
-        AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
+            var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportData);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"{excelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'export Excel avanzato.");
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message));
+        }
     }
 
     private static string ToCamelCase(string name) =>
@@ -1127,44 +1183,52 @@
     
     private async Task HandleExportToCsv(List<Export.ExportColumnConfig> selectedColumns)
     {
-        var displayItems = GetDisplayItems().ToList();
-        
-        if (!displayItems.Any())
+        try
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
-            return;
-        }
-        
-        var csv = new System.Text.StringBuilder();
-        
-        // Header
-        csv.AppendLine(string.Join(",", selectedColumns.Select(c => EscapeCsv(c.DisplayName))));
-        
-        // Rows
-        foreach (var item in displayItems)
-        {
-            var values = selectedColumns.Select(c => 
-            {
-                var prop = _propCache.GetOrAdd((typeof(TItem), c.PropertyName), key => key.Item1.GetProperty(key.Item2));
-                var value = prop?.GetValue(item)?.ToString() ?? "";
-                return EscapeCsv(value);
-            });
+            var displayItems = GetDisplayItems().ToList();
             
-            csv.AppendLine(string.Join(",", values));
+            if (!displayItems.Any())
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("export.noData", "Nessun dato da esportare"));
+                return;
+            }
+            
+            var csv = new System.Text.StringBuilder();
+            
+            // Header
+            csv.AppendLine(string.Join(",", selectedColumns.Select(c => EscapeCsv(c.DisplayName))));
+            
+            // Rows
+            foreach (var item in displayItems)
+            {
+                var values = selectedColumns.Select(c => 
+                {
+                    var prop = _propCache.GetOrAdd((typeof(TItem), c.PropertyName), key => key.Item1.GetProperty(key.Item2));
+                    var value = prop?.GetValue(item)?.ToString() ?? "";
+                    return EscapeCsv(value);
+                });
+                
+                csv.AppendLine(string.Join(",", values));
+            }
+            
+            // Add UTF-8 BOM for proper Excel display
+            var preamble = System.Text.Encoding.UTF8.GetPreamble();
+            var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+            var bytes = new byte[preamble.Length + csvBytes.Length];
+            System.Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+            System.Buffer.BlockCopy(csvBytes, 0, bytes, preamble.Length, csvBytes.Length);
+            
+            var fileName = $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes, "text/csv");
+            
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
         }
-        
-        // Add UTF-8 BOM for proper Excel display
-        var preamble = System.Text.Encoding.UTF8.GetPreamble();
-        var csvBytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-        var bytes = new byte[preamble.Length + csvBytes.Length];
-        System.Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
-        System.Buffer.BlockCopy(csvBytes, 0, bytes, preamble.Length, csvBytes.Length);
-        
-        var fileName = $"{ExcelFileName}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-        
-        await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes, "text/csv");
-        
-        AppNotification.ShowSuccess(TranslationService.GetTranslation("export.success", "Export completato con successo!"));
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'export CSV.");
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted("export.error", "Errore durante l'export: {0}", ex.Message));
+        }
     }
     
     private string EscapeCsv(string value)

@@ -540,13 +540,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += StateHasChanged;
-        ViewModel.OnNotification += HandleNotification;
+        try
+        {
+            ViewModel.StateChanged += StateHasChanged;
+            ViewModel.OnNotification += HandleNotification;
 
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var username = authState.User.Identity?.Name;
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
 
-        await ViewModel.InitializeAsync(username);
+            await ViewModel.InitializeAsync(username);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del POS touch.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -612,30 +620,38 @@ else
     {
         if (product == null) return;
 
-        var qty = (_keypadMode == KeypadMode.Quantity && _keypadValue > 0) ? _keypadValue : 1m;
-
-        var result = await ViewModel.AddProductAsync(product);
-
-        if (result.Success)
+        try
         {
-            // If the keypad holds a quantity other than 1, override the added item's quantity
-            if (qty != 1m && ViewModel.CurrentSession?.Items != null)
+            var qty = (_keypadMode == KeypadMode.Quantity && _keypadValue > 0) ? _keypadValue : 1m;
+
+            var result = await ViewModel.AddProductAsync(product);
+
+            if (result.Success)
             {
-                var addedItem = ViewModel.CurrentSession.Items.FirstOrDefault(i => i.ProductId == product.Id);
-                if (addedItem != null)
+                // If the keypad holds a quantity other than 1, override the added item's quantity
+                if (qty != 1m && ViewModel.CurrentSession?.Items != null)
                 {
-                    addedItem.Quantity = qty;
-                    ViewModel.QueueItemUpdate(addedItem);
+                    var addedItem = ViewModel.CurrentSession.Items.FirstOrDefault(i => i.ProductId == product.Id);
+                    if (addedItem != null)
+                    {
+                        addedItem.Quantity = qty;
+                        ViewModel.QueueItemUpdate(addedItem);
+                    }
                 }
-            }
 
-            _currentProduct = null;
-            ResetKeypad();
-            AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+                _currentProduct = null;
+                ResetKeypad();
+                AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            }
+            else
+            {
+                AppNotification.ShowError(result.Error ?? "Errore");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            AppNotification.ShowError(result.Error ?? "Errore");
+            Logger.LogError(ex, "Errore durante l'aggiunta del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -830,24 +846,32 @@ else
     {
         if (!ViewModel.HasActiveSession) return;
 
-        if (item.Quantity > 1 || item.TotalAmount > 50)
+        try
         {
-            bool? confirm = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("sales.confirmRemoveItem",
-                    "Rimuovere {0} (x{1}) per {2}?",
-                    item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
-                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-                cancelText: TranslationService.GetTranslation("common.no", "No"));
+            if (item.Quantity > 1 || item.TotalAmount > 50)
+            {
+                bool? confirm = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("sales.confirmRemoveItem",
+                        "Rimuovere {0} (x{1}) per {2}?",
+                        item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
+                    yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                    cancelText: TranslationService.GetTranslation("common.no", "No"));
 
-            if (confirm != true) return;
+                if (confirm != true) return;
+            }
+
+            if (_selectedCartItem?.Id == item.Id) DeselectCartItem();
+
+            var result = await ViewModel.RemoveItemAsync(item);
+            if (!result.Success && result.Error != null)
+                AppNotification.ShowError("❌ " + result.Error);
         }
-
-        if (_selectedCartItem?.Id == item.Id) DeselectCartItem();
-
-        var result = await ViewModel.RemoveItemAsync(item);
-        if (!result.Success && result.Error != null)
-            AppNotification.ShowError("❌ " + result.Error);
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la rimozione dell'articolo.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // =====================================================================
@@ -980,20 +1004,36 @@ else
 
     private async Task CloseSaleAsync()
     {
-        var sessionSnapshot = ViewModel.CurrentSession;
-        var result = await ViewModel.CloseSaleAsync();
+        try
+        {
+            var sessionSnapshot = ViewModel.CurrentSession;
+            var result = await ViewModel.CloseSaleAsync();
 
-        if (!result.Success && result.Error != null) { AppNotification.ShowError(result.Error); return; }
+            if (!result.Success && result.Error != null) { AppNotification.ShowError(result.Error); return; }
 
-        if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
-            await TriggerFiscalPrintAsync(sessionSnapshot);
+            if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+                await TriggerFiscalPrintAsync(sessionSnapshot);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la chiusura della vendita.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task ParkSessionAsync()
     {
-        var result = await ViewModel.ParkSessionAsync();
-        if (!result.Success && result.Error != null)
-            AppNotification.ShowError(result.Error);
+        try
+        {
+            var result = await ViewModel.ParkSessionAsync();
+            if (!result.Success && result.Error != null)
+                AppNotification.ShowError(result.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il parcheggio della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task AskCancelOrChangeAsync()
@@ -1004,20 +1044,28 @@ else
             return;
         }
 
-        bool? confirm = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
-            TranslationService.GetTranslation("sales.cancelSessionConfirm",
-                "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No"));
-
-        if (confirm == true)
+        try
         {
-            var result = await ViewModel.CancelSessionAsync();
-            if (!result.Success && result.Error != null)
-                AppNotification.ShowError(result.Error);
-            else
-                DeselectOperator();
+            bool? confirm = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
+                TranslationService.GetTranslation("sales.cancelSessionConfirm",
+                    "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
+                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                cancelText: TranslationService.GetTranslation("common.no", "No"));
+
+            if (confirm == true)
+            {
+                var result = await ViewModel.CancelSessionAsync();
+                if (!result.Success && result.Error != null)
+                    AppNotification.ShowError(result.Error);
+                else
+                    DeselectOperator();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'annullamento della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 

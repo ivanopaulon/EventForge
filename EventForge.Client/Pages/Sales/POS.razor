@@ -381,20 +381,28 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Subscribe to ViewModel events
-        ViewModel.StateChanged += StateHasChanged;
-        ViewModel.OnNotification += HandleNotification;
+        try
+        {
+            // Subscribe to ViewModel events
+            ViewModel.StateChanged += StateHasChanged;
+            ViewModel.OnNotification += HandleNotification;
 
-        // Get current user
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var username = authState.User.Identity?.Name;
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
 
-        // Initialize ViewModel
-        await ViewModel.InitializeAsync(username);
-        
-        // Initialize split/merge functionality
-        await LoadOpenSessionsAsync();
-        await CheckCanSplitAsync();
+            // Initialize ViewModel
+            await ViewModel.InitializeAsync(username);
+            
+            // Initialize split/merge functionality
+            await LoadOpenSessionsAsync();
+            await CheckCanSplitAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del POS.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private void HandleNotification(string message, bool isSuccess)
@@ -409,16 +417,24 @@
     {
         if (product == null) return;
         
-        var result = await ViewModel.AddProductAsync(product);
-        
-        if (result.Success)
+        try
         {
-            _currentProduct = null;
-            AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            var result = await ViewModel.AddProductAsync(product);
+            
+            if (result.Success)
+            {
+                _currentProduct = null;
+                AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            }
+            else
+            {
+                AppNotification.ShowError(result.Error ?? "Errore");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            AppNotification.ShowError(result.Error ?? "Errore");
+            Logger.LogError(ex, "Errore durante l'aggiunta del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -560,25 +576,33 @@
     {
         if (!ViewModel.HasActiveSession) return;
 
-        // Confirm removal for significant items
-        if (item.Quantity > 1 || item.TotalAmount > 50)
+        try
         {
-            bool? confirm = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("sales.confirmRemoveItem", 
-                    "Rimuovere {0} (x{1}) per {2}?", 
-                    item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
-                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-                cancelText: TranslationService.GetTranslation("common.no", "No")
-            );
+            // Confirm removal for significant items
+            if (item.Quantity > 1 || item.TotalAmount > 50)
+            {
+                bool? confirm = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("sales.confirmRemoveItem", 
+                        "Rimuovere {0} (x{1}) per {2}?", 
+                        item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
+                    yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                    cancelText: TranslationService.GetTranslation("common.no", "No")
+                );
 
-            if (confirm != true) return;
+                if (confirm != true) return;
+            }
+
+            var result = await ViewModel.RemoveItemAsync(item);
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError("❌ " + result.Error);
+            }
         }
-
-        var result = await ViewModel.RemoveItemAsync(item);
-        if (!result.Success && result.Error != null)
+        catch (Exception ex)
         {
-            AppNotification.ShowError("❌ " + result.Error);
+            Logger.LogError(ex, "Errore durante la rimozione dell'articolo.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -720,81 +744,105 @@
             return;
         }
 
-        var parameters = new DialogParameters
+        try
         {
-            { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
-            { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
-            { "PaymentMethods", ViewModel.PaymentMethods }
-        };
+            var parameters = new DialogParameters
+            {
+                { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
+                { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
+                { "PaymentMethods", ViewModel.PaymentMethods }
+            };
 
-        var dialog = await DialogService.ShowAsync<PaymentDialog>(
-            TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
-            parameters
-        );
+            var dialog = await DialogService.ShowAsync<PaymentDialog>(
+                TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
+                parameters
+            );
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false } && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
+            if (result is { Canceled: false } && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
+            {
+                // Process all payments from the dialog
+                var successfulPayments = 0;
+                var failedPayments = 0;
+
+                foreach (var pendingPayment in paymentDialogResult.Payments)
+                {
+                    var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
+                    if (paymentResult.Success)
+                    {
+                        successfulPayments++;
+                    }
+                    else
+                    {
+                        failedPayments++;
+                    }
+                }
+
+                // Show summary
+                if (successfulPayments > 0)
+                {
+                    var message = successfulPayments == 1
+                        ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
+                        : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
+                    
+                    AppNotification.ShowSuccess(message);
+                }
+
+                if (failedPayments > 0)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            // Process all payments from the dialog
-            var successfulPayments = 0;
-            var failedPayments = 0;
-
-            foreach (var pendingPayment in paymentDialogResult.Payments)
-            {
-                var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
-                if (paymentResult.Success)
-                {
-                    successfulPayments++;
-                }
-                else
-                {
-                    failedPayments++;
-                }
-            }
-
-            // Show summary
-            if (successfulPayments > 0)
-            {
-                var message = successfulPayments == 1
-                    ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
-                    : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
-                
-                AppNotification.ShowSuccess(message);
-            }
-
-            if (failedPayments > 0)
-            {
-                AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
-            }
+            Logger.LogError(ex, "Errore durante l'aggiunta del pagamento.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task CloseSaleAsync()
     {
-        // Capture session data before closing (needed to build the fiscal receipt)
-        var sessionSnapshot = ViewModel.CurrentSession;
-
-        var result = await ViewModel.CloseSaleAsync();
-        if (!result.Success && result.Error != null)
+        try
         {
-            AppNotification.ShowError(result.Error);
-            return;
+            // Capture session data before closing (needed to build the fiscal receipt)
+            var sessionSnapshot = ViewModel.CurrentSession;
+
+            var result = await ViewModel.CloseSaleAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+                return;
+            }
+
+            // Trigger fiscal printing after successful sale closure
+            if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+            {
+                await TriggerFiscalPrintAsync(sessionSnapshot);
+            }
         }
-
-        // Trigger fiscal printing after successful sale closure
-        if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+        catch (Exception ex)
         {
-            await TriggerFiscalPrintAsync(sessionSnapshot);
+            Logger.LogError(ex, "Errore durante la chiusura della vendita.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task ParkSessionAsync()
     {
-        var result = await ViewModel.ParkSessionAsync();
-        if (!result.Success && result.Error != null)
+        try
         {
-            AppNotification.ShowError(result.Error);
+            var result = await ViewModel.ParkSessionAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il parcheggio della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -803,20 +851,28 @@
         if (!ViewModel.HasActiveSession)
             return;
 
-        bool? confirm = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
-            TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No")
-        );
-
-        if (confirm == true)
+        try
         {
-            var result = await ViewModel.CancelSessionAsync();
-            if (!result.Success && result.Error != null)
+            bool? confirm = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
+                TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
+                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                cancelText: TranslationService.GetTranslation("common.no", "No")
+            );
+
+            if (confirm == true)
             {
-                AppNotification.ShowError(result.Error);
+                var result = await ViewModel.CancelSessionAsync();
+                if (!result.Success && result.Error != null)
+                {
+                    AppNotification.ShowError(result.Error);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'annullamento della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -955,15 +1011,23 @@
     
     private async Task LoadOpenSessionsAsync()
     {
-        var allSessions = await SalesService.GetActiveSessionsAsync();
-        if (allSessions != null)
+        try
         {
-            // Filter to only show parent sessions (not child sessions from splits)
-            // Child sessions (with ParentSessionId) are sub-sessions from a split operation
-            // and should not be merged with other sessions to maintain split integrity
-            _openSessions = allSessions
-                .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
-                .ToList();
+            var allSessions = await SalesService.GetActiveSessionsAsync();
+            if (allSessions != null)
+            {
+                // Filter to only show parent sessions (not child sessions from splits)
+                // Child sessions (with ParentSessionId) are sub-sessions from a split operation
+                // and should not be merged with other sessions to maintain split integrity
+                _openSessions = allSessions
+                    .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento delle sessioni aperte.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
     
@@ -971,30 +1035,38 @@
     {
         if (ViewModel.CurrentSession == null) return;
         
-        var parameters = new DialogParameters
+        try
         {
-            { "Session", ViewModel.CurrentSession }
-        };
-        
-        var options = new DialogOptions 
-        { 
-            MaxWidth = MaxWidth.Medium, 
-            FullWidth = true,
-            CloseButton = true
-        };
-        
-        var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
-            TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
-            parameters, 
-            options);
-        var result = await dialog.Result;
-        
-        if (result is { Canceled: false })
+            var parameters = new DialogParameters
+            {
+                { "Session", ViewModel.CurrentSession }
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
+                TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
+                parameters, 
+                options);
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Refresh session
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            // Refresh session
-            await ViewModel.ReloadSessionAsync();
-            await LoadOpenSessionsAsync();
-            await CheckCanSplitAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di divisione conto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
     
