@@ -1040,70 +1040,78 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Home", href: "/"),
-            new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
-            new BreadcrumbItem(_isEditMode ? "Modifica Wizard" : "Nuovo Wizard", href: null, disabled: true)
-        ];
-
-        var vatTask = FinancialService.GetVatRatesAsync(1, 100);
-        var paymentTask = PaymentMethodService.GetAllAsync();
-        var stationsTask = HttpClientService.GetAsync<PagedResult<StationDto>>(
-            "api/v1/stations?page=1&pageSize=100");
-
-        Task<FiscalPrinterSetupDto?>? setupTask = null;
-
-        if (_isEditMode)
+        try
         {
-            setupTask = FiscalPrintingService.GetSetupAsync(PrinterId!.Value);
-            await Task.WhenAll(vatTask, paymentTask, stationsTask, setupTask);
-            PopulateFromSetup(setupTask.Result);
-            _savedPrinterId = PrinterId;
-            // In edit mode, printer info step is bypassed; provide a placeholder so the step is not blocked
-            _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Home", href: "/"),
+                new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
+                new BreadcrumbItem(_isEditMode ? "Modifica Wizard" : "Nuovo Wizard", href: null, disabled: true)
+            ];
+
+            var vatTask = FinancialService.GetVatRatesAsync(1, 100);
+            var paymentTask = PaymentMethodService.GetAllAsync();
+            var stationsTask = HttpClientService.GetAsync<PagedResult<StationDto>>(
+                "api/v1/stations?page=1&pageSize=100");
+
+            Task<FiscalPrinterSetupDto?>? setupTask = null;
+
+            if (_isEditMode)
+            {
+                setupTask = FiscalPrintingService.GetSetupAsync(PrinterId!.Value);
+                await Task.WhenAll(vatTask, paymentTask, stationsTask, setupTask);
+                PopulateFromSetup(setupTask.Result);
+                _savedPrinterId = PrinterId;
+                // In edit mode, printer info step is bypassed; provide a placeholder so the step is not blocked
+                _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
+            }
+            else
+            {
+                await Task.WhenAll(vatTask, paymentTask, stationsTask);
+            }
+
+            var vatResult = vatTask.Result;
+            _vatRates = vatResult?.Items?.ToList() ?? new();
+            _vatMappingRows = _vatRates.Select(v => new VatMappingRow
+            {
+                Id = v.Id,
+                Name = v.Name,
+                Percentage = v.Percentage,
+                FiscalCode = v.FiscalCode ?? GetSuggestedVatCode(v.Percentage),
+                SuggestedCode = GetSuggestedVatCode(v.Percentage)
+            }).ToList();
+
+            _paymentMethods = paymentTask.Result?.ToList() ?? new();
+            _paymentMappingRows = _paymentMethods.Select(p => new PaymentMappingRow
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                FiscalCode = p.FiscalCode ?? GetSuggestedPaymentCode(p.Code),
+                SuggestedCode = GetSuggestedPaymentCode(p.Code)
+            }).ToList();
+
+            _stations = stationsTask.Result?.Items?.ToList() ?? new();
+            _stationRows = _stations.Select(s => new StationSelectionRow
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Location = s.Location,
+                StationType = s.StationType
+            }).ToList();
+
+            // In edit mode, pre-select stations already associated with this printer
+            if (_isEditMode && _savedPrinterId.HasValue)
+            {
+                var associatedIds = (setupTask?.Result?.AssociatedStationIds ?? new()).ToHashSet();
+                foreach (var row in _stationRows)
+                    row.Selected = associatedIds.Contains(row.Id);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await Task.WhenAll(vatTask, paymentTask, stationsTask);
-        }
-
-        var vatResult = vatTask.Result;
-        _vatRates = vatResult?.Items?.ToList() ?? new();
-        _vatMappingRows = _vatRates.Select(v => new VatMappingRow
-        {
-            Id = v.Id,
-            Name = v.Name,
-            Percentage = v.Percentage,
-            FiscalCode = v.FiscalCode ?? GetSuggestedVatCode(v.Percentage),
-            SuggestedCode = GetSuggestedVatCode(v.Percentage)
-        }).ToList();
-
-        _paymentMethods = paymentTask.Result?.ToList() ?? new();
-        _paymentMappingRows = _paymentMethods.Select(p => new PaymentMappingRow
-        {
-            Id = p.Id,
-            Code = p.Code,
-            Name = p.Name,
-            FiscalCode = p.FiscalCode ?? GetSuggestedPaymentCode(p.Code),
-            SuggestedCode = GetSuggestedPaymentCode(p.Code)
-        }).ToList();
-
-        _stations = stationsTask.Result?.Items?.ToList() ?? new();
-        _stationRows = _stations.Select(s => new StationSelectionRow
-        {
-            Id = s.Id,
-            Name = s.Name,
-            Location = s.Location,
-            StationType = s.StationType
-        }).ToList();
-
-        // In edit mode, pre-select stations already associated with this printer
-        if (_isEditMode && _savedPrinterId.HasValue)
-        {
-            var associatedIds = (setupTask?.Result?.AssociatedStationIds ?? new()).ToHashSet();
-            foreach (var row in _stationRows)
-                row.Selected = associatedIds.Contains(row.Id);
+            Logger.LogError(ex, "Errore durante l'inizializzazione del wizard stampante fiscale.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1176,6 +1184,11 @@
         {
             _testConnectionResult = await FiscalPrintingService.TestTcpConnectionAsync(_tcpIpAddress, _tcpPort);
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il test di connessione TCP.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
         finally
         {
             _isTesting = false;
@@ -1195,6 +1208,11 @@
         try
         {
             _testConnectionResult = await FiscalPrintingService.TestTcpViaAgentAsync(agentGuid, _tcpIpAddress, _tcpPort);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il test di connessione TCP via agente.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
         finally
         {
@@ -1244,6 +1262,11 @@
         {
             _testConnectionResult = await FiscalPrintingService.TestSerialConnectionAsync(
                 _serialPortName, _serialBaudRate);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il test di connessione seriale.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
         finally
         {
@@ -1462,6 +1485,11 @@
                 Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
             };
             _testPrintResult = await FiscalPrintingService.PrintReceiptAsync(printerIdForTest.Value, testReceipt);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la stampa dello scontrino di prova.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
         finally
         {

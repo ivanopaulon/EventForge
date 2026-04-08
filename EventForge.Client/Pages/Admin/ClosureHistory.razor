@@ -312,20 +312,28 @@
 
     private async Task OpenDailyClosureDialogAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
-            [nameof(DailyClosureDialog.PrinterName)] = _printerName
-        };
+            var parameters = new DialogParameters
+            {
+                [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
+                [nameof(DailyClosureDialog.PrinterName)] = _printerName
+            };
 
-        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-            string.Empty, parameters, EFDialogDefaults.Options);
+            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+                string.Empty, parameters, EFDialogDefaults.Options);
 
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+            {
+                // Refresh history after successful closure
+                await LoadHistoryAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            // Refresh history after successful closure
-            await LoadHistoryAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di chiusura giornaliera.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

@@ -1102,61 +1102,85 @@
 
     private async Task OpenEditEntryDialog(PriceListEntryDto entry)
     {
-        var parameters = new DialogParameters<EditPriceListEntryDialog>
+        try
         {
-            { x => x.Entry, entry }
-        };
-        var dialog = await DialogService.ShowAsync<EditPriceListEntryDialog>(
-            TranslationService.GetTranslation("pricelist.editEntry", "Modifica Voce Listino"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+            var parameters = new DialogParameters<EditPriceListEntryDialog>
+            {
+                { x => x.Entry, entry }
+            };
+            var dialog = await DialogService.ShowAsync<EditPriceListEntryDialog>(
+                TranslationService.GetTranslation("pricelist.editEntry", "Modifica Voce Listino"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadEntriesAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadEntriesAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di modifica voce listino.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenBulkUpdatePricesDialog()
     {
-        var parameters = new DialogParameters<BulkUpdatePricesDialog>
+        try
         {
-            { x => x.PriceListId, Id }
-        };
+            var parameters = new DialogParameters<BulkUpdatePricesDialog>
+            {
+                { x => x.PriceListId, Id }
+            };
 
-        var dialog = await DialogService.ShowAsync<BulkUpdatePricesDialog>(
-            TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Aggiornamento Massivo Prezzi"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            var dialog = await DialogService.ShowAsync<BulkUpdatePricesDialog>(
+                TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Aggiornamento Massivo Prezzi"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadEntriesAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.bulkUpdateSuccess", "Prezzi aggiornati con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadEntriesAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.bulkUpdateSuccess", "Prezzi aggiornati con successo"));
+            Logger.LogError(ex, "Errore durante l'aggiornamento massivo dei prezzi.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenImportDialog()
     {
-        var parameters = new DialogParameters<ImportPriceListDialog>
+        try
         {
-            { x => x.PriceListId, Id }
-        };
+            var parameters = new DialogParameters<ImportPriceListDialog>
+            {
+                { x => x.PriceListId, Id }
+            };
 
-        var dialog = await DialogService.ShowAsync<ImportPriceListDialog>(
-            TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
+            var dialog = await DialogService.ShowAsync<ImportPriceListDialog>(
+                TranslationService.GetTranslation("pricelist.importFromExcel", "Importa da Excel"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true });
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadEntriesAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.importSuccess", "Import completato con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadEntriesAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.importSuccess", "Import completato con successo"));
+            Logger.LogError(ex, "Errore durante l'importazione del listino prezzi.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1186,30 +1210,38 @@
     {
         if (_priceList == null) return;
 
-        var parameters = new DialogParameters<DuplicatePriceListDialog>
+        try
         {
-            { x => x.SourcePriceList, _priceList }
-        };
+            var parameters = new DialogParameters<DuplicatePriceListDialog>
+            {
+                { x => x.SourcePriceList, _priceList }
+            };
 
-        var dialog = await DialogService.ShowAsync<DuplicatePriceListDialog>(
-            TranslationService.GetTranslation("pricelist.duplicateTitle", "Duplica Listino"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+            var dialog = await DialogService.ShowAsync<DuplicatePriceListDialog>(
+                TranslationService.GetTranslation("pricelist.duplicateTitle", "Duplica Listino"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false } && result.Data is DuplicatePriceListResultDto duplicateResult)
+            if (result is { Canceled: false } && result.Data is DuplicatePriceListResultDto duplicateResult)
+            {
+                var confirm = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("pricelist.duplicateSuccess", "Listino Duplicato"),
+                    $"{TranslationService.GetTranslation("pricelist.duplicateSuccessMessage", "Listino duplicato con successo")}\n\n" +
+                    $"Prodotti copiati: {duplicateResult.CopiedPriceCount}/{duplicateResult.SourcePriceCount}\n" +
+                    $"Partner commerciali: {duplicateResult.CopiedBusinessPartyCount}\n\n" +
+                    $"{TranslationService.GetTranslation("pricelist.openNewList", "Vuoi aprire il nuovo listino?")}",
+                    yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                    cancelText: TranslationService.GetTranslation("common.no", "No"));
+
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
         {
-            var confirm = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("pricelist.duplicateSuccess", "Listino Duplicato"),
-                $"{TranslationService.GetTranslation("pricelist.duplicateSuccessMessage", "Listino duplicato con successo")}\n\n" +
-                $"Prodotti copiati: {duplicateResult.CopiedPriceCount}/{duplicateResult.SourcePriceCount}\n" +
-                $"Partner commerciali: {duplicateResult.CopiedBusinessPartyCount}\n\n" +
-                $"{TranslationService.GetTranslation("pricelist.openNewList", "Vuoi aprire il nuovo listino?")}",
-                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-                cancelText: TranslationService.GetTranslation("common.no", "No"));
-
-            MudDialog.Close(DialogResult.Ok(true));
+            Logger.LogError(ex, "Errore durante la duplicazione del listino prezzi.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1275,20 +1307,28 @@
 
     private async Task OpenAssignBusinessPartyDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "PriceListId", Id }
-        };
+            var parameters = new DialogParameters
+            {
+                { "PriceListId", Id }
+            };
 
-        var dialog = await DialogService.ShowAsync<AssignBusinessPartyDialog>(
-            TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner Commerciale"),
-            parameters);
+            var dialog = await DialogService.ShowAsync<AssignBusinessPartyDialog>(
+                TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner Commerciale"),
+                parameters);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false } && result.Data is AssignBusinessPartyToPriceListDto dto)
+            if (result is { Canceled: false } && result.Data is AssignBusinessPartyToPriceListDto dto)
+            {
+                await AssignBusinessPartyAsync(dto);
+            }
+        }
+        catch (Exception ex)
         {
-            await AssignBusinessPartyAsync(dto);
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di assegnazione partner commerciale.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1319,17 +1359,25 @@
 
     private async Task Cancel()
     {
-        if (_hasChanges)
+        try
         {
-            var result = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("pricelist.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
-                yesText: TranslationService.GetTranslation("common.save", "Salva"),
-                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
-                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-            if (result == null) return;
-            if (result == true) { await SavePriceList(); return; }
+            if (_hasChanges)
+            {
+                var result = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("pricelist.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                    yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                    noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                    cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+                if (result == null) return;
+                if (result == true) { await SavePriceList(); return; }
+            }
+            MudDialog.Close();
         }
-        MudDialog.Close();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la chiusura del dialogo listino prezzi.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 }

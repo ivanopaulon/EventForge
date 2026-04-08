@@ -620,8 +620,16 @@
     /// </summary>
     private async Task RefreshNotificationsAsync()
     {
-        await LoadNotificationsAsync();
-        AppNotification.ShowInfo(TranslationService.GetTranslation("notifications.refreshed", "Notifiche aggiornate"));
+        try
+        {
+            await LoadNotificationsAsync();
+            AppNotification.ShowInfo(TranslationService.GetTranslation("notifications.refreshed", "Notifiche aggiornate"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il refresh delle notifiche.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     /// <summary>
@@ -679,9 +687,17 @@
     /// </summary>
     private async Task ShowNotificationDetailsAsync(NotificationResponseDto notification)
     {
-        // For now, just show a snackbar with the notification details
-        AppNotification.ShowInfo($"{notification.Payload.Title}: {notification.Payload.Message}");
-        await Task.CompletedTask;
+        try
+        {
+            // For now, just show a snackbar with the notification details
+            AppNotification.ShowInfo($"{notification.Payload.Title}: {notification.Payload.Message}");
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la visualizzazione dei dettagli della notifica.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     /// <summary>
