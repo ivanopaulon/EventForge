@@ -1469,52 +1469,60 @@ public class BusinessPartyService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for business party operations.");
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            var query = context.BusinessParties
+                .AsNoTracking()
+                .Include(bp => bp.Addresses)
+                .Include(bp => bp.Contacts)
+                .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
+                .OrderBy(bp => bp.Name);
+
+            var totalCount = await query.CountAsync(ct);
+
+            logger.LogInformation("Export requested for {Count} business parties", totalCount);
+
+            // Use batch processing for large datasets
+            if (totalCount > 10000)
+            {
+                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+                return await GetBusinessPartiesInBatchesAsync(query, ct);
+            }
+
+            // Standard export for smaller datasets
+            var items = await query
+                .Take(pagination.PageSize)
+                .ToListAsync(ct);
+
+            return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+            {
+                Id = bp.Id,
+                Code = bp.TaxCode ?? string.Empty,
+                Name = bp.Name,
+                PartyType = bp.PartyType.ToString(),
+                VatNumber = bp.VatNumber,
+                FiscalCode = bp.TaxCode,
+                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
+                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+                Address = bp.Addresses.FirstOrDefault()?.Street,
+                City = bp.Addresses.FirstOrDefault()?.City,
+                PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
+                Country = bp.Addresses.FirstOrDefault()?.Country,
+                IsActive = bp.IsActive,
+                CreatedAt = bp.CreatedAt
+            });
         }
-
-        var query = context.BusinessParties
-            .AsNoTracking()
-            .Include(bp => bp.Addresses)
-            .Include(bp => bp.Contacts)
-            .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
-            .OrderBy(bp => bp.Name);
-
-        var totalCount = await query.CountAsync(ct);
-
-        logger.LogInformation("Export requested for {Count} business parties", totalCount);
-
-        // Use batch processing for large datasets
-        if (totalCount > 10000)
+        catch (Exception ex)
         {
-            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-            return await GetBusinessPartiesInBatchesAsync(query, ct);
+            logger.LogError(ex, "Error in GetBusinessPartiesForExportAsync.");
+            throw;
         }
-
-        // Standard export for smaller datasets
-        var items = await query
-            .Take(pagination.PageSize)
-            .ToListAsync(ct);
-
-        return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
-        {
-            Id = bp.Id,
-            Code = bp.TaxCode ?? string.Empty,
-            Name = bp.Name,
-            PartyType = bp.PartyType.ToString(),
-            VatNumber = bp.VatNumber,
-            FiscalCode = bp.TaxCode,
-            Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
-            Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
-            Address = bp.Addresses.FirstOrDefault()?.Street,
-            City = bp.Addresses.FirstOrDefault()?.City,
-            PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
-            Country = bp.Addresses.FirstOrDefault()?.Country,
-            IsActive = bp.IsActive,
-            CreatedAt = bp.CreatedAt
-        });
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesInBatchesAsync(

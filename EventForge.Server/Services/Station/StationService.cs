@@ -569,14 +569,22 @@ public class StationService(
 
     public async Task<bool> StationExistsAsync(Guid stationId, CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId;
-        if (!tenantId.HasValue)
+        try
         {
-            return false;
-        }
+            var tenantId = tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                return false;
+            }
 
-        return await context.Stations
-            .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
+            return await context.Stations
+                .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in StationExistsAsync for {StationId}.", stationId);
+            throw;
+        }
     }
 
     private static StationDto MapToStationDto(EventForge.Server.Data.Entities.StationMonitor.Station station, int printerCount)

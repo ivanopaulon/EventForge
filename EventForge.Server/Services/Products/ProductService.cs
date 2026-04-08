@@ -2070,103 +2070,119 @@ public class ProductService(
 
     public async Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        // Ensure tenant context available for association filtering
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
-        }
-
-        // Get all products (preserve previous behaviour: products may be global)
-        var products = await context.Products
-            .Where(p => !p.IsDeleted)
-            .OrderBy(p => p.Name)
-            .ToListAsync(cancellationToken);
-
-        // Get all existing associations for this supplier within the current tenant
-        var associations = await context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
-            .ToListAsync(cancellationToken);
-
-        var associationDict = associations.ToDictionary(a => a.ProductId);
-
-        return products.Select(p =>
-        {
-            // Try to get association; use null-safe operators to avoid possible null dereference warnings
-            associationDict.TryGetValue(p.Id, out var association);
-            return new ProductWithAssociationDto
+            // Ensure tenant context available for association filtering
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
             {
-                ProductId = p.Id,
-                Code = p.Code,
-                Name = p.Name,
-                Description = p.ShortDescription,
-                IsAssociated = association != null,
-                ProductSupplierId = association?.Id,
-                UnitCost = association?.UnitCost,
-                SupplierProductCode = association?.SupplierProductCode,
-                Preferred = association?.Preferred ?? false
-            };
-        }).ToList();
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            // Get all products (preserve previous behaviour: products may be global)
+            var products = await context.Products
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.Name)
+                .ToListAsync(cancellationToken);
+
+            // Get all existing associations for this supplier within the current tenant
+            var associations = await context.ProductSuppliers
+                .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            var associationDict = associations.ToDictionary(a => a.ProductId);
+
+            return products.Select(p =>
+            {
+                // Try to get association; use null-safe operators to avoid possible null dereference warnings
+                associationDict.TryGetValue(p.Id, out var association);
+                return new ProductWithAssociationDto
+                {
+                    ProductId = p.Id,
+                    Code = p.Code,
+                    Name = p.Name,
+                    Description = p.ShortDescription,
+                    IsAssociated = association != null,
+                    ProductSupplierId = association?.Id,
+                    UnitCost = association?.UnitCost,
+                    SupplierProductCode = association?.SupplierProductCode,
+                    Preferred = association?.Preferred ?? false
+                };
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetProductsWithSupplierAssociationAsync for supplier {SupplierId}.", supplierId);
+            throw;
+        }
     }
 
     public async Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-        var productIdList = productIds.ToList();
-        var now = DateTime.UtcNow;
-
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
-        }
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-        // Get existing associations for this supplier within the tenant
-        var existingAssociations = await context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
-            .ToListAsync(cancellationToken);
+            var productIdList = productIds.ToList();
+            var now = DateTime.UtcNow;
 
-        var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
-
-        // Determine which associations to add
-        var productIdsToAdd = productIdList.Except(existingProductIds).ToList();
-
-        // Determine which associations to remove (soft delete)
-        var associationsToRemove = existingAssociations
-            .Where(a => !productIdList.Contains(a.ProductId))
-            .ToList();
-
-        // Add new associations and set TenantId
-        foreach (var productId in productIdsToAdd)
-        {
-            var newAssociation = new ProductSupplier
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
             {
-                Id = Guid.NewGuid(),
-                ProductId = productId,
-                SupplierId = supplierId,
-                Preferred = false,
-                CreatedAt = now,
-                CreatedBy = currentUser,
-                ModifiedAt = now,
-                ModifiedBy = currentUser,
-                IsDeleted = false,
-                TenantId = currentTenantId.Value
-            };
-            context.ProductSuppliers.Add(newAssociation);
-        }
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
 
-        // Soft delete removed associations (already scoped to tenant)
-        foreach (var association in associationsToRemove)
+            // Get existing associations for this supplier within the tenant
+            var existingAssociations = await context.ProductSuppliers
+                .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
+
+            // Determine which associations to add
+            var productIdsToAdd = productIdList.Except(existingProductIds).ToList();
+
+            // Determine which associations to remove (soft delete)
+            var associationsToRemove = existingAssociations
+                .Where(a => !productIdList.Contains(a.ProductId))
+                .ToList();
+
+            // Add new associations and set TenantId
+            foreach (var productId in productIdsToAdd)
+            {
+                var newAssociation = new ProductSupplier
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = productId,
+                    SupplierId = supplierId,
+                    Preferred = false,
+                    CreatedAt = now,
+                    CreatedBy = currentUser,
+                    ModifiedAt = now,
+                    ModifiedBy = currentUser,
+                    IsDeleted = false,
+                    TenantId = currentTenantId.Value
+                };
+                context.ProductSuppliers.Add(newAssociation);
+            }
+
+            // Soft delete removed associations (already scoped to tenant)
+            foreach (var association in associationsToRemove)
+            {
+                association.IsDeleted = true;
+                association.ModifiedAt = now;
+                association.ModifiedBy = currentUser;
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return productIdsToAdd.Count;
+        }
+        catch (Exception ex)
         {
-            association.IsDeleted = true;
-            association.ModifiedAt = now;
-            association.ModifiedBy = currentUser;
+            logger.LogError(ex, "Error in BulkUpdateProductSupplierAssociationsAsync for supplier {SupplierId}.", supplierId);
+            throw;
         }
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        return productIdsToAdd.Count;
     }
 
     public async Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(
@@ -2489,52 +2505,60 @@ public class ProductService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product operations.");
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product operations.");
+            }
+
+            var query = context.Products
+                .Include(p => p.Brand)
+                .Include(p => p.Model)
+                .Include(p => p.UnitOfMeasure)
+                .Include(p => p.CategoryNode)
+                .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
+                .OrderBy(p => p.Name);
+
+            var totalCount = await query.CountAsync(ct);
+
+            logger.LogInformation("Export requested for {Count} products", totalCount);
+
+            // Use batch processing for large datasets
+            if (totalCount > 10000)
+            {
+                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+                return await GetProductsInBatchesAsync(query, ct);
+            }
+
+            // Standard export for smaller datasets
+            var items = await query
+                .Take(pagination.PageSize)
+                .ToListAsync(ct);
+
+            return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description,
+                Category = p.CategoryNode?.Name ?? string.Empty,
+                UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
+                Price = p.DefaultPrice ?? 0,
+                Cost = 0, // Not available in Product entity
+                StockQuantity = 0, // Not available in Product entity
+                Brand = p.Brand?.Name,
+                Model = p.Model?.Name,
+                IsActive = p.Status == EntityProductStatus.Active,
+                CreatedAt = p.CreatedAt
+            });
         }
-
-        var query = context.Products
-            .Include(p => p.Brand)
-            .Include(p => p.Model)
-            .Include(p => p.UnitOfMeasure)
-            .Include(p => p.CategoryNode)
-            .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
-            .OrderBy(p => p.Name);
-
-        var totalCount = await query.CountAsync(ct);
-
-        logger.LogInformation("Export requested for {Count} products", totalCount);
-
-        // Use batch processing for large datasets
-        if (totalCount > 10000)
+        catch (Exception ex)
         {
-            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-            return await GetProductsInBatchesAsync(query, ct);
+            logger.LogError(ex, "Error in GetProductsForExportAsync.");
+            throw;
         }
-
-        // Standard export for smaller datasets
-        var items = await query
-            .Take(pagination.PageSize)
-            .ToListAsync(ct);
-
-        return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
-        {
-            Id = p.Id,
-            Code = p.Code,
-            Name = p.Name,
-            Description = p.Description,
-            Category = p.CategoryNode?.Name ?? string.Empty,
-            UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
-            Price = p.DefaultPrice ?? 0,
-            Cost = 0, // Not available in Product entity
-            StockQuantity = 0, // Not available in Product entity
-            Brand = p.Brand?.Name,
-            Model = p.Model?.Name,
-            IsActive = p.Status == EntityProductStatus.Active,
-            CreatedAt = p.CreatedAt
-        });
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsInBatchesAsync(

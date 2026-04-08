@@ -96,51 +96,59 @@ public class PriceListBusinessPartyService(
 
     public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}", businessPartyId, priceListId);
-
-        // Find existing assignment
-        var assignment = await context.PriceListBusinessParties
-            .Include(plbp => plbp.BusinessParty)
-            .Include(plbp => plbp.PriceList)
-            .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted, cancellationToken);
-
-        if (assignment is null)
-        {
-            logger.LogWarning("PriceListBusinessParty assignment not found for PriceList {PriceListId} and BusinessParty {BusinessPartyId}", priceListId, businessPartyId);
-            return false;
-        }
-
-        // Soft delete
-        assignment.IsDeleted = true;
-        assignment.ModifiedAt = DateTime.UtcNow;
-        assignment.ModifiedBy = currentUser;
-        assignment.Status = PriceListBusinessPartyStatus.Deleted;
-
         try
         {
-            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}", businessPartyId, priceListId);
+
+            // Find existing assignment
+            var assignment = await context.PriceListBusinessParties
+                .Include(plbp => plbp.BusinessParty)
+                .Include(plbp => plbp.PriceList)
+                .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted, cancellationToken);
+
+            if (assignment is null)
+            {
+                logger.LogWarning("PriceListBusinessParty assignment not found for PriceList {PriceListId} and BusinessParty {BusinessPartyId}", priceListId, businessPartyId);
+                return false;
+            }
+
+            // Soft delete
+            assignment.IsDeleted = true;
+            assignment.ModifiedAt = DateTime.UtcNow;
+            assignment.ModifiedBy = currentUser;
+            assignment.Status = PriceListBusinessPartyStatus.Deleted;
+
+            try
+            {
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Concurrency conflict removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}.", businessPartyId, priceListId);
+                throw new InvalidOperationException("L'associazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
+
+            // Log audit trail
+            await auditLogService.LogEntityChangeAsync(
+                "PriceListBusinessParty",
+                assignment.Id,
+                "Assignment",
+                "Delete",
+                $"Active - {assignment.BusinessParty?.Name} -> {assignment.PriceList?.Name}",
+                "Deleted",
+                currentUser,
+                $"{assignment.BusinessParty?.Name} -> {assignment.PriceList?.Name}",
+                cancellationToken);
+
+            logger.LogInformation("BusinessParty {BusinessPartyId} successfully removed from PriceList {PriceListId}", businessPartyId, priceListId);
+
+            return true;
         }
-        catch (DbUpdateConcurrencyException ex)
+        catch (Exception ex)
         {
-            logger.LogWarning(ex, "Concurrency conflict removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}.", businessPartyId, priceListId);
-            throw new InvalidOperationException("L'associazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
+            logger.LogError(ex, "Error in RemoveBusinessPartyAsync for price list {PriceListId} and business party {BusinessPartyId}.", priceListId, businessPartyId);
+            throw;
         }
-
-        // Log audit trail
-        await auditLogService.LogEntityChangeAsync(
-            "PriceListBusinessParty",
-            assignment.Id,
-            "Assignment",
-            "Delete",
-            $"Active - {assignment.BusinessParty?.Name} -> {assignment.PriceList?.Name}",
-            "Deleted",
-            currentUser,
-            $"{assignment.BusinessParty?.Name} -> {assignment.PriceList?.Name}",
-            cancellationToken);
-
-        logger.LogInformation("BusinessParty {BusinessPartyId} successfully removed from PriceList {PriceListId}", businessPartyId, priceListId);
-
-        return true;
     }
 
     public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
