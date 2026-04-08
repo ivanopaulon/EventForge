@@ -150,6 +150,7 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<FiscalDrawerSession> FiscalDrawerSessions { get; set; }
     public DbSet<FiscalDrawerTransaction> FiscalDrawerTransactions { get; set; }
     public DbSet<CashDenomination> CashDenominations { get; set; }
+    public DbSet<EventForge.Server.Data.Entities.Store.PaymentTerminal> PaymentTerminals { get; set; }
 
     // Authentication & Authorization Entities
     public DbSet<User> Users { get; set; }

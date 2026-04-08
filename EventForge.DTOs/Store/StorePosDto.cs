@@ -142,5 +142,13 @@ namespace EventForge.DTOs.Store
         /// Name of the cashier group (for display purposes).
         /// </summary>
         public string? CashierGroupName { get; set; }
+
+        // --- Protocol 17 Payment Terminal ---
+
+        /// <summary>Foreign key to the default Protocol 17 payment terminal.</summary>
+        public Guid? DefaultPaymentTerminalId { get; set; }
+
+        /// <summary>Name of the default Protocol 17 payment terminal.</summary>
+        public string? DefaultPaymentTerminalName { get; set; }
     }
 }

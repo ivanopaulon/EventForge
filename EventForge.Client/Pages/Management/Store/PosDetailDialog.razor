@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Store
 @using EventForge.DTOs.Station
 @using EventForge.DTOs.Common
+@using EventForge.DTOs.PaymentTerminal
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.ViewModels
@@ -15,6 +16,7 @@
 @inject IStationService StationService
 @inject IStoreUserGroupService UserGroupService
 @inject IAppNotificationService AppNotification
+@inject IPaymentTerminalService PaymentTerminalService
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.PointOfSale"
@@ -331,6 +333,90 @@
                     }
                 </MudTabPanel>
 
+                @* ─── Tab 2b: Terminale POS ─────────────────────────── *@
+                <MudTabPanel Text="Terminale POS" Icon="@Icons.Material.Outlined.CreditCard">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                        Seleziona il terminale di pagamento Protocol 17 predefinito per questo punto cassa.
+                    </MudText>
+
+                    @if (_loadingTerminals)
+                    {
+                        <div class="d-flex justify-center pa-4">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                        </div>
+                    }
+                    else
+                    {
+                        @if (ViewModel.Entity!.DefaultPaymentTerminalId.HasValue)
+                        {
+                            var selectedTerminal = _availableTerminals.FirstOrDefault(t => t.Id == ViewModel.Entity.DefaultPaymentTerminalId);
+                            <MudAlert Severity="Severity.Success" Class="mb-4" Icon="@Icons.Material.Outlined.CheckCircle">
+                                <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+                                    <div>
+                                        <strong>@(selectedTerminal?.Name ?? "Terminale selezionato")</strong>
+                                        @if (selectedTerminal != null)
+                                        {
+                                            <MudText Typo="Typo.caption" Class="d-block">
+                                                @selectedTerminal.ConnectionType
+                                                @if (!string.IsNullOrEmpty(selectedTerminal.IpAddress)) { <text> · @selectedTerminal.IpAddress:@selectedTerminal.Port</text> }
+                                            </MudText>
+                                        }
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                   Size="Size.Small"
+                                                   Title="Rimuovi terminale"
+                                                   OnClick="@(() => { ViewModel.Entity.DefaultPaymentTerminalId = null; ViewModel.Entity.DefaultPaymentTerminalName = null; HandleEntityChanged(); })" />
+                                </div>
+                            </MudAlert>
+                        }
+
+                        @if (_availableTerminals.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mb-4">
+                                Nessun terminale POS disponibile. Aggiungine uno dalla sezione "Terminali POS".
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Terminali disponibili</MudText>
+                            <div class="d-flex flex-column gap-2 mb-4">
+                                @foreach (var terminal in _availableTerminals)
+                                {
+                                    var isSelected = ViewModel.Entity!.DefaultPaymentTerminalId == terminal.Id;
+                                    <MudPaper Elevation="0"
+                                              Class="@($"pa-3 cursor-pointer {(isSelected ? "mud-theme-primary" : "")}")"
+                                              Style="@($"border: 2px solid {(isSelected ? "var(--mud-palette-primary)" : "rgba(255,255,255,0.12)")}; border-radius: 8px; transition: border-color 0.2s;")"
+                                              @onclick="@(() => SelectTerminal(terminal))">
+                                        <div class="d-flex align-center justify-space-between">
+                                            <div class="d-flex align-center gap-3">
+                                                <MudIcon Icon="@Icons.Material.Outlined.CreditCard"
+                                                         Color="@(isSelected ? Color.Primary : Color.Default)" />
+                                                <div>
+                                                    <MudText Typo="Typo.body2" Style="@(isSelected ? "font-weight:600;" : "")">@terminal.Name</MudText>
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                        @terminal.ConnectionType
+                                                        @if (!string.IsNullOrEmpty(terminal.IpAddress)) { <text> · @terminal.IpAddress:@terminal.Port</text> }
+                                                    </MudText>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-center gap-2">
+                                                <MudChip T="string" Size="Size.Small"
+                                                         Color="@(terminal.IsEnabled ? Color.Success : Color.Default)">
+                                                    @(terminal.IsEnabled ? "Abilitato" : "Disabilitato")
+                                                </MudChip>
+                                                @if (isSelected)
+                                                {
+                                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small" />
+                                                }
+                                            </div>
+                                        </div>
+                                    </MudPaper>
+                                }
+                            </div>
+                        }
+                    }
+                </MudTabPanel>
+
                 @* ─── Tab 3: Operatori ────────────────────────────────── *@
                 <MudTabPanel Text="Operatori" Icon="@Icons.Material.Outlined.Groups">
                     <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
@@ -549,6 +635,9 @@
     private string _newPrinterLocation = string.Empty;
     private PrinterCategory _newPrinterCategory = PrinterCategory.Receipt;
 
+    private List<PaymentTerminalDto> _availableTerminals = [];
+    private bool _loadingTerminals;
+
     // ── Operator group tab state ──────────────────────────────
     private List<StoreUserGroupDto> _availableGroups = [];
     private bool _loadingGroups;
@@ -564,7 +653,7 @@
         await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
 
         // Load printers and groups in parallel
-        await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync());
+        await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync(), LoadTerminalsAsync());
     }
 
     private async Task LoadPrintersAsync()
@@ -599,6 +688,21 @@
         {
             _loadingGroups = false;
         }
+    }
+
+    private async Task LoadTerminalsAsync()
+    {
+        _loadingTerminals = true;
+        try { _availableTerminals = await PaymentTerminalService.GetAllAsync(); }
+        catch (Exception ex) { Logger.LogError(ex, "Error loading payment terminals."); }
+        finally { _loadingTerminals = false; }
+    }
+
+    private void SelectTerminal(PaymentTerminalDto terminal)
+    {
+        ViewModel.Entity!.DefaultPaymentTerminalId = terminal.Id;
+        ViewModel.Entity.DefaultPaymentTerminalName = terminal.Name;
+        HandleEntityChanged();
     }
 
     private void SelectPrinter(PrinterDto printer)

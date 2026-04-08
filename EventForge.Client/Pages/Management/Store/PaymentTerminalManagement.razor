@@ -1,0 +1,183 @@
+@page "/store/payment-terminals"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.PaymentTerminal
+@using EventForge.Client.Services.Store
+@using EventForge.Client.Shared.Management
+@using EventForge.Client.Shared.Management.Adapters
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IPaymentTerminalService PaymentTerminalService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("store.paymentTerminals", "Terminali POS (Protocollo 17)")</PageTitle>
+<EntityManagementPage TEntity="PaymentTerminalDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IpAddress")
+            {
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IpAddress">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.IpAddress ?? string.Empty))">Indirizzo IP</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Port")
+            {
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Port">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.Port))">Porta</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ConnectionType")
+            {
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="ConnectionType">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.ConnectionType))">Connessione</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsEnabled")
+            {
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IsEnabled">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.IsEnabled))">Stato</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.CreditCard" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            @if (!string.IsNullOrEmpty(ctx.Item.TerminalId))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @ctx.Item.TerminalId</MudText>
+                            }
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IpAddress")
+            {
+                <MudTd DataLabel="Indirizzo IP">
+                    <MudText Typo="Typo.body2">@(string.IsNullOrEmpty(ctx.Item.IpAddress) ? "-" : ctx.Item.IpAddress)</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Port")
+            {
+                <MudTd DataLabel="Porta">
+                    <MudText Typo="Typo.body2">@ctx.Item.Port</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ConnectionType")
+            {
+                <MudTd DataLabel="Connessione">
+                    <MudChip T="string" Size="Size.Small" Color="@GetConnectionColor(ctx.Item.ConnectionType)" Icon="@GetConnectionIcon(ctx.Item.ConnectionType)">
+                        @ctx.Item.ConnectionType
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsEnabled")
+            {
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@(ctx.Item.IsEnabled ? Color.Success : Color.Default)">
+                        @(ctx.Item.IsEnabled ? "Abilitato" : "Disabilitato")
+                    </MudChip>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<PaymentTerminalDto>? _entityPage;
+    private IEntityManagementService<PaymentTerminalDto> _service = null!;
+    private EntityManagementConfig<PaymentTerminalDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new PaymentTerminalManagementService(PaymentTerminalService);
+        _config = new EntityManagementConfig<PaymentTerminalDto>
+        {
+            ComponentKey = "PaymentTerminalManagement",
+            PageTitleKey = "store.paymentTerminals",
+            PageTitleDefault = "Terminali POS (Protocollo 17)",
+            EntityIcon = Icons.Material.Outlined.CreditCard,
+            PageRootCssClass = "management-page-root",
+            BaseRoute = "/store/payment-terminals",
+            ExcelFileName = "TerminaliPOS",
+            SearchPlaceholderKey = "common.search",
+            SearchPlaceholderDefault = "Cerca",
+            CreateTooltip = "store.createNewPaymentTerminal",
+            EntityTypeName = "PaymentTerminal",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            GetDisplayName = t => t.Name,
+            GetId = t => t.Id,
+            DeleteConfirmMessageKey = "store.confirmDeletePaymentTerminal",
+            BulkDeleteConfirmMessageKey = "store.confirmDeleteMultiplePaymentTerminals",
+            DeleteSuccessMessageKey = "store.paymentTerminalDeleted",
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Configurazione Store", null, disabled: true),
+                new BreadcrumbItem("Terminali POS", null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "IpAddress", DisplayName = "Indirizzo IP", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Port", DisplayName = "Porta", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "ConnectionType", DisplayName = "Connessione", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "IsEnabled", DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false }
+            ],
+            QuickFilters =
+            [
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i terminali" },
+                new() { Id = "enabled", Label = "Abilitati", Predicate = t => t.IsEnabled, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Solo terminali abilitati" },
+                new() { Id = "tcp", Label = "TCP Diretto", Predicate = t => t.ConnectionType == "Tcp", Color = Color.Primary, Icon = Icons.Material.Outlined.Cable, Description = "Connessione TCP diretta" },
+                new() { Id = "agent", Label = "Via Agente", Predicate = t => t.ConnectionType == "TcpViaAgent", Color = Color.Info, Icon = Icons.Material.Outlined.Hub, Description = "Connessione tramite agente" }
+            ]
+        };
+    }
+
+    private static Color GetConnectionColor(string connectionType) => connectionType switch
+    {
+        "Tcp" => Color.Primary,
+        "TcpViaAgent" => Color.Info,
+        _ => Color.Default
+    };
+
+    private static string GetConnectionIcon(string connectionType) => connectionType switch
+    {
+        "Tcp" => Icons.Material.Outlined.Cable,
+        "TcpViaAgent" => Icons.Material.Outlined.Hub,
+        _ => Icons.Material.Outlined.DeviceHub
+    };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(PaymentTerminalDetailDialog.TerminalId)] = id };
+        var dialog = await DialogService.ShowAsync<PaymentTerminalDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+}
