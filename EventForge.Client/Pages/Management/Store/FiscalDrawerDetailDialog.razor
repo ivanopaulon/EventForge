@@ -1,231 +1,467 @@
+@using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Store
-@using EventForge.Client.Services.Store
-@inject IFiscalDrawerService FiscalDrawerService
-@inject IStorePosService StorePosService
-@inject IStoreUserService StoreUserService
+@using EventForge.DTOs.Common
+@using EventForge.Client.Shared.Components
+@using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.ViewModels
+@attribute [Authorize]
+@inject FiscalDrawerDetailViewModel ViewModel
+@inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
+@inject ILogger<FiscalDrawerDetailDialog> Logger
+@implements IDisposable
 
-<MudDialog>
-    <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">
-                @(_isNew ? "Nuovo Cassetto Fiscale" : (_entity?.Name ?? "Cassetto Fiscale"))
-            </MudText>
-        </MudStack>
-    </TitleContent>
-    <DialogContent>
-        @if (_loading)
+<EFDialog Icon="@Icons.Material.Outlined.Inbox"
+          Title="@(ViewModel.IsNewEntity ? "Nuovo Cassetto Fiscale" : (ViewModel.Entity?.Name ?? "Cassetto Fiscale"))"
+          IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (ViewModel.IsLoading)
         {
-            <div class="d-flex justify-center pa-6">
+            <div class="d-flex justify-center pa-8">
                 <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
         }
-        else
+        else if (!ViewModel.IsNewEntity && ViewModel.Entity == null)
         {
-            <MudForm @ref="_form" Model="@_model">
-                <MudGrid Spacing="2">
-                    <MudItem xs="12" sm="8">
-                        <MudTextField @bind-Value="_model.Name" Label="Nome" Required="true" MaxLength="100"
-                                      Variant="Variant.Outlined" Class="ef-input" />
-                    </MudItem>
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="_model.Code" Label="Codice" MaxLength="20"
-                                      Variant="Variant.Outlined" Class="ef-input" />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_model.Description" Label="Descrizione" MaxLength="200"
-                                      Variant="Variant.Outlined" Class="ef-input" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="_model.AssignmentType" Label="Tipo Assegnazione"
-                                   Variant="Variant.Outlined" Class="ef-select"
-                                   @bind-Value:after="OnAssignmentTypeChanged">
-                            <MudSelectItem Value="FiscalDrawerAssignmentType.Fixed">Fisso (POS)</MudSelectItem>
-                            <MudSelectItem Value="FiscalDrawerAssignmentType.Floating">Flottante (Operatore)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="_model.CurrencyCode" Label="Valuta"
-                                   Variant="Variant.Outlined" Class="ef-select">
-                            <MudSelectItem Value="@("EUR")">🇪🇺 EUR - Euro</MudSelectItem>
-                            <MudSelectItem Value="@("USD")">🇺🇸 USD - Dollaro USA</MudSelectItem>
-                            <MudSelectItem Value="@("GBP")">🇬🇧 GBP - Sterlina</MudSelectItem>
-                            <MudSelectItem Value="@("JPY")">🇯🇵 JPY - Yen</MudSelectItem>
-                            <MudSelectItem Value="@("CNY")">🇨🇳 CNY - Yuan</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+            <MudAlert Severity="Severity.Error">Cassetto fiscale non trovato.</MudAlert>
+        }
+        else if (ViewModel.Entity != null)
+        {
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
 
-                    @if (_model.AssignmentType == FiscalDrawerAssignmentType.Fixed)
+                @* ─── Tab 1: Generale ─────────────────────────────────── *@
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    @if (!ViewModel.IsNewEntity)
                     {
-                        <MudItem xs="12">
-                            <MudSelect @bind-Value="_model.PosId" Label="Punto Cassa (POS)"
-                                       Variant="Variant.Outlined" Class="ef-select">
-                                <MudSelectItem Value="@((Guid?)null)">-- Nessuno --</MudSelectItem>
-                                @foreach (var pos in _availablePos)
-                                {
-                                    <MudSelectItem Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
+                        <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="@GetStatusColor(ViewModel.Entity.Status)" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Inbox" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                            @if (ViewModel.Entity.HasOpenSession)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.LockOpen">
+                                    Sessione Aperta
+                                </MudChip>
+                            }
+                        </div>
+                        <MudDivider Class="mb-3" />
+                    }
+
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="8">
+                                <MudTextField @bind-Value="ViewModel.Entity.Name"
+                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                              Required="true"
+                                              MaxLength="100"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudTextField @bind-Value="ViewModel.Entity.Code"
+                                              Label="Codice"
+                                              MaxLength="20"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="ViewModel.Entity.Description"
+                                              Label="Descrizione"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.AssignmentType"
+                                           Label="Tipo Assegnazione"
+                                           Variant="Variant.Outlined"
+                                           Class="ef-select"
+                                           @bind-Value:after="OnAssignmentTypeChanged">
+                                    <MudSelectItem Value="FiscalDrawerAssignmentType.Fixed">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" Size="Size.Small" />
+                                            <span>Fisso (POS)</span>
+                                        </MudStack>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="FiscalDrawerAssignmentType.Floating">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" />
+                                            <span>Flottante (Operatore)</span>
+                                        </MudStack>
+                                    </MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.Status"
+                                           Label="@TranslationService.GetTranslation("field.status", "Stato")"
+                                           Variant="Variant.Outlined"
+                                           Class="ef-select"
+                                           @bind-Value:after="HandleEntityChanged">
+                                    @foreach (FiscalDrawerStatus s in Enum.GetValues(typeof(FiscalDrawerStatus)))
+                                    {
+                                        <MudSelectItem Value="@s">@GetStatusText(s)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect @bind-Value="ViewModel.Entity.CurrencyCode"
+                                           Label="Valuta"
+                                           Variant="Variant.Outlined"
+                                           Class="ef-select"
+                                           @bind-Value:after="HandleEntityChanged">
+                                    <MudSelectItem Value="@("EUR")">🇪🇺 EUR — Euro</MudSelectItem>
+                                    <MudSelectItem Value="@("USD")">🇺🇸 USD — Dollaro USA</MudSelectItem>
+                                    <MudSelectItem Value="@("GBP")">🇬🇧 GBP — Sterlina</MudSelectItem>
+                                    <MudSelectItem Value="@("JPY")">🇯🇵 JPY — Yen</MudSelectItem>
+                                    <MudSelectItem Value="@("CNY")">🇨🇳 CNY — Yuan</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudNumericField @bind-Value="ViewModel.Entity.OpeningBalance"
+                                                 Label="Fondo Cassa Iniziale"
+                                                 Min="0"
+                                                 Format="N2"
+                                                 Variant="Variant.Outlined"
+                                                 Disabled="@(!ViewModel.IsNewEntity)"
+                                                 HelperText="@(ViewModel.IsNewEntity ? "Il fondo cassa iniziale è impostabile solo alla creazione." : "Non modificabile dopo la creazione.")"
+                                                 @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="ViewModel.Entity.Notes"
+                                              Label="Note"
+                                              MaxLength="200"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input"
+                                              Lines="2"
+                                              @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+
+                @* ─── Tab 2: Assegnazione ──────────────────────────────── *@
+                <MudTabPanel Text="Assegnazione" Icon="@Icons.Material.Outlined.LinkOff">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                        @if (ViewModel.Entity.AssignmentType == FiscalDrawerAssignmentType.Fixed)
+                        {
+                            <span>Il cassetto è <strong>fisso</strong>: associalo ad un punto cassa (POS).</span>
+                        }
+                        else
+                        {
+                            <span>Il cassetto è <strong>flottante</strong>: associalo ad un operatore di cassa.</span>
+                        }
+                    </MudText>
+
+                    @if (ViewModel.Entity.AssignmentType == FiscalDrawerAssignmentType.Fixed)
+                    {
+                        <MudSelect @bind-Value="ViewModel.Entity.PosId"
+                                   Label="Punto Cassa (POS)"
+                                   Variant="Variant.Outlined"
+                                   Class="ef-select"
+                                   @bind-Value:after="HandleEntityChanged"
+                                   HelperText="Seleziona il POS a cui questo cassetto è fisicamente associato.">
+                            <MudSelectItem Value="@((Guid?)null)">— Nessuno —</MudSelectItem>
+                            @foreach (var pos in ViewModel.AvailablePos)
+                            {
+                                <MudSelectItem Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
+                            }
+                        </MudSelect>
                     }
                     else
                     {
-                        <MudItem xs="12">
-                            <MudSelect @bind-Value="_model.OperatorId" Label="Operatore"
-                                       Variant="Variant.Outlined" Class="ef-select">
-                                <MudSelectItem Value="@((Guid?)null)">-- Nessuno --</MudSelectItem>
-                                @foreach (var op in _availableOperators)
-                                {
-                                    <MudSelectItem Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
+                        <MudSelect @bind-Value="ViewModel.Entity.OperatorId"
+                                   Label="Operatore di Cassa"
+                                   Variant="Variant.Outlined"
+                                   Class="ef-select"
+                                   @bind-Value:after="HandleEntityChanged"
+                                   HelperText="Seleziona l'operatore a cui questo cassetto è personalmente assegnato.">
+                            <MudSelectItem Value="@((Guid?)null)">— Nessuno —</MudSelectItem>
+                            @foreach (var op in ViewModel.AvailableOperators)
+                            {
+                                <MudSelectItem Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
+                            }
+                        </MudSelect>
                     }
 
-                    <MudItem xs="12" sm="6">
-                        <MudNumericField @bind-Value="_model.OpeningBalance" Label="Fondo Cassa Iniziale"
-                                         Min="0" Format="N2" Variant="Variant.Outlined" Class="ef-input"
-                                         Disabled="@(!_isNew)" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="_model.Status" Label="Stato" Variant="Variant.Outlined" Class="ef-select">
-                            <MudSelectItem Value="FiscalDrawerStatus.Active">Attivo</MudSelectItem>
-                            <MudSelectItem Value="FiscalDrawerStatus.Suspended">Sospeso</MudSelectItem>
-                            <MudSelectItem Value="FiscalDrawerStatus.Closed">Chiuso</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="_model.Notes" Label="Note" MaxLength="200"
-                                      Variant="Variant.Outlined" Class="ef-input" Lines="2" />
-                    </MudItem>
-                </MudGrid>
-            </MudForm>
+                    @if (!ViewModel.IsNewEntity)
+                    {
+                        <MudDivider Class="my-4" />
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Riepilogo Saldi</MudText>
+                        <MudGrid>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Fondo cassa iniziale</MudText>
+                                    <MudText Typo="Typo.h6">@($"€ {ViewModel.Entity.OpeningBalance:N2}")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo attuale</MudText>
+                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@($"€ {ViewModel.Entity.CurrentBalance:N2}")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="12" sm="4">
+                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sessione</MudText>
+                                    @if (ViewModel.Entity.HasOpenSession)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.LockOpen">Aperta</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Lock">Chiusa</MudChip>
+                                    }
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudTabPanel>
+
+                @* ─── Tab 3: Tagli Valuta ──────────────────────────────── *@
+                @if (!ViewModel.IsNewEntity)
+                {
+                    <MudTabPanel Text="Tagli Valuta" Icon="@Icons.Material.Outlined.Money">
+                        <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
+                            <div>
+                                <MudText Typo="Typo.body2">
+                                    Configura le quantità di banconote e monete presenti nel cassetto.
+                                    Questo permette il calcolo ottimizzato del resto.
+                                </MudText>
+                            </div>
+                            <MudButton Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.Refresh"
+                                       Variant="Variant.Outlined"
+                                       OnClick="InitializeDenominationsAsync"
+                                       Disabled="@_initializingDenominations">
+                                @if (_initializingDenominations)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                                }
+                                Inizializza tagli @ViewModel.Entity.CurrencyCode
+                            </MudButton>
+                        </div>
+
+                        @if (ViewModel.CashDenominations.Count == 0)
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mb-3">
+                                Nessun taglio configurato. Usa il pulsante "Inizializza" per caricare i tagli standard per <strong>@ViewModel.Entity.CurrencyCode</strong>.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudSimpleTable Dense="true" Hover="true" Class="mb-3">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Valore</th>
+                                        <th style="width:140px;">Quantità</th>
+                                        <th>Totale</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var denom in ViewModel.CashDenominations)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <MudChip T="string" Size="Size.Small"
+                                                         Icon="@(denom.DenominationType == DenominationType.Banknote ? Icons.Material.Outlined.Money : Icons.Material.Outlined.Circle)"
+                                                         Variant="Variant.Outlined">
+                                                    @(denom.DenominationType == DenominationType.Banknote ? "Banconota" : "Moneta")
+                                                </MudChip>
+                                            </td>
+                                            <td><strong>@($"{ViewModel.Entity.CurrencyCode} {denom.Value:G}")</strong></td>
+                                            <td>
+                                                <MudNumericField Value="@denom.Quantity"
+                                                                 ValueChanged="@((int qty) => UpdateDenominationAsync(denom.Id, qty))"
+                                                                 T="int" Min="0" Max="9999"
+                                                                 Variant="Variant.Outlined"
+                                                                 Margin="Margin.Dense"
+                                                                 Style="width:100px;" />
+                                            </td>
+                                            <td>@($"{ViewModel.Entity.CurrencyCode} {denom.TotalValue:N2}")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+
+                            <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body2">
+                                        <strong>Totale contante contato:</strong>
+                                    </MudText>
+                                    <MudText Typo="Typo.h6" Style="font-weight:700;">
+                                        @($"{ViewModel.Entity.CurrencyCode} {ViewModel.CashDenominations.Sum(d => d.TotalValue):N2}")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudTabPanel>
+                }
+
+                @* ─── Tab 4: Audit ─────────────────────────────────────── *@
+                @if (!ViewModel.IsNewEntity)
+                {
+                    <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History">
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                              Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
+                                              Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                              Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
+                                              Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Class="ef-input" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+                }
+
+            </MudTabs>
         }
-    </DialogContent>
+    </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
-        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
-                   Disabled="@(_loading || _saving)">
-            @if (_saving)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-            }
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@ViewModel.IsSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="SaveAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving || ViewModel.Entity == null)">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    [Parameter] public Guid? DrawerId { get; set; }
+    [Parameter] public Guid? EntityId { get; set; }
 
     private MudForm? _form;
-    private bool _isNew;
-    private bool _loading = true;
-    private bool _saving;
-    private FiscalDrawerDto? _entity;
-
-    private CreateFiscalDrawerDto _model = new();
-    private List<StorePosDto> _availablePos = [];
-    private List<StoreUserDto> _availableOperators = [];
+    private bool _initializingDenominations;
 
     protected override async Task OnInitializedAsync()
     {
-        _isNew = !DrawerId.HasValue;
-        _loading = true;
-
-        var posTask = StorePosService.GetActiveAsync();
-        var opTask = StoreUserService.GetAllAsync();
-
-        await Task.WhenAll(posTask, opTask);
-        _availablePos = posTask.Result;
-        _availableOperators = opTask.Result;
-
-        if (!_isNew && DrawerId.HasValue)
-        {
-            _entity = await FiscalDrawerService.GetByIdAsync(DrawerId.Value);
-            if (_entity is not null)
-            {
-                _model = new CreateFiscalDrawerDto
-                {
-                    Name = _entity.Name,
-                    Code = _entity.Code,
-                    Description = _entity.Description,
-                    AssignmentType = _entity.AssignmentType,
-                    CurrencyCode = _entity.CurrencyCode,
-                    Status = _entity.Status,
-                    OpeningBalance = _entity.OpeningBalance,
-                    PosId = _entity.PosId,
-                    OperatorId = _entity.OperatorId,
-                    Notes = _entity.Notes
-                };
-            }
-        }
-
-        _loading = false;
+        ViewModel.StateChanged += OnViewModelStateChanged;
+        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
     }
 
     private void OnAssignmentTypeChanged()
     {
-        _model.PosId = null;
-        _model.OperatorId = null;
+        if (ViewModel.Entity is null) return;
+        ViewModel.Entity.PosId = null;
+        ViewModel.Entity.OperatorId = null;
+        HandleEntityChanged();
+    }
+
+    private void HandleEntityChanged() => ViewModel.NotifyEntityChanged();
+
+    private async Task InitializeDenominationsAsync()
+    {
+        _initializingDenominations = true;
+        try
+        {
+            var ok = await ViewModel.InitializeDenominationsAsync();
+            if (ok)
+                AppNotification.ShowSuccess($"Tagli {ViewModel.Entity?.CurrencyCode} inizializzati.");
+            else
+                AppNotification.ShowError("Errore nell'inizializzazione dei tagli.");
+        }
+        finally
+        {
+            _initializingDenominations = false;
+        }
+    }
+
+    private async Task UpdateDenominationAsync(Guid denominationId, int quantity)
+    {
+        await ViewModel.UpdateDenominationQuantityAsync(denominationId, quantity);
     }
 
     private async Task SaveAsync()
     {
-        if (_form is null) return;
-        await _form.ValidateAsync();
-        if (!_form.IsValid) return;
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
 
-        _saving = true;
-        try
-        {
-            if (_isNew)
-            {
-                var result = await FiscalDrawerService.CreateAsync(_model);
-                if (result is not null)
-                {
-                    AppNotification.ShowSuccess("Cassetto fiscale creato con successo.");
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    AppNotification.ShowError("Errore durante la creazione.");
-                }
-            }
-            else if (DrawerId.HasValue)
-            {
-                var updateDto = new UpdateFiscalDrawerDto
-                {
-                    Name = _model.Name,
-                    Code = _model.Code,
-                    Description = _model.Description,
-                    AssignmentType = _model.AssignmentType,
-                    CurrencyCode = _model.CurrencyCode,
-                    Status = _model.Status,
-                    PosId = _model.PosId,
-                    OperatorId = _model.OperatorId,
-                    Notes = _model.Notes
-                };
-                var result = await FiscalDrawerService.UpdateAsync(DrawerId.Value, updateDto);
-                if (result is not null)
-                {
-                    AppNotification.ShowSuccess("Cassetto fiscale aggiornato.");
-                    MudDialog.Close(DialogResult.Ok(result));
-                }
-                else
-                {
-                    AppNotification.ShowError("Errore durante l'aggiornamento.");
-                }
-            }
-        }
-        finally
-        {
-            _saving = false;
-        }
+        var success = await ViewModel.SaveEntityAsync();
+        if (success)
+            MudDialog.Close(DialogResult.Ok(true));
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private async Task Cancel()
+    {
+        if (ViewModel.HasUnsavedChanges())
+        {
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("common.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveAsync(); return; }
+        }
+        MudDialog.Close();
+    }
+
+    private void OnViewModelStateChanged() => InvokeAsync(StateHasChanged);
+
+    private static Color GetStatusColor(FiscalDrawerStatus status) => status switch
+    {
+        FiscalDrawerStatus.Active    => Color.Success,
+        FiscalDrawerStatus.Suspended => Color.Warning,
+        FiscalDrawerStatus.Closed    => Color.Default,
+        _                            => Color.Default
+    };
+
+    private static string GetStatusText(FiscalDrawerStatus status) => status switch
+    {
+        FiscalDrawerStatus.Active    => "Attivo",
+        FiscalDrawerStatus.Suspended => "Sospeso",
+        FiscalDrawerStatus.Closed    => "Chiuso",
+        _                            => status.ToString()
+    };
+
+    public void Dispose() => ViewModel.StateChanged -= OnViewModelStateChanged;
 }

@@ -204,6 +204,7 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorDetailViewModel>
 builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorGroupDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.PosDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.StationDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.FiscalDrawerDetailViewModel>();
 
 // POS ViewModel
 builder.Services.AddScoped<EventForge.Client.ViewModels.POSViewModel>();
