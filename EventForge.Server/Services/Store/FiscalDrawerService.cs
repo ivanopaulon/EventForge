@@ -16,15 +16,25 @@ public class FiscalDrawerService(
 {
     #region CRUD
 
-    public async Task<PagedResult<FiscalDrawerDto>> GetFiscalDrawersAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
+    public async Task<PagedResult<FiscalDrawerDto>> GetFiscalDrawersAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
     {
         var tenantId = RequireTenantId();
 
+        // WhereActiveTenant already filters by !IsDeleted, TenantId, and IsActive
         var query = context.FiscalDrawers
             .WhereActiveTenant(tenantId)
             .Include(d => d.Pos)
             .Include(d => d.Operator)
-            .Where(d => !d.IsDeleted);
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLower();
+            query = query.Where(d =>
+                d.Name.ToLower().Contains(term) ||
+                (d.Code != null && d.Code.ToLower().Contains(term)) ||
+                (d.Description != null && d.Description.ToLower().Contains(term)));
+        }
 
         var totalCount = await query.CountAsync(ct);
         var items = await query
@@ -33,9 +43,18 @@ public class FiscalDrawerService(
             .Take(pageSize)
             .ToListAsync(ct);
 
+        // Batch-load open sessions for all returned drawers to avoid N+1
+        var drawerIds = items.Select(d => d.Id).ToList();
+        var openSessions = await context.FiscalDrawerSessions
+            .Where(s => drawerIds.Contains(s.FiscalDrawerId) &&
+                        s.Status == FiscalDrawerSessionStatus.Open &&
+                        !s.IsDeleted &&
+                        s.TenantId == tenantId)
+            .ToDictionaryAsync(s => s.FiscalDrawerId, ct);
+
         return new PagedResult<FiscalDrawerDto>
         {
-            Items = items.Select(MapToDto),
+            Items = items.Select(d => MapToDto(d, openSessions.GetValueOrDefault(d.Id))),
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount
@@ -49,7 +68,9 @@ public class FiscalDrawerService(
             .Include(d => d.Pos)
             .Include(d => d.Operator)
             .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
-        return entity is null ? null : MapToDto(entity);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto?> GetFiscalDrawerByPosIdAsync(Guid posId, CancellationToken ct = default)
@@ -59,7 +80,9 @@ public class FiscalDrawerService(
             .Include(d => d.Pos)
             .Include(d => d.Operator)
             .FirstOrDefaultAsync(d => d.PosId == posId && !d.IsDeleted && d.TenantId == tenantId, ct);
-        return entity is null ? null : MapToDto(entity);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto?> GetFiscalDrawerByOperatorIdAsync(Guid operatorId, CancellationToken ct = default)
@@ -69,7 +92,9 @@ public class FiscalDrawerService(
             .Include(d => d.Pos)
             .Include(d => d.Operator)
             .FirstOrDefaultAsync(d => d.OperatorId == operatorId && !d.IsDeleted && d.TenantId == tenantId, ct);
-        return entity is null ? null : MapToDto(entity);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto> CreateFiscalDrawerAsync(CreateFiscalDrawerDto dto, string currentUser, CancellationToken ct = default)
@@ -99,7 +124,7 @@ public class FiscalDrawerService(
         _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, ct);
         logger.LogInformation("FiscalDrawer {Id} created by {User}", entity.Id, currentUser);
 
-        return MapToDto(entity);
+        return MapToDto(entity, null);
     }
 
     public async Task<FiscalDrawerDto?> UpdateFiscalDrawerAsync(Guid id, UpdateFiscalDrawerDto dto, string currentUser, CancellationToken ct = default)
@@ -111,6 +136,17 @@ public class FiscalDrawerService(
             .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
 
         if (entity is null) return null;
+
+        // Prevent currency change if cash denominations already exist for this drawer
+        if (entity.CurrencyCode != dto.CurrencyCode)
+        {
+            var hasDenominations = await context.CashDenominations
+                .AnyAsync(d => d.FiscalDrawerId == id && !d.IsDeleted && d.TenantId == tenantId, ct);
+            if (hasDenominations)
+                throw new InvalidOperationException(
+                    "Cannot change currency code when cash denominations are already configured. " +
+                    "Reset denominations first via the 'Initialize' button.");
+        }
 
         entity.Name = dto.Name;
         entity.Code = dto.Code;
@@ -127,7 +163,8 @@ public class FiscalDrawerService(
         await context.SaveChangesAsync(ct);
         _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, null, ct);
 
-        return MapToDto(entity);
+        var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<bool> DeleteFiscalDrawerAsync(Guid id, string currentUser, CancellationToken ct = default)
@@ -754,7 +791,7 @@ public class FiscalDrawerService(
 
     #region Mapping
 
-    private static FiscalDrawerDto MapToDto(FiscalDrawer d) => new()
+    private static FiscalDrawerDto MapToDto(FiscalDrawer d, FiscalDrawerSession? openSession) => new()
     {
         Id = d.Id,
         Name = d.Name,
@@ -770,6 +807,8 @@ public class FiscalDrawerService(
         OperatorId = d.OperatorId,
         OperatorName = d.Operator?.Name,
         Notes = d.Notes,
+        HasOpenSession = openSession is not null,
+        CurrentSessionId = openSession?.Id,
         CreatedAt = d.CreatedAt,
         CreatedBy = d.CreatedBy,
         ModifiedAt = d.ModifiedAt,
@@ -837,6 +876,15 @@ public class FiscalDrawerService(
             throw new InvalidOperationException("Tenant context is required.");
         return tenantContext.CurrentTenantId.Value;
     }
+
+    /// <summary>Loads the currently open session for a drawer, if any.</summary>
+    private Task<FiscalDrawerSession?> GetOpenSessionForDrawerAsync(Guid drawerId, Guid tenantId, CancellationToken ct) =>
+        context.FiscalDrawerSessions
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == drawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
 
     #endregion
 }

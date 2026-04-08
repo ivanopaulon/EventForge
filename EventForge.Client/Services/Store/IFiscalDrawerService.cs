@@ -9,7 +9,7 @@ namespace EventForge.Client.Services.Store;
 public interface IFiscalDrawerService
 {
     // CRUD
-    Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20);
+    Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null);
     Task<List<FiscalDrawerDto>> GetAllAsync();
     Task<FiscalDrawerDto?> GetByIdAsync(Guid id);
     Task<FiscalDrawerDto?> GetByPosIdAsync(Guid posId);

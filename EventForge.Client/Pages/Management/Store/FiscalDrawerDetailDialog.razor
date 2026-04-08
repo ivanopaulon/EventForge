@@ -126,6 +126,8 @@
                                            Label="Valuta"
                                            Variant="Variant.Outlined"
                                            Class="ef-select"
+                                           Disabled="@(!ViewModel.IsNewEntity)"
+                                           HelperText="@(ViewModel.IsNewEntity ? "Seleziona la valuta del cassetto." : "La valuta non è modificabile dopo la creazione.")"
                                            @bind-Value:after="HandleEntityChanged">
                                     <MudSelectItem Value="@("EUR")">🇪🇺 EUR — Euro</MudSelectItem>
                                     <MudSelectItem Value="@("USD")">🇺🇸 USD — Dollaro USA</MudSelectItem>

@@ -55,8 +55,8 @@ public class FiscalDrawerDetailViewModel : BaseEntityDetailViewModel<FiscalDrawe
             AvailablePos = posTask.Result;
             AvailableOperators = opTask.Result;
 
-            // Load denominations for existing drawers
-            if (!IsNewEntity)
+            // Load denominations only for existing drawers (entityId is a real GUID, not empty)
+            if (entityId != Guid.Empty)
                 CashDenominations = await _fiscalDrawerService.GetDenominationsAsync(entityId);
         }
         catch (Exception ex)
@@ -67,10 +67,15 @@ public class FiscalDrawerDetailViewModel : BaseEntityDetailViewModel<FiscalDrawe
         }
     }
 
-    // Override so related entities are always loaded (including for new entities)
+    // Override to ensure related entities (POS, operators) are also loaded for NEW entities,
+    // since the base class only calls LoadRelatedEntitiesAsync for existing entities.
     public new async Task LoadEntityAsync(Guid entityId)
     {
-        await LoadRelatedEntitiesAsync(entityId);
+        if (entityId == Guid.Empty)
+        {
+            // New entity: base won't call LoadRelatedEntitiesAsync, so load here first
+            await LoadRelatedEntitiesAsync(Guid.Empty);
+        }
         await base.LoadEntityAsync(entityId);
     }
 

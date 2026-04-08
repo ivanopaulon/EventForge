@@ -14,11 +14,14 @@ public class FiscalDrawerService(
 {
     private const string ApiBase = "api/v1/fiscal-drawers";
 
-    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var url = $"{ApiBase}?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>(url);
         }
         catch (Exception ex)
         {
@@ -243,7 +246,9 @@ public class FiscalDrawerService(
     {
         try
         {
-            var response = await httpClient.PostAsync($"{ApiBase}/{fiscalDrawerId}/denominations/initialize?currencyCode={currencyCode}", null);
+            var response = await httpClient.PostAsync(
+                $"{ApiBase}/{fiscalDrawerId}/denominations/initialize?currencyCode={currencyCode}",
+                new StringContent(string.Empty));
             if (!response.IsSuccessStatusCode) return [];
             return await response.Content.ReadFromJsonAsync<List<CashDenominationDto>>() ?? [];
         }

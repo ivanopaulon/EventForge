@@ -21,7 +21,7 @@ public class FiscalDrawerManagementService : IEntityManagementService<FiscalDraw
         string? searchTerm = null,
         Dictionary<string, object?>? filters = null,
         CancellationToken ct = default)
-        => await _fiscalDrawerService.GetPagedAsync(page, pageSize) ?? new PagedResult<FiscalDrawerDto>();
+        => await _fiscalDrawerService.GetPagedAsync(page, pageSize, searchTerm) ?? new PagedResult<FiscalDrawerDto>();
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {

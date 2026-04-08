@@ -9,7 +9,7 @@ namespace EventForge.Server.Services.Store;
 public interface IFiscalDrawerService
 {
     // CRUD
-    Task<PagedResult<FiscalDrawerDto>> GetFiscalDrawersAsync(int page = 1, int pageSize = 20, CancellationToken ct = default);
+    Task<PagedResult<FiscalDrawerDto>> GetFiscalDrawersAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default);
     Task<FiscalDrawerDto?> GetFiscalDrawerByIdAsync(Guid id, CancellationToken ct = default);
     Task<FiscalDrawerDto?> GetFiscalDrawerByPosIdAsync(Guid posId, CancellationToken ct = default);
     Task<FiscalDrawerDto?> GetFiscalDrawerByOperatorIdAsync(Guid operatorId, CancellationToken ct = default);

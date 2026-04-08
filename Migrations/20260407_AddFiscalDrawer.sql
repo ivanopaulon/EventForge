@@ -185,3 +185,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CashDenomination_TenantId' AND object_id = OBJECT_ID('CashDenominations'))
     CREATE INDEX [IX_CashDenomination_TenantId] ON [CashDenominations] ([TenantId]);
 GO
+
+-- Unique index: one Code per tenant (allows multiple NULLs since NULLs are distinct in SQL Server)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UIX_FiscalDrawer_TenantId_Code' AND object_id = OBJECT_ID('FiscalDrawers'))
+    CREATE UNIQUE INDEX [UIX_FiscalDrawer_TenantId_Code]
+        ON [FiscalDrawers] ([TenantId], [Code])
+        WHERE [Code] IS NOT NULL AND [IsDeleted] = 0;
+GO

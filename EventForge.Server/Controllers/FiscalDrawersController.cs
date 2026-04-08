@@ -22,12 +22,13 @@ public class FiscalDrawersController(
     [ProducesResponseType(typeof(PagedResult<FiscalDrawerDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResult<FiscalDrawerDto>>> GetFiscalDrawers(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
         try
         {
-            var result = await fiscalDrawerService.GetFiscalDrawersAsync(pagination.Page, pagination.PageSize, cancellationToken);
+            var result = await fiscalDrawerService.GetFiscalDrawersAsync(pagination.Page, pagination.PageSize, searchTerm, cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
@@ -122,6 +123,10 @@ public class FiscalDrawersController(
             var result = await fiscalDrawerService.UpdateFiscalDrawerAsync(id, dto, GetCurrentUser(), cancellationToken);
             if (result is null) return CreateNotFoundProblem($"Fiscal drawer {id} not found.");
             return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateConflictProblem(ex.Message);
         }
         catch (Exception ex)
         {
