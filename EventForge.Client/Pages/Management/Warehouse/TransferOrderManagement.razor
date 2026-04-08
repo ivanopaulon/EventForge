@@ -275,51 +275,84 @@
 
     private async Task ShipOrder(TransferOrderDto order)
     {
-        var parameters = new DialogParameters<ShipTransferOrderDialog>
+        try
         {
-            { x => x.TransferOrder, order }
-        };
-        var dialog = await DialogService.ShowAsync<ShipTransferOrderDialog>(
-            TranslationService.GetTranslation("transferOrder.shipDialog", "Ship Transfer Order"), parameters, _dialogOptions);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var parameters = new DialogParameters<ShipTransferOrderDialog>
+            {
+                { x => x.TransferOrder, order }
+            };
+            var dialog = await DialogService.ShowAsync<ShipTransferOrderDialog>(
+                TranslationService.GetTranslation("transferOrder.shipDialog", "Ship Transfer Order"), parameters, _dialogOptions);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _managementPage.RefreshAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"));
+            }
+        }
+        catch (Exception ex)
         {
-            await _managementPage.RefreshAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.shipSuccess", "Transfer order shipped successfully"));
+            Logger.LogError(ex, "Error in ShipOrder.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task ReceiveOrder(TransferOrderDto order)
     {
-        var parameters = new DialogParameters<ReceiveTransferOrderDialog>
+        try
         {
-            { x => x.TransferOrder, order }
-        };
-        var dialog = await DialogService.ShowAsync<ReceiveTransferOrderDialog>(
-            TranslationService.GetTranslation("transferOrder.receiveDialog", "Receive Transfer Order"), parameters, _dialogOptions);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var parameters = new DialogParameters<ReceiveTransferOrderDialog>
+            {
+                { x => x.TransferOrder, order }
+            };
+            var dialog = await DialogService.ShowAsync<ReceiveTransferOrderDialog>(
+                TranslationService.GetTranslation("transferOrder.receiveDialog", "Receive Transfer Order"), parameters, _dialogOptions);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _managementPage.RefreshAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"));
+            }
+        }
+        catch (Exception ex)
         {
-            await _managementPage.RefreshAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.receiveSuccess", "Transfer order received successfully"));
+            Logger.LogError(ex, "Error in ReceiveOrder.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenDetailDialogAsync(Guid id)
     {
-        var parameters = new DialogParameters { [nameof(TransferOrderDetailDialog.EntityId)] = (Guid?)id };
-        var dialog = await DialogService.ShowAsync<TransferOrderDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        await dialog.Result;
+        try
+        {
+            var parameters = new DialogParameters { [nameof(TransferOrderDetailDialog.EntityId)] = (Guid?)id };
+            var dialog = await DialogService.ShowAsync<TransferOrderDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            await dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDetailDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task CreateTransferOrder()
-    {        var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
-            TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+    {
+        try
         {
-            await _managementPage.RefreshAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"));
+            var dialog = await DialogService.ShowAsync<CreateTransferOrderDialog>(
+                TranslationService.GetTranslation("transferOrder.createDialog", "Create Transfer Order"), _dialogOptions);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _managementPage.RefreshAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("transferOrder.createSuccess", "Transfer order created successfully"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in CreateTransferOrder.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

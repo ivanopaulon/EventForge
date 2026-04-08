@@ -153,6 +153,7 @@ public class SupplierProductBulkService(
 
             // Load all product suppliers
             var productSuppliers = await context.ProductSuppliers
+                .AsNoTracking()
                 .Include(ps => ps.Product)
                 .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
                 .ToListAsync(cancellationToken);

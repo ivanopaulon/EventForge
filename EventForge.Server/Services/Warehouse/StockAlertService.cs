@@ -33,6 +33,7 @@ public class StockAlertService(
             }
 
             var query = context.StockAlerts
+                .AsNoTracking()
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -113,6 +114,7 @@ public class StockAlertService(
             }
 
             var alert = await context.StockAlerts
+                .AsNoTracking()
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -135,6 +137,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var alerts = await context.StockAlerts
+                .AsNoTracking()
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -161,6 +164,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var alerts = await context.StockAlerts
+                .AsNoTracking()
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
@@ -308,6 +312,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var lowStockItems = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                 .Where(s => s.TenantId == currentTenantId
@@ -370,6 +375,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var overstockItems = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                 .Where(s => s.TenantId == currentTenantId
@@ -434,6 +440,7 @@ public class StockAlertService(
             var expiringDate = DateTime.UtcNow.AddDays(daysAhead);
 
             var expiringLots = await context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Where(l => l.TenantId == currentTenantId
                          && l.ExpiryDate.HasValue
@@ -446,6 +453,7 @@ public class StockAlertService(
             foreach (var lot in expiringLots)
             {
                 var stocks = await context.Stocks
+                    .AsNoTracking()
                     .Include(s => s.StorageLocation)
                     .Where(s => s.LotId == lot.Id && s.AvailableQuantity > 0)
                     .ToListAsync(cancellationToken);
@@ -528,6 +536,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var alerts = await context.StockAlerts
+                .AsNoTracking()
                 .Where(sa => sa.TenantId == currentTenantId)
                 .ToListAsync(cancellationToken);
 
@@ -587,6 +596,7 @@ public class StockAlertService(
             var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
             var alerts = await context.StockAlerts
+                .AsNoTracking()
                 .Include(sa => sa.Stock)
                     .ThenInclude(s => s!.Product)
                 .Include(sa => sa.Stock)
