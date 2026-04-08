@@ -12,5 +12,5 @@ public interface IVatLookupService
     /// </summary>
     /// <param name="vatNumber">VAT number to lookup (with or without country code)</param>
     /// <returns>VAT lookup result or null if the service is unavailable</returns>
-    Task<VatLookupResultDto?> LookupAsync(string vatNumber);
+    Task<VatLookupResultDto?> LookupAsync(string vatNumber, CancellationToken ct = default);
 }

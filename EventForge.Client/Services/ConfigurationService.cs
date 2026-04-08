@@ -7,15 +7,15 @@ namespace EventForge.Client.Services;
 /// </summary>
 public interface IConfigurationService
 {
-    Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync();
-    Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category);
-    Task<IEnumerable<string>> GetCategoriesAsync();
-    Task<ConfigurationDto?> GetConfigurationAsync(string key);
-    Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto);
-    Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto);
-    Task DeleteConfigurationAsync(string key);
-    Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto);
-    Task ReloadConfigurationAsync();
+    Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync(CancellationToken ct = default);
+    Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category, CancellationToken ct = default);
+    Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default);
+    Task<ConfigurationDto?> GetConfigurationAsync(string key, CancellationToken ct = default);
+    Task<ConfigurationDto> CreateConfigurationAsync(CreateConfigurationDto createDto, CancellationToken ct = default);
+    Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto, CancellationToken ct = default);
+    Task DeleteConfigurationAsync(string key, CancellationToken ct = default);
+    Task<SmtpTestResultDto> TestSmtpAsync(SmtpTestDto testDto, CancellationToken ct = default);
+    Task ReloadConfigurationAsync(CancellationToken ct = default);
 }
 
 public class ConfigurationService(

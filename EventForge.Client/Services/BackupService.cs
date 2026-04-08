@@ -7,12 +7,12 @@ namespace EventForge.Client.Services;
 /// </summary>
 public interface IBackupService
 {
-    Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request);
-    Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId);
-    Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50);
-    Task CancelBackupAsync(Guid backupId);
-    Task<string> GetDownloadUrlAsync(Guid backupId);
-    Task DeleteBackupAsync(Guid backupId);
+    Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default);
+    Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default);
+    Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default);
+    Task CancelBackupAsync(Guid backupId, CancellationToken ct = default);
+    Task<string> GetDownloadUrlAsync(Guid backupId, CancellationToken ct = default);
+    Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default);
 }
 
 public class BackupService(

@@ -318,7 +318,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening price list detail dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -340,7 +340,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening create price list dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -362,7 +362,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening generate price list from documents dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -384,7 +384,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening generate price list from default prices dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nella generazione del listino.");
+            AppNotification.ShowWarning("Si è verificato un errore nella generazione del listino.");
         }
     }
 

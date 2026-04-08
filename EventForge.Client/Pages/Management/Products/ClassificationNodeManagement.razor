@@ -205,7 +205,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening classification node detail dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -226,7 +226,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening classification node add child dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

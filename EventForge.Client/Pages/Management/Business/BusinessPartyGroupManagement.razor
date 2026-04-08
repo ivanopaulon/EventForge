@@ -228,7 +228,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening business party group detail dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

@@ -6,20 +6,20 @@ namespace EventForge.Client.Services
 {
     public interface IHealthService
     {
-        Task<HealthStatusDto?> GetHealthAsync();
-        Task<DetailedHealthStatusDto?> GetDetailedHealthAsync();
+        Task<HealthStatusDto?> GetHealthAsync(CancellationToken ct = default);
+        Task<DetailedHealthStatusDto?> GetDetailedHealthAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Fetches the status of the co-located UpdateAgent from the Server proxy.
         /// Returns null when the Agent is not configured or unreachable.
         /// </summary>
-        Task<AgentStatusClientDto?> GetAgentStatusAsync();
+        Task<AgentStatusClientDto?> GetAgentStatusAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Asks the Server to restart the co-located UpdateAgent Windows Service.
         /// Requires SuperAdmin. Returns (Success, Message).
         /// </summary>
-        Task<(bool Success, string Message)> RestartAgentAsync();
+        Task<(bool Success, string Message)> RestartAgentAsync(CancellationToken ct = default);
     }
 
     public class HealthService(

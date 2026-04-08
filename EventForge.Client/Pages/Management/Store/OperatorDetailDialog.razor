@@ -240,7 +240,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving operator.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
         }
     }
 

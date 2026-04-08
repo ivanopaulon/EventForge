@@ -8,27 +8,27 @@ namespace EventForge.Client.Services
 {
     public interface IAuthService
     {
-        Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest);
-        Task LogoutAsync();
-        Task<bool> IsAuthenticatedAsync();
-        Task<string?> GetAccessTokenAsync();
-        Task<UserDto?> GetCurrentUserAsync();
-        Task<bool> IsInRoleAsync(string role);
+        Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest, CancellationToken ct = default);
+        Task LogoutAsync(CancellationToken ct = default);
+        Task<bool> IsAuthenticatedAsync(CancellationToken ct = default);
+        Task<string?> GetAccessTokenAsync(CancellationToken ct = default);
+        Task<UserDto?> GetCurrentUserAsync(CancellationToken ct = default);
+        Task<bool> IsInRoleAsync(string role, CancellationToken ct = default);
         Task<bool> IsInAnyRoleAsync(params string[] roles);
         Task<bool> HasAllRolesAsync(params string[] roles);
-        Task<string[]> GetUserRolesAsync();
-        Task<bool> IsSuperAdminAsync();
-        Task<bool> IsAdminOrSuperAdminAsync();
+        Task<string[]> GetUserRolesAsync(CancellationToken ct = default);
+        Task<bool> IsSuperAdminAsync(CancellationToken ct = default);
+        Task<bool> IsAdminOrSuperAdminAsync(CancellationToken ct = default);
         event Action? OnAuthenticationStateChanged;
 
         // Nuovo: recupera i tenant disponibili per il login (leggero, cached lato client)
-        Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync();
+        Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default);
 
         // Refresh the JWT token to extend the session
-        Task<bool> RefreshTokenAsync();
+        Task<bool> RefreshTokenAsync(CancellationToken ct = default);
 
         // Get token expiry time
-        Task<TimeSpan?> GetTokenTimeToExpiryAsync();
+        Task<TimeSpan?> GetTokenTimeToExpiryAsync(CancellationToken ct = default);
     }
 
     public class AuthService : IAuthService
@@ -97,7 +97,7 @@ namespace EventForge.Client.Services
             return user?.Roles?.Contains(role, StringComparer.OrdinalIgnoreCase) == true;
         }
 
-        public async Task<bool> IsInAnyRoleAsync(params string[] roles, CancellationToken ct = default)
+        public async Task<bool> IsInAnyRoleAsync(params string[] roles)
         {
             var user = await GetCurrentUserAsync();
             if (user?.Roles == null || !user.Roles.Any())
@@ -106,7 +106,7 @@ namespace EventForge.Client.Services
             return roles.Any(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
         }
 
-        public async Task<bool> HasAllRolesAsync(params string[] roles, CancellationToken ct = default)
+        public async Task<bool> HasAllRolesAsync(params string[] roles)
         {
             var user = await GetCurrentUserAsync();
             if (user?.Roles == null || !user.Roles.Any())

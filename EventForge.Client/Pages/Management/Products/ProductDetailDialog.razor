@@ -128,7 +128,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product {ProductId}.", EntityId);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel caricamento del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento del prodotto.");
         }
     }
 
@@ -151,7 +151,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error reloading product {ProductId}.", EntityId);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel ricaricamento del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore nel ricaricamento del prodotto.");
         }
     }
 
@@ -166,7 +166,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving product {ProductId}.", EntityId);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio del prodotto.");
         }
     }
 

@@ -265,7 +265,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error blocking lot {LotId}.", lot.Id);
-                await AppNotification.ShowWarningAsync("Si è verificato un errore nel blocco del lotto.");
+                AppNotification.ShowWarning("Si è verificato un errore nel blocco del lotto.");
             }
         }
     }
@@ -296,7 +296,7 @@
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error unblocking lot {LotId}.", lot.Id);
-                await AppNotification.ShowWarningAsync("Si è verificato un errore nello sblocco del lotto.");
+                AppNotification.ShowWarning("Si è verificato un errore nello sblocco del lotto.");
             }
         }
     }

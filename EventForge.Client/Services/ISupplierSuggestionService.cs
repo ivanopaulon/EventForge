@@ -12,7 +12,7 @@ public interface ISupplierSuggestionService
     /// </summary>
     /// <param name="productId">Product identifier.</param>
     /// <returns>Supplier suggestions response.</returns>
-    Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId);
+    Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId, CancellationToken ct = default);
 
     /// <summary>
     /// Applies a suggested supplier as preferred.
@@ -21,12 +21,12 @@ public interface ISupplierSuggestionService
     /// <param name="supplierId">Supplier identifier.</param>
     /// <param name="reason">Reason for applying the suggestion.</param>
     /// <returns>True if successful, false otherwise.</returns>
-    Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason);
+    Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason, CancellationToken ct = default);
 
     /// <summary>
     /// Gets reliability metrics for a supplier.
     /// </summary>
     /// <param name="supplierId">Supplier identifier.</param>
     /// <returns>Reliability response.</returns>
-    Task<SupplierReliabilityResponse?> GetSupplierReliabilityAsync(Guid supplierId);
+    Task<SupplierReliabilityResponse?> GetSupplierReliabilityAsync(Guid supplierId, CancellationToken ct = default);
 }

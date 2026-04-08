@@ -38,7 +38,8 @@ namespace EventForge.Client.Services
             string? searchNumber = null,
             EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
-            int pageSize = 20);
+            int pageSize = 20,
+            CancellationToken ct = default);
 
         // BusinessParty Product Analysis
         Task<PagedResult<BusinessPartyProductAnalysisDto>?> GetBusinessPartyProductAnalysisAsync(
@@ -50,7 +51,8 @@ namespace EventForge.Client.Services
             int page = 1,
             int pageSize = 20,
             string? sortBy = null,
-            bool sortDescending = true);
+            bool sortDescending = true,
+            CancellationToken ct = default);
 
         // Supplier Product Bulk Operations
         Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default);
@@ -156,7 +158,8 @@ namespace EventForge.Client.Services
             string? searchNumber = null,
             EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
-            int pageSize = 20)
+            int pageSize = 20,
+            CancellationToken ct = default)
         {
             var query = $"api/v1/businessparties/{businessPartyId}/documents?page={page}&pageSize={pageSize}";
 
@@ -201,7 +204,8 @@ namespace EventForge.Client.Services
             int page = 1,
             int pageSize = 20,
             string? sortBy = null,
-            bool sortDescending = true)
+            bool sortDescending = true,
+            CancellationToken ct = default)
         {
             var query = $"api/v1/businessparties/{businessPartyId}/product-analysis?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
 

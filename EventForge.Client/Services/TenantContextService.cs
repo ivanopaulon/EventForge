@@ -28,17 +28,17 @@ public interface ITenantContextService
     /// </summary>
     /// <param name="tenantId">Tenant ID to set as current</param>
     /// <param name="tenant">Optional tenant details</param>
-    Task SetCurrentTenantAsync(Guid? tenantId, TenantResponseDto? tenant = null);
+    Task SetCurrentTenantAsync(Guid? tenantId, TenantResponseDto? tenant = null, CancellationToken ct = default);
 
     /// <summary>
     /// Clears the current tenant context.
     /// </summary>
-    Task ClearCurrentTenantAsync();
+    Task ClearCurrentTenantAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Initializes the service and loads persisted tenant selection.
     /// </summary>
-    Task InitializeAsync();
+    Task InitializeAsync(CancellationToken ct = default);
 }
 
 /// <summary>

@@ -9,10 +9,10 @@ namespace EventForge.Client.Services;
 /// </summary>
 public interface IPerformanceOptimizationService
 {
-    Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
+    Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null, CancellationToken ct = default);
     void InvalidateCache(string key);
     void InvalidateCachePattern(string pattern);
-    Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay);
+    Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay, CancellationToken ct = default);
     void PreloadData<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
     void SetCacheExpiration(string key, TimeSpan expiration);
     bool IsCached(string key);

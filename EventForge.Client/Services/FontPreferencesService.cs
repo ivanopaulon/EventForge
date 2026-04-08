@@ -8,9 +8,9 @@ public interface IFontPreferencesService
 {
     UserDisplayPreferencesDto CurrentPreferences { get; }
     event Action? OnPreferencesChanged;
-    Task InitializeAsync();
-    Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences);
-    Task ApplyPreferencesAsync();
+    Task InitializeAsync(CancellationToken ct = default);
+    Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default);
+    Task ApplyPreferencesAsync(CancellationToken ct = default);
 }
 
 public class FontPreferencesService(

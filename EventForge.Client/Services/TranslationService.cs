@@ -27,7 +27,7 @@ public interface ITranslationService
     /// Sets the current language and persists it.
     /// </summary>
     /// <param name="language">Language code (it, en, es, fr)</param>
-    Task SetLanguageAsync(string language);
+    Task SetLanguageAsync(string language, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a translation by key, with optional fallback.
@@ -64,7 +64,7 @@ public interface ITranslationService
     /// <summary>
     /// Loads translations from API (for SuperAdmin management).
     /// </summary>
-    Task LoadTranslationsFromApiAsync();
+    Task LoadTranslationsFromApiAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Checks if a translation key exists.

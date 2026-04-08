@@ -173,7 +173,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening BrandDetailDialog for ID {Id}.", id);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

@@ -7,16 +7,16 @@ namespace EventForge.Client.Services
     public interface ILogsService
     {
         // Application Logs
-        Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams);
-        Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id);
-        Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync();
-        Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto);
+        Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default);
+        Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id, CancellationToken ct = default);
+        Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync(CancellationToken ct = default);
+        Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto, CancellationToken ct = default);
 
         // Audit Logs  
-        Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams);
-        Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id);
-        Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync();
-        Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto);
+        Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default);
+        Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default);
+        Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default);
+        Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto, CancellationToken ct = default);
 
         // Real-time subscriptions
         Task SubscribeToApplicationLogsAsync(Func<ApplicationLogDto, Task> onLogReceived, CancellationToken ct = default);

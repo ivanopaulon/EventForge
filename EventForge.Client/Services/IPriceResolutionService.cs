@@ -39,5 +39,5 @@ public interface IPriceResolutionService
     /// </summary>
     /// <param name="request">Batch request with items to resolve</param>
     /// <returns>Batch response with results per key and errors</returns>
-    Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request);
+    Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request, CancellationToken ct = default);
 }

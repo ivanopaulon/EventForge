@@ -10,32 +10,32 @@ public interface IHelpService
     /// <summary>
     /// Gets the user's onboarding progress.
     /// </summary>
-    Task<Dictionary<string, bool>> GetOnboardingProgressAsync();
+    Task<Dictionary<string, bool>> GetOnboardingProgressAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Sets a specific onboarding step as completed.
     /// </summary>
-    Task SetOnboardingStepCompletedAsync(string stepId);
+    Task SetOnboardingStepCompletedAsync(string stepId, CancellationToken ct = default);
 
     /// <summary>
     /// Checks if a specific onboarding step has been completed.
     /// </summary>
-    Task<bool> IsOnboardingStepCompletedAsync(string stepId);
+    Task<bool> IsOnboardingStepCompletedAsync(string stepId, CancellationToken ct = default);
 
     /// <summary>
     /// Starts an interactive walkthrough for a specific component.
     /// </summary>
-    Task StartWalkthroughAsync(string componentId);
+    Task StartWalkthroughAsync(string componentId, CancellationToken ct = default);
 
     /// <summary>
     /// Resets onboarding progress (for testing or user preference).
     /// </summary>
-    Task ResetOnboardingProgressAsync();
+    Task ResetOnboardingProgressAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets help content for a specific component.
     /// </summary>
-    Task<string> GetHelpContentAsync(string componentId, string? section = null);
+    Task<string> GetHelpContentAsync(string componentId, string? section = null, CancellationToken ct = default);
 }
 
 /// <summary>

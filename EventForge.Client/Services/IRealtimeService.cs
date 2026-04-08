@@ -17,12 +17,12 @@ public interface IRealtimeService
     /// <summary>
     /// Starts all SignalR connections (audit, notification, chat).
     /// </summary>
-    Task StartAllConnectionsAsync();
+    Task StartAllConnectionsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Stops all SignalR connections gracefully.
     /// </summary>
-    Task StopAllConnectionsAsync();
+    Task StopAllConnectionsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets whether the unified app connection (notifications + audit + alerts + config + updates) is active.
@@ -171,42 +171,42 @@ public interface IRealtimeService
     /// <summary>
     /// Sends a chat message with optimized delivery.
     /// </summary>
-    Task SendChatMessageAsync(SendMessageDto messageDto);
+    Task SendChatMessageAsync(SendMessageDto messageDto, CancellationToken ct = default);
 
     /// <summary>
     /// Sends typing indicator with debouncing (300ms).
     /// </summary>
-    Task SendTypingIndicatorAsync(Guid chatId, bool isTyping);
+    Task SendTypingIndicatorAsync(Guid chatId, bool isTyping, CancellationToken ct = default);
 
     /// <summary>
     /// Joins a chat room.
     /// </summary>
-    Task JoinChatAsync(Guid chatId);
+    Task JoinChatAsync(Guid chatId, CancellationToken ct = default);
 
     /// <summary>
     /// Leaves a chat room.
     /// </summary>
-    Task LeaveChatAsync(Guid chatId);
+    Task LeaveChatAsync(Guid chatId, CancellationToken ct = default);
 
     /// <summary>
     /// Creates a new chat.
     /// </summary>
-    Task CreateChatAsync(CreateChatDto createChatDto);
+    Task CreateChatAsync(CreateChatDto createChatDto, CancellationToken ct = default);
 
     /// <summary>
     /// Edits a message.
     /// </summary>
-    Task EditMessageAsync(EditMessageDto editDto);
+    Task EditMessageAsync(EditMessageDto editDto, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes a message.
     /// </summary>
-    Task DeleteMessageAsync(Guid messageId, string? reason = null);
+    Task DeleteMessageAsync(Guid messageId, string? reason = null, CancellationToken ct = default);
 
     /// <summary>
     /// Marks message as read.
     /// </summary>
-    Task MarkMessageAsReadAsync(Guid messageId);
+    Task MarkMessageAsReadAsync(Guid messageId, CancellationToken ct = default);
 
     #endregion
 
@@ -215,22 +215,22 @@ public interface IRealtimeService
     /// <summary>
     /// Subscribes to specific notification types.
     /// </summary>
-    Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes);
+    Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes, CancellationToken ct = default);
 
     /// <summary>
     /// Unsubscribes from specific notification types.
     /// </summary>
-    Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes);
+    Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes, CancellationToken ct = default);
 
     /// <summary>
     /// Acknowledges a notification.
     /// </summary>
-    Task AcknowledgeNotificationAsync(Guid notificationId);
+    Task AcknowledgeNotificationAsync(Guid notificationId, CancellationToken ct = default);
 
     /// <summary>
     /// Archives a notification.
     /// </summary>
-    Task ArchiveNotificationAsync(Guid notificationId);
+    Task ArchiveNotificationAsync(Guid notificationId, CancellationToken ct = default);
 
     #endregion
 
@@ -239,22 +239,22 @@ public interface IRealtimeService
     /// <summary>
     /// Starts audit connection and joins audit log group.
     /// </summary>
-    Task StartAuditConnectionAsync();
+    Task StartAuditConnectionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Starts notification connection.
     /// </summary>
-    Task StartNotificationConnectionAsync();
+    Task StartNotificationConnectionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Starts chat connection.
     /// </summary>
-    Task StartChatConnectionAsync();
+    Task StartChatConnectionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Starts the document collaboration connection.
     /// </summary>
-    Task StartDocumentCollaborationConnectionAsync();
+    Task StartDocumentCollaborationConnectionAsync(CancellationToken ct = default);
 
     #endregion
 
@@ -321,22 +321,22 @@ public interface IRealtimeService
     /// <summary>
     /// Joins a document collaboration room to receive real-time updates.
     /// </summary>
-    Task JoinDocumentAsync(Guid documentId);
+    Task JoinDocumentAsync(Guid documentId, CancellationToken ct = default);
 
     /// <summary>
     /// Leaves a document collaboration room.
     /// </summary>
-    Task LeaveDocumentAsync(Guid documentId);
+    Task LeaveDocumentAsync(Guid documentId, CancellationToken ct = default);
 
     /// <summary>
     /// Requests an exclusive edit lock for a document.
     /// </summary>
-    Task<bool> RequestDocumentEditLockAsync(Guid documentId);
+    Task<bool> RequestDocumentEditLockAsync(Guid documentId, CancellationToken ct = default);
 
     /// <summary>
     /// Releases the edit lock for a document.
     /// </summary>
-    Task ReleaseDocumentEditLockAsync(Guid documentId);
+    Task ReleaseDocumentEditLockAsync(Guid documentId, CancellationToken ct = default);
 
     #endregion
 
@@ -368,12 +368,12 @@ public interface IRealtimeService
     /// Subscribes to real-time status updates for the given printer.
     /// Reference-counted: the hub group is joined on the first subscriber and left only when all unsubscribe.
     /// </summary>
-    Task SubscribeToPrinterAsync(Guid printerId);
+    Task SubscribeToPrinterAsync(Guid printerId, CancellationToken ct = default);
 
     /// <summary>
     /// Decrements the subscriber count for the printer and leaves the hub group when it reaches zero.
     /// </summary>
-    Task UnsubscribeFromPrinterAsync(Guid printerId);
+    Task UnsubscribeFromPrinterAsync(Guid printerId, CancellationToken ct = default);
 
     #endregion
 

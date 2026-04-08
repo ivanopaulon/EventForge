@@ -261,7 +261,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening create document counter dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -289,7 +289,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening edit document counter dialog for {CounterId}.", counter.Id);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

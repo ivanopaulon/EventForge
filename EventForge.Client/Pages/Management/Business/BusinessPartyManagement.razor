@@ -358,7 +358,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening create business party dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -380,7 +380,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening business party detail dialog for ID {Id}.", id);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -416,7 +416,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening manage supplier products dialog for {SupplierId}.", supplier.Id);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
@@ -456,7 +456,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening bulk VAT update dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
     // ──────────────────────────── Display helpers ────────────────────────────

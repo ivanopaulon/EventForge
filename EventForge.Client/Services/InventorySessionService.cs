@@ -88,22 +88,22 @@ public interface IInventorySessionService
     /// <summary>
     /// Saves the current inventory session state.
     /// </summary>
-    Task SaveSessionAsync(InventorySessionState state);
+    Task SaveSessionAsync(InventorySessionState state, CancellationToken ct = default);
 
     /// <summary>
     /// Loads the current inventory session state.
     /// </summary>
-    Task<InventorySessionState?> LoadSessionAsync();
+    Task<InventorySessionState?> LoadSessionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Clears the current inventory session state.
     /// </summary>
-    Task ClearSessionAsync();
+    Task ClearSessionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Checks if there's an active inventory session.
     /// </summary>
-    Task<bool> HasActiveSessionAsync();
+    Task<bool> HasActiveSessionAsync(CancellationToken ct = default);
 }
 
 /// <summary>

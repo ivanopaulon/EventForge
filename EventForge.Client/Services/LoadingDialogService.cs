@@ -13,22 +13,22 @@ public interface ILoadingDialogService
     /// <summary>
     /// Shows the loading dialog with specified options
     /// </summary>
-    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false);
+    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the current operation text
     /// </summary>
-    Task UpdateOperationAsync(string operation);
+    Task UpdateOperationAsync(string operation, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the progress percentage (0-100)
     /// </summary>
-    Task UpdateProgressAsync(double progress);
+    Task UpdateProgressAsync(double progress, CancellationToken ct = default);
 
     /// <summary>
     /// Hides the loading dialog
     /// </summary>
-    Task HideAsync();
+    Task HideAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets the current state of the loading dialog

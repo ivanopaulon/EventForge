@@ -422,7 +422,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error updating denomination {DenominationId} quantity.", denominationId);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'aggiornamento della denominazione.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento della denominazione.");
         }
     }
 
@@ -443,7 +443,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving fiscal drawer.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel salvataggio.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
         }
     }
 

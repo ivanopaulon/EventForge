@@ -238,7 +238,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening audit log for payment method {Id}.", paymentMethod.Id);
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del registro modifiche.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del registro modifiche.");
         }
     }
 
@@ -266,7 +266,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening payment method detail dialog.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

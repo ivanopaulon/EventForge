@@ -325,7 +325,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading draft inventory documents.");
-            await AppNotification.ShowWarningAsync("Si è verificato un errore nel caricamento dei documenti.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei documenti.");
         }
     }
 

@@ -11,20 +11,20 @@ namespace EventForge.Client.Services
     public interface IClientLogService
     {
         // Standard logging methods
-        Task LogDebugAsync(string message, string? category = null, Dictionary<string, object>? properties = null);
-        Task LogInformationAsync(string message, string? category = null, Dictionary<string, object>? properties = null);
-        Task LogWarningAsync(string message, string? category = null, Dictionary<string, object>? properties = null);
-        Task LogErrorAsync(string message, Exception? exception = null, string? category = null, Dictionary<string, object>? properties = null);
-        Task LogCriticalAsync(string message, Exception? exception = null, string? category = null, Dictionary<string, object>? properties = null);
+        Task LogDebugAsync(string message, string? category = null, Dictionary<string, object>? properties = null, CancellationToken ct = default);
+        Task LogInformationAsync(string message, string? category = null, Dictionary<string, object>? properties = null, CancellationToken ct = default);
+        Task LogWarningAsync(string message, string? category = null, Dictionary<string, object>? properties = null, CancellationToken ct = default);
+        Task LogErrorAsync(string message, Exception? exception = null, string? category = null, Dictionary<string, object>? properties = null, CancellationToken ct = default);
+        Task LogCriticalAsync(string message, Exception? exception = null, string? category = null, Dictionary<string, object>? properties = null, CancellationToken ct = default);
 
         // Advanced logging methods
-        Task LogAsync(ClientLogDto clientLog);
-        Task LogBatchAsync(List<ClientLogDto> logs);
+        Task LogAsync(ClientLogDto clientLog, CancellationToken ct = default);
+        Task LogBatchAsync(List<ClientLogDto> logs, CancellationToken ct = default);
 
         // Buffer management
-        Task FlushAsync();
-        Task<List<ClientLogDto>> GetLocalLogsAsync();
-        Task ClearLocalLogsAsync();
+        Task FlushAsync(CancellationToken ct = default);
+        Task<List<ClientLogDto>> GetLocalLogsAsync(CancellationToken ct = default);
+        Task ClearLocalLogsAsync(CancellationToken ct = default);
 
         // Configuration
         void SetBatchSize(int batchSize);
@@ -487,7 +487,7 @@ namespace EventForge.Client.Services
 
         private void OnFlushTimer(object? state)
         {
-            _ = Task.Run(FlushAsync);
+            _ = Task.Run(() => FlushAsync());
         }
 
         #endregion

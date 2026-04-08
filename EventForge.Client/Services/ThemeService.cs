@@ -11,10 +11,10 @@ public interface IThemeService
     bool IsDarkMode { get; }
     string CurrentTheme { get; }
     event Action? OnThemeChanged;
-    Task ToggleThemeAsync();
-    Task SetThemeAsync(bool isDarkMode);
-    Task SetThemeAsync(string themeKey);
-    Task InitializeAsync();
+    Task ToggleThemeAsync(CancellationToken ct = default);
+    Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default);
+    Task SetThemeAsync(string themeKey, CancellationToken ct = default);
+    Task InitializeAsync(CancellationToken ct = default);
 }
 
 public class ThemeInfo
