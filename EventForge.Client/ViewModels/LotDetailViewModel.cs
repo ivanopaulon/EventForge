@@ -56,7 +56,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task<LotDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _lotService.GetLotByIdAsync(entityId);
+        return await _lotService.GetLotByIdAsync(entityId, ct);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
@@ -117,12 +117,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override Task<LotDto?> CreateEntityAsync(CreateLotDto createDto, CancellationToken ct = default)
     {
-        return _lotService.CreateLotAsync(createDto);
+        return _lotService.CreateLotAsync(createDto, ct);
     }
 
     protected override Task<LotDto?> UpdateEntityAsync(Guid entityId, UpdateLotDto updateDto, CancellationToken ct = default)
     {
-        return _lotService.UpdateLotAsync(entityId, updateDto);
+        return _lotService.UpdateLotAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(LotDto entity)

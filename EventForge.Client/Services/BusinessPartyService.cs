@@ -7,17 +7,17 @@ namespace EventForge.Client.Services
     public interface IBusinessPartyService
     {
         // BusinessParty Management
-        Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20);
-        Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id);
-        Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType);
-        Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50);
-        Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync();
-        Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto);
-        Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto);
-        Task DeleteBusinessPartyAsync(Guid id);
+        Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default);
+        Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id, CancellationToken ct = default);
+        Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken ct = default);
+        Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken ct = default);
+        Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken ct = default);
+        Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto, CancellationToken ct = default);
+        Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto, CancellationToken ct = default);
+        Task DeleteBusinessPartyAsync(Guid id, CancellationToken ct = default);
 
         // BusinessPartyAccounting Management
-        Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId);
+        Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId, CancellationToken ct = default);
 
         // Full Detail Aggregated Query
         /// <summary>
@@ -53,8 +53,8 @@ namespace EventForge.Client.Services
             bool sortDescending = true);
 
         // Supplier Product Bulk Operations
-        Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request);
-        Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request);
+        Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default);
+        Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default);
     }
 
     public class BusinessPartyService(
@@ -185,7 +185,7 @@ namespace EventForge.Client.Services
                 query += $"&approvalStatus={approvalStatus.Value}";
             }
 
-            return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query);
+            return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query, ct);
         }
 
         #endregion
@@ -230,7 +230,7 @@ namespace EventForge.Client.Services
                 query += $"&sortBy={Uri.EscapeDataString(sortBy)}";
             }
 
-            return await httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query);
+            return await httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query, ct);
         }
 
         #endregion
@@ -241,14 +241,14 @@ namespace EventForge.Client.Services
         {
             return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-preview",
-                request);
+                request, ct);
         }
 
         public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default)
         {
             return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
                 $"api/v1/businessparties/{supplierId}/products/bulk-update",
-                request);
+                request, ct);
         }
 
         #endregion

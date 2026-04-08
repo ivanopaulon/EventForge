@@ -41,7 +41,8 @@ namespace EventForge.Client.Services
 
         public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}");
+            return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}", ct);
+
         }
 
         public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync(CancellationToken ct = default)
@@ -68,7 +69,8 @@ namespace EventForge.Client.Services
 
         public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}");
+            return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}", ct);
+
         }
 
         public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default)

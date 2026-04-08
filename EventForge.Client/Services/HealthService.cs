@@ -41,7 +41,8 @@ namespace EventForge.Client.Services
         {
             try
             {
-                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
+                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status", ct);
+
             }
             catch (Exception ex)
             {

@@ -19,7 +19,8 @@ public class NoteFlagService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<NoteFlagDto>>(BaseUrl);
+            return await httpClientService.GetAsync<List<NoteFlagDto>>(BaseUrl, ct);
+
         }
         catch (Exception ex)
         {
@@ -42,7 +43,8 @@ public class NoteFlagService(
 
         try
         {
-            var pagedResult = await httpClientService.GetAsync<PagedResult<NoteFlagDto>>($"{BaseUrl}/active");
+            var pagedResult = await httpClientService.GetAsync<PagedResult<NoteFlagDto>>($"{BaseUrl}/active", ct);
+
             var activeNoteFlags = pagedResult?.Items?.ToList() ?? [];
 
             // Store in cache (60 minutes - LongCache)
@@ -71,7 +73,8 @@ public class NoteFlagService(
     {
         try
         {
-            return await httpClientService.GetAsync<NoteFlagDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<NoteFlagDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -84,7 +87,8 @@ public class NoteFlagService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateNoteFlagDto, NoteFlagDto>(BaseUrl, createDto);
+            var result = await httpClientService.PostAsync<CreateNoteFlagDto, NoteFlagDto>(BaseUrl, createDto, ct);
+
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);
@@ -103,7 +107,8 @@ public class NoteFlagService(
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateNoteFlagDto, NoteFlagDto>($"{BaseUrl}/{id}", updateDto);
+            var result = await httpClientService.PutAsync<UpdateNoteFlagDto, NoteFlagDto>($"{BaseUrl}/{id}", updateDto, ct);
+
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);

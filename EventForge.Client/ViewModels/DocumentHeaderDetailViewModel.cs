@@ -100,7 +100,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
 
     protected override async Task<DocumentHeaderDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _documentHeaderService.GetDocumentHeaderByIdAsync(entityId, false);
+        return await _documentHeaderService.GetDocumentHeaderByIdAsync(entityId, false, ct);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
@@ -223,12 +223,12 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
 
     protected override Task<DocumentHeaderDto?> CreateEntityAsync(CreateDocumentHeaderDto createDto, CancellationToken ct = default)
     {
-        return _documentHeaderService.CreateDocumentHeaderAsync(createDto);
+        return _documentHeaderService.CreateDocumentHeaderAsync(createDto, ct);
     }
 
     protected override Task<DocumentHeaderDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentHeaderDto updateDto, CancellationToken ct = default)
     {
-        return _documentHeaderService.UpdateDocumentHeaderAsync(entityId, updateDto);
+        return _documentHeaderService.UpdateDocumentHeaderAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(DocumentHeaderDto entity)

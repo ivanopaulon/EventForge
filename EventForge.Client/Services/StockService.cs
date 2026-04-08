@@ -51,7 +51,8 @@ public class StockService(
     {
         try
         {
-            return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -65,7 +66,8 @@ public class StockService(
         try
         {
             // Usa il nuovo endpoint dedicato creato nel server
-            var stocks = await httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}");
+            var stocks = await httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}", ct);
+
             return stocks ?? Enumerable.Empty<StockDto>();
         }
         catch (Exception ex)
@@ -131,7 +133,8 @@ public class StockService(
     {
         try
         {
-            return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto);
+            return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto, ct);
+
         }
         catch (Exception ex)
         {
@@ -144,7 +147,8 @@ public class StockService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto);
+            return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto, ct);
+
         }
         catch (Exception ex)
         {
@@ -157,7 +161,8 @@ public class StockService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto);
+            return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto, ct);
+
         }
         catch (Exception ex)
         {

@@ -15,7 +15,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<TableSessionDto>>(BaseUrl);
+            return await httpClientService.GetAsync<List<TableSessionDto>>(BaseUrl, ct);
+
         }
         catch (Exception ex)
         {
@@ -28,7 +29,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.GetAsync<TableSessionDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<TableSessionDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -41,7 +43,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<TableSessionDto>>($"{BaseUrl}/available");
+            return await httpClientService.GetAsync<List<TableSessionDto>>($"{BaseUrl}/available", ct);
+
         }
         catch (Exception ex)
         {
@@ -54,7 +57,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateTableSessionDto, TableSessionDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateTableSessionDto, TableSessionDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -67,7 +71,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateTableSessionDto, TableSessionDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateTableSessionDto, TableSessionDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -80,7 +85,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateTableStatusDto, TableSessionDto>($"{BaseUrl}/{id}/status", statusDto);
+            return await httpClientService.PutAsync<UpdateTableStatusDto, TableSessionDto>($"{BaseUrl}/{id}/status", statusDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -108,7 +114,8 @@ public class TableManagementService(
         try
         {
             var dateStr = date.ToString("yyyy-MM-dd");
-            return await httpClientService.GetAsync<List<TableReservationDto>>($"{BaseUrl}/reservations?date={dateStr}");
+            return await httpClientService.GetAsync<List<TableReservationDto>>($"{BaseUrl}/reservations?date={dateStr}", ct);
+
         }
         catch (Exception ex)
         {
@@ -121,7 +128,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.GetAsync<TableReservationDto>($"{BaseUrl}/reservations/{id}");
+            return await httpClientService.GetAsync<TableReservationDto>($"{BaseUrl}/reservations/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -134,7 +142,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations", createDto);
+            return await httpClientService.PostAsync<CreateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations", createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -147,7 +156,8 @@ public class TableManagementService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateTableReservationDto, TableReservationDto>($"{BaseUrl}/reservations/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {

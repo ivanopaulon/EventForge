@@ -32,7 +32,8 @@ public class LotService(
                 queryParams.Add($"expiringSoon={expiringSoon.Value}");
 
             var query = string.Join("&", queryParams);
-            return await httpClientService.GetAsync<PagedResult<LotDto>>($"{BaseUrl}?{query}");
+            return await httpClientService.GetAsync<PagedResult<LotDto>>($"{BaseUrl}?{query}", ct);
+
         }
         catch (Exception ex)
         {
@@ -45,7 +46,8 @@ public class LotService(
     {
         try
         {
-            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -58,7 +60,8 @@ public class LotService(
     {
         try
         {
-            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/code/{Uri.EscapeDataString(code)}");
+            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/code/{Uri.EscapeDataString(code)}", ct);
+
         }
         catch (Exception ex)
         {
@@ -71,7 +74,8 @@ public class LotService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LotDto>>($"{BaseUrl}/expiring?daysAhead={daysAhead}");
+            return await httpClientService.GetAsync<IEnumerable<LotDto>>($"{BaseUrl}/expiring?daysAhead={daysAhead}", ct);
+
         }
         catch (Exception ex)
         {
@@ -84,7 +88,8 @@ public class LotService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateLotDto, LotDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateLotDto, LotDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -97,7 +102,8 @@ public class LotService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateLotDto, LotDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateLotDto, LotDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {

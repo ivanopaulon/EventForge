@@ -51,7 +51,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
 
     protected override async Task<StoreUserDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        var entity = await _storeUserService.GetByIdAsync(entityId);
+        var entity = await _storeUserService.GetByIdAsync(entityId, ct);
         if (entity != null)
         {
             Username = entity.Username;
@@ -65,7 +65,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         // Load available groups for both new and existing entities
         try
         {
-            AvailableGroups = await _groupService.GetAllAsync();
+            AvailableGroups = await _groupService.GetAllAsync(ct);
         }
         catch (Exception ex)
         {
@@ -119,12 +119,12 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
 
     protected override Task<StoreUserDto?> CreateEntityAsync(CreateStoreUserDto createDto, CancellationToken ct = default)
     {
-        return _storeUserService.CreateAsync(createDto);
+        return _storeUserService.CreateAsync(createDto, ct);
     }
 
     protected override Task<StoreUserDto?> UpdateEntityAsync(Guid entityId, UpdateStoreUserDto updateDto, CancellationToken ct = default)
     {
-        return _storeUserService.UpdateAsync(entityId, updateDto);
+        return _storeUserService.UpdateAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(StoreUserDto entity)

@@ -32,7 +32,8 @@ public class BackupService(
             await loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
             await loadingDialogService.UpdateProgressAsync(50);
 
-            var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request);
+            var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request, ct);
+
 
             await loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
             await loadingDialogService.UpdateProgressAsync(100);
@@ -54,7 +55,8 @@ public class BackupService(
     {
         try
         {
-            return await httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}");
+            return await httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}", ct);
+
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -71,7 +73,8 @@ public class BackupService(
     {
         try
         {
-            var response = await httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}");
+            var response = await httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}", ct);
+
             return response ?? Enumerable.Empty<BackupStatusDto>();
         }
         catch (Exception ex)
@@ -85,7 +88,8 @@ public class BackupService(
     {
         try
         {
-            await httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null);
+            await httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null, ct);
+
         }
         catch (Exception ex)
         {

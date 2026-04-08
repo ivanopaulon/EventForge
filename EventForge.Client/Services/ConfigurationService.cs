@@ -27,7 +27,8 @@ public class ConfigurationService(
     {
         try
         {
-            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/v1/super-admin/configuration");
+            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>("api/v1/super-admin/configuration", ct);
+
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -41,7 +42,8 @@ public class ConfigurationService(
     {
         try
         {
-            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/v1/super-admin/configuration/category/{category}");
+            var response = await httpClientService.GetAsync<IEnumerable<ConfigurationDto>>($"api/v1/super-admin/configuration/category/{category}", ct);
+
             return response ?? Enumerable.Empty<ConfigurationDto>();
         }
         catch (Exception ex)
@@ -55,7 +57,8 @@ public class ConfigurationService(
     {
         try
         {
-            var response = await httpClientService.GetAsync<IEnumerable<string>>("api/v1/super-admin/configuration/categories");
+            var response = await httpClientService.GetAsync<IEnumerable<string>>("api/v1/super-admin/configuration/categories", ct);
+
             return response ?? Enumerable.Empty<string>();
         }
         catch (Exception ex)
@@ -69,7 +72,8 @@ public class ConfigurationService(
     {
         try
         {
-            return await httpClientService.GetAsync<ConfigurationDto>($"api/v1/super-admin/configuration/{key}");
+            return await httpClientService.GetAsync<ConfigurationDto>($"api/v1/super-admin/configuration/{key}", ct);
+
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -86,7 +90,8 @@ public class ConfigurationService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/v1/super-admin/configuration", createDto);
+            var result = await httpClientService.PostAsync<CreateConfigurationDto, ConfigurationDto>("api/v1/super-admin/configuration", createDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -100,7 +105,8 @@ public class ConfigurationService(
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/v1/super-admin/configuration/{key}", updateDto);
+            var result = await httpClientService.PutAsync<UpdateConfigurationDto, ConfigurationDto>($"api/v1/super-admin/configuration/{key}", updateDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -127,7 +133,8 @@ public class ConfigurationService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/v1/super-admin/configuration/test-smtp", testDto);
+            var result = await httpClientService.PostAsync<SmtpTestDto, SmtpTestResultDto>("api/v1/super-admin/configuration/test-smtp", testDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to deserialize response");
         }
         catch (Exception ex)
@@ -141,7 +148,8 @@ public class ConfigurationService(
     {
         try
         {
-            await httpClientService.PostAsync<object?>("api/v1/super-admin/configuration/reload", null);
+            await httpClientService.PostAsync<object?>("api/v1/super-admin/configuration/reload", null, ct);
+
         }
         catch (Exception ex)
         {

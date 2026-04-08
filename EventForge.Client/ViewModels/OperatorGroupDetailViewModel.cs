@@ -34,7 +34,7 @@ public class OperatorGroupDetailViewModel : BaseEntityDetailViewModel<StoreUserG
 
     protected override Task<StoreUserGroupDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return _groupService.GetByIdAsync(entityId);
+        return _groupService.GetByIdAsync(entityId, ct);
     }
 
     protected override CreateStoreUserGroupDto MapToCreateDto(StoreUserGroupDto entity)
@@ -65,12 +65,12 @@ public class OperatorGroupDetailViewModel : BaseEntityDetailViewModel<StoreUserG
 
     protected override Task<StoreUserGroupDto?> CreateEntityAsync(CreateStoreUserGroupDto createDto, CancellationToken ct = default)
     {
-        return _groupService.CreateAsync(createDto);
+        return _groupService.CreateAsync(createDto, ct);
     }
 
     protected override Task<StoreUserGroupDto?> UpdateEntityAsync(Guid entityId, UpdateStoreUserGroupDto updateDto, CancellationToken ct = default)
     {
-        return _groupService.UpdateAsync(entityId, updateDto);
+        return _groupService.UpdateAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(StoreUserGroupDto entity)

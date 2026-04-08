@@ -48,7 +48,7 @@ public class DocumentCounterDetailViewModel : BaseEntityDetailViewModel<Document
 
     protected override async Task<DocumentCounterDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _documentCounterService.GetDocumentCounterByIdAsync(entityId);
+        return await _documentCounterService.GetDocumentCounterByIdAsync(entityId, ct);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
@@ -105,12 +105,12 @@ public class DocumentCounterDetailViewModel : BaseEntityDetailViewModel<Document
 
     protected override Task<DocumentCounterDto?> CreateEntityAsync(CreateDocumentCounterDto createDto, CancellationToken ct = default)
     {
-        return _documentCounterService.CreateDocumentCounterAsync(createDto);
+        return _documentCounterService.CreateDocumentCounterAsync(createDto, ct);
     }
 
     protected override Task<DocumentCounterDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentCounterDto updateDto, CancellationToken ct = default)
     {
-        return _documentCounterService.UpdateDocumentCounterAsync(entityId, updateDto);
+        return _documentCounterService.UpdateDocumentCounterAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(DocumentCounterDto entity)

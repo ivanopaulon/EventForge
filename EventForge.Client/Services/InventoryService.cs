@@ -16,7 +16,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
+
         }
         catch (Exception ex)
         {
@@ -29,7 +30,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -42,7 +44,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto);
+            return await httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -55,7 +58,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -68,7 +72,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto);
+            return await httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -81,7 +86,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -95,7 +101,8 @@ public class InventoryService(
         try
         {
             // Delete returns the updated document in our case
-            return await httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}");
+            return await httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -121,7 +128,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}");
+            return await httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -157,7 +165,8 @@ public class InventoryService(
             }
 
             var queryString = string.Join("&", queryParams);
-            return await httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}", ct);
+
         }
         catch (Exception ex)
         {
@@ -199,7 +208,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open");
+            return await httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open", ct);
+
         }
         catch (Exception ex)
         {
@@ -212,7 +222,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers");
+            return await httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers", ct);
+
         }
         catch (Exception ex)
         {
@@ -225,7 +236,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}", ct);
+
         }
         catch (Exception ex)
         {
@@ -293,7 +305,7 @@ public class InventoryService(
         try
         {
             return await httpClientService.PostAsync<List<Guid>, MergeInventoryDocumentsPreviewDto>(
-                $"{BaseUrl}/documents/merge-preview", documentIds);
+                $"{BaseUrl}/documents/merge-preview", documentIds, ct);
         }
         catch (Exception ex)
         {
@@ -307,7 +319,7 @@ public class InventoryService(
         try
         {
             return await httpClientService.PostAsync<MergeInventoryDocumentsDto, MergeInventoryDocumentsResultDto>(
-                $"{BaseUrl}/documents/merge", mergeDto);
+                $"{BaseUrl}/documents/merge", mergeDto, ct);
         }
         catch (Exception ex)
         {
@@ -333,7 +345,8 @@ public class InventoryService(
     {
         try
         {
-            return await httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options);
+            return await httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options, ct);
+
         }
         catch (Exception ex)
         {
@@ -346,7 +359,8 @@ public class InventoryService(
     {
         try
         {
-            await httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData);
+            await httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData, ct);
+
             return true;
         }
         catch (Exception ex)
@@ -360,7 +374,8 @@ public class InventoryService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds);
+            var result = await httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds, ct);
+
             return result?.GetValueOrDefault("removedCount", 0) ?? 0;
         }
         catch (Exception ex)

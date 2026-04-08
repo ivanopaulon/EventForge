@@ -48,7 +48,7 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
 
     protected override async Task<DocumentTypeDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _documentTypeService.GetDocumentTypeByIdAsync(entityId);
+        return await _documentTypeService.GetDocumentTypeByIdAsync(entityId, ct);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
@@ -62,7 +62,7 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
         try
         {
             // Load warehouses for default warehouse dropdown
-            var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100);
+            var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100, ct);
             Warehouses = warehousesResult?.Items ?? new List<StorageFacilityDto>();
 
             Logger.LogInformation("Loaded {Count} warehouses for document type {Id}",
@@ -105,12 +105,12 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
 
     protected override Task<DocumentTypeDto?> CreateEntityAsync(CreateDocumentTypeDto createDto, CancellationToken ct = default)
     {
-        return _documentTypeService.CreateDocumentTypeAsync(createDto);
+        return _documentTypeService.CreateDocumentTypeAsync(createDto, ct);
     }
 
     protected override Task<DocumentTypeDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentTypeDto updateDto, CancellationToken ct = default)
     {
-        return _documentTypeService.UpdateDocumentTypeAsync(entityId, updateDto);
+        return _documentTypeService.UpdateDocumentTypeAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(DocumentTypeDto entity)

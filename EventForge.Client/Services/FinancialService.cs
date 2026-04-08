@@ -10,32 +10,32 @@ namespace EventForge.Client.Services
     public interface IFinancialService
     {
         // Bank Management
-        Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 100);
-        Task<BankDto?> GetBankAsync(Guid id);
-        Task<BankDto> CreateBankAsync(CreateBankDto createDto);
-        Task<BankDto> UpdateBankAsync(Guid id, UpdateBankDto updateDto);
-        Task DeleteBankAsync(Guid id);
+        Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
+        Task<BankDto?> GetBankAsync(Guid id, CancellationToken ct = default);
+        Task<BankDto> CreateBankAsync(CreateBankDto createDto, CancellationToken ct = default);
+        Task<BankDto> UpdateBankAsync(Guid id, UpdateBankDto updateDto, CancellationToken ct = default);
+        Task DeleteBankAsync(Guid id, CancellationToken ct = default);
 
         // VAT Rate Management
-        Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 100);
-        Task<VatRateDto?> GetVatRateAsync(Guid id);
-        Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createDto);
-        Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto);
-        Task DeleteVatRateAsync(Guid id);
+        Task<PagedResult<VatRateDto>> GetVatRatesAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
+        Task<VatRateDto?> GetVatRateAsync(Guid id, CancellationToken ct = default);
+        Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createDto, CancellationToken ct = default);
+        Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto, CancellationToken ct = default);
+        Task DeleteVatRateAsync(Guid id, CancellationToken ct = default);
 
         // VAT Nature Management
-        Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100);
-        Task<VatNatureDto?> GetVatNatureAsync(Guid id);
-        Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto);
-        Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto);
-        Task DeleteVatNatureAsync(Guid id);
+        Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
+        Task<VatNatureDto?> GetVatNatureAsync(Guid id, CancellationToken ct = default);
+        Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto, CancellationToken ct = default);
+        Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto, CancellationToken ct = default);
+        Task DeleteVatNatureAsync(Guid id, CancellationToken ct = default);
 
         // Payment Term Management
-        Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 100);
-        Task<PaymentTermDto?> GetPaymentTermAsync(Guid id);
-        Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createDto);
-        Task<PaymentTermDto> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updateDto);
-        Task DeletePaymentTermAsync(Guid id);
+        Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default);
+        Task<PaymentTermDto?> GetPaymentTermAsync(Guid id, CancellationToken ct = default);
+        Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createDto, CancellationToken ct = default);
+        Task<PaymentTermDto> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updateDto, CancellationToken ct = default);
+        Task DeletePaymentTermAsync(Guid id, CancellationToken ct = default);
     }
 
     public class FinancialService(
@@ -51,7 +51,7 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<BankDto>> GetBanksAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
         {
             var result = await httpClientService.GetAsync<PagedResult<BankDto>>(
-                $"api/v1/financial/banks?page={page}&pageSize={pageSize}");
+                $"api/v1/financial/banks?page={page}&pageSize={pageSize}", ct);
             return result ?? new PagedResult<BankDto>
             {
                 Items = [],
@@ -63,7 +63,8 @@ namespace EventForge.Client.Services
 
         public async Task<BankDto?> GetBankAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<BankDto>($"api/v1/financial/banks/{id}");
+            return await httpClientService.GetAsync<BankDto>($"api/v1/financial/banks/{id}", ct);
+
         }
 
         public async Task<BankDto> CreateBankAsync(CreateBankDto createDto, CancellationToken ct = default)
@@ -76,7 +77,7 @@ namespace EventForge.Client.Services
                 await loadingDialogService.UpdateOperationAsync("Validazione dati bancari...");
                 await loadingDialogService.UpdateProgressAsync(60);
 
-                var result = await httpClientService.PostAsync<CreateBankDto, BankDto>("api/v1/financial/banks", createDto) ??
+                var result = await httpClientService.PostAsync<CreateBankDto, BankDto>("api/v1/financial/banks", createDto, ct) ??
                        throw new InvalidOperationException("Failed to create bank");
 
                 await loadingDialogService.UpdateOperationAsync("Banca creata con successo");
@@ -96,7 +97,7 @@ namespace EventForge.Client.Services
 
         public async Task<BankDto> UpdateBankAsync(Guid id, UpdateBankDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateBankDto, BankDto>($"api/v1/financial/banks/{id}", updateDto) ??
+            return await httpClientService.PutAsync<UpdateBankDto, BankDto>($"api/v1/financial/banks/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update bank");
         }
 
@@ -129,7 +130,7 @@ namespace EventForge.Client.Services
                 page, pageSize);
 
             var result = await httpClientService.GetAsync<PagedResult<VatRateDto>>(
-                $"api/v1/financial/vat-rates?page={page}&pageSize={pageSize}");
+                $"api/v1/financial/vat-rates?page={page}&pageSize={pageSize}", ct);
 
             // Store in cache only for full list
             if (isFullListRequest && result is not null)
@@ -158,12 +159,13 @@ namespace EventForge.Client.Services
 
         public async Task<VatRateDto?> GetVatRateAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<VatRateDto>($"api/v1/financial/vat-rates/{id}");
+            return await httpClientService.GetAsync<VatRateDto>($"api/v1/financial/vat-rates/{id}", ct);
+
         }
 
         public async Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createDto, CancellationToken ct = default)
         {
-            var result = await httpClientService.PostAsync<CreateVatRateDto, VatRateDto>("api/v1/financial/vat-rates", createDto) ??
+            var result = await httpClientService.PostAsync<CreateVatRateDto, VatRateDto>("api/v1/financial/vat-rates", createDto, ct) ??
                    throw new InvalidOperationException("Failed to create VAT rate");
 
             // Invalidate cache
@@ -175,7 +177,7 @@ namespace EventForge.Client.Services
 
         public async Task<VatRateDto> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateDto, CancellationToken ct = default)
         {
-            var result = await httpClientService.PutAsync<UpdateVatRateDto, VatRateDto>($"api/v1/financial/vat-rates/{id}", updateDto) ??
+            var result = await httpClientService.PutAsync<UpdateVatRateDto, VatRateDto>($"api/v1/financial/vat-rates/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update VAT rate");
 
             // Invalidate cache
@@ -187,7 +189,7 @@ namespace EventForge.Client.Services
 
         public async Task DeleteVatRateAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/financial/vat-rates/{id}");
+            await httpClientService.DeleteAsync($"api/v1/financial/vat-rates/{id}", ct);
 
             // Invalidate cache
             cache.Remove(CacheHelper.VAT_RATES);
@@ -201,7 +203,7 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
         {
             var result = await httpClientService.GetAsync<PagedResult<VatNatureDto>>(
-                $"api/v1/financial/vat-natures?page={page}&pageSize={pageSize}");
+                $"api/v1/financial/vat-natures?page={page}&pageSize={pageSize}", ct);
             return result ?? new PagedResult<VatNatureDto>
             {
                 Items = [],
@@ -213,24 +215,25 @@ namespace EventForge.Client.Services
 
         public async Task<VatNatureDto?> GetVatNatureAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<VatNatureDto>($"api/v1/financial/vat-natures/{id}");
+            return await httpClientService.GetAsync<VatNatureDto>($"api/v1/financial/vat-natures/{id}", ct);
+
         }
 
         public async Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreateVatNatureDto, VatNatureDto>("api/v1/financial/vat-natures", createDto) ??
+            return await httpClientService.PostAsync<CreateVatNatureDto, VatNatureDto>("api/v1/financial/vat-natures", createDto, ct) ??
                    throw new InvalidOperationException("Failed to create VAT nature");
         }
 
         public async Task<VatNatureDto> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateVatNatureDto, VatNatureDto>($"api/v1/financial/vat-natures/{id}", updateDto) ??
+            return await httpClientService.PutAsync<UpdateVatNatureDto, VatNatureDto>($"api/v1/financial/vat-natures/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update VAT nature");
         }
 
         public async Task DeleteVatNatureAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/financial/vat-natures/{id}");
+            await httpClientService.DeleteAsync($"api/v1/financial/vat-natures/{id}", ct);
         }
 
         #endregion
@@ -240,7 +243,7 @@ namespace EventForge.Client.Services
         public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
         {
             var result = await httpClientService.GetAsync<PagedResult<PaymentTermDto>>(
-                $"api/v1/financial/payment-terms?page={page}&pageSize={pageSize}");
+                $"api/v1/financial/payment-terms?page={page}&pageSize={pageSize}", ct);
             return result ?? new PagedResult<PaymentTermDto>
             {
                 Items = [],
@@ -252,24 +255,25 @@ namespace EventForge.Client.Services
 
         public async Task<PaymentTermDto?> GetPaymentTermAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<PaymentTermDto>($"api/v1/financial/payment-terms/{id}");
+            return await httpClientService.GetAsync<PaymentTermDto>($"api/v1/financial/payment-terms/{id}", ct);
+
         }
 
         public async Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreatePaymentTermDto, PaymentTermDto>("api/v1/financial/payment-terms", createDto) ??
+            return await httpClientService.PostAsync<CreatePaymentTermDto, PaymentTermDto>("api/v1/financial/payment-terms", createDto, ct) ??
                    throw new InvalidOperationException("Failed to create payment term");
         }
 
         public async Task<PaymentTermDto> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdatePaymentTermDto, PaymentTermDto>($"api/v1/financial/payment-terms/{id}", updateDto) ??
+            return await httpClientService.PutAsync<UpdatePaymentTermDto, PaymentTermDto>($"api/v1/financial/payment-terms/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update payment term");
         }
 
         public async Task DeletePaymentTermAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/financial/payment-terms/{id}");
+            await httpClientService.DeleteAsync($"api/v1/financial/payment-terms/{id}", ct);
         }
 
         #endregion

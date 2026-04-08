@@ -15,7 +15,8 @@ public class DocumentCounterService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>(BaseUrl);
+            return await httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>(BaseUrl, ct);
+
         }
         catch (Exception ex)
         {
@@ -28,7 +29,8 @@ public class DocumentCounterService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>($"{BaseUrl}/by-type/{documentTypeId}");
+            return await httpClientService.GetAsync<IEnumerable<DocumentCounterDto>>($"{BaseUrl}/by-type/{documentTypeId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -41,7 +43,8 @@ public class DocumentCounterService(
     {
         try
         {
-            return await httpClientService.GetAsync<DocumentCounterDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<DocumentCounterDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -54,7 +57,8 @@ public class DocumentCounterService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateDocumentCounterDto, DocumentCounterDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateDocumentCounterDto, DocumentCounterDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -67,7 +71,8 @@ public class DocumentCounterService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateDocumentCounterDto, DocumentCounterDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateDocumentCounterDto, DocumentCounterDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {

@@ -15,7 +15,8 @@ public class DocumentTypeService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl);
+            return await httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl, ct);
+
         }
         catch (Exception ex)
         {
@@ -28,7 +29,8 @@ public class DocumentTypeService(
     {
         try
         {
-            return await httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -41,7 +43,8 @@ public class DocumentTypeService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -54,7 +57,8 @@ public class DocumentTypeService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {

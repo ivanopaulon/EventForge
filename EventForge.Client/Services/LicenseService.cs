@@ -16,7 +16,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl) ?? Enumerable.Empty<LicenseDto>();
+            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl) ?? Enumerable.Empty<LicenseDto>(, ct);
+
         }
         catch (Exception ex)
         {
@@ -29,7 +30,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<LicenseDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<LicenseDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -42,7 +44,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateLicenseDto, LicenseDto>(BaseUrl, createDto);
+            var result = await httpClientService.PostAsync<CreateLicenseDto, LicenseDto>(BaseUrl, createDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to create license");
         }
         catch (Exception ex)
@@ -56,7 +59,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PutAsync<LicenseDto, LicenseDto>($"{BaseUrl}/{id}", updateDto);
+            var result = await httpClientService.PutAsync<LicenseDto, LicenseDto>($"{BaseUrl}/{id}", updateDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update license");
         }
         catch (Exception ex)
@@ -84,7 +88,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses") ?? Enumerable.Empty<TenantLicenseDto>();
+            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses") ?? Enumerable.Empty<TenantLicenseDto>(, ct);
+
         }
         catch (Exception ex)
         {
@@ -97,7 +102,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}");
+            return await httpClientService.GetAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -110,7 +116,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<AssignLicenseDto, TenantLicenseDto>($"{BaseUrl}/assign", assignDto);
+            var result = await httpClientService.PostAsync<AssignLicenseDto, TenantLicenseDto>($"{BaseUrl}/assign", assignDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to assign license");
         }
         catch (Exception ex)
@@ -138,7 +145,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features") ?? Enumerable.Empty<LicenseFeatureDto>();
+            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features") ?? Enumerable.Empty<LicenseFeatureDto>(, ct);
+
         }
         catch (Exception ex)
         {
@@ -151,7 +159,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features") ?? Enumerable.Empty<AvailableFeatureDto>();
+            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features") ?? Enumerable.Empty<AvailableFeatureDto>(, ct);
+
         }
         catch (Exception ex)
         {
@@ -164,7 +173,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateLicenseFeaturesDto, LicenseDto>($"{BaseUrl}/{licenseId}/features", updateDto);
+            var result = await httpClientService.PutAsync<UpdateLicenseFeaturesDto, LicenseDto>($"{BaseUrl}/{licenseId}/features", updateDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update license features");
         }
         catch (Exception ex)
@@ -179,7 +189,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}");
+            return await httpClientService.GetAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -193,7 +204,7 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates")
+            return await httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates", ct)
                 ?? Enumerable.Empty<FeatureTemplateDto>();
         }
         catch (Exception ex)
@@ -207,7 +218,8 @@ public class LicenseService(
     {
         try
         {
-            return await httpClientService.GetAsync<FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}");
+            return await httpClientService.GetAsync<FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -220,7 +232,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates", dto);
+            var result = await httpClientService.PostAsync<CreateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates", dto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to create feature template");
         }
         catch (Exception ex)
@@ -234,7 +247,8 @@ public class LicenseService(
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", dto);
+            var result = await httpClientService.PutAsync<UpdateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", dto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update feature template");
         }
         catch (Exception ex)

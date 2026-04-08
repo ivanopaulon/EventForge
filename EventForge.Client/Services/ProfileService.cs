@@ -18,7 +18,8 @@ public class ProfileService(
     {
         try
         {
-            var profile = await httpClientService.GetAsync<UserProfileDto>("/api/v1/profile");
+            var profile = await httpClientService.GetAsync<UserProfileDto>("/api/v1/profile", ct);
+
             return profile;
         }
         catch (Exception ex)
@@ -35,7 +36,8 @@ public class ProfileService(
     {
         try
         {
-            var profile = await httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto);
+            var profile = await httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto, ct);
+
 
             if (profile != null)
             {
@@ -181,7 +183,8 @@ public class ProfileService(
     {
         try
         {
-            var sessions = await httpClientService.GetAsync<List<ActiveSessionDto>>("/api/v1/profile/sessions");
+            var sessions = await httpClientService.GetAsync<List<ActiveSessionDto>>("/api/v1/profile/sessions", ct);
+
             return sessions ?? new List<ActiveSessionDto>();
         }
         catch (Exception ex)
@@ -238,7 +241,8 @@ public class ProfileService(
     {
         try
         {
-            var history = await httpClientService.GetAsync<List<LoginHistoryDto>>($"/api/v1/profile/login-history?days={days}");
+            var history = await httpClientService.GetAsync<List<LoginHistoryDto>>($"/api/v1/profile/login-history?days={days}", ct);
+
             return history ?? new List<LoginHistoryDto>();
         }
         catch (Exception ex)
