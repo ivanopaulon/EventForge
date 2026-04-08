@@ -7,6 +7,8 @@
 @inject IBusinessPartyGroupService GroupService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<BusinessPartyGroupManagement> Logger
+@inject IAppNotificationService AppNotification
 
 
 <PageTitle>@TranslationService.GetTranslation("businessPartyGroup.management", "Gestione Gruppi Business Party")</PageTitle>
@@ -214,11 +216,19 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(BusinessPartyGroupDetailDialog.EntityId)] = id };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<BusinessPartyGroupDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+        try
+        {
+            var parameters = new DialogParameters { [nameof(BusinessPartyGroupDetailDialog.EntityId)] = id };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<BusinessPartyGroupDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening business party group detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

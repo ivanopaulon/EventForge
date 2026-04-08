@@ -6,6 +6,8 @@
 @inject IPromotionClientService PromotionService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<PromotionManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("promotion.management.title", "Gestione Promozioni")</PageTitle>
 <EntityManagementPage TEntity="PromotionDto"
@@ -236,10 +238,18 @@
 
     private async Task OpenDetailDialogAsync(Guid id)
     {
-        var parameters = new DialogParameters { [nameof(PromotionDetailDialog.EntityId)] = (Guid?)id };
-        var dialog = await DialogService.ShowAsync<PromotionDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage.RefreshAsync();
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PromotionDetailDialog.EntityId)] = (Guid?)id };
+            var dialog = await DialogService.ShowAsync<PromotionDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening promotion detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

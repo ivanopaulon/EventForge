@@ -11,6 +11,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<PriceListManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("pricelist.management.title", "Gestione Listini Prezzi")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
@@ -306,52 +307,84 @@
 
     private async Task OpenDetailDialogAsync(Guid id)
     {
-        var parameters = new DialogParameters { [nameof(PriceListDetailDialog.EntityId)] = (Guid?)id };
-        var dialog = await DialogService.ShowAsync<PriceListDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PriceListDetailDialog.EntityId)] = (Guid?)id };
+            var dialog = await DialogService.ShowAsync<PriceListDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening price list detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task OpenCreateDialog()
     {
-        var dialog = await DialogService.ShowAsync<CreatePriceListDialog>(
-            TranslationService.GetTranslation("pricelist.create", "Nuovo Listino"),
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
+        try
         {
-            await _entityPage!.RefreshAsync();
+            var dialog = await DialogService.ShowAsync<CreatePriceListDialog>(
+                TranslationService.GetTranslation("pricelist.create", "Nuovo Listino"),
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false })
+            {
+                await _entityPage!.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening create price list dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
     private async Task OpenGenerateFromDocumentsDialog()
     {
-        var dialog = await DialogService.ShowAsync<GeneratePriceListFromDocumentsDialog>(
-            TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti"),
-            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
+        try
         {
-            await _entityPage!.RefreshAsync();
+            var dialog = await DialogService.ShowAsync<GeneratePriceListFromDocumentsDialog>(
+                TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti"),
+                new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false })
+            {
+                await _entityPage!.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening generate price list from documents dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
     private async Task OpenGenerateFromDefaultPricesDialog()
     {
-        var dialog = await DialogService.ShowAsync<GenerateFromDefaultPricesDialog>(
-            TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default"),
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false } && result.Data != null)
+        try
         {
-            await _entityPage!.RefreshAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"));
+            var dialog = await DialogService.ShowAsync<GenerateFromDefaultPricesDialog>(
+                TranslationService.GetTranslation("pricelist.generateFromDefaults", "Genera Listino da Prezzi Default"),
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data != null)
+            {
+                await _entityPage!.RefreshAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("pricelist.generatedSuccess", "Listino generato con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening generate price list from default prices dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nella generazione del listino.");
         }
     }
 

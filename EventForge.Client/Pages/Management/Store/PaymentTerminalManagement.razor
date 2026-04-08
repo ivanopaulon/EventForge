@@ -9,6 +9,8 @@
 @inject IPaymentTerminalService PaymentTerminalService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<PaymentTerminalManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("store.paymentTerminals", "Terminali POS (Protocollo 17)")</PageTitle>
 <EntityManagementPage TEntity="PaymentTerminalDto"
@@ -174,10 +176,18 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(PaymentTerminalDetailDialog.TerminalId)] = id };
-        var dialog = await DialogService.ShowAsync<PaymentTerminalDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PaymentTerminalDetailDialog.TerminalId)] = id };
+            var dialog = await DialogService.ShowAsync<PaymentTerminalDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening payment terminal detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

@@ -6,6 +6,8 @@
 @inject IFinancialService FinancialService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<VatNatureManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")</PageTitle>
 <EntityManagementPage TEntity="VatNatureDto"
@@ -137,14 +139,22 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(VatNatureDetailDialog.EntityId)] = id
-        };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<VatNatureDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+            var parameters = new DialogParameters
+            {
+                [nameof(VatNatureDetailDialog.EntityId)] = id
+            };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<VatNatureDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening vat nature detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

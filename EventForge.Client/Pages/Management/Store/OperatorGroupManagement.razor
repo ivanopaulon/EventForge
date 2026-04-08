@@ -6,6 +6,8 @@
 @inject EventForge.Client.Services.Store.IStoreUserGroupService StoreUserGroupService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<OperatorGroupManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("store.operatorGroupsList", "Gruppi Operatori")</PageTitle>
 <EntityManagementPage TEntity="StoreUserGroupDto"
@@ -194,14 +196,22 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(OperatorGroupDetailDialog.EntityId)] = id
-        };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<OperatorGroupDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false } && _entityPage != null)
-            await _entityPage.RefreshAsync();
+            var parameters = new DialogParameters
+            {
+                [nameof(OperatorGroupDetailDialog.EntityId)] = id
+            };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<OperatorGroupDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && _entityPage != null)
+                await _entityPage.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening operator group detail dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }
