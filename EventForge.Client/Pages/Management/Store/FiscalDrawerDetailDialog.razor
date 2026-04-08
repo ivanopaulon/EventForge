@@ -13,7 +13,7 @@
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Inbox"
-          Title="@(ViewModel.IsNewEntity ? "Nuovo Cassetto Fiscale" : (ViewModel.Entity?.Name ?? "Cassetto Fiscale"))"
+          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newFiscalDrawer", "Nuovo Cassetto Fiscale") : (ViewModel.Entity?.Name ?? "Cassetto Fiscale"))"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
@@ -27,7 +27,7 @@
         }
         else if (!ViewModel.IsNewEntity && ViewModel.Entity == null)
         {
-            <MudAlert Severity="Severity.Error">Cassetto fiscale non trovato.</MudAlert>
+            <MudAlert Severity="Severity.Error">@TranslationService.GetTranslation("store.fiscalDrawerNotFound", "Cassetto fiscale non trovato.")</MudAlert>
         }
         else if (ViewModel.Entity != null)
         {
@@ -211,13 +211,13 @@
                             <MudItem xs="12" sm="4">
                                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Fondo cassa iniziale</MudText>
-                                    <MudText Typo="Typo.h6">@($"€ {ViewModel.Entity.OpeningBalance:N2}")</MudText>
+                                    <MudText Typo="Typo.h6">@($"{ViewModel.Entity.CurrencyCode} {ViewModel.Entity.OpeningBalance:N2}")</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo attuale</MudText>
-                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@($"€ {ViewModel.Entity.CurrentBalance:N2}")</MudText>
+                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@($"{ViewModel.Entity.CurrencyCode} {ViewModel.Entity.CurrentBalance:N2}")</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">

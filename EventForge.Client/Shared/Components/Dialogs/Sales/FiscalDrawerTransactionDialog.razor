@@ -24,7 +24,7 @@
                                          Variant="Variant.Outlined"
                                          Class="ef-input"
                                          Adornment="Adornment.Start"
-                                         AdornmentText="€" />
+                                         AdornmentText="@CurrencyCode" />
                     </MudItem>
                     <MudItem xs="12">
                         <MudSelect @bind-Value="_model.PaymentType"
@@ -88,6 +88,7 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid DrawerId { get; set; }
     [Parameter] public FiscalDrawerTransactionType TransactionType { get; set; } = FiscalDrawerTransactionType.Deposit;
+    [Parameter] public string CurrencyCode { get; set; } = "EUR";
 
     private MudForm? _form;
     private bool _saving;
@@ -114,7 +115,7 @@
             if (result is not null)
             {
                 var label = TransactionType == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo";
-                AppNotification.ShowSuccess($"{label} di €{_model.Amount:N2} registrato.");
+                AppNotification.ShowSuccess($"{label} di {CurrencyCode} {_model.Amount:N2} registrato.");
                 MudDialog.Close(DialogResult.Ok(result));
             }
             else

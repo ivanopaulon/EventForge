@@ -34,7 +34,7 @@ public class FiscalDrawerService(
     {
         try
         {
-            var result = await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>($"{ApiBase}?page=1&pageSize=200");
+            var result = await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>($"{ApiBase}?page=1&pageSize=1000");
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)

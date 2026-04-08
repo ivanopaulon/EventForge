@@ -1248,7 +1248,8 @@
         var parameters = new DialogParameters
         {
             ["DrawerId"] = _fiscalDrawerSummary.Id,
-            ["TransactionType"] = type
+            ["TransactionType"] = type,
+            ["CurrencyCode"] = _fiscalDrawerSummary.CurrencyCode
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
         var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
