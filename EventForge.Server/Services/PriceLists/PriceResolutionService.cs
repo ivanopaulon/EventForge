@@ -6,7 +6,9 @@ namespace EventForge.Server.Services.PriceLists
     /// <summary>
     /// Service for resolving product prices based on price lists and business rules
     /// </summary>
-        public class PriceResolutionService(EventForgeDbContext context) : IPriceResolutionService
+        public class PriceResolutionService(
+        EventForgeDbContext context,
+        ILogger<PriceResolutionService> logger) : IPriceResolutionService
     {
 
         /// <inheritdoc/>
@@ -20,119 +22,127 @@ namespace EventForge.Server.Services.PriceLists
             Guid? unitOfMeasureId = null,
             CancellationToken cancellationToken = default)
         {
-            // Try priority 1: Forced price list ID parameter
-            if (forcedPriceListId.HasValue)
+            try
             {
-                var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                if (forcedResult is not null)
+                // Try priority 1: Forced price list ID parameter
+                if (forcedPriceListId.HasValue)
                 {
-                    forcedResult.Source = "ParameterList";
-                    return forcedResult;
-                }
-            }
-
-            // Try priority 2: Document header price list
-            if (documentHeaderId.HasValue)
-            {
-                var documentHeader = await context.DocumentHeaders
-                    .Include(d => d.PriceList)
-                    .Include(d => d.DocumentType)
-                    .FirstOrDefaultAsync(d => d.Id == documentHeaderId.Value, cancellationToken);
-
-                if (documentHeader?.PriceListId.HasValue == true)
-                {
-                    var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                    if (docResult is not null)
+                    var forcedResult = await TryGetPriceFromPriceListAsync(productId, forcedPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
+                    if (forcedResult is not null)
                     {
-                        docResult.Source = "DocumentList";
-                        return docResult;
+                        forcedResult.Source = "ParameterList";
+                        return forcedResult;
                     }
                 }
 
-                // If direction is not provided, try to infer from document type
-                if (direction is null && documentHeader?.DocumentType is not null)
+                // Try priority 2: Document header price list
+                if (documentHeaderId.HasValue)
                 {
-                    direction = documentHeader.DocumentType.IsStockIncrease
-                        ? PriceListDirection.Input
-                        : PriceListDirection.Output;
-                }
-            }
+                    var documentHeader = await context.DocumentHeaders
+                        .Include(d => d.PriceList)
+                        .Include(d => d.DocumentType)
+                        .FirstOrDefaultAsync(d => d.Id == documentHeaderId.Value, cancellationToken);
 
-            // Try priority 3: Business Party default price list
-            if (businessPartyId.HasValue && direction.HasValue)
-            {
-                var businessParty = await context.BusinessParties
-                    .Include(bp => bp.DefaultSalesPriceList)
-                    .Include(bp => bp.DefaultPurchasePriceList)
-                    .FirstOrDefaultAsync(bp => bp.Id == businessPartyId.Value, cancellationToken);
-
-                if (businessParty is not null)
-                {
-                    Guid? partyPriceListId = direction.Value == PriceListDirection.Output
-                        ? businessParty.DefaultSalesPriceListId
-                        : businessParty.DefaultPurchasePriceListId;
-
-                    if (partyPriceListId.HasValue)
+                    if (documentHeader?.PriceListId.HasValue == true)
                     {
-                        var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
-                        if (partyResult is not null)
+                        var docResult = await TryGetPriceFromPriceListAsync(productId, documentHeader.PriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
+                        if (docResult is not null)
                         {
-                            partyResult.Source = "PartyList";
-                            return partyResult;
+                            docResult.Source = "DocumentList";
+                            return docResult;
+                        }
+                    }
+
+                    // If direction is not provided, try to infer from document type
+                    if (direction is null && documentHeader?.DocumentType is not null)
+                    {
+                        direction = documentHeader.DocumentType.IsStockIncrease
+                            ? PriceListDirection.Input
+                            : PriceListDirection.Output;
+                    }
+                }
+
+                // Try priority 3: Business Party default price list
+                if (businessPartyId.HasValue && direction.HasValue)
+                {
+                    var businessParty = await context.BusinessParties
+                        .Include(bp => bp.DefaultSalesPriceList)
+                        .Include(bp => bp.DefaultPurchasePriceList)
+                        .FirstOrDefaultAsync(bp => bp.Id == businessPartyId.Value, cancellationToken);
+
+                    if (businessParty is not null)
+                    {
+                        Guid? partyPriceListId = direction.Value == PriceListDirection.Output
+                            ? businessParty.DefaultSalesPriceListId
+                            : businessParty.DefaultPurchasePriceListId;
+
+                        if (partyPriceListId.HasValue)
+                        {
+                            var partyResult = await TryGetPriceFromPriceListAsync(productId, partyPriceListId.Value, quantity, unitOfMeasureId, cancellationToken);
+                            if (partyResult is not null)
+                            {
+                                partyResult.Source = "PartyList";
+                                return partyResult;
+                            }
                         }
                     }
                 }
-            }
 
-            // Try priority 4: General active price list for the direction
-            if (direction.HasValue)
-            {
-                var generalPriceList = await context.PriceLists
-                    .Where(pl => pl.Direction == direction.Value
-                        && pl.Status == Data.Entities.PriceList.PriceListStatus.Active
-                        && (pl.ValidFrom == null || pl.ValidFrom <= DateTime.UtcNow)
-                        && (pl.ValidTo == null || pl.ValidTo >= DateTime.UtcNow))
-                    .OrderBy(pl => pl.Priority)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (generalPriceList is not null)
+                // Try priority 4: General active price list for the direction
+                if (direction.HasValue)
                 {
-                    var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, unitOfMeasureId, cancellationToken);
-                    if (generalResult is not null)
+                    var generalPriceList = await context.PriceLists
+                        .Where(pl => pl.Direction == direction.Value
+                            && pl.Status == Data.Entities.PriceList.PriceListStatus.Active
+                            && (pl.ValidFrom == null || pl.ValidFrom <= DateTime.UtcNow)
+                            && (pl.ValidTo == null || pl.ValidTo >= DateTime.UtcNow))
+                        .OrderBy(pl => pl.Priority)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (generalPriceList is not null)
                     {
-                        generalResult.Source = "GeneralList";
-                        return generalResult;
+                        var generalResult = await TryGetPriceFromPriceListAsync(productId, generalPriceList.Id, quantity, unitOfMeasureId, cancellationToken);
+                        if (generalResult is not null)
+                        {
+                            generalResult.Source = "GeneralList";
+                            return generalResult;
+                        }
                     }
                 }
-            }
 
-            // Fallback: Product default price
-            var product = await context.Products
-                .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+                // Fallback: Product default price
+                var product = await context.Products
+                    .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
-            if (product?.DefaultPrice is not null)
-            {
+                if (product?.DefaultPrice is not null)
+                {
+                    return new PriceResolutionResult
+                    {
+                        Price = product.DefaultPrice.Value,
+                        AppliedPriceListId = null,
+                        PriceListName = null,
+                        OriginalPrice = product.DefaultPrice.Value,
+                        IsPriceFromList = false,
+                        Source = "DefaultPrice"
+                    };
+                }
+
+                // Ultimate fallback: 0
                 return new PriceResolutionResult
                 {
-                    Price = product.DefaultPrice.Value,
+                    Price = 0m,
                     AppliedPriceListId = null,
                     PriceListName = null,
-                    OriginalPrice = product.DefaultPrice.Value,
+                    OriginalPrice = null,
                     IsPriceFromList = false,
                     Source = "DefaultPrice"
                 };
             }
-
-            // Ultimate fallback: 0
-            return new PriceResolutionResult
+            catch (Exception ex)
             {
-                Price = 0m,
-                AppliedPriceListId = null,
-                PriceListName = null,
-                OriginalPrice = null,
-                IsPriceFromList = false,
-                Source = "DefaultPrice"
-            };
+                logger.LogError(ex, "Error in ResolvePriceAsync for product {ProductId}.", productId);
+                throw;
+            }
         }
 
         /// <inheritdoc/>
@@ -140,56 +150,64 @@ namespace EventForge.Server.Services.PriceLists
             BatchPriceResolutionRequest request,
             CancellationToken cancellationToken = default)
         {
-            var response = new BatchPriceResolutionResponse
+            try
             {
-                TotalProcessed = request.Items.Count
-            };
+                var response = new BatchPriceResolutionResponse
+                {
+                    TotalProcessed = request.Items.Count
+                };
 
-            var tasks = request.Items.Select(async item =>
-            {
-                try
+                var tasks = request.Items.Select(async item =>
                 {
-                    var result = await ResolvePriceAsync(
-                        item.ProductId,
-                        item.DocumentHeaderId,
-                        item.BusinessPartyId,
-                        item.ForcedPriceListId,
-                        item.Direction,
-                        item.Quantity,
-                        item.UnitOfMeasureId,
-                        cancellationToken);
-                    return (item.Key, Result: result, Error: (BatchPriceResolutionError?)null);
-                }
-                catch (Exception ex)
-                {
-                    var error = new BatchPriceResolutionError
+                    try
                     {
-                        Key = item.Key,
-                        ProductId = item.ProductId,
-                        ErrorMessage = ex.Message
-                    };
-                    return (item.Key, Result: (PriceResolutionResult?)null, Error: (BatchPriceResolutionError?)error);
-                }
-            });
+                        var result = await ResolvePriceAsync(
+                            item.ProductId,
+                            item.DocumentHeaderId,
+                            item.BusinessPartyId,
+                            item.ForcedPriceListId,
+                            item.Direction,
+                            item.Quantity,
+                            item.UnitOfMeasureId,
+                            cancellationToken);
+                        return (item.Key, Result: result, Error: (BatchPriceResolutionError?)null);
+                    }
+                    catch (Exception ex)
+                    {
+                        var error = new BatchPriceResolutionError
+                        {
+                            Key = item.Key,
+                            ProductId = item.ProductId,
+                            ErrorMessage = ex.Message
+                        };
+                        return (item.Key, Result: (PriceResolutionResult?)null, Error: (BatchPriceResolutionError?)error);
+                    }
+                });
 
-            var results = await Task.WhenAll(tasks);
+                var results = await Task.WhenAll(tasks);
 
-            foreach (var (key, result, error) in results)
-            {
-                if (error is not null)
+                foreach (var (key, result, error) in results)
                 {
-                    response.Errors.Add(error);
+                    if (error is not null)
+                    {
+                        response.Errors.Add(error);
+                    }
+                    else if (result is not null)
+                    {
+                        response.Results[key] = result;
+                    }
                 }
-                else if (result is not null)
-                {
-                    response.Results[key] = result;
-                }
+
+                response.TotalSucceeded = response.Results.Count;
+                response.TotalFailed = response.Errors.Count;
+
+                return response;
             }
-
-            response.TotalSucceeded = response.Results.Count;
-            response.TotalFailed = response.Errors.Count;
-
-            return response;
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error in ResolvePricesBatchAsync.");
+                throw;
+            }
         }
 
         /// <summary>
