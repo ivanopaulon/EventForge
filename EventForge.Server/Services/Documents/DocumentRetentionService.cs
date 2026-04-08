@@ -19,6 +19,7 @@ public class DocumentRetentionService(
         try
         {
             var policies = await context.Set<DocumentRetentionPolicy>()
+                .AsNoTracking()
                 .Include(p => p.DocumentType)
                 .OrderBy(p => p.DocumentType!.Name)
                 .ToListAsync(cancellationToken);
@@ -39,6 +40,7 @@ public class DocumentRetentionService(
         try
         {
             var policy = await context.Set<DocumentRetentionPolicy>()
+                .AsNoTracking()
                 .Include(p => p.DocumentType)
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
@@ -58,6 +60,7 @@ public class DocumentRetentionService(
         try
         {
             var policy = await context.Set<DocumentRetentionPolicy>()
+                .AsNoTracking()
                 .Include(p => p.DocumentType)
                 .FirstOrDefaultAsync(p => p.DocumentTypeId == documentTypeId && p.IsActive, cancellationToken);
 
@@ -79,6 +82,7 @@ public class DocumentRetentionService(
         {
             // Check if policy already exists for this document type
             var existingPolicy = await context.Set<DocumentRetentionPolicy>()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.DocumentTypeId == dto.DocumentTypeId, cancellationToken);
 
             if (existingPolicy is not null)
@@ -287,6 +291,7 @@ public class DocumentRetentionService(
         try
         {
             var query = context.Set<DocumentRetentionPolicy>()
+                .AsNoTracking()
                 .Where(p => p.IsActive && p.RetentionDays.HasValue);
 
             if (policyId.HasValue)
@@ -302,6 +307,7 @@ public class DocumentRetentionService(
                 var cutoffDate = DateTime.UtcNow.AddDays(-(policy.RetentionDays!.Value + policy.GracePeriodDays));
 
                 var documents = await context.DocumentHeaders
+                    .AsNoTracking()
                     .Where(d => d.DocumentTypeId == policy.DocumentTypeId)
                     .Where(d => d.CreatedAt <= cutoffDate)
                     .Where(d => !d.IsDeleted)

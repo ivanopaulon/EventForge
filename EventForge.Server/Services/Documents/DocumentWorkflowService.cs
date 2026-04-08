@@ -19,6 +19,7 @@ public class DocumentWorkflowService(
         try
         {
             var entities = await context.DocumentWorkflows
+                .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -41,6 +42,7 @@ public class DocumentWorkflowService(
         try
         {
             var entity = await context.DocumentWorkflows
+                .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -61,6 +63,7 @@ public class DocumentWorkflowService(
         try
         {
             var entities = await context.DocumentWorkflows
+                .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -83,6 +86,7 @@ public class DocumentWorkflowService(
         try
         {
             var entities = await context.DocumentWorkflows
+                .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -107,6 +111,7 @@ public class DocumentWorkflowService(
             ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
             var entities = await context.DocumentWorkflows
+                .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
@@ -275,6 +280,7 @@ public class DocumentWorkflowService(
         try
         {
             var entity = await context.DocumentWorkflows
+                .AsNoTracking()
                 .FirstOrDefaultAsync(dw => dw.Id == workflowId, cancellationToken);
 
             return entity?.WorkflowVersion;

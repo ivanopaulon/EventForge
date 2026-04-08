@@ -69,6 +69,7 @@ public class DocumentAccessLogService(
         try
         {
             var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
                 .Include(l => l.DocumentHeader)
                 .Where(l => l.DocumentHeaderId == documentId);
 
@@ -104,6 +105,7 @@ public class DocumentAccessLogService(
         try
         {
             var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
                 .Include(l => l.DocumentHeader)
                 .Where(l => l.UserId == userId);
 
@@ -144,6 +146,7 @@ public class DocumentAccessLogService(
         try
         {
             var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
                 .Include(l => l.DocumentHeader)
                 .Where(l => l.TenantId == tenantId);
 

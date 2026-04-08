@@ -22,6 +22,7 @@ public class DocumentCommentService(
         try
         {
             var query = context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -51,6 +52,7 @@ public class DocumentCommentService(
         try
         {
             var query = context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.DocumentRowId == documentRowId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -79,7 +81,7 @@ public class DocumentCommentService(
     {
         try
         {
-            var query = context.DocumentComments.Where(c => c.Id == id && !c.IsDeleted);
+            var query = context.DocumentComments.AsNoTracking().Where(c => c.Id == id && !c.IsDeleted);
 
             if (includeReplies)
             {
@@ -346,6 +348,7 @@ public class DocumentCommentService(
         try
         {
             var query = context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.AssignedTo == username && !c.IsDeleted);
 
             if (!string.IsNullOrEmpty(statusFilter) && Enum.TryParse<CommentStatus>(statusFilter, out var status))
@@ -401,6 +404,7 @@ public class DocumentCommentService(
                 return Enumerable.Empty<DocumentCommentDto>();
 
             return await context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.Priority == priorityEnum && !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt)
                 .Select(c => new DocumentCommentDto
@@ -449,6 +453,7 @@ public class DocumentCommentService(
                 return Enumerable.Empty<DocumentCommentDto>();
 
             return await context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.Status == statusEnum && !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt)
                 .Select(c => new DocumentCommentDto
@@ -497,6 +502,7 @@ public class DocumentCommentService(
                 return Enumerable.Empty<DocumentCommentDto>();
 
             return await context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.CommentType == typeEnum && !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt)
                 .Select(c => new DocumentCommentDto
@@ -543,6 +549,7 @@ public class DocumentCommentService(
         try
         {
             var comments = await context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -571,6 +578,7 @@ public class DocumentCommentService(
         try
         {
             var replies = await context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.ParentCommentId == parentCommentId && !c.IsDeleted)
                 .OrderBy(c => c.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -623,7 +631,7 @@ public class DocumentCommentService(
     {
         try
         {
-            var query = context.DocumentComments.Where(c => !c.IsDeleted);
+            var query = context.DocumentComments.AsNoTracking().Where(c => !c.IsDeleted);
 
             if (!string.IsNullOrEmpty(searchText))
                 query = query.Where(c => c.Content.Contains(searchText));
@@ -658,6 +666,7 @@ public class DocumentCommentService(
         try
         {
             return await context.DocumentComments
+                .AsNoTracking()
                 .AnyAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

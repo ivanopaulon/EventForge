@@ -42,6 +42,7 @@ public class MonitoringService(
 
             // Top N promotions by CurrentUses
             var topPromotions = await context.Promotions
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderByDescending(p => p.CurrentUses)
                 .Take(topN)
@@ -59,6 +60,7 @@ public class MonitoringService(
 
             // Promotions near limit (MaxUses set and CurrentUses > 80% of MaxUses)
             var nearLimitPromotions = await context.Promotions
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted
                     && p.TenantId == tenantId.Value
                     && p.MaxUses.HasValue
@@ -80,6 +82,7 @@ public class MonitoringService(
 
             // Recent error/warning system operation logs
             var recentErrors = await context.SystemOperationLogs
+                .AsNoTracking()
                 .Where(l => l.Severity == "Error" || l.Severity == "Warning" || l.Severity == "Critical")
                 .OrderByDescending(l => l.ExecutedAt)
                 .Take(recentErrorCount)
