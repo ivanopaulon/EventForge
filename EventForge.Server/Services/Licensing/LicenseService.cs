@@ -13,7 +13,7 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
     {
         try
         {
-            var tenantLicense = await GetActiveTenantLicense(tenantId);
+            var tenantLicense = await GetActiveTenantLicense(tenantId, trackEntity: false);
             if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
@@ -35,7 +35,7 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
     {
         try
         {
-            var tenantLicense = await GetActiveTenantLicense(tenantId);
+            var tenantLicense = await GetActiveTenantLicense(tenantId, trackEntity: false);
             if (tenantLicense is null)
                 return null;
 
@@ -165,7 +165,7 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
     {
         try
         {
-            var tenantLicense = await GetActiveTenantLicense(tenantId);
+            var tenantLicense = await GetActiveTenantLicense(tenantId, trackEntity: false);
             if (tenantLicense is null || !tenantLicense.IsValid)
                 return false;
 
@@ -183,7 +183,7 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
     {
         try
         {
-            var tenantLicense = await GetActiveTenantLicense(tenantId);
+            var tenantLicense = await GetActiveTenantLicense(tenantId, trackEntity: false);
             if (tenantLicense is null || !tenantLicense.IsValid)
                 return [];
 
@@ -203,10 +203,10 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
         }
     }
 
-    private async Task<Data.Entities.Auth.TenantLicense?> GetActiveTenantLicense(Guid tenantId)
+    private async Task<Data.Entities.Auth.TenantLicense?> GetActiveTenantLicense(Guid tenantId, bool trackEntity = true)
     {
-        // Se ci sono pi� licenze attive, prende quella con TierLevel pi� alto
-        return await context.TenantLicenses
+        // Se ci sono più licenze attive, prende quella con TierLevel più alto
+        var query = context.TenantLicenses
             .Include(tl => tl.Tenant)
             .Include(tl => tl.License)
                 .ThenInclude(l => l.LicenseFeatures)
@@ -214,8 +214,11 @@ public class LicenseService(EventForgeDbContext context, ILogger<LicenseService>
                         .ThenInclude(lfp => lfp.Permission)
             .Where(tl => tl.TargetTenantId == tenantId &&
                          tl.IsAssignmentActive && !tl.IsDeleted)
-            .OrderByDescending(tl => tl.License.TierLevel)
-            .FirstOrDefaultAsync();
+            .OrderByDescending(tl => tl.License.TierLevel);
+
+        if (!trackEntity)
+            return await query.AsNoTracking().FirstOrDefaultAsync();
+        return await query.FirstOrDefaultAsync();
     }
 
     private async Task ResetApiCallsIfNeeded(Data.Entities.Auth.TenantLicense tenantLicense)

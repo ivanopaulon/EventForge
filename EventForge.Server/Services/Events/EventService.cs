@@ -456,6 +456,13 @@ public class EventService(
                 }
             );
 
+            // Batch load all team members upfront to avoid N+1 per-team query
+            var teamIds = teams.Select(t => t.Id).ToList();
+            var allMembers = await context.TeamMembers
+                .Where(m => teamIds.Contains(m.TeamId) && !m.IsDeleted)
+                .ToListAsync(cancellationToken);
+            var membersByTeamId = allMembers.ToLookup(m => m.TeamId);
+
             foreach (var team in teams)
             {
                 var originalTeam = originalTeams[team.Id];
@@ -466,9 +473,7 @@ public class EventService(
 
                 _ = await auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
-                var members = await context.TeamMembers
-                    .Where(m => m.TeamId == team.Id && !m.IsDeleted)
-                    .ToListAsync(cancellationToken);
+                var members = membersByTeamId[team.Id].ToList();
 
                 // Create snapshots of all members BEFORE modifying them
                 var originalMembers = members.ToDictionary(

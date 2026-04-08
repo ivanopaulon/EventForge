@@ -75,6 +75,7 @@ public class StorageFacilityService(
         try
         {
             var facility = await context.StorageFacilities
+                .AsNoTracking()
                 .Include(sf => sf.Locations)
                 .Where(sf => sf.Id == id && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -304,44 +305,53 @@ public class StorageFacilityService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+            }
+
+            var query = context.StorageFacilities
+                .AsNoTracking()
+                .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
+                .OrderBy(sf => sf.Name);
+
+            var totalCount = await query.CountAsync(ct);
+
+            logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
+
+            // Use batch processing for large datasets
+            if (totalCount > 10000)
+            {
+                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+                return await GetWarehousesInBatchesAsync(query, ct);
+            }
+
+            // Standard export for smaller datasets
+            var items = await query
+                .Take(pagination.PageSize)
+                .ToListAsync(ct);
+
+            return items.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
+            {
+                Id = sf.Id,
+                Code = sf.Code,
+                Name = sf.Name,
+                Type = sf.IsFiscal ? "Fiscal" : "Standard",
+                Address = sf.Address,
+                City = ExtractCityFromAddress(sf.Address),
+                IsActive = sf.IsActive,
+                TotalStorageLocations = sf.TotalLocations,
+                CreatedAt = sf.CreatedAt
+            });
         }
-
-        var query = context.StorageFacilities
-            .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
-            .OrderBy(sf => sf.Name);
-
-        var totalCount = await query.CountAsync(ct);
-
-        logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
-
-        // Use batch processing for large datasets
-        if (totalCount > 10000)
+        catch (Exception ex)
         {
-            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-            return await GetWarehousesInBatchesAsync(query, ct);
+            logger.LogError(ex, "Error retrieving warehouses for export.");
+            throw;
         }
-
-        // Standard export for smaller datasets
-        var items = await query
-            .Take(pagination.PageSize)
-            .ToListAsync(ct);
-
-        return items.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
-        {
-            Id = sf.Id,
-            Code = sf.Code,
-            Name = sf.Name,
-            Type = sf.IsFiscal ? "Fiscal" : "Standard",
-            Address = sf.Address,
-            City = ExtractCityFromAddress(sf.Address),
-            IsActive = sf.IsActive,
-            TotalStorageLocations = sf.TotalLocations,
-            CreatedAt = sf.CreatedAt
-        });
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesInBatchesAsync(

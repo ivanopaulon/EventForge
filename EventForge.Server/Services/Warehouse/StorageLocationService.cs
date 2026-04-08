@@ -128,6 +128,7 @@ public class StorageLocationService(
             logger.LogDebug("Getting storage locations for warehouse: {WarehouseId}", warehouseId);
 
             var locations = await context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.WarehouseId == warehouseId)
                 .OrderBy(sl => sl.Zone)
@@ -175,6 +176,7 @@ public class StorageLocationService(
             logger.LogDebug("Getting available storage locations for warehouse: {WarehouseId}", warehouseId);
 
             var query = context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.IsActive &&
                             (sl.Capacity == null || sl.Occupancy == null || sl.Occupancy < sl.Capacity));
