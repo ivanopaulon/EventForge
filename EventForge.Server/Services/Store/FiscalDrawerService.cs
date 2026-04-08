@@ -514,6 +514,8 @@ public class FiscalDrawerService(
 
             var now = DateTime.UtcNow;
             // Deposits are positive, withdrawals are negative for balance tracking
+            // Math.Abs is defensive: the DTO validates Amount > 0, but this ensures correct sign
+            // even if a caller bypasses model binding validation.
             var signedAmount = dto.TransactionType == FiscalDrawerTransactionType.Withdrawal
                 ? -Math.Abs(dto.Amount)
                 : Math.Abs(dto.Amount);

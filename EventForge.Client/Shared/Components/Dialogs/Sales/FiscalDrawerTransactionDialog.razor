@@ -24,7 +24,7 @@
                                          Variant="Variant.Outlined"
                                          Class="ef-input"
                                          Adornment="Adornment.Start"
-                                         AdornmentText="@CurrencyCode" />
+                                         AdornmentText="@GetCurrencySymbol(CurrencyCode)" />
                     </MudItem>
                     <MudItem xs="12">
                         <MudSelect @bind-Value="_model.PaymentType"
@@ -101,6 +101,11 @@
     };
 
     protected override void OnParametersSet() => _model.TransactionType = TransactionType;
+
+    private static string GetCurrencySymbol(string currencyCode) => currencyCode switch
+    {
+        "EUR" => "€", "USD" => "$", "GBP" => "£", "JPY" => "¥", "CNY" => "¥", _ => currencyCode
+    };
 
     private async Task SaveAsync()
     {

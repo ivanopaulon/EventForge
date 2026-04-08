@@ -211,13 +211,13 @@
                             <MudItem xs="12" sm="4">
                                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Fondo cassa iniziale</MudText>
-                                    <MudText Typo="Typo.h6">@($"{ViewModel.Entity.CurrencyCode} {ViewModel.Entity.OpeningBalance:N2}")</MudText>
+                                    <MudText Typo="Typo.h6">@FormatBalance(ViewModel.Entity.OpeningBalance)</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo attuale</MudText>
-                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@($"{ViewModel.Entity.CurrencyCode} {ViewModel.Entity.CurrentBalance:N2}")</MudText>
+                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@FormatBalance(ViewModel.Entity.CurrentBalance)</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
@@ -310,7 +310,7 @@
                                         <strong>Totale contante contato:</strong>
                                     </MudText>
                                     <MudText Typo="Typo.h6" Style="font-weight:700;">
-                                        @($"{ViewModel.Entity.CurrencyCode} {ViewModel.CashDenominations.Sum(d => d.TotalValue):N2}")
+                                        @FormatBalance(ViewModel.CashDenominations.Sum(d => d.TotalValue))
                                     </MudText>
                                 </MudStack>
                             </MudPaper>
@@ -466,4 +466,10 @@
     };
 
     public void Dispose() => ViewModel.StateChanged -= OnViewModelStateChanged;
+
+    private string FormatBalance(decimal amount)
+    {
+        var currency = ViewModel.Entity?.CurrencyCode ?? "EUR";
+        return $"{currency} {amount:N2}";
+    }
 }
