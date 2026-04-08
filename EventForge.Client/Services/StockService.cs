@@ -52,7 +52,6 @@ public class StockService(
         try
         {
             return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}", ct);
-
         }
         catch (Exception ex)
         {
@@ -134,7 +133,6 @@ public class StockService(
         try
         {
             return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto, ct);
-
         }
         catch (Exception ex)
         {
@@ -148,7 +146,6 @@ public class StockService(
         try
         {
             return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto, ct);
-
         }
         catch (Exception ex)
         {
@@ -162,7 +159,6 @@ public class StockService(
         try
         {
             return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto, ct);
-
         }
         catch (Exception ex)
         {

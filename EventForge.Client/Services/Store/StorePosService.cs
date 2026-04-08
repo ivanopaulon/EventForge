@@ -85,7 +85,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting store POS {Id}", id);
             throw;
         }
@@ -112,7 +111,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error creating store POS");
             throw new InvalidOperationException("Errore nella creazione del punto cassa. Verifica i dati e riprova.", ex);
         }
@@ -139,7 +137,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error updating store POS {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del punto cassa. Verifica i dati e riprova.", ex);
         }
@@ -166,7 +163,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error deleting store POS {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del punto cassa.", ex);
         }
@@ -195,7 +191,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento dei punti cassa.", ex);
         }

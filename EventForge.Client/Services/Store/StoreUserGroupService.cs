@@ -26,7 +26,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting all store user groups");
             throw;
         }
@@ -55,7 +54,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting paged store user groups (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento dei gruppi.", ex);
         }
@@ -73,7 +71,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting store user group {Id}", id);
             throw;
         }
@@ -100,7 +97,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error creating store user group");
             throw new InvalidOperationException("Errore nella creazione del gruppo. Verifica i dati e riprova.", ex);
         }
@@ -127,7 +123,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error updating store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del gruppo. Verifica i dati e riprova.", ex);
         }
@@ -154,7 +149,6 @@ public class StoreUserGroupService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error deleting store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del gruppo.", ex);
         }

@@ -15,7 +15,6 @@ public class SupplierSuggestionService(
         try
         {
             return await httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}", ct);
-
         }
         catch (Exception ex)
         {
@@ -52,7 +51,6 @@ public class SupplierSuggestionService(
         try
         {
             return await httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability", ct);
-
         }
         catch (Exception ex)
         {

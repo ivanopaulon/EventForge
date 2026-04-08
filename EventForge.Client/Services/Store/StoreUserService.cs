@@ -25,7 +25,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting all store users");
             throw;
         }
@@ -43,7 +42,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting store user {Id}", id);
             throw;
         }
@@ -61,7 +59,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting store user by username {Username}", username);
             throw;
         }
@@ -88,7 +85,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error creating store user");
             throw new InvalidOperationException("Errore nella creazione dell'operatore. Verifica i dati e riprova.", ex);
         }
@@ -115,7 +111,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error updating store user {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento dell'operatore. Verifica i dati e riprova.", ex);
         }
@@ -142,7 +137,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error deleting store user {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione dell'operatore.", ex);
         }
@@ -171,7 +165,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-
             logger.LogError(ex, "Error getting paged store users (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento degli operatori.", ex);
         }
