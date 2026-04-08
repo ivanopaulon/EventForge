@@ -6,6 +6,8 @@
 @inject IFinancialService FinancialService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<VatRateManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("financial.vatRateManagement", "Gestione Aliquote IVA")</PageTitle>
 <EntityManagementPage TEntity="VatRateDto"
@@ -189,14 +191,22 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(VatRateDetailDialog.EntityId)] = id
-        };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<VatRateDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+            var parameters = new DialogParameters
+            {
+                [nameof(VatRateDetailDialog.EntityId)] = id
+            };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<VatRateDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening VAT rate detail dialog for ID {Id}.", id);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

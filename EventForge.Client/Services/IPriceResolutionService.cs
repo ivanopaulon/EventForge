@@ -31,7 +31,8 @@ public interface IPriceResolutionService
         Guid? forcedPriceListId = null,
         PriceListDirection? direction = null,
         decimal quantity = 1m,
-        Guid? unitOfMeasureId = null);
+        Guid? unitOfMeasureId = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Resolves prices for multiple products in a single batch HTTP call.

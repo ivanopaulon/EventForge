@@ -6,6 +6,8 @@
 @inject EventForge.Client.Services.Store.IStoreUserService StoreUserService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<OperatorManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("store.operatorsList", "Operatori")</PageTitle>
 <EntityManagementPage TEntity="StoreUserDto"
@@ -193,10 +195,18 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(OperatorDetailDialog.EntityId)] = id };
-        var dialog = await DialogService.ShowAsync<OperatorDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(OperatorDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<OperatorDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening operator detail dialog for ID {Id}.", id);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

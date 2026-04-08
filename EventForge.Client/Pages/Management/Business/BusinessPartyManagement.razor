@@ -15,6 +15,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<BusinessPartyManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("businessparty.management", "Gestione Business Party")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
@@ -341,30 +342,46 @@
 
     private async Task CreateBusinessPartyAsync()
     {
-        var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)null,
-            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
-        };
-        var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage.RefreshAsync();
+            var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
+            var parameters = new DialogParameters
+            {
+                [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)null,
+                [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
+            };
+            var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening create business party dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task OpenDetailDialogAsync(Guid id)
     {
-        var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)id,
-            [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
-        };
-        var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage.RefreshAsync();
+            var isSupplierMode = FilterType?.ToLower() is "suppliers" or "fornitori";
+            var parameters = new DialogParameters
+            {
+                [nameof(BusinessPartyDetailDialog.EntityId)] = (Guid?)id,
+                [nameof(BusinessPartyDetailDialog.IsSupplierMode)] = isSupplierMode
+            };
+            var dialog = await DialogService.ShowAsync<BusinessPartyDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening business party detail dialog for ID {Id}.", id);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task EditBusinessParty(BusinessPartyDto businessParty)
@@ -374,56 +391,72 @@
 
     private async Task ManageSupplierProductsAsync(BusinessPartyDto supplier)
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "SupplierId", supplier.Id },
-            { "SupplierName", supplier.Name }
-        };
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", supplier.Id },
+                { "SupplierName", supplier.Name }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
+                TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti") + $" - {supplier.Name}",
+                parameters,
+                options);
+
+            await dialog.Result;
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
-            TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti") + $" - {supplier.Name}",
-            parameters,
-            options);
-
-        await dialog.Result;
+            Logger.LogError(ex, "Error opening manage supplier products dialog for {SupplierId}.", supplier.Id);
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task OpenBulkVatUpdateDialogAsync()
     {
-        var allParties = _service.CachedItems;
-        var selectedParties = _entityPage?.EFTableRef?.SelectedItems ?? new HashSet<BusinessPartyDto>();
-
-        var parameters = new DialogParameters<BulkVatUpdateDialog>
+        try
         {
-            { x => x.AllParties, allParties },
-            { x => x.SelectedParties, selectedParties }
-        };
+            var allParties = _service.CachedItems;
+            var selectedParties = _entityPage?.EFTableRef?.SelectedItems ?? new HashSet<BusinessPartyDto>();
 
-        var options = new DialogOptions
+            var parameters = new DialogParameters<BulkVatUpdateDialog>
+            {
+                { x => x.AllParties, allParties },
+                { x => x.SelectedParties, selectedParties }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = false,
+                CloseOnEscapeKey = false
+            };
+
+            var dialog = await DialogService.ShowAsync<BulkVatUpdateDialog>(
+                "Aggiornamento massivo da P.IVA",
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: true })
+            {
+                // Names were updated in place by the dialog; reload for a clean server-side refresh
+                await _entityPage!.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = false,
-            CloseOnEscapeKey = false
-        };
-
-        var dialog = await DialogService.ShowAsync<BulkVatUpdateDialog>(
-            "Aggiornamento massivo da P.IVA",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: true })
-        {
-            // Names were updated in place by the dialog; reload for a clean server-side refresh
-            await _entityPage!.RefreshAsync();
+            Logger.LogError(ex, "Error opening bulk VAT update dialog.");
+            await AppNotification.ShowWarningAsync("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
     // ──────────────────────────── Display helpers ────────────────────────────
