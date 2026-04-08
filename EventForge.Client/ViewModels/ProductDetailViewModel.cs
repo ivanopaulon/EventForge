@@ -45,8 +45,8 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
     protected override async Task<ProductDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         // Prefer detailed payload if available
-        return await _productService.GetProductDetailAsync(entityId)
-            ?? await _productService.GetProductByIdAsync(entityId);
+        return await _productService.GetProductDetailAsync(entityId, ct)
+            ?? await _productService.GetProductByIdAsync(entityId, ct);
     }
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
@@ -62,9 +62,9 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
 
         try
         {
-            var codesTask = _productService.GetProductCodesAsync(entityId);
-            var unitsTask = _productService.GetProductUnitsAsync(entityId);
-            var suppliersTask = _productService.GetProductSuppliersAsync(entityId);
+            var codesTask = _productService.GetProductCodesAsync(entityId, ct);
+            var unitsTask = _productService.GetProductUnitsAsync(entityId, ct);
+            var suppliersTask = _productService.GetProductSuppliersAsync(entityId, ct);
 
             await Task.WhenAll(codesTask, unitsTask, suppliersTask);
 
@@ -74,7 +74,7 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
 
             if (Entity?.IsBundle == true)
             {
-                BundleItems = await _productService.GetProductBundleItemsAsync(entityId);
+                BundleItems = await _productService.GetProductBundleItemsAsync(entityId, ct);
             }
         }
         catch (Exception ex)
@@ -143,12 +143,12 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
 
     protected override Task<ProductDto?> CreateEntityAsync(CreateProductDto createDto, CancellationToken ct = default)
     {
-        return _productService.CreateProductAsync(createDto);
+        return _productService.CreateProductAsync(createDto, ct);
     }
 
     protected override async Task<ProductDto?> UpdateEntityAsync(Guid entityId, UpdateProductDto updateDto, CancellationToken ct = default)
     {
-        var result = await _productService.UpdateProductAsync(entityId, updateDto);
+        var result = await _productService.UpdateProductAsync(entityId, updateDto, ct);
         if (result != null)
         {
             Logger.LogDebug("UpdateEntityAsync: Resetting manual dirty flag after successful save");

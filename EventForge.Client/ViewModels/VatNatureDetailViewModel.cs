@@ -35,7 +35,7 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
 
     protected override async Task<VatNatureDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _financialService.GetVatNatureAsync(entityId);
+        return await _financialService.GetVatNatureAsync(entityId, ct);
     }
 
     protected override CreateVatNatureDto MapToCreateDto(VatNatureDto entity)
@@ -60,12 +60,12 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
 
     protected override async Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto, CancellationToken ct = default)
     {
-        return await _financialService.CreateVatNatureAsync(createDto);
+        return await _financialService.CreateVatNatureAsync(createDto, ct);
     }
 
     protected override async Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto, CancellationToken ct = default)
     {
-        return await _financialService.UpdateVatNatureAsync(entityId, updateDto);
+        return await _financialService.UpdateVatNatureAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(VatNatureDto entity)

@@ -32,7 +32,7 @@ public class StationDetailViewModel : BaseEntityDetailViewModel<StationDto, Crea
 
     protected override Task<StationDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return _stationService.GetByIdAsync(entityId);
+        return _stationService.GetByIdAsync(entityId, ct);
     }
 
     protected override CreateStationDto MapToCreateDto(StationDto entity)
@@ -69,12 +69,12 @@ public class StationDetailViewModel : BaseEntityDetailViewModel<StationDto, Crea
 
     protected override Task<StationDto?> CreateEntityAsync(CreateStationDto createDto, CancellationToken ct = default)
     {
-        return _stationService.CreateAsync(createDto);
+        return _stationService.CreateAsync(createDto, ct);
     }
 
     protected override Task<StationDto?> UpdateEntityAsync(Guid entityId, UpdateStationDto updateDto, CancellationToken ct = default)
     {
-        return _stationService.UpdateAsync(entityId, updateDto);
+        return _stationService.UpdateAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(StationDto entity)

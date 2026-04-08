@@ -17,7 +17,7 @@ public class StationService(
     {
         try
         {
-            var result = await GetPagedAsync(1, 200);
+            var result = await GetPagedAsync(1, 200, ct);
             return result.Items?.ToList() ?? [];
         }
         catch (Exception ex)
@@ -29,28 +29,28 @@ public class StationService(
 
     public async Task<StationDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<StationDto>($"{ApiBase}/{id}");
+        return await httpClientService.GetAsync<StationDto>($"{ApiBase}/{id}", ct);
     }
 
     public async Task<StationDto?> CreateAsync(CreateStationDto createDto, CancellationToken ct = default)
     {
-        return await httpClientService.PostAsync<CreateStationDto, StationDto>(ApiBase, createDto);
+        return await httpClientService.PostAsync<CreateStationDto, StationDto>(ApiBase, createDto, ct);
     }
 
     public async Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto, CancellationToken ct = default)
     {
-        return await httpClientService.PutAsync<UpdateStationDto, StationDto>($"{ApiBase}/{id}", updateDto);
+        return await httpClientService.PutAsync<UpdateStationDto, StationDto>($"{ApiBase}/{id}", updateDto, ct);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        await httpClientService.DeleteAsync($"{ApiBase}/{id}");
+        await httpClientService.DeleteAsync($"{ApiBase}/{id}", ct);
         return true;
     }
 
     public async Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}")
+        return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}", ct)
             ?? new PagedResult<StationDto>();
     }
 
@@ -60,7 +60,7 @@ public class StationService(
     {
         try
         {
-            var result = await httpClientService.GetAsync<PagedResult<PrinterDto>>($"{PrintersBase}?page=1&pageSize=200");
+            var result = await httpClientService.GetAsync<PagedResult<PrinterDto>>($"{PrintersBase}?page=1&pageSize=200", ct);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
@@ -72,16 +72,16 @@ public class StationService(
 
     public async Task<PrinterDto?> GetPrinterByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}");
+        return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}", ct);
     }
 
     public async Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto, CancellationToken ct = default)
     {
-        return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto);
+        return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto, ct);
     }
 
     public async Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto, CancellationToken ct = default)
     {
-        return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto);
+        return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto, ct);
     }
 }
