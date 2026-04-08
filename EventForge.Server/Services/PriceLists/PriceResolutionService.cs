@@ -39,6 +39,7 @@ namespace EventForge.Server.Services.PriceLists
                 if (documentHeaderId.HasValue)
                 {
                     var documentHeader = await context.DocumentHeaders
+                        .AsNoTracking()
                         .Include(d => d.PriceList)
                         .Include(d => d.DocumentType)
                         .FirstOrDefaultAsync(d => d.Id == documentHeaderId.Value, cancellationToken);
@@ -66,6 +67,7 @@ namespace EventForge.Server.Services.PriceLists
                 if (businessPartyId.HasValue && direction.HasValue)
                 {
                     var businessParty = await context.BusinessParties
+                        .AsNoTracking()
                         .Include(bp => bp.DefaultSalesPriceList)
                         .Include(bp => bp.DefaultPurchasePriceList)
                         .FirstOrDefaultAsync(bp => bp.Id == businessPartyId.Value, cancellationToken);
@@ -92,6 +94,7 @@ namespace EventForge.Server.Services.PriceLists
                 if (direction.HasValue)
                 {
                     var generalPriceList = await context.PriceLists
+                        .AsNoTracking()
                         .Where(pl => pl.Direction == direction.Value
                             && pl.Status == Data.Entities.PriceList.PriceListStatus.Active
                             && (pl.ValidFrom == null || pl.ValidFrom <= DateTime.UtcNow)
@@ -112,6 +115,7 @@ namespace EventForge.Server.Services.PriceLists
 
                 // Fallback: Product default price
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
                 if (product?.DefaultPrice is not null)
@@ -232,6 +236,7 @@ namespace EventForge.Server.Services.PriceLists
         {
             // Build base query: match product, price list and quantity bracket
             var baseQuery = context.PriceListEntries
+                .AsNoTracking()
                 .Include(ple => ple.PriceList)
                 .Where(ple => ple.PriceListId == priceListId && ple.ProductId == productId
                     && ple.MinQuantity <= quantity && (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity));

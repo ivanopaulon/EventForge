@@ -35,6 +35,7 @@ public class PriceListGenerationService(
             if (dto.EventId.HasValue)
             {
                 var eventExists = await context.Events
+                    .AsNoTracking()
                     .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
                 if (!eventExists)
@@ -45,6 +46,7 @@ public class PriceListGenerationService(
 
             // 3. Query prodotti con filtri
             var query = context.Products
+                .AsNoTracking()
                 .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
             // Filtro prodotti attivi
@@ -150,6 +152,7 @@ public class PriceListGenerationService(
                 {
                     // Verifica che il BusinessParty esista
                     var businessPartyExists = await context.BusinessParties
+                        .AsNoTracking()
                         .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId.Value && !bp.IsDeleted, cancellationToken);
 
                     if (!businessPartyExists)
@@ -215,6 +218,7 @@ public class PriceListGenerationService(
             if (dto.EventId.HasValue)
             {
                 var eventExists = await context.Events
+                    .AsNoTracking()
                     .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
                 if (!eventExists)
@@ -225,6 +229,7 @@ public class PriceListGenerationService(
 
             // Query prodotti con stessa logica di GenerateFromProductPricesAsync
             var query = context.Products
+                .AsNoTracking()
                 .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
 
             if (dto.OnlyActiveProducts)
@@ -339,6 +344,7 @@ public class PriceListGenerationService(
         {
             // Validazione fornitore e recupero TenantId
             var supplier = await context.BusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
 
             if (supplier is null)
@@ -396,6 +402,7 @@ public class PriceListGenerationService(
                 calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
                 if (product is null)
@@ -420,6 +427,7 @@ public class PriceListGenerationService(
 
             // Conta documenti distinti
             var documentCount = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(dh => dh.TenantId == tenantId &&
                             dh.BusinessPartyId == dto.SupplierId &&
                             dh.Date >= dto.FromDate &&
@@ -457,6 +465,7 @@ public class PriceListGenerationService(
         {
             // Validazione fornitore e recupero TenantId
             var supplier = await context.BusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
 
             if (supplier is null)
@@ -517,6 +526,7 @@ public class PriceListGenerationService(
 
             // Conta documenti per metadati
             var documentCount = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(dh => dh.TenantId == tenantId &&
                             dh.BusinessPartyId == dto.SupplierId &&
                             dh.Date >= dto.FromDate &&
@@ -628,6 +638,7 @@ public class PriceListGenerationService(
         {
             // Carica listino esistente
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Include(pl => pl.BusinessParties)
                 .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
 
@@ -692,6 +703,7 @@ public class PriceListGenerationService(
                 calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
                 if (product is null)
@@ -884,6 +896,7 @@ public class PriceListGenerationService(
 
             // Conta documenti per metadati
             var documentCount = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(dh => dh.TenantId == tenantId &&
                             dh.BusinessPartyId == supplierId &&
                             dh.Date >= fromDate &&
@@ -961,6 +974,7 @@ public class PriceListGenerationService(
     {
         // Query documenti di carico (IsStockIncrease = true)
         var query = context.DocumentRows
+            .AsNoTracking()
             .Include(dr => dr.DocumentHeader)
                 .ThenInclude(dh => dh!.DocumentType)
             .Include(dr => dr.Product)
@@ -1079,6 +1093,7 @@ public class PriceListGenerationService(
         {
             // 1. Recupera il listino sorgente
             var sourcePriceList = await context.PriceLists
+                .AsNoTracking()
                 .Include(pl => pl.ProductPrices)
                     .ThenInclude(pp => pp.Product)
                 .Include(pl => pl.BusinessParties)
@@ -1098,6 +1113,7 @@ public class PriceListGenerationService(
             if (sourceEntriesCount == 0)
             {
                 sourceEntriesCount = await context.PriceListEntries
+                    .AsNoTracking()
                     .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
                     .CountAsync(cancellationToken);
             }
@@ -1299,7 +1315,7 @@ public class PriceListGenerationService(
         var code = baseCode;
         var counter = 1;
 
-        while (await context.PriceLists.AnyAsync(pl => pl.TenantId == tenantId && pl.Code == code, cancellationToken))
+        while (await context.PriceLists.AsNoTracking().AnyAsync(pl => pl.TenantId == tenantId && pl.Code == code, cancellationToken))
         {
             code = $"{baseCode}-{counter:D3}";
             counter++;
@@ -1336,7 +1352,7 @@ public class PriceListGenerationService(
         var code = baseCode;
         var counter = 1;
 
-        while (await context.PriceLists.AnyAsync(
+        while (await context.PriceLists.AsNoTracking().AnyAsync(
             pl => pl.Code == code && !pl.IsDeleted,
             cancellationToken))
         {

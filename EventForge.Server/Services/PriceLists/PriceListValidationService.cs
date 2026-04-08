@@ -28,6 +28,7 @@ public class PriceListValidationService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
                 .Select(pl => new { pl.ValidFrom, pl.ValidTo, pl.Name })
                 .FirstOrDefaultAsync(ct);
@@ -88,6 +89,7 @@ public class PriceListValidationService(
         try
         {
             var overlappingLists = await context.PriceListBusinessParties
+                .AsNoTracking()
                 .Where(plbp => plbp.BusinessPartyId == businessPartyId
                             && !plbp.IsDeleted
                             && plbp.PriceList.Direction == direction
@@ -146,6 +148,7 @@ public class PriceListValidationService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
                 .Select(pl => new { pl.Status, pl.Name })
                 .FirstOrDefaultAsync(ct);
@@ -217,6 +220,7 @@ public class PriceListValidationService(
         try
         {
             var exists = await context.PriceListEntries
+                .AsNoTracking()
                 .AnyAsync(ple => ple.PriceListId == priceListId
                               && ple.ProductId == productId
                               && !ple.IsDeleted
@@ -225,6 +229,7 @@ public class PriceListValidationService(
             if (exists)
             {
                 var product = await context.Products
+                    .AsNoTracking()
                     .Where(p => p.Id == productId)
                     .Select(p => new { p.Name, p.Code })
                     .FirstOrDefaultAsync(ct);
@@ -257,6 +262,7 @@ public class PriceListValidationService(
         try
         {
             var exists = await context.PriceListBusinessParties
+                .AsNoTracking()
                 .AnyAsync(plbp => plbp.PriceListId == priceListId
                                && plbp.BusinessPartyId == businessPartyId
                                && !plbp.IsDeleted, ct);
@@ -264,6 +270,7 @@ public class PriceListValidationService(
             if (exists)
             {
                 var bp = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(b => b.Id == businessPartyId)
                     .Select(b => b.Name)
                     .FirstOrDefaultAsync(ct);
@@ -385,6 +392,7 @@ public class PriceListValidationService(
         try
         {
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == productId && !p.IsDeleted)
                 .Select(p => new { p.Status, p.Name, p.Code })
                 .FirstOrDefaultAsync(ct);
@@ -424,6 +432,7 @@ public class PriceListValidationService(
         try
         {
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
                 .Select(bp => new { bp.PartyType, bp.Name })
                 .FirstOrDefaultAsync(ct);
