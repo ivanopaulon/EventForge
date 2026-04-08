@@ -188,6 +188,7 @@ public class FiscalDrawerService(
             if (entity.CurrencyCode != dto.CurrencyCode)
             {
                 var hasDenominations = await context.CashDenominations
+                    .AsNoTracking()
                     .AnyAsync(d => d.FiscalDrawerId == id && !d.IsDeleted && d.TenantId == tenantId, ct);
                 if (hasDenominations)
                     throw new InvalidOperationException(
