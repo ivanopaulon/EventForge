@@ -53,7 +53,7 @@
                                        Color="Color.Info"
                                        Size="Size.Small"
                                        StartIcon="@Icons.Material.Filled.Help"
-                                       OnClick="@(() => _showOnboarding = true)">
+                                       OnClick="@OpenOnboardingAsync">
                                 @TranslationService.GetTranslation("help.quickStart", "Quick Start")
                             </MudButton>
                             <MudButton Variant="Variant.Text" 
@@ -333,10 +333,7 @@
     </MudGrid>
 </MudContainer>
 
-<!-- Help Components -->
-<OnboardingModal ComponentId="notifications" 
-                 @bind-Visible="_showOnboarding"
-                 OnOnboardingCompleted="@OnOnboardingCompleted" />
+@* Onboarding opened programmatically via DialogService *@
 
 <InteractiveWalkthrough ComponentId="notifications" 
                         @bind-IsActive="_showWalkthrough"
@@ -356,7 +353,6 @@
     private bool _enableGrouping = false;
     
     // Help system state
-    private bool _showOnboarding = false;
     private bool _showWalkthrough = false;
 
     // Real notification data from service
@@ -418,8 +414,7 @@
             {
                 // Add a small delay to ensure the page is fully loaded
                 await Task.Delay(1000);
-                _showOnboarding = true;
-                StateHasChanged();
+                await OpenOnboardingAsync();
             }
         }
         catch (Exception ex)

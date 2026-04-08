@@ -1,24 +1,20 @@
 @namespace EventForge.Client.Shared.Components.FiscalPrinting
 @using EventForge.DTOs.FiscalPrinting
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IAppNotificationService AppNotification
 @inject ILogger<DailyClosureDialog> Logger
 
-<MudDialog>
-    <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.EventNote" Color="Color.Warning" />
-            <MudText Typo="Typo.h6">Chiusura Giornaliera Fiscale</MudText>
-            @if (!string.IsNullOrEmpty(_printerName))
-            {
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@_printerName</MudChip>
-            }
-        </MudStack>
-    </TitleContent>
+<EFDialog Icon="@Icons.Material.Filled.EventNote"
+          Title="@("Chiusura Giornaliera Fiscale" + (!string.IsNullOrEmpty(_printerName) ? $" – {_printerName}" : string.Empty))"
+          IsProcessing="@(_step == 2)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
 
-    <DialogContent>
         @* ─── Step indicator ─── *@
         <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_step" Linear="true" Class="mb-4">
             <MudStep Title="Pre-Check"  Icon="@Icons.Material.Filled.CheckCircleOutline" />
@@ -189,7 +185,7 @@
                 </MudAlert>
             }
         }
-    </DialogContent>
+    </ChildContent>
 
     <DialogActions>
         @if (_step == 0)
@@ -222,7 +218,7 @@
             </MudButton>
         }
     </DialogActions>
-</MudDialog>
+</EFDialog>
 
 @code {
     // ─────────────────────────────────────────────────────────
