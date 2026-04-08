@@ -148,7 +148,7 @@
             <MudTd>
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
                     <MudMenuItem Icon="@Icons.Material.Filled.Info"
-                                 OnClick="@(() => ShowDetailAsync(context.Printer.Id))">
+                                 OnClick="@(() => ShowDetail(context.Printer.Id))">
                         Dettagli
                     </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.EventNote"
@@ -348,7 +348,7 @@
     //  Actions
     // ──────────────────────────────────────────────────────────
 
-    private void ShowDetailAsync(Guid printerId)
+    private void ShowDetail(Guid printerId)
     {
         var printer = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Printer;
         AppNotification.ShowInfo($"Stampante: {printer?.Name ?? printerId.ToString()}");
