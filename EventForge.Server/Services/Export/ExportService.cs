@@ -16,74 +16,90 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         string sheetName = "Data",
         CancellationToken ct = default) where T : class
     {
-        logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
-            typeof(T).Name, sheetName);
-
-        using var package = new ExcelPackage();
-        var worksheet = package.Workbook.Worksheets.Add(sheetName);
-
-        // Load data using EPPlus reflection
-        worksheet.Cells["A1"].LoadFromCollection(data, true);
-
-        // Auto-fit columns
-        worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
-
-        // Style header row
-        using (var range = worksheet.Cells[1, 1, 1, worksheet.Dimension.Columns])
+        try
         {
-            range.Style.Font.Bold = true;
-            range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-            range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            range.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
+            logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
+                typeof(T).Name, sheetName);
+
+            using var package = new ExcelPackage();
+            var worksheet = package.Workbook.Worksheets.Add(sheetName);
+
+            // Load data using EPPlus reflection
+            worksheet.Cells["A1"].LoadFromCollection(data, true);
+
+            // Auto-fit columns
+            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+            // Style header row
+            using (var range = worksheet.Cells[1, 1, 1, worksheet.Dimension.Columns])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                range.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
+            }
+
+            // Add filters
+            worksheet.Cells[1, 1, worksheet.Dimension.Rows, worksheet.Dimension.Columns].AutoFilter = true;
+
+            logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
+                worksheet.Dimension.Rows - 1, worksheet.Dimension.Columns);
+
+            return await Task.FromResult(package.GetAsByteArray());
         }
-
-        // Add filters
-        worksheet.Cells[1, 1, worksheet.Dimension.Rows, worksheet.Dimension.Columns].AutoFilter = true;
-
-        logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
-            worksheet.Dimension.Rows - 1, worksheet.Dimension.Columns);
-
-        return await Task.FromResult(package.GetAsByteArray());
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error exporting data to Excel for type {Type}.", typeof(T).Name);
+            throw;
+        }
     }
 
     public async Task<byte[]> ExportToCsvAsync<T>(
         IEnumerable<T> data,
         CancellationToken ct = default) where T : class
     {
-        logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
-
-        using var memoryStream = new MemoryStream();
-        using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-
-        // Get properties via reflection
-        var properties = typeof(T).GetProperties()
-            .Where(p => p.CanRead)
-            .ToArray();
-
-        // Write header
-        var header = string.Join(",", properties.Select(p => EscapeCsvField(p.Name)));
-        await writer.WriteLineAsync(header);
-
-        // Write data rows
-        foreach (var item in data)
+        try
         {
-            ct.ThrowIfCancellationRequested();
+            logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
 
-            var values = properties.Select(p =>
+            using var memoryStream = new MemoryStream();
+            using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+
+            // Get properties via reflection
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead)
+                .ToArray();
+
+            // Write header
+            var header = string.Join(",", properties.Select(p => EscapeCsvField(p.Name)));
+            await writer.WriteLineAsync(header);
+
+            // Write data rows
+            foreach (var item in data)
             {
-                var value = p.GetValue(item);
-                return value?.ToString() ?? string.Empty;
-            });
+                ct.ThrowIfCancellationRequested();
 
-            var line = string.Join(",", values.Select(EscapeCsvField));
-            await writer.WriteLineAsync(line);
+                var values = properties.Select(p =>
+                {
+                    var value = p.GetValue(item);
+                    return value?.ToString() ?? string.Empty;
+                });
+
+                var line = string.Join(",", values.Select(EscapeCsvField));
+                await writer.WriteLineAsync(line);
+            }
+
+            await writer.FlushAsync();
+
+            logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
+
+            return memoryStream.ToArray();
         }
-
-        await writer.FlushAsync();
-
-        logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
-
-        return memoryStream.ToArray();
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error exporting data to CSV for type {Type}.", typeof(T).Name);
+            throw;
+        }
     }
 
     private static string EscapeCsvField(string field)

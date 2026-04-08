@@ -67,24 +67,24 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}")
+            return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}", ct)
                 ?? new PagedResult<BusinessPartyDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
         public async Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}");
+            return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}", ct);
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}")
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}", ct)
                 ?? [];
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays")
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays", ct)
                 ?? [];
         }
 
@@ -95,25 +95,25 @@ namespace EventForge.Client.Services
             {
                 query += $"&partyType={partyType.Value}";
             }
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query)
+            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query, ct)
                 ?? [];
         }
 
         public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto, CancellationToken ct = default)
         {
-            var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto);
+            var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto, ct);
             return result ?? throw new InvalidOperationException("Failed to create business party");
         }
 
         public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto) ??
+            return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto, ct) ??
                    throw new InvalidOperationException("Failed to update business party");
         }
 
         public async Task DeleteBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/businessparties/{id}");
+            await httpClientService.DeleteAsync($"api/v1/businessparties/{id}", ct);
         }
 
         #endregion
@@ -122,7 +122,7 @@ namespace EventForge.Client.Services
 
         public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting");
+            return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting", ct);
         }
 
         public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(

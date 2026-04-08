@@ -18,7 +18,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize={MaxPageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize={MaxPageSize}", ct);
             response.EnsureSuccessStatusCode();
 
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StoreUserGroupDto>>();
@@ -36,7 +36,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -65,7 +65,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StoreUserGroupDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<StoreUserGroupDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -83,7 +83,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -110,7 +110,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -137,7 +137,7 @@ public class StoreUserGroupService(
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
 
             if (!response.IsSuccessStatusCode)
             {

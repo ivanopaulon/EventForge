@@ -22,7 +22,7 @@ public class StorePosService(
             try
             {
                 var activeEndpoint = ApiBase.Replace("/pos", "") + "/active";
-                var activeResponse = await httpClient.GetAsync(activeEndpoint);
+                var activeResponse = await httpClient.GetAsync(activeEndpoint, ct);
                 if (activeResponse.IsSuccessStatusCode)
                 {
                     var activePosResult = await activeResponse.Content.ReadFromJsonAsync<List<StorePosDto>>();
@@ -36,7 +36,7 @@ public class StorePosService(
             }
 
             // Fallback to paginated endpoint with reduced pageSize
-            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100");
+            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -63,7 +63,7 @@ public class StorePosService(
     {
         try
         {
-            var allPos = await GetAllAsync();
+            var allPos = await GetAllAsync(ct);
             return allPos.Where(p => p.Status == CashRegisterStatus.Active).ToList();
         }
         catch (Exception ex)
@@ -77,7 +77,7 @@ public class StorePosService(
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StorePosDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<StorePosDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -95,7 +95,7 @@ public class StorePosService(
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -122,7 +122,7 @@ public class StorePosService(
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -149,7 +149,7 @@ public class StorePosService(
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -176,7 +176,7 @@ public class StorePosService(
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}", ct);
 
             if (!response.IsSuccessStatusCode)
             {

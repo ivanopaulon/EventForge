@@ -16,7 +16,7 @@ public class StorageLocationService(
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
         }
         catch (Exception ex)
         {
@@ -29,7 +29,7 @@ public class StorageLocationService(
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?facilityId={warehouseId}&page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageLocationDto>>($"{BaseUrl}?facilityId={warehouseId}&page={page}&pageSize={pageSize}", ct);
         }
         catch (Exception ex)
         {
@@ -42,7 +42,7 @@ public class StorageLocationService(
     {
         try
         {
-            return await httpClientService.GetAsync<StorageLocationDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StorageLocationDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -55,7 +55,7 @@ public class StorageLocationService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateStorageLocationDto, StorageLocationDto>(BaseUrl, dto);
+            return await httpClientService.PostAsync<CreateStorageLocationDto, StorageLocationDto>(BaseUrl, dto, ct);
         }
         catch (Exception ex)
         {
@@ -68,7 +68,7 @@ public class StorageLocationService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateStorageLocationDto, StorageLocationDto>($"{BaseUrl}/{id}", dto);
+            return await httpClientService.PutAsync<UpdateStorageLocationDto, StorageLocationDto>($"{BaseUrl}/{id}", dto, ct);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class StorageLocationService(
     {
         try
         {
-            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)

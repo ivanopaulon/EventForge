@@ -17,7 +17,7 @@ public class StoreUserService(
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000");
+            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000", ct);
             response.EnsureSuccessStatusCode();
 
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StoreUserDto>>();
@@ -35,7 +35,7 @@ public class StoreUserService(
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -53,7 +53,7 @@ public class StoreUserService(
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/by-username/{username}");
+            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/by-username/{username}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -71,7 +71,7 @@ public class StoreUserService(
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -98,7 +98,7 @@ public class StoreUserService(
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -125,7 +125,7 @@ public class StoreUserService(
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -152,7 +152,7 @@ public class StoreUserService(
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -181,7 +181,7 @@ public class StoreUserService(
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<IEnumerable<StoreUserDto>>($"{ApiBase}/with-birthdays")
+            return await httpClient.GetFromJsonAsync<IEnumerable<StoreUserDto>>($"{ApiBase}/with-birthdays", ct)
                 ?? Enumerable.Empty<StoreUserDto>();
         }
         catch (Exception ex)

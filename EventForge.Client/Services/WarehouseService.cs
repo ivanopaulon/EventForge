@@ -16,7 +16,7 @@ public class WarehouseService(
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
         }
         catch (Exception ex)
         {
@@ -29,7 +29,7 @@ public class WarehouseService(
     {
         try
         {
-            return await httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -42,7 +42,7 @@ public class WarehouseService(
     {
         try
         {
-            return await httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto);
+            return await httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto, ct);
         }
         catch (Exception ex)
         {
@@ -55,7 +55,7 @@ public class WarehouseService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto);
+            return await httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto, ct);
         }
         catch (Exception ex)
         {
@@ -68,7 +68,7 @@ public class WarehouseService(
     {
         try
         {
-            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)
