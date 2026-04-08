@@ -1,0 +1,247 @@
+@page "/store/fiscal-drawers"
+@page "/management/fiscal-drawers"
+@using Microsoft.AspNetCore.Authorization
+@using EventForge.DTOs.Store
+@using EventForge.Client.Services.Store
+@using EventForge.Client.Shared.Management
+@using EventForge.Client.Shared.Management.Adapters
+@using EventForge.Client.Shared.Components.Dialogs
+@attribute [Authorize]
+@inject IFiscalDrawerService FiscalDrawerService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+
+<PageTitle>@TranslationService.GetTranslation("store.fiscalDrawers", "Cassetti Fiscali")</PageTitle>
+<EntityManagementPage TEntity="FiscalDrawerDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Name))">Nome</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Code ?? string.Empty))">Codice</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "AssignmentType")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="AssignmentType">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.AssignmentType))">Tipo</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CurrencyCode")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrencyCode">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.CurrencyCode))">Valuta</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CurrentBalance")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrentBalance">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.CurrentBalance))">Saldo</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Status))">Stato</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "HasOpenSession")
+            {
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="HasOpenSession">
+                    <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.HasOpenSession))">Sessione</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="Nome">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="@GetStatusColor(ctx.Item.Status)" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Inbox" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            @if (!string.IsNullOrEmpty(ctx.Item.PosName))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">POS: @ctx.Item.PosName</MudText>
+                            }
+                            else if (!string.IsNullOrEmpty(ctx.Item.OperatorName))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">Op: @ctx.Item.OperatorName</MudText>
+                            }
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="Codice">
+                    <MudText Typo="Typo.body2">@(string.IsNullOrEmpty(ctx.Item.Code) ? "-" : ctx.Item.Code)</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "AssignmentType")
+            {
+                <MudTd DataLabel="Tipo">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Icon="@(ctx.Item.AssignmentType == FiscalDrawerAssignmentType.Fixed ? Icons.Material.Outlined.PointOfSale : Icons.Material.Outlined.Person)">
+                        @GetAssignmentTypeText(ctx.Item.AssignmentType)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CurrencyCode")
+            {
+                <MudTd DataLabel="Valuta">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@ctx.Item.CurrencyCode</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CurrentBalance")
+            {
+                <MudTd DataLabel="Saldo">
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                        @FormatCurrency(ctx.Item.CurrentBalance, ctx.Item.CurrencyCode)
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">
+                        @GetStatusText(ctx.Item.Status)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "HasOpenSession")
+            {
+                <MudTd DataLabel="Sessione">
+                    @if (ctx.Item.HasOpenSession)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.LockOpen">Aperta</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Lock">Chiusa</MudChip>
+                    }
+                </MudTd>
+            }
+        }
+        <MudTd Class="text-center">
+            <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                               Size="Size.Small"
+                               OnClick="@(() => OpenDetailDialogAsync(ctx.Item.Id))" />
+            </MudTooltip>
+        </MudTd>
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<FiscalDrawerDto>? _entityPage;
+    private IEntityManagementService<FiscalDrawerDto> _service = null!;
+    private EntityManagementConfig<FiscalDrawerDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new FiscalDrawerManagementService(FiscalDrawerService);
+        _config = new EntityManagementConfig<FiscalDrawerDto>
+        {
+            ComponentKey = "FiscalDrawerManagement",
+            PageTitleKey = "store.fiscalDrawers",
+            PageTitleDefault = "Cassetti Fiscali",
+            EntityIcon = Icons.Material.Outlined.Inbox,
+            PageRootCssClass = "management-page-root",
+            BaseRoute = "/store/fiscal-drawers",
+            ExcelFileName = "CassettiFiscali",
+            SearchPlaceholderKey = "common.search",
+            SearchPlaceholderDefault = "Cerca cassetto...",
+            CreateTooltip = "store.createNewFiscalDrawer",
+            EntityTypeName = "FiscalDrawer",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            GetDisplayName = d => d.Name,
+            GetId = d => d.Id,
+            DeleteConfirmMessageKey = "store.confirmDeleteFiscalDrawer",
+            BulkDeleteConfirmMessageKey = "store.confirmDeleteMultipleFiscalDrawers",
+            DeleteSuccessMessageKey = "store.fiscalDrawerDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new("Home", "/", icon: Icons.Material.Outlined.Home),
+                new("Configurazione Store", null, disabled: true),
+                new("Cassetti Fiscali", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Name",           DisplayName = "Nome",    IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Code",           DisplayName = "Codice",  IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "AssignmentType", DisplayName = "Tipo",    IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "CurrencyCode",   DisplayName = "Valuta",  IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "CurrentBalance", DisplayName = "Saldo",   IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "Status",         DisplayName = "Stato",   IsVisible = true, Order = 5, IsSearchable = false },
+                new() { PropertyName = "HasOpenSession", DisplayName = "Sessione",IsVisible = true, Order = 6, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all",      Label = "Tutti",     Predicate = _ => true,                                                             Description = "Mostra tutti i cassetti fiscali" },
+                new() { Id = "active",   Label = "Attivi",    Predicate = d => d.Status == FiscalDrawerStatus.Active,   Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Cassetti attivi" },
+                new() { Id = "open",     Label = "Sessione aperta", Predicate = d => d.HasOpenSession,                  Color = Color.Info,    Icon = Icons.Material.Outlined.LockOpen,   Description = "Cassetti con sessione aperta" },
+                new() { Id = "fixed",    Label = "Fissi",     Predicate = d => d.AssignmentType == FiscalDrawerAssignmentType.Fixed,             Description = "Cassetti fissi (POS)" },
+                new() { Id = "floating", Label = "Flottanti", Predicate = d => d.AssignmentType == FiscalDrawerAssignmentType.Floating,          Description = "Cassetti flottanti (operatore)" }
+            }
+        };
+    }
+
+    private static Color GetStatusColor(FiscalDrawerStatus status) => status switch
+    {
+        FiscalDrawerStatus.Active    => Color.Success,
+        FiscalDrawerStatus.Suspended => Color.Warning,
+        FiscalDrawerStatus.Closed    => Color.Default,
+        _                            => Color.Default
+    };
+
+    private static string GetStatusText(FiscalDrawerStatus status) => status switch
+    {
+        FiscalDrawerStatus.Active    => "Attivo",
+        FiscalDrawerStatus.Suspended => "Sospeso",
+        FiscalDrawerStatus.Closed    => "Chiuso",
+        _                            => status.ToString()
+    };
+
+    private static string GetAssignmentTypeText(FiscalDrawerAssignmentType type) => type switch
+    {
+        FiscalDrawerAssignmentType.Fixed    => "Fisso (POS)",
+        FiscalDrawerAssignmentType.Floating => "Flottante (Op.)",
+        _                                   => type.ToString()
+    };
+
+    private static string FormatCurrency(decimal amount, string currencyCode)
+    {
+        var symbol = currencyCode switch { "EUR" => "€", "USD" => "$", "GBP" => "£", "JPY" => "¥", "CNY" => "¥", _ => currencyCode };
+        return $"{symbol} {amount:N2}";
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        var parameters = new DialogParameters { [nameof(FiscalDrawerDetailDialog.EntityId)] = id };
+        var dialog = await DialogService.ShowAsync<FiscalDrawerDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+}

@@ -204,6 +204,7 @@ builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorDetailViewModel>
 builder.Services.AddScoped<EventForge.Client.ViewModels.OperatorGroupDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.PosDetailViewModel>();
 builder.Services.AddScoped<EventForge.Client.ViewModels.StationDetailViewModel>();
+builder.Services.AddScoped<EventForge.Client.ViewModels.FiscalDrawerDetailViewModel>();
 
 // POS ViewModel
 builder.Services.AddScoped<EventForge.Client.ViewModels.POSViewModel>();
@@ -270,6 +271,14 @@ builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStorePosService
 .AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
 
 builder.Services.AddHttpClient<EventForge.Client.Services.Store.IStoreUserGroupService, EventForge.Client.Services.Store.StoreUserGroupService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<EventForge.Client.Services.Store.AuthenticatedHttpClientHandler>();
+
+builder.Services.AddHttpClient<EventForge.Client.Services.Store.IFiscalDrawerService, EventForge.Client.Services.Store.FiscalDrawerService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);

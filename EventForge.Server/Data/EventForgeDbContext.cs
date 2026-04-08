@@ -3,6 +3,7 @@ using EventForge.Server.Data.Entities.Calendar;
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
+using EventForge.Server.Data.Entities.Store;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -143,6 +144,12 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<StoreUser> StoreUsers { get; set; }
     public DbSet<StoreUserGroup> StoreUserGroups { get; set; }
     public DbSet<StoreUserPrivilege> StoreUserPrivileges { get; set; }
+
+    // Fiscal Drawer Entities
+    public DbSet<FiscalDrawer> FiscalDrawers { get; set; }
+    public DbSet<FiscalDrawerSession> FiscalDrawerSessions { get; set; }
+    public DbSet<FiscalDrawerTransaction> FiscalDrawerTransactions { get; set; }
+    public DbSet<CashDenomination> CashDenominations { get; set; }
 
     // Authentication & Authorization Entities
     public DbSet<User> Users { get; set; }

@@ -341,6 +341,7 @@ public static class ServiceCollectionExtensions
 
         // Register store user services
         _ = services.AddScoped<IStoreUserService, StoreUserService>();
+        _ = services.AddScoped<IFiscalDrawerService, FiscalDrawerService>();
 
         // Register station services
         _ = services.AddScoped<IStationService, StationService>();
