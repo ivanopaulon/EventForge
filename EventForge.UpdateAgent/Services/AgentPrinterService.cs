@@ -1,29 +1,29 @@
+using EventForge.Hardware.Exceptions;
+using System.Net.Sockets;
+
 namespace EventForge.UpdateAgent.Services;
 
 /// <summary>
-/// Communicates with a USB-attached printer on the local Windows machine by opening
-/// the raw device path (<c>\\.\{deviceId}</c>) as a <see cref="FileStream"/> and
-/// writing/reading raw bytes directly.
+/// Communicates with printers on the local machine or local network on behalf of the server.
+/// Supports:
+/// <list type="bullet">
+///   <item>USB-attached printers via raw device I/O (<c>\\.\USB00x</c>).</item>
+///   <item>TCP/IP network printers via raw socket (<c>TcpViaAgent</c> connection type).</item>
+///   <item>HTTP forwarding for WebAPI-based printers (Epson ePOS-Print, <c>TcpViaAgent</c>).</item>
+/// </list>
 /// </summary>
-/// <remarks>
-/// USB thermal printers on Windows expose a kernel device object such as
-/// <c>\\.\USB001</c>. Opening it with <c>FileAccess.ReadWrite</c> and
-/// <c>FileShare.ReadWrite</c> allows sending ESC/POS or Custom protocol frames
-/// without a printer driver.
-/// </remarks>
-public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : IAgentPrinterService
+public sealed class AgentPrinterService(
+    ILogger<AgentPrinterService> logger,
+    IHttpClientFactory httpClientFactory) : IAgentPrinterService
 {
-    // -------------------------------------------------------------------------
-    //  Constants
-    // -------------------------------------------------------------------------
+    // ── Constants ──────────────────────────────────────────────────────────────
 
-    private const string DevicePathPrefix = @"\\.\";
-    private const int ReadBufferSize = 4096;
-    private const int DefaultReadTimeoutMs = 5_000;
+    private const string DevicePathPrefix   = @"\\.\";
+    private const int ReadBufferSize        = 4096;
+    private const int DefaultReadTimeoutMs  = 5_000;
+    private const int TcpConnectTimeoutMs   = 10_000;
 
-    // -------------------------------------------------------------------------
-    //  IAgentPrinterService
-    // -------------------------------------------------------------------------
+    // ── IAgentPrinterService – USB ─────────────────────────────────────────────
 
     /// <inheritdoc />
     public async Task<byte[]> SendCommandAsync(
@@ -36,9 +36,7 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
 
         var path = BuildDevicePath(deviceId);
 
-        logger.LogDebug(
-            "AgentPrinterService → {Path} | {Bytes} bytes",
-            path, command.Length);
+        logger.LogDebug("[AgentPrinterService] USB → {Path} | {Bytes} bytes", path, command.Length);
 
         await using var stream = OpenDeviceStream(path);
 
@@ -47,9 +45,7 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
 
         var response = await ReadResponseAsync(stream, path, ct).ConfigureAwait(false);
 
-        logger.LogDebug(
-            "AgentPrinterService ← {Path} | {Bytes} bytes",
-            path, response.Length);
+        logger.LogDebug("[AgentPrinterService] USB ← {Path} | {Bytes} bytes", path, response.Length);
 
         return response;
     }
@@ -64,8 +60,7 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
         // Attempt to open the device; if it throws, the device is not accessible.
         await using var stream = OpenDeviceStream(path);
 
-        logger.LogInformation(
-            "AgentPrinterService: connection test successful for {Path}", path);
+        logger.LogInformation("[AgentPrinterService] USB connection test OK | {Path}", path);
 
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -75,14 +70,13 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
     {
         var found = new List<string>();
 
-        for (int i = 1; i <= 9; i++)
+        for (var i = 1; i <= 9; i++)
         {
             var suffix = $"USB00{i}";
-            var path = BuildDevicePath(suffix);
+            var path   = BuildDevicePath(suffix);
 
             try
             {
-                // Try opening; if it succeeds the device is present.
                 using var stream = new FileStream(
                     path,
                     FileMode.Open,
@@ -93,7 +87,7 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
 
                 found.Add(suffix);
 
-                logger.LogDebug("AgentPrinterService: discovered device {Path}", path);
+                logger.LogDebug("[AgentPrinterService] USB device discovered: {Path}", path);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -104,9 +98,155 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
         return found.AsReadOnly();
     }
 
-    // -------------------------------------------------------------------------
-    //  Private helpers
-    // -------------------------------------------------------------------------
+    // ── IAgentPrinterService – TCP (TcpViaAgent) ───────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<byte[]> SendTcpCommandAsync(
+        string host,
+        int port,
+        byte[] command,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(port);
+        ArgumentNullException.ThrowIfNull(command);
+
+        logger.LogDebug(
+            "[AgentPrinterService] TCP → {Host}:{Port} | {Bytes} bytes",
+            host, port, command.Length);
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TcpConnectTimeoutMs);
+
+            using var tcpClient = new TcpClient();
+            tcpClient.ReceiveTimeout = DefaultReadTimeoutMs;
+            tcpClient.SendTimeout    = TcpConnectTimeoutMs;
+
+            await tcpClient.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+
+            await using var stream = tcpClient.GetStream();
+            await stream.WriteAsync(command, ct).ConfigureAwait(false);
+            await stream.FlushAsync(ct).ConfigureAwait(false);
+
+            var response = await ReadTcpResponseAsync(stream, host, port, ct).ConfigureAwait(false);
+
+            logger.LogDebug(
+                "[AgentPrinterService] TCP ← {Host}:{Port} | {Bytes} bytes",
+                host, port, response.Length);
+
+            return response;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"TCP connection to printer at '{host}:{port}' timed out after {TcpConnectTimeoutMs} ms.");
+        }
+        catch (SocketException ex)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"Cannot connect to TCP printer at '{host}:{port}': {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task TestTcpConnectionAsync(string host, int port, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(port);
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TcpConnectTimeoutMs);
+
+            using var tcpClient = new TcpClient();
+            await tcpClient.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+
+            logger.LogInformation(
+                "[AgentPrinterService] TCP connection test OK | {Host}:{Port}", host, port);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"TCP connection test to '{host}:{port}' timed out after {TcpConnectTimeoutMs} ms.");
+        }
+        catch (SocketException ex)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"TCP connection test to '{host}:{port}' failed: {ex.Message}", ex);
+        }
+    }
+
+    // ── IAgentPrinterService – HTTP forward (Epson WebAPI, TcpViaAgent) ────────
+
+    /// <inheritdoc />
+    public async Task<string> ForwardHttpAsync(
+        string targetUrl,
+        string contentType,
+        string body,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        ArgumentNullException.ThrowIfNull(body);
+
+        logger.LogDebug(
+            "[AgentPrinterService] HTTP forward → {Url} | contentType={ContentType} | {Chars} chars",
+            targetUrl, contentType, body.Length);
+
+        try
+        {
+            using var client = httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            // Build content with raw UTF-8 bytes and set the full Content-Type value
+            // (which may include "; charset=utf-8") without StringContent appending
+            // a duplicate charset parameter.
+            var bodyBytes = System.Text.Encoding.UTF8.GetBytes(body);
+            using var content = new ByteArrayContent(bodyBytes);
+            content.Headers.ContentType =
+                System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType);
+
+            using var response = await client
+                .PostAsync(targetUrl, content, ct)
+                .ConfigureAwait(false);
+
+            var responseBody = await response.Content
+                .ReadAsStringAsync(ct)
+                .ConfigureAwait(false);
+
+            logger.LogDebug(
+                "[AgentPrinterService] HTTP forward ← {Url} | HTTP {Status} | {Chars} chars",
+                targetUrl, (int)response.StatusCode, responseBody.Length);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new FiscalPrinterCommunicationException(
+                    $"HTTP forward to '{targetUrl}' returned HTTP {(int)response.StatusCode}: " +
+                    $"{responseBody[..Math.Min(200, responseBody.Length)]}");
+            }
+
+            return responseBody;
+        }
+        catch (FiscalPrinterCommunicationException)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"HTTP forward to '{targetUrl}' failed: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"HTTP forward to '{targetUrl}' timed out.", ex);
+        }
+    }
+
+    // ── Private helpers – USB ──────────────────────────────────────────────────
 
     private static string BuildDevicePath(string deviceId) =>
         deviceId.StartsWith(DevicePathPrefix, StringComparison.OrdinalIgnoreCase)
@@ -127,7 +267,7 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InvalidOperationException(
+            throw new FiscalPrinterCommunicationException(
                 $"Cannot open USB printer device at '{path}': {ex.Message}", ex);
         }
     }
@@ -149,13 +289,45 @@ public sealed class AgentPrinterService(ILogger<AgentPrinterService> logger) : I
         }
         catch (OperationCanceledException)
         {
-            // Timeout or cancellation — return empty response (printer sent nothing).
+            // Timeout or cancellation — printer sent nothing; return empty response.
             return [];
         }
         catch (IOException ex)
         {
-            throw new InvalidOperationException(
+            throw new FiscalPrinterCommunicationException(
                 $"Error reading response from USB device '{path}': {ex.Message}", ex);
+        }
+
+        return bytesRead == 0 ? [] : buffer[..bytesRead];
+    }
+
+    // ── Private helpers – TCP ──────────────────────────────────────────────────
+
+    private static async Task<byte[]> ReadTcpResponseAsync(
+        NetworkStream stream,
+        string host,
+        int port,
+        CancellationToken ct)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(DefaultReadTimeoutMs);
+
+        var buffer = new byte[ReadBufferSize];
+        int bytesRead;
+
+        try
+        {
+            bytesRead = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Timeout — printer sent nothing; return empty response.
+            return [];
+        }
+        catch (IOException ex)
+        {
+            throw new FiscalPrinterCommunicationException(
+                $"Error reading response from TCP printer at '{host}:{port}': {ex.Message}", ex);
         }
 
         return bytesRead == 0 ? [] : buffer[..bytesRead];

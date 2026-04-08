@@ -1,8 +1,10 @@
+using EventForge.DTOs.Common;
 using EventForge.DTOs.FiscalPrinting;
 using EventForge.Server.Data;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace EventForge.Server.Services.FiscalPrinting;
 
@@ -17,8 +19,8 @@ namespace EventForge.Server.Services.FiscalPrinting;
 /// Specification: Epson POS Printer WebAPI Interface Specification (Rev. A).
 /// </para>
 /// <para>
-/// <b>Connection types supported</b>: TCP (Ethernet / WiFi) only.
-/// Serial and USB-via-Agent connections are not applicable to Epson WebAPI printers.
+/// <b>Connection types supported</b>: <c>Tcp</c> (Ethernet/WiFi, direct from server)
+/// and <c>TcpViaAgent</c> (Ethernet/WiFi on the agent's local network, relayed via UpdateAgent HTTP proxy).
 /// </para>
 /// <para>
 /// <b>Device ID</b>: stored in <see cref="EventForge.Server.Data.Entities.Common.Printer.UsbDeviceId"/>.
@@ -35,7 +37,8 @@ public partial class EpsonFiscalPrinterService(
     EventForgeDbContext context,
     ILoggerFactory loggerFactory,
     ILogger<EpsonFiscalPrinterService> logger,
-    IHttpClientFactory httpClientFactory) : IFiscalPrinterService
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration) : IFiscalPrinterService
 {
     // Payment method codes recognised as "cash" for POS aggregation (shared with Custom)
     private const int CashFiscalCode = 1;
@@ -48,8 +51,9 @@ public partial class EpsonFiscalPrinterService(
 
     /// <summary>
     /// Loads the printer from the database and creates the Epson WebAPI HTTP channel.
+    /// Supports both direct TCP (<c>Tcp</c>) and agent-proxied (<c>TcpViaAgent</c>) connections.
     /// </summary>
-    private async Task<EpsonWebApiCommunication> CreateChannelAsync(
+    private async Task<IEpsonChannel> CreateChannelAsync(
         Guid printerId,
         CancellationToken cancellationToken)
     {
@@ -75,6 +79,29 @@ public partial class EpsonFiscalPrinterService(
             ? EpsonProtocolConstants.DefaultDeviceId
             : printer.UsbDeviceId;
 
+        // TcpViaAgent: the printer is on the agent's local network
+        if (printer.ConnectionType == PrinterConnectionType.TcpViaAgent)
+        {
+            if (printer.AgentId is null)
+                throw new InvalidOperationException(
+                    $"Printer '{printer.Name}' (ID: {printerId}) is configured as TcpViaAgent but has no AgentId.");
+
+            var agentUrl = GetAgentBaseUrl(printer.AgentId.Value);
+
+            logger.LogDebug(
+                "Creating AgentEpsonProxy channel | Printer={Name} {Host}:{Port} devid={DevId} via agent={AgentUrl}",
+                printer.Name, printer.Address, port, devid, agentUrl);
+
+            return new AgentEpsonProxyCommunication(
+                agentUrl,
+                printer.Address,
+                port,
+                devid,
+                httpClientFactory,
+                loggerFactory.CreateLogger<AgentEpsonProxyCommunication>());
+        }
+
+        // Direct TCP: server connects straight to the printer's IP
         logger.LogDebug(
             "Creating Epson WebAPI channel | Printer={Name} {Host}:{Port} devid={DevId}",
             printer.Name, printer.Address, port, devid);
@@ -92,16 +119,29 @@ public partial class EpsonFiscalPrinterService(
     /// Used by wizard methods (<see cref="TestTcpConnectionAsync"/>,
     /// <see cref="GetPrinterInfoByAddressAsync"/>).
     /// </summary>
-    private EpsonWebApiCommunication CreateDirectChannel(
+    private IEpsonChannel CreateDirectChannel(
         string ipAddress,
         int port,
         string devid = EpsonProtocolConstants.DefaultDeviceId)
-        => new(
+        => new EpsonWebApiCommunication(
             ipAddress,
             port,
             devid,
             httpClientFactory,
             loggerFactory.CreateLogger<EpsonWebApiCommunication>());
+
+    /// <summary>
+    /// Resolves the base URL of an agent from configuration (<c>AgentProxies:{agentId}</c>).
+    /// </summary>
+    private string GetAgentBaseUrl(Guid agentId)
+    {
+        var url = configuration[$"AgentProxies:{agentId}"];
+        if (string.IsNullOrWhiteSpace(url))
+            throw new InvalidOperationException(
+                $"Agent base URL not configured for agent ID '{agentId}'. " +
+                "Add 'AgentProxies:{agentId}' to application configuration.");
+        return url.TrimEnd('/');
+    }
 
     // -------------------------------------------------------------------------
     //  Private helpers – request execution
@@ -112,7 +152,7 @@ public partial class EpsonFiscalPrinterService(
     /// <see cref="FiscalPrintResult"/>.
     /// </summary>
     private async Task<FiscalPrintResult> ExecuteXmlAsync(
-        EpsonWebApiCommunication channel,
+        IEpsonChannel channel,
         string xml,
         Guid printerId,
         CancellationToken cancellationToken)

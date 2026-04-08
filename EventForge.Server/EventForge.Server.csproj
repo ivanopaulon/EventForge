@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+    <ProjectReference Include="..\EventForge.Hardware\EventForge.Hardware.csproj" />
   </ItemGroup>
   
   <ItemGroup>

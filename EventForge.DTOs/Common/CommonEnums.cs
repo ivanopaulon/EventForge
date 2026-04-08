@@ -774,10 +774,11 @@ namespace EventForge.DTOs.Common
     /// </summary>
     public enum PrinterConnectionType
     {
-        Tcp,           // Ethernet/WiFi TCP connection
+        Tcp,           // Ethernet/WiFi TCP connection (direct from Server)
         Serial,        // RS-232 serial (COM port) directly from server
-        UsbViaAgent,   // USB on client machine via EventForge.UpdateAgent proxy
-        NetworkShare   // Shared printer via Windows network share
+        UsbViaAgent,   // USB on agent machine via EventForge.UpdateAgent proxy (raw bytes)
+        NetworkShare,  // Shared printer via Windows network share
+        TcpViaAgent    // TCP/IP printer on agent's local network, routed via Agent HTTP proxy
     }
 
     /// <summary>

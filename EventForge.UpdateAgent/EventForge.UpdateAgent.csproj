@@ -17,4 +17,7 @@
     <PackageReference Include="Serilog.Settings.Configuration" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EventForge.Hardware\EventForge.Hardware.csproj" />
+  </ItemGroup>
 </Project>
