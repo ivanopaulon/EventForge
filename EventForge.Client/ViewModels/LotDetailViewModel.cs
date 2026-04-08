@@ -54,12 +54,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         };
     }
 
-    protected override async Task<LotDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<LotDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _lotService.GetLotByIdAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -115,12 +115,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         };
     }
 
-    protected override Task<LotDto?> CreateEntityAsync(CreateLotDto createDto)
+    protected override Task<LotDto?> CreateEntityAsync(CreateLotDto createDto, CancellationToken ct = default)
     {
         return _lotService.CreateLotAsync(createDto);
     }
 
-    protected override Task<LotDto?> UpdateEntityAsync(Guid entityId, UpdateLotDto updateDto)
+    protected override Task<LotDto?> UpdateEntityAsync(Guid entityId, UpdateLotDto updateDto, CancellationToken ct = default)
     {
         return _lotService.UpdateLotAsync(entityId, updateDto);
     }

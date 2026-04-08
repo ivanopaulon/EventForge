@@ -46,12 +46,12 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
         };
     }
 
-    protected override async Task<DocumentTypeDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<DocumentTypeDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _documentTypeService.GetDocumentTypeByIdAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -103,12 +103,12 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
         };
     }
 
-    protected override Task<DocumentTypeDto?> CreateEntityAsync(CreateDocumentTypeDto createDto)
+    protected override Task<DocumentTypeDto?> CreateEntityAsync(CreateDocumentTypeDto createDto, CancellationToken ct = default)
     {
         return _documentTypeService.CreateDocumentTypeAsync(createDto);
     }
 
-    protected override Task<DocumentTypeDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentTypeDto updateDto)
+    protected override Task<DocumentTypeDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentTypeDto updateDto, CancellationToken ct = default)
     {
         return _documentTypeService.UpdateDocumentTypeAsync(entityId, updateDto);
     }

@@ -44,12 +44,12 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         };
     }
 
-    protected override async Task<VatRateDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<VatRateDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _financialService.GetVatRateAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -101,12 +101,12 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         };
     }
 
-    protected override async Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto)
+    protected override async Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto, CancellationToken ct = default)
     {
         return await _financialService.CreateVatRateAsync(createDto);
     }
 
-    protected override async Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto)
+    protected override async Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto, CancellationToken ct = default)
     {
         return await _financialService.UpdateVatRateAsync(entityId, updateDto);
     }

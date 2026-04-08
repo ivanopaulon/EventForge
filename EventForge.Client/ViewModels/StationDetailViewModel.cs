@@ -30,7 +30,7 @@ public class StationDetailViewModel : BaseEntityDetailViewModel<StationDto, Crea
         };
     }
 
-    protected override Task<StationDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override Task<StationDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return _stationService.GetByIdAsync(entityId);
     }
@@ -67,12 +67,12 @@ public class StationDetailViewModel : BaseEntityDetailViewModel<StationDto, Crea
         };
     }
 
-    protected override Task<StationDto?> CreateEntityAsync(CreateStationDto createDto)
+    protected override Task<StationDto?> CreateEntityAsync(CreateStationDto createDto, CancellationToken ct = default)
     {
         return _stationService.CreateAsync(createDto);
     }
 
-    protected override Task<StationDto?> UpdateEntityAsync(Guid entityId, UpdateStationDto updateDto)
+    protected override Task<StationDto?> UpdateEntityAsync(Guid entityId, UpdateStationDto updateDto, CancellationToken ct = default)
     {
         return _stationService.UpdateAsync(entityId, updateDto);
     }

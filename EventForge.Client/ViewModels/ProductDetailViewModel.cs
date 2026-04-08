@@ -42,14 +42,14 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
         };
     }
 
-    protected override async Task<ProductDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<ProductDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         // Prefer detailed payload if available
         return await _productService.GetProductDetailAsync(entityId)
             ?? await _productService.GetProductByIdAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -141,12 +141,12 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
         };
     }
 
-    protected override Task<ProductDto?> CreateEntityAsync(CreateProductDto createDto)
+    protected override Task<ProductDto?> CreateEntityAsync(CreateProductDto createDto, CancellationToken ct = default)
     {
         return _productService.CreateProductAsync(createDto);
     }
 
-    protected override async Task<ProductDto?> UpdateEntityAsync(Guid entityId, UpdateProductDto updateDto)
+    protected override async Task<ProductDto?> UpdateEntityAsync(Guid entityId, UpdateProductDto updateDto, CancellationToken ct = default)
     {
         var result = await _productService.UpdateProductAsync(entityId, updateDto);
         if (result != null)
@@ -188,9 +188,9 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
     /// <summary>
     /// Override LoadEntityAsync to reset manual dirty flag
     /// </summary>
-    public override async Task LoadEntityAsync(Guid entityId)
+    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         _manualDirtyFlag = false;
-        await base.LoadEntityAsync(entityId);
+        await base.LoadEntityAsync(entityId, ct);
     }
 }

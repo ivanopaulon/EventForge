@@ -33,7 +33,7 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
         };
     }
 
-    protected override async Task<VatNatureDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<VatNatureDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _financialService.GetVatNatureAsync(entityId);
     }
@@ -58,12 +58,12 @@ public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, 
         };
     }
 
-    protected override async Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto)
+    protected override async Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto, CancellationToken ct = default)
     {
         return await _financialService.CreateVatNatureAsync(createDto);
     }
 
-    protected override async Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto)
+    protected override async Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto, CancellationToken ct = default)
     {
         return await _financialService.UpdateVatNatureAsync(entityId, updateDto);
     }

@@ -42,10 +42,10 @@ public class FiscalDrawerDetailViewModel : BaseEntityDetailViewModel<FiscalDrawe
         CurrentBalance = 0
     };
 
-    protected override Task<FiscalDrawerDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override Task<FiscalDrawerDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
         => _fiscalDrawerService.GetByIdAsync(entityId);
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         try
         {
@@ -69,14 +69,14 @@ public class FiscalDrawerDetailViewModel : BaseEntityDetailViewModel<FiscalDrawe
 
     // Override to ensure related entities (POS, operators) are also loaded for NEW entities,
     // since the base class only calls LoadRelatedEntitiesAsync for existing entities.
-    public new async Task LoadEntityAsync(Guid entityId)
+    public new async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         if (entityId == Guid.Empty)
         {
             // New entity: base won't call LoadRelatedEntitiesAsync, so load here first
-            await LoadRelatedEntitiesAsync(Guid.Empty);
+            await LoadRelatedEntitiesAsync(Guid.Empty, ct);
         }
-        await base.LoadEntityAsync(entityId);
+        await base.LoadEntityAsync(entityId, ct);
     }
 
     protected override CreateFiscalDrawerDto MapToCreateDto(FiscalDrawerDto entity) => new()
@@ -106,10 +106,10 @@ public class FiscalDrawerDetailViewModel : BaseEntityDetailViewModel<FiscalDrawe
         Notes = entity.Notes
     };
 
-    protected override Task<FiscalDrawerDto?> CreateEntityAsync(CreateFiscalDrawerDto createDto)
+    protected override Task<FiscalDrawerDto?> CreateEntityAsync(CreateFiscalDrawerDto createDto, CancellationToken ct = default)
         => _fiscalDrawerService.CreateAsync(createDto);
 
-    protected override Task<FiscalDrawerDto?> UpdateEntityAsync(Guid entityId, UpdateFiscalDrawerDto updateDto)
+    protected override Task<FiscalDrawerDto?> UpdateEntityAsync(Guid entityId, UpdateFiscalDrawerDto updateDto, CancellationToken ct = default)
         => _fiscalDrawerService.UpdateAsync(entityId, updateDto);
 
     protected override Guid GetEntityId(FiscalDrawerDto entity) => entity.Id;

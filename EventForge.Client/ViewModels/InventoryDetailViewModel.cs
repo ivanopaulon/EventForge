@@ -45,12 +45,12 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
         };
     }
 
-    protected override async Task<InventoryDocumentDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<InventoryDocumentDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _inventoryService.GetInventoryDocumentAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -101,12 +101,12 @@ public class InventoryDetailViewModel : BaseEntityDetailViewModel<InventoryDocum
         };
     }
 
-    protected override Task<InventoryDocumentDto?> CreateEntityAsync(CreateInventoryDocumentDto createDto)
+    protected override Task<InventoryDocumentDto?> CreateEntityAsync(CreateInventoryDocumentDto createDto, CancellationToken ct = default)
     {
         return _inventoryService.StartInventoryDocumentAsync(createDto);
     }
 
-    protected override Task<InventoryDocumentDto?> UpdateEntityAsync(Guid entityId, UpdateInventoryDocumentDto updateDto)
+    protected override Task<InventoryDocumentDto?> UpdateEntityAsync(Guid entityId, UpdateInventoryDocumentDto updateDto, CancellationToken ct = default)
     {
         return _inventoryService.UpdateInventoryDocumentAsync(entityId, updateDto);
     }

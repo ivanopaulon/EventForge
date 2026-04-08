@@ -50,12 +50,12 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         };
     }
 
-    protected override async Task<StorageFacilityDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<StorageFacilityDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _warehouseService.GetStorageFacilityAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -112,12 +112,12 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         };
     }
 
-    protected override Task<StorageFacilityDto?> CreateEntityAsync(CreateStorageFacilityDto createDto)
+    protected override Task<StorageFacilityDto?> CreateEntityAsync(CreateStorageFacilityDto createDto, CancellationToken ct = default)
     {
         return _warehouseService.CreateStorageFacilityAsync(createDto);
     }
 
-    protected override Task<StorageFacilityDto?> UpdateEntityAsync(Guid entityId, UpdateStorageFacilityDto updateDto)
+    protected override Task<StorageFacilityDto?> UpdateEntityAsync(Guid entityId, UpdateStorageFacilityDto updateDto, CancellationToken ct = default)
     {
         return _warehouseService.UpdateStorageFacilityAsync(entityId, updateDto);
     }

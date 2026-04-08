@@ -51,12 +51,12 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
         };
     }
 
-    protected override async Task<StorageLocationDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<StorageLocationDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _storageLocationService.GetStorageLocationAsync(entityId);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -119,12 +119,12 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
         };
     }
 
-    protected override Task<StorageLocationDto?> CreateEntityAsync(CreateStorageLocationDto createDto)
+    protected override Task<StorageLocationDto?> CreateEntityAsync(CreateStorageLocationDto createDto, CancellationToken ct = default)
     {
         return _storageLocationService.CreateStorageLocationAsync(createDto);
     }
 
-    protected override Task<StorageLocationDto?> UpdateEntityAsync(Guid entityId, UpdateStorageLocationDto updateDto)
+    protected override Task<StorageLocationDto?> UpdateEntityAsync(Guid entityId, UpdateStorageLocationDto updateDto, CancellationToken ct = default)
     {
         return _storageLocationService.UpdateStorageLocationAsync(entityId, updateDto);
     }

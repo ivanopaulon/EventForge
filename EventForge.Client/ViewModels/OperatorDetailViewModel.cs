@@ -49,7 +49,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         };
     }
 
-    protected override async Task<StoreUserDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<StoreUserDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         var entity = await _storeUserService.GetByIdAsync(entityId);
         if (entity != null)
@@ -60,7 +60,7 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         return entity;
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         // Load available groups for both new and existing entities
         try
@@ -75,13 +75,13 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
     }
 
     // Override to ensure groups are loaded even for new entities
-    public new async Task LoadEntityAsync(Guid entityId)
+    public new async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         // Always load groups first, regardless of whether it's a new or existing entity
-        await LoadRelatedEntitiesAsync(entityId);
+        await LoadRelatedEntitiesAsync(entityId, ct);
 
         // Call base implementation
-        await base.LoadEntityAsync(entityId);
+        await base.LoadEntityAsync(entityId, ct);
     }
 
     protected override CreateStoreUserDto MapToCreateDto(StoreUserDto entity)
@@ -117,12 +117,12 @@ public class OperatorDetailViewModel : BaseEntityDetailViewModel<StoreUserDto, C
         };
     }
 
-    protected override Task<StoreUserDto?> CreateEntityAsync(CreateStoreUserDto createDto)
+    protected override Task<StoreUserDto?> CreateEntityAsync(CreateStoreUserDto createDto, CancellationToken ct = default)
     {
         return _storeUserService.CreateAsync(createDto);
     }
 
-    protected override Task<StoreUserDto?> UpdateEntityAsync(Guid entityId, UpdateStoreUserDto updateDto)
+    protected override Task<StoreUserDto?> UpdateEntityAsync(Guid entityId, UpdateStoreUserDto updateDto, CancellationToken ct = default)
     {
         return _storeUserService.UpdateAsync(entityId, updateDto);
     }

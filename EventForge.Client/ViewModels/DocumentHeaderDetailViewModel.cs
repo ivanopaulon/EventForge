@@ -98,12 +98,12 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
         };
     }
 
-    protected override async Task<DocumentHeaderDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<DocumentHeaderDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
         return await _documentHeaderService.GetDocumentHeaderByIdAsync(entityId, false);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -221,12 +221,12 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
         };
     }
 
-    protected override Task<DocumentHeaderDto?> CreateEntityAsync(CreateDocumentHeaderDto createDto)
+    protected override Task<DocumentHeaderDto?> CreateEntityAsync(CreateDocumentHeaderDto createDto, CancellationToken ct = default)
     {
         return _documentHeaderService.CreateDocumentHeaderAsync(createDto);
     }
 
-    protected override Task<DocumentHeaderDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentHeaderDto updateDto)
+    protected override Task<DocumentHeaderDto?> UpdateEntityAsync(Guid entityId, UpdateDocumentHeaderDto updateDto, CancellationToken ct = default)
     {
         return _documentHeaderService.UpdateDocumentHeaderAsync(entityId, updateDto);
     }
