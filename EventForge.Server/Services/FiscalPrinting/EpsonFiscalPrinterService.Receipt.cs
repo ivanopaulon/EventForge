@@ -17,14 +17,22 @@ public partial class EpsonFiscalPrinterService
     {
         ArgumentNullException.ThrowIfNull(receipt);
 
-        logger.LogInformation(
-            "Epson PrintReceiptAsync | PrinterId={PrinterId} Items={Items} Payments={Payments}",
-            printerId, receipt.Items.Count, receipt.Payments.Count);
+        try
+        {
+            logger.LogInformation(
+                "Epson PrintReceiptAsync | PrinterId={PrinterId} Items={Items} Payments={Payments}",
+                printerId, receipt.Items.Count, receipt.Payments.Count);
 
-        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-        var xml = EpsonXmlBuilder.BuildFiscalReceipt(
-            receipt, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildFiscalReceipt(
+                receipt, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Epson PrintReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -32,11 +40,19 @@ public partial class EpsonFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Epson CancelCurrentReceiptAsync | PrinterId={PrinterId}", printerId);
+        try
+        {
+            logger.LogInformation("Epson CancelCurrentReceiptAsync | PrinterId={PrinterId}", printerId);
 
-        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-        var xml = EpsonXmlBuilder.BuildCancelReceipt(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildCancelReceipt(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Epson CancelCurrentReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -47,14 +63,22 @@ public partial class EpsonFiscalPrinterService
     {
         ArgumentNullException.ThrowIfNull(refund);
 
-        logger.LogInformation(
-            "Epson PrintRefundReceiptAsync | PrinterId={PrinterId} Original={OriginalReceiptNumber}",
-            printerId, refund.OriginalReceiptNumber);
+        try
+        {
+            logger.LogInformation(
+                "Epson PrintRefundReceiptAsync | PrinterId={PrinterId} Original={OriginalReceiptNumber}",
+                printerId, refund.OriginalReceiptNumber);
 
-        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-        var xml = EpsonXmlBuilder.BuildRefundReceipt(
-            refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildRefundReceipt(
+                refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Epson PrintRefundReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -65,15 +89,23 @@ public partial class EpsonFiscalPrinterService
     {
         ArgumentNullException.ThrowIfNull(refund);
 
-        logger.LogInformation(
-            "Epson PrintPartialRefundAsync | PrinterId={PrinterId} Items={Count}",
-            printerId, refund.Items.Count);
+        try
+        {
+            logger.LogInformation(
+                "Epson PrintPartialRefundAsync | PrinterId={PrinterId} Items={Count}",
+                printerId, refund.Items.Count);
 
-        // Partial and full refunds use the same XML builder
-        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-        var xml = EpsonXmlBuilder.BuildRefundReceipt(
-            refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+            // Partial and full refunds use the same XML builder
+            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildRefundReceipt(
+                refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Epson PrintPartialRefundAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -81,11 +113,19 @@ public partial class EpsonFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Epson OpenDrawerAsync | PrinterId={PrinterId}", printerId);
+        try
+        {
+            logger.LogInformation("Epson OpenDrawerAsync | PrinterId={PrinterId}", printerId);
 
-        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-        var xml = EpsonXmlBuilder.BuildOpenDrawer(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildOpenDrawer(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Epson OpenDrawerAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
