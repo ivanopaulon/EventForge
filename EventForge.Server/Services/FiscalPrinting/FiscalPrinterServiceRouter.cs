@@ -90,92 +90,218 @@ public sealed class FiscalPrinterServiceRouter(
     /// <inheritdoc />
     public async Task<FiscalPrintResult> PrintReceiptAsync(
         Guid printerId, FiscalReceiptData receipt, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).PrintReceiptAsync(printerId, receipt, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).PrintReceiptAsync(printerId, receipt, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PrintReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> CancelCurrentReceiptAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).CancelCurrentReceiptAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).CancelCurrentReceiptAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in CancelCurrentReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> PrintRefundReceiptAsync(
         Guid printerId, FiscalRefundData refund, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).PrintRefundReceiptAsync(printerId, refund, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).PrintRefundReceiptAsync(printerId, refund, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PrintRefundReceiptAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> PrintPartialRefundAsync(
         Guid printerId, FiscalRefundData refund, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).PrintPartialRefundAsync(printerId, refund, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).PrintPartialRefundAsync(printerId, refund, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PrintPartialRefundAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> DailyClosureAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).DailyClosureAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).DailyClosureAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DailyClosureAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrinterStatus> GetStatusAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).GetStatusAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).GetStatusAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetStatusAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> OpenDrawerAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).OpenDrawerAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).OpenDrawerAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in OpenDrawerAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> TestConnectionAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).TestConnectionAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).TestConnectionAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in TestConnectionAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<DailyClosurePreCheckDto> GetDailyClosurePreCheckAsync(
         Guid printerId, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).GetDailyClosurePreCheckAsync(printerId, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).GetDailyClosurePreCheckAsync(printerId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetDailyClosurePreCheckAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<DailyClosureResultDto> ExecuteDailyClosureAsync(
         Guid printerId, string operatorName, CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct)).ExecuteDailyClosureAsync(printerId, operatorName, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct)).ExecuteDailyClosureAsync(printerId, operatorName, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ExecuteDailyClosureAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<List<DailyClosureHistoryDto>> GetClosureHistoryAsync(
         Guid printerId, int page = 1, int pageSize = 20,
         DateTime? fromDate = null, DateTime? toDate = null,
         CancellationToken ct = default)
-        => await (await ResolveAsync(printerId, ct))
-               .GetClosureHistoryAsync(printerId, page, pageSize, fromDate, toDate, ct);
+    {
+        try
+        {
+            return await (await ResolveAsync(printerId, ct))
+                       .GetClosureHistoryAsync(printerId, page, pageSize, fromDate, toDate, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetClosureHistoryAsync for printer {PrinterId}.", printerId);
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId, CancellationToken ct = default)
     {
-        // ReprintZReport needs a closure ID, not a printer ID; look up the printer ID first
-        var printerId = await context.DailyClosureRecords
-            .AsNoTracking()
-            .Where(r => r.Id == closureId && !r.IsDeleted)
-            .Select(r => (Guid?)r.PrinterId)
-            .FirstOrDefaultAsync(ct);
+        try
+        {
+            // ReprintZReport needs a closure ID, not a printer ID; look up the printer ID first
+            var printerId = await context.DailyClosureRecords
+                .AsNoTracking()
+                .Where(r => r.Id == closureId && !r.IsDeleted)
+                .Select(r => (Guid?)r.PrinterId)
+                .FirstOrDefaultAsync(ct);
 
-        if (printerId is null)
-            return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} not found" };
+            if (printerId is null)
+                return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} not found" };
 
-        return await (await ResolveAsync(printerId.Value, ct)).ReprintZReportAsync(closureId, ct);
+            return await (await ResolveAsync(printerId.Value, ct)).ReprintZReportAsync(closureId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ReprintZReportAsync for closure {ClosureId}.", closureId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GenerateZReportPdfAsync(
         Guid closureId, CancellationToken ct = default)
     {
-        var printerId = await context.DailyClosureRecords
-            .AsNoTracking()
-            .Where(r => r.Id == closureId && !r.IsDeleted)
-            .Select(r => (Guid?)r.PrinterId)
-            .FirstOrDefaultAsync(ct);
+        try
+        {
+            var printerId = await context.DailyClosureRecords
+                .AsNoTracking()
+                .Where(r => r.Id == closureId && !r.IsDeleted)
+                .Select(r => (Guid?)r.PrinterId)
+                .FirstOrDefaultAsync(ct);
 
-        if (printerId is null)
-            return null;
+            if (printerId is null)
+                return null;
 
-        return await (await ResolveAsync(printerId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
+            return await (await ResolveAsync(printerId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GenerateZReportPdfAsync for closure {ClosureId}.", closureId);
+            throw;
+        }
     }
 
     // -------------------------------------------------------------------------
