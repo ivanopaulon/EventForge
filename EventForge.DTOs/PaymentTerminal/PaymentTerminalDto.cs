@@ -10,7 +10,6 @@ public class PaymentTerminalDto
     public string? IpAddress { get; set; }
     public int Port { get; set; } = 60000;
     public Guid? AgentId { get; set; }
-    public string? AgentName { get; set; }
     public int TimeoutMs { get; set; } = 30000;
     public bool AmountConfirmationRequired { get; set; }
     public string? TerminalId { get; set; }

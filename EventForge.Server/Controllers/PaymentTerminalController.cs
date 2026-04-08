@@ -21,6 +21,7 @@ public class PaymentTerminalController(
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<PaymentTerminalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<PaymentTerminalDto>>> GetAll(CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -30,31 +31,33 @@ public class PaymentTerminalController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error retrieving payment terminals.", ex);
+            return CreateInternalServerErrorProblem("Errore nel recupero dei terminali di pagamento.", ex);
         }
     }
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PaymentTerminalDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentTerminalDto>> GetById(Guid id, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
         try
         {
             var result = await paymentTerminalService.GetByIdAsync(id, ct);
-            if (result is null) return CreateNotFoundProblem($"Payment terminal {id} not found.");
+            if (result is null) return CreateNotFoundProblem($"Terminale di pagamento {id} non trovato.");
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error retrieving payment terminal.", ex);
+            return CreateInternalServerErrorProblem("Errore nel recupero del terminale di pagamento.", ex);
         }
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(PaymentTerminalDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentTerminalDto>> Create([FromBody] CreatePaymentTerminalDto dto, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -66,13 +69,15 @@ public class PaymentTerminalController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error creating payment terminal.", ex);
+            return CreateInternalServerErrorProblem("Errore nella creazione del terminale di pagamento.", ex);
         }
     }
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(PaymentTerminalDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentTerminalDto>> Update(Guid id, [FromBody] UpdatePaymentTerminalDto dto, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -80,35 +85,39 @@ public class PaymentTerminalController(
         try
         {
             var result = await paymentTerminalService.UpdateAsync(id, dto, GetCurrentUser(), ct);
-            if (result is null) return CreateNotFoundProblem($"Payment terminal {id} not found.");
+            if (result is null) return CreateNotFoundProblem($"Terminale di pagamento {id} non trovato.");
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error updating payment terminal.", ex);
+            return CreateInternalServerErrorProblem("Errore nell'aggiornamento del terminale di pagamento.", ex);
         }
     }
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
         try
         {
             var deleted = await paymentTerminalService.DeleteAsync(id, GetCurrentUser(), ct);
-            if (!deleted) return CreateNotFoundProblem($"Payment terminal {id} not found.");
+            if (!deleted) return CreateNotFoundProblem($"Terminale di pagamento {id} non trovato.");
             return NoContent();
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error deleting payment terminal.", ex);
+            return CreateInternalServerErrorProblem("Errore nell'eliminazione del terminale di pagamento.", ex);
         }
     }
 
     [HttpPost("{id:guid}/pay")]
     [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResultDto>> SendPayment(Guid id, [FromBody] PaymentRequestDto request, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -119,12 +128,14 @@ public class PaymentTerminalController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error sending payment.", ex);
+            return CreateInternalServerErrorProblem("Errore nell'invio del pagamento.", ex);
         }
     }
 
     [HttpPost("{id:guid}/void")]
     [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResultDto>> SendVoid(Guid id, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -134,12 +145,15 @@ public class PaymentTerminalController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error sending void.", ex);
+            return CreateInternalServerErrorProblem("Errore nell'invio dello storno.", ex);
         }
     }
 
     [HttpPost("{id:guid}/refund")]
     [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResultDto>> SendRefund(Guid id, [FromBody] PaymentRequestDto request, CancellationToken ct = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
@@ -150,7 +164,7 @@ public class PaymentTerminalController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("Error sending refund.", ex);
+            return CreateInternalServerErrorProblem("Errore nell'invio del rimborso.", ex);
         }
     }
 
@@ -174,6 +188,7 @@ public class PaymentTerminalController(
 
     [HttpGet("test-tcp")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> TestTcp([FromQuery] string host, [FromQuery] int port, [FromQuery] int timeoutMs = 5000, CancellationToken ct = default)
     {
@@ -196,6 +211,7 @@ public class PaymentTerminalController(
 
     [HttpGet("test-tcp-via-agent")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> TestTcpViaAgent([FromQuery] Guid agentId, [FromQuery] string host, [FromQuery] int port, [FromQuery] int timeoutMs = 5000, CancellationToken ct = default)

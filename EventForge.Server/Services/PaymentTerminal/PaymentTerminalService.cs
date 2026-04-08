@@ -8,6 +8,7 @@ namespace EventForge.Server.Services.PaymentTerminal;
 
 public class PaymentTerminalService(
     EventForgeDbContext context,
+    IAuditLogService auditLogService,
     ITenantContext tenantContext,
     ILogger<PaymentTerminalService> logger,
     IHttpClientFactory httpClientFactory,
@@ -27,7 +28,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment terminals.");
+            logger.LogError(ex, "Errore nel recupero dei terminali di pagamento.");
             throw;
         }
     }
@@ -44,7 +45,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nel recupero del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -73,12 +74,13 @@ public class PaymentTerminalService(
             };
             context.PaymentTerminals.Add(entity);
             await context.SaveChangesAsync(ct);
-            logger.LogInformation("Payment terminal {Name} created by {User}.", entity.Name, currentUser);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, ct);
+            logger.LogInformation("Terminale di pagamento {Name} creato da {User}.", entity.Name, currentUser);
             return MapToDto(entity);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating payment terminal.");
+            logger.LogError(ex, "Errore nella creazione del terminale di pagamento.");
             throw;
         }
     }
@@ -104,12 +106,13 @@ public class PaymentTerminalService(
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
             await context.SaveChangesAsync(ct);
-            logger.LogInformation("Payment terminal {Id} updated by {User}.", id, currentUser);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, null, ct);
+            logger.LogInformation("Terminale di pagamento {Id} aggiornato da {User}.", id, currentUser);
             return MapToDto(entity);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nell'aggiornamento del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -128,12 +131,13 @@ public class PaymentTerminalService(
             entity.ModifiedAt = DateTime.UtcNow;
             entity.ModifiedBy = currentUser;
             await context.SaveChangesAsync(ct);
-            logger.LogInformation("Payment terminal {Id} deleted by {User}.", id, currentUser);
+            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, null, ct);
+            logger.LogInformation("Terminale di pagamento {Id} eliminato da {User}.", id, currentUser);
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting payment terminal {Id}.", id);
+            logger.LogError(ex, "Errore nell'eliminazione del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -148,7 +152,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending payment to terminal {TerminalId}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio del pagamento al terminale {TerminalId}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }
@@ -163,7 +167,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending void to terminal {TerminalId}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio dello storno al terminale {TerminalId}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }
@@ -178,7 +182,7 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending refund to terminal {TerminalId}.", terminalId);
+            logger.LogError(ex, "Errore nell'invio del rimborso al terminale {TerminalId}.", terminalId);
             return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
         }
     }
@@ -208,7 +212,7 @@ public class PaymentTerminalService(
         var terminal = await context.PaymentTerminals
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == terminalId && !t.IsDeleted && t.TenantId == tenantId, ct)
-            ?? throw new InvalidOperationException($"Payment terminal {terminalId} not found.");
+            ?? throw new InvalidOperationException($"Terminale di pagamento {terminalId} non trovato.");
 
         if (string.IsNullOrEmpty(terminal.IpAddress))
             throw new InvalidOperationException("Il terminale non ha un indirizzo IP configurato.");
@@ -259,7 +263,7 @@ public class PaymentTerminalService(
     private Guid RequireTenantId()
     {
         if (!tenantContext.CurrentTenantId.HasValue)
-            throw new InvalidOperationException("Tenant context is required.");
+            throw new InvalidOperationException("Contesto tenant non disponibile.");
         return tenantContext.CurrentTenantId.Value;
     }
 }
