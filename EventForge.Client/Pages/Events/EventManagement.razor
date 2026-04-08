@@ -271,10 +271,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        InitCategories();
-        InitEventStatusFilters();
-        ApplyQueryFilter();
-        await LoadAllDataAsync();
+        try
+        {
+            InitCategories();
+            InitEventStatusFilters();
+            ApplyQueryFilter();
+            await LoadAllDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     protected override void OnParametersSet() => ApplyQueryFilter();
@@ -491,8 +499,33 @@
         return rule;
     }
 
-    private async Task ToggleCategoryAsync(SchedulerCategory cat) { cat.Enabled = !cat.Enabled; await RefreshSchedulerAsync(); }
-    private async Task ToggleEventStatusFilterAsync(EventStatusFilter sf) { sf.Active = !sf.Active; await RefreshSchedulerAsync(); }
+    private async Task ToggleCategoryAsync(SchedulerCategory cat)
+    {
+        try
+        {
+            cat.Enabled = !cat.Enabled;
+            await RefreshSchedulerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ToggleCategoryAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task ToggleEventStatusFilterAsync(EventStatusFilter sf)
+    {
+        try
+        {
+            sf.Active = !sf.Active;
+            await RefreshSchedulerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ToggleEventStatusFilterAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
 
     private async Task OpenCreateEventDialog(DateTime? start = null, DateTime? end = null)
     {
