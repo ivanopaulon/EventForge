@@ -1,0 +1,140 @@
+using EventForge.DTOs.PaymentTerminal;
+using System.Net.Http.Json;
+
+namespace EventForge.Client.Services.Store;
+
+public class PaymentTerminalService(
+    HttpClient httpClient,
+    ILogger<PaymentTerminalService> logger) : IPaymentTerminalService
+{
+    private const string ApiBase = "api/v1/payment-terminals";
+
+    public async Task<List<PaymentTerminalDto>> GetAllAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClient.GetFromJsonAsync<List<PaymentTerminalDto>>(ApiBase, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel recupero dei terminali di pagamento.");
+            return [];
+        }
+    }
+
+    public async Task<PaymentTerminalDto?> GetByIdAsync(Guid id)
+    {
+        try
+        {
+            return await httpClient.GetFromJsonAsync<PaymentTerminalDto>($"{ApiBase}/{id}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel recupero del terminale di pagamento {Id}.", id);
+            throw;
+        }
+    }
+
+    public async Task<PaymentTerminalDto?> CreateAsync(CreatePaymentTerminalDto dto)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync(ApiBase, dto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nella creazione del terminale di pagamento.");
+            throw new InvalidOperationException("Errore nella creazione del terminale POS.", ex);
+        }
+    }
+
+    public async Task<PaymentTerminalDto?> UpdateAsync(Guid id, UpdatePaymentTerminalDto dto)
+    {
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", dto);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<PaymentTerminalDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nell'aggiornamento del terminale di pagamento {Id}.", id);
+            throw new InvalidOperationException("Errore nell'aggiornamento del terminale POS.", ex);
+        }
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        try
+        {
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            response.EnsureSuccessStatusCode();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nell'eliminazione del terminale di pagamento {Id}.", id);
+            throw new InvalidOperationException("Errore nell'eliminazione del terminale POS.", ex);
+        }
+    }
+
+    public async Task<PaymentResultDto> SendPaymentAsync(Guid terminalId, PaymentRequestDto request)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/pay", request);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+                ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nell'invio del pagamento al terminale {Id}.", terminalId);
+            return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    public async Task<PaymentResultDto> SendVoidAsync(Guid terminalId)
+    {
+        try
+        {
+            var response = await httpClient.PostAsync($"{ApiBase}/{terminalId}/void", null);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+                ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nell'invio dello storno al terminale {Id}.", terminalId);
+            return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    public async Task<PaymentResultDto> SendRefundAsync(Guid terminalId, PaymentRequestDto request)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{terminalId}/refund", request);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<PaymentResultDto>()
+                ?? new PaymentResultDto { Success = false, ErrorMessage = "Risposta vuota dal server." };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nell'invio del rimborso al terminale {Id}.", terminalId);
+            return new PaymentResultDto { Success = false, Approved = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    public async Task TestConnectionAsync(Guid terminalId)
+    {
+        var response = await httpClient.GetAsync($"{ApiBase}/{terminalId}/test-connection");
+        response.EnsureSuccessStatusCode();
+    }
+}

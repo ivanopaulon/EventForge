@@ -100,5 +100,8 @@ namespace EventForge.DTOs.Store
         /// </summary>
         [Display(Name = "Cashier Group", Description = "Operator group assigned to this POS.")]
         public Guid? CashierGroupId { get; set; }
+
+        /// <summary>Default Protocol 17 payment terminal assigned to this POS.</summary>
+        public Guid? DefaultPaymentTerminalId { get; set; }
     }
 }

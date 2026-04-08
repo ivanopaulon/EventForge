@@ -148,6 +148,19 @@ public class StorePos : AuditableEntity
     /// </summary>
     [ForeignKey(nameof(CashierGroupId))]
     public StoreUserGroup? CashierGroup { get; set; }
+
+    // --- Protocol 17 Payment Terminal ---
+
+    /// <summary>
+    /// Foreign key to the default Protocol 17 payment terminal for this POS.
+    /// </summary>
+    public Guid? DefaultPaymentTerminalId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the default Protocol 17 payment terminal.
+    /// </summary>
+    [ForeignKey(nameof(DefaultPaymentTerminalId))]
+    public PaymentTerminal? DefaultPaymentTerminal { get; set; }
 }
 
 /// <summary>

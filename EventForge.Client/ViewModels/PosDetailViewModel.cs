@@ -50,7 +50,8 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
             LocationLatitude = entity.LocationLatitude,
             LocationLongitude = entity.LocationLongitude,
             DefaultFiscalPrinterId = entity.DefaultFiscalPrinterId,
-            CashierGroupId = entity.CashierGroupId
+            CashierGroupId = entity.CashierGroupId,
+            DefaultPaymentTerminalId = entity.DefaultPaymentTerminalId,
         };
     }
 
@@ -67,7 +68,8 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
             IPAddress = entity.IPAddress,
             IsOnline = entity.IsOnline,
             DefaultFiscalPrinterId = entity.DefaultFiscalPrinterId,
-            CashierGroupId = entity.CashierGroupId
+            CashierGroupId = entity.CashierGroupId,
+            DefaultPaymentTerminalId = entity.DefaultPaymentTerminalId,
         };
     }
 

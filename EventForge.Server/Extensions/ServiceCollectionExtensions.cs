@@ -27,6 +27,7 @@ using EventForge.Server.Services.RetailCart;
 using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Store;
+using EventForge.Server.Services.PaymentTerminal;
 using EventForge.Server.Services.Teams;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.VatRates;
@@ -342,6 +343,9 @@ public static class ServiceCollectionExtensions
         // Register store user services
         _ = services.AddScoped<IStoreUserService, StoreUserService>();
         _ = services.AddScoped<IFiscalDrawerService, FiscalDrawerService>();
+
+        // Payment Terminal (Protocol 17)
+        _ = services.AddScoped<IPaymentTerminalService, PaymentTerminalService>();
 
         // Register station services
         _ = services.AddScoped<IStationService, StationService>();
