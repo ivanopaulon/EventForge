@@ -293,19 +293,17 @@
         _closuresFiltered = query.ToList();
     }
 
-    private async Task ApplyFiltersAsync()
+    private void ApplyFiltersAsync()
     {
         ApplyLocalFilters();
-        await Task.CompletedTask;
     }
 
-    private async Task ClearFiltersAsync()
+    private void ClearFiltersAsync()
     {
         _filterFromDate = null;
         _filterToDate = null;
         _filterZReport = string.Empty;
         ApplyLocalFilters();
-        await Task.CompletedTask;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -348,6 +346,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "DownloadPdfAsync failed for closure {ClosureId}.", closureId);
             AppNotification.ShowError($"Errore download PDF: {ex.Message}");
         }
     }

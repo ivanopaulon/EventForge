@@ -14,6 +14,8 @@ public class PaymentTerminalService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration) : IPaymentTerminalService
 {
+    private const string ConnectionTypeTcp = "Tcp";
+    private const string ConnectionTypeTcpViaAgent = "TcpViaAgent";
     public async Task<List<PaymentTerminalDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
@@ -55,6 +57,7 @@ public class PaymentTerminalService(
         try
         {
             var tenantId = RequireTenantId();
+            ValidateConnectionFields(dto.ConnectionType, dto.IpAddress);
             var entity = new EventForge.Server.Data.Entities.Store.PaymentTerminal
             {
                 TenantId = tenantId,
@@ -90,6 +93,7 @@ public class PaymentTerminalService(
         try
         {
             var tenantId = RequireTenantId();
+            ValidateConnectionFields(dto.ConnectionType, dto.IpAddress);
             var entity = await context.PaymentTerminals
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted && t.TenantId == tenantId, ct);
             if (entity is null) return null;
@@ -241,7 +245,7 @@ public class PaymentTerminalService(
         if (string.IsNullOrEmpty(terminal.IpAddress))
             throw new InvalidOperationException("Il terminale non ha un indirizzo IP configurato.");
 
-        if (terminal.ConnectionType == "TcpViaAgent")
+        if (terminal.ConnectionType == ConnectionTypeTcpViaAgent)
         {
             if (!terminal.AgentId.HasValue)
                 throw new InvalidOperationException("Il terminale è configurato per proxy agente ma AgentId non è impostato.");
@@ -254,7 +258,11 @@ public class PaymentTerminalService(
         return new Protocol17TcpChannel(terminal.IpAddress, terminal.Port, terminal.TimeoutMs);
     }
 
-    private static PaymentResultDto MapResult(Protocol17Response r, decimal requestedAmount) => new()
+    private void ValidateConnectionFields(string connectionType, string? ipAddress)
+    {
+        if (string.IsNullOrWhiteSpace(ipAddress))
+            throw new ArgumentException("L'indirizzo IP è obbligatorio per la connessione TCP.");
+    }
     {
         Success = r.Approved,
         Approved = r.Approved,

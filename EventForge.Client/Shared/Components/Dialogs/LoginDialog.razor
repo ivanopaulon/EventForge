@@ -5,6 +5,7 @@
 @inject IProfileService ProfileService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<LoginDialog> Logger
 
 <EFDialog Icon="@(_isChangePasswordMode ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Login)"
           Title="@(_isChangePasswordMode
@@ -191,6 +192,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to load tenants.");
             AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError",
                 "Errore nel caricamento dei tenant: {0}", ex.Message));
             _tenants = new List<TenantResponseDto>();
@@ -235,6 +237,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Login failed.");
             AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError",
                 "Errore durante il login: {0}", ex.Message));
         }

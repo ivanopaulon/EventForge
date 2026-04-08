@@ -348,7 +348,7 @@
     //  Actions
     // ──────────────────────────────────────────────────────────
 
-    private async Task ShowDetailAsync(Guid printerId)
+    private void ShowDetailAsync(Guid printerId)
     {
         var printer = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Printer;
         AppNotification.ShowInfo($"Stampante: {printer?.Name ?? printerId.ToString()}");
