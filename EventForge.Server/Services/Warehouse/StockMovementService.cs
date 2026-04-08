@@ -257,6 +257,8 @@ public class StockMovementService(
 
     public async Task<StockMovementDto> CreateMovementAsync(CreateStockMovementDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var movement = new StockMovement
@@ -302,6 +304,12 @@ public class StockMovementService(
         await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
 
         return movement.ToStockMovementDto();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating stock movement for product {ProductId}.", createDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> CreateMovementsBatchAsync(
@@ -309,6 +317,8 @@ public class StockMovementService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         // Process in chunks to keep each SaveChangesAsync batch manageable.
         // The custom SaveChangesAsync generates one EntityChangeLog row per property per entity;
         // large batches produce thousands of audit INSERTs that exceed SQL Server limits.
@@ -360,6 +370,12 @@ public class StockMovementService(
             null, $"Created {allMovements.Count} stock movements", currentUser);
 
         return allMovements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating batch stock movements for user {User}.", currentUser);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessInboundMovementAsync(
@@ -376,6 +392,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Inbound.ToString(),
@@ -393,6 +411,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing inbound movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessOutboundMovementAsync(
@@ -408,6 +432,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Outbound.ToString(),
@@ -424,6 +450,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing outbound movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessTransferMovementAsync(
@@ -437,6 +469,8 @@ public class StockMovementService(
         string? currentUser = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Transfer.ToString(),
@@ -451,6 +485,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing transfer movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessAdjustmentMovementAsync(
@@ -464,6 +504,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Adjustment.ToString(),
@@ -478,10 +520,18 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing adjustment movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ReverseMovementAsync(Guid movementId, string reason, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var originalMovement = await context.StockMovements.FindAsync(new object[] { movementId }, cancellationToken);
         if (originalMovement is null)
         {
@@ -509,6 +559,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(reverseDto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reversing stock movement {MovementId}.", movementId);
+            throw;
+        }
     }
 
     public async Task<MovementSummaryDto> GetMovementSummaryAsync(
@@ -518,6 +574,8 @@ public class StockMovementService(
         Guid? locationId = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var query = context.StockMovements
@@ -553,10 +611,18 @@ public class StockMovementService(
             TotalInboundValue = inboundMovements.Sum(m => m.TotalValue),
             TotalOutboundValue = outboundMovements.Sum(m => m.TotalValue)
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting movement summary.");
+            throw;
+        }
     }
 
     public async Task<MovementValidationResult> ValidateMovementAsync(CreateStockMovementDto movementDto, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var result = new MovementValidationResult { IsValid = true };
 
         // Validate product exists
@@ -609,10 +675,18 @@ public class StockMovementService(
         }
 
         return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error validating movement for product {ProductId}.", movementDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetPendingMovementsAsync(CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var movements = await context.StockMovements
@@ -625,10 +699,18 @@ public class StockMovementService(
             .ToListAsync(cancellationToken);
 
         return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting pending movements.");
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ExecutePlannedMovementAsync(Guid movementPlanId, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var movement = await context.StockMovements.FindAsync(new object[] { movementPlanId }, cancellationToken);
         if (movement is null)
         {
@@ -659,6 +741,12 @@ public class StockMovementService(
         await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
 
         return movement.ToStockMovementDto();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error executing planned movement {MovementPlanId}.", movementPlanId);
+            throw;
+        }
     }
 
     private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken, bool throwOnMissingSourceStock = true)
@@ -799,6 +887,8 @@ public class StockMovementService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
@@ -832,6 +922,12 @@ public class StockMovementService(
             .ToListAsync(ct);
 
         return items.Select(MapToInventoryExportDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting inventory for export.");
+            throw;
+        }
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(
