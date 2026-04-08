@@ -286,7 +286,11 @@ public static class ServiceCollectionExtensions
 
         // Register fiscal printing services
         _ = services.AddScoped<IFiscalMappingService, FiscalMappingService>();
-        _ = services.AddScoped<IFiscalPrinterService, CustomFiscalPrinterService>();
+        // Register concrete protocol implementations (resolved by router)
+        _ = services.AddScoped<CustomFiscalPrinterService>();
+        _ = services.AddScoped<EpsonFiscalPrinterService>();
+        // Router implements IFiscalPrinterService and dispatches to the correct protocol
+        _ = services.AddScoped<IFiscalPrinterService, FiscalPrinterServiceRouter>();
         _ = services.AddSingleton<FiscalPrinterStatusCache>();
         _ = services.AddHostedService<EventForge.Server.HostedServices.FiscalPrinterMonitorService>();
         _ = services.AddHostedService<EventForge.Server.HostedServices.DailyClosureReminderService>();
