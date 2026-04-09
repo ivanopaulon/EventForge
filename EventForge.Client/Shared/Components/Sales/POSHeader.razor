@@ -10,26 +10,24 @@
 @{
     var drawerOpen = FiscalDrawerSummary?.HasOpenSession == true;
     var drawerClosed = FiscalDrawerSummary is not null && !drawerOpen;
-    var paperStyle = drawerOpen
-        ? "background: linear-gradient(90deg, #e8f5e9, #f1f8e9); border-left: 4px solid var(--mud-palette-success);"
-        : "background: var(--mud-palette-surface);";
+    var hasDrawer = FiscalDrawerSummary is not null;
 }
 
 <MudPaper Elevation="3" Class="pa-2 mb-2"
-          Style="@($"border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10; {paperStyle}")">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+          Style="border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10;">
+
+    @* ── Row 1: Operator · POS · Customer · Session · Actions ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
 
         @* ── Operator ── *@
         @if (IsSessionActive && SelectedOperatorId.HasValue)
         {
-            <MudChip T="string"
-                     Icon="@Icons.Material.Filled.Person"
-                     Color="Color.Primary"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Style="font-size:0.75rem; cursor:default;">
-                @(AvailableOperators?.FirstOrDefault(o => o.Id == SelectedOperatorId)?.Name ?? "—")
-            </MudChip>
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                    <strong>@SelectedOperatorName</strong>
+                </MudText>
+            </div>
         }
         else if (!IsSessionActive)
         {
@@ -56,14 +54,12 @@
         @* ── POS / Cassa ── *@
         @if (IsSessionActive && SelectedPosId.HasValue)
         {
-            <MudChip T="string"
-                     Icon="@Icons.Material.Filled.PointOfSale"
-                     Color="Color.Default"
-                     Size="Size.Small"
-                     Variant="Variant.Outlined"
-                     Style="font-size:0.75rem; cursor:default;">
-                @(AvailablePos?.FirstOrDefault(p => p.Id == SelectedPosId)?.Name ?? "—")
-            </MudChip>
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" Color="Color.Default" />
+                <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                    @SelectedPosName
+                </MudText>
+            </div>
         }
         else if (!IsSessionActive)
         {
@@ -86,72 +82,6 @@
                     }
                 }
             </MudSelect>
-        }
-
-        @* ── Fiscal Drawer: no open session ── *@
-        @if (drawerClosed)
-        {
-            <MudChip T="string"
-                     Icon="@Icons.Material.Outlined.Inbox"
-                     Color="Color.Warning"
-                     Size="Size.Small"
-                     Variant="Variant.Outlined"
-                     Style="font-size:0.75rem;">
-                @FiscalDrawerSummary!.Name
-            </MudChip>
-            <MudTooltip Text="Apri sessione cassetto">
-                <MudIconButton Icon="@Icons.Material.Outlined.LockOpen"
-                               Color="Color.Info"
-                               Size="Size.Small"
-                               OnClick="@OnOpenDrawerSessionClick" />
-            </MudTooltip>
-        }
-
-        @* ── Fiscal Drawer: open session — name + balance + sales ── *@
-        @if (drawerOpen)
-        {
-            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Success" Size="Size.Small" />
-            <MudText Typo="Typo.body2"><strong>@FiscalDrawerSummary!.Name</strong></MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Saldo: <strong>@($"€ {FiscalDrawerSummary!.CurrentBalance:N2}")</strong>
-            </MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Vendite: <strong>@($"€ {FiscalDrawerSummary!.SessionTotalSales:N2}")</strong>
-            </MudText>
-            <MudTooltip Text="Versamento">
-                <MudIconButton Icon="@Icons.Material.Outlined.ArrowUpward"
-                               Color="Color.Success"
-                               Size="Size.Small"
-                               OnClick="@OnDepositClick" />
-            </MudTooltip>
-            <MudTooltip Text="Prelievo">
-                <MudIconButton Icon="@Icons.Material.Outlined.ArrowDownward"
-                               Color="Color.Warning"
-                               Size="Size.Small"
-                               OnClick="@OnWithdrawalClick" />
-            </MudTooltip>
-        }
-
-        @* ── Open physical drawer via fiscal printer ── *@
-        @if (HasFiscalPrinter)
-        {
-            <MudTooltip Text="Apri cassetto (stampante fiscale)">
-                <MudIconButton Icon="@Icons.Material.Outlined.OpenInBrowser"
-                               Color="Color.Info"
-                               Size="Size.Small"
-                               OnClick="@OnOpenPhysicalDrawerClick" />
-            </MudTooltip>
-        }
-
-        @* ── Daily closure required ── *@
-        @if (IsDailyClosureRequired)
-        {
-            <MudTooltip Text="Chiusura giornaliera richiesta — clicca per eseguire">
-                <MudIconButton Icon="@Icons.Material.Outlined.EventNote"
-                               Color="Color.Warning"
-                               Size="Size.Small"
-                               OnClick="@OnDailyClosureClick" />
-            </MudTooltip>
         }
 
         @* ── Loading spinner ── *@
@@ -186,17 +116,15 @@
             </div>
         }
 
-        @* ── Session number chip ── *@
+        @* ── Session number ── *@
         @if (IsSessionActive && SessionNumber.HasValue)
         {
             var sessionStr = SessionNumber.Value.ToString();
             var displayId = sessionStr.Length >= 8 ? sessionStr.Substring(0, 8) : sessionStr;
-            <MudChip T="string" Size="Size.Small"
-                     Color="Color.Info"
-                     Icon="@Icons.Material.Outlined.Receipt"
-                     Variant="Variant.Text">
-                #@displayId
-            </MudChip>
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" Color="Color.Info" />
+                <MudText Typo="Typo.caption" Color="Color.Info" Style="white-space:nowrap;">#@displayId</MudText>
+            </div>
         }
 
         @* ── Park ── *@
@@ -217,6 +145,118 @@
         </MudTooltip>
 
     </MudStack>
+
+    @* ── Row 2: Fiscal Drawer info + actions (only when drawer is configured) ── *@
+    @if (hasDrawer)
+    {
+        <MudDivider Class="my-1" />
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+            @* ── Drawer icon + name + status ── *@
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox"
+                     Size="Size.Small"
+                     Color="@(drawerOpen ? Color.Success : Color.Warning)" />
+            <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                <strong>@FiscalDrawerSummary!.Name</strong>
+            </MudText>
+            <MudText Typo="Typo.caption"
+                     Color="@(drawerOpen ? Color.Success : Color.Warning)"
+                     Style="white-space:nowrap;">
+                @(drawerOpen
+                    ? TranslationService.GetTranslation("sales.drawerOpen", "Aperto")
+                    : TranslationService.GetTranslation("sales.drawerClosed", "Chiuso"))
+            </MudText>
+
+            @* ── Balance + Sales (only when session open) ── *@
+            @if (drawerOpen)
+            {
+                <MudDivider Vertical="true" FlexItem="true" />
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space:nowrap;">
+                        @TranslationService.GetTranslation("sales.balance", "Saldo"):
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                        <strong>@($"€ {FiscalDrawerSummary!.CurrentBalance:N2}")</strong>
+                    </MudText>
+                </div>
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space:nowrap;">
+                        @TranslationService.GetTranslation("sales.sessionSales", "Vendite"):
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                        <strong>@($"€ {FiscalDrawerSummary!.SessionTotalSales:N2}")</strong>
+                    </MudText>
+                </div>
+            }
+
+            <MudSpacer />
+
+            @* ── Open drawer session (when closed) ── *@
+            @if (drawerClosed)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.openDrawerSession", "Apri sessione cassetto")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.LockOpen"
+                               OnClick="@OnOpenDrawerSessionClick">
+                        @TranslationService.GetTranslation("sales.openSession", "Apri sessione")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+            @* ── Deposit / Withdrawal (when session open) ── *@
+            @if (drawerOpen)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.deposit", "Versamento")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Success"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.ArrowUpward"
+                               OnClick="@OnDepositClick">
+                        @TranslationService.GetTranslation("sales.deposit", "Versamento")
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.withdrawal", "Prelievo")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.ArrowDownward"
+                               OnClick="@OnWithdrawalClick">
+                        @TranslationService.GetTranslation("sales.withdrawal", "Prelievo")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+            @* ── Open physical drawer via fiscal printer ── *@
+            @if (HasFiscalPrinter)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.openPhysicalDrawer", "Apri cassetto (stampante fiscale)")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInBrowser"
+                                   Color="Color.Info"
+                                   Size="Size.Small"
+                                   OnClick="@OnOpenPhysicalDrawerClick" />
+                </MudTooltip>
+            }
+
+            @* ── Daily closure required ── *@
+            @if (IsDailyClosureRequired)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.dailyClosureRequired", "Chiusura giornaliera richiesta — clicca per eseguire")">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.EventNote"
+                               OnClick="@OnDailyClosureClick">
+                        @TranslationService.GetTranslation("sales.dailyClosure", "Chiusura Z")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+        </MudStack>
+    }
+
 </MudPaper>
 
 @code {
@@ -308,6 +348,14 @@
     /// <summary>Fired when the operator clicks the daily-closure warning icon button.</summary>
     [Parameter]
     public EventCallback OnDailyClosureClick { get; set; }
+
+    // ── Computed ──────────────────────────────────────────────────────────────
+
+    private string SelectedOperatorName =>
+        AvailableOperators?.FirstOrDefault(o => o.Id == SelectedOperatorId)?.Name ?? "—";
+
+    private string SelectedPosName =>
+        AvailablePos?.FirstOrDefault(p => p.Id == SelectedPosId)?.Name ?? "—";
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
