@@ -319,6 +319,7 @@ public class DocumentAttachmentService(
         {
             // Find the original attachment or any version to get the base
             var attachment = await context.DocumentAttachments
+                .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
             if (attachment is null)
@@ -329,6 +330,7 @@ public class DocumentAttachmentService(
             while (rootAttachment.PreviousVersionId.HasValue)
             {
                 var previous = await context.DocumentAttachments
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(a => a.Id == rootAttachment.PreviousVersionId.Value && !a.IsDeleted, cancellationToken);
                 if (previous is not null)
                     rootAttachment = previous;
@@ -338,6 +340,7 @@ public class DocumentAttachmentService(
 
             // Get all versions starting from root
             var versions = await context.DocumentAttachments
+                .AsNoTracking()
                 .Where(a => a.Id == rootAttachment.Id || (a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted))
                 .OrderBy(a => a.Version)
                 .ToListAsync(cancellationToken);
@@ -430,6 +433,7 @@ public class DocumentAttachmentService(
         try
         {
             return await context.DocumentAttachments
+                .AsNoTracking()
                 .AnyAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

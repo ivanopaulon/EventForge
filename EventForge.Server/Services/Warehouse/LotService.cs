@@ -534,6 +534,7 @@ public class LotService(
             }
 
             var totalQuantity = await context.Stocks
+                .AsNoTracking()
                 .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
                 .SumAsync(s => s.AvailableQuantity, cancellationToken);
 
@@ -557,6 +558,7 @@ public class LotService(
             }
 
             var query = context.Lots
+                .AsNoTracking()
                 .Where(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted);
 
             if (excludeId.HasValue)

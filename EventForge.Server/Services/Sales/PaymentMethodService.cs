@@ -121,6 +121,7 @@ public class PaymentMethodService(
             }
 
             var paymentMethod = await context.PaymentMethods
+                .AsNoTracking()
                 .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -146,6 +147,7 @@ public class PaymentMethodService(
             }
 
             var paymentMethod = await context.PaymentMethods
+                .AsNoTracking()
                 .Where(pm => pm.Code == code && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -375,6 +377,7 @@ public class PaymentMethodService(
             }
 
             var query = context.PaymentMethods
+                .AsNoTracking()
                 .Where(pm => pm.Code == code && pm.TenantId == currentTenantId.Value && !pm.IsDeleted);
 
             if (excludeId.HasValue)
