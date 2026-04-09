@@ -73,4 +73,20 @@ public class WhatsAppService(
             logger.LogError(ex, "Error sending WhatsApp read receipt for message {MessageId}", messageId);
         }
     }
+
+    public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_phoneNumberId)) return false;
+            var client = httpClientFactory.CreateClient("WhatsApp");
+            var response = await client.GetAsync($"{_apiVersion}/{_phoneNumberId}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error testing WhatsApp connection");
+            return false;
+        }
+    }
 }

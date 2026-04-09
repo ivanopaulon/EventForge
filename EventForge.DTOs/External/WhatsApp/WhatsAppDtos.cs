@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.DTOs.External.WhatsApp;
 
+// ─── Webhook payload types (inbound from Meta API) ───────────────────────────
+
 public class WhatsAppTextBody
 {
     public string Body { get; set; } = string.Empty;
@@ -45,29 +47,16 @@ public class WhatsAppInboundPayloadDto
     public List<WhatsAppEntry>? Entry { get; set; }
 }
 
-public class MessaggioWhatsAppDto
-{
-    public Guid Id { get; set; }
-    public Guid ConversazioneId { get; set; }
-    public string Testo { get; set; } = string.Empty;
-    public DirezioneMessaggio Direzione { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string? NomeOperatore { get; set; }
-    public StatoInvioMessaggio StatoInvio { get; set; }
-    public bool IsUscente => Direzione == DirezioneMessaggio.Uscente;
-}
+// ─── API request DTOs ─────────────────────────────────────────────────────────
 
-public class ConversazioneWhatsAppDto
+/// <summary>DTO for assigning an unrecognised WhatsApp number to a BusinessParty.</summary>
+public class AssegnaNumeroDto
 {
-    public Guid Id { get; set; }
+    [Required]
     public string NumeroDiTelefono { get; set; } = string.Empty;
-    public string? NomeAnagrafica { get; set; }
-    public bool NumeroNonRiconosciuto { get; set; }
-    public string? UltimoMessaggio { get; set; }
-    public DateTime? UltimoMessaggioAt { get; set; }
-    public StatoConversazioneWhatsApp StatoConversazione { get; set; }
-    public int MessaggiNonLetti { get; set; }
-    public bool IsWhatsApp { get; set; } = true;
+
+    public Guid? BusinessPartyId { get; set; }
+    public NuovaAnagraficaDto? NuovaAnagrafica { get; set; }
 }
 
 /// <summary>DTO for creating a new BusinessParty from an unrecognized WhatsApp number.</summary>
@@ -88,11 +77,26 @@ public class NuovaAnagraficaDto
     public string? Notes { get; set; }
 }
 
-public class AssegnaNumeroDto
-{
-    [Required]
-    public string NumeroDiTelefono { get; set; } = string.Empty;
+// ─── WhatsApp configuration DTO ──────────────────────────────────────────────
 
-    public Guid? BusinessPartyId { get; set; }
-    public NuovaAnagraficaDto? NuovaAnagrafica { get; set; }
+/// <summary>DTO for reading and writing the WhatsApp Business Cloud API configuration.</summary>
+public class WhatsAppConfigDto
+{
+    /// <summary>WhatsApp Business Phone Number ID from Meta Developer portal.</summary>
+    public string PhoneNumberId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Permanent access token for the WhatsApp Business Account.
+    /// Returned masked (e.g. "•••••abc") on GET; send the full value to update.
+    /// </summary>
+    public string AccessToken { get; set; } = string.Empty;
+
+    /// <summary>Webhook verify token configured in the Meta App dashboard.</summary>
+    public string VerifyToken { get; set; } = string.Empty;
+
+    /// <summary>Meta Graph API version (default: v19.0).</summary>
+    public string ApiVersion { get; set; } = "v19.0";
+
+    /// <summary>Whether the WhatsApp integration is enabled.</summary>
+    public bool IsEnabled { get; set; } = false;
 }

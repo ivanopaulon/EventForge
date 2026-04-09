@@ -1,5 +1,4 @@
 using EventForge.DTOs.Chat;
-using EventForge.DTOs.External.WhatsApp;
 using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
@@ -607,7 +606,7 @@ public class ChatHub : Hub
     #region WhatsApp
 
     /// <summary>Notifies all connected clients in the tenant about a new WhatsApp message.</summary>
-    public async Task NotificaNuovoMessaggioWhatsApp(MessaggioWhatsAppDto messaggio)
+    public async Task NotificaNuovoMessaggioWhatsApp(ChatMessageDto messaggio)
     {
         var tenantId = GetCurrentTenantId();
         if (!tenantId.HasValue) return;
@@ -615,7 +614,7 @@ public class ChatHub : Hub
     }
 
     /// <summary>Notifies all connected clients in the tenant about a conversation update.</summary>
-    public async Task NotificaConversazioneAggiornata(ConversazioneWhatsAppDto conversazione)
+    public async Task NotificaConversazioneAggiornata(ChatResponseDto conversazione)
     {
         var tenantId = GetCurrentTenantId();
         if (!tenantId.HasValue) return;
@@ -623,7 +622,7 @@ public class ChatHub : Hub
     }
 
     /// <summary>Notifies all connected clients about an unrecognized number that sent a message.</summary>
-    public async Task NotificaNumeroNonRiconosciuto(ConversazioneWhatsAppDto conversazione)
+    public async Task NotificaNumeroNonRiconosciuto(ChatResponseDto conversazione)
     {
         var tenantId = GetCurrentTenantId();
         if (!tenantId.HasValue) return;

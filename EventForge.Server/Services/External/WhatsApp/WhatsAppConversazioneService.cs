@@ -1,3 +1,4 @@
+using EventForge.DTOs.Chat;
 using EventForge.DTOs.Common;
 using EventForge.DTOs.External.WhatsApp;
 using EventForge.Server.Data;
@@ -11,7 +12,8 @@ using System.Collections.Concurrent;
 namespace EventForge.Server.Services.External.WhatsApp;
 
 /// <summary>
-/// Business logic for WhatsApp conversations: inbound messages, replies, blocking, association with BusinessParty.
+/// Business logic for WhatsApp conversations — now backed by the unified
+/// <see cref="ChatThread"/> / <see cref="ChatMessage"/> entities.
 /// </summary>
 public class WhatsAppConversazioneService(
     EventForgeDbContext dbContext,
@@ -49,43 +51,35 @@ public class WhatsAppConversazioneService(
             await sem.WaitAsync(cancellationToken);
             try
             {
-                var conversazione = await GetOrCreateConversazioneAsync(normalizzato, tenantId, cancellationToken);
+                var thread = await GetOrCreateConversazioneAsync(normalizzato, tenantId, cancellationToken);
 
-                var messaggio = new MessaggioWhatsApp
+                var messaggio = new ChatMessage
                 {
                     TenantId = tenantId,
-                    ConversazioneWhatsAppId = conversazione.Id,
-                    Testo = testo,
-                    Direzione = DirezioneMessaggio.Entrante,
-                    StatoInvio = StatoInvioMessaggio.Consegnato,
+                    ChatThreadId = thread.Id,
+                    Content = testo,
+                    SenderId = null, // incoming — no internal user
+                    MessageDirection = MessageDirection.Entrante,
                     WhatsAppMessageId = msgId,
-                    Timestamp = timestamp,
-                    IsLetto = false,
+                    WhatsAppDeliveryStatus = WhatsAppDeliveryStatus.Consegnato,
+                    Status = MessageStatus.Delivered,
+                    SentAt = timestamp,
                     CreatedBy = "WhatsApp"
                 };
-                dbContext.MessaggiWhatsApp.Add(messaggio);
+                dbContext.ChatMessages.Add(messaggio);
 
-                conversazione.UltimoMessaggioAt = timestamp;
-                dbContext.ConversazioniWhatsApp.Update(conversazione);
+                thread.UpdatedAt = timestamp;
+                dbContext.ChatThreads.Update(thread);
 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
-                var messaggioDto = new MessaggioWhatsAppDto
-                {
-                    Id = messaggio.Id,
-                    ConversazioneId = conversazione.Id,
-                    Testo = testo,
-                    Direzione = DirezioneMessaggio.Entrante,
-                    Timestamp = timestamp,
-                    StatoInvio = StatoInvioMessaggio.Consegnato
-                };
-
+                var messaggioDto = MapMessageToDto(messaggio, thread.Id, null);
                 await hubContext.Clients.Group($"tenant_{tenantId}")
                     .SendAsync("NuovoMessaggioWhatsApp", messaggioDto, cancellationToken);
 
-                if (conversazione.NumeroNonRiconosciuto)
+                if (thread.IsUnrecognizedNumber)
                 {
-                    var convDto = await MapToDto(conversazione, cancellationToken);
+                    var convDto = await MapThreadToDto(thread, cancellationToken);
                     await hubContext.Clients.Group($"tenant_{tenantId}")
                         .SendAsync("NumeroNonRiconosciuto", convDto, cancellationToken);
                 }
@@ -102,30 +96,36 @@ public class WhatsAppConversazioneService(
         }
     }
 
-    public async Task<ConversazioneWhatsApp> GetOrCreateConversazioneAsync(string numero, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ChatThread> GetOrCreateConversazioneAsync(string numero, Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
             var normalizzato = NormalizzaNumero(numero);
-            var existing = await dbContext.ConversazioniWhatsApp
-                .Include(c => c.BusinessParty)
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.NumeroDiTelefono == normalizzato && !c.IsDeleted, cancellationToken);
+            var existing = await dbContext.ChatThreads
+                .Include(t => t.BusinessParty)
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId
+                    && t.Type == ChatType.WhatsApp
+                    && t.ExternalPhoneNumber == normalizzato
+                    && !t.IsDeleted, cancellationToken);
 
             if (existing != null) return existing;
 
             var businessParty = await TrovaBusinessPartyByTelefonoAsync(normalizzato, tenantId, cancellationToken);
 
-            var nuova = new ConversazioneWhatsApp
+            var nuova = new ChatThread
             {
                 TenantId = tenantId,
-                NumeroDiTelefono = normalizzato,
+                Type = ChatType.WhatsApp,
+                ExternalPhoneNumber = normalizzato,
+                Name = businessParty?.Name ?? normalizzato,
                 BusinessPartyId = businessParty?.Id,
-                NumeroNonRiconosciuto = businessParty == null,
-                Stato = StatoConversazioneWhatsApp.Attiva,
-                UltimoMessaggioAt = DateTime.UtcNow,
+                IsUnrecognizedNumber = businessParty == null,
+                WhatsAppLastStatus = WhatsAppConversationStatus.Attiva,
+                IsPrivate = true,
+                UpdatedAt = DateTime.UtcNow,
                 CreatedBy = "System"
             };
-            dbContext.ConversazioniWhatsApp.Add(nuova);
+            dbContext.ChatThreads.Add(nuova);
             await dbContext.SaveChangesAsync(cancellationToken);
             return nuova;
         }
@@ -165,16 +165,25 @@ public class WhatsAppConversazioneService(
         try
         {
             var normalizzato = NormalizzaNumero(numero);
-            var conversazione = await dbContext.ConversazioniWhatsApp
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.NumeroDiTelefono == normalizzato && !c.IsDeleted, cancellationToken);
-            if (conversazione == null) return;
+            var thread = await dbContext.ChatThreads
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId
+                    && t.Type == ChatType.WhatsApp
+                    && t.ExternalPhoneNumber == normalizzato
+                    && !t.IsDeleted, cancellationToken);
+            if (thread == null) return;
 
-            conversazione.BusinessPartyId = businessPartyId;
-            conversazione.NumeroNonRiconosciuto = false;
-            conversazione.ModifiedAt = DateTime.UtcNow;
+            thread.BusinessPartyId = businessPartyId;
+            thread.IsUnrecognizedNumber = false;
+            thread.ModifiedAt = DateTime.UtcNow;
+
+            // Update name to the BusinessParty's name
+            var bp = await dbContext.BusinessParties.AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == businessPartyId, cancellationToken);
+            if (bp != null) thread.Name = bp.Name;
+
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            var dto = await MapToDto(conversazione, cancellationToken);
+            var dto = await MapThreadToDto(thread, cancellationToken);
             await hubContext.Clients.Group($"tenant_{tenantId}")
                 .SendAsync("ConversazioneAggiornata", dto, cancellationToken);
         }
@@ -232,12 +241,15 @@ public class WhatsAppConversazioneService(
                 CreatedBy = currentUser
             });
 
-            var conversazione = await dbContext.ConversazioniWhatsApp
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.NumeroDiTelefono == normalizzato && !c.IsDeleted, cancellationToken);
-            if (conversazione != null)
+            var thread = await dbContext.ChatThreads
+                .FirstOrDefaultAsync(t => t.TenantId == tenantId
+                    && t.Type == ChatType.WhatsApp
+                    && t.ExternalPhoneNumber == normalizzato
+                    && !t.IsDeleted, cancellationToken);
+            if (thread != null)
             {
-                conversazione.Stato = StatoConversazioneWhatsApp.Bloccata;
-                conversazione.ModifiedAt = DateTime.UtcNow;
+                thread.WhatsAppLastStatus = WhatsAppConversationStatus.Bloccata;
+                thread.ModifiedAt = DateTime.UtcNow;
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -249,47 +261,41 @@ public class WhatsAppConversazioneService(
         }
     }
 
-    public async Task<MessaggioWhatsApp> InviaRispostaOperatoreAsync(Guid conversazioneId, string testo, Guid operatoreId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ChatMessage> InviaRispostaOperatoreAsync(Guid chatThreadId, string testo, Guid operatoreId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var conversazione = await dbContext.ConversazioniWhatsApp
-                .FirstOrDefaultAsync(c => c.Id == conversazioneId && c.TenantId == tenantId && !c.IsDeleted, cancellationToken)
-                ?? throw new InvalidOperationException($"Conversation {conversazioneId} not found");
+            var thread = await dbContext.ChatThreads
+                .FirstOrDefaultAsync(t => t.Id == chatThreadId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException($"ChatThread {chatThreadId} not found");
 
-            var waMessageId = await whatsAppService.SendTextMessageAsync(conversazione.NumeroDiTelefono, testo, cancellationToken);
+            if (string.IsNullOrEmpty(thread.ExternalPhoneNumber))
+                throw new InvalidOperationException($"ChatThread {chatThreadId} is not a WhatsApp conversation");
 
-            var messaggio = new MessaggioWhatsApp
+            var waMessageId = await whatsAppService.SendTextMessageAsync(thread.ExternalPhoneNumber, testo, cancellationToken);
+
+            var messaggio = new ChatMessage
             {
                 TenantId = tenantId,
-                ConversazioneWhatsAppId = conversazioneId,
-                Testo = testo,
-                Direzione = DirezioneMessaggio.Uscente,
-                StatoInvio = waMessageId != null ? StatoInvioMessaggio.Inviato : StatoInvioMessaggio.Errore,
+                ChatThreadId = chatThreadId,
+                Content = testo,
+                SenderId = operatoreId,
+                MessageDirection = MessageDirection.Uscente,
+                WhatsAppDeliveryStatus = waMessageId != null ? WhatsAppDeliveryStatus.Inviato : WhatsAppDeliveryStatus.Errore,
                 WhatsAppMessageId = waMessageId,
-                MittenteOperatoreId = operatoreId,
-                Timestamp = DateTime.UtcNow,
-                IsLetto = true,
+                Status = waMessageId != null ? MessageStatus.Sent : MessageStatus.Failed,
+                SentAt = DateTime.UtcNow,
                 CreatedBy = operatoreId.ToString()
             };
-            dbContext.MessaggiWhatsApp.Add(messaggio);
+            dbContext.ChatMessages.Add(messaggio);
 
-            conversazione.UltimoMessaggioAt = messaggio.Timestamp;
-            dbContext.ConversazioniWhatsApp.Update(conversazione);
+            thread.UpdatedAt = messaggio.SentAt;
+            dbContext.ChatThreads.Update(thread);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var operatore = await dbContext.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == operatoreId, cancellationToken);
-            var messaggioDto = new MessaggioWhatsAppDto
-            {
-                Id = messaggio.Id,
-                ConversazioneId = conversazioneId,
-                Testo = testo,
-                Direzione = DirezioneMessaggio.Uscente,
-                Timestamp = messaggio.Timestamp,
-                NomeOperatore = operatore?.FullName,
-                StatoInvio = messaggio.StatoInvio
-            };
+            var messaggioDto = MapMessageToDto(messaggio, chatThreadId, operatore?.FullName);
             await hubContext.Clients.Group($"tenant_{tenantId}")
                 .SendAsync("NuovoMessaggioWhatsApp", messaggioDto, cancellationToken);
 
@@ -297,25 +303,28 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending operator reply on conversation {ConvId}", conversazioneId);
+            logger.LogError(ex, "Error sending operator reply on conversation {ThreadId}", chatThreadId);
             throw;
         }
     }
 
-    public async Task<List<ConversazioneWhatsAppDto>> GetConversazioniAttiveAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<List<ChatResponseDto>> GetConversazioniAttiveAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var conversazioni = await dbContext.ConversazioniWhatsApp
+            var threads = await dbContext.ChatThreads
                 .AsNoTracking()
-                .Include(c => c.BusinessParty)
-                .Where(c => c.TenantId == tenantId && c.Stato == StatoConversazioneWhatsApp.Attiva && !c.IsDeleted)
-                .OrderByDescending(c => c.UltimoMessaggioAt)
+                .Include(t => t.BusinessParty)
+                .Where(t => t.TenantId == tenantId
+                    && t.Type == ChatType.WhatsApp
+                    && t.WhatsAppLastStatus == WhatsAppConversationStatus.Attiva
+                    && !t.IsDeleted)
+                .OrderByDescending(t => t.UpdatedAt)
                 .ToListAsync(cancellationToken);
 
-            var result = new List<ConversazioneWhatsAppDto>(conversazioni.Count);
-            foreach (var c in conversazioni)
-                result.Add(await MapToDto(c, cancellationToken));
+            var result = new List<ChatResponseDto>(threads.Count);
+            foreach (var t in threads)
+                result.Add(await MapThreadToDto(t, cancellationToken));
             return result;
         }
         catch (Exception ex)
@@ -325,50 +334,64 @@ public class WhatsAppConversazioneService(
         }
     }
 
-    public async Task<List<MessaggioWhatsAppDto>> GetMessaggiAsync(Guid conversazioneId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<List<ChatMessageDto>> GetMessaggiAsync(Guid chatThreadId, Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var messaggi = await dbContext.MessaggiWhatsApp
+            var messaggi = await dbContext.ChatMessages
                 .AsNoTracking()
-                .Include(m => m.MittenteOperatore)
-                .Where(m => m.ConversazioneWhatsAppId == conversazioneId && m.TenantId == tenantId && !m.IsDeleted)
-                .OrderBy(m => m.Timestamp)
+                .Where(m => m.ChatThreadId == chatThreadId && m.TenantId == tenantId && !m.IsDeleted)
+                .OrderBy(m => m.SentAt)
                 .ToListAsync(cancellationToken);
 
-            return messaggi.Select(m => new MessaggioWhatsAppDto
-            {
-                Id = m.Id,
-                ConversazioneId = m.ConversazioneWhatsAppId,
-                Testo = m.Testo,
-                Direzione = m.Direzione,
-                Timestamp = m.Timestamp,
-                NomeOperatore = m.MittenteOperatore?.FullName,
-                StatoInvio = m.StatoInvio
-            }).ToList();
+            // Bulk-load operator names for outgoing messages
+            var operatorIds = messaggi
+                .Where(m => m.SenderId.HasValue)
+                .Select(m => m.SenderId!.Value)
+                .Distinct()
+                .ToList();
+            var operatoriNomi = operatorIds.Count > 0
+                ? await dbContext.Users.AsNoTracking()
+                    .Where(u => operatorIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => (string?)u.FullName, cancellationToken)
+                : new Dictionary<Guid, string?>();
+
+            return messaggi.Select(m => MapMessageToDto(
+                m, chatThreadId,
+                m.SenderId.HasValue && operatoriNomi.TryGetValue(m.SenderId.Value, out var n) ? n : null
+            )).ToList();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting messages for conversation {ConvId}", conversazioneId);
+            logger.LogError(ex, "Error getting messages for thread {ThreadId}", chatThreadId);
             return [];
         }
     }
 
-    public async Task AggiornaStatoMessaggioAsync(string whatsAppMessageId, StatoInvioMessaggio stato, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task AggiornaStatoMessaggioAsync(string whatsAppMessageId, WhatsAppDeliveryStatus stato, Guid tenantId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var messaggio = await dbContext.MessaggiWhatsApp
+            var messaggio = await dbContext.ChatMessages
                 .FirstOrDefaultAsync(m => m.WhatsAppMessageId == whatsAppMessageId && m.TenantId == tenantId, cancellationToken);
             if (messaggio == null) return;
 
-            messaggio.StatoInvio = stato;
-            if (stato == StatoInvioMessaggio.Letto) messaggio.IsLetto = true;
+            messaggio.WhatsAppDeliveryStatus = stato;
+            if (stato == WhatsAppDeliveryStatus.Letto)
+            {
+                messaggio.Status = MessageStatus.Read;
+                messaggio.ReadAt = DateTime.UtcNow;
+            }
+            else if (stato == WhatsAppDeliveryStatus.Consegnato)
+            {
+                messaggio.Status = MessageStatus.Delivered;
+                messaggio.DeliveredAt = DateTime.UtcNow;
+            }
             messaggio.ModifiedAt = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await hubContext.Clients.Group($"tenant_{tenantId}")
-                .SendAsync("StatoMessaggioAggiornato", new { Id = messaggio.Id, StatoInvio = stato }, cancellationToken);
+                .SendAsync("StatoMessaggioAggiornato", new { Id = messaggio.Id, WhatsAppDeliveryStatus = stato }, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -376,31 +399,54 @@ public class WhatsAppConversazioneService(
         }
     }
 
-    private async Task<ConversazioneWhatsAppDto> MapToDto(ConversazioneWhatsApp c, CancellationToken cancellationToken)
+    // ─── Mapping helpers ─────────────────────────────────────────────────────
+
+    private async Task<ChatResponseDto> MapThreadToDto(ChatThread t, CancellationToken cancellationToken)
     {
-        var ultimoMsg = await dbContext.MessaggiWhatsApp
+        var ultimoMsg = await dbContext.ChatMessages
             .AsNoTracking()
-            .Where(m => m.ConversazioneWhatsAppId == c.Id && !m.IsDeleted)
-            .OrderByDescending(m => m.Timestamp)
-            .Select(m => m.Testo)
+            .Where(m => m.ChatThreadId == t.Id && !m.IsDeleted)
+            .OrderByDescending(m => m.SentAt)
+            .Select(m => m.Content)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var nonLetti = await dbContext.MessaggiWhatsApp
+        var nonLetti = await dbContext.ChatMessages
             .AsNoTracking()
-            .CountAsync(m => m.ConversazioneWhatsAppId == c.Id && !m.IsLetto
-                          && m.Direzione == DirezioneMessaggio.Entrante && !m.IsDeleted, cancellationToken);
+            .CountAsync(m => m.ChatThreadId == t.Id
+                && m.MessageDirection == MessageDirection.Entrante
+                && m.Status != MessageStatus.Read
+                && !m.IsDeleted, cancellationToken);
 
-        return new ConversazioneWhatsAppDto
+        return new ChatResponseDto
         {
-            Id = c.Id,
-            NumeroDiTelefono = c.NumeroDiTelefono,
-            NomeAnagrafica = c.BusinessParty?.Name,
-            NumeroNonRiconosciuto = c.NumeroNonRiconosciuto,
-            UltimoMessaggio = ultimoMsg,
-            UltimoMessaggioAt = c.UltimoMessaggioAt,
-            StatoConversazione = c.Stato,
-            MessaggiNonLetti = nonLetti,
-            IsWhatsApp = true
+            Id = t.Id,
+            TenantId = t.TenantId,
+            Type = ChatType.WhatsApp,
+            Name = t.Name,
+            UpdatedAt = t.UpdatedAt,
+            CreatedAt = t.CreatedAt,
+            CreatedBy = Guid.Empty,
+            UnreadCount = nonLetti,
+            ExternalPhoneNumber = t.ExternalPhoneNumber,
+            BusinessPartyName = t.BusinessParty?.Name,
+            IsUnrecognizedNumber = t.IsUnrecognizedNumber,
+            LastMessage = ultimoMsg != null ? new ChatMessageDto { Content = ultimoMsg } : null
         };
     }
+
+    private static ChatMessageDto MapMessageToDto(ChatMessage m, Guid chatThreadId, string? senderName) =>
+        new()
+        {
+            Id = m.Id,
+            ChatId = chatThreadId,
+            SenderId = m.SenderId ?? Guid.Empty,
+            SenderName = senderName,
+            Content = m.Content,
+            Status = m.Status,
+            SentAt = m.SentAt,
+            DeliveredAt = m.DeliveredAt,
+            ReadAt = m.ReadAt,
+            Direction = m.MessageDirection,
+            WhatsAppDeliveryStatus = m.WhatsAppDeliveryStatus
+        };
 }

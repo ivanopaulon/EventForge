@@ -1,3 +1,4 @@
+using EventForge.DTOs.Chat;
 using EventForge.DTOs.External.WhatsApp;
 using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
@@ -77,9 +78,9 @@ public class WhatsAppWebhookController(
                         {
                             var stato = status.Status switch
                             {
-                                "delivered" => StatoInvioMessaggio.Consegnato,
-                                "read"      => StatoInvioMessaggio.Letto,
-                                _           => StatoInvioMessaggio.Inviato
+                                "delivered" => WhatsAppDeliveryStatus.Consegnato,
+                                "read"      => WhatsAppDeliveryStatus.Letto,
+                                _           => WhatsAppDeliveryStatus.Inviato
                             };
                             await whatsAppConversazioneService.AggiornaStatoMessaggioAsync(status.Id, stato, tenantId);
                         }

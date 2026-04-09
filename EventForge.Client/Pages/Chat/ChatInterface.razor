@@ -2,17 +2,20 @@
 @using Microsoft.AspNetCore.Authorization
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services
+@using EventForge.Client.Services.WhatsApp
 @using Microsoft.JSInterop
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
+@inject IWhatsAppClientService WhatsAppClientService
 @inject NavigationManager NavigationManager
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
 @inject IJSRuntime JSRuntime
+@inject ILogger<ChatInterface> Logger
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("chat.title", "Chat - PRYM")</PageTitle>
@@ -48,6 +51,14 @@
                             ShowHelpIcon="true"
                             IconSize="Size.Small"
                             Placement="Placement.Bottom" />
+                <AuthorizeViewRoles Roles="Admin,SuperAdmin">
+                    <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
+                        <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
+                                       Size="Size.Small"
+                                       Color="Color.Success"
+                                       OnClick="@OpenWhatsAppConfigAsync" />
+                    </MudTooltip>
+                </AuthorizeViewRoles>
             </div>
             <!-- Quick help buttons -->
             <div class="d-flex ga-1 mt-2">
@@ -89,12 +100,17 @@
                     <MudButton StartIcon="@Icons.Material.Filled.Person"
                                Color="@(_chatFilter == "direct" ? Color.Primary : Color.Default)"
                                OnClick="@(() => SetChatFilter("direct"))">
-                        @TranslationService.GetTranslation("chat.directMessages", "Diretti")
+                        @TranslationService.GetTranslation("chat.directMessages", "Interni")
                     </MudButton>
                     <MudButton StartIcon="@Icons.Material.Filled.Group"
                                Color="@(_chatFilter == "group" ? Color.Primary : Color.Default)" 
                                OnClick="@(() => SetChatFilter("group"))">
                         @TranslationService.GetTranslation("chat.groups", "Gruppi")
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Custom.Brands.WhatsApp"
+                               Color="@(_chatFilter == "whatsapp" ? Color.Success : Color.Default)"
+                               OnClick="@(() => SetChatFilter("whatsapp"))">
+                        WhatsApp
                     </MudButton>
                 </MudButtonGroup>
             </div>
@@ -113,26 +129,38 @@
             }
             else if (_chatList?.Any() == true)
             {
-                <MudList T="object" Clickable="true" Dense="true">
-                    @foreach (var chat in _chatList)
+                @* ── Internal chats section (visible when filter is all or internal/group) ── *@
+                var internalChats = GetFilteredInternalChats();
+                var whatsAppChats = GetFilteredWhatsAppChats();
+
+                @if (internalChats.Count > 0 && (_chatFilter == "all" || _chatFilter == "direct" || _chatFilter == "group"))
+                {
+                    @if (_chatFilter == "all")
                     {
-                        <MudListItem OnClick="@(() => SelectChatAsync(chat))"
-                                     Class="@(chat.Id == _selectedChatId ? "mud-selected-item" : "")">
-                            <div class="d-flex align-center w-100">
-                                <!-- Chat avatar/icon -->
-                                <MudAvatar Size="Size.Small" 
-                                           Color="@(chat.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
-                                           Class="mr-3">
-                                    <MudIcon Icon="@(chat.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
-                                </MudAvatar>
-                                
-                                <div class="flex-grow-1 overflow-hidden">
-                                    <div class="d-flex justify-space-between align-center">
-                                        <MudText Typo="Typo.body2" 
-                                                 Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
-                                                 Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            @GetChatName(chat)
-                                        </MudText>
+                        <MudText Typo="Typo.overline" Color="Color.Secondary" Class="px-3 pt-2">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
+                            Interni
+                        </MudText>
+                        <MudDivider Class="my-1" />
+                    }
+                    <MudList T="object" Clickable="true" Dense="true">
+                        @foreach (var chat in internalChats)
+                        {
+                            <MudListItem OnClick="@(() => SelectChatAsync(chat))"
+                                         Class="@(chat.Id == _selectedChatId ? "mud-selected-item" : "")">
+                                <div class="d-flex align-center w-100">
+                                    <MudAvatar Size="Size.Small"
+                                               Color="@(chat.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
+                                               Class="mr-3">
+                                        <MudIcon Icon="@(chat.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
+                                    </MudAvatar>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <div class="d-flex justify-space-between align-center">
+                                            <MudText Typo="Typo.body2"
+                                                     Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
+                                                     Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                @GetChatName(chat)
+                                            </MudText>
                                         @if (chat.UnreadCount > 0)
                                         {
                                             <MudBadge Content="@chat.UnreadCount.ToString()" 
@@ -158,14 +186,68 @@
                         <MudDivider />
                     }
                 </MudList>
+                }
+
+                @* ── WhatsApp conversations section (visible when filter is all or whatsapp) ── *@
+                @if (whatsAppChats.Count > 0 && (_chatFilter == "all" || _chatFilter == "whatsapp"))
+                {
+                    @if (_chatFilter == "all")
+                    {
+                        <MudText Typo="Typo.overline" Color="Color.Success" Class="px-3 pt-2">
+                            <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Size="Size.Small" Color="Color.Success" Class="mr-1" />
+                            WhatsApp
+                        </MudText>
+                        <MudDivider Class="my-1" />
+                    }
+                    <MudList T="object" Clickable="true" Dense="true">
+                        @foreach (var chat in whatsAppChats)
+                        {
+                            <MudListItem OnClick="@(() => SelectChatAsync(chat))"
+                                         Class="@(chat.Id == _selectedChatId ? "mud-selected-item" : "")">
+                                <div class="d-flex align-center w-100">
+                                    <MudAvatar Size="Size.Small" Color="Color.Success" Class="mr-3">
+                                        <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" />
+                                    </MudAvatar>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <div class="d-flex justify-space-between align-center">
+                                            <MudText Typo="Typo.body2"
+                                                     Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
+                                                     Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                @(chat.BusinessPartyName ?? chat.ExternalPhoneNumber ?? GetChatName(chat))
+                                            </MudText>
+                                            @if (chat.UnreadCount > 0)
+                                            {
+                                                <MudBadge Content="@chat.UnreadCount.ToString()"
+                                                          Color="Color.Error"
+                                                          Size="Size.Small" />
+                                            }
+                                        </div>
+                                        @if (chat.IsUnrecognizedNumber)
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                                Numero non riconosciuto
+                                            </MudText>
+                                        }
+                                        <MudText Typo="Typo.caption"
+                                                 Color="Color.Secondary"
+                                                 Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            @(chat.LastMessage?.Content ?? "")
+                                        </MudText>
+                                    </div>
+                                </div>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                    </MudList>
+                }
             }
             else
             {
                 <!-- Empty state -->
                 <div class="pa-2 text-center">
-                    <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" 
-                             Size="Size.Medium" 
-                             Color="Color.Tertiary" 
+                    <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                             Size="Size.Medium"
+                             Color="Color.Tertiary"
                              Class="mb-2" />
                     <MudText Typo="Typo.body2" Color="Color.Tertiary">
                         @TranslationService.GetTranslation("chat.noChats", "Nessuna chat disponibile")
@@ -1187,6 +1269,52 @@
         }
         _typingCts.Clear();
         _typingUsers.Clear();
+    }
+
+    // ─── WhatsApp helpers ────────────────────────────────────────────────────
+
+    private List<ChatResponseDto> GetFilteredInternalChats()
+    {
+        if (_chatList == null) return [];
+        return _chatFilter switch
+        {
+            "direct"    => _chatList.Where(c => c.Type == ChatType.DirectMessage && FilterBySearch(c)).ToList(),
+            "group"     => _chatList.Where(c => c.Type == ChatType.Group && FilterBySearch(c)).ToList(),
+            "whatsapp"  => [],
+            _           => _chatList.Where(c => c.Type != ChatType.WhatsApp && FilterBySearch(c)).ToList()
+        };
+    }
+
+    private List<ChatResponseDto> GetFilteredWhatsAppChats()
+    {
+        if (_chatList == null) return [];
+        return _chatFilter is "all" or "whatsapp"
+            ? _chatList.Where(c => c.Type == ChatType.WhatsApp && FilterBySearch(c)).ToList()
+            : [];
+    }
+
+    private bool FilterBySearch(ChatResponseDto c)
+    {
+        if (string.IsNullOrWhiteSpace(_searchText)) return true;
+        var name = GetChatName(c);
+        var search = _searchText.Trim();
+        return name.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || (c.ExternalPhoneNumber?.Contains(search, StringComparison.OrdinalIgnoreCase) == true)
+            || (c.BusinessPartyName?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task OpenWhatsAppConfigAsync()
+    {
+        try
+        {
+            var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+            await DialogService.ShowAsync<WhatsAppConfigDialog>("Configurazione WhatsApp", options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening WhatsApp config dialog");
+            AppNotification.ShowError("Impossibile aprire la configurazione WhatsApp.");
+        }
     }
 
     #endregion
