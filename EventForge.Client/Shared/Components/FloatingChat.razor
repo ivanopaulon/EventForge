@@ -4,6 +4,7 @@
 @inject IAuthService AuthService
 @inject IRealtimeService RealtimeService
 @inject IJSRuntime JS
+@inject ILogger<FloatingChat> Logger
 @implements IAsyncDisposable
 
 <!-- Floating Action Button – visible when panel is closed or minimised -->
@@ -522,7 +523,7 @@
                 _jsModule = await JS.InvokeAsync<IJSObjectReference>(
                     "import", "./Shared/Components/FloatingChat.razor.js");
             }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogWarning(ex, "Could not import FloatingChat JS module"); }
         }
     }
 
@@ -560,6 +561,10 @@
         {
             _chats = await ChatService.GetChatsAsync();
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading chat list");
+        }
         finally
         {
             _isLoading = false;
@@ -585,10 +590,15 @@
             {
                 await RealtimeService.JoinChatAsync(chat.Id);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // JoinChatAsync may be unavailable in some configurations
+                Logger.LogWarning(ex, "Could not join SignalR chat room {ChatId}", chat.Id);
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening chat {ChatId}", chat.Id);
         }
         finally
         {
@@ -679,8 +689,9 @@
             if (idx >= 0)
                 _messages[idx] = sent;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error sending message to chat {ChatId}", _selectedChat.Id);
             // Remove optimistic message on failure
             _messages.RemoveAll(m => m.Id == optimisticId);
         }

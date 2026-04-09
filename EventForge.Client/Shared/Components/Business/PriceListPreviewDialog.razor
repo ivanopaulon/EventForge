@@ -3,6 +3,7 @@
 @using MudBlazor
 @inject IPriceListService PriceListService
 @inject ITranslationService TranslationService
+@inject ILogger<PriceListPreviewDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.PriceCheck"
           Title="@TranslationService.GetTranslation("pricelist.previewTitle", "Anteprima Listino")"
@@ -90,8 +91,9 @@
                 _errorMessage = "Listino non trovato";
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading price list {PriceListId}", PriceListId);
             _errorMessage = "Errore nel caricamento del listino";
         }
         finally
