@@ -437,6 +437,7 @@ public class WarehouseFacade(
         try
         {
             var um = await context.UMs
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == unitOfMeasureId && !u.IsDeleted, cancellationToken);
             return um?.Symbol;
         }
@@ -452,6 +453,7 @@ public class WarehouseFacade(
         try
         {
             var vat = await context.VatRates
+                .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
 
             if (vat is null)
@@ -612,6 +614,7 @@ public class WarehouseFacade(
         try
         {
             var existingProducts = await context.Products
+                .AsNoTracking()
                 .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
                 .Select(p => p.Id)
                 .ToListAsync(cancellationToken);
@@ -630,6 +633,7 @@ public class WarehouseFacade(
         try
         {
             var existingLocations = await context.StorageLocations
+                .AsNoTracking()
                 .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
                 .Select(l => l.Id)
                 .ToListAsync(cancellationToken);
@@ -741,6 +745,7 @@ public class WarehouseFacade(
         try
         {
             var documents = await context.DocumentHeaders
+                .AsNoTracking()
                 .Include(d => d.Rows)
                 .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
                 .ToListAsync(cancellationToken);
@@ -812,6 +817,7 @@ public class WarehouseFacade(
         try
         {
             var documents = await context.DocumentHeaders
+                .AsNoTracking()
                 .Include(d => d.Rows)
                 .Include(d => d.SourceWarehouse)
                 .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)

@@ -1450,6 +1450,7 @@ public class ProductService(
             }
 
             var product = await context.Products
+                .AsNoTracking()
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1665,6 +1666,7 @@ public class ProductService(
         try
         {
             return await context.Products
+                .AsNoTracking()
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

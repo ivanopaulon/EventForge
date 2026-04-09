@@ -789,6 +789,7 @@ public class NotificationService(
         try
         {
             var notificationRecipient = await context.NotificationRecipients
+                .AsNoTracking()
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .Where(nr => !tenantId.HasValue || nr.TenantId == tenantId.Value)
@@ -1058,6 +1059,7 @@ public class NotificationService(
 
             // Update notification archive flag if all recipients have archived
             var allRecipients = await context.NotificationRecipients
+                .AsNoTracking()
                 .Where(nr => nr.NotificationId == notificationId)
                 .ToListAsync(cancellationToken);
 
@@ -1190,6 +1192,7 @@ public class NotificationService(
         {
             // 1. Query User entity by userId and tenantId
             var user = await context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
 
             // 2. If user found and has preferences in metadata
