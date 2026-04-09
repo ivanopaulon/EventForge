@@ -100,7 +100,7 @@
                     <MudButton StartIcon="@Icons.Material.Filled.Person"
                                Color="@(_chatFilter == "direct" ? Color.Primary : Color.Default)"
                                OnClick="@(() => SetChatFilter("direct"))">
-                        @TranslationService.GetTranslation("chat.directMessages", "Interni")
+                        @TranslationService.GetTranslation("chat.internalMessages", "Interni")
                     </MudButton>
                     <MudButton StartIcon="@Icons.Material.Filled.Group"
                                Color="@(_chatFilter == "group" ? Color.Primary : Color.Default)" 

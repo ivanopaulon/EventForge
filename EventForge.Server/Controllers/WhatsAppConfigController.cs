@@ -27,6 +27,7 @@ public class WhatsAppConfigController(
     private const string KeyApiVersion     = "WhatsApp:ApiVersion";
     private const string KeyEnabled        = "WhatsApp:Enabled";
     private const string CategoryWhatsApp  = "WhatsApp";
+    private const char   TokenMaskChar     = '•';
 
     /// <summary>Returns the current WhatsApp configuration (AccessToken is masked).</summary>
     [HttpGet]
@@ -49,8 +50,8 @@ public class WhatsAppConfigController(
 
             var accessToken = Get(KeyAccessToken, string.Empty);
             var maskedToken = accessToken.Length > 4
-                ? new string('•', accessToken.Length - 4) + accessToken[^4..]
-                : new string('•', accessToken.Length);
+                ? new string(TokenMaskChar, accessToken.Length - 4) + accessToken[^4..]
+                : new string(TokenMaskChar, accessToken.Length);
 
             return Ok(new WhatsAppConfigDto
             {
@@ -94,7 +95,7 @@ public class WhatsAppConfigController(
             };
 
             // Only update AccessToken when the caller sends a real value (not masked)
-            if (!string.IsNullOrWhiteSpace(dto.AccessToken) && !dto.AccessToken.Contains('•'))
+            if (!string.IsNullOrWhiteSpace(dto.AccessToken) && !dto.AccessToken.Contains(TokenMaskChar))
                 keysToSave[KeyAccessToken] = dto.AccessToken;
 
             foreach (var (key, value) in keysToSave)

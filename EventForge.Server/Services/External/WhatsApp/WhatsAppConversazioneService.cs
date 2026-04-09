@@ -26,6 +26,7 @@ public class WhatsAppConversazioneService(
 
     private static string NormalizzaNumero(string numero)
     {
+        const int ItalianCountryCodeLength = 2; // "39" for Italy
         var digits = new string(numero.Where(char.IsDigit).ToArray());
         // If starts with 0, assume Italian mobile: replace leading 0 with country code 39
         if (digits.StartsWith('0')) digits = "39" + digits[1..];
@@ -142,7 +143,8 @@ public class WhatsAppConversazioneService(
         {
             var normalizzato = NormalizzaNumero(numero);
             // Use the local digits suffix (strip country code) for matching stored contact values
-            var suffixToMatch = normalizzato.Length > 2 ? normalizzato.Substring(2) : normalizzato;
+            const int CountryCodeLength = 2; // Italian country code "39" is 2 digits
+            var suffixToMatch = normalizzato.Length > CountryCodeLength ? normalizzato[CountryCodeLength..] : normalizzato;
             return await dbContext.BusinessParties
                 .AsNoTracking()
                 .Include(bp => bp.Contacts)
