@@ -19,7 +19,7 @@ public class ApplicationLogService(
     {
         try
         {
-            var query = context.LogEntries.AsQueryable();
+            var query = context.LogEntries.AsNoTracking().AsQueryable();
 
             var totalCount = await query.CountAsync(ct);
 
@@ -64,7 +64,7 @@ public class ApplicationLogService(
     {
         try
         {
-            var query = context.LogEntries
+            var query = context.LogEntries.AsNoTracking()
                 .Where(log => log.Level == level);
 
             var totalCount = await query.CountAsync(ct);
@@ -113,7 +113,7 @@ public class ApplicationLogService(
         {
             var end = endDate ?? DateTime.UtcNow;
 
-            var query = context.LogEntries
+            var query = context.LogEntries.AsNoTracking()
                 .Where(log => log.TimeStamp >= startDate && log.TimeStamp <= end);
 
             var totalCount = await query.CountAsync(ct);

@@ -60,7 +60,7 @@ public class TenantUserManagementService(
 
             logger.LogInformation("Retrieving all users for tenant {TenantId}", tenantId);
 
-            var users = await context.Users
+            var users = await context.Users.AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -92,7 +92,7 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            var user = await context.Users
+            var user = await context.Users.AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -128,7 +128,7 @@ public class TenantUserManagementService(
             logger.LogInformation("Searching users in tenant {TenantId} with query: {Query}", tenantId, query);
 
             var lowerQuery = query.ToLower();
-            var users = await context.Users
+            var users = await context.Users.AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -203,7 +203,7 @@ public class TenantUserManagementService(
             // Assign roles
             if (dto.Roles.Any())
             {
-                var roles = await context.Roles
+                var roles = await context.Roles.AsNoTracking()
                     .Where(r => dto.Roles.Contains(r.Name))
                     .ToListAsync(cancellationToken);
 
@@ -353,7 +353,7 @@ public class TenantUserManagementService(
                 context.UserRoles.RemoveRange(user.UserRoles);
 
                 // Add new roles
-                var roles = await context.Roles
+                var roles = await context.Roles.AsNoTracking()
                     .Where(r => dto.Roles.Contains(r.Name))
                     .ToListAsync(cancellationToken);
 
@@ -526,7 +526,7 @@ public class TenantUserManagementService(
             context.UserRoles.RemoveRange(user.UserRoles);
 
             // Add new roles
-            var roleEntities = await context.Roles
+            var roleEntities = await context.Roles.AsNoTracking()
                 .Where(r => roles.Contains(r.Name))
                 .ToListAsync(cancellationToken);
 

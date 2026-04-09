@@ -20,7 +20,7 @@ public class PriceListBusinessPartyService(
             logger.LogInformation("Assigning BusinessParty {BusinessPartyId} to PriceList {PriceListId}", dto.BusinessPartyId, priceListId);
 
             // Validate PriceList exists
-            var priceList = await context.PriceLists
+            var priceList = await context.PriceLists.AsNoTracking()
                 .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (priceList is null)
@@ -30,7 +30,7 @@ public class PriceListBusinessPartyService(
             }
 
             // Validate BusinessParty exists
-            var businessParty = await context.BusinessParties
+            var businessParty = await context.BusinessParties.AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == dto.BusinessPartyId && !bp.IsDeleted, cancellationToken);
 
             if (businessParty is null)
@@ -40,7 +40,7 @@ public class PriceListBusinessPartyService(
             }
 
             // Check if already assigned
-            var existingAssignment = await context.PriceListBusinessParties
+            var existingAssignment = await context.PriceListBusinessParties.AsNoTracking()
                 .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == dto.BusinessPartyId && !plbp.IsDeleted, cancellationToken);
 
             if (existingAssignment is not null)
@@ -157,7 +157,7 @@ public class PriceListBusinessPartyService(
         {
             logger.LogInformation("Getting BusinessParties for PriceList {PriceListId}", priceListId);
 
-            var assignments = await context.PriceListBusinessParties
+            var assignments = await context.PriceListBusinessParties.AsNoTracking()
                 .Include(plbp => plbp.BusinessParty)
                 .Where(plbp => plbp.PriceListId == priceListId && !plbp.IsDeleted)
                 .ToListAsync(cancellationToken);
@@ -179,7 +179,7 @@ public class PriceListBusinessPartyService(
         {
             logger.LogInformation("Getting PriceLists for BusinessParty {BusinessPartyId} with type filter: {Type}", businessPartyId, type?.ToString() ?? "None");
 
-            var query = context.PriceListBusinessParties
+            var query = context.PriceListBusinessParties.AsNoTracking()
                 .Include(plbp => plbp.PriceList)
                 .ThenInclude(pl => pl.Event)
                 .Where(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted);

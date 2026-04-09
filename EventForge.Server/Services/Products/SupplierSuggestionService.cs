@@ -42,7 +42,7 @@ public class SupplierSuggestionService(
             }
 
             // Get product details
-            var product = await context.Products
+            var product = await context.Products.AsNoTracking()
                 .Where(p => p.Id == productId && p.TenantId == tenantId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -139,7 +139,7 @@ public class SupplierSuggestionService(
             }
 
             // Get all suppliers for this product
-            var productSuppliers = await context.ProductSuppliers
+            var productSuppliers = await context.ProductSuppliers.AsNoTracking()
                 .Include(ps => ps.Supplier)
                 .Where(ps => ps.ProductId == productId && ps.TenantId == tenantId)
                 .ToListAsync(cancellationToken);
@@ -276,7 +276,7 @@ public class SupplierSuggestionService(
                 throw new InvalidOperationException("Tenant context is not available.");
             }
 
-            var supplier = await context.BusinessParties
+            var supplier = await context.BusinessParties.AsNoTracking()
                 .Where(bp => bp.Id == supplierId && bp.TenantId == tenantId)
                 .FirstOrDefaultAsync(cancellationToken);
 
