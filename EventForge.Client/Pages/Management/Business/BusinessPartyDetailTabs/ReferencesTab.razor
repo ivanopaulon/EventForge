@@ -111,58 +111,74 @@
 
     private async Task OpenAddDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["OwnerId"] = Party.Id,
-            ["OwnerType"] = "BusinessParty"
-        };
+            var parameters = new DialogParameters
+            {
+                ["OwnerId"] = Party.Id,
+                ["OwnerType"] = "BusinessParty"
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
-            TranslationService.GetTranslation("businessParty.addReference", "Aggiungi Persona di Riferimento"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<ReferenceDialog>(
+                TranslationService.GetTranslation("businessParty.addReference", "Aggiungi Persona di Riferimento"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadReferencesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadReferencesAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenAddDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(ReferenceDto reference)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["Reference"] = reference
-        };
+            var parameters = new DialogParameters
+            {
+                ["Reference"] = reference
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ReferenceDialog>(
-            TranslationService.GetTranslation("businessParty.editReference", "Modifica Persona di Riferimento"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<ReferenceDialog>(
+                TranslationService.GetTranslation("businessParty.editReference", "Modifica Persona di Riferimento"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadReferencesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadReferencesAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
