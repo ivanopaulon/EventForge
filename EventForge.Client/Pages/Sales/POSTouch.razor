@@ -83,9 +83,9 @@
     </MudPaper>
 }
 
-<!-- ======================================================
+@* ======================================================
      STEP 1 — Operator not yet selected → show full-screen grid
-     ====================================================== -->
+     ====================================================== *@
 @if (!ViewModel.SelectedOperatorId.HasValue)
 {
     <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
@@ -94,10 +94,9 @@
                               OnOperatorSelected="@OnOperatorCardSelectedAsync" />
     </MudContainer>
 }
-
-<!-- ======================================================
+@* ======================================================
      STEP 2 — Operator selected but POS not yet selected
-     ====================================================== -->
+     ====================================================== *@
 else if (!ViewModel.SelectedPosId.HasValue)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
@@ -159,9 +158,9 @@ else if (!ViewModel.SelectedPosId.HasValue)
     </MudContainer>
 }
 
-<!-- ======================================================
+@* ======================================================
      STEP 3 — Session active → main POS touch UI
-     ====================================================== -->
+     ====================================================== *@
 else
 {
     <!-- Compact top bar: operator + cassa (small) + customer + session actions -->
