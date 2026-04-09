@@ -137,29 +137,83 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
 
     public async Task<IReadOnlyList<PackageSummaryClientDto>> GetPackagesAsync(CancellationToken ct = default)
     {
-        return await _http.GetAsync<List<PackageSummaryClientDto>>(
-            "api/v1/updatehub-proxy/packages", ct) ?? [];
+        try
+        {
+            return await _http.GetAsync<List<PackageSummaryClientDto>>(
+                "api/v1/updatehub-proxy/packages", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving update packages");
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<InstallationSummaryClientDto>> GetInstallationsAsync(CancellationToken ct = default)
     {
-        return await _http.GetAsync<List<InstallationSummaryClientDto>>(
-            "api/v1/updatehub-proxy/installations", ct) ?? [];
+        try
+        {
+            return await _http.GetAsync<List<InstallationSummaryClientDto>>(
+                "api/v1/updatehub-proxy/installations", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving installations");
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<PendingInstallClientDto>> GetPendingInstallsAsync(CancellationToken ct = default)
     {
-        return await _http.GetAsync<List<PendingInstallClientDto>>("api/v1/agent-proxy/pending-installs", ct) ?? [];
+        try
+        {
+            return await _http.GetAsync<List<PendingInstallClientDto>>("api/v1/agent-proxy/pending-installs", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving pending installs");
+            throw;
+        }
     }
 
     public async Task TriggerUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-        => await _http.PostAsync($"api/v1/updatehub-proxy/installations/{installationId}/update", new { PackageId = packageId }, ct);
+    {
+        try
+        {
+            await _http.PostAsync($"api/v1/updatehub-proxy/installations/{installationId}/update", new { PackageId = packageId }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering update for installation {InstallationId}, package {PackageId}", installationId, packageId);
+            throw;
+        }
+    }
 
     public async Task TriggerInstallNowAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
-        => await _http.PostAsync("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
+    {
+        try
+        {
+            await _http.PostAsync("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering install now for installation {InstallationId}, package {PackageId}", installationId, packageId);
+            throw;
+        }
+    }
 
     public async Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default)
-        => await _http.PostAsync("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
+    {
+        try
+        {
+            await _http.PostAsync("api/v1/agent-proxy/unblock-queue", new { PackageId = packageId, SkipAndRemove = skipAndRemove }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering unblock queue for package {PackageId}", packageId);
+            throw;
+        }
+    }
 
     public async Task RefreshAvailableUpdatesCountAsync(CancellationToken ct = default)
     {
@@ -170,8 +224,9 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
                 p.Status.Equals("ReadyToDeploy", StringComparison.OrdinalIgnoreCase));
             StateChanged?.Invoke();
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Error refreshing available updates count");
             _availableUpdatesCount = 0;
         }
     }

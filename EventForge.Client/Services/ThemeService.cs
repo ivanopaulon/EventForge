@@ -44,7 +44,9 @@ public class ThemeInfo
     };
 }
 
-public class ThemeService(IJSRuntime jsRuntime) : IThemeService
+public class ThemeService(
+    IJSRuntime jsRuntime,
+    ILogger<ThemeService> logger) : IThemeService
 {
     private const string ThemeKey = "eventforge-theme";
 
@@ -78,19 +80,28 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
 
             await ApplyThemeToDocumentAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Failed to initialize theme from localStorage, using default");
             _currentTheme = ThemeInfo.CarbonNeonLight.Key;
         }
     }
 
     public async Task ToggleThemeAsync(CancellationToken ct = default)
     {
-        var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
-            ? ThemeInfo.CarbonNeonLight.Key
-            : ThemeInfo.CarbonNeonDark.Key;
+        try
+        {
+            var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
+                ? ThemeInfo.CarbonNeonLight.Key
+                : ThemeInfo.CarbonNeonDark.Key;
 
-        await SetThemeAsync(next);
+            await SetThemeAsync(next);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error toggling theme");
+            throw;
+        }
     }
 
     public Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default)
@@ -108,7 +119,10 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
             await jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, _currentTheme);
             await ApplyThemeToDocumentAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to persist theme {ThemeKey} to localStorage", themeKey);
+        }
 
         OnThemeChanged?.Invoke();
     }
@@ -119,6 +133,9 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
         {
             await jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to apply theme to document (normal in SSR)");
+        }
     }
 }

@@ -380,24 +380,32 @@
 
     private async Task LoadProfile()
     {
-        _profile = await ProfileService.GetProfileAsync();
-        if (_profile != null)
+        try
         {
-            _updateProfile = new UpdateProfileDto
+            _profile = await ProfileService.GetProfileAsync();
+            if (_profile != null)
             {
-                FirstName = _profile.FirstName,
-                LastName = _profile.LastName,
-                Email = _profile.Email,
-                PhoneNumber = _profile.PhoneNumber,
-                PreferredLanguage = _profile.PreferredLanguage,
-                TimeZone = _profile.TimeZone
-            };
-            _notificationPreferences = new UpdateNotificationPreferencesDto
-            {
-                EmailNotificationsEnabled = _profile.EmailNotificationsEnabled,
-                PushNotificationsEnabled = _profile.PushNotificationsEnabled,
-                InAppNotificationsEnabled = _profile.InAppNotificationsEnabled
-            };
+                _updateProfile = new UpdateProfileDto
+                {
+                    FirstName = _profile.FirstName,
+                    LastName = _profile.LastName,
+                    Email = _profile.Email,
+                    PhoneNumber = _profile.PhoneNumber,
+                    PreferredLanguage = _profile.PreferredLanguage,
+                    TimeZone = _profile.TimeZone
+                };
+                _notificationPreferences = new UpdateNotificationPreferencesDto
+                {
+                    EmailNotificationsEnabled = _profile.EmailNotificationsEnabled,
+                    PushNotificationsEnabled = _profile.PushNotificationsEnabled,
+                    InAppNotificationsEnabled = _profile.InAppNotificationsEnabled
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading profile.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.loadProfileFailed", "Errore nel caricamento del profilo"));
         }
     }
 
@@ -408,6 +416,11 @@
         {
             _activeSessions = await ProfileService.GetActiveSessionsAsync();
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading active sessions.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.loadSessionsFailed", "Errore nel caricamento delle sessioni"));
+        }
         finally
         {
             _isLoadingSessions = false;
@@ -416,7 +429,15 @@
 
     private async Task LoadLoginHistory()
     {
-        _loginHistory = await ProfileService.GetLoginHistoryAsync(30);
+        try
+        {
+            _loginHistory = await ProfileService.GetLoginHistoryAsync(30);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading login history.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.loadLoginHistoryFailed", "Errore nel caricamento della cronologia"));
+        }
     }
 
     private async Task UpdateProfile()
@@ -430,6 +451,11 @@
                 _profile = updated;
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("profile.updateSuccess", "Profilo aggiornato con successo"));
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating profile.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.updateProfileFailed", "Errore nell'aggiornamento del profilo"));
         }
         finally
         {
@@ -448,6 +474,11 @@
                 _profile = updated;
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("profile.notificationsUpdateSuccess", "Preferenze notifiche aggiornate"));
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating notification preferences.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.updateNotificationsFailed", "Errore nell'aggiornamento delle notifiche"));
         }
         finally
         {
