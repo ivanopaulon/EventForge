@@ -58,6 +58,7 @@ public class ServerStatusService(
         try
         {
             var maintenanceMode = await dbContext.SystemConfigurations
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Key == "System.MaintenanceMode", cancellationToken);
 
             if (maintenanceMode is not null && maintenanceMode.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
@@ -74,6 +75,7 @@ public class ServerStatusService(
         {
             var fiveMinutesAgo = DateTime.UtcNow.AddMinutes(-5);
             status.ActiveUsers = await dbContext.Users
+                .AsNoTracking()
                 .Where(u => u.LastLoginAt.HasValue && u.LastLoginAt.Value > fiveMinutesAgo)
                 .CountAsync(cancellationToken);
         }
@@ -86,6 +88,7 @@ public class ServerStatusService(
         {
             var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
             var recentLogs = await dbContext.SystemOperationLogs
+                .AsNoTracking()
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
 
