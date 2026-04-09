@@ -1639,12 +1639,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
                     var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
                     {
-                        MovementType = "SALE",
+                        MovementType = "Outbound",
                         ProductId = item.ProductId,
                         Quantity = -item.Quantity, // Negative for outbound
                         MovementDate = DateTime.UtcNow,
                         DocumentHeaderId = documentHeader.Id,
-                        Reason = "Vendita",
+                        Reason = "Sale",
                         Notes = $"Vendita da sessione {session.Id}",
                         Reference = $"SESS-{session.Id.ToString("N")[..8]}"
                     };

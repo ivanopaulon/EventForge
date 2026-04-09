@@ -918,44 +918,46 @@ public class FiscalDrawerService(
                             t.TransactionType == FiscalDrawerTransactionType.Sale &&
                             t.TransactionAt >= today);
 
-            // Run scalar aggregations in parallel
-            var totalDrawerBalanceTask = drawerQuery.SumAsync(d => d.CurrentBalance, ct);
-            var activeDrawersCountTask = drawerQuery.CountAsync(ct);
-            var openSessionsCountTask = openSessionsQuery.CountAsync(ct);
-            var todayTotalSalesTask = todayTxQuery.SumAsync(t => t.Amount, ct);
-            var todayCashSalesTask = todayTxQuery.Where(t => t.PaymentType == FiscalDrawerPaymentType.Cash).SumAsync(t => t.Amount, ct);
-            var todayCardSalesTask = todayTxQuery.Where(t => t.PaymentType == FiscalDrawerPaymentType.Card).SumAsync(t => t.Amount, ct);
-            var todayOtherSalesTask = todayTxQuery.Where(t => t.PaymentType != FiscalDrawerPaymentType.Cash && t.PaymentType != FiscalDrawerPaymentType.Card).SumAsync(t => t.Amount, ct);
-            var todayTransactionCountTask = context.FiscalDrawerSessions.AsNoTracking()
+            // Run scalar aggregations sequentially — EF Core DbContext does not support
+            // concurrent operations on the same instance.
+            var totalDrawerBalance = await drawerQuery.SumAsync(d => d.CurrentBalance, ct);
+            var activeDrawersCount = await drawerQuery.CountAsync(ct);
+            var openSessionsCount = await openSessionsQuery.CountAsync(ct);
+
+            // Fetch today's sales totals grouped by payment type in a single query
+            var todayPaymentSummary = await todayTxQuery
+                .GroupBy(t => t.PaymentType)
+                .Select(g => new { PaymentType = g.Key, Total = g.Sum(t => t.Amount) })
+                .ToListAsync(ct);
+            var todayTotalSales = todayPaymentSummary.Sum(x => x.Total);
+            var todayCashSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Cash).Sum(x => x.Total);
+            var todayCardSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+            var todayOtherSales = todayPaymentSummary.Where(x => x.PaymentType != FiscalDrawerPaymentType.Cash && x.PaymentType != FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+
+            var todayTransactionCount = await context.FiscalDrawerSessions.AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate == today)
                 .SumAsync(s => s.TransactionCount, ct);
-            var weekTotalSalesTask = context.FiscalDrawerSessions.AsNoTracking()
+            var weekTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
                 .SumAsync(s => s.TotalSales, ct);
-            var monthTotalSalesTask = context.FiscalDrawerSessions.AsNoTracking()
+            var monthTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= monthStart)
                 .SumAsync(s => s.TotalSales, ct);
 
             // Weekly trend — project in SQL, group in memory (EF can't always push GroupBy for complex types)
-            var weekSessionsTask = context.FiscalDrawerSessions
+            var weekSessions = await context.FiscalDrawerSessions
                 .AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
                 .Select(s => new { s.SessionDate, s.TotalSales, s.TransactionCount })
                 .ToListAsync(ct);
 
             // Drawer summaries: load drawers + open sessions together
-            var drawersTask = drawerQuery.ToListAsync(ct);
-            var openSessionListTask = openSessionsQuery.ToListAsync(ct);
+            var drawers = await drawerQuery.ToListAsync(ct);
+            var openSessionList = await openSessionsQuery.ToListAsync(ct);
 
-            await Task.WhenAll(
-                totalDrawerBalanceTask, activeDrawersCountTask, openSessionsCountTask,
-                todayTotalSalesTask, todayCashSalesTask, todayCardSalesTask, todayOtherSalesTask,
-                todayTransactionCountTask, weekTotalSalesTask, monthTotalSalesTask,
-                weekSessionsTask, drawersTask, openSessionListTask);
+            var openSessionDict = openSessionList.ToDictionary(s => s.FiscalDrawerId);
 
-            var openSessionDict = openSessionListTask.Result.ToDictionary(s => s.FiscalDrawerId);
-
-            var drawerSummaries = drawersTask.Result.Select(d =>
+            var drawerSummaries = drawers.Select(d =>
             {
                 openSessionDict.TryGetValue(d.Id, out var openSession);
                 return new FiscalDrawerSummaryDto
@@ -975,7 +977,7 @@ public class FiscalDrawerService(
                 };
             }).ToList();
 
-            var weeklyTrend = weekSessionsTask.Result
+            var weeklyTrend = weekSessions
                 .GroupBy(s => s.SessionDate.Date)
                 .Select(g => new DailySalesPointDto
                 {
@@ -988,16 +990,16 @@ public class FiscalDrawerService(
 
             return new SalesDashboardDto
             {
-                TodayTotalSales = todayTotalSalesTask.Result,
-                TodayCashSales = todayCashSalesTask.Result,
-                TodayCardSales = todayCardSalesTask.Result,
-                TodayOtherSales = todayOtherSalesTask.Result,
-                TodayTransactionCount = todayTransactionCountTask.Result,
-                WeekTotalSales = weekTotalSalesTask.Result,
-                MonthTotalSales = monthTotalSalesTask.Result,
-                TotalDrawerBalance = totalDrawerBalanceTask.Result,
-                ActiveDrawersCount = activeDrawersCountTask.Result,
-                OpenSessionsCount = openSessionsCountTask.Result,
+                TodayTotalSales = todayTotalSales,
+                TodayCashSales = todayCashSales,
+                TodayCardSales = todayCardSales,
+                TodayOtherSales = todayOtherSales,
+                TodayTransactionCount = todayTransactionCount,
+                WeekTotalSales = weekTotalSales,
+                MonthTotalSales = monthTotalSales,
+                TotalDrawerBalance = totalDrawerBalance,
+                ActiveDrawersCount = activeDrawersCount,
+                OpenSessionsCount = openSessionsCount,
                 DrawerSummaries = drawerSummaries,
                 WeeklySalesTrend = weeklyTrend
             };
