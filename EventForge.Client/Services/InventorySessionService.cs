@@ -122,7 +122,7 @@ public class InventorySessionService(IJSRuntime jsRuntime, ILogger<InventorySess
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving inventory session: {ex.Message}");
+            logger.LogError(ex, "Error saving inventory session");
         }
     }
 
@@ -140,7 +140,7 @@ public class InventorySessionService(IJSRuntime jsRuntime, ILogger<InventorySess
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading inventory session: {ex.Message}");
+            logger.LogError(ex, "Error loading inventory session");
             return null;
         }
     }
@@ -153,7 +153,7 @@ public class InventorySessionService(IJSRuntime jsRuntime, ILogger<InventorySess
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error clearing inventory session: {ex.Message}");
+            logger.LogError(ex, "Error clearing inventory session");
         }
     }
 

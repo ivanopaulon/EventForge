@@ -2,6 +2,7 @@
 @using EventForge.Client.Constants
 @inject IThemeService ThemeService
 @inject ITranslationService TranslationService
+@inject ILogger<LoginLayout> Logger
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
@@ -20,8 +21,14 @@
     {
         ThemeService.OnThemeChanged += OnThemeChanged;
         TranslationService.LanguageChanged += OnLanguageChanged;
-        
-        await ThemeService.InitializeAsync();
+        try
+        {
+            await ThemeService.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing theme in LoginLayout");
+        }
         UpdateTheme();
     }
 

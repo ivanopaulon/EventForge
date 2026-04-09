@@ -53,8 +53,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving all payment methods: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving all payment methods");
             throw;
         }
@@ -70,8 +68,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving paged payment methods (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving paged payment methods");
             throw;
         }
@@ -109,8 +105,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving active payment methods: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving active payment methods");
             throw;
         }
@@ -125,8 +119,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving payment method {Id}", id);
             throw;
         }
@@ -147,8 +139,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error creating payment method: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error creating payment method");
             throw;
         }
@@ -169,8 +159,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error updating payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error updating payment method {Id}", id);
             throw;
         }
@@ -190,8 +178,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error deleting payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error deleting payment method {Id}", id);
             throw;
         }

@@ -3,6 +3,8 @@
 @using EventForge.Client.Shared.Components.Products
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
+@inject IAppNotificationService AppNotification
+@inject ILogger<InventoryViewStep> Logger
 
 <MudStack Spacing="3">
     <!-- Product Quick Info -->
@@ -64,15 +66,23 @@
 
     private async Task OnProductUpdatedAsync()
     {
-        // Refresh product data after update
-        if (State.Product?.Id != null)
+        try
         {
-            var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
-            if (refreshedProduct != null)
+            // Refresh product data after update
+            if (State.Product?.Id != null)
             {
-                State.Product = refreshedProduct;
-                StateHasChanged();
+                var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
+                if (refreshedProduct != null)
+                {
+                    State.Product = refreshedProduct;
+                    StateHasChanged();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing product data in inventory view step");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.refreshFailed", "Errore durante l'aggiornamento del prodotto"));
         }
     }
 }

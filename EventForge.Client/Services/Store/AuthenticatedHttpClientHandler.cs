@@ -35,10 +35,8 @@ public class AuthenticatedHttpClientHandler : DelegatingHandler
         if (!response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            Console.WriteLine($"[Store API Error] {request.Method} {request.RequestUri}: {response.StatusCode}");
-            Console.WriteLine($"[Store API Error] Response: {content}");
-            _logger.LogError("Store API request failed: {Method} {Uri} returned {StatusCode}",
-                request.Method, request.RequestUri, response.StatusCode);
+            _logger.LogError("Store API request failed: {Method} {Uri} returned {StatusCode}. Response: {Content}",
+                request.Method, request.RequestUri, response.StatusCode, content);
         }
 
         return response;

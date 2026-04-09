@@ -2,6 +2,8 @@
 @using MudBlazor
 @inject IFontPreferencesService FontPreferencesService
 @inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FontPreferencesDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.TextFormat"
           Title="@TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font")"
@@ -441,8 +443,16 @@
 
     private async Task Save()
     {
-        await FontPreferencesService.UpdatePreferencesAsync(_preferences);
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            await FontPreferencesService.UpdatePreferencesAsync(_preferences);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving font preferences");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.saveFailed", "Errore durante il salvataggio delle preferenze font"));
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();
