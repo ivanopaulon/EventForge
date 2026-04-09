@@ -174,6 +174,17 @@ builder.Services.AddSignalR(options =>
     options.HandshakeTimeout = TimeSpan.FromSeconds(15);
 });
 
+// WhatsApp Cloud API named HttpClient
+builder.Services.AddHttpClient("WhatsApp", client =>
+{
+    client.BaseAddress = new Uri("https://graph.facebook.com/");
+    var accessToken = builder.Configuration["WhatsApp:AccessToken"] ?? string.Empty;
+    if (!string.IsNullOrEmpty(accessToken))
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+});
+builder.Services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppService, EventForge.Server.Services.External.WhatsApp.WhatsAppService>();
+builder.Services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppConversazioneService, EventForge.Server.Services.External.WhatsApp.WhatsAppConversazioneService>();
+
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
