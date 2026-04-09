@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Sales
 @inject IAppNotificationService AppNotification
+@inject ILogger<CartSummary> Logger
 
 <MudPaper Class="pa-4 cart-summary" Elevation="2">
     <div class="d-flex align-center mb-3">
@@ -161,33 +162,65 @@
 
     private async Task IncreaseQuantity(SaleItemDto item)
     {
-        item.Quantity++;
-        await OnItemQuantityChanged.InvokeAsync(item);
-        AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
+        try
+        {
+            item.Quantity++;
+            await OnItemQuantityChanged.InvokeAsync(item);
+            AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(IncreaseQuantity));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task DecreaseQuantity(SaleItemDto item)
     {
-        if (item.Quantity > 1)
+        try
         {
-            item.Quantity--;
-            await OnItemQuantityChanged.InvokeAsync(item);
-            AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
+            if (item.Quantity > 1)
+            {
+                item.Quantity--;
+                await OnItemQuantityChanged.InvokeAsync(item);
+                AppNotification.ShowSuccess($"Quantità aggiornata: {item.ProductName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(DecreaseQuantity));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task RemoveItem(SaleItemDto item)
     {
-        await OnItemRemoved.InvokeAsync(item);
-        AppNotification.ShowWarning($"Rimosso: {item.ProductName}");
+        try
+        {
+            await OnItemRemoved.InvokeAsync(item);
+            AppNotification.ShowWarning($"Rimosso: {item.ProductName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(RemoveItem));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ClearCart()
     {
-        if (Items?.Any() == true)
+        try
         {
-            await OnCartCleared.InvokeAsync();
-            AppNotification.ShowWarning("Carrello svuotato");
+            if (Items?.Any() == true)
+            {
+                await OnCartCleared.InvokeAsync();
+                AppNotification.ShowWarning("Carrello svuotato");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ClearCart));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 }

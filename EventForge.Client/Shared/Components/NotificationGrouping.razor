@@ -1,5 +1,7 @@
 @using EventForge.DTOs.Notifications
 @inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<NotificationGrouping> Logger
 
 <div class="notification-group mb-4">
     <MudCard Elevation="2" Class="group-header">
@@ -166,23 +168,55 @@
 
     private async Task ToggleGroup()
     {
-        Group.IsCollapsed = !Group.IsCollapsed;
-        await OnGroupToggle.InvokeAsync(Group);
+        try
+        {
+            Group.IsCollapsed = !Group.IsCollapsed;
+            await OnGroupToggle.InvokeAsync(Group);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ToggleGroup));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task MarkGroupAsRead()
     {
-        await OnGroupMarkAsRead.InvokeAsync(Group);
+        try
+        {
+            await OnGroupMarkAsRead.InvokeAsync(Group);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(MarkGroupAsRead));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ArchiveGroup()
     {
-        await OnGroupArchive.InvokeAsync(Group);
+        try
+        {
+            await OnGroupArchive.InvokeAsync(Group);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ArchiveGroup));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task UngroupNotifications()
     {
-        await OnGroupUngroup.InvokeAsync(Group);
+        try
+        {
+            await OnGroupUngroup.InvokeAsync(Group);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(UngroupNotifications));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private string GetNotificationIcon(NotificationTypes type)

@@ -1,4 +1,6 @@
 @using System.Timers
+@inject IAppNotificationService AppNotification
+@inject ILogger<LoadingDialog> Logger
 @implements IDisposable
 
 <!-- 
@@ -249,10 +251,18 @@
     /// </summary>
     public async Task ShowAsync()
     {
-        IsVisible = true;
-        StartTimers();
-        await IsVisibleChanged.InvokeAsync(IsVisible);
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            IsVisible = true;
+            StartTimers();
+            await IsVisibleChanged.InvokeAsync(IsVisible);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ShowAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     /// <summary>
@@ -260,10 +270,18 @@
     /// </summary>
     public async Task HideAsync()
     {
-        IsVisible = false;
-        StopTimers();
-        await IsVisibleChanged.InvokeAsync(IsVisible);
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            IsVisible = false;
+            StopTimers();
+            await IsVisibleChanged.InvokeAsync(IsVisible);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(HideAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     protected override void OnInitialized()

@@ -1,5 +1,7 @@
 @namespace EventForge.Client.Shared.Components
 @inject IJSRuntime JS
+@inject IAppNotificationService AppNotification
+@inject ILogger<ScrollToTop> Logger
 @implements IAsyncDisposable
 
 @if (_visible && !HideFab)
@@ -34,10 +36,18 @@
     {
         if (firstRender)
         {
-            _selfRef = DotNetObjectReference.Create(this);
-            _module = await JS.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/EventForge.Client/Shared/Components/ScrollToTop.razor.js");
-            await _module.InvokeVoidAsync("initScrollListener", _selfRef, Threshold);
+            try
+            {
+                _selfRef = DotNetObjectReference.Create(this);
+                _module = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./_content/EventForge.Client/Shared/Components/ScrollToTop.razor.js");
+                await _module.InvokeVoidAsync("initScrollListener", _selfRef, Threshold);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in {MethodName}.", nameof(OnAfterRenderAsync));
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            }
         }
     }
 
@@ -53,8 +63,16 @@
 
     public async Task ScrollToTopAsync()
     {
-        if (_module is not null)
-            await _module.InvokeVoidAsync("scrollToTop");
+        try
+        {
+            if (_module is not null)
+                await _module.InvokeVoidAsync("scrollToTop");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ScrollToTopAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     public async ValueTask DisposeAsync()

@@ -1,5 +1,7 @@
 @using MudBlazor
 @inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ManagementTableToolbar> Logger
 
 <MudStack Row AlignItems="AlignItems.Center" JustifyContent="SpaceBetween" Spacing="2" Class="management-toolbar pa-2">
     <!-- Left section: Selection badge and bulk actions -->
@@ -156,25 +158,49 @@
 
     private async Task OnRefreshAsync()
     {
-        if (OnRefresh.HasDelegate)
+        try
         {
-            await OnRefresh.InvokeAsync();
+            if (OnRefresh.HasDelegate)
+            {
+                await OnRefresh.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnRefreshAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnCreateAsync()
     {
-        if (OnCreate.HasDelegate)
+        try
         {
-            await OnCreate.InvokeAsync();
+            if (OnCreate.HasDelegate)
+            {
+                await OnCreate.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnCreateAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnDeleteAsync()
     {
-        if (OnDelete.HasDelegate)
+        try
         {
-            await OnDelete.InvokeAsync();
+            if (OnDelete.HasDelegate)
+            {
+                await OnDelete.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnDeleteAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 }

@@ -6,6 +6,7 @@
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<FloatingProfile> Logger
 @implements IDisposable
 
 @if (_isAuthenticated)
@@ -68,8 +69,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
-        await CheckAuthenticationState();
+        try
+        {
+            AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+            await CheckAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnInitializedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task CheckAuthenticationState()
@@ -94,24 +103,40 @@
 
     public async Task NavigateToProfile()
     {
-        CloseDialog();
-        await DialogService.ShowAsync<ProfileDialog>(
-            string.Empty,
-            EFDialogDefaults.Options);
+        try
+        {
+            CloseDialog();
+            await DialogService.ShowAsync<ProfileDialog>(
+                string.Empty,
+                EFDialogDefaults.Options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(NavigateToProfile));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     public async Task OpenFontPreferences()
     {
-        CloseDialog();
-        var options = new DialogOptions
+        try
         {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-        await DialogService.ShowAsync<FontPreferencesDialog>(
-            TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font"),
-            options);
+            CloseDialog();
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+            await DialogService.ShowAsync<FontPreferencesDialog>(
+                TranslationService.GetTranslation("fontPreferences.title", "Preferenze Font"),
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OpenFontPreferences));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     public void OpenAdminDashboard()

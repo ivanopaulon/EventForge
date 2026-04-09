@@ -3,6 +3,8 @@
 @inject IServerConfigService ServerConfigService
 @inject IServerConfigOverlayService OverlayService
 @inject NavigationManager NavigationManager
+@inject IAppNotificationService AppNotification
+@inject ILogger<ServerConfigSystemDialog> Logger
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
@@ -97,7 +99,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _serverUrl = await ServerConfigService.GetServerUrlAsync();
+        try
+        {
+            _serverUrl = await ServerConfigService.GetServerUrlAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnInitializedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnUrlKeyUp(KeyboardEventArgs e)
@@ -110,34 +120,63 @@
     {
         if (string.IsNullOrWhiteSpace(_serverUrl)) return;
 
-        _isTesting = true;
-        _testStatus = TestStatus.None;
-        StateHasChanged();
+        try
+        {
+            _isTesting = true;
+            _testStatus = TestStatus.None;
+            StateHasChanged();
 
-        var success = await ServerConfigService.TestConnectionAsync(_serverUrl);
-        _testStatus = success ? TestStatus.Success : TestStatus.Failure;
-
-        _isTesting = false;
-        StateHasChanged();
+            var success = await ServerConfigService.TestConnectionAsync(_serverUrl);
+            _testStatus = success ? TestStatus.Success : TestStatus.Failure;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(TestConnectionAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            _testStatus = TestStatus.Failure;
+        }
+        finally
+        {
+            _isTesting = false;
+            StateHasChanged();
+        }
     }
 
     private async Task SaveAndConnectAsync()
     {
         if (_testStatus != TestStatus.Success) return;
 
-        _isSaving = true;
-        StateHasChanged();
+        try
+        {
+            _isSaving = true;
+            StateHasChanged();
 
-        await ServerConfigService.SetServerUrlAsync(_serverUrl);
-        NavigationManager.NavigateTo("/", forceLoad: true);
+            await ServerConfigService.SetServerUrlAsync(_serverUrl);
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(SaveAndConnectAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            _isSaving = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ResetToDefaultAsync()
     {
-        await ServerConfigService.ResetToDefaultAsync();
-        _serverUrl = await ServerConfigService.GetServerUrlAsync();
-        _testStatus = TestStatus.None;
-        StateHasChanged();
+        try
+        {
+            await ServerConfigService.ResetToDefaultAsync();
+            _serverUrl = await ServerConfigService.GetServerUrlAsync();
+            _testStatus = TestStatus.None;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ResetToDefaultAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void Cancel()
