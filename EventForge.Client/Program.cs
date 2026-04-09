@@ -138,6 +138,7 @@ builder.Services.AddScoped<IRealtimeService, OptimizedSignalRService>();
 builder.Services.AddScoped<IUpdateNotificationService, UpdateNotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<EventForge.Client.Services.WhatsApp.IWhatsAppClientService, EventForge.Client.Services.WhatsApp.WhatsAppClientService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBrandingService, BrandingService>();
 builder.Services.AddScoped<IBackupService, BackupService>();

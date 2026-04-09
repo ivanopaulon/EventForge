@@ -7,6 +7,7 @@ namespace EventForge.Server.Data.Entities.Chat;
 
 /// <summary>
 /// Entity model for chat messages supporting multi-tenant isolation and localization.
+/// Covers both internal operator messages and external WhatsApp messages.
 /// </summary>
 [Table("ChatMessages")]
 [Index(nameof(TenantId))]
@@ -16,6 +17,7 @@ namespace EventForge.Server.Data.Entities.Chat;
 [Index(nameof(SentAt))]
 [Index(nameof(ReplyToMessageId))]
 [Index(nameof(IsDeleted))]
+[Index(nameof(WhatsAppMessageId))]
 public class ChatMessage : AuditableEntity
 {
     /// <summary>
@@ -25,10 +27,9 @@ public class ChatMessage : AuditableEntity
     public Guid ChatThreadId { get; set; }
 
     /// <summary>
-    /// ID of the user who sent the message.
+    /// ID of the user who sent the message. Null for incoming WhatsApp messages.
     /// </summary>
-    [Required]
-    public Guid SenderId { get; set; }
+    public Guid? SenderId { get; set; }
 
     /// <summary>
     /// Message content (text).
@@ -83,6 +84,24 @@ public class ChatMessage : AuditableEntity
     /// </summary>
     [Column(TypeName = "nvarchar(max)")]
     public string? MetadataJson { get; set; }
+
+    // -------------------------------------------------------------------------
+    // WhatsApp-specific fields (null for internal messages)
+    // -------------------------------------------------------------------------
+
+    /// <summary>WhatsApp message ID (wamid) from Meta API. Used to correlate delivery receipts.</summary>
+    [MaxLength(200)]
+    public string? WhatsAppMessageId { get; set; }
+
+    /// <summary>Message direction for WhatsApp threads (Entrante/Uscente).</summary>
+    public MessageDirection? MessageDirection { get; set; }
+
+    /// <summary>WhatsApp delivery status. Updated when Meta sends status webhooks.</summary>
+    public WhatsAppDeliveryStatus? WhatsAppDeliveryStatus { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Navigation properties
+    // -------------------------------------------------------------------------
 
     /// <summary>
     /// Navigation property to the chat thread.

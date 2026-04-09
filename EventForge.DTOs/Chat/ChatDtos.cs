@@ -9,7 +9,8 @@ namespace EventForge.DTOs.Chat
     {
         DirectMessage = 0,  // 1:1 chat
         Group = 1,          // Group chat
-        Channel = 2         // Public channel (future extension)
+        Channel = 2,        // Public channel (future extension)
+        WhatsApp = 3        // External WhatsApp conversation
     }
 
     /// <summary>
@@ -57,6 +58,30 @@ namespace EventForge.DTOs.Chat
         Plain = 0,
         Markdown = 1,
         Html = 2
+    }
+
+    /// <summary>Direction for WhatsApp messages (Incoming / Outgoing).</summary>
+    public enum MessageDirection
+    {
+        Entrante = 0,   // Incoming from external contact
+        Uscente = 1     // Outgoing from operator
+    }
+
+    /// <summary>Delivery status for WhatsApp outgoing messages.</summary>
+    public enum WhatsAppDeliveryStatus
+    {
+        Inviato = 0,     // Sent to Meta API
+        Consegnato = 1,  // Delivered to recipient's device
+        Letto = 2,       // Read by recipient
+        Errore = 3       // Delivery failed
+    }
+
+    /// <summary>Status of a WhatsApp conversation thread.</summary>
+    public enum WhatsAppConversationStatus
+    {
+        Attiva = 0,
+        Archiviata = 1,
+        Bloccata = 2
     }
 
     /// <summary>
@@ -149,6 +174,16 @@ namespace EventForge.DTOs.Chat
         public ChatMessageDto? LastMessage { get; set; }
         public int UnreadCount { get; set; }
         public bool IsActive { get; set; } = true;
+
+        // WhatsApp-specific fields (populated only when Type == ChatType.WhatsApp)
+        /// <summary>External WhatsApp phone number for this conversation.</summary>
+        public string? ExternalPhoneNumber { get; set; }
+        /// <summary>Name of the associated BusinessParty (if recognised).</summary>
+        public string? BusinessPartyName { get; set; }
+        /// <summary>True when the phone number has no matching BusinessParty.</summary>
+        public bool IsUnrecognizedNumber { get; set; }
+        /// <summary>Convenience shorthand derived from Type == ChatType.WhatsApp.</summary>
+        public bool IsWhatsApp => Type == ChatType.WhatsApp;
     }
 
     /// <summary>
@@ -313,6 +348,12 @@ namespace EventForge.DTOs.Chat
         /// Latest reply in thread (if any).
         /// </summary>
         public ChatMessageDto? LatestThreadReply { get; set; }
+
+        // WhatsApp-specific fields (populated only for Type=WhatsApp threads)
+        /// <summary>Incoming (Entrante) or Outgoing (Uscente) for WhatsApp messages.</summary>
+        public MessageDirection? Direction { get; set; }
+        /// <summary>WhatsApp delivery status (Inviato/Consegnato/Letto/Errore).</summary>
+        public WhatsAppDeliveryStatus? WhatsAppDeliveryStatus { get; set; }
     }
 
     /// <summary>
