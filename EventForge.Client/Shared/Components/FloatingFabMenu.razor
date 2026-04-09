@@ -10,7 +10,6 @@
 @implements IDisposable
 
 <!-- Child components: their panels render normally, only their individual FABs are hidden -->
-<FloatingChat @ref="_chatRef" HideFab="true" />
 <FloatingProfile @ref="_profileRef" HideFab="true" />
 <HealthFooter @ref="_healthRef" HideFab="true" />
 
@@ -62,10 +61,10 @@
         <!-- Chat with unread badge -->
         <div class="ef-speed-dial-action">
             <MudTooltip Text="Chat" Placement="Placement.Left">
-                <MudBadge Content="@(_chatRef?.TotalUnread ?? 0)"
+                <MudBadge Content="@_totalUnread"
                           Color="Color.Error"
                           Overlap="true"
-                          Visible="@((_chatRef?.TotalUnread ?? 0) > 0)"
+                          Visible="@(_totalUnread > 0)"
                           Max="99">
                     <MudFab Color="Color.Primary"
                             StartIcon="@Icons.Material.Filled.Chat"
@@ -189,10 +188,11 @@
 @code {
     private bool _isOpen = false;
     private bool _profileMenuOpen = false;
-    private FloatingChat? _chatRef;
     private FloatingProfile? _profileRef;
     private HealthFooter? _healthRef;
     private int _unreadNotifications = 0;
+    private int _totalUnread = 0;
+    private List<ChatResponseDto> _chatList = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,13 +209,42 @@
         {
             // Stats loading is best-effort; don't fail if unavailable
         }
+
+        try
+        {
+            _chatList = await ChatService.GetChatsAsync();
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
+        }
+        catch
+        {
+            // Chat stats loading is best-effort
+        }
     }
 
-    private void OnChatMessageReceived(ChatMessageDto _)
-        => InvokeAsync(StateHasChanged);
+    private void OnChatMessageReceived(ChatMessageDto message)
+    {
+        var chat = _chatList.FirstOrDefault(c => c.Id == message.ChatId);
+        if (chat != null)
+        {
+            chat.UnreadCount++;
+            chat.LastMessage = message;
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
+        }
+        else
+        {
+            // Unknown chat: increment counter directly without storing a partial object
+            _totalUnread++;
+        }
+        InvokeAsync(StateHasChanged);
+    }
 
-    private void OnChatCreated(ChatResponseDto _)
-        => InvokeAsync(StateHasChanged);
+    private void OnChatCreated(ChatResponseDto chat)
+    {
+        if (!_chatList.Any(c => c.Id == chat.Id))
+            _chatList.Add(chat);
+        _totalUnread = _chatList.Sum(c => c.UnreadCount);
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnNotificationStatsUpdated(NotificationStatsDto stats)
         => InvokeAsync(() => { _unreadNotifications = stats.UnreadCount; StateHasChanged(); });
@@ -228,12 +257,11 @@
 
     private void ToggleProfileMenu() => _profileMenuOpen = !_profileMenuOpen;
 
-    private async Task OnChatClick()
+    private void OnChatClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_chatRef != null)
-            await _chatRef.OpenPanel();
+        NavigationManager.NavigateTo("/chat");
     }
 
     private async Task OnHealthClick()
