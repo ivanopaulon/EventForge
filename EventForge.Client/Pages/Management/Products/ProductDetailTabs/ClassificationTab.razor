@@ -195,7 +195,10 @@
 
             StateHasChanged();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error ensuring selected brand/model/UM is present in lookup lists.");
+        }
     }
 
     private async Task LoadDataAsync()

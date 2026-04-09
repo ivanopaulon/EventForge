@@ -492,6 +492,11 @@ else if (_profile != null)
         {
             _activeSessions = await ProfileService.GetActiveSessionsAsync();
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading active sessions.");
+            AppNotification.ShowError("Si è verificato un errore nel caricamento delle sessioni.");
+        }
         finally
         {
             _isLoadingSessions = false;
@@ -522,6 +527,11 @@ else if (_profile != null)
                 _profile = updatedProfile;
             }
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating profile.");
+            AppNotification.ShowError("Si è verificato un errore nell'aggiornamento del profilo.");
+        }
         finally
         {
             _isSaving = false;
@@ -538,6 +548,11 @@ else if (_profile != null)
             {
                 _profile = updatedProfile;
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating notification preferences.");
+            AppNotification.ShowError("Si è verificato un errore nell'aggiornamento delle preferenze.");
         }
         finally
         {
