@@ -40,6 +40,7 @@ namespace EventForge.Client.Services
 
     public class EntityManagementService(
         IHttpClientService httpClientService,
+        ILogger<EntityManagementService> logger,
         ILoadingDialogService loadingDialogService) : IEntityManagementService
     {
 
@@ -71,29 +72,69 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<AddressDto>> GetAddressesByOwnerAsync(Guid ownerId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<AddressDto>>($"api/v1/entities/addresses/owner/{ownerId}", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<AddressDto>>($"api/v1/entities/addresses/owner/{ownerId}", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving addresses for owner {OwnerId}", ownerId);
+                throw;
+            }
         }
 
         public async Task<AddressDto?> GetAddressAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<AddressDto>($"api/v1/entities/addresses/{id}", ct);
+            try
+            {
+                return await httpClientService.GetAsync<AddressDto>($"api/v1/entities/addresses/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving address {Id}", id);
+                throw;
+            }
         }
 
         public async Task<AddressDto> CreateAddressAsync(CreateAddressDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreateAddressDto, AddressDto>("api/v1/entities/addresses", createDto, ct) ??
-                   throw new InvalidOperationException("Failed to create address");
+            try
+            {
+                return await httpClientService.PostAsync<CreateAddressDto, AddressDto>("api/v1/entities/addresses", createDto, ct) ??
+                       throw new InvalidOperationException("Failed to create address");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating address");
+                throw;
+            }
         }
 
         public async Task<AddressDto> UpdateAddressAsync(Guid id, UpdateAddressDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateAddressDto, AddressDto>($"api/v1/entities/addresses/{id}", updateDto, ct) ??
-                   throw new InvalidOperationException("Failed to update address");
+            try
+            {
+                return await httpClientService.PutAsync<UpdateAddressDto, AddressDto>($"api/v1/entities/addresses/{id}", updateDto, ct) ??
+                       throw new InvalidOperationException("Failed to update address");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating address {Id}", id);
+                throw;
+            }
         }
 
         public async Task DeleteAddressAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/entities/addresses/{id}", ct);
+            try
+            {
+                await httpClientService.DeleteAsync($"api/v1/entities/addresses/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deleting address {Id}", id);
+                throw;
+            }
         }
 
         #endregion
@@ -102,34 +143,82 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<ContactDto>> GetContactsAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ContactDto>>("api/v1/entities/contacts", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ContactDto>>("api/v1/entities/contacts", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving contacts");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ContactDto>> GetContactsByOwnerAsync(Guid ownerId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ContactDto>>($"api/v1/entities/contacts/owner/{ownerId}", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ContactDto>>($"api/v1/entities/contacts/owner/{ownerId}", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving contacts for owner {OwnerId}", ownerId);
+                throw;
+            }
         }
 
         public async Task<ContactDto?> GetContactAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ContactDto>($"api/v1/entities/contacts/{id}", ct);
+            try
+            {
+                return await httpClientService.GetAsync<ContactDto>($"api/v1/entities/contacts/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving contact {Id}", id);
+                throw;
+            }
         }
 
         public async Task<ContactDto> CreateContactAsync(CreateContactDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreateContactDto, ContactDto>("api/v1/entities/contacts", createDto, ct) ??
-                   throw new InvalidOperationException("Failed to create contact");
+            try
+            {
+                return await httpClientService.PostAsync<CreateContactDto, ContactDto>("api/v1/entities/contacts", createDto, ct) ??
+                       throw new InvalidOperationException("Failed to create contact");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating contact");
+                throw;
+            }
         }
 
         public async Task<ContactDto> UpdateContactAsync(Guid id, UpdateContactDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateContactDto, ContactDto>($"api/v1/entities/contacts/{id}", updateDto, ct) ??
-                   throw new InvalidOperationException("Failed to update contact");
+            try
+            {
+                return await httpClientService.PutAsync<UpdateContactDto, ContactDto>($"api/v1/entities/contacts/{id}", updateDto, ct) ??
+                       throw new InvalidOperationException("Failed to update contact");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating contact {Id}", id);
+                throw;
+            }
         }
 
         public async Task DeleteContactAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/entities/contacts/{id}", ct);
+            try
+            {
+                await httpClientService.DeleteAsync($"api/v1/entities/contacts/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deleting contact {Id}", id);
+                throw;
+            }
         }
 
         #endregion
@@ -138,34 +227,82 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<ReferenceDto>> GetReferencesAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ReferenceDto>>("api/v1/entities/references", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ReferenceDto>>("api/v1/entities/references", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving references");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ReferenceDto>> GetReferencesByOwnerAsync(Guid ownerId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ReferenceDto>>($"api/v1/entities/references/owner/{ownerId}", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ReferenceDto>>($"api/v1/entities/references/owner/{ownerId}", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving references for owner {OwnerId}", ownerId);
+                throw;
+            }
         }
 
         public async Task<ReferenceDto?> GetReferenceAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ReferenceDto>($"api/v1/entities/references/{id}", ct);
+            try
+            {
+                return await httpClientService.GetAsync<ReferenceDto>($"api/v1/entities/references/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving reference {Id}", id);
+                throw;
+            }
         }
 
         public async Task<ReferenceDto> CreateReferenceAsync(CreateReferenceDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreateReferenceDto, ReferenceDto>("api/v1/entities/references", createDto, ct) ??
-                   throw new InvalidOperationException("Failed to create reference");
+            try
+            {
+                return await httpClientService.PostAsync<CreateReferenceDto, ReferenceDto>("api/v1/entities/references", createDto, ct) ??
+                       throw new InvalidOperationException("Failed to create reference");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating reference");
+                throw;
+            }
         }
 
         public async Task<ReferenceDto> UpdateReferenceAsync(Guid id, UpdateReferenceDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateReferenceDto, ReferenceDto>($"api/v1/entities/references/{id}", updateDto, ct) ??
-                   throw new InvalidOperationException("Failed to update reference");
+            try
+            {
+                return await httpClientService.PutAsync<UpdateReferenceDto, ReferenceDto>($"api/v1/entities/references/{id}", updateDto, ct) ??
+                       throw new InvalidOperationException("Failed to update reference");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating reference {Id}", id);
+                throw;
+            }
         }
 
         public async Task DeleteReferenceAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/entities/references/{id}", ct);
+            try
+            {
+                await httpClientService.DeleteAsync($"api/v1/entities/references/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deleting reference {Id}", id);
+                throw;
+            }
         }
 
         #endregion
@@ -174,40 +311,96 @@ namespace EventForge.Client.Services
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync(CancellationToken ct = default)
         {
-            var result = await httpClientService.GetAsync<PagedResult<ClassificationNodeDto>>("api/v1/entities/classification-nodes?page=1&pageSize=100", ct);
-            return result?.Items ?? [];
+            try
+            {
+                var result = await httpClientService.GetAsync<PagedResult<ClassificationNodeDto>>("api/v1/entities/classification-nodes?page=1&pageSize=100", ct);
+                return result?.Items ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving classification nodes");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/root", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/root", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving root classification nodes");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>($"api/v1/entities/classification-nodes/{parentId}/children", ct) ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>($"api/v1/entities/classification-nodes/{parentId}/children", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving children classification nodes for parent {ParentId}", parentId);
+                throw;
+            }
         }
 
         public async Task<ClassificationNodeDto?> GetClassificationNodeAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ClassificationNodeDto>($"api/v1/entities/classification-nodes/{id}", ct);
+            try
+            {
+                return await httpClientService.GetAsync<ClassificationNodeDto>($"api/v1/entities/classification-nodes/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving classification node {Id}", id);
+                throw;
+            }
         }
 
         public async Task<ClassificationNodeDto> CreateClassificationNodeAsync(CreateClassificationNodeDto createDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<CreateClassificationNodeDto, ClassificationNodeDto>("api/v1/entities/classification-nodes", createDto, ct) ??
-                   throw new InvalidOperationException("Failed to create classification node");
+            try
+            {
+                return await httpClientService.PostAsync<CreateClassificationNodeDto, ClassificationNodeDto>("api/v1/entities/classification-nodes", createDto, ct) ??
+                       throw new InvalidOperationException("Failed to create classification node");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating classification node");
+                throw;
+            }
         }
 
         public async Task<ClassificationNodeDto> UpdateClassificationNodeAsync(Guid id, UpdateClassificationNodeDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateClassificationNodeDto, ClassificationNodeDto>($"api/v1/entities/classification-nodes/{id}", updateDto, ct) ??
-                   throw new InvalidOperationException("Failed to update classification node");
+            try
+            {
+                return await httpClientService.PutAsync<UpdateClassificationNodeDto, ClassificationNodeDto>($"api/v1/entities/classification-nodes/{id}", updateDto, ct) ??
+                       throw new InvalidOperationException("Failed to update classification node");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating classification node {Id}", id);
+                throw;
+            }
         }
 
         public async Task DeleteClassificationNodeAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/entities/classification-nodes/{id}", ct);
+            try
+            {
+                await httpClientService.DeleteAsync($"api/v1/entities/classification-nodes/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deleting classification node {Id}", id);
+                throw;
+            }
         }
 
         #endregion

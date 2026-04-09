@@ -20,26 +20,50 @@ public class ServerConfigService(
 
     public async Task<string> GetServerUrlAsync(CancellationToken ct = default)
     {
-        if (!_initialized)
+        try
         {
-            await LoadFromStorageAsync();
-        }
+            if (!_initialized)
+            {
+                await LoadFromStorageAsync();
+            }
 
-        return _url;
+            return _url;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting server URL");
+            throw;
+        }
     }
 
     public async Task SetServerUrlAsync(string url, CancellationToken ct = default)
     {
-        url = NormalizeUrl(url);
-        await jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, url);
-        _url = url;
-        _initialized = true;
+        try
+        {
+            url = NormalizeUrl(url);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", LocalStorageKey, url);
+            _url = url;
+            _initialized = true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting server URL to {Url}", url);
+            throw;
+        }
     }
 
     public async Task<bool> IsConfiguredAsync(CancellationToken ct = default)
     {
-        var url = await GetServerUrlAsync();
-        return !string.IsNullOrWhiteSpace(url);
+        try
+        {
+            var url = await GetServerUrlAsync();
+            return !string.IsNullOrWhiteSpace(url);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking if server is configured");
+            throw;
+        }
     }
 
     public async Task<bool> TestConnectionAsync(string url, CancellationToken ct = default)

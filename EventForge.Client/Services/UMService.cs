@@ -18,8 +18,16 @@ public class UMService(
 
     public async Task<PagedResult<UMDto>> GetUMsAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
-        var result = await httpClientService.GetAsync<PagedResult<UMDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
-        return result ?? new PagedResult<UMDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
+        try
+        {
+            var result = await httpClientService.GetAsync<PagedResult<UMDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
+            return result ?? new PagedResult<UMDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving units of measure (page={Page}, pageSize={PageSize})", page, pageSize);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync(CancellationToken ct = default)
@@ -63,29 +71,53 @@ public class UMService(
 
     public async Task<UMDto?> GetUMByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<UMDto>($"{BaseUrl}/{id}", ct);
+        try
+        {
+            return await httpClientService.GetAsync<UMDto>($"{BaseUrl}/{id}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving unit of measure {Id}", id);
+            throw;
+        }
     }
 
     public async Task<UMDto> CreateUMAsync(CreateUMDto createUMDto, CancellationToken ct = default)
     {
-        var result = await httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto, ct);
+        try
+        {
+            var result = await httpClientService.PostAsync<CreateUMDto, UMDto>(BaseUrl, createUMDto, ct);
 
-        // Invalidate cache
-        cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
-        logger.LogDebug("Invalidated active units cache after create");
+            // Invalidate cache
+            cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
+            logger.LogDebug("Invalidated active units cache after create");
 
-        return result ?? throw new InvalidOperationException("Failed to create unit of measure");
+            return result ?? throw new InvalidOperationException("Failed to create unit of measure");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating unit of measure");
+            throw;
+        }
     }
 
     public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto, CancellationToken ct = default)
     {
-        var result = await httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto, ct);
+        try
+        {
+            var result = await httpClientService.PutAsync<UpdateUMDto, UMDto>($"{BaseUrl}/{id}", updateUMDto, ct);
 
-        // Invalidate cache
-        cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
-        logger.LogDebug("Invalidated active units cache after update (ID: {Id})", id);
+            // Invalidate cache
+            cache.Remove(CacheHelper.ACTIVE_UNITS_OF_MEASURE);
+            logger.LogDebug("Invalidated active units cache after update (ID: {Id})", id);
 
-        return result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating unit of measure {Id}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteUMAsync(Guid id, CancellationToken ct = default)

@@ -222,49 +222,65 @@ public class DocumentDialogCacheService(
     /// <inheritdoc />
     public async Task<List<PriceListDto>> GetAllActivePriceListsAsync(CancellationToken ct = default)
     {
-        // Carica in parallelo per performance
-        var salesTask = GetActiveSalesPriceListsAsync();
-        var purchaseTask = GetActivePurchasePriceListsAsync();
+        try
+        {
+            // Carica in parallelo per performance
+            var salesTask = GetActiveSalesPriceListsAsync();
+            var purchaseTask = GetActivePurchasePriceListsAsync();
 
-        await Task.WhenAll(salesTask, purchaseTask);
+            await Task.WhenAll(salesTask, purchaseTask);
 
-        // Combina e rimuovi duplicati (se esistono)
-        return salesTask.Result
-            .Concat(purchaseTask.Result)
-            .DistinctBy(pl => pl.Id)
-            .ToList();
+            // Combina e rimuovi duplicati (se esistono)
+            return salesTask.Result
+                .Concat(purchaseTask.Result)
+                .DistinctBy(pl => pl.Id)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving all active price lists");
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public async Task<string?> GetPriceListNameAsync(Guid priceListId, CancellationToken ct = default)
     {
-        // Lazy-load cache dictionary se non esiste o scaduto
-        if (_priceListNamesCache is null || IsPriceListsCacheExpired())
+        try
         {
-            await BuildPriceListNamesCacheAsync();
+            // Lazy-load cache dictionary se non esiste o scaduto
+            if (_priceListNamesCache is null || IsPriceListsCacheExpired())
+            {
+                await BuildPriceListNamesCacheAsync();
+            }
+
+            string? name = null;
+            var found = _priceListNamesCache?.TryGetValue(priceListId, out name) == true;
+
+            if (found)
+            {
+                _priceListCacheHits++;
+            }
+            else
+            {
+                _priceListCacheMisses++;
+                logger.LogWarning(
+                    "Price list {PriceListId} not found in cache. Cache contains {Count} entries",
+                    priceListId,
+                    _priceListNamesCache?.Count ?? 0
+                );
+            }
+
+            // Log metrics periodicamente
+            LogCacheMetricsIfNeeded();
+
+            return name;
         }
-
-        string? name = null;
-        var found = _priceListNamesCache?.TryGetValue(priceListId, out name) == true;
-
-        if (found)
+        catch (Exception ex)
         {
-            _priceListCacheHits++;
+            logger.LogError(ex, "Error retrieving price list name for {PriceListId}", priceListId);
+            throw;
         }
-        else
-        {
-            _priceListCacheMisses++;
-            logger.LogWarning(
-                "Price list {PriceListId} not found in cache. Cache contains {Count} entries",
-                priceListId,
-                _priceListNamesCache?.Count ?? 0
-            );
-        }
-
-        // Log metrics periodicamente
-        LogCacheMetricsIfNeeded();
-
-        return name;
     }
 
     private async Task BuildPriceListNamesCacheAsync()
