@@ -63,7 +63,12 @@ public class WhatsAppWebhookController(
                         foreach (var msg in value.Messages ?? [])
                         {
                             if (msg.Type != "text" || msg.Text?.Body == null) continue;
-                            var timestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(msg.Timestamp)).UtcDateTime;
+                            if (!long.TryParse(msg.Timestamp, out var unixTs))
+                            {
+                                logger.LogWarning("Invalid WhatsApp message timestamp: {Ts}", msg.Timestamp);
+                                continue;
+                            }
+                            var timestamp = DateTimeOffset.FromUnixTimeSeconds(unixTs).UtcDateTime;
                             await whatsAppConversazioneService.GestisciMessaggioEntranteAsync(
                                 msg.From, msg.Text.Body, msg.Id, timestamp, tenantId);
                         }

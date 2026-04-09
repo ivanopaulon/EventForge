@@ -141,6 +141,8 @@ public class WhatsAppConversazioneService(
         try
         {
             var normalizzato = NormalizzaNumero(numero);
+            // Use the local digits suffix (strip country code) for matching stored contact values
+            var suffixToMatch = normalizzato.Length > 2 ? normalizzato.Substring(2) : normalizzato;
             return await dbContext.BusinessParties
                 .AsNoTracking()
                 .Include(bp => bp.Contacts)
@@ -148,7 +150,7 @@ public class WhatsAppConversazioneService(
                 .FirstOrDefaultAsync(bp => bp.Contacts.Any(c =>
                     c.ContactType == ContactType.Phone &&
                     c.Value.Replace(" ", "").Replace("-", "").Replace("+", "")
-                     .EndsWith(normalizzato.TrimStart('3', '9'))
+                     .EndsWith(suffixToMatch)
                 ), cancellationToken);
         }
         catch (Exception ex)
