@@ -5,6 +5,7 @@
 @inject IAuthService AuthService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<LoginSystemDialog> Logger
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
@@ -273,17 +274,25 @@
 
     private async Task HandlePasswordChangeCancelled()
     {
-        if (_changePasswordIsMandatory)
+        try
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired",
-                    "Cambio password obbligatorio. Effettua il logout."));
-            await AuthService.LogoutAsync();
-            CloseDialog(false);
+            if (_changePasswordIsMandatory)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired",
+                        "Cambio password obbligatorio. Effettua il logout."));
+                await AuthService.LogoutAsync();
+                CloseDialog(false);
+            }
+            else
+            {
+                _isChangePasswordMode = false;
+                await InvokeAsync(StateHasChanged);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            _isChangePasswordMode = false;
-            await InvokeAsync(StateHasChanged);
+            Logger.LogError(ex, "Error in HandlePasswordChangeCancelled.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

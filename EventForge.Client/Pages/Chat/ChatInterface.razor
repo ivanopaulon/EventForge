@@ -561,39 +561,55 @@
     /// </summary>
     private async Task SetChatFilter(string filter)
     {
-        _chatFilter = filter;
-        await LoadChatsAsync();
+        try
+        {
+            _chatFilter = filter;
+            await LoadChatsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in SetChatFilter.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     // Start new chat dialog
     private async Task StartNewChatAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { nameof(NewChatDialog.CurrentUserId), _currentUserId }
-        };
+            var parameters = new DialogParameters
+            {
+                { nameof(NewChatDialog.CurrentUserId), _currentUserId }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<NewChatDialog>(
+                TranslationService.GetTranslation("chat.newChat", "Nuova Chat"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: ChatResponseDto newChat })
+            {
+                // Add the new chat to the list and select it
+                if (!_chatList.Any(c => c.Id == newChat.Id))
+                    _chatList.Insert(0, newChat);
+
+                await SelectChatAsync(newChat);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<NewChatDialog>(
-            TranslationService.GetTranslation("chat.newChat", "Nuova Chat"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: ChatResponseDto newChat })
-        {
-            // Add the new chat to the list and select it
-            if (!_chatList.Any(c => c.Id == newChat.Id))
-                _chatList.Insert(0, newChat);
-
-            await SelectChatAsync(newChat);
-            StateHasChanged();
+            Logger.LogError(ex, "Error in StartNewChatAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -613,9 +629,17 @@
     /// </summary>
     private async Task ManageGroupAsync()
     {
-        // TODO: Show dialog for group management (add/remove users, settings)
-        await Task.Delay(100); // Placeholder
-        AppNotification.ShowInfo(TranslationService.GetTranslation("chat.manageGroupPlaceholder", "Gestione gruppo - Da implementare"));
+        try
+        {
+            // TODO: Show dialog for group management (add/remove users, settings)
+            await Task.Delay(100); // Placeholder
+            AppNotification.ShowInfo(TranslationService.GetTranslation("chat.manageGroupPlaceholder", "Gestione gruppo - Da implementare"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ManageGroupAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     /// <summary>
@@ -624,9 +648,17 @@
     /// </summary>
     private async Task SelectFileAsync()
     {
-        // TODO: Implement file selection dialog and upload
-        await Task.Delay(100); // Placeholder
-        AppNotification.ShowInfo(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"));
+        try
+        {
+            // TODO: Implement file selection dialog and upload
+            await Task.Delay(100); // Placeholder
+            AppNotification.ShowInfo(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in SelectFileAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
 

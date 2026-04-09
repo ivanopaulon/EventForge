@@ -8,6 +8,7 @@
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<UpdatesDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.SystemUpdate"
           Title="@TranslationService.GetTranslation("updates.dialog.title", "Gestione Aggiornamenti")"
@@ -369,7 +370,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task LoadDataAsync()

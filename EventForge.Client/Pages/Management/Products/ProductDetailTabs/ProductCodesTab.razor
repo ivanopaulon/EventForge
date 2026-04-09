@@ -74,9 +74,17 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Product?.Id != Guid.Empty)
+        try
         {
-            await LoadCodesAsync();
+            if (Product?.Id != Guid.Empty)
+            {
+                await LoadCodesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnParametersSetAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -95,61 +103,77 @@
 
     private async Task OpenCreateDialog()
     {
-        var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
+        try
+        {
+            var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
 
-        var parameters = new DialogParameters
+            var parameters = new DialogParameters
  {
  { "ProductId", Product.Id },
  { "ProductUnits", productUnits }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
-        TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
+            TranslationService.GetTranslation("product.addCode", "Aggiungi Codice Alternativo"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadCodesAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadCodesAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenCreateDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(ProductCodeDto code)
     {
-        var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
+        try
+        {
+            var productUnits = await ProductService.GetProductUnitsAsync(Product.Id) ?? new List<ProductUnitDto>();
 
-        var parameters = new DialogParameters
+            var parameters = new DialogParameters
  {
  { "Code", code },
  { "ProductUnits", productUnits }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
-        TranslationService.GetTranslation("product.editCode", "Modifica Codice Alternativo"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<EditProductCodeDialog>(
+            TranslationService.GetTranslation("product.editCode", "Modifica Codice Alternativo"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadCodesAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadCodesAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

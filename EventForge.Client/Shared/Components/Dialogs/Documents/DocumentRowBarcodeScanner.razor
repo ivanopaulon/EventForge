@@ -1,5 +1,7 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
+@inject ILogger<DocumentRowBarcodeScanner> Logger
+@inject IAppNotificationService AppNotification
 
 <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
     <MudStack Spacing="2">
@@ -34,44 +36,60 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && AutoFocus && _barcodeField != null)
+        try
         {
-            await Task.Delay(100); // Small delay to ensure rendering is complete
-            await _barcodeField.FocusAsync();
+            if (firstRender && AutoFocus && _barcodeField != null)
+            {
+                await Task.Delay(100); // Small delay to ensure rendering is complete
+                await _barcodeField.FocusAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_internalValue))
+        try
         {
-            // Notify scan start
-            if (OnScanStart.HasDelegate)
+            if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_internalValue))
             {
-                await OnScanStart.InvokeAsync();
-            }
+                // Notify scan start
+                if (OnScanStart.HasDelegate)
+                {
+                    await OnScanStart.InvokeAsync();
+                }
 
-            // Trigger barcode scanned event
-            if (OnBarcodeScanned.HasDelegate)
-            {
-                await OnBarcodeScanned.InvokeAsync(_internalValue);
-            }
+                // Trigger barcode scanned event
+                if (OnBarcodeScanned.HasDelegate)
+                {
+                    await OnBarcodeScanned.InvokeAsync(_internalValue);
+                }
 
-            // Clear the value after scanning
-            _internalValue = string.Empty;
+                // Clear the value after scanning
+                _internalValue = string.Empty;
 
-            // Notify scan end
-            if (OnScanEnd.HasDelegate)
-            {
-                await OnScanEnd.InvokeAsync();
-            }
+                // Notify scan end
+                if (OnScanEnd.HasDelegate)
+                {
+                    await OnScanEnd.InvokeAsync();
+                }
 
-            // Refocus for next scan
-            if (_barcodeField != null)
-            {
-                await Task.Delay(50);
-                await _barcodeField.FocusAsync();
+                // Refocus for next scan
+                if (_barcodeField != null)
+                {
+                    await Task.Delay(50);
+                    await _barcodeField.FocusAsync();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleKeyDown.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

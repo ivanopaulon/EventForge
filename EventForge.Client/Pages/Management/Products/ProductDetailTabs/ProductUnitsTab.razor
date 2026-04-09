@@ -79,9 +79,17 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Product?.Id != Guid.Empty)
+        try
         {
-            await LoadUnitsAsync();
+            if (Product?.Id != Guid.Empty)
+            {
+                await LoadUnitsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnParametersSetAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -109,67 +117,83 @@
 
     private async Task OpenCreateDialog()
     {
-        // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
-        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
+        try
+        {
+            // Load unit of measures for the dialog
+            var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
+            var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
 
-        var parameters = new DialogParameters
+            var parameters = new DialogParameters
  {
  { "ProductId", Product.Id },
  { "UnitOfMeasures", unitOfMeasures },
  { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
-        TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
+            TranslationService.GetTranslation("product.addUnit", "Aggiungi Unità Alternativa"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadUnitsAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadUnitsAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenCreateDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(ProductUnitDto unit)
     {
-        // Load unit of measures for the dialog
-        var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
-        var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
+        try
+        {
+            // Load unit of measures for the dialog
+            var unitOfMeasuresResult = await UMService.GetUMsAsync(page: 1, pageSize: 100);
+            var unitOfMeasures = unitOfMeasuresResult?.Items ?? new List<UMDto>();
 
-        var parameters = new DialogParameters
+            var parameters = new DialogParameters
  {
  { "ProductUnit", unit },
  { "UnitOfMeasures", unitOfMeasures },
  { "ExistingUnits", _productUnits ?? new List<ProductUnitDto>() }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
-        TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<ProductUnitDialog>(
+            TranslationService.GetTranslation("product.editUnit", "Modifica Unità Alternativa"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadUnitsAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadUnitsAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
