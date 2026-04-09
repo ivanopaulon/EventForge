@@ -9,6 +9,7 @@
 @inject NavigationManager NavigationManager
 @inject IServiceProvider ServiceProvider
 @inject IAuthenticationDialogService AuthenticationDialogService
+@inject ILogger<App> Logger
 @implements IDisposable
 
 <MudThemeProvider />
@@ -111,7 +112,7 @@
             await InvokeAsync(ShowLoginDialog);
         }
         
-        Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
+        Logger.LogDebug("Auth state changed - Authenticated: {IsAuthenticated}, URI: {CurrentUri}", isAuthenticated, currentUri);
     }
 
     private async Task ShowLoginDialog()

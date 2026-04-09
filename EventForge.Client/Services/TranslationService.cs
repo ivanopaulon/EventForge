@@ -226,7 +226,7 @@ public class TranslationService(
             if (string.IsNullOrWhiteSpace(key))
             {
                 var result = !string.IsNullOrWhiteSpace(fallback) ? fallback : "[EMPTY_KEY]";
-                Console.WriteLine($"[TranslationService] Empty or null key provided. Using: {result}");
+            logger.LogWarning("Empty or null translation key provided. Using: {Result}", result);
                 return result;
             }
 
@@ -264,9 +264,8 @@ public class TranslationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting translation for key: {Key}", key);
             var errorFallback = !string.IsNullOrWhiteSpace(fallback) ? fallback : $"[{key}]";
-            Console.WriteLine($"[TranslationService] ERROR getting translation for key '{key}': {ex.Message}. Using: {errorFallback}");
+            logger.LogError(ex, "Error getting translation for key: {Key}. Using fallback: {Fallback}", key, errorFallback);
             return errorFallback;
         }
     }
@@ -298,10 +297,7 @@ public class TranslationService(
             _ => $"[TranslationService] Translation key '{key}' not found for language '{currentLanguage}'. File: {jsonFile}"
         };
 
-        // Console output for development debugging
-        Console.WriteLine(message);
-
-        // Structured logging for production monitoring
+        // Structured logging for production monitoring (replaces Console output)
         logger.LogWarning("Missing translation key detected. Key: {TranslationKey}, Language: {Language}, " +
                           "File: {TranslationFile}, Reason: {Reason}, Suggestion: {Suggestion}",
             key,

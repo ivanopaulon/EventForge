@@ -109,7 +109,7 @@ public interface IInventorySessionService
 /// <summary>
 /// Implementation of inventory session service using localStorage for persistence.
 /// </summary>
-public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionService
+public class InventorySessionService(IJSRuntime jsRuntime, ILogger<InventorySessionService> logger) : IInventorySessionService
 {
     private const string SessionKey = "eventforge-inventory-session";
 

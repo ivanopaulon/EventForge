@@ -9,6 +9,7 @@
 @inject IHelpService HelpService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<NavMenu> Logger
 @implements IDisposable
 
 <MudNavMenu>
@@ -416,8 +417,7 @@
         }
         catch (Exception ex)
         {
-            // Log error but don't show to user as this is background loading
-            Console.WriteLine($"[NavMenu] Error loading communication counts: {ex.Message}");
+            Logger.LogWarning(ex, "Error loading communication counts.");
             _unreadNotificationCount = 0;
             _unreadMessageCount = 0;
         }
