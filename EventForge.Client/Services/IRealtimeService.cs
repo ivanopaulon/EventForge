@@ -164,6 +164,11 @@ public interface IRealtimeService
     /// </summary>
     event Action<Guid, bool>? UserOnlineStatusChanged;
 
+    // ── WhatsApp real-time events (routed through the existing ChatHub) ──
+    event Action<EventForge.DTOs.External.WhatsApp.MessaggioWhatsAppDto>? WhatsAppMessageReceived;
+    event Action<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>? WhatsAppConversazioneAggiornata;
+    event Action<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>? WhatsAppNumeroNonRiconosciuto;
+
     #endregion
 
     #region Chat Methods

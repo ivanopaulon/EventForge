@@ -61,6 +61,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? UserJoinedChat;
     public event Action<object>? UserLeftChat;
     public event Action<Guid, bool>? UserOnlineStatusChanged;
+    public event Action<EventForge.DTOs.External.WhatsApp.MessaggioWhatsAppDto>? WhatsAppMessageReceived;
+    public event Action<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>? WhatsAppConversazioneAggiornata;
+    public event Action<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>? WhatsAppNumeroNonRiconosciuto;
     #endregion
 
     #region Events - Document Collaboration
@@ -361,6 +364,20 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         _ = connection.On<TypingIndicatorDto>("TypingIndicator", indicator =>
         {
             TypingIndicator?.Invoke(indicator);
+        });
+
+        // WhatsApp real-time events
+        _ = connection.On<EventForge.DTOs.External.WhatsApp.MessaggioWhatsAppDto>("NuovoMessaggioWhatsApp", msg =>
+        {
+            WhatsAppMessageReceived?.Invoke(msg);
+        });
+        _ = connection.On<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>("ConversazioneAggiornata", conv =>
+        {
+            WhatsAppConversazioneAggiornata?.Invoke(conv);
+        });
+        _ = connection.On<EventForge.DTOs.External.WhatsApp.ConversazioneWhatsAppDto>("NumeroNonRiconosciuto", conv =>
+        {
+            WhatsAppNumeroNonRiconosciuto?.Invoke(conv);
         });
     }
 
