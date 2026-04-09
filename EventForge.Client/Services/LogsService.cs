@@ -34,26 +34,57 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<ApplicationLogDto>> GetApplicationLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default)
         {
-            var queryString = BuildQueryString(queryParams);
-            return await httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
-                   new PagedResult<ApplicationLogDto>();
+            try
+            {
+                var queryString = BuildQueryString(queryParams);
+                return await httpClientService.GetAsync<PagedResult<ApplicationLogDto>>($"api/v1/application-logs?{queryString}") ??
+                       new PagedResult<ApplicationLogDto>();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving application logs");
+                throw;
+            }
         }
 
         public async Task<ApplicationLogDto?> GetApplicationLogAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}", ct);
-
+            try
+            {
+                return await httpClientService.GetAsync<ApplicationLogDto>($"api/v1/application-logs/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving application log {Id}", id);
+                throw;
+            }
         }
 
         public async Task<ApplicationLogStatisticsDto> GetApplicationLogStatisticsAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
-                   new ApplicationLogStatisticsDto();
+            try
+            {
+                return await httpClientService.GetAsync<ApplicationLogStatisticsDto>("api/v1/application-logs/statistics") ??
+                       new ApplicationLogStatisticsDto();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving application log statistics");
+                throw;
+            }
         }
 
         public async Task<Stream> ExportApplicationLogsAsync(ExportRequestDto exportDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
+            try
+            {
+                return await httpClientService.PostStreamAsync("api/v1/application-logs/export", exportDto);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error exporting application logs");
+                throw;
+            }
         }
 
         #endregion
@@ -62,26 +93,57 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default)
         {
-            var queryString = BuildQueryString(queryParams);
-            return await httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
-                   new PagedResult<EntityChangeLogDto>();
+            try
+            {
+                var queryString = BuildQueryString(queryParams);
+                return await httpClientService.GetAsync<PagedResult<EntityChangeLogDto>>($"api/v1/audit-logs?{queryString}") ??
+                       new PagedResult<EntityChangeLogDto>();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving audit logs");
+                throw;
+            }
         }
 
         public async Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}", ct);
-
+            try
+            {
+                return await httpClientService.GetAsync<EntityChangeLogDto>($"api/v1/audit-logs/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving audit log {Id}", id);
+                throw;
+            }
         }
 
         public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
-                   new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
+            try
+            {
+                return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
+                       new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving audit log statistics");
+                throw;
+            }
         }
 
         public async Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto, CancellationToken ct = default)
         {
-            return await httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
+            try
+            {
+                return await httpClientService.PostStreamAsync("api/v1/audit-logs/export", exportDto);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error exporting audit logs");
+                throw;
+            }
         }
 
         #endregion

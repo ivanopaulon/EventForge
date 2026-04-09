@@ -85,6 +85,7 @@ public class SaleSessionService(
             }
 
             var session = await context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -1185,6 +1186,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var sessions = await context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -1220,6 +1222,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var sessions = await context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -1977,6 +1980,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var childSessions = await context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .Include(s => s.Payments)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
@@ -2009,6 +2013,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var session = await context.SaleSessions
+                .AsNoTracking()
                 .Include(s => s.Items)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
@@ -2040,6 +2045,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
 
             var sessions = await context.SaleSessions
+                .AsNoTracking()
                 .Where(s => sessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .ToListAsync(cancellationToken);
 

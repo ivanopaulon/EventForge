@@ -69,53 +69,117 @@ namespace EventForge.Client.Services
 
         public async Task<PagedResult<BusinessPartyDto>> GetBusinessPartiesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}", ct)
-                ?? new PagedResult<BusinessPartyDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
+            try
+            {
+                return await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties?page={page}&pageSize={pageSize}", ct)
+                    ?? new PagedResult<BusinessPartyDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving business parties (page={Page}, pageSize={PageSize})", page, pageSize);
+                throw;
+            }
         }
 
         public async Task<BusinessPartyDto?> GetBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}", ct);
+            try
+            {
+                return await httpClientService.GetAsync<BusinessPartyDto>($"api/v1/businessparties/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving business party {Id}", id);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(BusinessPartyType partyType, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}", ct)
-                ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}", ct)
+                    ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving business parties by type {PartyType}", partyType);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays", ct)
-                ?? [];
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays", ct)
+                    ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving business parties with birthdays");
+                throw;
+            }
         }
 
         public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken ct = default)
         {
-            var query = $"api/v1/businessparties/search?searchTerm={Uri.EscapeDataString(searchTerm)}&pageSize={pageSize}";
-            if (partyType.HasValue)
+            try
             {
-                query += $"&partyType={partyType.Value}";
+                var query = $"api/v1/businessparties/search?searchTerm={Uri.EscapeDataString(searchTerm)}&pageSize={pageSize}";
+                if (partyType.HasValue)
+                {
+                    query += $"&partyType={partyType.Value}";
+                }
+                return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query, ct)
+                    ?? [];
             }
-            return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>(query, ct)
-                ?? [];
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error searching business parties (term={SearchTerm})", searchTerm);
+                throw;
+            }
         }
 
         public async Task<BusinessPartyDto> CreateBusinessPartyAsync(CreateBusinessPartyDto createDto, CancellationToken ct = default)
         {
-            var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto, ct);
-            return result ?? throw new InvalidOperationException("Failed to create business party");
+            try
+            {
+                var result = await httpClientService.PostAsync<CreateBusinessPartyDto, BusinessPartyDto>("api/v1/businessparties", createDto, ct);
+                return result ?? throw new InvalidOperationException("Failed to create business party");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating business party");
+                throw;
+            }
         }
 
         public async Task<BusinessPartyDto> UpdateBusinessPartyAsync(Guid id, UpdateBusinessPartyDto updateDto, CancellationToken ct = default)
         {
-            return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto, ct) ??
-                   throw new InvalidOperationException("Failed to update business party");
+            try
+            {
+                return await httpClientService.PutAsync<UpdateBusinessPartyDto, BusinessPartyDto>($"api/v1/businessparties/{id}", updateDto, ct) ??
+                       throw new InvalidOperationException("Failed to update business party");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating business party {Id}", id);
+                throw;
+            }
         }
 
         public async Task DeleteBusinessPartyAsync(Guid id, CancellationToken ct = default)
         {
-            await httpClientService.DeleteAsync($"api/v1/businessparties/{id}", ct);
+            try
+            {
+                await httpClientService.DeleteAsync($"api/v1/businessparties/{id}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error deleting business party {Id}", id);
+                throw;
+            }
         }
 
         #endregion
@@ -124,7 +188,15 @@ namespace EventForge.Client.Services
 
         public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId, CancellationToken ct = default)
         {
-            return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting", ct);
+            try
+            {
+                return await httpClientService.GetAsync<BusinessPartyAccountingDto>($"api/v1/businessparties/{businessPartyId}/accounting", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving accounting for business party {BusinessPartyId}", businessPartyId);
+                throw;
+            }
         }
 
         public async Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(
@@ -161,34 +233,42 @@ namespace EventForge.Client.Services
             int pageSize = 20,
             CancellationToken ct = default)
         {
-            var query = $"api/v1/businessparties/{businessPartyId}/documents?page={page}&pageSize={pageSize}";
-
-            if (fromDate.HasValue)
+            try
             {
-                query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
-            }
+                var query = $"api/v1/businessparties/{businessPartyId}/documents?page={page}&pageSize={pageSize}";
 
-            if (toDate.HasValue)
+                if (fromDate.HasValue)
+                {
+                    query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+                }
+
+                if (toDate.HasValue)
+                {
+                    query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+                }
+
+                if (documentTypeId.HasValue)
+                {
+                    query += $"&documentTypeId={documentTypeId.Value}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(searchNumber))
+                {
+                    query += $"&searchNumber={Uri.EscapeDataString(searchNumber)}";
+                }
+
+                if (approvalStatus.HasValue)
+                {
+                    query += $"&approvalStatus={approvalStatus.Value}";
+                }
+
+                return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query, ct);
+            }
+            catch (Exception ex)
             {
-                query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+                logger.LogError(ex, "Error retrieving documents for business party {BusinessPartyId}", businessPartyId);
+                throw;
             }
-
-            if (documentTypeId.HasValue)
-            {
-                query += $"&documentTypeId={documentTypeId.Value}";
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchNumber))
-            {
-                query += $"&searchNumber={Uri.EscapeDataString(searchNumber)}";
-            }
-
-            if (approvalStatus.HasValue)
-            {
-                query += $"&approvalStatus={approvalStatus.Value}";
-            }
-
-            return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query, ct);
         }
 
         #endregion
@@ -207,34 +287,42 @@ namespace EventForge.Client.Services
             bool sortDescending = true,
             CancellationToken ct = default)
         {
-            var query = $"api/v1/businessparties/{businessPartyId}/product-analysis?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
-
-            if (fromDate.HasValue)
+            try
             {
-                query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
-            }
+                var query = $"api/v1/businessparties/{businessPartyId}/product-analysis?page={page}&pageSize={pageSize}&sortDescending={sortDescending}";
 
-            if (toDate.HasValue)
+                if (fromDate.HasValue)
+                {
+                    query += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+                }
+
+                if (toDate.HasValue)
+                {
+                    query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(type))
+                {
+                    query += $"&type={Uri.EscapeDataString(type)}";
+                }
+
+                if (topN.HasValue)
+                {
+                    query += $"&topN={topN.Value}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(sortBy))
+                {
+                    query += $"&sortBy={Uri.EscapeDataString(sortBy)}";
+                }
+
+                return await httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query, ct);
+            }
+            catch (Exception ex)
             {
-                query += $"&toDate={toDate.Value:yyyy-MM-dd}";
+                logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
+                throw;
             }
-
-            if (!string.IsNullOrWhiteSpace(type))
-            {
-                query += $"&type={Uri.EscapeDataString(type)}";
-            }
-
-            if (topN.HasValue)
-            {
-                query += $"&topN={topN.Value}";
-            }
-
-            if (!string.IsNullOrWhiteSpace(sortBy))
-            {
-                query += $"&sortBy={Uri.EscapeDataString(sortBy)}";
-            }
-
-            return await httpClientService.GetAsync<PagedResult<BusinessPartyProductAnalysisDto>>(query, ct);
         }
 
         #endregion
@@ -243,16 +331,32 @@ namespace EventForge.Client.Services
 
         public async Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
-                $"api/v1/businessparties/{supplierId}/products/bulk-preview",
-                request, ct);
+            try
+            {
+                return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, List<SupplierProductPreview>>(
+                    $"api/v1/businessparties/{supplierId}/products/bulk-preview",
+                    request, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error previewing bulk supplier product update for supplier {SupplierId}", supplierId);
+                throw;
+            }
         }
 
         public async Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default)
         {
-            return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
-                $"api/v1/businessparties/{supplierId}/products/bulk-update",
-                request, ct);
+            try
+            {
+                return await httpClientService.PostAsync<BulkUpdateSupplierProductsRequest, BulkUpdateResult>(
+                    $"api/v1/businessparties/{supplierId}/products/bulk-update",
+                    request, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error executing bulk supplier product update for supplier {SupplierId}", supplierId);
+                throw;
+            }
         }
 
         #endregion

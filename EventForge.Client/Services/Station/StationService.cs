@@ -29,29 +29,69 @@ public class StationService(
 
     public async Task<StationDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<StationDto>($"{ApiBase}/{id}", ct);
+        try
+        {
+            return await httpClientService.GetAsync<StationDto>($"{ApiBase}/{id}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving station {Id}", id);
+            throw;
+        }
     }
 
     public async Task<StationDto?> CreateAsync(CreateStationDto createDto, CancellationToken ct = default)
     {
-        return await httpClientService.PostAsync<CreateStationDto, StationDto>(ApiBase, createDto, ct);
+        try
+        {
+            return await httpClientService.PostAsync<CreateStationDto, StationDto>(ApiBase, createDto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating station");
+            throw;
+        }
     }
 
     public async Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto, CancellationToken ct = default)
     {
-        return await httpClientService.PutAsync<UpdateStationDto, StationDto>($"{ApiBase}/{id}", updateDto, ct);
+        try
+        {
+            return await httpClientService.PutAsync<UpdateStationDto, StationDto>($"{ApiBase}/{id}", updateDto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating station {Id}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        await httpClientService.DeleteAsync($"{ApiBase}/{id}", ct);
-        return true;
+        try
+        {
+            await httpClientService.DeleteAsync($"{ApiBase}/{id}", ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting station {Id}", id);
+            throw;
+        }
     }
 
     public async Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}", ct)
-            ?? new PagedResult<StationDto>();
+        try
+        {
+            return await httpClientService.GetAsync<PagedResult<StationDto>>($"{ApiBase}?page={page}&pageSize={pageSize}", ct)
+                ?? new PagedResult<StationDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving paged stations (page={Page}, pageSize={PageSize})", page, pageSize);
+            throw;
+        }
     }
 
     // ── Printer methods ───────────────────────────────────────
@@ -72,16 +112,40 @@ public class StationService(
 
     public async Task<PrinterDto?> GetPrinterByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}", ct);
+        try
+        {
+            return await httpClientService.GetAsync<PrinterDto>($"{PrintersBase}/{id}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving printer {Id}", id);
+            throw;
+        }
     }
 
     public async Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto, CancellationToken ct = default)
     {
-        return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto, ct);
+        try
+        {
+            return await httpClientService.PostAsync<CreatePrinterDto, PrinterDto>(PrintersBase, createDto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating printer");
+            throw;
+        }
     }
 
     public async Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto, CancellationToken ct = default)
     {
-        return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto, ct);
+        try
+        {
+            return await httpClientService.PutAsync<UpdatePrinterDto, PrinterDto>($"{PrintersBase}/{id}", updateDto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating printer {Id}", id);
+            throw;
+        }
     }
 }
