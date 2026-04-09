@@ -624,24 +624,31 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     private async void CheckConnectionHealthAsync(object? state)
     {
-        // Skip recovery entirely if the user session has expired
-        if (!await _authService.IsAuthenticatedAsync())
+        try
         {
-            _logger.LogDebug("Skipping connection health check: user is not authenticated");
-            return;
-        }
-
-        var healthCheckTasks = _connections.Select(async kvp =>
-        {
-            var (key, connection) = kvp;
-            if (connection.State == HubConnectionState.Disconnected)
+            // Skip recovery entirely if the user session has expired
+            if (!await _authService.IsAuthenticatedAsync())
             {
-                _logger.LogWarning("Connection {Key} is disconnected, attempting recovery", key);
-                await StartConnectionAsync(key, GetHubPath(key));
+                _logger.LogDebug("Skipping connection health check: user is not authenticated");
+                return;
             }
-        });
 
-        await Task.WhenAll(healthCheckTasks);
+            var healthCheckTasks = _connections.Select(async kvp =>
+            {
+                var (key, connection) = kvp;
+                if (connection.State == HubConnectionState.Disconnected)
+                {
+                    _logger.LogWarning("Connection {Key} is disconnected, attempting recovery", key);
+                    await StartConnectionAsync(key, GetHubPath(key));
+                }
+            });
+
+            await Task.WhenAll(healthCheckTasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error in SignalR connection health check");
+        }
     }
 
     private string GetHubPath(string connectionKey) => connectionKey switch

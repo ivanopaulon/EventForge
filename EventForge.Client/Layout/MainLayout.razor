@@ -427,35 +427,42 @@
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        Logger.LogDebug("Navigation detected: {Uri}", e.Location);
-        
-        // Close the drawer on navigation (DrawerVariant.Responsive handles desktop visibility)
-        _drawerOpen = false;
-        
-        // Trigger token refresh on every navigation (sliding expiration)
-        if (await AuthService.IsAuthenticatedAsync())
+        try
         {
-            Logger.LogDebug("User authenticated, triggering sliding expiration refresh on navigation");
-            
-            // Fire and forget - don't wait for refresh to complete
-            _ = Task.Run(async () =>
+            Logger.LogDebug("Navigation detected: {Uri}", e.Location);
+
+            // Close the drawer on navigation (DrawerVariant.Responsive handles desktop visibility)
+            _drawerOpen = false;
+
+            // Trigger token refresh on every navigation (sliding expiration)
+            if (await AuthService.IsAuthenticatedAsync())
             {
-                try
+                Logger.LogDebug("User authenticated, triggering sliding expiration refresh on navigation");
+
+                // Fire and forget - don't wait for refresh to complete
+                _ = Task.Run(async () =>
                 {
-                    var refreshed = await AuthService.RefreshTokenAsync();
-                    if (refreshed)
+                    try
                     {
-                        Logger.LogDebug("Token refreshed successfully on navigation");
+                        var refreshed = await AuthService.RefreshTokenAsync();
+                        if (refreshed)
+                        {
+                            Logger.LogDebug("Token refreshed successfully on navigation");
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to refresh token on navigation");
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to refresh token on navigation");
+                    }
+                });
+            }
+
+            await InvokeAsync(StateHasChanged);
         }
-        
-        await InvokeAsync(StateHasChanged);
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling navigation change");
+        }
     }
 
     private async Task ShowLoginDialogAsync()

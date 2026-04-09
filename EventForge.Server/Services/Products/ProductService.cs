@@ -104,6 +104,7 @@ public class ProductService(
             {
                 var currentTenantId = tenantContext.CurrentTenantId;
                 preferredSupplierName = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -142,6 +143,7 @@ public class ProductService(
             {
                 var currentTenantId = tenantContext.CurrentTenantId;
                 preferredSupplierName = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -388,6 +390,7 @@ public class ProductService(
 
                 // Reload product with all related entities for the response
                 var createdProduct = await context.Products
+                    .AsNoTracking()
                     .Where(p => p.Id == product.Id && !p.IsDeleted)
                     .Include(p => p.Codes.Where(c => !c.IsDeleted))
                     .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -1742,6 +1745,7 @@ public class ProductService(
             }
 
             var supplier = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)
@@ -1768,6 +1772,7 @@ public class ProductService(
 
             // Validate product exists
             var product = await context.Products
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == createProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
             if (product is null)
@@ -1783,6 +1788,7 @@ public class ProductService(
 
             // Validate supplier exists and is a supplier type
             var supplier = await context.BusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == createProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
             if (supplier is null)
@@ -1882,6 +1888,7 @@ public class ProductService(
             if (productSupplier.ProductId != updateProductSupplierDto.ProductId)
             {
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == updateProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
                 if (product is null)
@@ -1899,6 +1906,7 @@ public class ProductService(
             if (productSupplier.SupplierId != updateProductSupplierDto.SupplierId)
             {
                 var supplier = await context.BusinessParties
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(bp => bp.Id == updateProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
                 if (supplier is null)
@@ -2083,12 +2091,14 @@ public class ProductService(
 
             // Get all products (preserve previous behaviour: products may be global)
             var products = await context.Products
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted)
                 .OrderBy(p => p.Name)
                 .ToListAsync(cancellationToken);
 
             // Get all existing associations for this supplier within the current tenant
             var associations = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .ToListAsync(cancellationToken);
 
@@ -2223,6 +2233,7 @@ public class ProductService(
 
             // Get latest purchase prices from approved document rows
             var latestPurchases = await context.DocumentRows
+                .AsNoTracking()
                 .Where(dr => dr.ProductId.HasValue &&
                             productIds.Contains(dr.ProductId.Value) &&
                             !dr.IsDeleted &&
@@ -2319,6 +2330,7 @@ public class ProductService(
 
             // Query document rows with all necessary joins
             var query = context.DocumentRows
+                .AsNoTracking()
                 .Where(r => r.ProductId == productId &&
                             !r.IsDeleted &&
                             r.TenantId == currentTenantId.Value)
@@ -2426,6 +2438,7 @@ public class ProductService(
 
             // Step 1: Try exact match on ProductCodes.Code (case-insensitive)
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.Brand)
@@ -2449,6 +2462,7 @@ public class ProductService(
 
             // Step 2: Try exact match on Product.Code (case-insensitive)
             var productByCode = await context.Products
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
@@ -2470,6 +2484,7 @@ public class ProductService(
             var searchWords = queryTrimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var textQuery = context.Products
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
@@ -2516,6 +2531,7 @@ public class ProductService(
             }
 
             var query = context.Products
+                .AsNoTracking()
                 .Include(p => p.Brand)
                 .Include(p => p.Model)
                 .Include(p => p.UnitOfMeasure)
