@@ -17,6 +17,7 @@ public class FontPreferencesService(
     IJSRuntime jsRuntime,
     ILocalStorageService localStorage,
     IProfileService profileService,
+    IAuthService authService,
     ILogger<FontPreferencesService> logger) : IFontPreferencesService
 {
     private const string StorageKey = "eventforge-font-preferences";
@@ -29,8 +30,12 @@ public class FontPreferencesService(
     {
         try
         {
-            // 1. Prova a caricare dal profilo server
-            var profile = await profileService.GetProfileAsync();
+            // 1. Prova a caricare dal profilo server (solo se autenticato)
+            UserProfileDto? profile = null;
+            if (await authService.IsAuthenticatedAsync())
+            {
+                profile = await profileService.GetProfileAsync();
+            }
             if (profile?.DisplayPreferences != null)
             {
                 _currentPreferences = profile.DisplayPreferences;
