@@ -91,9 +91,9 @@ BEGIN
         CONSTRAINT [FK_FiscalDrawerSessions_FiscalDrawers_FiscalDrawerId]
             FOREIGN KEY ([FiscalDrawerId]) REFERENCES [FiscalDrawers] ([Id]) ON DELETE CASCADE,
         CONSTRAINT [FK_FiscalDrawerSessions_StoreUsers_OpenedBy]
-            FOREIGN KEY ([OpenedByOperatorId]) REFERENCES [StoreUsers] ([Id]) ON DELETE SET NULL,
+            FOREIGN KEY ([OpenedByOperatorId]) REFERENCES [StoreUsers] ([Id]) ON DELETE NO ACTION,
         CONSTRAINT [FK_FiscalDrawerSessions_StoreUsers_ClosedBy]
-            FOREIGN KEY ([ClosedByOperatorId]) REFERENCES [StoreUsers] ([Id]) ON DELETE SET NULL
+            FOREIGN KEY ([ClosedByOperatorId]) REFERENCES [StoreUsers] ([Id]) ON DELETE NO ACTION
     );
 END
 GO
