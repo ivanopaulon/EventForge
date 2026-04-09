@@ -218,7 +218,7 @@ public class StockMovementService(
         {
             Id = Guid.NewGuid(),
             TenantId = currentTenantId,
-            MovementType = Enum.Parse<StockMovementType>(createDto.MovementType),
+            MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
             ProductId = createDto.ProductId,
             LotId = createDto.LotId,
             SerialId = createDto.SerialId,
@@ -281,7 +281,7 @@ public class StockMovementService(
                 {
                     Id = Guid.NewGuid(),
                     TenantId = currentTenantId,
-                    MovementType = Enum.Parse<StockMovementType>(createDto.MovementType),
+                    MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
                     ProductId = createDto.ProductId,
                     LotId = createDto.LotId,
                     SerialId = createDto.SerialId,
