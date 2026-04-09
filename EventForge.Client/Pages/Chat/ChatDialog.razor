@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services.WhatsApp
+@using EventForge.Client.Models.Messaging
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
@@ -11,259 +12,275 @@
 @inject ILogger<ChatDialog> Logger
 @implements IDisposable
 
-<MudDialog Class="chat-dlg">
-    <TitleContent>
-        <div class="d-flex align-center gap-2 w-100">
-            <MudIcon Icon="@Icons.Material.Filled.Chat" Color="Color.Primary" Style="flex-shrink:0;" />
-            <MudText Typo="Typo.h6" Style="font-weight:600; color:rgba(255,255,255,0.87); flex-shrink:0;">
-                @TranslationService.GetTranslation("chat.title", "Chat")
-            </MudText>
-            @if (_totalUnreadMessages > 0)
-            {
-                <MudBadge Content="@_totalUnreadMessages.ToString()" Color="Color.Error" />
-            }
-            <MudSpacer />
-            <AuthorizeViewRoles Roles="Admin,SuperAdmin">
-                <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
-                    <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
-                                   Size="Size.Small"
-                                   Color="Color.Success"
-                                   OnClick="@OpenWhatsAppConfigAsync"
-                                   title="Configurazione WhatsApp" />
-                </MudTooltip>
-            </AuthorizeViewRoles>
-            <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                           Size="Size.Small"
-                           Color="Color.Default"
-                           OnClick="@HandleClose"
-                           title="Chiudi" />
-        </div>
-    </TitleContent>
-    <DialogContent>
-        <!-- Two-panel fullscreen chat layout -->
+@* Open with: new DialogOptions { FullScreen = true, BackdropClick = false, CloseButton = false } *@
+<EFDialog Icon="@Icons.Material.Filled.Chat"
+          Title="@TranslationService.GetTranslation("chat.title", "Chat")"
+          IsProcessing="@_isLoadingChats"
+          OnClose="@HandleClose">
+    <ChildContent>
         <div class="chat-dlg-layout">
 
-            <!-- LEFT: Chat list sidebar -->
+            @* ═══════════════ LEFT SIDEBAR ═══════════════ *@
             <div class="chat-dlg-sidebar">
 
-                <!-- Search field + type filter -->
-                <div class="chat-dlg-search">
+                @* Sidebar header: title / unread / WhatsApp config *@
+                <div class="chat-dlg-sidebar-header">
+                    <div class="d-flex align-center gap-2">
+                        <MudText Typo="Typo.subtitle1" Class="chat-dlg-sidebar-title">
+                            @TranslationService.GetTranslation("chat.conversations", "Conversazioni")
+                        </MudText>
+                        @if (_totalUnread > 0)
+                        {
+                            <MudBadge Content="@_totalUnread.ToString()" Color="Color.Error" />
+                        }
+                    </div>
+                    <AuthorizeViewRoles Roles="Admin,SuperAdmin">
+                        <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
+                            <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
+                                           Size="Size.Small"
+                                           Color="Color.Success"
+                                           OnClick="@OpenWhatsAppConfigAsync" />
+                        </MudTooltip>
+                    </AuthorizeViewRoles>
+                </div>
+
+                @* Search *@
+                <div class="chat-dlg-search-wrap">
                     <MudTextField T="string"
                                   @bind-Value="_searchText"
                                   Label="@TranslationService.GetTranslation("chat.search", "Cerca chat...")"
-                                  StartIcon="@Icons.Material.Filled.Search"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
                                   Variant="Variant.Outlined"
-                                  FullWidth="true"
                                   Margin="Margin.Dense"
-                                  Immediate="true" />
-                    <MudButtonGroup Class="mt-2" OverrideStyles="false" Size="Size.Small" Variant="Variant.Text">
-                        <MudButton StartIcon="@Icons.Material.Filled.People"
-                                   Color="@(_chatFilter == "all" ? Color.Primary : Color.Default)"
-                                   OnClick="@(() => SetChatFilter("all"))">
-                            @TranslationService.GetTranslation("chat.allChats", "Tutte")
-                        </MudButton>
-                        <MudButton StartIcon="@Icons.Material.Filled.Person"
-                                   Color="@(_chatFilter == "direct" ? Color.Primary : Color.Default)"
-                                   OnClick="@(() => SetChatFilter("direct"))">
-                            @TranslationService.GetTranslation("chat.internalMessages", "Interni")
-                        </MudButton>
-                        <MudButton StartIcon="@Icons.Material.Filled.Group"
-                                   Color="@(_chatFilter == "group" ? Color.Primary : Color.Default)"
-                                   OnClick="@(() => SetChatFilter("group"))">
-                            @TranslationService.GetTranslation("chat.groups", "Gruppi")
-                        </MudButton>
-                        <MudButton StartIcon="@Icons.Custom.Brands.WhatsApp"
-                                   Color="@(_chatFilter == "whatsapp" ? Color.Success : Color.Default)"
-                                   OnClick="@(() => SetChatFilter("whatsapp"))">
-                            WhatsApp
-                        </MudButton>
-                    </MudButtonGroup>
+                                  FullWidth="true"
+                                  Immediate="true"
+                                  Class="messaging-search-field" />
+                </div>
+
+                @* Filter tabs: All / Internal / WhatsApp *@
+                <div class="chat-dlg-filter-row">
+                    <MudChip T="string"
+                             Variant="@(_chatFilter == "all" ? Variant.Filled : Variant.Outlined)"
+                             Color="@(_chatFilter == "all" ? Color.Primary : Color.Default)"
+                             Size="Size.Small"
+                             OnClick="@(() => SetChatFilter("all"))">
+                        @TranslationService.GetTranslation("chat.allChats", "Tutte")
+                    </MudChip>
+                    <MudChip T="string"
+                             Variant="@(_chatFilter == "internal" ? Variant.Filled : Variant.Outlined)"
+                             Color="@(_chatFilter == "internal" ? Color.Primary : Color.Default)"
+                             Size="Size.Small"
+                             Icon="@Icons.Material.Filled.People"
+                             OnClick="@(() => SetChatFilter("internal"))">
+                        @TranslationService.GetTranslation("chat.internalMessages", "Interni")
+                    </MudChip>
+                    <MudChip T="string"
+                             Variant="@(_chatFilter == "whatsapp" ? Variant.Filled : Variant.Outlined)"
+                             Color="@(_chatFilter == "whatsapp" ? Color.Success : Color.Default)"
+                             Size="Size.Small"
+                             Icon="@Icons.Custom.Brands.WhatsApp"
+                             OnClick="@(() => SetChatFilter("whatsapp"))">
+                        WhatsApp
+                    </MudChip>
                 </div>
 
                 <MudDivider />
 
-                <!-- Chat list (scrollable) -->
-                <div class="chat-dlg-list">
+                @* Conversation list *@
+                <div class="chat-dlg-conv-list">
                     @if (_isLoadingChats)
                     {
-                        <div class="pa-4 text-center">
+                        <div class="d-flex justify-center pa-6">
                             <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                            <MudText Typo="Typo.body2" Class="mt-2">
-                                @TranslationService.GetTranslation("common.loading", "Caricamento...")
-                            </MudText>
                         </div>
                     }
                     else
                     {
-                        var internalChats = GetFilteredInternalChats();
-                        var whatsAppChats = GetFilteredWhatsAppChats();
-
-                        @if (internalChats.Count > 0 && (_chatFilter == "all" || _chatFilter == "direct" || _chatFilter == "group"))
+                        var visibleChats = GetFilteredChats();
+                        @if (visibleChats.Count == 0)
                         {
-                            @if (_chatFilter == "all")
-                            {
-                                <MudText Typo="Typo.overline" Color="Color.Secondary" Class="px-3 pt-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Class="mr-1" />
-                                    Interni
-                                </MudText>
-                                <MudDivider Class="my-1" />
-                            }
-                            <MudList T="object" Clickable="true" Dense="true">
-                                @foreach (var chat in internalChats)
-                                {
-                                    <MudListItem OnClick="@(() => SelectChatAsync(chat))"
-                                                 Class="@(chat.Id == _selectedChatId ? "chat-dlg-selected-item" : "")">
-                                        <div class="d-flex align-center w-100">
-                                            <MudAvatar Size="Size.Small"
-                                                       Color="@(chat.Type != ChatType.DirectMessage ? Color.Secondary : Color.Primary)"
-                                                       Class="mr-3">
-                                                <MudIcon Icon="@(chat.Type != ChatType.DirectMessage ? Icons.Material.Filled.Group : Icons.Material.Filled.Person)" />
-                                            </MudAvatar>
-                                            <div class="flex-grow-1 overflow-hidden">
-                                                <div class="d-flex justify-space-between align-center">
-                                                    <MudText Typo="Typo.body2"
-                                                             Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
-                                                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                                        @GetChatName(chat)
-                                                    </MudText>
-                                                    @if (chat.UnreadCount > 0)
-                                                    {
-                                                        <MudBadge Content="@chat.UnreadCount.ToString()" Color="Color.Error" Size="Size.Small" />
-                                                    }
-                                                </div>
-                                                <MudText Typo="Typo.caption"
-                                                         Color="Color.Secondary"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                                    @(chat.LastMessage?.Content ?? "")
-                                                </MudText>
-                                            </div>
-                                        </div>
-                                    </MudListItem>
-                                    <MudDivider />
-                                }
-                            </MudList>
-                        }
-
-                        @if (whatsAppChats.Count > 0 && (_chatFilter == "all" || _chatFilter == "whatsapp"))
-                        {
-                            @if (_chatFilter == "all")
-                            {
-                                <MudText Typo="Typo.overline" Color="Color.Success" Class="px-3 pt-2">
-                                    <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Size="Size.Small" Color="Color.Success" Class="mr-1" />
-                                    WhatsApp
-                                </MudText>
-                                <MudDivider Class="my-1" />
-                            }
-                            <MudList T="object" Clickable="true" Dense="true">
-                                @foreach (var chat in whatsAppChats)
-                                {
-                                    <MudListItem OnClick="@(() => SelectChatAsync(chat))"
-                                                 Class="@(chat.Id == _selectedChatId ? "chat-dlg-selected-item" : "")">
-                                        <div class="d-flex align-center w-100">
-                                            <MudAvatar Size="Size.Small" Color="Color.Success" Class="mr-3">
-                                                <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" />
-                                            </MudAvatar>
-                                            <div class="flex-grow-1 overflow-hidden">
-                                                <div class="d-flex justify-space-between align-center">
-                                                    <MudText Typo="Typo.body2"
-                                                             Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")"
-                                                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                                        @(chat.BusinessPartyName ?? chat.ExternalPhoneNumber ?? GetChatName(chat))
-                                                    </MudText>
-                                                    @if (chat.UnreadCount > 0)
-                                                    {
-                                                        <MudBadge Content="@chat.UnreadCount.ToString()" Color="Color.Error" Size="Size.Small" />
-                                                    }
-                                                </div>
-                                                @if (chat.IsUnrecognizedNumber)
-                                                {
-                                                    <MudText Typo="Typo.caption" Color="Color.Warning">Numero non riconosciuto</MudText>
-                                                }
-                                                <MudText Typo="Typo.caption"
-                                                         Color="Color.Secondary"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                                    @(chat.LastMessage?.Content ?? "")
-                                                </MudText>
-                                            </div>
-                                        </div>
-                                    </MudListItem>
-                                    <MudDivider />
-                                }
-                            </MudList>
-                        }
-
-                        @if (internalChats.Count == 0 && whatsAppChats.Count == 0)
-                        {
-                            <div class="pa-4 text-center">
-                                <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Medium" Color="Color.Tertiary" Class="mb-2" />
+                            <div class="d-flex flex-column align-center justify-center pa-6 gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                                         Size="Size.Large"
+                                         Style="opacity:.3;" />
                                 <MudText Typo="Typo.body2" Color="Color.Tertiary">
                                     @TranslationService.GetTranslation("chat.noChats", "Nessuna chat disponibile")
                                 </MudText>
                             </div>
                         }
+                        else
+                        {
+                            <MudList T="object" Dense="true" Clickable="true" Padding="false">
+                                @foreach (var chat in visibleChats)
+                                {
+                                    var isSelected = chat.Id == _selectedChatId;
+                                    var chatName   = GetChatName(chat);
+                                    var isWa       = chat.Type == ChatType.WhatsApp;
+                                    var otherOnline = chat.Type == ChatType.DirectMessage
+                                                      && chat.Members.FirstOrDefault(m => m.UserId != _currentUserId)?.IsOnline == true;
+
+                                    <MudListItem T="object"
+                                                 OnClick="@(() => SelectChatAsync(chat))"
+                                                 Class="@($"conversation-item{(isSelected ? " conversation-item--active" : "")}")">
+                                        <div class="d-flex align-center w-100 gap-3">
+
+                                            @* Avatar + presence dot *@
+                                            <div style="position:relative;flex-shrink:0;">
+                                                @if (isWa)
+                                                {
+                                                    <MudAvatar Style="background:#25D366;width:40px;height:40px;">
+                                                        <MudIcon Icon="@Icons.Custom.Brands.WhatsApp"
+                                                                 Style="color:white;font-size:22px;" />
+                                                    </MudAvatar>
+                                                }
+                                                else
+                                                {
+                                                    <MudAvatar Style="@($"background:{GetAvatarColor(chatName)};width:40px;height:40px;color:#fff;font-size:.85rem;font-weight:600;")">
+                                                        @GetInitials(chatName)
+                                                    </MudAvatar>
+                                                }
+                                                <span class="@GetPresenceDotClass(otherOnline ? PresenceStatus.Online : PresenceStatus.Offline)"></span>
+                                            </div>
+
+                                            @* Name + last message *@
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <div class="d-flex justify-space-between align-center">
+                                                    <MudText Typo="Typo.body2"
+                                                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                                             Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")">
+                                                        @(isWa ? (chat.BusinessPartyName ?? chat.ExternalPhoneNumber ?? chatName) : chatName)
+                                                    </MudText>
+                                                    @if (chat.UnreadCount > 0)
+                                                    {
+                                                        <MudChip T="string"
+                                                                 Label="true"
+                                                                 Size="Size.Small"
+                                                                 Style="@($"background:{(isWa ? "#25D366" : "var(--mud-palette-primary)")};color:#fff;height:18px;min-width:18px;font-size:0.7rem;padding:0 4px;")">
+                                                            @chat.UnreadCount.ToString()
+                                                        </MudChip>
+                                                    }
+                                                </div>
+                                                <MudText Typo="Typo.caption"
+                                                         Color="Color.Secondary"
+                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">
+                                                    @(chat.LastMessage?.Content ?? "")
+                                                </MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                    <MudDivider />
+                                }
+                            </MudList>
+                        }
                     }
                 </div>
 
-                <MudDivider />
-
-                <!-- New chat button at bottom -->
-                <div class="chat-dlg-new-chat">
+                @* New-chat FAB (bottom of sidebar) *@
+                <div class="chat-dlg-new-chat-bar">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Add"
-                               OnClick="@StartNewChatAsync">
+                               StartIcon="@Icons.Material.Filled.Edit"
+                               OnClick="@OpenStartConversationDialogAsync">
                         @TranslationService.GetTranslation("chat.newChat", "Nuova Chat")
                     </MudButton>
                 </div>
             </div>
 
-            <!-- RIGHT: Messages area -->
+            @* ═══════════════ RIGHT MAIN AREA ═══════════════ *@
             <div class="chat-dlg-main">
-                @if (_isLoadingChats)
+                @if (_selectedChat != null)
                 {
-                    <div class="d-flex justify-center align-center" style="height:100%;">
-                        <MudProgressCircular Indeterminate="true" />
-                    </div>
-                }
-                else if (_selectedChatId.HasValue && _selectedChat != null)
-                {
-                    <!-- Chat header bar -->
+                    var selIsWa = _selectedChat.Type == ChatType.WhatsApp;
+
+                    @* Chat header *@
                     <div class="chat-dlg-chat-header">
-                        <MudAvatar Size="Size.Small"
-                                   Style="@($"background-color:{GetAvatarColor(GetChatName(_selectedChat))};color:#fff;margin-right:12px;")">
-                            @GetInitials(GetChatName(_selectedChat))
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.subtitle1" Style="font-weight:600; color:rgba(255,255,255,0.87);">
-                                @GetChatName(_selectedChat)
-                            </MudText>
+                        @* Avatar *@
+                        <div style="position:relative;flex-shrink:0;margin-right:12px;">
+                            @if (selIsWa)
+                            {
+                                <MudAvatar Style="background:#25D366;width:36px;height:36px;">
+                                    <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Style="color:white;font-size:20px;" />
+                                </MudAvatar>
+                            }
+                            else
+                            {
+                                var selName = GetChatName(_selectedChat);
+                                <MudAvatar Style="@($"background:{GetAvatarColor(selName)};width:36px;height:36px;color:#fff;font-size:.8rem;font-weight:600;")">
+                                    @GetInitials(selName)
+                                </MudAvatar>
+                            }
+                            @{
+                                var headerOtherMember = _selectedChat.Type == ChatType.DirectMessage
+                                    ? _chatMembers.FirstOrDefault(m => m.UserId != _currentUserId)
+                                    : null;
+                                var headerOnline = headerOtherMember?.IsOnline == true;
+                            }
+                            <span class="@GetPresenceDotClass(headerOnline ? PresenceStatus.Online : PresenceStatus.Offline) messaging-header"></span>
+                        </div>
+
+                        @* Name + channel chip + presence *@
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-center gap-2 flex-wrap">
+                                <MudText Typo="Typo.subtitle1"
+                                         Style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,0.87);">
+                                    @(selIsWa
+                                        ? (_selectedChat.BusinessPartyName ?? _selectedChat.ExternalPhoneNumber ?? GetChatName(_selectedChat))
+                                        : GetChatName(_selectedChat))
+                                </MudText>
+                                @if (selIsWa)
+                                {
+                                    <MudChip T="string" Label="true" Size="Size.Small"
+                                             Style="background:#dcf8c6;color:#1a7a4a;height:20px;font-size:.7rem;padding:0 6px;">
+                                        WA
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Label="true" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="Color.Primary"
+                                             Style="height:20px;font-size:.7rem;padding:0 6px;">
+                                        Interno
+                                    </MudChip>
+                                }
+                            </div>
                             @if (_typingUsers.Count > 0)
                             {
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("chat.typing", "sta scrivendo...")
                                 </MudText>
                             }
-                            else if (_selectedChat.Type == ChatType.DirectMessage)
+                            else
                             {
-                                var other = _chatMembers.FirstOrDefault(m => m.UserId != _currentUserId);
-                                @if (other?.IsOnline == true)
-                                {
-                                    <MudText Typo="Typo.caption" Color="Color.Success">● Online</MudText>
-                                }
+                                <MudText Typo="Typo.caption"
+                                         Style="@($"color:{PresenceColor(headerOnline ? PresenceStatus.Online : PresenceStatus.Offline)};")">
+                                    @PresenceLabel(headerOnline ? PresenceStatus.Online : PresenceStatus.Offline)
+                                </MudText>
                             }
                         </div>
-                        <MudTooltip Text="@(_showChatInfo ? TranslationService.GetTranslation("chat.hideInfo", "Nascondi info") : TranslationService.GetTranslation("chat.chatInfo", "Informazioni chat"))">
-                            <MudIconButton Icon="@(_showChatInfo ? Icons.Material.Outlined.Info : Icons.Material.Filled.Info)"
-                                           Color="@(_showChatInfo ? Color.Primary : Color.Inherit)"
-                                           Size="Size.Small"
-                                           OnClick="@ShowChatInfoAsync" />
+
+                        @* Header actions *@
+                        @if (_selectedChat.Type != ChatType.WhatsApp)
+                        {
+                            <MudTooltip Text="@(_showChatInfo ? TranslationService.GetTranslation("chat.hideInfo","Nascondi info") : TranslationService.GetTranslation("chat.chatInfo","Informazioni"))">
+                                <MudIconButton Icon="@(_showChatInfo ? Icons.Material.Outlined.Info : Icons.Material.Filled.Info)"
+                                               Color="@(_showChatInfo ? Color.Primary : Color.Inherit)"
+                                               Size="Size.Small"
+                                               OnClick="@(() => { _showChatInfo = !_showChatInfo; })" />
+                            </MudTooltip>
+                        }
+                        <MudTooltip Text="Altro">
+                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                           Color="Color.Inherit"
+                                           Size="Size.Small" />
                         </MudTooltip>
                     </div>
 
-                    <!-- Messages + optional members panel -->
+                    @* Messages + members panel *@
                     <div class="chat-dlg-content-row">
-                        <!-- Messages (scrollable) -->
+
+                        @* Messages *@
                         <div class="chat-dlg-messages" id="messages-container">
                             @if (_isLoadingMessages)
                             {
@@ -271,28 +288,53 @@
                                     <MudProgressCircular Indeterminate="true" />
                                 </div>
                             }
-                            else if (_messages?.Any() == true)
+                            else if (_messages.Count > 0)
                             {
-                                @foreach (var message in _messages)
+                                @foreach (var msg in _messages)
                                 {
-                                    <EnhancedMessage Message="@message"
-                                                     IsFromCurrentUser="@IsFromCurrentUser(message)"
-                                                     ShowSenderInfo="@(_selectedChat.Type != ChatType.DirectMessage || !IsFromCurrentUser(message))"
-                                                     CurrentUserId="@_currentUserId"
-                                                     ChatType="@_selectedChat.Type"
-                                                     OnReply="@SetReplyToMessage"
-                                                     OnEdit="@EditMessage"
-                                                     OnDelete="@DeleteMessage"
-                                                     OnShare="@ShareMessage"
-                                                     OnReport="@ReportMessage"
-                                                     OnReaction="@((emoji) => ToggleMessageReaction(message.Id, emoji))"
-                                                     OnDownloadAttachment="@DownloadAttachmentAsync"
-                                                     OnPreviewImage="@PreviewImage" />
+                                    var isMe = msg.SenderId == _currentUserId;
+                                    <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1")">
+                                        @if (!isMe)
+                                        {
+                                            <div style="margin-right:8px;flex-shrink:0;align-self:flex-end;">
+                                                <MudAvatar Size="Size.Small"
+                                                           Style="@($"background:{GetAvatarColor(msg.SenderName ?? "?")};color:#fff;font-size:.65rem;font-weight:600;width:28px;height:28px;")">
+                                                    @GetInitials(msg.SenderName ?? "?")
+                                                </MudAvatar>
+                                            </div>
+                                        }
+                                        <div style="max-width:70%;">
+                                            @if (!isMe && _selectedChat.Type != ChatType.DirectMessage)
+                                            {
+                                                <MudText Typo="Typo.caption"
+                                                         Style="@($"color:{GetAvatarColor(msg.SenderName ?? "?")};font-weight:600;display:block;margin-bottom:2px;")">
+                                                    @msg.SenderName
+                                                </MudText>
+                                            }
+                                            <div class="@($"msg-bubble {(isMe ? "msg-bubble--me" : "msg-bubble--other")}")"
+                                                 style="@GetBubbleStyle(isMe, selIsWa)">
+                                                <MudText Typo="Typo.body2" Style="white-space:pre-wrap;word-break:break-word;">
+                                                    @msg.Content
+                                                </MudText>
+                                                <div class="d-flex justify-end align-center gap-1 mt-1">
+                                                    <MudText Typo="Typo.caption"
+                                                             Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
+                                                        @FormatMessageTime(msg.SentAt)
+                                                    </MudText>
+                                                    @if (isMe)
+                                                    {
+                                                        <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                                                                 Style="@($"font-size:.8rem;color:{(msg.Status == MessageStatus.Read ? "#90caf9" : "rgba(255,255,255,0.5)")};")"/>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 }
                                 @if (_typingUsers.Count > 0)
                                 {
-                                    <div class="d-flex align-center pa-2">
-                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    <div class="d-flex align-center gap-2 pa-1">
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                                             @TranslationService.GetTranslation("chat.typing", "sta scrivendo...")
                                         </MudText>
@@ -303,7 +345,8 @@
                             {
                                 <div class="d-flex justify-center align-center" style="height:200px;">
                                     <div class="text-center">
-                                        <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Medium" Color="Color.Tertiary" Class="mb-2" />
+                                        <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                                                 Size="Size.Large" Color="Color.Tertiary" Class="mb-2" />
                                         <MudText Typo="Typo.body2" Color="Color.Tertiary">
                                             @TranslationService.GetTranslation("chat.noMessages", "Nessun messaggio")
                                         </MudText>
@@ -315,49 +358,45 @@
                             }
                         </div>
 
-                        <!-- Members panel (togglable) -->
-                        @if (_showChatInfo)
+                        @* Optional members panel *@
+                        @if (_showChatInfo && _selectedChat.Type != ChatType.WhatsApp)
                         {
                             <div class="chat-dlg-members">
-                                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                <MudText Typo="Typo.subtitle2" Class="mb-3">
                                     @TranslationService.GetTranslation("chat.members", "Partecipanti")
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-1">(@_chatMembers.Count)</MudText>
+                                    (@_chatMembers.Count)
                                 </MudText>
-                                @foreach (var member in _chatMembers)
+                                @foreach (var m in _chatMembers)
                                 {
-                                    var isSelf = member.UserId == _currentUserId;
-                                    <div class="d-flex align-center mb-2">
-                                        <MudAvatar Size="Size.Small"
-                                                   Style="@($"background-color:{GetAvatarColor(member.DisplayName ?? member.Username ?? "?")};color:#fff;font-size:0.7rem;width:28px;height:28px;min-width:28px;")">
-                                            @GetInitials(member.DisplayName ?? member.Username ?? "?")
-                                        </MudAvatar>
-                                        @if (member.IsOnline)
-                                        {
-                                            <div style="width:8px;height:8px;background:#4caf50;border-radius:50%;margin-left:-8px;margin-top:16px;border:1px solid white;" />
-                                        }
-                                        <div class="ml-2 flex-grow-1 overflow-hidden">
-                                            <MudText Typo="Typo.body2" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                                @(member.DisplayName ?? member.Username)
+                                    var isSelf = m.UserId == _currentUserId;
+                                    <div class="d-flex align-center gap-2 mb-2">
+                                        <div style="position:relative;flex-shrink:0;">
+                                            <MudAvatar Size="Size.Small"
+                                                       Style="@($"background:{GetAvatarColor(m.DisplayName ?? m.Username ?? "?")};color:#fff;font-size:.65rem;font-weight:600;width:28px;height:28px;")">
+                                                @GetInitials(m.DisplayName ?? m.Username ?? "?")
+                                            </MudAvatar>
+                                            <span class="@GetPresenceDotClass(m.IsOnline ? PresenceStatus.Online : PresenceStatus.Offline)"></span>
+                                        </div>
+                                        <div class="flex-grow-1 overflow-hidden">
+                                            <MudText Typo="Typo.body2"
+                                                     Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                @(m.DisplayName ?? m.Username)
                                                 @if (isSelf)
                                                 {
-                                                    <MudText Typo="Typo.caption" Color="Color.Primary" Class="ml-1">(tu)</MudText>
+                                                    <span style="color:var(--mud-palette-primary);font-size:.75rem;"> (tu)</span>
                                                 }
                                             </MudText>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@member.Role.ToString()</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @m.Role.ToString()
+                                            </MudText>
                                         </div>
                                     </div>
-                                }
-                                @if (_chatMembers.Count == 0)
-                                {
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @TranslationService.GetTranslation("chat.noMembers", "Nessun partecipante")
-                                    </MudText>
                                 }
                             </div>
                         }
                     </div>
 
-                    <!-- Message composer -->
+                    @* Message composer *@
                     <div class="chat-dlg-composer">
                         <EnhancedMessageComposer CurrentChat="@_selectedChat"
                                                  ReplyToMessage="@_replyToMessage"
@@ -371,167 +410,52 @@
                 }
                 else
                 {
-                    <!-- Welcome / empty state -->
-                    <div class="d-flex justify-center align-center" style="height:100%;">
-                        <div class="text-center">
-                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Large" Color="Color.Tertiary" Class="mb-4" />
-                            <MudText Typo="Typo.h5" Color="Color.Tertiary" Class="mb-2">
-                                @TranslationService.GetTranslation("chat.welcomeTitle", "Benvenuto in Chat")
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                @TranslationService.GetTranslation("chat.welcomeMessage", "Seleziona una chat dalla sidebar per iniziare a chattare")
-                            </MudText>
-                        </div>
+                    @* Welcome / empty state *@
+                    <div class="d-flex flex-column justify-center align-center" style="height:100%;gap:12px;">
+                        <MudIcon Icon="@Icons.Material.Outlined.Forum"
+                                 Style="font-size:64px;opacity:.2;" />
+                        <MudText Typo="Typo.h6" Color="Color.Tertiary">
+                            @TranslationService.GetTranslation("chat.welcomeTitle", "Seleziona una conversazione")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("chat.welcomeMessage", "oppure avviane una nuova con il pulsante +")
+                        </MudText>
                     </div>
                 }
             </div>
         </div>
-    </DialogContent>
-</MudDialog>
-
-<style>
-    /* ═══════════════════════════════════════════════════════════
-       ChatDialog — fullscreen two-panel layout
-       ═══════════════════════════════════════════════════════════ */
-
-    /* Ensure the dialog content fills the fullscreen dialog */
-    .chat-dlg .mud-dialog-content {
-        padding: 0 !important;
-        overflow: hidden !important;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-dlg .mud-dialog-title {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 8px 16px;
-    }
-
-    /* Two-panel layout: sidebar + main */
-    .chat-dlg-layout {
-        display: flex;
-        flex-direction: row;
-        flex: 1 1 auto;
-        overflow: hidden;
-        min-height: 0;
-        height: 100%;
-    }
-
-    /* ── Sidebar ── */
-    .chat-dlg-sidebar {
-        width: 300px;
-        min-width: 300px;
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid rgba(255, 255, 255, 0.12);
-        overflow: hidden;
-    }
-
-    .chat-dlg-search {
-        padding: 12px 16px 8px;
-        flex-shrink: 0;
-    }
-
-    .chat-dlg-list {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        overflow-x: hidden;
-        min-height: 0;
-    }
-
-    .chat-dlg-new-chat {
-        padding: 12px 16px;
-        flex-shrink: 0;
-    }
-
-    .chat-dlg-selected-item {
-        background-color: rgba(100, 160, 255, 0.15) !important;
-    }
-
-    /* ── Main messages area ── */
-    .chat-dlg-main {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-width: 0;
-    }
-
-    .chat-dlg-chat-header {
-        display: flex;
-        align-items: center;
-        padding: 10px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        flex-shrink: 0;
-        min-height: 54px;
-    }
-
-    .chat-dlg-content-row {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: row;
-        overflow: hidden;
-        min-height: 0;
-    }
-
-    .chat-dlg-messages {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 12px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-    }
-
-    .chat-dlg-members {
-        width: 220px;
-        min-width: 220px;
-        overflow-y: auto;
-        border-left: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 12px 16px;
-        flex-shrink: 0;
-    }
-
-    .chat-dlg-composer {
-        flex-shrink: 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-    }
-</style>
+    </ChildContent>
+</EFDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
-    // ── Loading state ────────────────────────────────────────────────────────
+    // ── Loading ──────────────────────────────────────────────────────────────
     private bool _isLoadingChats;
     private bool _isLoadingMessages;
     private bool _isSendingMessage;
 
     // ── Filter / search ──────────────────────────────────────────────────────
-    private string _searchText = string.Empty;
-    private string _chatFilter = "all";
+    private string _searchText  = string.Empty;
+    private string _chatFilter  = "all";
 
-    // ── Unread / selected chat ───────────────────────────────────────────────
-    private int _totalUnreadMessages;
-    private Guid? _selectedChatId;
+    // ── State ────────────────────────────────────────────────────────────────
+    private int            _totalUnread;
+    private Guid?          _selectedChatId;
     private ChatResponseDto? _selectedChat;
-    private Guid _currentUserId = Guid.Empty;
+    private Guid           _currentUserId = Guid.Empty;
+    private bool           _showChatInfo;
 
     // ── Data ─────────────────────────────────────────────────────────────────
-    private List<ChatResponseDto> _chatList = new();
-    private List<ChatMessageDto> _messages = new();
-    private List<ChatMemberDto> _chatMembers = new();
+    private List<ChatResponseDto>  _chatList            = [];
+    private List<ChatMessageDto>   _messages            = [];
+    private List<ChatMemberDto>    _chatMembers         = [];
+    private ChatMessageDto?        _replyToMessage;
+    private List<MessageAttachmentDto> _pendingAttachments = [];
 
-    // ── Enhanced features ────────────────────────────────────────────────────
-    private ChatMessageDto? _replyToMessage;
-    private List<MessageAttachmentDto> _pendingAttachments = new();
-    private bool _showChatInfo;
-
-    // ── Typing indicators ────────────────────────────────────────────────────
-    private readonly HashSet<Guid> _typingUsers = new();
-    private readonly Dictionary<Guid, CancellationTokenSource> _typingCts = new();
+    // ── Typing ───────────────────────────────────────────────────────────────
+    private readonly HashSet<Guid>                          _typingUsers = [];
+    private readonly Dictionary<Guid, CancellationTokenSource> _typingCts = [];
 
     // ────────────────────────────────────────────────────────────────────────
     // Lifecycle
@@ -547,15 +471,15 @@
             if (!RealtimeService.IsChatConnected)
                 await RealtimeService.StartChatConnectionAsync();
 
-            ChatService.ChatCreated += OnChatCreated;
-            ChatService.MessageReceived += OnMessageReceived;
-            ChatService.MessageEdited += OnMessageEdited;
-            ChatService.MessageDeleted += OnMessageDeleted;
-            ChatService.MessageRead += OnMessageRead;
-            ChatService.TypingIndicator += OnTypingIndicator;
-            ChatService.UserJoinedChat += OnUserJoinedChat;
-            ChatService.UserLeftChat += OnUserLeftChat;
-            ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
+            ChatService.ChatCreated              += OnChatCreated;
+            ChatService.MessageReceived          += OnMessageReceived;
+            ChatService.MessageEdited            += OnMessageEdited;
+            ChatService.MessageDeleted           += OnMessageDeleted;
+            ChatService.MessageRead              += OnMessageRead;
+            ChatService.TypingIndicator          += OnTypingIndicator;
+            ChatService.UserJoinedChat           += OnUserJoinedChat;
+            ChatService.UserLeftChat             += OnUserLeftChat;
+            ChatService.UserOnlineStatusChanged  += OnUserOnlineStatusChanged;
 
             await LoadChatsAsync();
         }
@@ -568,43 +492,32 @@
 
     public void Dispose()
     {
-        ChatService.ChatCreated -= OnChatCreated;
-        ChatService.MessageReceived -= OnMessageReceived;
-        ChatService.MessageEdited -= OnMessageEdited;
-        ChatService.MessageDeleted -= OnMessageDeleted;
-        ChatService.MessageRead -= OnMessageRead;
-        ChatService.TypingIndicator -= OnTypingIndicator;
-        ChatService.UserJoinedChat -= OnUserJoinedChat;
-        ChatService.UserLeftChat -= OnUserLeftChat;
-        ChatService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
+        ChatService.ChatCreated              -= OnChatCreated;
+        ChatService.MessageReceived          -= OnMessageReceived;
+        ChatService.MessageEdited            -= OnMessageEdited;
+        ChatService.MessageDeleted           -= OnMessageDeleted;
+        ChatService.MessageRead              -= OnMessageRead;
+        ChatService.TypingIndicator          -= OnTypingIndicator;
+        ChatService.UserJoinedChat           -= OnUserJoinedChat;
+        ChatService.UserLeftChat             -= OnUserLeftChat;
+        ChatService.UserOnlineStatusChanged  -= OnUserOnlineStatusChanged;
         CancelAllTypingTimers();
     }
 
-    private void HandleClose()
-    {
-        MudDialog?.Cancel();
-    }
+    private void HandleClose() => MudDialog?.Cancel();
 
     // ────────────────────────────────────────────────────────────────────────
-    // Chat list
+    // Data loading
     // ────────────────────────────────────────────────────────────────────────
 
     private async Task LoadChatsAsync()
     {
         _isLoadingChats = true;
         StateHasChanged();
-
         try
         {
-            var filterValue = _chatFilter switch
-            {
-                "direct"   => "DirectMessage",
-                "group"    => "Group",
-                _          => null
-            };
-
-            _chatList = await ChatService.GetChatsAsync(1, 50, filterValue);
-            _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
+            _chatList    = await ChatService.GetChatsAsync(1, 50);
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
         }
         catch (Exception ex)
         {
@@ -625,20 +538,19 @@
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Chat selection & messages
+    // Chat selection
     // ────────────────────────────────────────────────────────────────────────
 
     private async Task SelectChatAsync(ChatResponseDto chat)
     {
         if (_selectedChatId.HasValue && _selectedChatId != chat.Id)
         {
-            try { await RealtimeService.LeaveChatAsync(_selectedChatId.Value); }
-            catch (Exception) { }
+            try { await RealtimeService.LeaveChatAsync(_selectedChatId.Value); } catch { }
         }
 
-        _selectedChatId = chat.Id;
-        _selectedChat = chat;
-        _showChatInfo = false;
+        _selectedChatId  = chat.Id;
+        _selectedChat    = chat;
+        _showChatInfo    = false;
         _isLoadingMessages = true;
         _typingUsers.Clear();
         StateHasChanged();
@@ -648,10 +560,9 @@
             _messages = await ChatService.GetMessagesAsync(chat.Id, 1, 50);
             await ChatService.MarkMessagesAsReadAsync(chat.Id);
             chat.UnreadCount = 0;
-            _totalUnreadMessages = _chatList.Sum(c => c.UnreadCount);
+            _totalUnread     = _chatList.Sum(c => c.UnreadCount);
 
-            try { await RealtimeService.JoinChatAsync(chat.Id); }
-            catch (Exception) { }
+            try { await RealtimeService.JoinChatAsync(chat.Id); } catch { }
 
             _chatMembers = chat.Members.Count > 0
                 ? chat.Members
@@ -668,72 +579,72 @@
             StateHasChanged();
         }
 
-        await ScrollToBottom();
+        await ScrollToBottomAsync();
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Actions
+    // New conversation
     // ────────────────────────────────────────────────────────────────────────
 
-    private async Task StartNewChatAsync()
+    private async Task OpenStartConversationDialogAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { nameof(NewChatDialog.CurrentUserId), _currentUserId }
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<NewChatDialog>(
-            TranslationService.GetTranslation("chat.newChat", "Nuova Chat"),
-            parameters, options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false, Data: ChatResponseDto newChat })
+            var parameters = new DialogParameters
+            {
+                { nameof(StartConversationDialog.CurrentUserId), _currentUserId }
+            };
+            var options = new DialogOptions
+            {
+                FullScreen      = true,
+                BackdropClick   = false,
+                CloseButton     = false,
+                CloseOnEscapeKey = true
+            };
+            var dialog = await DialogService.ShowAsync<StartConversationDialog>(
+                string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: ChatResponseDto newChat })
+            {
+                if (!_chatList.Any(c => c.Id == newChat.Id))
+                    _chatList.Insert(0, newChat);
+                await SelectChatAsync(newChat);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
         {
-            if (!_chatList.Any(c => c.Id == newChat.Id))
-                _chatList.Insert(0, newChat);
-            await SelectChatAsync(newChat);
-            StateHasChanged();
+            Logger.LogError(ex, "Error opening StartConversationDialog");
+            AppNotification.ShowError("Impossibile aprire la finestra di nuova chat.");
         }
     }
 
-    private Task ShowChatInfoAsync()
-    {
-        _showChatInfo = !_showChatInfo;
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
+    // ────────────────────────────────────────────────────────────────────────
+    // Messaging
+    // ────────────────────────────────────────────────────────────────────────
 
     private async Task SendMessageAsync(SendMessageDto messageDto)
     {
-        if (string.IsNullOrWhiteSpace(messageDto.Content) || _selectedChat == null)
-            return;
+        if (string.IsNullOrWhiteSpace(messageDto.Content) || _selectedChat == null) return;
 
         _isSendingMessage = true;
         StateHasChanged();
-
         try
         {
             messageDto.SenderId = _currentUserId;
-            messageDto.ChatId = _selectedChat.Id;
-
-            var sentMessage = await ChatService.SendMessageAsync(messageDto);
-            _messages.Add(sentMessage);
-
-            if (_selectedChat != null)
-            {
-                _selectedChat.LastMessage = sentMessage;
-                _selectedChat.UpdatedAt = sentMessage.SentAt;
-            }
-
-            _replyToMessage = null;
+            messageDto.ChatId   = _selectedChat.Id;
+            var sent = await ChatService.SendMessageAsync(messageDto);
+            _messages.Add(sent);
+            _selectedChat.LastMessage = sent;
+            _selectedChat.UpdatedAt   = sent.SentAt;
+            _replyToMessage           = null;
             _pendingAttachments.Clear();
-            await ScrollToBottom();
+            await ScrollToBottomAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error sending message");
-            AppNotification.ShowError($"Errore nell'invio del messaggio: {ex.Message}");
+            AppNotification.ShowError($"Errore nell'invio: {ex.Message}");
         }
         finally
         {
@@ -744,322 +655,193 @@
 
     private Task SelectFileAsync()
     {
-        AppNotification.ShowInfo(TranslationService.GetTranslation("chat.fileAttachmentPlaceholder", "Allegato file - Da implementare"));
+        AppNotification.ShowInfo(TranslationService.GetTranslation(
+            "chat.fileAttachmentPlaceholder", "Allegato file — in arrivo"));
         return Task.CompletedTask;
     }
 
-    private void SetReplyToMessage(ChatMessageDto message) { _replyToMessage = message; StateHasChanged(); }
-    private void CancelReply() { _replyToMessage = null; StateHasChanged(); }
-    private void RemoveAttachment(MessageAttachmentDto attachment) { _pendingAttachments.Remove(attachment); StateHasChanged(); }
+    private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
+    private void CancelReply()                        { _replyToMessage = null; StateHasChanged(); }
+    private void RemoveAttachment(MessageAttachmentDto a) { _pendingAttachments.Remove(a); StateHasChanged(); }
 
     private async Task ToggleMessageReaction(Guid messageId, string emoji)
     {
         try
         {
-            var reactionDto = new MessageReactionActionDto
+            await ChatService.ToggleMessageReactionAsync(new MessageReactionActionDto
             {
                 MessageId = messageId,
-                UserId = _currentUserId,
-                Emoji = emoji,
-                IsAdding = true
-            };
-            await ChatService.ToggleMessageReactionAsync(reactionDto);
-
-            var message = _messages.FirstOrDefault(m => m.Id == messageId);
-            if (message?.Reactions != null)
+                UserId    = _currentUserId,
+                Emoji     = emoji,
+                IsAdding  = true
+            });
+            var msg = _messages.FirstOrDefault(m => m.Id == messageId);
+            if (msg?.Reactions is null) return;
+            var ex = msg.Reactions.FirstOrDefault(r => r.Emoji == emoji);
+            if (ex is not null)
             {
-                var existing = message.Reactions.FirstOrDefault(r => r.Emoji == emoji);
-                if (existing != null)
-                {
-                    if (existing.HasCurrentUserReacted)
-                    {
-                        existing.Count--;
-                        existing.UserIds.Remove(_currentUserId);
-                        existing.HasCurrentUserReacted = false;
-                        if (existing.Count == 0) message.Reactions.Remove(existing);
-                    }
-                    else
-                    {
-                        existing.Count++;
-                        existing.UserIds.Add(_currentUserId);
-                        existing.HasCurrentUserReacted = true;
-                    }
-                }
-                else
-                {
-                    message.Reactions.Add(new MessageReactionDto
-                    {
-                        Emoji = emoji,
-                        Count = 1,
-                        UserIds = new List<Guid> { _currentUserId },
-                        HasCurrentUserReacted = true
-                    });
-                }
-                StateHasChanged();
+                if (ex.HasCurrentUserReacted) { ex.Count--; ex.UserIds.Remove(_currentUserId); ex.HasCurrentUserReacted = false; if (ex.Count == 0) msg.Reactions.Remove(ex); }
+                else                          { ex.Count++; ex.UserIds.Add(_currentUserId);    ex.HasCurrentUserReacted = true; }
             }
+            else
+            {
+                msg.Reactions.Add(new MessageReactionDto { Emoji = emoji, Count = 1, UserIds = [_currentUserId], HasCurrentUserReacted = true });
+            }
+            StateHasChanged();
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error toggling reaction");
-            AppNotification.ShowError($"Error adding reaction: {ex.Message}");
-        }
+        catch (Exception ex) { AppNotification.ShowError($"Errore reazione: {ex.Message}"); }
     }
 
-    private Task EditMessage(ChatMessageDto message)
+    private Task EditMessage(ChatMessageDto _)   { AppNotification.ShowInfo("Message editing coming soon!"); return Task.CompletedTask; }
+    private Task ShareMessage(ChatMessageDto _)  { AppNotification.ShowInfo("Message sharing coming soon!"); return Task.CompletedTask; }
+    private Task ReportMessage(ChatMessageDto _) { AppNotification.ShowInfo("Message reporting coming soon!"); return Task.CompletedTask; }
+
+    private async Task DeleteMessage(ChatMessageDto msg)
     {
-        AppNotification.ShowInfo("Message editing coming soon!");
-        return Task.CompletedTask;
-    }
-
-    private async Task DeleteMessage(ChatMessageDto message)
-    {
-        var result = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("chat.confirmDelete", "Confirm Delete"),
-            TranslationService.GetTranslation("chat.confirmDeleteMessage", "Are you sure you want to delete this message?"),
-            TranslationService.GetTranslation("common.delete", "Delete"),
-            TranslationService.GetTranslation("common.cancel", "Cancel"));
-
-        if (result == true)
-        {
-            try
-            {
-                await ChatService.DeleteMessageAsync(message.Id);
-                _messages.Remove(message);
-                StateHasChanged();
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageDeleted", "Message deleted"));
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error deleting message");
-                AppNotification.ShowError($"Error deleting message: {ex.Message}");
-            }
-        }
-    }
-
-    private Task ShareMessage(ChatMessageDto message) { AppNotification.ShowInfo("Message sharing coming soon!"); return Task.CompletedTask; }
-    private Task ReportMessage(ChatMessageDto message) { AppNotification.ShowInfo("Message reporting coming soon!"); return Task.CompletedTask; }
-
-    private async Task DownloadAttachmentAsync(MessageAttachmentDto attachment)
-    {
+        var ok = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("chat.confirmDelete", "Elimina messaggio"),
+            TranslationService.GetTranslation("chat.confirmDeleteMessage", "Sei sicuro di voler eliminare questo messaggio?"),
+            TranslationService.GetTranslation("common.delete", "Elimina"),
+            TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (ok != true) return;
         try
         {
-            await JSRuntime.InvokeVoidAsync("window.open", attachment.FileUrl, "_blank");
+            await ChatService.DeleteMessageAsync(msg.Id);
+            _messages.Remove(msg);
+            StateHasChanged();
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageDeleted", "Messaggio eliminato"));
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error downloading attachment");
-            AppNotification.ShowError($"Error downloading file: {ex.Message}");
-        }
+        catch (Exception ex) { AppNotification.ShowError($"Errore eliminazione: {ex.Message}"); }
     }
 
-    private async Task PreviewImage(MessageAttachmentDto attachment) => await DownloadAttachmentAsync(attachment);
-
-    private async Task ScrollToBottom()
+    private async Task DownloadAttachmentAsync(MessageAttachmentDto a)
     {
-        try { await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container"); }
-        catch { }
+        try   { await JSRuntime.InvokeVoidAsync("window.open", a.FileUrl, "_blank"); }
+        catch (Exception ex) { AppNotification.ShowError($"Errore download: {ex.Message}"); }
+    }
+
+    private async Task PreviewImage(MessageAttachmentDto a) => await DownloadAttachmentAsync(a);
+
+    private async Task ScrollToBottomAsync()
+    {
+        // TODO: ensure IJSRuntime is available in WASM context; scrollToBottom is a custom JS helper
+        try { await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container"); } catch { }
     }
 
     private async Task OpenWhatsAppConfigAsync()
     {
         try
         {
-            var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-            await DialogService.ShowAsync<WhatsAppConfigDialog>("Configurazione WhatsApp", options);
+            await DialogService.ShowAsync<WhatsAppConfigDialog>("Configurazione WhatsApp",
+                new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true });
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error opening WhatsApp config dialog");
+            Logger.LogError(ex, "Error opening WhatsApp config");
             AppNotification.ShowError("Impossibile aprire la configurazione WhatsApp.");
         }
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Real-time event handlers
+    // Real-time handlers
     // ────────────────────────────────────────────────────────────────────────
 
-    private void OnChatCreated(ChatResponseDto chat)
+    private void OnChatCreated(ChatResponseDto chat) { _chatList.Insert(0, chat); InvokeAsync(StateHasChanged); }
+
+    private void OnMessageReceived(ChatMessageDto msg)
     {
-        _chatList.Insert(0, chat);
+        if (_selectedChatId == msg.ChatId) { _messages.Add(msg); }
+        var chat = _chatList.FirstOrDefault(c => c.Id == msg.ChatId);
+        if (chat is not null) { chat.LastMessage = msg; if (_selectedChatId != msg.ChatId) { chat.UnreadCount++; _totalUnread++; } }
         InvokeAsync(StateHasChanged);
     }
 
-    private void OnMessageReceived(ChatMessageDto message)
+    private void OnMessageEdited(EditMessageDto e)
     {
-        if (_selectedChatId == message.ChatId)
-        {
-            _messages.Add(message);
-            InvokeAsync(StateHasChanged);
-        }
-
-        var chat = _chatList.FirstOrDefault(c => c.Id == message.ChatId);
-        if (chat != null)
-        {
-            chat.LastMessage = message;
-            if (_selectedChatId != message.ChatId)
-            {
-                chat.UnreadCount++;
-                _totalUnreadMessages++;
-            }
-            InvokeAsync(StateHasChanged);
-        }
+        var m = _messages.FirstOrDefault(x => x.Id == e.MessageId);
+        if (m is not null) { m.Content = e.Content; m.IsEdited = true; InvokeAsync(StateHasChanged); }
     }
 
-    private void OnMessageEdited(EditMessageDto editMessage)
+    private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); InvokeAsync(StateHasChanged); }
+
+    private void OnMessageRead(Guid chatId, Guid msgId)
     {
-        var message = _messages.FirstOrDefault(m => m.Id == editMessage.MessageId);
-        if (message != null)
-        {
-            message.Content = editMessage.Content;
-            message.IsEdited = true;
-            InvokeAsync(StateHasChanged);
-        }
+        if (_selectedChatId != chatId) return;
+        var m = _messages.FirstOrDefault(x => x.Id == msgId);
+        if (m is not null) { m.Status = MessageStatus.Read; InvokeAsync(StateHasChanged); }
     }
 
-    private void OnMessageDeleted(Guid messageId)
+    private void OnTypingIndicator(TypingIndicatorDto t)
     {
-        _messages.RemoveAll(m => m.Id == messageId);
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void OnMessageRead(Guid chatId, Guid messageId)
-    {
-        if (_selectedChatId == chatId)
+        if (_selectedChatId != t.ChatId || t.UserId == _currentUserId) return;
+        if (t.IsTyping)
         {
-            var message = _messages.FirstOrDefault(m => m.Id == messageId);
-            if (message != null)
-            {
-                message.Status = MessageStatus.Read;
-                InvokeAsync(StateHasChanged);
-            }
-        }
-    }
-
-    private void OnTypingIndicator(TypingIndicatorDto typingIndicator)
-    {
-        if (_selectedChatId != typingIndicator.ChatId) return;
-        if (typingIndicator.UserId == _currentUserId) return;
-
-        if (typingIndicator.IsTyping)
-        {
-            _typingUsers.Add(typingIndicator.UserId);
-
-            if (_typingCts.TryGetValue(typingIndicator.UserId, out var existing))
-            {
-                existing.Cancel();
-                existing.Dispose();
-            }
-
-            var cts = new CancellationTokenSource();
-            _typingCts[typingIndicator.UserId] = cts;
-            var userId = typingIndicator.UserId;
-
+            _typingUsers.Add(t.UserId);
+            if (_typingCts.TryGetValue(t.UserId, out var old)) { old.Cancel(); old.Dispose(); }
+            var cts = new CancellationTokenSource(); _typingCts[t.UserId] = cts; var uid = t.UserId;
             _ = Task.Run(async () =>
             {
                 try
                 {
                     await Task.Delay(3000, cts.Token);
-                    if (!cts.Token.IsCancellationRequested)
-                    {
-                        await InvokeAsync(() =>
-                        {
-                            _typingUsers.Remove(userId);
-                            if (_typingCts.TryGetValue(userId, out var c))
-                            {
-                                _typingCts.Remove(userId);
-                                c.Dispose();
-                            }
-                            StateHasChanged();
-                        });
-                    }
+                    if (!cts.IsCancellationRequested)
+                        await InvokeAsync(() => { _typingUsers.Remove(uid); if (_typingCts.TryGetValue(uid, out var c)) { _typingCts.Remove(uid); c.Dispose(); } StateHasChanged(); });
                 }
                 catch (TaskCanceledException) { }
             }, cts.Token);
         }
         else
         {
-            _typingUsers.Remove(typingIndicator.UserId);
-            if (_typingCts.TryGetValue(typingIndicator.UserId, out var cts))
-            {
-                cts.Cancel();
-                cts.Dispose();
-                _typingCts.Remove(typingIndicator.UserId);
-            }
+            _typingUsers.Remove(t.UserId);
+            if (_typingCts.TryGetValue(t.UserId, out var cts)) { cts.Cancel(); cts.Dispose(); _typingCts.Remove(t.UserId); }
         }
-
         InvokeAsync(StateHasChanged);
     }
 
     private void OnUserJoinedChat(Guid chatId, Guid userId)
     {
-        if (_selectedChatId == chatId)
-        {
-            _ = InvokeAsync(async () =>
-            {
-                _chatMembers = await ChatService.GetChatMembersAsync(chatId);
-                StateHasChanged();
-            });
-        }
+        if (_selectedChatId != chatId) return;
+        _ = InvokeAsync(async () => { _chatMembers = await ChatService.GetChatMembersAsync(chatId); StateHasChanged(); });
     }
 
     private void OnUserLeftChat(Guid chatId, Guid userId)
     {
-        if (_selectedChatId == chatId)
-        {
-            _chatMembers.RemoveAll(m => m.UserId == userId);
-            InvokeAsync(StateHasChanged);
-        }
+        if (_selectedChatId != chatId) return;
+        _chatMembers.RemoveAll(m => m.UserId == userId); InvokeAsync(StateHasChanged);
     }
 
-    private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
+    private void OnUserOnlineStatusChanged(Guid userId, bool online)
     {
-        var member = _chatMembers.FirstOrDefault(m => m.UserId == userId);
-        if (member != null)
-        {
-            member.IsOnline = isOnline;
-            InvokeAsync(StateHasChanged);
-        }
+        var m = _chatMembers.FirstOrDefault(x => x.UserId == userId);
+        if (m is not null) { m.IsOnline = online; InvokeAsync(StateHasChanged); }
     }
 
     // ────────────────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────────────────
 
-    private bool IsFromCurrentUser(ChatMessageDto message) => message.SenderId == _currentUserId;
-
-    private List<ChatResponseDto> GetFilteredInternalChats()
+    private List<ChatResponseDto> GetFilteredChats()
     {
-        if (_chatList == null) return [];
-        return _chatFilter switch
+        var list = _chatFilter switch
         {
-            "direct"   => _chatList.Where(c => c.Type == ChatType.DirectMessage && FilterBySearch(c)).ToList(),
-            "group"    => _chatList.Where(c => c.Type == ChatType.Group && FilterBySearch(c)).ToList(),
-            "whatsapp" => [],
-            _          => _chatList.Where(c => c.Type != ChatType.WhatsApp && FilterBySearch(c)).ToList()
+            "internal" => _chatList.Where(c => c.Type != ChatType.WhatsApp),
+            "whatsapp" => _chatList.Where(c => c.Type == ChatType.WhatsApp),
+            _          => _chatList.AsEnumerable()
         };
+        if (!string.IsNullOrWhiteSpace(_searchText))
+        {
+            var q = _searchText.Trim();
+            list = list.Where(c =>
+                GetChatName(c).Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (c.ExternalPhoneNumber?.Contains(q, StringComparison.OrdinalIgnoreCase) == true) ||
+                (c.BusinessPartyName?.Contains(q, StringComparison.OrdinalIgnoreCase) == true));
+        }
+        return list.ToList();
     }
 
-    private List<ChatResponseDto> GetFilteredWhatsAppChats()
+    private static string GetChatName(ChatResponseDto? chat, Guid currentUserId = default)
     {
-        if (_chatList == null) return [];
-        return _chatFilter is "all" or "whatsapp"
-            ? _chatList.Where(c => c.Type == ChatType.WhatsApp && FilterBySearch(c)).ToList()
-            : [];
-    }
-
-    private bool FilterBySearch(ChatResponseDto c)
-    {
-        if (string.IsNullOrWhiteSpace(_searchText)) return true;
-        var name = GetChatName(c);
-        var search = _searchText.Trim();
-        return name.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || (c.ExternalPhoneNumber?.Contains(search, StringComparison.OrdinalIgnoreCase) == true)
-            || (c.BusinessPartyName?.Contains(search, StringComparison.OrdinalIgnoreCase) == true);
-    }
-
-    private static string GetChatName(ChatResponseDto? chat, Guid currentUserId)
-    {
-        if (chat == null) return string.Empty;
+        if (chat is null) return string.Empty;
         if (chat.Type == ChatType.DirectMessage)
         {
             var other = chat.Members?.FirstOrDefault(m => m.UserId != currentUserId);
@@ -1074,35 +856,52 @@
     {
         if (string.IsNullOrWhiteSpace(name)) return "?";
         var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length >= 2
-            ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
-            : name[..Math.Min(2, name.Length)].ToUpper();
+        return (parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}" : name[..Math.Min(2, name.Length)]).ToUpper();
     }
 
-    private static readonly string[] AvatarColors =
-    {
-        "#f44336", "#e91e63", "#9c27b0", "#673ab7",
-        "#3f51b5", "#2196f3", "#009688", "#4caf50"
-    };
+    private static readonly string[] _avatarColors =
+        ["#f44336","#e91e63","#9c27b0","#673ab7","#3f51b5","#2196f3","#009688","#4caf50"];
 
     private static string GetAvatarColor(string name)
     {
-        if (string.IsNullOrEmpty(name)) return AvatarColors[0];
-        unchecked
-        {
-            var hash = name.Aggregate(0, (acc, c) => acc * 31 + c);
-            return AvatarColors[((hash % AvatarColors.Length) + AvatarColors.Length) % AvatarColors.Length];
-        }
+        if (string.IsNullOrEmpty(name)) return _avatarColors[0];
+        unchecked { var h = name.Aggregate(0, (a, c) => a * 31 + c); return _avatarColors[((h % _avatarColors.Length) + _avatarColors.Length) % _avatarColors.Length]; }
     }
+
+    private static string GetPresenceDotClass(PresenceStatus p) => p switch
+    {
+        PresenceStatus.Online  => "status-dot status-dot--online",
+        PresenceStatus.Away    => "status-dot status-dot--away",
+        PresenceStatus.Busy    => "status-dot status-dot--busy",
+        _                      => "status-dot status-dot--offline"
+    };
+
+    private static string PresenceColor(PresenceStatus p) => p switch
+    {
+        PresenceStatus.Online => "#47d16c",
+        PresenceStatus.Away   => "#f8a723",
+        PresenceStatus.Busy   => "#e8323a",
+        _                     => "var(--mud-palette-text-disabled)"
+    };
+
+    private static string PresenceLabel(PresenceStatus p) => p switch
+    {
+        PresenceStatus.Online => "Online",
+        PresenceStatus.Away   => "Assente",
+        PresenceStatus.Busy   => "Occupato",
+        _                     => "Offline"
+    };
+
+    private static string GetBubbleStyle(bool isMe, bool isWhatsApp) => isMe
+        ? $"background:{(isWhatsApp ? "#25D366" : "var(--mud-palette-primary)")};color:white;border-radius:12px 12px 4px 12px;padding:8px 12px;"
+        : "background:var(--mud-palette-background-grey);border:1px solid var(--mud-palette-divider);border-radius:12px 12px 12px 4px;padding:8px 12px;";
+
+    private static string FormatMessageTime(DateTime dt) =>
+        dt.Date == DateTime.Today ? dt.ToString("HH:mm") : dt.ToString("dd/MM HH:mm");
 
     private void CancelAllTypingTimers()
     {
-        foreach (var cts in _typingCts.Values)
-        {
-            cts.Cancel();
-            cts.Dispose();
-        }
-        _typingCts.Clear();
-        _typingUsers.Clear();
+        foreach (var cts in _typingCts.Values) { cts.Cancel(); cts.Dispose(); }
+        _typingCts.Clear(); _typingUsers.Clear();
     }
 }

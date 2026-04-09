@@ -2,6 +2,7 @@
 @using EventForge.DTOs.Chat
 @using EventForge.DTOs.Notifications
 @using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Pages.Chat
 @inject IChatService ChatService
 @inject INotificationService NotificationService
 @inject IDialogService DialogService
@@ -257,11 +258,19 @@
 
     private void ToggleProfileMenu() => _profileMenuOpen = !_profileMenuOpen;
 
-    private void OnChatClick()
+    private async Task OnChatClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        NavigationManager.NavigateTo("/chat");
+        await DialogService.ShowAsync<ChatDialog>(
+            string.Empty,
+            new DialogOptions
+            {
+                FullScreen       = true,
+                BackdropClick    = false,
+                CloseButton      = false,
+                CloseOnEscapeKey = true
+            });
     }
 
     private async Task OnHealthClick()
