@@ -1,4 +1,6 @@
 @using EventForge.Client.Models.Fidelity
+@inject ILogger<ManageFidelityPointsDialog> Logger
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Stars"
           Title="@($"Gestisci Punti - Card {Card.Type}")"
@@ -136,6 +138,11 @@
             };
             
             MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione dei punti per la card {CardNumber}", Card.CardNumber);
+            AppNotification.ShowError("Errore durante la gestione dei punti.");
         }
         finally
         {

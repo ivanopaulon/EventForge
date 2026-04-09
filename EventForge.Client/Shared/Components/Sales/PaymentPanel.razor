@@ -1,5 +1,6 @@
 @using EventForge.DTOs.Sales
 @inject IAppNotificationService AppNotification
+@inject ILogger<PaymentPanel> Logger
 
 <MudPaper Class="pa-4 payment-panel" Elevation="2">
     <div class="d-flex align-center mb-3">
@@ -211,18 +212,34 @@
     {
         if (_selectedMethod != null && _paymentAmount > 0)
         {
-            await OnPaymentAdded.InvokeAsync((_selectedMethod, _paymentAmount));
-            AppNotification.ShowSuccess($"Aggiunto pagamento: {_selectedMethod.Name} - {_paymentAmount:C}");
-            
-            // Reset
-            _selectedMethod = null;
-            _paymentAmount = 0;
+            try
+            {
+                await OnPaymentAdded.InvokeAsync((_selectedMethod, _paymentAmount));
+                AppNotification.ShowSuccess($"Aggiunto pagamento: {_selectedMethod.Name} - {_paymentAmount:C}");
+                
+                // Reset
+                _selectedMethod = null;
+                _paymentAmount = 0;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Errore durante l'aggiunta del pagamento");
+                AppNotification.ShowError("Errore durante l'aggiunta del pagamento.");
+            }
         }
     }
 
     private async Task RemovePayment(SalePaymentDto payment)
     {
-        await OnPaymentRemoved.InvokeAsync(payment);
-        AppNotification.ShowWarning($"Rimosso pagamento: {payment.PaymentMethodName}");
+        try
+        {
+            await OnPaymentRemoved.InvokeAsync(payment);
+            AppNotification.ShowWarning($"Rimosso pagamento: {payment.PaymentMethodName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la rimozione del pagamento {MethodName}", payment.PaymentMethodName);
+            AppNotification.ShowError("Errore durante la rimozione del pagamento.");
+        }
     }
 }

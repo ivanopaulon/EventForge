@@ -1,4 +1,5 @@
 @inject IAuthService AuthService
+@inject ILogger<AuthorizeViewRoles> Logger
 @implements IDisposable
 
 @if (_isAuthorized)
@@ -28,24 +29,41 @@ else if (_showUnauthorized && UnauthorizedContent != null)
 
     private async Task CheckAuthorizationAsync()
     {
-        if (RequiredRoles == null || !RequiredRoles.Any())
+        try
         {
-            _isAuthorized = await AuthService.IsAuthenticatedAsync();
-        }
-        else
-        {
-            _isAuthorized = RequireAllRoles 
-                ? await AuthService.HasAllRolesAsync(RequiredRoles)
-                : await AuthService.IsInAnyRoleAsync(RequiredRoles);
-        }
+            if (RequiredRoles == null || !RequiredRoles.Any())
+            {
+                _isAuthorized = await AuthService.IsAuthenticatedAsync();
+            }
+            else
+            {
+                _isAuthorized = RequireAllRoles 
+                    ? await AuthService.HasAllRolesAsync(RequiredRoles)
+                    : await AuthService.IsInAnyRoleAsync(RequiredRoles);
+            }
 
-        _showUnauthorized = !_isAuthorized && ShowUnauthorized;
-        StateHasChanged();
+            _showUnauthorized = !_isAuthorized && ShowUnauthorized;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la verifica dell'autorizzazione per i ruoli {Roles}", (object?)RequiredRoles ?? "(nessuno)");
+            _isAuthorized = false;
+            _showUnauthorized = ShowUnauthorized;
+            StateHasChanged();
+        }
     }
 
     private async void OnAuthenticationStateChanged()
     {
-        await CheckAuthorizationAsync();
+        try
+        {
+            await CheckAuthorizationAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'aggiornamento dello stato di autenticazione");
+        }
     }
 
     public void Dispose()

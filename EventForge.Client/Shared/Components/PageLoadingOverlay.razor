@@ -1,6 +1,7 @@
 @using MudBlazor
 @using EventForge.Client.Shared.Components.Dialogs.SystemDialogs
 @inject IDialogService DialogService
+@inject ILogger<PageLoadingOverlay> Logger
 @implements IAsyncDisposable
 
 @code {
@@ -42,29 +43,36 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Visible && !_wasVisible)
+        try
         {
-            _state = BuildState();
-            var dp = new DialogParameters<PageLoadingSystemDialog>
+            if (Visible && !_wasVisible)
             {
-                { x => x.State, _state }
-            };
-            _dialogRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _options);
-            _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => { _dialogRef = null; }));
-        }
-        else if (!Visible && _wasVisible)
-        {
-            _dialogRef?.Close();
-            _dialogRef = null;
-            _state = null;
-        }
-        else if (Visible && _wasVisible && _state is not null)
-        {
-            ApplyState(_state);
-            _state.Notify();
-        }
+                _state = BuildState();
+                var dp = new DialogParameters<PageLoadingSystemDialog>
+                {
+                    { x => x.State, _state }
+                };
+                _dialogRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _options);
+                _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => { _dialogRef = null; }));
+            }
+            else if (!Visible && _wasVisible)
+            {
+                _dialogRef?.Close();
+                _dialogRef = null;
+                _state = null;
+            }
+            else if (Visible && _wasVisible && _state is not null)
+            {
+                ApplyState(_state);
+                _state.Notify();
+            }
 
-        _wasVisible = Visible;
+            _wasVisible = Visible;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del dialogo di caricamento pagina");
+        }
     }
 
     private PageLoadingState BuildState()

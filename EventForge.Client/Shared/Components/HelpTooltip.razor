@@ -1,5 +1,6 @@
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
+@inject ILogger<HelpTooltip> Logger
 
 @* Enhanced MudTooltip with help content and ARIA support *@
 <MudTooltip Text="@TooltipText" 
@@ -151,17 +152,31 @@
 
     private async Task HandleHelpClick()
     {
-        if (OnHelpClick.HasDelegate)
+        try
         {
-            await OnHelpClick.InvokeAsync();
+            if (OnHelpClick.HasDelegate)
+            {
+                await OnHelpClick.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del click help per {TranslationKey}", TranslationKey);
         }
     }
 
     private async Task HandleMoreInfoClick()
     {
-        if (OnMoreInfoClick.HasDelegate)
+        try
         {
-            await OnMoreInfoClick.InvokeAsync();
+            if (OnMoreInfoClick.HasDelegate)
+            {
+                await OnMoreInfoClick.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del click more info per {TranslationKey}", TranslationKey);
         }
     }
 }
