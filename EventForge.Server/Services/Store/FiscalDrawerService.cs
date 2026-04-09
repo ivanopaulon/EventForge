@@ -923,10 +923,17 @@ public class FiscalDrawerService(
             var totalDrawerBalance = await drawerQuery.SumAsync(d => d.CurrentBalance, ct);
             var activeDrawersCount = await drawerQuery.CountAsync(ct);
             var openSessionsCount = await openSessionsQuery.CountAsync(ct);
-            var todayTotalSales = await todayTxQuery.SumAsync(t => t.Amount, ct);
-            var todayCashSales = await todayTxQuery.Where(t => t.PaymentType == FiscalDrawerPaymentType.Cash).SumAsync(t => t.Amount, ct);
-            var todayCardSales = await todayTxQuery.Where(t => t.PaymentType == FiscalDrawerPaymentType.Card).SumAsync(t => t.Amount, ct);
-            var todayOtherSales = await todayTxQuery.Where(t => t.PaymentType != FiscalDrawerPaymentType.Cash && t.PaymentType != FiscalDrawerPaymentType.Card).SumAsync(t => t.Amount, ct);
+
+            // Fetch today's sales totals grouped by payment type in a single query
+            var todayPaymentSummary = await todayTxQuery
+                .GroupBy(t => t.PaymentType)
+                .Select(g => new { PaymentType = g.Key, Total = g.Sum(t => t.Amount) })
+                .ToListAsync(ct);
+            var todayTotalSales = todayPaymentSummary.Sum(x => x.Total);
+            var todayCashSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Cash).Sum(x => x.Total);
+            var todayCardSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+            var todayOtherSales = todayPaymentSummary.Where(x => x.PaymentType != FiscalDrawerPaymentType.Cash && x.PaymentType != FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+
             var todayTransactionCount = await context.FiscalDrawerSessions.AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate == today)
                 .SumAsync(s => s.TransactionCount, ct);
