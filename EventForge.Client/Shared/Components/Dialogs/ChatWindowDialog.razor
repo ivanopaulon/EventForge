@@ -1,0 +1,876 @@
+@namespace EventForge.Client.Shared.Components.Dialogs
+@using EventForge.DTOs.Chat
+@inject IChatService ChatService
+@inject IAuthService AuthService
+@inject IRealtimeService RealtimeService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<MudDialog Style="width:min(480px,95vw);height:min(600px,90vh);display:flex;flex-direction:column;overflow:hidden;">
+    <TitleContent>
+        <div class="cwd-header">
+            @if (_selectedChat != null)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                               Color="Color.Inherit"
+                               Size="Size.Small"
+                               OnClick="BackToList" />
+                <MudAvatar Style="@($"background-color:{GetAvatarHex(GetChatName(_selectedChat))};color:#fff;width:32px;height:32px;min-width:32px;font-size:0.75rem;")"
+                           Size="Size.Small">
+                    @GetInitials(GetChatName(_selectedChat))
+                </MudAvatar>
+                <div class="cwd-header-info">
+                    <span class="cwd-header-title">@GetChatName(_selectedChat)</span>
+                    @if (IsDirectMessageOnline(_selectedChat))
+                    {
+                        <span class="cwd-online-label">● Online</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Color="Color.Inherit" Class="mr-2" />
+                <span class="cwd-header-title">Messaggi</span>
+            }
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                           Color="Color.Inherit"
+                           Size="Size.Small"
+                           OnClick="Close"
+                           title="Chiudi" />
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <div class="cwd-body">
+            @if (_isLoading)
+            {
+                <div class="cwd-loading">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                </div>
+            }
+            else if (_selectedChat == null)
+            {
+                <!-- Chat list view -->
+                <div class="cwd-search-bar">
+                    <MudTextField T="string"
+                                  Value="@_searchQuery"
+                                  ValueChanged="@(v => _searchQuery = v ?? string.Empty)"
+                                  Placeholder="Cerca chat..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Clearable="true"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Immediate="true"
+                                  Class="cwd-search-field" />
+                </div>
+
+                <div class="cwd-chat-list">
+                    @if (!_chats.Any())
+                    {
+                        <div class="cwd-empty">
+                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Class="cwd-empty-icon" />
+                            <span>Nessuna chat</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var chat in FilteredChats)
+                        {
+                            <div class="cwd-chat-item" @onclick="() => OpenChat(chat)">
+                                <div class="cwd-chat-avatar-wrap">
+                                    <MudAvatar Style="@($"background-color:{GetAvatarHex(GetChatName(chat))};color:#fff;font-size:0.8rem;")"
+                                               Size="Size.Small">
+                                        @GetInitials(GetChatName(chat))
+                                    </MudAvatar>
+                                    @if (IsDirectMessageOnline(chat))
+                                    {
+                                        <span class="cwd-online-dot"></span>
+                                    }
+                                </div>
+                                <div class="cwd-chat-item-info">
+                                    <div class="cwd-chat-item-header">
+                                        <span class="cwd-chat-item-name">@GetChatName(chat)</span>
+                                        @if (chat.LastMessage != null)
+                                        {
+                                            <span class="cwd-chat-item-time">@FormatTime(chat.LastMessage.SentAt)</span>
+                                        }
+                                    </div>
+                                    <span class="cwd-chat-item-preview">@(chat.LastMessage?.Content ?? "Nessun messaggio")</span>
+                                </div>
+                                @if (chat.UnreadCount > 0)
+                                {
+                                    <MudBadge Content="@chat.UnreadCount"
+                                              Color="Color.Primary"
+                                              Overlap="false"
+                                              Max="99"
+                                              Class="cwd-unread-badge" />
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
+            else
+            {
+                <!-- Conversation view -->
+                <div class="cwd-messages" id="cwd-scroll">
+                    @if (!_messages.Any())
+                    {
+                        <div class="cwd-empty">
+                            <span>Nessun messaggio. Inizia a scrivere!</span>
+                        </div>
+                    }
+                    @foreach (var msg in _messages)
+                    {
+                        var isMine = msg.SenderId == _currentUserId;
+                        <div class="cwd-msg-row @(isMine ? "cwd-msg-row--mine" : "cwd-msg-row--theirs")">
+                            @if (!isMine)
+                            {
+                                <MudAvatar Style="@($"background-color:{GetAvatarHex(msg.SenderName ?? "?")};color:#fff;font-size:0.7rem;width:28px;height:28px;min-width:28px;")"
+                                           Size="Size.Small">
+                                    @GetInitials(msg.SenderName ?? "?")
+                                </MudAvatar>
+                            }
+                            <div class="cwd-bubble @(isMine ? "cwd-bubble--mine" : "cwd-bubble--theirs")">
+                                @if (!isMine && _selectedChat.Type != ChatType.DirectMessage)
+                                {
+                                    <span class="cwd-bubble-sender">@msg.SenderName</span>
+                                }
+                                <span class="cwd-bubble-text">@msg.Content</span>
+                                <span class="cwd-bubble-time">@msg.SentAt.ToString("HH:mm")</span>
+                            </div>
+                        </div>
+                    }
+                    @if (_typingUsers.Count > 0)
+                    {
+                        <div class="cwd-msg-row cwd-msg-row--theirs">
+                            <div class="cwd-typing-indicator">
+                                <span class="cwd-typing-dot"></span>
+                                <span class="cwd-typing-dot"></span>
+                                <span class="cwd-typing-dot"></span>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Input bar -->
+                <div class="cwd-input-bar" @onkeydown="OnKeyDown">
+                    <MudTextField T="string"
+                                  Value="@_newMessage"
+                                  ValueChanged="@OnMessageChanged"
+                                  Placeholder="Scrivi un messaggio..."
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Immediate="true"
+                                  Lines="1"
+                                  Class="cwd-input-field" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Send"
+                                   Color="Color.Primary"
+                                   OnClick="SendMessage"
+                                   Disabled="@(string.IsNullOrWhiteSpace(_newMessage))"
+                                   aria-label="Invia messaggio" />
+                </div>
+            }
+        </div>
+    </DialogContent>
+</MudDialog>
+
+<style>
+    .cwd-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 40px;
+    }
+
+    .cwd-header-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .cwd-header-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cwd-online-label {
+        font-size: 0.7rem;
+        color: #4caf50;
+        font-weight: 500;
+    }
+
+    .cwd-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .cwd-loading {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cwd-search-bar {
+        padding: 8px 0 8px 0;
+        flex-shrink: 0;
+    }
+
+    .cwd-search-field {
+        width: 100%;
+    }
+
+    .cwd-chat-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .cwd-chat-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 4px;
+        gap: 10px;
+        cursor: pointer;
+        transition: background 0.15s;
+        border-radius: 4px;
+    }
+
+    .cwd-chat-item:hover {
+        background: var(--mud-palette-action-hover);
+    }
+
+    .cwd-chat-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .cwd-online-dot {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        background: #4caf50;
+        border-radius: 50%;
+        border: 2px solid var(--mud-palette-surface);
+    }
+
+    .cwd-chat-item-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .cwd-chat-item-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .cwd-chat-item-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cwd-chat-item-time {
+        font-size: 0.7rem;
+        color: var(--mud-palette-text-secondary);
+        flex-shrink: 0;
+        margin-left: 4px;
+    }
+
+    .cwd-chat-item-preview {
+        font-size: 0.78rem;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .cwd-unread-badge {
+        flex-shrink: 0;
+    }
+
+    .cwd-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 8px;
+        color: var(--mud-palette-text-secondary);
+        font-size: 0.85rem;
+        padding: 24px;
+    }
+
+    .cwd-empty-icon {
+        font-size: 2.5rem !important;
+        opacity: 0.4;
+    }
+
+    .cwd-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .cwd-msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+    }
+
+    .cwd-msg-row--mine {
+        flex-direction: row-reverse;
+    }
+
+    .cwd-bubble {
+        max-width: 75%;
+        padding: 8px 12px;
+        border-radius: 16px;
+        font-size: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        word-break: break-word;
+    }
+
+    .cwd-bubble--mine {
+        background: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-text);
+        border-bottom-right-radius: 4px;
+    }
+
+    .cwd-bubble--theirs {
+        background: var(--mud-palette-action-default-hover, #f0f0f0);
+        color: var(--mud-palette-text-primary);
+        border-bottom-left-radius: 4px;
+    }
+
+    .cwd-bubble-sender {
+        font-size: 0.72rem;
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .cwd-bubble-text {
+        line-height: 1.4;
+    }
+
+    .cwd-bubble-time {
+        font-size: 0.68rem;
+        opacity: 0.7;
+        align-self: flex-end;
+        margin-top: 2px;
+    }
+
+    .cwd-typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 14px;
+        background: var(--mud-palette-action-default-hover, #f0f0f0);
+        border-radius: 16px;
+        border-bottom-left-radius: 4px;
+    }
+
+    .cwd-typing-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--mud-palette-text-secondary);
+        border-radius: 50%;
+        animation: cwd-bounce 1.2s ease-in-out infinite;
+    }
+
+    .cwd-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .cwd-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @@keyframes cwd-bounce {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-5px); }
+    }
+
+    .cwd-input-bar {
+        display: flex;
+        align-items: center;
+        padding: 8px 0 0 0;
+        gap: 4px;
+        flex-shrink: 0;
+        border-top: 1px solid var(--mud-palette-divider);
+    }
+
+    .cwd-input-field {
+        flex: 1;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    // ─── JS module ───────────────────────────────────────────────────────────
+    private IJSObjectReference? _jsModule;
+
+    // ─── State ───────────────────────────────────────────────────────────────
+    private bool _isLoading;
+
+    private Guid _currentUserId;
+
+    private List<ChatResponseDto> _chats = new();
+    private ChatResponseDto? _selectedChat;
+    private List<ChatMessageDto> _messages = new();
+
+    private string _searchQuery = string.Empty;
+    private string _newMessage = string.Empty;
+    private bool _isTyping;
+
+    private readonly HashSet<Guid> _typingUsers = new();
+    private readonly Dictionary<Guid, CancellationTokenSource> _typingCts = new();
+    private CancellationTokenSource? _myTypingCts;
+
+    // ─── Computed ─────────────────────────────────────────────────────────────
+    private IEnumerable<ChatResponseDto> FilteredChats =>
+        string.IsNullOrWhiteSpace(_searchQuery)
+            ? _chats
+            : _chats.Where(c => GetChatName(c).Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        if (user != null)
+            _currentUserId = user.Id;
+
+        if (!RealtimeService.IsChatConnected)
+        {
+            try { await RealtimeService.StartChatConnectionAsync(); }
+            catch (Exception) { }
+        }
+
+        ChatService.ChatCreated += OnChatCreated;
+        ChatService.MessageReceived += OnMessageReceived;
+        ChatService.TypingIndicator += OnTypingIndicator;
+        ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
+
+        await LoadChats();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./Shared/Components/Dialogs/ChatWindowDialog.razor.js");
+            }
+            catch (Exception) { }
+        }
+    }
+
+    private async Task Close()
+    {
+        if (_selectedChat != null)
+            await LeaveCurrentChat();
+
+        MudDialog.Close();
+    }
+
+    // ─── Chat list ────────────────────────────────────────────────────────────
+    private async Task LoadChats()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            _chats = await ChatService.GetChatsAsync();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenChat(ChatResponseDto chat)
+    {
+        _selectedChat = chat;
+        _messages.Clear();
+        _typingUsers.Clear();
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            _messages = await ChatService.GetMessagesAsync(chat.Id);
+            await ChatService.MarkMessagesAsReadAsync(chat.Id);
+            chat.UnreadCount = 0;
+
+            try { await RealtimeService.JoinChatAsync(chat.Id); }
+            catch (Exception) { }
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+
+        await ScrollToBottom();
+    }
+
+    private async Task BackToList()
+    {
+        if (_selectedChat != null)
+            await LeaveCurrentChat();
+
+        _selectedChat = null;
+        _messages.Clear();
+        _typingUsers.Clear();
+        StateHasChanged();
+    }
+
+    private async Task LeaveCurrentChat()
+    {
+        if (_selectedChat == null) return;
+
+        if (_isTyping)
+        {
+            _isTyping = false;
+            try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
+            catch (Exception) { }
+        }
+
+        try { await RealtimeService.LeaveChatAsync(_selectedChat.Id); }
+        catch (Exception) { }
+
+        CancelAllTypingTimers();
+    }
+
+    // ─── Messaging ────────────────────────────────────────────────────────────
+    private async Task SendMessage()
+    {
+        if (_selectedChat == null || string.IsNullOrWhiteSpace(_newMessage)) return;
+
+        var content = _newMessage.Trim();
+        _newMessage = string.Empty;
+
+        CancelMyTypingTimer();
+        if (_isTyping)
+        {
+            _isTyping = false;
+            try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
+            catch (Exception) { }
+        }
+
+        // Optimistic UI: show the message immediately before server confirmation
+        var optimisticId = Guid.NewGuid();
+        var optimisticMsg = new ChatMessageDto
+        {
+            Id = optimisticId,
+            ChatId = _selectedChat.Id,
+            SenderId = _currentUserId,
+            SenderName = "Tu",
+            Content = content,
+            SentAt = DateTime.UtcNow
+        };
+        _messages.Add(optimisticMsg);
+        StateHasChanged();
+        await ScrollToBottom();
+
+        try
+        {
+            var dto = new SendMessageDto
+            {
+                ChatId = _selectedChat.Id,
+                SenderId = _currentUserId,
+                Content = content
+            };
+            var sent = await ChatService.SendMessageAsync(dto);
+
+            var idx = _messages.FindIndex(m => m.Id == optimisticId);
+            if (idx >= 0)
+                _messages[idx] = sent;
+        }
+        catch (Exception)
+        {
+            _messages.RemoveAll(m => m.Id == optimisticId);
+        }
+
+        StateHasChanged();
+        await ScrollToBottom();
+    }
+
+    private async Task OnMessageChanged(string? value)
+    {
+        _newMessage = value ?? string.Empty;
+
+        if (_selectedChat == null) return;
+
+        if (!string.IsNullOrEmpty(_newMessage))
+        {
+            if (!_isTyping)
+            {
+                _isTyping = true;
+                try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, true); }
+                catch (Exception) { }
+            }
+
+            CancelMyTypingTimer();
+            _myTypingCts = new CancellationTokenSource();
+            var token = _myTypingCts.Token;
+            var chatId = _selectedChat.Id;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(3000, token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            _isTyping = false;
+                            try { await ChatService.UpdateTypingStatusAsync(chatId, false); }
+                            catch (Exception) { }
+                        });
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, token);
+        }
+        else if (_isTyping)
+        {
+            CancelMyTypingTimer();
+            _isTyping = false;
+            try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
+            catch (Exception) { }
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SendMessage();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            if (_jsModule != null)
+                await _jsModule.InvokeVoidAsync("scrollToBottom", "cwd-scroll");
+        }
+        catch (Exception) { }
+    }
+
+    // ─── Real-time event handlers ─────────────────────────────────────────────
+    private void OnChatCreated(ChatResponseDto chat)
+    {
+        if (!_chats.Any(c => c.Id == chat.Id))
+        {
+            _chats.Insert(0, chat);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnMessageReceived(ChatMessageDto message)
+    {
+        if (_selectedChat != null && message.ChatId == _selectedChat.Id)
+        {
+            if (!_messages.Any(m => m.Id == message.Id))
+            {
+                _messages.Add(message);
+                InvokeAsync(async () =>
+                {
+                    StateHasChanged();
+                    await ScrollToBottom();
+                });
+            }
+        }
+        else
+        {
+            var chat = _chats.FirstOrDefault(c => c.Id == message.ChatId);
+            if (chat != null)
+            {
+                chat.UnreadCount++;
+                chat.LastMessage = message;
+                InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void OnTypingIndicator(TypingIndicatorDto indicator)
+    {
+        if (_selectedChat == null || indicator.ChatId != _selectedChat.Id) return;
+        if (indicator.UserId == _currentUserId) return;
+
+        if (indicator.IsTyping)
+        {
+            _typingUsers.Add(indicator.UserId);
+
+            if (_typingCts.TryGetValue(indicator.UserId, out var existing))
+            {
+                existing.Cancel();
+                existing.Dispose();
+            }
+
+            var cts = new CancellationTokenSource();
+            _typingCts[indicator.UserId] = cts;
+            var userId = indicator.UserId;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(3000, cts.Token);
+                    if (!cts.Token.IsCancellationRequested)
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            _typingUsers.Remove(userId);
+                            if (_typingCts.TryGetValue(userId, out var c))
+                            {
+                                _typingCts.Remove(userId);
+                                c.Dispose();
+                            }
+                            StateHasChanged();
+                        });
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, cts.Token);
+        }
+        else
+        {
+            _typingUsers.Remove(indicator.UserId);
+            if (_typingCts.TryGetValue(indicator.UserId, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+                _typingCts.Remove(indicator.UserId);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ─── Timer helpers ────────────────────────────────────────────────────────
+    private void CancelMyTypingTimer()
+    {
+        _myTypingCts?.Cancel();
+        _myTypingCts?.Dispose();
+        _myTypingCts = null;
+    }
+
+    private void CancelAllTypingTimers()
+    {
+        CancelMyTypingTimer();
+        foreach (var cts in _typingCts.Values)
+        {
+            cts.Cancel();
+            cts.Dispose();
+        }
+        _typingCts.Clear();
+        _typingUsers.Clear();
+    }
+
+    // ─── Display helpers ──────────────────────────────────────────────────────
+    private string GetChatName(ChatResponseDto chat)
+    {
+        if (chat.Type == ChatType.DirectMessage)
+        {
+            var other = chat.Members?.FirstOrDefault(m => m.UserId != _currentUserId);
+            return other?.DisplayName ?? $"Chat {chat.Id.ToString()[..8]}";
+        }
+        return chat.Name ?? $"Chat {chat.Id.ToString()[..8]}";
+    }
+
+    private bool IsDirectMessageOnline(ChatResponseDto chat)
+    {
+        if (chat.Type != ChatType.DirectMessage) return false;
+        var other = chat.Members?.FirstOrDefault(m => m.UserId != _currentUserId);
+        return other?.IsOnline ?? false;
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private static readonly string[] AvatarColors =
+    {
+        "#f44336", "#e91e63", "#9c27b0", "#673ab7",
+        "#3f51b5", "#2196f3", "#009688", "#4caf50"
+    };
+
+    private static string GetAvatarHex(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return AvatarColors[0];
+        unchecked
+        {
+            var hash = name.Aggregate(0, (acc, c) => acc * 31 + c);
+            return AvatarColors[((hash % AvatarColors.Length) + AvatarColors.Length) % AvatarColors.Length];
+        }
+    }
+
+    private static string FormatTime(DateTime dt)
+    {
+        var now = DateTime.UtcNow;
+        if (dt.Date == now.Date) return dt.ToLocalTime().ToString("HH:mm");
+        if (dt.Date == now.Date.AddDays(-1)) return "Ieri";
+        return dt.ToLocalTime().ToString("dd/MM");
+    }
+
+    private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
+    {
+        foreach (var chat in _chats)
+        {
+            var member = chat.Members?.FirstOrDefault(m => m.UserId == userId);
+            if (member != null)
+                member.IsOnline = isOnline;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ─── Disposal ─────────────────────────────────────────────────────────────
+    public async ValueTask DisposeAsync()
+    {
+        ChatService.ChatCreated -= OnChatCreated;
+        ChatService.MessageReceived -= OnMessageReceived;
+        ChatService.TypingIndicator -= OnTypingIndicator;
+        ChatService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
+
+        CancelAllTypingTimers();
+
+        if (_selectedChat != null)
+        {
+            try { await RealtimeService.LeaveChatAsync(_selectedChat.Id); }
+            catch (Exception) { }
+        }
+
+        if (_jsModule != null)
+        {
+            try { await _jsModule.DisposeAsync(); }
+            catch (Exception) { }
+        }
+    }
+}
