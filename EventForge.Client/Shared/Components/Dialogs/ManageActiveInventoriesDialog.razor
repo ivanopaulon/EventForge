@@ -407,56 +407,96 @@
     
     private async Task ResumeInventory(InventoryDocumentDto inventory)
     {
-        await OnInventoryResumed.InvokeAsync(inventory);
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            await OnInventoryResumed.InvokeAsync(inventory);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resuming inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.resumeInventoryFailed", "Errore nel riprendere l'inventario"));
+        }
     }
 
     private async Task FinalizeInventory(InventoryDocumentDto inventory)
     {
-        await OnInventoryFinalized.InvokeAsync(inventory);
-        
-        // Rimuovi dalla lista locale
-        if (Mode == InventoryDialogMode.InitialCheck)
+        try
         {
-            AllOpenInventories.Remove(inventory);
+            await OnInventoryFinalized.InvokeAsync(inventory);
+            
+            // Rimuovi dalla lista locale
+            if (Mode == InventoryDialogMode.InitialCheck)
+            {
+                AllOpenInventories.Remove(inventory);
+            }
+            else if (Mode == InventoryDialogMode.SwitchInventory)
+            {
+                OtherInventories.Remove(inventory);
+                _cachedOtherInventories = null; // Invalida cache
+            }
+            
+            await InvokeAsync(StateHasChanged);
         }
-        else if (Mode == InventoryDialogMode.SwitchInventory)
+        catch (Exception ex)
         {
-            OtherInventories.Remove(inventory);
-            _cachedOtherInventories = null; // Invalida cache
+            Logger.LogError(ex, "Error finalizing inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeInventoryFailed", "Errore nel finalizzare l'inventario"));
         }
-        
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CancelInventory(InventoryDocumentDto inventory)
     {
-        await OnInventoryCancelled.InvokeAsync(inventory);
-        
-        // Rimuovi dalla lista locale
-        if (Mode == InventoryDialogMode.InitialCheck)
+        try
         {
-            AllOpenInventories.Remove(inventory);
+            await OnInventoryCancelled.InvokeAsync(inventory);
+            
+            // Rimuovi dalla lista locale
+            if (Mode == InventoryDialogMode.InitialCheck)
+            {
+                AllOpenInventories.Remove(inventory);
+            }
+            else if (Mode == InventoryDialogMode.SwitchInventory)
+            {
+                OtherInventories.Remove(inventory);
+                _cachedOtherInventories = null; // Invalida cache
+            }
+            
+            await InvokeAsync(StateHasChanged);
         }
-        else if (Mode == InventoryDialogMode.SwitchInventory)
+        catch (Exception ex)
         {
-            OtherInventories.Remove(inventory);
-            _cachedOtherInventories = null; // Invalida cache
+            Logger.LogError(ex, "Error cancelling inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.cancelInventoryFailed", "Errore nell'annullare l'inventario"));
         }
-        
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task FinalizeAll()
     {
-        await OnFinalizeAllRequested.InvokeAsync();
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            await OnFinalizeAllRequested.InvokeAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing all inventories.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeAllFailed", "Errore nel finalizzare tutti gli inventari"));
+        }
     }
 
     private async Task CancelAll()
     {
-        await OnCancelAllRequested.InvokeAsync();
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            await OnCancelAllRequested.InvokeAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling all inventories.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.cancelAllFailed", "Errore nell'annullare tutti gli inventari"));
+        }
     }
 
     private void StartNewInventory()
@@ -525,11 +565,19 @@
     
     private async Task FinalizeCurrentAndClose()
     {
-        if (CurrentDocument != null)
+        try
         {
-            await OnInventoryFinalized.InvokeAsync(CurrentDocument);
+            if (CurrentDocument != null)
+            {
+                await OnInventoryFinalized.InvokeAsync(CurrentDocument);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
         }
-        MudDialog.Close(DialogResult.Ok(true));
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing current inventory and closing.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeCurrentFailed", "Errore nel finalizzare l'inventario corrente"));
+        }
     }
 
     private void PauseAndSwitch()
@@ -540,11 +588,19 @@
 
     private async Task CloseWithoutSaving()
     {
-        if (CurrentDocument != null)
+        try
         {
-            await OnInventoryCancelled.InvokeAsync(CurrentDocument);
+            if (CurrentDocument != null)
+            {
+                await OnInventoryCancelled.InvokeAsync(CurrentDocument);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
         }
-        MudDialog.Close(DialogResult.Ok(true));
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error closing without saving.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.closeWithoutSavingFailed", "Errore nella chiusura senza salvataggio"));
+        }
     }
 
     private void ContinueWorking()
