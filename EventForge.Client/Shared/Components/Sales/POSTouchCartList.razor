@@ -1,5 +1,7 @@
 @using EventForge.DTOs.Sales
 @inject ITranslationService TranslationService
+@inject ILogger<POSTouchCartList> Logger
+@inject IAppNotificationService AppNotification
 
 @if (Items?.Any() == true)
 {
@@ -163,31 +165,71 @@ else
 
     private async Task SelectItem(SaleItemDto item)
     {
-        await OnItemSelected.InvokeAsync(item);
+        try
+        {
+            await OnItemSelected.InvokeAsync(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(SelectItem));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task RequestEditItem(SaleItemDto item)
     {
-        if (IsDisabled) return;
-        await OnItemEditRequested.InvokeAsync(item);
+        try
+        {
+            if (IsDisabled) return;
+            await OnItemEditRequested.InvokeAsync(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(RequestEditItem));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task IncreaseQty(SaleItemDto item)
     {
-        if (IsDisabled) return;
-        await OnIncreaseQuantity.InvokeAsync(item);
+        try
+        {
+            if (IsDisabled) return;
+            await OnIncreaseQuantity.InvokeAsync(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(IncreaseQty));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task DecreaseQty(SaleItemDto item)
     {
-        if (IsDisabled) return;
-        await OnDecreaseQuantity.InvokeAsync(item);
+        try
+        {
+            if (IsDisabled) return;
+            await OnDecreaseQuantity.InvokeAsync(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(DecreaseQty));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task DeleteItem(SaleItemDto item)
     {
-        if (IsDisabled) return;
-        await OnRemoveItem.InvokeAsync(item);
+        try
+        {
+            if (IsDisabled) return;
+            await OnRemoveItem.InvokeAsync(item);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(DeleteItem));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private string GetItemClass(SaleItemDto item) =>

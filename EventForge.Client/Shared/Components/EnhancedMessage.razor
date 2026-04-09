@@ -3,6 +3,8 @@
 @attribute [Authorize]
 @inject ITranslationService TranslationService
 @inject IJSRuntime JSRuntime
+@inject ILogger<EnhancedMessage> Logger
+@inject IAppNotificationService AppNotification
 
 <div class="enhanced-message @GetMessageWrapperClass()" id="message-@Message.Id">
  <!-- Reply preview (if this message is a reply) -->
@@ -511,13 +513,29 @@
 
     private async Task AddReaction(string emoji)
     {
-        _showReactionPicker = false;
-        await OnReaction.InvokeAsync(emoji);
+        try
+        {
+            _showReactionPicker = false;
+            await OnReaction.InvokeAsync(emoji);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(AddReaction));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ToggleReaction(string emoji)
     {
-        await OnReaction.InvokeAsync(emoji);
+        try
+        {
+            await OnReaction.InvokeAsync(emoji);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ToggleReaction));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task CopyMessageContent()
@@ -525,27 +543,50 @@
         try
         {
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Message.Content);
-            // Show success notification
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback or show error
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(CopyMessageContent));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task DownloadAttachment(MessageAttachmentDto attachment)
     {
-        await OnDownloadAttachment.InvokeAsync(attachment);
+        try
+        {
+            await OnDownloadAttachment.InvokeAsync(attachment);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(DownloadAttachment));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OpenImagePreview(MessageAttachmentDto attachment)
     {
-        await OnPreviewImage.InvokeAsync(attachment);
+        try
+        {
+            await OnPreviewImage.InvokeAsync(attachment);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OpenImagePreview));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ShowThreadReplies()
     {
-        // TODO: Implement thread view
-        // This could open a side panel or navigate to a thread view
+        try
+        {
+            // TODO: Implement thread view
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ShowThreadReplies));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 }

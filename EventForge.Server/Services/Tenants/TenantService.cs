@@ -332,6 +332,7 @@ public class TenantService(
             }
 
             var tenant = await context.Tenants
+                .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
             return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
@@ -351,6 +352,7 @@ public class TenantService(
                 throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
 
             var tenants = await context.Tenants
+                .AsNoTracking()
                 .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.Name)
                 .ToListAsync();
@@ -685,6 +687,7 @@ public class TenantService(
             }
 
             var adminTenants = await context.AdminTenants
+                .AsNoTracking()
                 .Include(at => at.User)
                 .Include(at => at.ManagedTenant)
                 .Where(at => at.ManagedTenantId == tenantId)
@@ -866,21 +869,23 @@ public class TenantService(
 
         try
         {
-            var totalTenants = await context.Tenants.CountAsync();
-            var activeTenants = await context.Tenants.CountAsync(t => t.IsActive);
+            var totalTenants = await context.Tenants.AsNoTracking().CountAsync();
+            var activeTenants = await context.Tenants.AsNoTracking().CountAsync(t => t.IsActive);
             var inactiveTenants = totalTenants - activeTenants;
 
-            var totalUsers = await context.Users.CountAsync();
+            var totalUsers = await context.Users.AsNoTracking().CountAsync();
             var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-            var usersLastMonth = await context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
+            var usersLastMonth = await context.Users.AsNoTracking().CountAsync(u => u.CreatedAt >= oneMonthAgo);
 
             // Batch load user counts per tenant to avoid correlated subquery N+1
             var userCountsByTenant = await context.Users
+                .AsNoTracking()
                 .GroupBy(u => u.TenantId)
                 .Select(g => new { TenantId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.TenantId, x => x.Count);
 
             var activeTenantsForLimit = await context.Tenants
+                .AsNoTracking()
                 .Where(t => t.IsActive)
                 .Select(t => new { t.Id, t.MaxUsers })
                 .ToListAsync();
@@ -977,6 +982,7 @@ public class TenantService(
             {
                 var tenantIds = tenants.Select(t => t.Id).ToList();
                 var userCountsByTenant = await context.Users
+                    .AsNoTracking()
                     .Where(u => tenantIds.Contains(u.TenantId))
                     .GroupBy(u => u.TenantId)
                     .Select(g => new { TenantId = g.Key, Count = g.Count() })
@@ -1159,12 +1165,13 @@ public class TenantService(
 
     private async Task<TenantUsageStatsDto> GetTenantUsageStatsAsync(Guid tenantId)
     {
-        var totalUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
-        var activeUsers = await context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive);
-        var totalEvents = await context.Events.CountAsync(e => e.TenantId == tenantId);
+        var totalUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId);
+        var activeUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId && u.IsActive);
+        var totalEvents = await context.Events.AsNoTracking().CountAsync(e => e.TenantId == tenantId);
         var eventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
         var storageUsed = await CalculateStorageUsageAsync(tenantId);
         var lastActivity = await context.AuditTrails
+            .AsNoTracking()
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Select(a => a.PerformedAt)
@@ -1172,11 +1179,13 @@ public class TenantService(
 
         var today = DateTime.UtcNow.Date;
         var loginAttemptsToday = await context.AuditTrails
+            .AsNoTracking()
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
         var failedLoginsToday = await context.AuditTrails
+            .AsNoTracking()
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
@@ -1197,6 +1206,7 @@ public class TenantService(
     private async Task<List<string>> GetRecentActivitiesAsync(Guid tenantId)
     {
         var recentAudits = await context.AuditTrails
+            .AsNoTracking()
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Take(10)
@@ -1211,8 +1221,8 @@ public class TenantService(
         // This is a placeholder implementation
         // In a real application, you would calculate actual storage usage
         // from file uploads, documents, etc.
-        var userCount = await context.Users.CountAsync(u => u.TenantId == tenantId);
-        var eventCount = await context.Events.CountAsync(e => e.TenantId == tenantId);
+        var userCount = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId);
+        var eventCount = await context.Events.AsNoTracking().CountAsync(e => e.TenantId == tenantId);
 
         // Rough estimation: 1KB per user + 10KB per event
         return (userCount * 1024) + (eventCount * 10240);
@@ -1222,6 +1232,7 @@ public class TenantService(
     {
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         return await context.Events
+            .AsNoTracking()
             .CountAsync(e => e.TenantId == tenantId && e.CreatedAt >= startOfMonth);
     }
 
