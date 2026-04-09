@@ -1,6 +1,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<ActionButtonGroup> Logger
 
 <!--
     Consolidated ActionButtonGroup Component
@@ -217,8 +218,9 @@
 
             await OnDelete.InvokeAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error in OnDeleteAsync.");
             AppNotification.ShowError(TranslationService.GetTranslation("error.deleteFailed", "Errore durante l'eliminazione"));
         }
     }
@@ -244,8 +246,9 @@
         {
             await action.InvokeAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error in ExecuteActionAsync.");
             AppNotification.ShowError(TranslationService.GetTranslation(errorKey, fallbackError));
         }
     }

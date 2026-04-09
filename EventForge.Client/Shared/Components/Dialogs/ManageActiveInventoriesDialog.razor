@@ -4,6 +4,7 @@
 @inject IInventoryService InventoryService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<ManageActiveInventoriesDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Inventory"
           Title="Gestione Inventari Attivi"
@@ -367,32 +368,40 @@
     
     private async Task ViewInventory(InventoryDocumentDto inventory)
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "DocumentId", inventory.Id }
-        };
+            var parameters = new DialogParameters
+            {
+                { "DocumentId", inventory.Id }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<InventoryViewDialog>(
+                TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+            
+            // Se l'inventario è stato finalizzato dal dialog di visualizzazione
+            if (result?.Data is bool finalized && finalized)
+            {
+                await OnInventoryFinalized.InvokeAsync(inventory);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true,
-            CloseOnEscapeKey = true
-        };
-
-        var dialog = await DialogService.ShowAsync<InventoryViewDialog>(
-            TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-        
-        // Se l'inventario è stato finalizzato dal dialog di visualizzazione
-        if (result?.Data is bool finalized && finalized)
-        {
-            await OnInventoryFinalized.InvokeAsync(inventory);
-            StateHasChanged();
+            Logger.LogError(ex, "Error in ViewInventory.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
     
@@ -465,42 +474,50 @@
             return;
         }
 
-        var parameters = new DialogParameters
+        try
         {
-            { "SelectedInventories", _selectedInventories.ToList() }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            CloseButton = true,
-            CloseOnEscapeKey = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
-            TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-        
-        if (result is { Canceled: false })
-        {
-            // Rimuovi inventari accorpati dalla lista
-            foreach (var inv in _selectedInventories.ToList())
+            var parameters = new DialogParameters
             {
-                AllOpenInventories.Remove(inv);
+                { "SelectedInventories", _selectedInventories.ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
+                TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Rimuovi inventari accorpati dalla lista
+                foreach (var inv in _selectedInventories.ToList())
+                {
+                    AllOpenInventories.Remove(inv);
+                }
+                
+                _selectedInventories.Clear();
+                StateHasChanged();
+                
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.mergeSuccess", 
+                        "Inventari accorpati con successo"));
+                
+                // Notifica parent per ricaricare dati
+                await OnFinalizeAllRequested.InvokeAsync();
             }
-            
-            _selectedInventories.Clear();
-            StateHasChanged();
-            
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.mergeSuccess", 
-                    "Inventari accorpati con successo"));
-            
-            // Notifica parent per ricaricare dati
-            await OnFinalizeAllRequested.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenMergeDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

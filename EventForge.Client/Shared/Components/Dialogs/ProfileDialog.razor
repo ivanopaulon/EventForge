@@ -5,6 +5,7 @@
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<ProfileDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Person"
           Title="@(_profile?.FullName ?? TranslationService.GetTranslation("profile.title", "Profilo"))"
@@ -492,20 +493,44 @@
 
     private async Task DeleteAvatar()
     {
-        var success = await ProfileService.DeleteAvatarAsync();
-        if (success) await LoadProfile();
+        try
+        {
+            var success = await ProfileService.DeleteAvatarAsync();
+            if (success) await LoadProfile();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in DeleteAvatar.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task TerminateSession(Guid sessionId)
     {
-        var success = await ProfileService.TerminateSessionAsync(sessionId);
-        if (success) await LoadSessions();
+        try
+        {
+            var success = await ProfileService.TerminateSessionAsync(sessionId);
+            if (success) await LoadSessions();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in TerminateSession.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task TerminateAllOtherSessions()
     {
-        var success = await ProfileService.TerminateAllOtherSessionsAsync();
-        if (success) await LoadSessions();
+        try
+        {
+            var success = await ProfileService.TerminateAllOtherSessionsAsync();
+            if (success) await LoadSessions();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in TerminateAllOtherSessions.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void Close() => MudDialog.Close();

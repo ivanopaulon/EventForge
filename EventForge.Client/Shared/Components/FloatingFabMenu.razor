@@ -7,6 +7,8 @@
 @inject IDialogService DialogService
 @inject IUpdateNotificationService UpdateNotification
 @inject NavigationManager NavigationManager
+@inject ILogger<FloatingFabMenu> Logger
+@inject IAppNotificationService AppNotification
 @implements IDisposable
 
 <!-- Child components: their panels render normally, only their individual FABs are hidden -->
@@ -232,25 +234,49 @@
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_chatRef != null)
-            await _chatRef.OpenPanel();
+        try
+        {
+            if (_chatRef != null)
+                await _chatRef.OpenPanel();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnChatClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnHealthClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_healthRef != null)
-            await _healthRef.OpenHealthDialog();
+        try
+        {
+            if (_healthRef != null)
+                await _healthRef.OpenHealthDialog();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnHealthClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnUpdatesClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        await DialogService.ShowAsync<UpdatesDialog>(
-            string.Empty,
-            EFDialogDefaults.Options);
+        try
+        {
+            await DialogService.ShowAsync<UpdatesDialog>(
+                string.Empty,
+                EFDialogDefaults.Options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnUpdatesClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnUpdateStateChanged()
@@ -260,13 +286,21 @@
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        var options = new DialogOptions
+        try
         {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-        await DialogService.ShowAsync<NotificationCenterDialog>("Centro notifiche", options);
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+            await DialogService.ShowAsync<NotificationCenterDialog>("Centro notifiche", options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnNotificationsClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnPlannedEventsClick()
@@ -287,16 +321,32 @@
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_profileRef != null)
-            await _profileRef.NavigateToProfile();
+        try
+        {
+            if (_profileRef != null)
+                await _profileRef.NavigateToProfile();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnNavigateToProfileClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnFontPreferencesClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_profileRef != null)
-            await _profileRef.OpenFontPreferences();
+        try
+        {
+            if (_profileRef != null)
+                await _profileRef.OpenFontPreferences();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnFontPreferencesClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnAdminDashboardClick()
@@ -310,8 +360,16 @@
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        if (_profileRef != null)
-            await _profileRef.HandleLogout();
+        try
+        {
+            if (_profileRef != null)
+                await _profileRef.HandleLogout();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnLogoutClick.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     public void Dispose()

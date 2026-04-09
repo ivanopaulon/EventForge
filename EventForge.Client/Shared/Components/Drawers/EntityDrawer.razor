@@ -3,6 +3,8 @@
 @using EventForge.Client.Shared.Components
 @using Microsoft.AspNetCore.Components.Web
 @inject ITranslationService TranslationService
+@inject ILogger<EntityDrawer> Logger
+@inject IAppNotificationService AppNotification
 @implements IAsyncDisposable
 
 <MudDrawer @bind-Open="@IsOpen" 
@@ -220,16 +222,24 @@
         }
         catch (Exception ex)
         {
-            // Log error but don't fail the component
-            Console.WriteLine($"Failed to focus first input: {ex.Message}");
+            Logger.LogError(ex, "Error in FocusFirstInput.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Escape")
+        try
         {
-            await HandleClose();
+            if (e.Key == "Escape")
+            {
+                await HandleClose();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleKeyDown.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -313,6 +323,11 @@
                 await OnSave.InvokeAsync();
             }
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleSave.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
         finally
         {
             _isLoading = false;
@@ -322,35 +337,59 @@
 
     private async Task HandleCancel()
     {
-        if (OnCancel.HasDelegate)
+        try
         {
-            await OnCancel.InvokeAsync();
+            if (OnCancel.HasDelegate)
+            {
+                await OnCancel.InvokeAsync();
+            }
+            else
+            {
+                await HandleClose();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await HandleClose();
+            Logger.LogError(ex, "Error in HandleCancel.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task HandleClose()
     {
-        IsOpen = false;
-        await IsOpenChanged.InvokeAsync(IsOpen);
-        
-        if (OnClose.HasDelegate)
+        try
         {
-            await OnClose.InvokeAsync();
+            IsOpen = false;
+            await IsOpenChanged.InvokeAsync(IsOpen);
+            
+            if (OnClose.HasDelegate)
+            {
+                await OnClose.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleClose.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task SwitchToEdit()
     {
-        Mode = EntityDrawerMode.Edit;
-        await ModeChanged.InvokeAsync(Mode);
-        StateHasChanged();
-        
-        // Focus first input after switching to edit mode
-        await FocusFirstInput();
+        try
+        {
+            Mode = EntityDrawerMode.Edit;
+            await ModeChanged.InvokeAsync(Mode);
+            StateHasChanged();
+            
+            // Focus first input after switching to edit mode
+            await FocusFirstInput();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in SwitchToEdit.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     public async ValueTask DisposeAsync()
