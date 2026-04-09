@@ -4,6 +4,7 @@ using EventForge.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Store;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,8 @@ public class SaleSessionService(
     ILogger<SaleSessionService> logger,
     IDocumentHeaderService documentHeaderService,
     IStockMovementService stockMovementService,
-    IPromotionService promotionService) : ISaleSessionService
+    IPromotionService promotionService,
+    IFiscalDrawerService fiscalDrawerService) : ISaleSessionService
 {
 
     /// <summary>
@@ -789,7 +791,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             var session = await context.SaleSessions
                 .Include(s => s.Items)
-                .Include(s => s.Payments)
+                .Include(s => s.Payments).ThenInclude(p => p.PaymentMethod)
                 .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
@@ -822,6 +824,39 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // SaveChanges will handle transaction atomicity
             await context.SaveChangesAsync(cancellationToken);
+
+            // Update fiscal drawer session totals (best-effort — session is already closed)
+            try
+            {
+                if (session.PosId != Guid.Empty)
+                {
+                    var drawer = await fiscalDrawerService.GetFiscalDrawerByPosIdAsync(session.PosId, cancellationToken);
+                    if (drawer is not null)
+                    {
+                        var paidItems = session.Payments
+                            .Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed)
+                            .ToList();
+
+                        var cashAmount = paidItems
+                            .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) == true)
+                            .Sum(p => p.Amount);
+                        var cardAmount = paidItems
+                            .Where(p => p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) == true)
+                            .Sum(p => p.Amount);
+                        var otherAmount = paidItems
+                            .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) != true
+                                     && p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) != true)
+                            .Sum(p => p.Amount);
+
+                        await fiscalDrawerService.RecordSaleTransactionAsync(
+                            drawer.Id, cashAmount, cardAmount, otherAmount, session.Id, currentUser, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception fiscalEx)
+            {
+                logger.LogWarning(fiscalEx, "Failed to record fiscal drawer transaction for session {SessionId}, but session was closed successfully", sessionId);
+            }
 
             // Log audit entry (best effort - don't fail session close if audit fails)
             try
