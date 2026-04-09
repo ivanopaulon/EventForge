@@ -123,10 +123,17 @@ namespace EventForge.Client.Shared.Components.Business
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (firstRender && AutoFocus && _autocomplete != null && SelectedBusinessParty == null)
+            try
             {
-                await Task.Delay(100); // Small delay to ensure rendering is complete
-                await _autocomplete.FocusAsync();
+                if (firstRender && AutoFocus && _autocomplete != null && SelectedBusinessParty == null)
+                {
+                    await Task.Delay(100); // Small delay to ensure rendering is complete
+                    await _autocomplete.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OnAfterRenderAsync for UnifiedBusinessPartySelector.");
             }
         }
 
@@ -178,17 +185,25 @@ namespace EventForge.Client.Shared.Components.Business
             Logger.LogInformation("OnBusinessPartySelectionChangedAsync called. BusinessParty: {Id} - {Name}",
                 businessParty?.Id, businessParty?.Name ?? "NULL");
 
-            // Update local property
-            SelectedBusinessParty = businessParty;
-
-            // Notify parent component
-            if (SelectedBusinessPartyChanged.HasDelegate)
+            try
             {
-                await SelectedBusinessPartyChanged.InvokeAsync(businessParty);
-            }
+                // Update local property
+                SelectedBusinessParty = businessParty;
 
-            Logger.LogInformation("Business party selection propagated to parent. SelectedBusinessParty: {Id}",
-                SelectedBusinessParty?.Id);
+                // Notify parent component
+                if (SelectedBusinessPartyChanged.HasDelegate)
+                {
+                    await SelectedBusinessPartyChanged.InvokeAsync(businessParty);
+                }
+
+                Logger.LogInformation("Business party selection propagated to parent. SelectedBusinessParty: {Id}",
+                    SelectedBusinessParty?.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OnBusinessPartySelectionChangedAsync for business party {Id}.", businessParty?.Id);
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.selectingBusinessParty", "Errore durante la selezione del partner."));
+            }
         }
 
         #endregion
@@ -202,9 +217,16 @@ namespace EventForge.Client.Shared.Components.Business
         {
             if (SelectedBusinessParty == null) return;
 
-            if (OnEdit.HasDelegate)
+            try
             {
-                await OnEdit.InvokeAsync(SelectedBusinessParty);
+                if (OnEdit.HasDelegate)
+                {
+                    await OnEdit.InvokeAsync(SelectedBusinessParty);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in HandleEditClick for business party {Id}.", SelectedBusinessParty?.Id);
             }
         }
 
@@ -213,13 +235,20 @@ namespace EventForge.Client.Shared.Components.Business
         /// </summary>
         private async Task ClearSelection()
         {
-            SelectedBusinessParty = null;
-            await SelectedBusinessPartyChanged.InvokeAsync(null);
-            _searchText = string.Empty;
-
-            if (_autocomplete != null)
+            try
             {
-                await _autocomplete.FocusAsync();
+                SelectedBusinessParty = null;
+                await SelectedBusinessPartyChanged.InvokeAsync(null);
+                _searchText = string.Empty;
+
+                if (_autocomplete != null)
+                {
+                    await _autocomplete.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in ClearSelection for UnifiedBusinessPartySelector.");
             }
         }
 
@@ -228,9 +257,16 @@ namespace EventForge.Client.Shared.Components.Business
         /// </summary>
         private async Task HandleGroupClick(BusinessPartyGroupDto group)
         {
-            if (GroupClickable && OnGroupClick.HasDelegate)
+            try
             {
-                await OnGroupClick.InvokeAsync(group);
+                if (GroupClickable && OnGroupClick.HasDelegate)
+                {
+                    await OnGroupClick.InvokeAsync(group);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in HandleGroupClick for group {GroupId}.", group.Id);
             }
         }
 
@@ -376,25 +412,33 @@ namespace EventForge.Client.Shared.Components.Business
         /// </summary>
         private async Task OpenQuickCreateDialog()
         {
-            var parameters = new DialogParameters
+            try
             {
-                ["PreferredPartyType"] = PreferredCreateType ?? FilterByType
-            };
+                var parameters = new DialogParameters
+                {
+                    ["PreferredPartyType"] = PreferredCreateType ?? FilterByType
+                };
 
-            var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
-                "Creazione Rapida Partner",
-                parameters,
-                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+                var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
+                    "Creazione Rapida Partner",
+                    parameters,
+                    new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
 
-            var result = await dialog.Result;
+                var result = await dialog.Result;
 
-            if (result is { Canceled: false } && result.Data is BusinessPartyDto createdParty)
+                if (result is { Canceled: false } && result.Data is BusinessPartyDto createdParty)
+                {
+                    SelectedBusinessParty = createdParty;
+                    await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
+                    await OnBusinessPartyCreated.InvokeAsync(createdParty);
+
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name));
+                }
+            }
+            catch (Exception ex)
             {
-                SelectedBusinessParty = createdParty;
-                await SelectedBusinessPartyChanged.InvokeAsync(createdParty);
-                await OnBusinessPartyCreated.InvokeAsync(createdParty);
-
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerCreatedAndSelected", "Partner '{0}' creato e selezionato", createdParty.Name));
+                Logger.LogError(ex, "Error in OpenQuickCreateDialog for UnifiedBusinessPartySelector.");
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.createBusinessParty", "Errore durante la creazione del partner."));
             }
         }
 
@@ -405,26 +449,34 @@ namespace EventForge.Client.Shared.Components.Business
         {
             if (SelectedBusinessParty == null) return;
 
-            var parameters = new DialogParameters
+            try
             {
-                ["BusinessPartyId"] = SelectedBusinessParty.Id,
-                ["ExistingBusinessParty"] = SelectedBusinessParty
-            };
+                var parameters = new DialogParameters
+                {
+                    ["BusinessPartyId"] = SelectedBusinessParty.Id,
+                    ["ExistingBusinessParty"] = SelectedBusinessParty
+                };
 
-            var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
-                "Modifica Rapida Partner",
-                parameters,
-                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+                var dialog = await DialogService.ShowAsync<QuickCreateBusinessPartyDialog>(
+                    "Modifica Rapida Partner",
+                    parameters,
+                    new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
 
-            var result = await dialog.Result;
+                var result = await dialog.Result;
 
-            if (result is { Canceled: false } && result.Data is BusinessPartyDto updatedParty)
+                if (result is { Canceled: false } && result.Data is BusinessPartyDto updatedParty)
+                {
+                    SelectedBusinessParty = updatedParty;
+                    await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);
+                    await OnBusinessPartyUpdated.InvokeAsync(updatedParty);
+
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"));
+                }
+            }
+            catch (Exception ex)
             {
-                SelectedBusinessParty = updatedParty;
-                await SelectedBusinessPartyChanged.InvokeAsync(updatedParty);
-                await OnBusinessPartyUpdated.InvokeAsync(updatedParty);
-
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("business.partnerUpdated", "Partner aggiornato con successo"));
+                Logger.LogError(ex, "Error in OpenQuickEditDialog for business party {Id}.", SelectedBusinessParty?.Id);
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.editBusinessParty", "Errore durante la modifica del partner."));
             }
         }
 

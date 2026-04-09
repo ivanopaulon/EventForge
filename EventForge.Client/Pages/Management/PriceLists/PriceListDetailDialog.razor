@@ -730,14 +730,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPriceListAsync();
+        try
+        {
+            await LoadPriceListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PriceListDetailDialog for price list {Id}.", Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.errorInitializing", "Errore durante l'inizializzazione del listino prezzi."));
+        }
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_priceList == null || _priceList.Id != Id)
+        try
         {
-            await LoadPriceListAsync();
+            if (_priceList == null || _priceList.Id != Id)
+            {
+                await LoadPriceListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnParametersSetAsync for PriceListDetailDialog {Id}.", Id);
         }
     }
 
@@ -817,29 +832,50 @@
 
     private async Task OnProductSelectedForQuickAdd(ProductDto? product)
     {
-        _selectedProductToAdd = product;
-
-        if (product?.DefaultPrice.HasValue == true)
+        try
         {
-            _quickAddPrice = product.DefaultPrice.Value;
-        }
-        else
-        {
-            _quickAddPrice = 0;
-        }
+            _selectedProductToAdd = product;
 
-        StateHasChanged();
+            if (product?.DefaultPrice.HasValue == true)
+            {
+                _quickAddPrice = product.DefaultPrice.Value;
+            }
+            else
+            {
+                _quickAddPrice = 0;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnProductSelectedForQuickAdd for product {ProductId}.", product?.Id);
+        }
     }
 
     private async Task HandleProductWithCode(ProductWithCodeDto result)
     {
-        _selectedProductToAdd = result.Product;
-        await OnProductSelectedForQuickAdd(result.Product);
+        try
+        {
+            _selectedProductToAdd = result.Product;
+            await OnProductSelectedForQuickAdd(result.Product);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleProductWithCode.");
+        }
     }
 
     private async Task HandleProductNotFound(string barcode)
     {
-        AppNotification.ShowWarning($"Prodotto non trovato: {barcode}");
+        try
+        {
+            AppNotification.ShowWarning($"Prodotto non trovato: {barcode}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleProductNotFound for barcode {Barcode}.", barcode);
+        }
     }
 
     private async Task AddProductQuick()
@@ -886,13 +922,20 @@
 
     private async Task HandlePriceEditKeyDown(KeyboardEventArgs e, PriceListEntryDto entry)
     {
-        if (e.Key == "Enter")
+        try
         {
-            await SavePriceEdit(entry);
+            if (e.Key == "Enter")
+            {
+                await SavePriceEdit(entry);
+            }
+            else if (e.Key == "Escape")
+            {
+                CancelPriceEdit();
+            }
         }
-        else if (e.Key == "Escape")
+        catch (Exception ex)
         {
-            CancelPriceEdit();
+            Logger.LogError(ex, "Error handling price edit key '{Key}' for entry {EntryId}.", e.Key, entry.Id);
         }
     }
 
@@ -1097,7 +1140,14 @@
 
     private async Task OpenAddProductsDialog()
     {
-        AppNotification.ShowInfo("Dialog multi-selezione in arrivo nella prossima PR");
+        try
+        {
+            AppNotification.ShowInfo("Dialog multi-selezione in arrivo nella prossima PR");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenAddProductsDialog.");
+        }
     }
 
     private async Task OpenEditEntryDialog(PriceListEntryDto entry)
@@ -1349,12 +1399,26 @@
 
     private async Task HandleBusinessPartyRemoved(Guid businessPartyId)
     {
-        await LoadAssignedBusinessPartiesAsync();
+        try
+        {
+            await LoadAssignedBusinessPartiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleBusinessPartyRemoved for {BusinessPartyId}.", businessPartyId);
+        }
     }
 
     private async Task HandleBusinessPartyUpdated(PriceListBusinessPartyDto updated)
     {
-        await LoadAssignedBusinessPartiesAsync();
+        try
+        {
+            await LoadAssignedBusinessPartiesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleBusinessPartyUpdated.");
+        }
     }
 
     private async Task Cancel()

@@ -745,8 +745,15 @@
     /// </summary>
     private async Task OnFilterChanged()
     {
-        _currentPage = 1;
-        await LoadNotificationsAsync();
+        try
+        {
+            _currentPage = 1;
+            await LoadNotificationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnFilterChanged.");
+        }
     }
 
     /// <summary>
@@ -754,8 +761,15 @@
     /// </summary>
     private async Task OnPageChanged(int page)
     {
-        _currentPage = page;
-        await LoadNotificationsAsync();
+        try
+        {
+            _currentPage = page;
+            await LoadNotificationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnPageChanged for page {Page}.", page);
+        }
     }
 
     /// <summary>
@@ -867,15 +881,22 @@
 
     private async Task OnGroupingChanged()
     {
-        if (_enableGrouping)
+        try
         {
-            await GenerateNotificationGroups();
+            if (_enableGrouping)
+            {
+                await GenerateNotificationGroups();
+            }
+            else
+            {
+                _notificationGroups.Clear();
+            }
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            _notificationGroups.Clear();
+            Logger.LogError(ex, "Error in OnGroupingChanged.");
         }
-        StateHasChanged();
     }
 
     private Task GenerateNotificationGroups()
@@ -1011,17 +1032,38 @@
     // Individual notification event handlers for rich cards
     private async Task OnNotificationMarkAsRead(NotificationResponseDto notification)
     {
-        await MarkAsReadAsync(notification.Id);
+        try
+        {
+            await MarkAsReadAsync(notification.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnNotificationMarkAsRead for notification {NotificationId}.", notification.Id);
+        }
     }
 
     private async Task OnNotificationArchive(NotificationResponseDto notification)
     {
-        await ArchiveNotificationAsync(notification.Id);
+        try
+        {
+            await ArchiveNotificationAsync(notification.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnNotificationArchive for notification {NotificationId}.", notification.Id);
+        }
     }
 
     private async Task OnNotificationShowDetails(NotificationResponseDto notification)
     {
-        await ShowNotificationDetailsAsync(notification);
+        try
+        {
+            await ShowNotificationDetailsAsync(notification);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnNotificationShowDetails for notification {NotificationId}.", notification.Id);
+        }
     }
 
     private Task OnNotificationActionExecuted(NotificationActionDto action)

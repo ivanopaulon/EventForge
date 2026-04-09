@@ -415,7 +415,14 @@
 
     private async void OnAuthenticationStateChanged()
     {
-        await CheckAuthenticationState();
+        try
+        {
+            await CheckAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception in OnAuthenticationStateChanged.");
+        }
     }
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
