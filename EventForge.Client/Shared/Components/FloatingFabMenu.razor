@@ -228,12 +228,13 @@
         {
             chat.UnreadCount++;
             chat.LastMessage = message;
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
         }
         else
         {
-            _chatList.Add(new ChatResponseDto { Id = message.ChatId, UnreadCount = 1, LastMessage = message });
+            // Unknown chat: increment counter directly without storing a partial object
+            _totalUnread++;
         }
-        _totalUnread = _chatList.Sum(c => c.UnreadCount);
         InvokeAsync(StateHasChanged);
     }
 
