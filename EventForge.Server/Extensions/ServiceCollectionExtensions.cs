@@ -179,26 +179,6 @@ public static class ServiceCollectionExtensions
         // Configure VAT lookup service using VIES
         _ = services.AddScoped<IVatLookupService, VatLookupService>();
 
-        // Named client for the Meta WhatsApp Cloud API.
-        // AccessToken is read from WhatsApp:AccessToken in configuration.
-        _ = services.AddHttpClient("WhatsAppApi", (sp, client) =>
-        {
-            var cfg = sp.GetRequiredService<IConfiguration>();
-            client.BaseAddress = new Uri("https://graph.facebook.com");
-            client.Timeout     = TimeSpan.FromSeconds(15);
-
-            var token = cfg["WhatsApp:AccessToken"] ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            }
-        });
-
-        // Register WhatsApp webhook service
-        _ = services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppService,
-                               EventForge.Server.Services.External.WhatsApp.WhatsAppService>();
-
         // Named client used by AgentMonitorService to probe the co-located UpdateAgent.
         // Credentials are read from Agent:Username / Agent:Password and sent as HTTP Basic Auth.
         _ = services.AddHttpClient("AgentClient", (sp, client) =>
