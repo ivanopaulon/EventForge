@@ -257,27 +257,11 @@
 
     private void ToggleProfileMenu() => _profileMenuOpen = !_profileMenuOpen;
 
-    private async Task OnChatClick()
+    private void OnChatClick()
     {
         _isOpen = false;
         _profileMenuOpen = false;
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = false,
-            BackdropClick = true,
-            CloseButton = false
-        };
-        await DialogService.ShowAsync<ChatWindowDialog>("Chat", options);
-        // Refresh unread count after dialog closes
-        try
-        {
-            _chatList = await ChatService.GetChatsAsync();
-            _totalUnread = _chatList.Sum(c => c.UnreadCount);
-            StateHasChanged();
-        }
-        catch { }
+        NavigationManager.NavigateTo("/chat");
     }
 
     private async Task OnHealthClick()
