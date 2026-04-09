@@ -317,8 +317,6 @@ public static class ServiceCollectionExtensions
         // Register alert services
         _ = services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
 
-
-
         // Register price list services (refactored into specialized services)
         _ = services.AddScoped<IPriceListService, PriceListService>();
         _ = services.AddScoped<IPriceListGenerationService, PriceListGenerationService>();

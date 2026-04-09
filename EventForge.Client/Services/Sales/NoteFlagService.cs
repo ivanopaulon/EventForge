@@ -89,7 +89,6 @@ public class NoteFlagService(
         {
             var result = await httpClientService.PostAsync<CreateNoteFlagDto, NoteFlagDto>(BaseUrl, createDto, ct);
 
-
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);
             logger.LogDebug("Invalidated active note flags cache after create");
@@ -108,7 +107,6 @@ public class NoteFlagService(
         try
         {
             var result = await httpClientService.PutAsync<UpdateNoteFlagDto, NoteFlagDto>($"{BaseUrl}/{id}", updateDto, ct);
-
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_NOTE_FLAGS);

@@ -71,6 +71,7 @@ public class DocumentTypeService(
             }
 
             var entity = await context.DocumentTypes
+                .AsNoTracking()
                 .Include(dt => dt.DefaultWarehouse)
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 

@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
-
 /// <summary>
 /// Represents a document header (e.g., order, invoice, delivery note, transfer, summary invoice).
 /// </summary>

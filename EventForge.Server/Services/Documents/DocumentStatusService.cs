@@ -150,6 +150,7 @@ public class DocumentStatusService(
         try
         {
             var document = await context.DocumentHeaders
+                .AsNoTracking()
                 .Include(d => d.Rows.Where(r => !r.IsDeleted))
                 .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
 

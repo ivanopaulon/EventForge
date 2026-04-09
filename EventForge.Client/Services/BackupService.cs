@@ -34,7 +34,6 @@ public class BackupService(
 
             var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request, ct);
 
-
             await loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
             await loadingDialogService.UpdateProgressAsync(100);
 

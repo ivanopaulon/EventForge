@@ -1,6 +1,5 @@
 namespace EventForge.Server.Data.Entities.StationMonitor;
 
-
 /// <summary>
 /// Status of a station order queue item.
 /// </summary>

@@ -366,7 +366,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         public bool NotesPanelExpanded { get; set; }
     }
 
-
     #endregion
 
     #region Error Handling Utility

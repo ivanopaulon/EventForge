@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Warehouse;
 
-
 /// <summary>
 /// Represents a physical warehouse or storage facility in the domain.
 /// This entity contains only domain invariants and business logic that must always be enforced,

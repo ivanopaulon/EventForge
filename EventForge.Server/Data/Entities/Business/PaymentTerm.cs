@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Business;
 
-
 /// <summary>
 /// Payment term definition (e.g. 30 days, end of month, etc.).
 /// </summary>
@@ -35,7 +34,6 @@ public class PaymentTerm : AuditableEntity
     /// </summary>
     [Display(Name = "Payment Method", Description = "Preferred payment method.")]
     public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.BankTransfer;
-
 
 }
 

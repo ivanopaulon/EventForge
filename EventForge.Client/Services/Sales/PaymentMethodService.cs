@@ -31,7 +31,6 @@ public class PaymentMethodService(
                 // Server returns PagedResult<PaymentMethodDto>
                 var pagedResult = await httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
 
-
                 if (pagedResult?.Items == null || !pagedResult.Items.Any())
                 {
                     break;
@@ -130,7 +129,6 @@ public class PaymentMethodService(
         {
             var result = await httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto, ct);
 
-
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
             logger.LogDebug("Invalidated active payment methods cache after create");
@@ -149,7 +147,6 @@ public class PaymentMethodService(
         try
         {
             var result = await httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto, ct);
-
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);

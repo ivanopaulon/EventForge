@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
 /// <summary>
 /// Represents a node in the product classification hierarchy (e.g., category, family, group).
 /// </summary>

@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Promotions;
 
-
 /// <summary>
 /// Represents a single rule or condition for a promotion.
 /// </summary>

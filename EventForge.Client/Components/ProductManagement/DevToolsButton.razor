@@ -1,6 +1,7 @@
 @inject HttpClient Http
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<DevToolsButton> Logger
 
 <MudButton Variant="Variant.Filled"
            Color="Color.Warning"
@@ -43,6 +44,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error in DevTools product generation");
             AppNotification.ShowError(TranslationService.GetTranslation("devtools.error", "Errore: {0}", ex.Message));
             await OnGenerateCompleted.InvokeAsync(false);
         }

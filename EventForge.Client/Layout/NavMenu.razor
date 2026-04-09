@@ -477,6 +477,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing help dialog");
             AppNotification.ShowWarning($"Error showing help: {ex.Message}");
         }
     }
@@ -514,6 +515,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing tour options dialog");
             AppNotification.ShowWarning($"Error showing tour options: {ex.Message}");
         }
     }
@@ -543,6 +545,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing tutorial center dialog");
             AppNotification.ShowWarning($"Error showing tutorial center: {ex.Message}");
         }
     }

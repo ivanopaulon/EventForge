@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
 /// <summary>
 /// Address associated with any entity (e.g., BusinessParty, Bank, User).
 /// </summary>

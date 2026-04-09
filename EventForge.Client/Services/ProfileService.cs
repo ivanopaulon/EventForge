@@ -38,7 +38,6 @@ public class ProfileService(
         {
             var profile = await httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto, ct);
 
-
             if (profile != null)
             {
                 snackbar.Add(

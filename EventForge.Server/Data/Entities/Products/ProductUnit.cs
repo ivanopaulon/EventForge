@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Products;
 
-
 /// <summary>
 /// Represents a unit of measure for a product, with conversion factor and type.
 /// </summary>

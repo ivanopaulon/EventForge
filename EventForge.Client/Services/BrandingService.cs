@@ -74,7 +74,6 @@ public class BrandingService(
             var url = tenantId.HasValue ? $"{BaseUrl}?tenantId={tenantId}" : BaseUrl;
             var branding = await httpClientService.GetAsync<BrandingConfigurationDto>(url, ct);
 
-
             if (branding != null)
             {
                 // Cache the result
@@ -164,7 +163,6 @@ public class BrandingService(
             var url = tenantId.HasValue ? $"{BaseUrl}/upload?tenantId={tenantId}" : $"{BaseUrl}/upload";
 
             var result = await httpClientService.PostAsync<MultipartFormDataContent, dynamic>(url, formContent, ct);
-
 
             if (result == null)
             {

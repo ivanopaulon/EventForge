@@ -61,8 +61,6 @@ public class Tenant : AuditableEntity
     [Display(Name = "Max Users", Description = "Maximum number of users allowed for this tenant.")]
     public int MaxUsers { get; set; } = 100;
 
-
-
     /// <summary>
     /// Date when the tenant subscription expires (UTC).
     /// </summary>

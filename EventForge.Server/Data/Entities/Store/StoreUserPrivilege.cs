@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Store;
 
-
 /// <summary>
 /// Represents a privilege/permission for cashier operations.
 /// </summary>

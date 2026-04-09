@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
 /// <summary>
 /// Represents a VAT nature (Natura IVA) entity for Italian tax compliance.
 /// VAT nature codes are used to indicate the reason for non-taxation or special VAT treatment.

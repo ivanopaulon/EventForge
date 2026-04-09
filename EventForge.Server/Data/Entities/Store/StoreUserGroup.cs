@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Store;
 
-
 /// <summary>
 /// Represents a group of cashiers with assigned privileges.
 /// </summary>
