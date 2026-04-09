@@ -25,7 +25,7 @@
             <div class="d-flex align-center gap-1">
                 <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
                 <MudText Typo="Typo.body2" Style="white-space:nowrap;">
-                    <strong>@(AvailableOperators?.FirstOrDefault(o => o.Id == SelectedOperatorId)?.Name ?? "—")</strong>
+                    <strong>@SelectedOperatorName</strong>
                 </MudText>
             </div>
         }
@@ -57,7 +57,7 @@
             <div class="d-flex align-center gap-1">
                 <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" Color="Color.Default" />
                 <MudText Typo="Typo.body2" Style="white-space:nowrap;">
-                    @(AvailablePos?.FirstOrDefault(p => p.Id == SelectedPosId)?.Name ?? "—")
+                    @SelectedPosName
                 </MudText>
             </div>
         }
@@ -348,6 +348,14 @@
     /// <summary>Fired when the operator clicks the daily-closure warning icon button.</summary>
     [Parameter]
     public EventCallback OnDailyClosureClick { get; set; }
+
+    // ── Computed ──────────────────────────────────────────────────────────────
+
+    private string SelectedOperatorName =>
+        AvailableOperators?.FirstOrDefault(o => o.Id == SelectedOperatorId)?.Name ?? "—";
+
+    private string SelectedPosName =>
+        AvailablePos?.FirstOrDefault(p => p.Id == SelectedPosId)?.Name ?? "—";
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
