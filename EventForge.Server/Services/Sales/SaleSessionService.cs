@@ -833,17 +833,17 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     var drawer = await fiscalDrawerService.GetFiscalDrawerByPosIdAsync(session.PosId, cancellationToken);
                     if (drawer is not null)
                     {
-                        var completedPs = session.Payments
+                        var paidItems = session.Payments
                             .Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed)
                             .ToList();
 
-                        var cashAmount  = completedPs
+                        var cashAmount = paidItems
                             .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) == true)
                             .Sum(p => p.Amount);
-                        var cardAmount  = completedPs
+                        var cardAmount = paidItems
                             .Where(p => p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) == true)
                             .Sum(p => p.Amount);
-                        var otherAmount = completedPs
+                        var otherAmount = paidItems
                             .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) != true
                                      && p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) != true)
                             .Sum(p => p.Amount);
