@@ -337,36 +337,50 @@
 
     private async Task CheckAuthenticationState()
     {
-        _isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        if (_isAuthenticated)
+        try
         {
-            // Check for all role types
-            _isSuperAdmin = await AuthService.IsSuperAdminAsync();
-            _isAdmin = await AuthService.IsInRoleAsync("Admin");
-            _isManager = await AuthService.IsInRoleAsync("Manager");
-            _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
-            
-            _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
-            
-            // Load notification and message counts
-            await LoadCommunicationCountsAsync();
+            _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (_isAuthenticated)
+            {
+                // Check for all role types
+                _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+                _isAdmin = await AuthService.IsInRoleAsync("Admin");
+                _isManager = await AuthService.IsInRoleAsync("Manager");
+                _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
+
+                _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
+
+                // Load notification and message counts
+                await LoadCommunicationCountsAsync();
+            }
+            else
+            {
+                _isAdmin = false;
+                _isSuperAdmin = false;
+                _isManager = false;
+                _isStoreManager = false;
+                _canManageWarehouse = false;
+                _unreadNotificationCount = 0;
+                _unreadMessageCount = 0;
+            }
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            _isAdmin = false;
-            _isSuperAdmin = false;
-            _isManager = false;
-            _isStoreManager = false;
-            _canManageWarehouse = false;
-            _unreadNotificationCount = 0;
-            _unreadMessageCount = 0;
+            Logger.LogError(ex, "Error checking authentication state in NavMenu.");
         }
-        StateHasChanged();
     }
 
     private async void OnAuthenticationStateChanged()
     {
-        await CheckAuthenticationState();
+        try
+        {
+            await CheckAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception in NavMenu.OnAuthenticationStateChanged.");
+        }
     }
 
     private void OnLanguageChanged(object? sender, string newLanguage)
