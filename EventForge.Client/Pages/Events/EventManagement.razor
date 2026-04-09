@@ -361,32 +361,48 @@
 
     private async Task LoadEventsAsync()
     {
-        var startRange = DateTime.UtcNow.AddMonths(-12);
-        var endRange   = DateTime.UtcNow.AddMonths(12);
-        var items = (await EventService.GetEventsByDateRangeAsync(startRange, endRange)).ToList();
-        _eventsMap = items.ToDictionary(e => e.Id);
-        ReplaceCategory("events", items.Select(e => new SchedulerItem
+        try
         {
-            EntityId = $"ev_{e.Id}", Subject = e.Name,
-            StartTime = e.StartDate.ToLocalTime(),
-            EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
-            Location = e.Location, Description = e.ShortDescription,
-            Color = e.Color ?? "#4285F4", CategoryKey = "events",
-            EventStatus = e.Status, AssignedTo = e.AssignedToUserId,
-            IsPrivate = e.Visibility == CalendarVisibility.Private
-        }));
+            var startRange = DateTime.UtcNow.AddMonths(-12);
+            var endRange   = DateTime.UtcNow.AddMonths(12);
+            var items = (await EventService.GetEventsByDateRangeAsync(startRange, endRange)).ToList();
+            _eventsMap = items.ToDictionary(e => e.Id);
+            ReplaceCategory("events", items.Select(e => new SchedulerItem
+            {
+                EntityId = $"ev_{e.Id}", Subject = e.Name,
+                StartTime = e.StartDate.ToLocalTime(),
+                EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
+                Location = e.Location, Description = e.ShortDescription,
+                Color = e.Color ?? "#4285F4", CategoryKey = "events",
+                EventStatus = e.Status, AssignedTo = e.AssignedToUserId,
+                IsPrivate = e.Visibility == CalendarVisibility.Private
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading events.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento degli eventi.");
+        }
     }
 
     private async Task LoadRemindersAndTasksAsync()
     {
-        var startRange = DateTime.UtcNow.AddMonths(-12);
-        var endRange   = DateTime.UtcNow.AddMonths(12);
-        var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
-        _remindersMap    = items.ToDictionary(r => r.Id);
-        _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
-        _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
-        ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
-        ReplaceCategory("tasks",     items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
+        try
+        {
+            var startRange = DateTime.UtcNow.AddMonths(-12);
+            var endRange   = DateTime.UtcNow.AddMonths(12);
+            var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
+            _remindersMap    = items.ToDictionary(r => r.Id);
+            _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
+            _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
+            ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
+            ReplaceCategory("tasks",     items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reminders and tasks.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento di promemoria e attività.");
+        }
     }
 
     private static SchedulerItem ToSchedulerItem(CalendarReminderDto r, string cat) => new()
@@ -424,45 +440,69 @@
 
     private async Task LoadPromotionsAsync()
     {
-        var promos = await PromotionService.GetActiveAsync();
-        ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
+        try
         {
-            EntityId = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
-            StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
-            IsAllDay = true, Description = p.Name,
-            Color = "#34A853", CategoryKey = "promotions"
-        }));
+            var promos = await PromotionService.GetActiveAsync();
+            ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
+            {
+                EntityId = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
+                StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
+                IsAllDay = true, Description = p.Name,
+                Color = "#34A853", CategoryKey = "promotions"
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading promotions.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento delle promozioni.");
+        }
     }
 
     private async Task LoadLotsAsync()
     {
-        var lots = await LotService.GetExpiringLotsAsync(365);
-        ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
+        try
         {
-            EntityId = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
-            StartTime = l.ExpiryDate!.Value.ToLocalTime(),
-            EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
-            IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
-            Color = l.ExpiryDate.Value < DateTime.UtcNow.AddDays(30) ? "#F44336" : "#FF9800",
-            CategoryKey = "lots"
-        }));
+            var lots = await LotService.GetExpiringLotsAsync(365);
+            ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
+            {
+                EntityId = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
+                StartTime = l.ExpiryDate!.Value.ToLocalTime(),
+                EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
+                IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
+                Color = l.ExpiryDate.Value < DateTime.UtcNow.AddDays(30) ? "#F44336" : "#FF9800",
+                CategoryKey = "lots"
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei lotti.");
+        }
     }
 
     private async Task LoadBirthdaysAsync()
     {
-        var teamMembers = await HttpClientService.GetAsync<IEnumerable<TeamMemberDto>>("api/v1/teams/members-with-birthdays") ?? Enumerable.Empty<TeamMemberDto>();
-        var parties     = await BusinessPartyService.GetBusinessPartiesWithBirthdayAsync();
-        var storeUsers  = await StoreUserService.GetWithBirthdayAsync();
+        try
+        {
+            var teamMembers = await HttpClientService.GetAsync<IEnumerable<TeamMemberDto>>("api/v1/teams/members-with-birthdays") ?? Enumerable.Empty<TeamMemberDto>();
+            var parties     = await BusinessPartyService.GetBusinessPartiesWithBirthdayAsync();
+            var storeUsers  = await StoreUserService.GetWithBirthdayAsync();
 
-        var items = new List<SchedulerItem>();
-        foreach (var m in teamMembers.Where(m => m.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday($"{m.FirstName} {m.LastName}".Trim(), m.DateOfBirth!.Value, $"tm_{m.Id}"));
-        foreach (var p in parties.Where(p => p.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday(p.Name, p.DateOfBirth!.Value, $"bp_{p.Id}"));
-        foreach (var u in storeUsers.Where(u => u.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday(u.Name, u.DateOfBirth!.Value, $"su_{u.Id}"));
+            var items = new List<SchedulerItem>();
+            foreach (var m in teamMembers.Where(m => m.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday($"{m.FirstName} {m.LastName}".Trim(), m.DateOfBirth!.Value, $"tm_{m.Id}"));
+            foreach (var p in parties.Where(p => p.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday(p.Name, p.DateOfBirth!.Value, $"bp_{p.Id}"));
+            foreach (var u in storeUsers.Where(u => u.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday(u.Name, u.DateOfBirth!.Value, $"su_{u.Id}"));
 
-        ReplaceCategory("birthdays", items);
+            ReplaceCategory("birthdays", items);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading birthdays.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei compleanni.");
+        }
     }
 
     private static IEnumerable<SchedulerItem> ProjectBirthday(string name, DateTime dob, string idPrefix)

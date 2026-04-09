@@ -382,8 +382,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in FiscalDrawerDetailDialog.OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento del cassetto fiscale.");
+        }
     }
 
     private void OnAssignmentTypeChanged()
@@ -406,6 +414,11 @@
                 AppNotification.ShowSuccess($"Tagli {ViewModel.Entity?.CurrencyCode} inizializzati.");
             else
                 AppNotification.ShowError("Errore nell'inizializzazione dei tagli.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing denominations.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'inizializzazione dei tagli.");
         }
         finally
         {

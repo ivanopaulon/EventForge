@@ -329,13 +329,22 @@
 
     private async Task RefreshFeed()
     {
-        _isLoading = true;
-        _currentPage = 1;
-        _hasMoreActivities = true;
-        await LoadActivities();
-        _isLoading = false;
-        
-        AppNotification.ShowSuccess(TranslationService.GetTranslation("activityFeed.refreshed", "Feed aggiornato"));
+        try
+        {
+            _isLoading = true;
+            _currentPage = 1;
+            _hasMoreActivities = true;
+            await LoadActivities();
+            _isLoading = false;
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("activityFeed.refreshed", "Feed aggiornato"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing activity feed.");
+            _isLoading = false;
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento del feed.");
+        }
     }
 
     private void ToggleFilters()
@@ -345,13 +354,22 @@
 
     private async Task ApplyFilters()
     {
-        _isLoading = true;
-        _currentPage = 1;
-        _hasMoreActivities = true;
-        await LoadActivities();
-        _isLoading = false;
+        try
+        {
+            _isLoading = true;
+            _currentPage = 1;
+            _hasMoreActivities = true;
+            await LoadActivities();
+            _isLoading = false;
 
-        AppNotification.ShowInfo(TranslationService.GetTranslation("activityFeed.filtersApplied", "Filtri applicati"));
+            AppNotification.ShowInfo(TranslationService.GetTranslation("activityFeed.filtersApplied", "Filtri applicati"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying filters to activity feed.");
+            _isLoading = false;
+            AppNotification.ShowWarning("Si è verificato un errore nell'applicazione dei filtri.");
+        }
     }
 
     private void NavigateToActivity(string url)

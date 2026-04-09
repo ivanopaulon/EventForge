@@ -1,5 +1,6 @@
 @using EventForge.Client.Services.Schema
 @inject IEntitySchemaProvider SchemaProvider
+@inject ILogger<FilterBuilder> Logger
 
 <MudStack Spacing="3">
     <div class="d-flex justify-space-between align-center">
@@ -170,12 +171,19 @@
 
     private async void UpdateFilterExpression()
     {
-        var expression = GenerateFilterExpression();
-        if (FilterConditionChanged.HasDelegate)
+        try
         {
-            await FilterConditionChanged.InvokeAsync(expression);
+            var expression = GenerateFilterExpression();
+            if (FilterConditionChanged.HasDelegate)
+            {
+                await FilterConditionChanged.InvokeAsync(expression);
+            }
+            StateHasChanged();
         }
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating filter expression.");
+        }
     }
 
     private string GenerateFilterExpression()

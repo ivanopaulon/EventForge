@@ -222,72 +222,88 @@
 
     private async Task AddNewMetric()
     {
-        var newMetric = new DashboardMetricConfigDto
+        try
         {
-            Title = $"Metrica {_metrics.Count + 1}",
-            Type = MetricType.Count,
-            Order = _metrics.Count,
-            Icon = Icons.Material.Outlined.Analytics,
-            Color = "primary",
-            Format = "N0"
-        };
+            var newMetric = new DashboardMetricConfigDto
+            {
+                Title = $"Metrica {_metrics.Count + 1}",
+                Type = MetricType.Count,
+                Order = _metrics.Count,
+                Icon = Icons.Material.Outlined.Analytics,
+                Color = "primary",
+                Format = "N0"
+            };
 
-        var parameters = new DialogParameters<MetricEditorDialog>
+            var parameters = new DialogParameters<MetricEditorDialog>
+            {
+                { x => x.Metric, newMetric },
+                { x => x.IsNewMetric, true }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+                "Crea Nuova Metrica",
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto createdMetric)
+            {
+                createdMetric.Order = _metrics.Count;
+                _metrics.Add(createdMetric);
+                AppNotification.ShowSuccess("Metrica aggiunta con successo");
+            }
+        }
+        catch (Exception ex)
         {
-            { x => x.Metric, newMetric },
-            { x => x.IsNewMetric, true }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
-            "Crea Nuova Metrica",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto createdMetric)
-        {
-            createdMetric.Order = _metrics.Count;
-            _metrics.Add(createdMetric);
-            AppNotification.ShowSuccess("Metrica aggiunta con successo");
+            Logger.LogError(ex, "Error adding new metric.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiunta della metrica.");
         }
     }
 
     private async Task EditMetric(int index)
     {
-        var metricToEdit = _metrics[index];
-        var parameters = new DialogParameters<MetricEditorDialog>
+        try
         {
-            { x => x.Metric, metricToEdit },
-            { x => x.IsNewMetric, false }
-        };
+            var metricToEdit = _metrics[index];
+            var parameters = new DialogParameters<MetricEditorDialog>
+            {
+                { x => x.Metric, metricToEdit },
+                { x => x.IsNewMetric, false }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
+                "Modifica Metrica",
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto editedMetric)
+            {
+                _metrics[index] = editedMetric;
+                _metrics[index].Order = index; // Preserve order
+                AppNotification.ShowSuccess("Metrica modificata con successo");
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MetricEditorDialog>(
-            "Modifica Metrica",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && result.Data is DashboardMetricConfigDto editedMetric)
-        {
-            _metrics[index] = editedMetric;
-            _metrics[index].Order = index; // Preserve order
-            AppNotification.ShowSuccess("Metrica modificata con successo");
+            Logger.LogError(ex, "Error editing metric at index {Index}.", index);
+            AppNotification.ShowWarning("Si è verificato un errore nella modifica della metrica.");
         }
     }
 
