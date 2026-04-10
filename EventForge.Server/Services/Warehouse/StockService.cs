@@ -257,6 +257,7 @@ public class StockService(
 
             // Validate Product exists
             var productExists = await context.Products
+                .AsNoTracking()
                 .AnyAsync(p => p.Id == createDto.ProductId &&
                               p.TenantId == currentTenantId.Value &&
                               !p.IsDeleted,
@@ -271,6 +272,7 @@ public class StockService(
 
             // Validate StorageLocation exists
             var locationExists = await context.StorageLocations
+                .AsNoTracking()
                 .AnyAsync(sl => sl.Id == createDto.StorageLocationId &&
                                sl.TenantId == currentTenantId.Value &&
                                !sl.IsDeleted,
@@ -293,6 +295,7 @@ public class StockService(
                 }
 
                 var lotExists = await context.Lots
+                    .AsNoTracking()
                     .AnyAsync(l => l.Id == createDto.LotId.Value &&
                                   l.TenantId == currentTenantId.Value &&
                                   !l.IsDeleted,
@@ -407,6 +410,7 @@ public class StockService(
 
                 // Verify warehouse exists
                 var warehouseExists = await context.StorageFacilities
+                    .AsNoTracking()
                     .AnyAsync(w => w.Id == dto.WarehouseId.Value &&
                                   w.TenantId == currentTenantId.Value &&
                                   !w.IsDeleted,
@@ -416,6 +420,7 @@ public class StockService(
 
                 // Verify location exists and belongs to the warehouse
                 var location = await context.StorageLocations
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(l => l.Id == dto.StorageLocationId &&
                                              l.TenantId == currentTenantId.Value &&
                                              !l.IsDeleted,
@@ -428,6 +433,7 @@ public class StockService(
 
                 // Verify product exists
                 var productExists = await context.Products
+                    .AsNoTracking()
                     .AnyAsync(p => p.Id == dto.ProductId &&
                                   p.TenantId == currentTenantId.Value &&
                                   !p.IsDeleted,

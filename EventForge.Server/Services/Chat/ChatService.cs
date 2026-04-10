@@ -237,6 +237,7 @@ public class ChatService(
             if (userId != Guid.Empty)
             {
                 var isMember = await context.ChatMembers
+                    .AsNoTracking()
                     .AnyAsync(cm => cm.ChatThreadId == chatId
                                  && cm.UserId == userId
                                  && !cm.IsDeleted, cancellationToken);
@@ -277,6 +278,7 @@ public class ChatService(
 
             var unreadCount = userId != Guid.Empty
                 ? await context.ChatMessages
+                    .AsNoTracking()
                     .CountAsync(m => m.ChatThreadId == chatId
                                   && !m.IsDeleted
                                   && m.SenderId != userId
@@ -1007,6 +1009,7 @@ public class ChatService(
 
             // 3. Validate user is member of chat
             var isMember = await context.ChatMembers
+                .AsNoTracking()
                 .AnyAsync(cm => cm.ChatThreadId == message.ChatThreadId && cm.UserId == userId, cancellationToken);
 
             if (!isMember)

@@ -201,6 +201,7 @@ public class LotService(
 
             // Check if lot code is unique
             var existingLot = await context.Lots
+                .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Code == createDto.Code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
             if (existingLot is not null)
@@ -210,6 +211,7 @@ public class LotService(
 
             // Verify product exists
             var product = await context.Products
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == createDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
             if (product is null)
@@ -265,6 +267,7 @@ public class LotService(
 
             // Check if lot code is unique (excluding current lot)
             var existingLot = await context.Lots
+                .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Code == updateDto.Code && l.Id != id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
             if (existingLot is not null)
