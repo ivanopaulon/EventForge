@@ -734,7 +734,6 @@ kbd {
     /* negate EFDialog body padding so layout fills the body */
     margin: -20px -24px;
     height: 100%;
-    min-height: 600px;
     overflow: hidden;
 }
 
@@ -745,6 +744,18 @@ kbd {
     flex-direction: column;
     border-right: 1px solid var(--mud-palette-divider);
     overflow: hidden;
+    position: relative; /* for FAB absolute positioning */
+}
+
+.chat-dlg-sidebar--hidden {
+    display: none !important;
+}
+
+.chat-dlg-new-fab {
+    position: absolute !important;
+    bottom: 16px;
+    right: 16px;
+    z-index: 5;
 }
 
 .chat-dlg-sidebar-header {
@@ -779,12 +790,6 @@ kbd {
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
-}
-
-.chat-dlg-new-chat-bar {
-    padding: 12px 16px;
-    border-top: 1px solid var(--mud-palette-divider);
-    flex-shrink: 0;
 }
 
 .chat-dlg-main {

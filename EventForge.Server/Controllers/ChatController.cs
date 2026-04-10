@@ -51,6 +51,10 @@ public class ChatController(
         // Validate tenant access
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
+        // Always derive identity fields from the authenticated server-side context
+        createChatDto.TenantId  = tenantContext.CurrentTenantId ?? Guid.Empty;
+        createChatDto.CreatedBy = tenantContext.CurrentUserId   ?? Guid.Empty;
+
         try
         {
             logger.LogInformation(
