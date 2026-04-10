@@ -1,5 +1,9 @@
 using EventForge.DTOs.Products;
+using EventForge.Client.Services;
+using EventForge.Client.Shared.Components.Dialogs;
+using EventForge.Client.Shared.Components;
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 
@@ -16,6 +20,10 @@ namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 /// </summary>
 public partial class DocumentRowProductSelector : ComponentBase
 {
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IAppNotificationService AppNotification { get; set; } = default!;
+    [Inject] private ILogger<DocumentRowProductSelector> Logger { get; set; } = default!;
+
     #region Parameters
 
     /// <summary>
@@ -67,6 +75,13 @@ public partial class DocumentRowProductSelector : ComponentBase
     [Parameter]
     public bool Disabled { get; set; } = false;
 
+    /// <summary>
+    /// When true shows a camera icon button to the right of the search field
+    /// that opens the barcode scanner dialog.
+    /// </summary>
+    [Parameter]
+    public bool ShowBarcodeScanner { get; set; } = false;
+
     #endregion
 
     #region Methods
@@ -95,6 +110,57 @@ public partial class DocumentRowProductSelector : ComponentBase
         if (OnQuickEdit.HasDelegate)
         {
             await OnQuickEdit.InvokeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Opens the camera barcode scanner dialog and handles the detected barcode.
+    /// </summary>
+    private async Task OpenBarcodeScannerAsync()
+    {
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, OnBarcodeScannedAsync) }
+        };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+    }
+
+    /// <summary>
+    /// Processes a barcode scanned by the camera.
+    /// If exactly one product matches the barcode, it is auto-selected.
+    /// </summary>
+    private async Task OnBarcodeScannedAsync(string barcode)
+    {
+        if (SearchFunc == null || string.IsNullOrWhiteSpace(barcode))
+            return;
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var results = (await SearchFunc(barcode, cts.Token)).ToList();
+
+            if (results.Count == 1)
+            {
+                SelectedProduct = results[0];
+                await SelectedProductChanged.InvokeAsync(SelectedProduct);
+                StateHasChanged();
+            }
+            else if (results.Count == 0)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation(
+                    "camera.noProductFound", "Nessun prodotto trovato per il codice: {0}", barcode));
+            }
+            else
+            {
+                AppNotification.ShowInfo(TranslationService.GetTranslation(
+                    "camera.multipleProductsFound", "Trovati {0} prodotti per il codice: {1}", results.Count, barcode));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing scanned barcode {Barcode}", barcode);
+            AppNotification.ShowError(TranslationService.GetTranslation(
+                "camera.scanError", "Errore durante la lettura del codice a barre"));
         }
     }
 
