@@ -26,7 +26,6 @@ public class WhatsAppConversazioneService(
 
     private static string NormalizzaNumero(string numero)
     {
-        const int ItalianCountryCodeLength = 2; // "39" for Italy
         var digits = new string(numero.Where(char.IsDigit).ToArray());
         // If starts with 0, assume Italian mobile: replace leading 0 with country code 39
         if (digits.StartsWith('0')) digits = "39" + digits[1..];

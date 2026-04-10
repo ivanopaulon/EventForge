@@ -797,12 +797,17 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     }
 
     /// <summary>
-    /// Ritorna i tenant disponibili per il login (solo tenant attivi, senza dati sensibili).
-    /// Endpoint pubblico per la schermata di login.
+    /// Returns available tenants for login (active tenants only, without sensitive data).
+    /// Public endpoint for the login screen.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of active tenants with non-sensitive fields</returns>
+    /// <response code="200">Returns the list of available tenants</response>
+    /// <response code="500">If an unexpected error occurred</response>
     [HttpGet("available")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(IEnumerable<TenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<TenantResponseDto>>> GetAvailableTenants(CancellationToken cancellationToken = default)
     {
         try
@@ -824,15 +829,15 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
                     IsActive = t.IsActive,
                     SubscriptionExpiresAt = t.SubscriptionExpiresAt,
                     CreatedAt = t.CreatedAt
-                    // Evita di esporre campi sensibili o relazioni
+                    // Sensitive fields (e.g. PasswordHash, internal config) intentionally excluded
                 })
                 .ToListAsync(cancellationToken);
 
             return Ok(tenants);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, "Unable to load tenants");
+            return CreateInternalServerErrorProblem("Unable to load available tenants.", ex);
         }
     }
 }
