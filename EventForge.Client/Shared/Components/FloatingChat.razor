@@ -562,6 +562,12 @@
     // ─── Chat list ────────────────────────────────────────────────────────────
     private async Task LoadChats()
     {
+        if (!await AuthService.IsAuthenticatedAsync())
+        {
+            Logger.LogDebug("FloatingChat: user not authenticated, skipping chat load");
+            return;
+        }
+
         _isLoading = true;
         StateHasChanged();
         try

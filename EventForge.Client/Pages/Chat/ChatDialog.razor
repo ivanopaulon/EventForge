@@ -499,6 +499,12 @@
             var userInfo = await AuthService.GetCurrentUserAsync();
             _currentUserId = userInfo?.Id ?? Guid.Empty;
 
+            if (userInfo is null)
+            {
+                Logger.LogWarning("ChatDialog: user not authenticated, skipping initialization");
+                return;
+            }
+
             if (!RealtimeService.IsChatConnected)
                 await RealtimeService.StartChatConnectionAsync();
 

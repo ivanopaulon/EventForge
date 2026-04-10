@@ -29,6 +29,7 @@ public class ServerAuthController(
     public async Task<ActionResult<List<TenantDto>>> GetTenants()
     {
         var tenants = await context.Tenants
+            .AsNoTracking()
             .Where(t => t.IsActive)
             .OrderBy(t => t.Name)
             .Select(t => new TenantDto
