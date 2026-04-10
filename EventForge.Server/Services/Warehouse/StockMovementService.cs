@@ -900,6 +900,7 @@ public class StockMovementService(
         }
 
         var query = context.StockMovements
+            .AsNoTracking()
             .Include(sm => sm.Product)
                 .ThenInclude(p => p!.UnitOfMeasure)
             .Include(sm => sm.FromLocation)
