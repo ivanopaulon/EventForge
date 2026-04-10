@@ -44,6 +44,7 @@ public class TenantSwitchController(
             }
 
             var user = await context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == currentUserId.Value);
@@ -112,6 +113,7 @@ public class TenantSwitchController(
 
             // Check if user is SuperAdmin
             var user = await context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == currentUserId.Value);
@@ -470,6 +472,7 @@ public class TenantSwitchController(
         try
         {
             var query = context.AuditTrails
+                .AsNoTracking()
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .AsQueryable();
 
@@ -563,6 +566,7 @@ public class TenantSwitchController(
         try
         {
             var query = context.AuditTrails
+                .AsNoTracking()
                 .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart || a.OperationType == AuthAuditOperationType.ImpersonationEnd)
                 .AsQueryable();
 
@@ -655,10 +659,12 @@ public class TenantSwitchController(
             var oneMonthAgo = today.AddMonths(-1);
 
             var tenantSwitches = await context.AuditTrails
+                .AsNoTracking()
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch)
                 .ToListAsync();
 
             var impersonations = await context.AuditTrails
+                .AsNoTracking()
                 .Where(a => a.OperationType == AuthAuditOperationType.ImpersonationStart)
                 .ToListAsync();
 
@@ -675,6 +681,7 @@ public class TenantSwitchController(
 
             // Get recent operations
             var recentOperations = await context.AuditTrails
+                .AsNoTracking()
                 .Where(a => a.OperationType == AuthAuditOperationType.TenantSwitch ||
                            a.OperationType == AuthAuditOperationType.ImpersonationStart ||
                            a.OperationType == AuthAuditOperationType.ImpersonationEnd)

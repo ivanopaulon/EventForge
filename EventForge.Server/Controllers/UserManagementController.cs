@@ -39,6 +39,7 @@ public class UserManagementController(
             logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
 
             var query = context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -98,6 +99,7 @@ public class UserManagementController(
         try
         {
             var userDto = await context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -487,6 +489,7 @@ public class UserManagementController(
         try
         {
             var roles = await context.Roles
+                .AsNoTracking()
                 .Select(r => new RoleResponseDto
                 {
                     Id = r.Id,
@@ -513,6 +516,7 @@ public class UserManagementController(
         try
         {
             var query = context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .AsQueryable();
@@ -638,7 +642,7 @@ public class UserManagementController(
     {
         try
         {
-            var query = context.Users.AsQueryable();
+            var query = context.Users.AsNoTracking().AsQueryable();
 
             if (tenantId.HasValue)
             {
@@ -656,14 +660,17 @@ public class UserManagementController(
 
             var today = DateTime.UtcNow.Date;
             var loginsToday = await context.AuditTrails
+                .AsNoTracking()
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantSwitch &&
                                 a.PerformedAt >= today);
 
             var failedLoginsToday = await context.AuditTrails
+                .AsNoTracking()
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantStatusChanged &&
                                 a.PerformedAt >= today);
 
             var usersByRole = await context.UserRoles
+                .AsNoTracking()
                 .Include(ur => ur.Role)
                 .Where(ur => tenantId == null || ur.User.TenantId == tenantId.Value)
                 .GroupBy(ur => ur.Role.Name)
@@ -671,6 +678,7 @@ public class UserManagementController(
                 .ToDictionaryAsync(x => x.Role, x => x.Count);
 
             var usersByTenantDict = await context.Users
+                .AsNoTracking()
                 .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
                 .GroupBy(u => new { u.TenantId, TenantName = u.Tenant != null ? u.Tenant.Name : null })
@@ -1290,6 +1298,7 @@ public class UserManagementController(
         try
         {
             var role = await context.Roles
+                .AsNoTracking()
                 .Include(r => r.RolePermissions)
                     .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(r => r.Id == roleId);
