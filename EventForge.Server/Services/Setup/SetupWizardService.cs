@@ -228,6 +228,20 @@ public class SetupWizardService(
             },
             new SystemConfiguration
             {
+                Key = "Logging.CleanupCron",
+                Value = "0 2 * * *",
+                Category = "Logging",
+                Description = "Cron expression (UTC) for log cleanup schedule (default: daily at 02:00)"
+            },
+            new SystemConfiguration
+            {
+                Key = "Logging.BackupEnabled",
+                Value = "true",
+                Category = "Logging",
+                Description = "Create a JSON backup of rows before deleting them during log cleanup"
+            },
+            new SystemConfiguration
+            {
                 Key = "System.MaintenanceMode",
                 Value = "false",
                 Category = "System",

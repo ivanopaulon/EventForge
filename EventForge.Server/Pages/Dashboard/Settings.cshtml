@@ -200,7 +200,21 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Retention log (giorni)</label>
-                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="365" />
+                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="3650" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Schedulazione pulizia (cron UTC)</label>
+                            <input type="text" asp-for="LogCleanupCronExpression" class="form-control" placeholder="0 2 * * *" />
+                            <div class="form-text">Formato: minuto ora giorno mese giorno-settimana (es. "0 2 * * *" = ogni giorno alle 02:00 UTC)</div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="LogBackupEnabled" id="logBackupEnabled" />
+                                <label class="form-check-label" for="logBackupEnabled">
+                                    Backup JSON prima della pulizia
+                                </label>
+                                <div class="form-text">Se abilitato, crea un backup JSON dei record eliminati in Backups/LogBackup_*</div>
+                            </div>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">

@@ -23,6 +23,8 @@ public class SettingsModel : PageModel
     // ── Logging ───────────────────────────────────────────────────────
     [BindProperty] public string LogLevel { get; set; } = "Information";
     [BindProperty] public int LogRetentionDays { get; set; } = 30;
+    [BindProperty] public bool LogBackupEnabled { get; set; } = true;
+    [BindProperty] public string LogCleanupCronExpression { get; set; } = "0 2 * * *";
 
     // ── Rate limiting ─────────────────────────────────────────────────
     [BindProperty] public int LoginLimit { get; set; } = 5;
@@ -226,8 +228,10 @@ public class SettingsModel : PageModel
         try
         {
             var ct = HttpContext.RequestAborted;
-            await _configService.SetValueAsync("Logging_Level", LogLevel, null, ct);
-            await _configService.SetValueAsync("Logging_RetentionDays", LogRetentionDays.ToString(), null, ct);
+            await _configService.SetValueAsync("Logging.Level", LogLevel, null, ct);
+            await _configService.SetValueAsync("Logging.RetentionDays", LogRetentionDays.ToString(), null, ct);
+            await _configService.SetValueAsync("Logging.BackupEnabled", LogBackupEnabled.ToString().ToLower(), null, ct);
+            await _configService.SetValueAsync("Logging.CleanupCron", LogCleanupCronExpression, null, ct);
 
             _logger.LogInformation("Logging settings updated by {User}", User.Identity?.Name);
             TempData["SuccessMessage"] = "Impostazioni di logging salvate.";
@@ -690,8 +694,10 @@ public class SettingsModel : PageModel
             // Password not loaded on GET for security
 
             // ── Logging ──
-            LogLevel = await _configService.GetValueAsync("Logging_Level", "Information", ct);
-            LogRetentionDays = int.TryParse(await _configService.GetValueAsync("Logging_RetentionDays", "30", ct), out var r) ? r : 30;
+            LogLevel = await _configService.GetValueAsync("Logging.Level", "Information", ct);
+            LogRetentionDays = int.TryParse(await _configService.GetValueAsync("Logging.RetentionDays", "30", ct), out var r) ? r : 30;
+            LogBackupEnabled = !string.Equals(await _configService.GetValueAsync("Logging.BackupEnabled", "true", ct), "false", StringComparison.OrdinalIgnoreCase);
+            LogCleanupCronExpression = await _configService.GetValueAsync("Logging.CleanupCron", "0 2 * * *", ct);
 
             // ── Rate limiting ──
             LoginLimit = int.TryParse(await _configService.GetValueAsync("RateLimiting_LoginLimit", "5", ct), out var l1) ? l1 : 5;

@@ -313,6 +313,8 @@ namespace EventForge.Client.Services
                     {
                         clientLog.UserId = user.Id;
                         clientLog.TenantId = user.TenantId;
+                        clientLog.UserName = !string.IsNullOrEmpty(user.Username) ? user.Username
+                            : $"{user.FirstName} {user.LastName}".Trim();
                     }
                 }
                 catch

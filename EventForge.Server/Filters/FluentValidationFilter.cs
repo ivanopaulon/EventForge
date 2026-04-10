@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Security.Claims;
 
 namespace EventForge.Server.Filters;
 
@@ -12,12 +11,10 @@ namespace EventForge.Server.Filters;
 public class FluentValidationFilter : IAsyncActionFilter
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<FluentValidationFilter> _logger;
 
-    public FluentValidationFilter(IServiceProvider serviceProvider, ILogger<FluentValidationFilter> logger)
+    public FluentValidationFilter(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -39,40 +36,10 @@ public class FluentValidationFilter : IAsyncActionFilter
 
                     if (!validationResult.IsValid)
                     {
-                        var httpContext = context.HttpContext;
-                        var correlationId = httpContext.Items.TryGetValue("CorrelationId", out var cid) ? cid?.ToString() : "N/A";
-                        var actionName = context.ActionDescriptor.DisplayName;
-                        var queryString = httpContext.Request.QueryString.ToString();
-
-                        var userName = httpContext.User?.Identity?.IsAuthenticated == true
-                            ? httpContext.User.FindFirst(ClaimTypes.Name)?.Value
-                            : null;
-                        var userId   = httpContext.User?.FindFirst("user_id")?.Value;
-                        var tenantId = httpContext.User?.FindFirst("tenant_id")?.Value;
-
-                        var errorsByField = validationResult.Errors
-                            .GroupBy(e => e.PropertyName)
-                            .ToDictionary(
-                                g => g.Key,
-                                g => g.Select(e => e.ErrorMessage).ToArray()
-                            );
-
-                        _logger.LogWarning(
-                            "FluentValidation failed for {Method} {Path}{QueryString} (Action: {ActionName}, DtoType: {DtoType}) " +
-                            "User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
-                            "Errors: {@ValidationErrors}",
-                            httpContext.Request.Method,
-                            httpContext.Request.Path,
-                            queryString,
-                            actionName,
-                            argumentType.Name,
-                            userName ?? "Anonymous",
-                            userId ?? "N/A",
-                            tenantId ?? "N/A",
-                            correlationId,
-                            errorsByField);
-
-                        // Throws ValidationException which will be handled by GlobalExceptionHandlerMiddleware
+                        // Throw ValidationException immediately.
+                        // GlobalExceptionHandlerMiddleware handles logging once with full request context
+                        // (including CorrelationId, UserId, TenantId populated via RequestContextEnricherMiddleware).
+                        // Logging here would produce a duplicate entry for every validation failure.
                         throw new ValidationException(validationResult.Errors);
                     }
                 }

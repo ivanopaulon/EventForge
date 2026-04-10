@@ -39,6 +39,12 @@ namespace EventForge.DTOs.Common
         public Guid? TenantId { get; set; }
 
         /// <summary>
+        /// Username (if authenticated)
+        /// </summary>
+        [StringLength(100)]
+        public string? UserName { get; set; }
+
+        /// <summary>
         /// Exception details (if applicable)
         /// </summary>
         [StringLength(10000)]
