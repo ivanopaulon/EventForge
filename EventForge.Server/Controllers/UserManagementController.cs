@@ -1,4 +1,5 @@
 using EventForge.Server.Hubs;
+using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +17,7 @@ public class UserManagementController(
     EventForgeDbContext context,
     ITenantContext tenantContext,
     IAuditLogService auditLogService,
+    IPasswordService passwordService,
     IHubContext<AppHub> hubContext,
     ILogger<UserManagementController> logger) : BaseApiController
 {
@@ -37,6 +39,7 @@ public class UserManagementController(
             logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
 
             var query = context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -96,6 +99,7 @@ public class UserManagementController(
         try
         {
             var userDto = await context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .Include(u => u.Tenant)
@@ -352,8 +356,10 @@ public class UserManagementController(
             // Generate a new temporary password
             var newPassword = GenerateTemporaryPassword();
 
-            // TODO: Hash the password using your password service
-            // user.PasswordHash = _passwordService.HashPassword(newPassword);
+            // Hash the new password
+            var (hash, salt) = passwordService.HashPassword(newPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
@@ -483,6 +489,7 @@ public class UserManagementController(
         try
         {
             var roles = await context.Roles
+                .AsNoTracking()
                 .Select(r => new RoleResponseDto
                 {
                     Id = r.Id,
@@ -509,6 +516,7 @@ public class UserManagementController(
         try
         {
             var query = context.Users
+                .AsNoTracking()
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .AsQueryable();
@@ -634,7 +642,7 @@ public class UserManagementController(
     {
         try
         {
-            var query = context.Users.AsQueryable();
+            var query = context.Users.AsNoTracking().AsQueryable();
 
             if (tenantId.HasValue)
             {
@@ -652,14 +660,17 @@ public class UserManagementController(
 
             var today = DateTime.UtcNow.Date;
             var loginsToday = await context.AuditTrails
+                .AsNoTracking()
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantSwitch &&
                                 a.PerformedAt >= today);
 
             var failedLoginsToday = await context.AuditTrails
+                .AsNoTracking()
                 .CountAsync(a => a.OperationType == AuditOperationType.TenantStatusChanged &&
                                 a.PerformedAt >= today);
 
             var usersByRole = await context.UserRoles
+                .AsNoTracking()
                 .Include(ur => ur.Role)
                 .Where(ur => tenantId == null || ur.User.TenantId == tenantId.Value)
                 .GroupBy(ur => ur.Role.Name)
@@ -667,6 +678,7 @@ public class UserManagementController(
                 .ToDictionaryAsync(x => x.Role, x => x.Count);
 
             var usersByTenantDict = await context.Users
+                .AsNoTracking()
                 .Include(u => u.Tenant)
                 .Where(u => tenantId == null || u.TenantId == tenantId.Value)
                 .GroupBy(u => new { u.TenantId, TenantName = u.Tenant != null ? u.Tenant.Name : null })
@@ -1097,8 +1109,9 @@ public class UserManagementController(
                 CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            // Hash the temporary password (implementation depends on your password service)
-            // user.PasswordHash = _passwordService.HashPassword(tempPassword);
+            var (hash, salt) = passwordService.HashPassword(tempPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             _ = context.Users.Add(user);
 
@@ -1201,8 +1214,9 @@ public class UserManagementController(
                 CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            // Hash the temporary password (implementation depends on your password service)
-            // user.PasswordHash = _passwordService.HashPassword(tempPassword);
+            var (hash, salt) = passwordService.HashPassword(tempPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             _ = context.Users.Add(user);
 
@@ -1284,6 +1298,7 @@ public class UserManagementController(
         try
         {
             var role = await context.Roles
+                .AsNoTracking()
                 .Include(r => r.RolePermissions)
                     .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(r => r.Id == roleId);

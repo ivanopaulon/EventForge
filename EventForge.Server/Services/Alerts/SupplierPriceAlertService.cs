@@ -624,6 +624,7 @@ public class SupplierPriceAlertService(
             var tenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context not available");
 
             return await context.SupplierPriceAlerts
+                .AsNoTracking()
                 .Where(a => a.TenantId == tenantId && a.Status == AlertStatus.New)
                 .CountAsync(cancellationToken);
         }

@@ -78,9 +78,9 @@ public class ChatController(
         {
             return CreateConflictProblem("Rate limit exceeded: " + ex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while creating the chat");
+            return CreateInternalServerErrorProblem("An error occurred while creating the chat", ex);
         }
     }
 
@@ -116,9 +116,9 @@ public class ChatController(
 
             return Ok(chat);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the chat");
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the chat", ex);
         }
     }
 
@@ -151,9 +151,9 @@ public class ChatController(
             var result = await chatService.SearchChatsAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while searching chats");
+            return CreateInternalServerErrorProblem("An error occurred while searching chats", ex);
         }
     }
 
@@ -206,8 +206,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
             return Ok(result);
@@ -220,9 +219,9 @@ public class ChatController(
         {
             return Forbid();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while updating the chat");
+            return CreateInternalServerErrorProblem("An error occurred while updating the chat", ex);
         }
     }
 
@@ -248,8 +247,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteChatAsync(
                 id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
@@ -263,9 +261,9 @@ public class ChatController(
         {
             return Forbid();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while deleting the chat");
+            return CreateInternalServerErrorProblem("An error occurred while deleting the chat", ex);
         }
     }
 
@@ -307,10 +305,9 @@ public class ChatController(
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while sending the message"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while sending the message", ex);
         }
     }
 
@@ -337,10 +334,9 @@ public class ChatController(
             var result = await chatService.GetMessagesAsync(searchDto, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving messages"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages", ex);
         }
     }
 
@@ -445,9 +441,8 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
             var message = await chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
 
@@ -458,10 +453,9 @@ public class ChatController(
 
             return Ok(message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the message"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the message", ex);
         }
     }
 
@@ -487,8 +481,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var editMessageDto = new EditMessageDto
             {
@@ -510,10 +503,9 @@ public class ChatController(
         {
             return Forbid();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while editing the message"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while editing the message", ex);
         }
     }
 
@@ -539,8 +531,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteMessageAsync(
                 messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
@@ -555,10 +546,9 @@ public class ChatController(
         {
             return Forbid();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while deleting the message"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while deleting the message", ex);
         }
     }
 
@@ -580,8 +570,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
             return Ok(result);
@@ -591,10 +580,9 @@ public class ChatController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while marking the message as read"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while marking the message as read", ex);
         }
     }
 
@@ -627,16 +615,14 @@ public class ChatController(
 
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while marking messages as read"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while marking messages as read", ex);
         }
     }
 
@@ -677,8 +663,7 @@ public class ChatController(
 
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var uploadDto = new FileUploadDto
             {
@@ -709,10 +694,9 @@ public class ChatController(
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while uploading the file"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while uploading the file", ex);
         }
     }
 
@@ -734,9 +718,8 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
             var downloadInfo = await chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
 
@@ -747,10 +730,9 @@ public class ChatController(
 
             return Ok(downloadInfo);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving file information"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving file information", ex);
         }
     }
 
@@ -786,10 +768,9 @@ public class ChatController(
 
             return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while downloading the file"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while downloading the file", ex);
         }
     }
 
@@ -824,10 +805,9 @@ public class ChatController(
             var result = await chatService.GetChatStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving statistics", ex);
         }
     }
 
@@ -875,10 +855,9 @@ public class ChatController(
 
             return Accepted(result.StatusUrl, result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while starting the export operation"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while starting the export operation", ex);
         }
     }
 
@@ -922,10 +901,9 @@ public class ChatController(
 
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving export status"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving export status", ex);
         }
     }
 
@@ -991,10 +969,9 @@ public class ChatController(
             var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
             return File(bytes, "application/json", $"chat-export-{exportId}.json");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while downloading the export file"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while downloading the export file", ex);
         }
     }
 
@@ -1020,10 +997,9 @@ public class ChatController(
             var result = await chatService.GetChatSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving system health"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving system health", ex);
         }
     }
 

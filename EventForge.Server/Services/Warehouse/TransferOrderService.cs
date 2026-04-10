@@ -578,6 +578,7 @@ public class TransferOrderService(
 
         // Get the last transfer order number for today
         var lastNumber = await context.TransferOrders
+            .AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.Number.StartsWith($"{prefix}-{datePrefix}"))
             .OrderByDescending(t => t.Number)
             .Select(t => t.Number)

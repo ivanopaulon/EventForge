@@ -167,13 +167,13 @@ public class TenantUserManagementService(
             logger.LogInformation("Creating new user {Username} in tenant {TenantId}", dto.Username, tenantId);
 
             // Check if username already exists
-            if (await context.Users.AnyAsync(u => u.Username == dto.Username, cancellationToken))
+            if (await context.Users.AsNoTracking().AnyAsync(u => u.Username == dto.Username, cancellationToken))
             {
                 throw new InvalidOperationException($"Username '{dto.Username}' already exists");
             }
 
             // Check if email already exists
-            if (await context.Users.AnyAsync(u => u.Email == dto.Email, cancellationToken))
+            if (await context.Users.AsNoTracking().AnyAsync(u => u.Email == dto.Email, cancellationToken))
             {
                 throw new InvalidOperationException($"Email '{dto.Email}' already exists");
             }
@@ -667,14 +667,14 @@ public class TenantUserManagementService(
 
             logger.LogInformation("Retrieving user statistics for tenant {TenantId}", tenantId);
 
-            var totalUsers = await context.Users.CountAsync(u => u.TenantId == tenantId, cancellationToken);
-            var activeUsers = await context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive, cancellationToken);
+            var totalUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId, cancellationToken);
+            var activeUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId && u.IsActive, cancellationToken);
             var inactiveUsers = totalUsers - activeUsers;
-            var usersRequiringPasswordChange = await context.Users.CountAsync(
+            var usersRequiringPasswordChange = await context.Users.AsNoTracking().CountAsync(
                 u => u.TenantId == tenantId && u.MustChangePassword, cancellationToken);
 
             var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-            var recentLogins = await context.Users.CountAsync(
+            var recentLogins = await context.Users.AsNoTracking().CountAsync(
                 u => u.TenantId == tenantId && u.LastLoginAt.HasValue && u.LastLoginAt.Value >= oneMonthAgo,
                 cancellationToken);
 

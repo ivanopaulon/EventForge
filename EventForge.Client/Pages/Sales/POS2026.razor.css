@@ -1,0 +1,1237 @@
+/* POS2026.razor.css — Scoped CSS per la pagina POS 2026 */
+
+/* ===== Variabili colore (usate come custom properties) ===== */
+.pos2026-wrap {
+    --pos-accent:        #7F77DD;
+    --pos-accent-light:  #EEEDFE;
+    --pos-dark:          #2C2C2A;
+    --pos-darker:        #1D1D1B;
+    --pos-dark-border:   #444441;
+    --pos-dark-text:     #D3D1C7;
+    --pos-dark-muted:    #888780;
+    --pos-green:         #1D9E75;
+    --pos-green-light:   #E1F5EE;
+    --pos-amber:         #BA7517;
+    --pos-amber-light:   #FAEEDA;
+    --pos-red-key:       #993C1D;
+}
+
+/* ===== Layout principale 2 colonne ===== */
+.pos2026-wrap {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    height: calc(100vh - 64px);  /* 64px = altezza appbar MudBlazor */
+    overflow: hidden;
+    background: var(--mud-palette-background);
+}
+
+@media (max-width: 900px) {
+    .pos2026-wrap {
+        grid-template-columns: 1fr 240px;
+    }
+}
+
+@media (max-width: 600px) {
+    .pos2026-wrap {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        height: auto;
+        overflow: visible;
+    }
+    .pos2026-right {
+        max-height: 280px;
+    }
+}
+
+/* ===== Colonna sinistra ===== */
+.pos2026-left {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 8px;
+    gap: 6px;
+}
+
+.pos2026-product-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+/* ===== Colonna destra ===== */
+.pos2026-right {
+    display: flex;
+    flex-direction: column;
+    background: var(--pos-dark);
+    overflow: hidden;
+}
+
+/* ===== Barra shortcut (footer) ===== */
+.pos2026-shortcuts-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(44, 44, 42, 0.95);
+    color: var(--pos-dark-text);
+    display: flex;
+    gap: 20px;
+    padding: 4px 16px;
+    font-size: 11px;
+    z-index: 10;
+}
+
+.pos2026-shortcuts-bar span strong {
+    color: var(--pos-accent);
+    margin-right: 4px;
+}
+
+/* ===== Pos26SearchBar ===== */
+::deep .pos26-searchbar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 20px;
+    padding: 4px 8px;
+}
+
+::deep .pos26-searchbar-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+::deep .pos26-searchbar-icon {
+    color: var(--mud-palette-text-secondary);
+}
+
+::deep .pos26-searchbar-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--mud-palette-text-primary);
+    min-width: 0;
+}
+
+::deep .pos26-searchbar-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--mud-palette-text-secondary);
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+::deep .pos26-customer-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 20px;
+    padding: 2px 8px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    transition: background 150ms, border 150ms;
+    min-height: 28px;
+}
+
+::deep .pos26-customer-chip--active {
+    background: var(--pos-accent-light);
+    color: #3C3489;
+    border-color: var(--pos-accent);
+}
+
+::deep .pos26-customer-initials {
+    background: var(--pos-accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+::deep .pos26-customer-selector-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.3);
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 80px;
+}
+
+::deep .pos26-customer-selector-panel {
+    background: var(--mud-palette-surface);
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 320px;
+    max-width: 480px;
+    width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+
+::deep .pos26-btn-text {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--mud-palette-text-secondary);
+    font-size: 13px;
+    padding: 4px 0;
+    align-self: flex-end;
+}
+
+/* ===== Pos26SortBar ===== */
+::deep .pos26-sortbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+::deep .pos26-sort-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 20px;
+    padding: 3px 10px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    transition: background 150ms, border 150ms;
+    min-height: 28px;
+}
+
+::deep .pos26-sort-pill--active {
+    background: var(--pos-accent);
+    color: #fff;
+    border-color: var(--pos-accent);
+}
+
+/* ===== Pos26CategoryBar ===== */
+::deep .pos26-categorybar-wrap {
+    overflow: hidden;
+}
+
+::deep .pos26-categorybar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+
+::deep .pos26-categorybar::-webkit-scrollbar {
+    display: none;
+}
+
+::deep .pos26-category-pill {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 20px;
+    padding: 3px 12px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    white-space: nowrap;
+    transition: background 150ms, border 150ms;
+    min-height: 26px;
+}
+
+::deep .pos26-category-pill--active {
+    background: var(--pos-dark);
+    color: #fff;
+    border-color: var(--pos-dark);
+}
+
+/* ===== Pos26ContextBanner ===== */
+::deep .pos26-context-banner {
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    gap: 4px;
+}
+
+/* ===== Pos26ProductGrid ===== */
+::deep .pos26-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+}
+
+::deep .pos26-grid-loading,
+::deep .pos26-grid-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 16px;
+    color: var(--mud-palette-text-secondary);
+    font-size: 13px;
+}
+
+/* ===== Pos26ProductCard ===== */
+::deep .pos26-product-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px 6px;
+    border-radius: 10px;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    cursor: pointer;
+    transition: border 150ms, background 150ms;
+    user-select: none;
+    min-height: 90px;
+}
+
+::deep .pos26-product-card--in-cart {
+    border: 2px solid var(--pos-accent);
+}
+
+::deep .pos26-product-card:hover {
+    background: var(--mud-palette-background-grey);
+}
+
+::deep .pos26-qty-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--pos-accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+::deep .pos26-badge {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+::deep .pos26-badge--green   { background: var(--pos-green-light);  color: #085041; }
+::deep .pos26-badge--amber   { background: var(--pos-amber-light);  color: #633806; }
+::deep .pos26-badge--red     { background: #FCEBEB; color: #7A1919; }
+::deep .pos26-badge--promo   { top: auto; bottom: 2px; left: 2px; }
+
+::deep .pos26-product-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 40px;
+    overflow: hidden;
+}
+
+::deep .pos26-product-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+::deep .pos26-product-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 1px;
+}
+
+::deep .pos26-product-name {
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+    color: var(--mud-palette-text-primary);
+}
+
+::deep .pos26-product-price {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pos-green);
+}
+
+/* ===== Pos26Receipt ===== */
+::deep .pos26-receipt {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--pos-dark);
+    color: var(--pos-dark-text);
+}
+
+::deep .pos26-receipt-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--pos-dark-border);
+    flex-wrap: wrap;
+}
+
+::deep .pos26-receipt-meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+::deep .pos26-receipt-label {
+    font-size: 10px;
+    color: var(--pos-dark-muted);
+    text-transform: uppercase;
+}
+
+::deep .pos26-receipt-value {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+::deep .pos26-receipt-customer,
+::deep .pos26-receipt-table {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--pos-dark-muted);
+}
+
+::deep .pos26-receipt-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pos-dark-muted);
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 150ms;
+    margin-left: auto;
+}
+
+::deep .pos26-receipt-clear:hover {
+    background: rgba(255,255,255,.05);
+    color: var(--pos-dark-text);
+}
+
+::deep .pos26-receipt-clear:disabled {
+    opacity: .3;
+    cursor: not-allowed;
+}
+
+::deep .pos26-receipt-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pos-dark-border) transparent;
+}
+
+::deep .pos26-receipt-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    color: var(--pos-dark-muted);
+    font-size: 12px;
+}
+
+::deep .pos26-receipt-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+::deep .pos26-receipt-row-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+::deep .pos26-receipt-row-name {
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+::deep .pos26-receipt-row-detail {
+    font-size: 11px;
+    color: var(--pos-dark-muted);
+}
+
+::deep .pos26-receipt-row-discount {
+    color: var(--pos-amber);
+}
+
+::deep .pos26-receipt-note-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pos-dark-muted);
+    padding: 0;
+    display: inline-flex;
+}
+
+::deep .pos26-receipt-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+::deep .pos26-receipt-qty-btn {
+    background: var(--pos-dark-border);
+    border: none;
+    color: var(--pos-dark-text);
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background 150ms;
+    min-height: unset;
+}
+
+::deep .pos26-receipt-qty-btn:hover {
+    background: var(--pos-accent);
+    color: #fff;
+}
+
+::deep .pos26-receipt-qty {
+    font-size: 12px;
+    min-width: 16px;
+    text-align: center;
+}
+
+::deep .pos26-receipt-row-total {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 52px;
+    text-align: right;
+    color: var(--pos-dark-text);
+}
+
+::deep .pos26-receipt-muted {
+    color: var(--pos-dark-muted);
+}
+
+::deep .pos26-receipt-footer {
+    padding: 8px 10px;
+    border-top: 1px solid var(--pos-dark-border);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+::deep .pos26-receipt-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--pos-dark-muted);
+}
+
+::deep .pos26-receipt-total-row--discount {
+    color: var(--pos-amber);
+}
+
+::deep .pos26-receipt-total-row--vat {
+    color: var(--pos-dark-muted);
+}
+
+::deep .pos26-receipt-total-row--grand {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--pos-dark-text);
+}
+
+::deep .pos26-receipt-grand-total {
+    color: var(--pos-green);
+}
+
+/* ===== Pos26Numpad ===== */
+::deep .pos26-numpad {
+    background: var(--pos-darker);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid var(--pos-dark-border);
+}
+
+::deep .pos26-numpad-display {
+    background: var(--pos-dark);
+    border-radius: 7px;
+    padding: 6px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+::deep .pos26-numpad-mode {
+    font-size: 11px;
+    color: var(--pos-dark-muted);
+    text-transform: uppercase;
+}
+
+::deep .pos26-numpad-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--pos-dark-text);
+    font-family: monospace;
+}
+
+::deep .pos26-numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+::deep .pos26-numpad-key {
+    background: var(--pos-dark-border);
+    color: var(--pos-dark-text);
+    border: none;
+    border-radius: 7px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 38px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms, border 150ms;
+    user-select: none;
+}
+
+::deep .pos26-numpad-key:hover {
+    background: #5a5a57;
+}
+
+::deep .pos26-numpad-key:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+::deep .pos26-numpad-key--discount {
+    grid-column: 1 / 2;
+}
+
+::deep .pos26-numpad-key--pay {
+    grid-column: 2 / 3;
+    font-size: 14px;
+}
+
+::deep .pos26-numpad-key--cancel {
+    grid-column: 3 / 4;
+    font-size: 12px;
+}
+
+/* ===== Pos26PaymentDialog ===== */
+::deep .pos26-payment-dialog-wrap {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 16px;
+    padding: 12px;
+    height: 100%;
+    overflow: hidden;
+}
+
+@media (max-width: 600px) {
+    ::deep .pos26-payment-dialog-wrap {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        overflow: visible;
+    }
+}
+
+::deep .pos26-pay-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+}
+
+::deep .pos26-pay-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+::deep .pos26-pay-summary-card {
+    background: var(--mud-palette-background-grey);
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+::deep .pos26-pay-summary-card--paid {
+    background: var(--pos-green-light);
+}
+
+::deep .pos26-pay-summary-card--ok {
+    background: var(--pos-green-light);
+}
+
+::deep .pos26-pay-summary-card--residuo {
+    background: var(--pos-amber-light);
+}
+
+::deep .pos26-pay-card-label {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    text-transform: uppercase;
+}
+
+::deep .pos26-pay-card-value {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+::deep .pos26-pay-methods {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+/* Pos26PaymentMethodCard */
+::deep .pos26-pm-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 12px;
+    padding: 8px 6px;
+    cursor: pointer;
+    min-height: 60px;
+    background: var(--mud-palette-surface);
+    transition: border 150ms, background 150ms;
+}
+
+::deep .pos26-pm-card--selected {
+    border: 2px solid var(--pos-accent);
+    background: var(--pos-accent-light);
+}
+
+::deep .pos26-pm-card--added {
+    opacity: .7;
+}
+
+::deep .pos26-pm-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+}
+
+::deep .pos26-pm-icon {
+    color: var(--pos-accent);
+}
+
+::deep .pos26-pm-name {
+    font-size: 11px;
+    text-align: center;
+    font-weight: 500;
+}
+
+::deep .pos26-pay-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+::deep .pos26-pay-amount-display {
+    flex: 1;
+    background: var(--mud-palette-background-grey);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: monospace;
+    text-align: right;
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+::deep .pos26-pay-btn-tutto,
+::deep .pos26-pay-btn-add {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 38px;
+    transition: background 150ms;
+}
+
+::deep .pos26-pay-btn-tutto {
+    background: var(--mud-palette-background-grey);
+    color: var(--mud-palette-text-primary);
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+::deep .pos26-pay-btn-add {
+    background: var(--pos-accent);
+    color: #fff;
+}
+
+::deep .pos26-pay-btn-tutto:disabled,
+::deep .pos26-pay-btn-add:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+::deep .pos26-pay-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Pos26PaymentRow */
+::deep .pos26-payment-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: var(--mud-palette-background-grey);
+}
+
+::deep .pos26-payment-row-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+::deep .pos26-payment-row-method {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+::deep .pos26-payment-row-amount {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+::deep .pos26-payment-row-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--mud-palette-text-secondary);
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 4px;
+    transition: color 150ms;
+}
+
+::deep .pos26-payment-row-remove:hover {
+    color: #993C1D;
+}
+
+::deep .pos26-pay-resto-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pos-green-light);
+    color: #085041;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Colonna destra numpad dialog */
+::deep .pos26-pay-right {
+    background: var(--pos-darker);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+::deep .pos26-pay-numpad-display {
+    background: var(--pos-dark);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--pos-dark-text);
+    text-align: right;
+}
+
+::deep .pos26-pay-shortcuts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+::deep .pos26-pay-shortcut {
+    background: var(--pos-dark);
+    color: var(--pos-dark-text);
+    border: none;
+    border-radius: 7px;
+    padding: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 150ms;
+    min-height: 30px;
+}
+
+::deep .pos26-pay-shortcut:hover {
+    background: var(--pos-dark-border);
+}
+
+::deep .pos26-pay-numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+::deep .pos26-pay-numpad-key {
+    background: var(--pos-dark-border);
+    color: var(--pos-dark-text);
+    border: none;
+    border-radius: 7px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 38px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms;
+}
+
+::deep .pos26-pay-numpad-key:hover {
+    background: #5a5a57;
+}
+
+::deep .pos26-pay-numpad-key--dot {
+    font-size: 20px;
+}
+
+::deep .pos26-pay-numpad-key--back {
+    /* background set inline */
+}
+
+::deep .pos26-pay-confirm {
+    width: 100%;
+    background: var(--pos-dark-border);
+    color: var(--pos-dark-muted);
+    border: none;
+    border-radius: 7px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    transition: background 150ms, color 150ms;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+::deep .pos26-pay-confirm--ready {
+    background: var(--pos-green);
+    color: #fff;
+}
+
+::deep .pos26-pay-confirm:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+/* =========================================================================
+   TOOLBAR FUNZIONI (Note, Coupon, Tavolo, Sospese)
+   ========================================================================= */
+
+.pos26-fn-toolbar {
+    display: flex;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--mud-palette-background-grey, #f5f5f5);
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    flex-wrap: wrap;
+}
+
+.pos26-fn-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background: var(--mud-palette-surface, #fff);
+    color: var(--mud-palette-text-primary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+    position: relative;
+}
+
+.pos26-fn-btn:hover {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+}
+
+.pos26-fn-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+}
+
+.pos26-fn-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--pos-accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 9px;
+    padding: 1px 4px;
+    font-weight: 700;
+}
+
+/* Pannello funzioni (nota, coupon, tavolo, sospese) */
+.pos26-fn-panel {
+    margin: 0 8px 6px;
+    padding: 8px;
+    background: var(--mud-palette-background-grey, #f9f9f9);
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 10px;
+}
+
+.pos26-fn-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.pos26-fn-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.pos26-fn-input {
+    flex: 1;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 12px;
+    outline: none;
+    transition: border 150ms;
+}
+
+.pos26-fn-input:focus {
+    border-color: var(--pos-accent);
+}
+
+.pos26-fn-btn-add {
+    background: var(--pos-green);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms;
+    min-height: 30px;
+}
+
+.pos26-fn-btn-add:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.pos26-fn-btn-close {
+    background: transparent;
+    border: none;
+    color: var(--mud-palette-text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.pos26-fn-btn-close--inline {
+    margin-left: auto;
+}
+
+.pos26-fn-btn-close:hover {
+    background: var(--mud-palette-lines-default);
+}
+
+.pos26-fn-note-item {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    margin-bottom: 4px;
+    gap: 4px;
+}
+
+/* Tipo vendita (banco / asporto) */
+.pos26-fn-table-types {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.pos26-fn-type-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+.pos26-fn-type-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+    font-weight: 600;
+}
+
+/* Griglia tavoli */
+.pos26-fn-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 6px;
+}
+
+.pos26-fn-table-btn {
+    padding: 6px 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 7px;
+    background: var(--mud-palette-surface);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: background 150ms, border 150ms;
+    min-height: 38px;
+}
+
+.pos26-fn-table-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+}
+
+.pos26-fn-table-btn:hover {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+}
+
+/* Riga sessione parcheggiata */
+.pos26-fn-parked-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.pos26-fn-parked-row:last-child {
+    border-bottom: none;
+}
+
+.pos26-fn-parked-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.pos26-fn-parked-id {
+    font-size: 10px;
+    color: var(--mud-palette-text-disabled);
+    font-family: monospace;
+}
+
+.pos26-fn-parked-customer {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pos26-fn-parked-total {
+    font-size: 12px;
+    color: var(--pos-green);
+    font-weight: 600;
+}
+
+.pos26-fn-parked-items {
+    font-size: 10px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.pos26-fn-empty {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    text-align: center;
+    padding: 6px 0;
+}

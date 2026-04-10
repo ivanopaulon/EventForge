@@ -1,0 +1,24 @@
+@* Pos26PaymentRow — riga pagamento aggiunto nella lista *@
+@using EventForge.DTOs.Sales
+
+<div class="pos26-payment-row">
+    <span class="pos26-payment-row-dot" style="background:@_color;"></span>
+    <span class="pos26-payment-row-method">@MethodName</span>
+    <span class="pos26-payment-row-amount">€@Amount.ToString("F2")</span>
+    <button class="pos26-payment-row-remove" @onclick="HandleRemove" title="Rimuovi pagamento">
+        <MudIcon Icon="@Icons.Material.Outlined.Close" Size="Size.Small" />
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid TempId { get; set; }
+    [Parameter] public string MethodName { get; set; } = string.Empty;
+    [Parameter] public decimal Amount { get; set; }
+    [Parameter] public string? MethodIcon { get; set; }
+    [Parameter] public bool AllowsChange { get; set; }
+    [Parameter] public EventCallback<Guid> OnRemove { get; set; }
+
+    private string _color => AllowsChange ? "#FAEEDA" : "#EEEDFE";
+
+    private async Task HandleRemove() => await OnRemove.InvokeAsync(TempId);
+}

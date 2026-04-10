@@ -1289,7 +1289,7 @@ public class NotificationService(
                     var existingMetadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(user.MetadataJson);
                     metadata = existingMetadata ?? new Dictionary<string, System.Text.Json.JsonElement>();
                 }
-                catch
+                catch (System.Text.Json.JsonException)
                 {
                     metadata = new Dictionary<string, System.Text.Json.JsonElement>();
                 }

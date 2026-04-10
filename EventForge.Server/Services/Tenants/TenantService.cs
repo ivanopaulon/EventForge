@@ -24,6 +24,7 @@ public class TenantService(
 
         // Check if tenant code already exists
         var existingTenantByCode = await context.Tenants
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Code.ToLower() == createDto.Code.ToLower());
         if (existingTenantByCode is not null)
         {
@@ -32,6 +33,7 @@ public class TenantService(
         }
 
         var existingTenant = await context.Tenants
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Name.ToLower() == createDto.Name.ToLower());
         if (existingTenant is not null)
         {
@@ -124,6 +126,7 @@ public class TenantService(
 
         // Check if tenant code already exists
         var existingTenantByCode = await context.Tenants
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Code.ToLower() == createDto.Code.ToLower());
         if (existingTenantByCode is not null)
         {
@@ -132,6 +135,7 @@ public class TenantService(
         }
 
         var existingTenant = await context.Tenants
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Name.ToLower() == createDto.Name.ToLower());
         if (existingTenant is not null)
         {
@@ -164,6 +168,7 @@ public class TenantService(
 
             // Check if username already exists in the tenant
             var existingUser = await context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == createDto.AdminUser.Username.ToLower()
                                      && u.TenantId == tenant.Id);
             if (existingUser is not null)
@@ -173,6 +178,7 @@ public class TenantService(
 
             // Check if email already exists in the tenant
             var existingUserByEmail = await context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == createDto.AdminUser.Email.ToLower()
                                      && u.TenantId == tenant.Id);
             if (existingUserByEmail is not null)
@@ -207,6 +213,7 @@ public class TenantService(
 
             // Assign SuperAdmin role to the user
             var superAdminRole = await context.Roles
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Name == "SuperAdmin");
 
             if (superAdminRole is not null)

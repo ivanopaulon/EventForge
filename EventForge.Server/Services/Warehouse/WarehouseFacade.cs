@@ -555,6 +555,7 @@ public class WarehouseFacade(
                 rowEntity.ProductId = productId.Value;
 
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == productId.Value && !p.IsDeleted, cancellationToken);
 
                 if (product is not null)

@@ -5,6 +5,7 @@ public static class SaleTypes
     public const string Retail = "RETAIL";
     public const string Wholesale = "WHOLESALE";
     public const string Online = "ONLINE";
+    public const string Takeaway = "TAKEAWAY";
 }
 
 public static class Currencies

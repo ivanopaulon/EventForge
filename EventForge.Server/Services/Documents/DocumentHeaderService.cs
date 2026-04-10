@@ -645,6 +645,7 @@ public class DocumentHeaderService(
         {
             // Try to find existing inventory document type
             var existingType = await context.DocumentTypes
+                .AsNoTracking()
                 .Where(dt => dt.TenantId == tenantId && dt.Code == "INVENTORY" && !dt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -691,6 +692,7 @@ public class DocumentHeaderService(
         {
             // Try to find existing receipt document type
             var existingType = await context.DocumentTypes
+                .AsNoTracking()
                 .Where(dt => dt.TenantId == tenantId && dt.Code == "RECEIPT" && !dt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

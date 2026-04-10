@@ -1,0 +1,317 @@
+@* Pos26PaymentDialog — dialog multi-pagamento POS 2026 *@
+@* Aperto tramite IDialogService.ShowAsync come tutti gli altri dialog del progetto *@
+@using EventForge.DTOs.Sales
+@using EventForge.DTOs.Business
+@using EventForge.Client.Models.Sales
+@using EventForge.Client.Shared.Components.Dialogs
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+
+<EFDialog Icon="@Icons.Material.Outlined.Payment"
+          Title="Pagamento POS 2026"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="min(860px, 95vw)"
+          Height="calc(100dvh - 48px)">
+    <ChildContent>
+        <div class="pos26-payment-dialog-wrap">
+
+            @* ---- COLONNA SINISTRA: logica pagamento ---- *@
+            <div class="pos26-pay-left">
+
+                @* 1. Riepilogo 3 card *@
+                <div class="pos26-pay-summary">
+                    <div class="pos26-pay-summary-card">
+                        <span class="pos26-pay-card-label">Totale ordine</span>
+                        <span class="pos26-pay-card-value">€@TotaleOrdine.ToString("F2")</span>
+                    </div>
+                    <div class="pos26-pay-summary-card pos26-pay-summary-card--paid">
+                        <span class="pos26-pay-card-label">Già pagato</span>
+                        <span class="pos26-pay-card-value">€@_totalePagato.ToString("F2")</span>
+                    </div>
+                    <div class="pos26-pay-summary-card @(_residuo <= 0 ? "pos26-pay-summary-card--ok" : "pos26-pay-summary-card--residuo")">
+                        <span class="pos26-pay-card-label">Residuo</span>
+                        <span class="pos26-pay-card-value">€@_residuo.ToString("F2")</span>
+                    </div>
+                </div>
+
+                @* 2. Selezione metodo pagamento *@
+                <div class="pos26-pay-methods">
+                    @foreach (var method in _paymentMethods)
+                    {
+                        <Pos26PaymentMethodCard Method="@method"
+                                                IsSelected="@(_selectedMethod?.Id == method.Id)"
+                                                IsAlreadyAdded="@(_pagamentiAggiunti.Any(p => p.Metodo.Id == method.Id))"
+                                                OnSelect="@OnSelectMethod" />
+                    }
+                </div>
+
+                @* 3. Input importo *@
+                <div class="pos26-pay-amount-row">
+                    <div class="pos26-pay-amount-display">
+                        €@_importoDigitato.ToString("F2")
+                    </div>
+                    <button class="pos26-pay-btn-tutto"
+                            @onclick="SetTutto"
+                            disabled="@(_residuo <= 0)"
+                            title="Imposta importo residuo">
+                        Tutto
+                    </button>
+                    <button class="pos26-pay-btn-add"
+                            @onclick="AggiungiPagamento"
+                            disabled="@(_selectedMethod == null || _importoDigitato <= 0)"
+                            title="Aggiungi pagamento alla lista">
+                        Aggiungi
+                    </button>
+                </div>
+
+                @* 4. Lista pagamenti aggiunti *@
+                @if (_pagamentiAggiunti.Any())
+                {
+                    <div class="pos26-pay-rows">
+                        @foreach (var riga in _pagamentiAggiunti)
+                        {
+                            <Pos26PaymentRow TempId="@riga.TempId"
+                                             MethodName="@riga.Metodo.Name"
+                                             Amount="@riga.Importo"
+                                             MethodIcon="@riga.Metodo.Icon"
+                                             AllowsChange="@riga.Metodo.AllowsChange"
+                                             OnRemove="@RimuoviPagamento" />
+                        }
+                    </div>
+                }
+
+                @* Banner resto contanti *@
+                @if (_resto > 0)
+                {
+                    <div class="pos26-pay-resto-banner">
+                        <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Size="Size.Small" />
+                        Resto da dare: <strong>€@_resto.ToString("F2")</strong>
+                    </div>
+                }
+
+            </div>
+
+            @* ---- COLONNA DESTRA: numpad dialog ---- *@
+            <div class="pos26-pay-right">
+                <div class="pos26-pay-numpad-display">
+                    €@_importoDigitato.ToString("F2")
+                </div>
+
+                @* Scorciatoie rapide *@
+                <div class="pos26-pay-shortcuts">
+                    @foreach (var shortcut in _shortcuts)
+                    {
+                        <button class="pos26-pay-shortcut"
+                                @onclick="() => SetShortcut(shortcut)"
+                                title="Imposta €@shortcut.ToString("F0")">
+                            +€@shortcut.ToString("F0")
+                        </button>
+                    }
+                </div>
+
+                @* Griglia tasti *@
+                <div class="pos26-pay-numpad-grid">
+                    @foreach (var key in _numpadKeys)
+                    {
+                        <button class="pos26-pay-numpad-key @key.Css"
+                                style="@key.Style"
+                                @onclick="() => HandleNumpadKey(key.Value)">
+                            @if (!string.IsNullOrEmpty(key.Icon))
+                            {
+                                <MudIcon Icon="@key.Icon" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                @key.Label
+                            }
+                        </button>
+                    }
+                </div>
+
+                @* Tasto Conferma *@
+                <button class="pos26-pay-confirm @(_residuo <= 0 ? "pos26-pay-confirm--ready" : "")"
+                        @onclick="ConfermaAsync"
+                        disabled="@(!_pagamentiAggiunti.Any())"
+                        title="@(_residuo > 0 ? $"Mancano ancora €{_residuo:F2}" : "Conferma pagamento")">
+                    @if (_residuo <= 0 && _pagamentiAggiunti.Any())
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                        @("Conferma €" + _totalePagato.ToString("F2"))
+                    }
+                    else
+                    {
+                        @("Conferma (residuo €" + _residuo.ToString("F2") + ")")
+                    }
+                </button>
+            </div>
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public decimal TotaleOrdine { get; set; }
+    [Parameter] public decimal ScontoApplicato { get; set; }
+    [Parameter] public SaleSessionDto? Ordine { get; set; }
+    [Parameter] public BusinessPartyDto? Cliente { get; set; }
+    [Parameter] public List<PaymentMethodDto>? PaymentMethods { get; set; }
+
+    // Record temporaneo per righe di pagamento nel dialog
+    private record PendingRow(Guid TempId, PaymentMethodDto Metodo, decimal Importo);
+
+    private List<PaymentMethodDto> _paymentMethods = new();
+    private PaymentMethodDto? _selectedMethod;
+    private List<PendingRow> _pagamentiAggiunti = new();
+    private string _numpadInput = string.Empty;
+    private bool _isProcessing = false;
+
+    private readonly decimal[] _shortcuts = [5, 10, 20, 50];
+
+    private record NumpadKeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "");
+
+    private List<NumpadKeyDef> _numpadKeys =>
+    [
+        new("7","7"), new("8","8"), new("9","9"),
+        new("4","4"), new("5","5"), new("6","6"),
+        new("1","1"), new("2","2"), new("3","3"),
+        new(".",".", "", "pos26-pay-numpad-key--dot"),
+        new("0","0"),
+        new("back","", Icons.Material.Outlined.Backspace, "pos26-pay-numpad-key--back",
+            "background:var(--pos-red-key);color:#fff;")
+    ];
+
+    // Computed properties
+    private decimal _importoDigitato =>
+        decimal.TryParse(_numpadInput, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0m;
+
+    private decimal _totalePagato => _pagamentiAggiunti.Sum(p => p.Importo);
+
+    private decimal _residuo => Math.Max(0, TotaleOrdine - _totalePagato);
+
+    private decimal _resto
+    {
+        get
+        {
+            var cashTotal = _pagamentiAggiunti
+                .Where(p => p.Metodo.AllowsChange)
+                .Sum(p => p.Importo);
+            return cashTotal > TotaleOrdine ? cashTotal - TotaleOrdine : 0;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _paymentMethods = PaymentMethods ?? new();
+        // Importo predefinito = residuo
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private void OnSelectMethod(PaymentMethodDto method)
+    {
+        _selectedMethod = method;
+        // Reset importo al residuo corrente
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private void SetTutto()
+    {
+        _numpadInput = _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void SetShortcut(decimal amount)
+    {
+        _numpadInput = (_importoDigitato + amount).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void HandleNumpadKey(string key)
+    {
+        switch (key)
+        {
+            case "back":
+                if (_numpadInput.Length > 0)
+                    _numpadInput = _numpadInput[..^1];
+                break;
+            case ".":
+                if (!_numpadInput.Contains('.'))
+                    _numpadInput += ".";
+                break;
+            default:
+                if (_numpadInput.Length < 10)
+                    _numpadInput += key;
+                break;
+        }
+    }
+
+    private void AggiungiPagamento()
+    {
+        if (_selectedMethod == null)
+        {
+            AppNotification.ShowWarning("Seleziona un metodo di pagamento.");
+            return;
+        }
+
+        if (_importoDigitato <= 0)
+        {
+            AppNotification.ShowWarning("Inserisci un importo valido.");
+            return;
+        }
+
+        // Per metodi senza cambio non permettere eccedenza (tolleranza per arrotondamento floating point)
+        const decimal DecimalComparisonTolerance = 0.001m;
+        if (!_selectedMethod.AllowsChange && _importoDigitato > _residuo + DecimalComparisonTolerance)
+        {
+            AppNotification.ShowWarning($"Per {_selectedMethod.Name} l'importo massimo è €{_residuo:F2}.");
+            return;
+        }
+
+        _pagamentiAggiunti.Add(new PendingRow(Guid.NewGuid(), _selectedMethod, _importoDigitato));
+        AppNotification.ShowSuccess("Pagamento aggiunto.");
+
+        // Reset
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private void RimuoviPagamento(Guid tempId)
+    {
+        _pagamentiAggiunti.RemoveAll(p => p.TempId == tempId);
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private async Task ConfermaAsync()
+    {
+        if (!_pagamentiAggiunti.Any()) return;
+
+        _isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var righe = _pagamentiAggiunti
+                .Select(p => new RigaPagamento(p.Metodo, p.Importo))
+                .ToList();
+
+            var risultato = new RisultatoPagamento(
+                TotaleOrdine,
+                _totalePagato,
+                _resto,
+                righe
+            );
+
+            MudDialog?.Close(DialogResult.Ok(risultato));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}

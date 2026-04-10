@@ -537,11 +537,11 @@ public class AuditLogService(
             var today = now.Date;
             var weekStart = now.AddDays(-(int)now.DayOfWeek);
 
-            var totalEntries = await context.EntityChangeLogs.CountAsync(cancellationToken);
-            var todayEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= today, cancellationToken);
-            var thisWeekEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
-            var superAdminEntries = await context.EntityChangeLogs.CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
-            var deletedEntries = await context.EntityChangeLogs.CountAsync(log => log.OperationType == "Delete", cancellationToken);
+            var totalEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(cancellationToken);
+            var todayEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= today, cancellationToken);
+            var thisWeekEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
+            var superAdminEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
+            var deletedEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.OperationType == "Delete", cancellationToken);
 
             return new EventForge.DTOs.Audit.AuditTrailStatisticsDto
             {

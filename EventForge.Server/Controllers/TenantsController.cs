@@ -625,6 +625,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
         // Get count of active user sessions from the last hour
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
         return await context.AuditTrails
+            .AsNoTracking()
             .Where(at => at.PerformedAt >= oneHourAgo &&
                         (at.OperationType == AuthAuditOperationType.TenantSwitch ||
                          at.OperationType == AuthAuditOperationType.ImpersonationStart))
@@ -638,6 +639,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
         var fifteenMinutesAgo = DateTime.UtcNow.AddMinutes(-15);
 
         var activities = await context.AuditTrails
+            .AsNoTracking()
             .Where(at => at.PerformedAt >= fifteenMinutesAgo)
             .GroupBy(at => at.OperationType)
             .Select(g => new
@@ -661,12 +663,13 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
         var oneDayAgo = now.AddDays(-1);
 
         // Calculate system health metrics
-        var totalTenants = await context.Tenants.CountAsync(t => !t.IsDeleted, cancellationToken);
-        var activeTenants = await context.Tenants.CountAsync(t => t.IsActive && !t.IsDeleted, cancellationToken);
-        var totalUsers = await context.Users.CountAsync(u => !u.IsDeleted, cancellationToken);
-        var activeUsers = await context.Users.CountAsync(u => u.IsActive && !u.IsDeleted, cancellationToken);
+        var totalTenants = await context.Tenants.AsNoTracking().CountAsync(t => !t.IsDeleted, cancellationToken);
+        var activeTenants = await context.Tenants.AsNoTracking().CountAsync(t => t.IsActive && !t.IsDeleted, cancellationToken);
+        var totalUsers = await context.Users.AsNoTracking().CountAsync(u => !u.IsDeleted, cancellationToken);
+        var activeUsers = await context.Users.AsNoTracking().CountAsync(u => u.IsActive && !u.IsDeleted, cancellationToken);
 
         var recentErrors = await context.AuditTrails
+            .AsNoTracking()
             .Where(at => at.PerformedAt >= oneDayAgo && !at.WasSuccessful)
             .CountAsync(cancellationToken);
 
@@ -682,6 +685,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     private async Task<object> GetTenantUsageMetrics(CancellationToken cancellationToken = default)
     {
         var tenantUsage = await context.Tenants
+            .AsNoTracking()
             .Where(t => t.IsActive && !t.IsDeleted)
             .Select(t => new
             {
@@ -717,7 +721,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
 
     private async Task<IEnumerable<object>> GetRecentActivities(Guid? tenantId, int limit, CancellationToken cancellationToken = default)
     {
-        var query = context.AuditTrails.AsQueryable();
+        var query = context.AuditTrails.AsNoTracking().AsQueryable();
 
         if (tenantId.HasValue)
         {

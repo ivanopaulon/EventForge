@@ -1,0 +1,40 @@
+@* Pos26SortBar — barra ordinamenti a pill *@
+@using EventForge.Client.Models.Sales
+
+<div class="pos26-sortbar">
+    @foreach (var mode in _sortModes)
+    {
+        var isActive = SortMode == mode.Mode;
+        var label = mode.Mode == Pos26SortMode.UltimiAcquisti && !HasCustomer
+            ? "Best seller"
+            : mode.Label;
+        <button class="pos26-sort-pill @(isActive ? "pos26-sort-pill--active" : "")"
+                @onclick="() => OnPillClick(mode.Mode)"
+                title="@label">
+            <MudIcon Icon="@mode.Icon" Size="Size.Small" Class="mr-1" />
+            @label
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public Pos26SortMode SortMode { get; set; } = Pos26SortMode.BestSeller;
+    [Parameter] public EventCallback<Pos26SortMode> OnSortChanged { get; set; }
+    [Parameter] public bool HasCustomer { get; set; }
+
+    private record SortEntry(Pos26SortMode Mode, string Label, string Icon);
+
+    private readonly List<SortEntry> _sortModes =
+    [
+        new(Pos26SortMode.UltimiAcquisti, "Ultimi acquisti", Icons.Material.Outlined.StarOutline),
+        new(Pos26SortMode.BestSeller,     "Best seller",     Icons.Material.Outlined.TrendingUp),
+        new(Pos26SortMode.Alfabetico,     "A→Z",             Icons.Material.Outlined.SortByAlpha),
+        new(Pos26SortMode.Prezzo,         "Prezzo",          Icons.Material.Outlined.EuroSymbol),
+        new(Pos26SortMode.Categoria,      "Categoria",       Icons.Material.Outlined.GridView)
+    ];
+
+    private async Task OnPillClick(Pos26SortMode mode)
+    {
+        await OnSortChanged.InvokeAsync(mode);
+    }
+}

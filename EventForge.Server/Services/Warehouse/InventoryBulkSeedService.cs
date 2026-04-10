@@ -44,6 +44,7 @@ public class InventoryBulkSeedService(
 
             // Get all active products for the tenant
             var products = await context.Products
+                .AsNoTracking()
                 .Where(p => p.TenantId == currentTenantId.Value && p.Status == Data.Entities.Products.ProductStatus.Active && !p.IsDeleted)
                 .OrderBy(p => p.Code)
                 .ToListAsync(cancellationToken);
@@ -70,6 +71,7 @@ public class InventoryBulkSeedService(
             {
                 // Get the first available location for this tenant
                 var firstLocation = await context.StorageLocations
+                    .AsNoTracking()
                     .Where(sl => sl.TenantId == currentTenantId.Value && !sl.IsDeleted)
                     .OrderBy(sl => sl.Code)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -298,6 +300,7 @@ public class InventoryBulkSeedService(
         if (product.UnitOfMeasureId.HasValue)
         {
             var um = await context.UMs
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == product.UnitOfMeasureId.Value && !u.IsDeleted, cancellationToken);
             unitOfMeasure = um?.Symbol;
         }
@@ -308,6 +311,7 @@ public class InventoryBulkSeedService(
         if (product.VatRateId.HasValue)
         {
             var vat = await context.VatRates
+                .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == product.VatRateId.Value && !v.IsDeleted, cancellationToken);
             if (vat is not null)
             {
@@ -318,6 +322,7 @@ public class InventoryBulkSeedService(
 
         // Get location info
         var location = await context.StorageLocations
+            .AsNoTracking()
             .FirstOrDefaultAsync(sl => sl.Id == locationId && !sl.IsDeleted, cancellationToken);
 
         // Create document row

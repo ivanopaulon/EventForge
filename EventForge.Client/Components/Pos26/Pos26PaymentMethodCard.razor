@@ -1,0 +1,39 @@
+@* Pos26PaymentMethodCard — singola card metodo di pagamento *@
+@using EventForge.DTOs.Sales
+
+<div class="pos26-pm-card @(IsSelected ? "pos26-pm-card--selected" : "") @(IsAlreadyAdded ? "pos26-pm-card--added" : "")"
+     @onclick="HandleClick"
+     title="@Method.Name">
+    @if (IsAlreadyAdded)
+    {
+        <span class="pos26-pm-check">
+            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Style="color:#1D9E75;" />
+        </span>
+    }
+    <MudIcon Icon="@GetIcon(Method.Icon)" Size="Size.Medium" Class="pos26-pm-icon" />
+    <span class="pos26-pm-name">@Method.Name</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PaymentMethodDto Method { get; set; } = null!;
+    [Parameter] public bool IsSelected { get; set; }
+    [Parameter] public bool IsAlreadyAdded { get; set; }
+    [Parameter] public EventCallback<PaymentMethodDto> OnSelect { get; set; }
+
+    private async Task HandleClick() => await OnSelect.InvokeAsync(Method);
+
+    private static string GetIcon(string? name) => name switch
+    {
+        "AttachMoney" => Icons.Material.Filled.AttachMoney,
+        "CreditCard"  => Icons.Material.Filled.CreditCard,
+        "Payment"     => Icons.Material.Filled.Payment,
+        "QrCode"      => Icons.Material.Filled.QrCode,
+        "QrCode2"     => Icons.Material.Filled.QrCode2,
+        "CardGiftcard" => Icons.Material.Filled.CardGiftcard,
+        "AccountBalance" => Icons.Material.Filled.AccountBalance,
+        "Money"       => Icons.Material.Filled.Money,
+        "Euro"        => Icons.Material.Filled.Euro,
+        "Payments"    => Icons.Material.Filled.Payments,
+        _             => Icons.Material.Filled.Payment
+    };
+}
