@@ -354,6 +354,8 @@ public class ChatService : IChatService
 
     private void OnMessageReceived(ChatMessageDto message)
     {
+        // Invalidate cached messages for this chat so the next GetMessagesAsync fetches fresh data
+        _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(message.ChatId));
         MessageReceived?.Invoke(message);
     }
 
