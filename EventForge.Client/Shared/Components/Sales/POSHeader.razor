@@ -6,6 +6,8 @@
 @using EventForge.Client.Shared.Components.Common
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<POSHeader> Logger
 
 @{
     var drawerOpen = FiscalDrawerSummary?.HasOpenSession == true;
@@ -361,19 +363,43 @@
 
     private async Task OnOperatorChanged(Guid? value)
     {
-        SelectedOperatorId = value;
-        await SelectedOperatorIdChanged.InvokeAsync(value);
+        try
+        {
+            SelectedOperatorId = value;
+            await SelectedOperatorIdChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnOperatorChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnPosChanged(Guid? value)
     {
-        SelectedPosId = value;
-        await SelectedPosIdChanged.InvokeAsync(value);
+        try
+        {
+            SelectedPosId = value;
+            await SelectedPosIdChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnPosChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnCustomerChanged(BusinessPartyDto? value)
     {
-        SelectedCustomer = value;
-        await SelectedCustomerChanged.InvokeAsync(value);
+        try
+        {
+            SelectedCustomer = value;
+            await SelectedCustomerChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnCustomerChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 }

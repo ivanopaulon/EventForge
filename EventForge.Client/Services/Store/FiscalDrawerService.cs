@@ -14,14 +14,14 @@ public class FiscalDrawerService(
 {
     private const string ApiBase = "api/v1/fiscal-drawers";
 
-    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null)
+    public async Task<PagedResult<FiscalDrawerDto>?> GetPagedAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
     {
         try
         {
             var url = $"{ApiBase}?page={page}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(searchTerm))
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
-            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>(url);
+            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>(url, ct);
         }
         catch (Exception ex)
         {
@@ -30,11 +30,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<FiscalDrawerDto>> GetAllAsync()
+    public async Task<List<FiscalDrawerDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>($"{ApiBase}?page=1&pageSize=1000");
+            var result = await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerDto>>($"{ApiBase}?page=1&pageSize=1000", ct);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
@@ -44,11 +44,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByIdAsync(Guid id)
+    public async Task<FiscalDrawerDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -61,11 +61,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByPosIdAsync(Guid posId)
+    public async Task<FiscalDrawerDto?> GetByPosIdAsync(Guid posId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/by-pos/{posId}");
+            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/by-pos/{posId}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -78,11 +78,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> GetByOperatorIdAsync(Guid operatorId)
+    public async Task<FiscalDrawerDto?> GetByOperatorIdAsync(Guid operatorId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/by-operator/{operatorId}");
+            return await httpClient.GetFromJsonAsync<FiscalDrawerDto>($"{ApiBase}/by-operator/{operatorId}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -95,11 +95,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> CreateAsync(CreateFiscalDrawerDto dto)
+    public async Task<FiscalDrawerDto?> CreateAsync(CreateFiscalDrawerDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, dto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FiscalDrawerDto>();
         }
@@ -110,11 +110,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerDto?> UpdateAsync(Guid id, UpdateFiscalDrawerDto dto)
+    public async Task<FiscalDrawerDto?> UpdateAsync(Guid id, UpdateFiscalDrawerDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", dto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FiscalDrawerDto>();
         }
@@ -125,11 +125,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -139,11 +139,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> GetCurrentSessionAsync(Guid fiscalDrawerId)
+    public async Task<FiscalDrawerSessionDto?> GetCurrentSessionAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<FiscalDrawerSessionDto>($"{ApiBase}/{fiscalDrawerId}/current-session");
+            return await httpClient.GetFromJsonAsync<FiscalDrawerSessionDto>($"{ApiBase}/{fiscalDrawerId}/current-session", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -156,11 +156,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<PagedResult<FiscalDrawerSessionDto>?> GetSessionsAsync(Guid fiscalDrawerId, int page = 1, int pageSize = 20)
+    public async Task<PagedResult<FiscalDrawerSessionDto>?> GetSessionsAsync(Guid fiscalDrawerId, int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerSessionDto>>($"{ApiBase}/{fiscalDrawerId}/sessions?page={page}&pageSize={pageSize}");
+            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerSessionDto>>($"{ApiBase}/{fiscalDrawerId}/sessions?page={page}&pageSize={pageSize}", ct);
         }
         catch (Exception ex)
         {
@@ -169,11 +169,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto)
+    public async Task<FiscalDrawerSessionDto?> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/open-session", dto);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/open-session", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FiscalDrawerSessionDto>();
         }
@@ -184,11 +184,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSessionDto?> CloseSessionAsync(Guid fiscalDrawerId, CloseFiscalDrawerSessionDto dto)
+    public async Task<FiscalDrawerSessionDto?> CloseSessionAsync(Guid fiscalDrawerId, CloseFiscalDrawerSessionDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/close-session", dto);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/close-session", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FiscalDrawerSessionDto>();
         }
@@ -199,13 +199,13 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<PagedResult<FiscalDrawerTransactionDto>?> GetTransactionsAsync(Guid fiscalDrawerId, Guid? sessionId = null, int page = 1, int pageSize = 50)
+    public async Task<PagedResult<FiscalDrawerTransactionDto>?> GetTransactionsAsync(Guid fiscalDrawerId, Guid? sessionId = null, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
             var url = $"{ApiBase}/{fiscalDrawerId}/transactions?page={page}&pageSize={pageSize}";
             if (sessionId.HasValue) url += $"&sessionId={sessionId.Value}";
-            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerTransactionDto>>(url);
+            return await httpClient.GetFromJsonAsync<PagedResult<FiscalDrawerTransactionDto>>(url, ct);
         }
         catch (Exception ex)
         {
@@ -214,11 +214,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerTransactionDto?> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto)
+    public async Task<FiscalDrawerTransactionDto?> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/transactions", dto);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/transactions", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FiscalDrawerTransactionDto>();
         }
@@ -229,11 +229,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<CashDenominationDto>> GetDenominationsAsync(Guid fiscalDrawerId)
+    public async Task<List<CashDenominationDto>> GetDenominationsAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<List<CashDenominationDto>>($"{ApiBase}/{fiscalDrawerId}/denominations") ?? [];
+            return await httpClient.GetFromJsonAsync<List<CashDenominationDto>>($"{ApiBase}/{fiscalDrawerId}/denominations", ct) ?? [];
         }
         catch (Exception ex)
         {
@@ -242,13 +242,14 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<List<CashDenominationDto>> InitializeDenominationsAsync(Guid fiscalDrawerId, string currencyCode = "EUR")
+    public async Task<List<CashDenominationDto>> InitializeDenominationsAsync(Guid fiscalDrawerId, string currencyCode = "EUR", CancellationToken ct = default)
     {
         try
         {
             var response = await httpClient.PostAsync(
                 $"{ApiBase}/{fiscalDrawerId}/denominations/initialize?currencyCode={currencyCode}",
-                new StringContent(string.Empty));
+                new StringContent(string.Empty),
+                ct);
             if (!response.IsSuccessStatusCode) return [];
             return await response.Content.ReadFromJsonAsync<List<CashDenominationDto>>() ?? [];
         }
@@ -259,11 +260,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<CashDenominationDto?> UpdateDenominationAsync(Guid denominationId, UpdateCashDenominationDto dto)
+    public async Task<CashDenominationDto?> UpdateDenominationAsync(Guid denominationId, UpdateCashDenominationDto dto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/denominations/{denominationId}", dto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/denominations/{denominationId}", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<CashDenominationDto>();
         }
@@ -274,11 +275,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<CalculateChangeResponseDto?> CalculateChangeAsync(Guid fiscalDrawerId, CalculateChangeRequestDto request)
+    public async Task<CalculateChangeResponseDto?> CalculateChangeAsync(Guid fiscalDrawerId, CalculateChangeRequestDto request, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/calculate-change", request);
+            var response = await httpClient.PostAsJsonAsync($"{ApiBase}/{fiscalDrawerId}/calculate-change", request, ct);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<CalculateChangeResponseDto>();
         }
@@ -289,11 +290,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<FiscalDrawerSummaryDto?> GetSummaryAsync(Guid fiscalDrawerId)
+    public async Task<FiscalDrawerSummaryDto?> GetSummaryAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<FiscalDrawerSummaryDto>($"{ApiBase}/{fiscalDrawerId}/summary");
+            return await httpClient.GetFromJsonAsync<FiscalDrawerSummaryDto>($"{ApiBase}/{fiscalDrawerId}/summary", ct);
         }
         catch (Exception ex)
         {
@@ -302,11 +303,11 @@ public class FiscalDrawerService(
         }
     }
 
-    public async Task<SalesDashboardDto?> GetSalesDashboardAsync()
+    public async Task<SalesDashboardDto?> GetSalesDashboardAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<SalesDashboardDto>($"{ApiBase}/sales-dashboard");
+            return await httpClient.GetFromJsonAsync<SalesDashboardDto>($"{ApiBase}/sales-dashboard", ct);
         }
         catch (Exception ex)
         {

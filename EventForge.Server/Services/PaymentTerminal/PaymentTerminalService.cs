@@ -14,6 +14,8 @@ public class PaymentTerminalService(
     IHttpClientFactory httpClientFactory,
     IConfiguration configuration) : IPaymentTerminalService
 {
+    private const string ConnectionTypeTcp = "Tcp";
+    private const string ConnectionTypeTcpViaAgent = "TcpViaAgent";
     public async Task<List<PaymentTerminalDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
@@ -55,6 +57,7 @@ public class PaymentTerminalService(
         try
         {
             var tenantId = RequireTenantId();
+            ValidateConnectionFields(dto.ConnectionType, dto.IpAddress);
             var entity = new EventForge.Server.Data.Entities.Store.PaymentTerminal
             {
                 TenantId = tenantId,
@@ -90,6 +93,7 @@ public class PaymentTerminalService(
         try
         {
             var tenantId = RequireTenantId();
+            ValidateConnectionFields(dto.ConnectionType, dto.IpAddress);
             var entity = await context.PaymentTerminals
                 .FirstOrDefaultAsync(t => t.Id == id && !t.IsDeleted && t.TenantId == tenantId, ct);
             if (entity is null) return null;
@@ -189,21 +193,45 @@ public class PaymentTerminalService(
 
     public async Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
     {
-        await using var channel = await CreateChannelAsync(terminalId, ct);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            await using var channel = await CreateChannelAsync(terminalId, ct);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test di connessione al terminale {TerminalId}.", terminalId);
+            throw;
+        }
     }
 
     public async Task TestTcpConnectionAsync(string host, int port, int timeoutMs, CancellationToken ct = default)
     {
-        await using var channel = new Protocol17TcpChannel(host, port, timeoutMs);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            await using var channel = new Protocol17TcpChannel(host, port, timeoutMs);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test TCP diretto {Host}:{Port}.", host, port);
+            throw;
+        }
     }
 
     public async Task TestTcpViaAgentAsync(string agentBaseUrl, string host, int port, int timeoutMs, CancellationToken ct = default)
     {
-        var httpClient = httpClientFactory.CreateClient();
-        await using var channel = new Protocol17AgentChannel(httpClient, agentBaseUrl, host, port, timeoutMs);
-        await channel.TestConnectionAsync(ct);
+        try
+        {
+            var httpClient = httpClientFactory.CreateClient();
+            await using var channel = new Protocol17AgentChannel(httpClient, agentBaseUrl, host, port, timeoutMs);
+            await channel.TestConnectionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel test TCP via agente {AgentBaseUrl} {Host}:{Port}.", agentBaseUrl, host, port);
+            throw;
+        }
     }
 
     private async Task<IPaymentTerminalChannel> CreateChannelAsync(Guid terminalId, CancellationToken ct)
@@ -217,7 +245,7 @@ public class PaymentTerminalService(
         if (string.IsNullOrEmpty(terminal.IpAddress))
             throw new InvalidOperationException("Il terminale non ha un indirizzo IP configurato.");
 
-        if (terminal.ConnectionType == "TcpViaAgent")
+        if (terminal.ConnectionType == ConnectionTypeTcpViaAgent)
         {
             if (!terminal.AgentId.HasValue)
                 throw new InvalidOperationException("Il terminale è configurato per proxy agente ma AgentId non è impostato.");
@@ -228,6 +256,12 @@ public class PaymentTerminalService(
         }
 
         return new Protocol17TcpChannel(terminal.IpAddress, terminal.Port, terminal.TimeoutMs);
+    }
+
+    private void ValidateConnectionFields(string connectionType, string? ipAddress)
+    {
+        if (string.IsNullOrWhiteSpace(ipAddress))
+            throw new ArgumentException("L'indirizzo IP è obbligatorio per la connessione TCP.");
     }
 
     private static PaymentResultDto MapResult(Protocol17Response r, decimal requestedAmount) => new()

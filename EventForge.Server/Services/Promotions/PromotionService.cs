@@ -30,6 +30,7 @@ public class PromotionService(
             }
 
             var query = context.Promotions
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Rules.Where(pr => !pr.IsDeleted && pr.TenantId == currentTenantId.Value));
 
@@ -62,6 +63,7 @@ public class PromotionService(
         try
         {
             var promotion = await context.Promotions
+                .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -86,6 +88,7 @@ public class PromotionService(
         {
             var now = DateTime.UtcNow;
             var promotions = await context.Promotions
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted && p.StartDate <= now && p.EndDate >= now)
                 .OrderByDescending(p => p.Priority)
                 .ThenBy(p => p.Name)
@@ -546,6 +549,7 @@ public class PromotionService(
 
         var now = DateTime.UtcNow;
         var promotions = await context.Promotions
+            .AsNoTracking()
             .WhereActiveTenant(currentTenantId.Value)
             .Where(p => p.StartDate <= now && p.EndDate >= now)
             .Include(p => p.Rules.Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value))

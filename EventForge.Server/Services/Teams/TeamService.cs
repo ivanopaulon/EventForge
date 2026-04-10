@@ -26,6 +26,7 @@ public class TeamService(
             }
 
             var query = context.Teams
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value));
@@ -59,6 +60,7 @@ public class TeamService(
         try
         {
             var teams = await context.Teams
+                .AsNoTracking()
                 .Where(t => t.EventId == eventId && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
@@ -79,6 +81,7 @@ public class TeamService(
         try
         {
             var team = await context.Teams
+                .AsNoTracking()
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
@@ -104,6 +107,7 @@ public class TeamService(
         try
         {
             var team = await context.Teams
+                .AsNoTracking()
                 .Where(t => t.Id == id && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
@@ -302,30 +306,48 @@ public class TeamService(
 
     public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        var members = await context.TeamMembers
-            .Where(m => m.TeamId == teamId && !m.IsDeleted)
-            .Include(m => m.Team)
-            .OrderBy(m => m.LastName)
-            .ThenBy(m => m.FirstName)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var members = await context.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.TeamId == teamId && !m.IsDeleted)
+                .Include(m => m.Team)
+                .OrderBy(m => m.LastName)
+                .ThenBy(m => m.FirstName)
+                .ToListAsync(cancellationToken);
 
-        return members.Select(MapToTeamMemberDto);
+            return members.Select(MapToTeamMemberDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving members for team {TeamId}.", teamId);
+            throw;
+        }
     }
 
     public async Task<TeamMemberDto?> GetTeamMemberByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var member = await context.TeamMembers
-            .Where(m => m.Id == id && !m.IsDeleted)
-            .Include(m => m.Team)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (member is null)
+        try
         {
-            logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
-            return null;
-        }
+            var member = await context.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.Id == id && !m.IsDeleted)
+                .Include(m => m.Team)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        return MapToTeamMemberDto(member);
+            if (member is null)
+            {
+                logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
+                return null;
+            }
+
+            return MapToTeamMemberDto(member);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving team member {MemberId}.", id);
+            throw;
+        }
     }
 
     public async Task<TeamMemberDto> AddTeamMemberAsync(CreateTeamMemberDto createTeamMemberDto, string currentUser, CancellationToken cancellationToken = default)
@@ -480,29 +502,56 @@ public class TeamService(
 
     public async Task<bool> TeamExistsAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        return await context.Teams
-            .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
+        try
+        {
+            return await context.Teams
+                .AsNoTracking()
+                .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking existence of team {TeamId}.", teamId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<TeamMemberDto>> GetMembersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId;
-        if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
+        try
+        {
+            var tenantId = tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
 
-        var members = await context.TeamMembers
-            .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
-            .Include(m => m.Team)
-            .OrderBy(m => m.LastName)
-            .ThenBy(m => m.FirstName)
-            .ToListAsync(cancellationToken);
+            var members = await context.TeamMembers
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
+                .Include(m => m.Team)
+                .OrderBy(m => m.LastName)
+                .ThenBy(m => m.FirstName)
+                .ToListAsync(cancellationToken);
 
-        return members.Select(MapToTeamMemberDto);
+            return members.Select(MapToTeamMemberDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving members with birthday.");
+            throw;
+        }
     }
 
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await context.Events
-            .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
+        try
+        {
+            return await context.Events
+                .AsNoTracking()
+                .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking existence of event {EventId}.", eventId);
+            throw;
+        }
     }
 
     // Document Reference operations
@@ -512,6 +561,7 @@ public class TeamService(
         try
         {
             var documents = await context.DocumentReferences
+                .AsNoTracking()
                 .Where(d => d.OwnerId == ownerId && d.OwnerType == ownerType && !d.IsDeleted)
                 .OrderBy(d => d.Type)
                 .ThenBy(d => d.CreatedAt)
@@ -531,6 +581,7 @@ public class TeamService(
         try
         {
             var document = await context.DocumentReferences
+                .AsNoTracking()
                 .Where(d => d.Id == id && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -675,6 +726,7 @@ public class TeamService(
         try
         {
             var cards = await context.MembershipCards
+                .AsNoTracking()
                 .Where(mc => mc.TeamMemberId == teamMemberId && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .OrderBy(mc => mc.ValidFrom)
@@ -694,6 +746,7 @@ public class TeamService(
         try
         {
             var card = await context.MembershipCards
+                .AsNoTracking()
                 .Where(mc => mc.Id == id && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
@@ -841,6 +894,7 @@ public class TeamService(
         try
         {
             var policies = await context.InsurancePolicies
+                .AsNoTracking()
                 .Where(ip => ip.TeamMemberId == teamMemberId && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .OrderBy(ip => ip.ValidFrom)
@@ -860,6 +914,7 @@ public class TeamService(
         try
         {
             var policy = await context.InsurancePolicies
+                .AsNoTracking()
                 .Where(ip => ip.Id == id && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
@@ -1011,6 +1066,7 @@ public class TeamService(
         try
         {
             var query = context.TeamMembers
+                .AsNoTracking()
                 .Where(tm => tm.TeamId == teamId && tm.JerseyNumber == jerseyNumber && !tm.IsDeleted);
 
             if (excludeTeamMemberId.HasValue)
@@ -1035,6 +1091,7 @@ public class TeamService(
             var expiryDate = DateTime.UtcNow.AddDays(daysBeforeExpiry);
 
             var membersWithExpiringDocs = await context.TeamMembers
+                .AsNoTracking()
                 .Where(tm => !tm.IsDeleted)
                 .Include(tm => tm.Team)
                 .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate))
@@ -1063,6 +1120,7 @@ public class TeamService(
             };
 
             var member = await context.TeamMembers
+                .AsNoTracking()
                 .Where(tm => tm.Id == teamMemberId && !tm.IsDeleted)
                 .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted))
                 .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted))

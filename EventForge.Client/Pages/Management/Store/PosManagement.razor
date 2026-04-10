@@ -7,6 +7,8 @@
 @inject EventForge.Client.Services.Store.IStorePosService StorePosService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<PosManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("store.posManagement", "Gestione Punti Cassa")</PageTitle>
 <EntityManagementPage TEntity="StorePosDto"
@@ -171,10 +173,18 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(PosDetailDialog.EntityId)] = id };
-        var dialog = await DialogService.ShowAsync<PosDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PosDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<PosDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening POS detail dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

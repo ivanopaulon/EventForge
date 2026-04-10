@@ -30,22 +30,22 @@ public record LookupResult<T>(
 public interface ILookupCacheService
 {
     // New methods returning LookupResult<T> for structured error handling
-    Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false);
-    Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false);
-    Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false);
-    Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false);
+    Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false, CancellationToken ct = default);
+    Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false, CancellationToken ct = default);
+    Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false, CancellationToken ct = default);
+    Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false, CancellationToken ct = default);
 
     // Legacy raw methods for backward compatibility
-    Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false);
-    Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false);
-    Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false);
-    Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false);
+    Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false, CancellationToken ct = default);
+    Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false, CancellationToken ct = default);
+    Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false, CancellationToken ct = default);
+    Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false, CancellationToken ct = default);
 
     // Direct lookup methods
-    Task<BrandDto?> GetBrandByIdAsync(Guid brandId);
-    Task<ModelDto?> GetModelByIdAsync(Guid modelId);
-    Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId);
-    Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId);
+    Task<BrandDto?> GetBrandByIdAsync(Guid brandId, CancellationToken ct = default);
+    Task<ModelDto?> GetModelByIdAsync(Guid modelId, CancellationToken ct = default);
+    Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId, CancellationToken ct = default);
+    Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId, CancellationToken ct = default);
 
     void ClearCache();
 }
@@ -74,7 +74,7 @@ public class LookupCacheService(
                 logger.LogWarning(ex, "Transient lookup failure on attempt {Attempt} after {Delay}ms",
                     attempt, delay.TotalMilliseconds));
 
-    public async Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false)
+    public async Task<LookupResult<BrandDto>> GetBrandsAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -128,7 +128,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false)
+    public async Task<LookupResult<ModelDto>> GetModelsAsync(Guid? brandId = null, bool forceRefresh = false, CancellationToken ct = default)
     {
         var key = brandId.HasValue ? $"{ModelsByBrandCacheKeyPrefix}{brandId}" : ModelsCacheKey;
 
@@ -188,7 +188,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false)
+    public async Task<LookupResult<VatRateDto>> GetVatRatesAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -242,7 +242,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false)
+    public async Task<LookupResult<UMDto>> GetUnitsOfMeasureAsync(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
@@ -297,19 +297,19 @@ public class LookupCacheService(
     }
 
     // Legacy raw methods for backward compatibility - unwrap Items from LookupResult
-    public async Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false) =>
-        (await GetBrandsAsync(forceRefresh)).Items;
+    public async Task<IEnumerable<BrandDto>> GetBrandsRawAsync(bool forceRefresh = false, CancellationToken ct = default) =>
+        (await GetBrandsAsync(forceRefresh, ct)).Items;
 
-    public async Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false) =>
-        (await GetModelsAsync(brandId, forceRefresh)).Items;
+    public async Task<IEnumerable<ModelDto>> GetModelsRawAsync(Guid? brandId = null, bool forceRefresh = false, CancellationToken ct = default) =>
+        (await GetModelsAsync(brandId, forceRefresh, ct)).Items;
 
-    public async Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false) =>
-        (await GetVatRatesAsync(forceRefresh)).Items;
+    public async Task<IEnumerable<VatRateDto>> GetVatRatesRawAsync(bool forceRefresh = false, CancellationToken ct = default) =>
+        (await GetVatRatesAsync(forceRefresh, ct)).Items;
 
-    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false) =>
-        (await GetUnitsOfMeasureAsync(forceRefresh)).Items;
+    public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureRawAsync(bool forceRefresh = false, CancellationToken ct = default) =>
+        (await GetUnitsOfMeasureAsync(forceRefresh, ct)).Items;
 
-    public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId)
+    public async Task<BrandDto?> GetBrandByIdAsync(Guid brandId, CancellationToken ct = default)
     {
         try
         {
@@ -328,7 +328,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<ModelDto?> GetModelByIdAsync(Guid modelId)
+    public async Task<ModelDto?> GetModelByIdAsync(Guid modelId, CancellationToken ct = default)
     {
         try
         {
@@ -347,7 +347,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId)
+    public async Task<VatRateDto?> GetVatRateByIdAsync(Guid vatRateId, CancellationToken ct = default)
     {
         try
         {
@@ -366,7 +366,7 @@ public class LookupCacheService(
         }
     }
 
-    public async Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId)
+    public async Task<UMDto?> GetUnitOfMeasureByIdAsync(Guid unitId, CancellationToken ct = default)
     {
         try
         {

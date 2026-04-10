@@ -51,12 +51,12 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
         };
     }
 
-    protected override async Task<StorageLocationDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<StorageLocationDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _storageLocationService.GetStorageLocationAsync(entityId);
+        return await _storageLocationService.GetStorageLocationAsync(entityId, ct);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -67,7 +67,7 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
         try
         {
             // Load warehouses for dropdown selection
-            var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100);
+            var warehousesResult = await _warehouseService.GetStorageFacilitiesAsync(1, 100, ct);
             Warehouses = warehousesResult?.Items ?? new List<StorageFacilityDto>();
 
             Logger.LogInformation("Loaded {Count} warehouses for location {Id}",
@@ -119,14 +119,14 @@ public class StorageLocationDetailViewModel : BaseEntityDetailViewModel<StorageL
         };
     }
 
-    protected override Task<StorageLocationDto?> CreateEntityAsync(CreateStorageLocationDto createDto)
+    protected override Task<StorageLocationDto?> CreateEntityAsync(CreateStorageLocationDto createDto, CancellationToken ct = default)
     {
-        return _storageLocationService.CreateStorageLocationAsync(createDto);
+        return _storageLocationService.CreateStorageLocationAsync(createDto, ct);
     }
 
-    protected override Task<StorageLocationDto?> UpdateEntityAsync(Guid entityId, UpdateStorageLocationDto updateDto)
+    protected override Task<StorageLocationDto?> UpdateEntityAsync(Guid entityId, UpdateStorageLocationDto updateDto, CancellationToken ct = default)
     {
-        return _storageLocationService.UpdateStorageLocationAsync(entityId, updateDto);
+        return _storageLocationService.UpdateStorageLocationAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(StorageLocationDto entity)

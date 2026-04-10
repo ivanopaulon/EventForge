@@ -9,6 +9,7 @@
 @inject IHelpService HelpService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<NavMenu> Logger
 @implements IDisposable
 
 <MudNavMenu>
@@ -336,36 +337,50 @@
 
     private async Task CheckAuthenticationState()
     {
-        _isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        if (_isAuthenticated)
+        try
         {
-            // Check for all role types
-            _isSuperAdmin = await AuthService.IsSuperAdminAsync();
-            _isAdmin = await AuthService.IsInRoleAsync("Admin");
-            _isManager = await AuthService.IsInRoleAsync("Manager");
-            _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
-            
-            _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
-            
-            // Load notification and message counts
-            await LoadCommunicationCountsAsync();
+            _isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            if (_isAuthenticated)
+            {
+                // Check for all role types
+                _isSuperAdmin = await AuthService.IsSuperAdminAsync();
+                _isAdmin = await AuthService.IsInRoleAsync("Admin");
+                _isManager = await AuthService.IsInRoleAsync("Manager");
+                _isStoreManager = await AuthService.IsInRoleAsync("StoreManager");
+
+                _canManageWarehouse = _isSuperAdmin || _isAdmin || _isManager;
+
+                // Load notification and message counts
+                await LoadCommunicationCountsAsync();
+            }
+            else
+            {
+                _isAdmin = false;
+                _isSuperAdmin = false;
+                _isManager = false;
+                _isStoreManager = false;
+                _canManageWarehouse = false;
+                _unreadNotificationCount = 0;
+                _unreadMessageCount = 0;
+            }
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            _isAdmin = false;
-            _isSuperAdmin = false;
-            _isManager = false;
-            _isStoreManager = false;
-            _canManageWarehouse = false;
-            _unreadNotificationCount = 0;
-            _unreadMessageCount = 0;
+            Logger.LogError(ex, "Error checking authentication state in NavMenu.");
         }
-        StateHasChanged();
     }
 
     private async void OnAuthenticationStateChanged()
     {
-        await CheckAuthenticationState();
+        try
+        {
+            await CheckAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception in NavMenu.OnAuthenticationStateChanged.");
+        }
     }
 
     private void OnLanguageChanged(object? sender, string newLanguage)
@@ -416,8 +431,7 @@
         }
         catch (Exception ex)
         {
-            // Log error but don't show to user as this is background loading
-            Console.WriteLine($"[NavMenu] Error loading communication counts: {ex.Message}");
+            Logger.LogWarning(ex, "Error loading communication counts.");
             _unreadNotificationCount = 0;
             _unreadMessageCount = 0;
         }
@@ -477,6 +491,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing help dialog");
             AppNotification.ShowWarning($"Error showing help: {ex.Message}");
         }
     }
@@ -514,6 +529,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing tour options dialog");
             AppNotification.ShowWarning($"Error showing tour options: {ex.Message}");
         }
     }
@@ -543,6 +559,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Error showing tutorial center dialog");
             AppNotification.ShowWarning($"Error showing tutorial center: {ex.Message}");
         }
     }

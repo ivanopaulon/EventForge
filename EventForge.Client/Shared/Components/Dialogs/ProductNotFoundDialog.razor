@@ -184,65 +184,89 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _createCodeDto.Code = Barcode;
-        _createCodeDto.CodeType = "Barcode";
-        _createCodeDto.Status = ProductCodeStatus.Active;
-        
-        // If a product was pre-selected (e.g., after creation), set it
-        if (PreSelectedProduct != null)
+        try
         {
-            _selectedProduct = PreSelectedProduct;
+            _createCodeDto.Code = Barcode;
+            _createCodeDto.CodeType = "Barcode";
+            _createCodeDto.Status = ProductCodeStatus.Active;
+            
+            // If a product was pre-selected (e.g., after creation), set it
+            if (PreSelectedProduct != null)
+            {
+                _selectedProduct = PreSelectedProduct;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del dialogo ProductNotFound.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'inizializzazione.");
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnAfterRenderAsync(firstRender);
-        
-        // If a product was pre-selected, trigger form validation after first render
-        if (firstRender && _selectedProduct != null && _form != null)
+        try
         {
-            Logger.LogInformation("Pre-selected product detected, triggering form validation for product {ProductId}", _selectedProduct.Id);
-            await Task.Delay(FormRenderDelayMs);
-            await _form.ValidateAsync();
-            Logger.LogInformation("Form validation result for pre-selected product: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
-                _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
-            StateHasChanged();
+            await base.OnAfterRenderAsync(firstRender);
+            
+            // If a product was pre-selected, trigger form validation after first render
+            if (firstRender && _selectedProduct != null && _form != null)
+            {
+                Logger.LogInformation("Pre-selected product detected, triggering form validation for product {ProductId}", _selectedProduct.Id);
+                await Task.Delay(FormRenderDelayMs);
+                await _form.ValidateAsync();
+                Logger.LogInformation("Form validation result for pre-selected product: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
+                    _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante OnAfterRenderAsync del dialogo ProductNotFound.");
+            AppNotification.ShowWarning("Si è verificato un errore durante il rendering del dialogo.");
         }
     }
 
     private async Task OnProductSelected(ProductDto? product)
     {
-        _selectedProduct = product;
-        
-        Logger.LogInformation("Product selected: {ProductId} - {ProductName}", 
-            product?.Id, product?.Name);
-        
-        await InvokeAsync(async () =>
+        try
         {
-            StateHasChanged();
+            _selectedProduct = product;
             
-            if (product != null)
+            Logger.LogInformation("Product selected: {ProductId} - {ProductName}", 
+                product?.Id, product?.Name);
+            
+            await InvokeAsync(async () =>
             {
-                // Wait for the form to be rendered in the DOM
-                await Task.Delay(FormRenderDelayMs);
+                StateHasChanged();
                 
-                if (_form != null)
+                if (product != null)
                 {
-                    Logger.LogInformation("Triggering form validation for product {ProductId}", product.Id);
-                    await _form.ValidateAsync();
+                    // Wait for the form to be rendered in the DOM
+                    await Task.Delay(FormRenderDelayMs);
                     
-                    Logger.LogInformation("Form validation result: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
-                        _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
-                    
-                    StateHasChanged();
+                    if (_form != null)
+                    {
+                        Logger.LogInformation("Triggering form validation for product {ProductId}", product.Id);
+                        await _form.ValidateAsync();
+                        
+                        Logger.LogInformation("Form validation result: {IsValid}, CodeType: {CodeType}, Code: {Code}", 
+                            _isFormValid, _createCodeDto.CodeType, _createCodeDto.Code);
+                        
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Form reference is null after product selection");
+                    }
                 }
-                else
-                {
-                    Logger.LogWarning("Form reference is null after product selection");
-                }
-            }
-        });
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la selezione del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la selezione del prodotto.");
+        }
     }
 
     private async Task AssignBarcodeToProduct()
@@ -320,30 +344,38 @@
 
     private async Task CreateNewProduct()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "PrefilledCode", Barcode },
-            { "AutoAssignCode", true }
-        };
-
-        var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
-            TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
-            parameters,
-            new DialogOptions
+            var parameters = new DialogParameters
             {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseButton = true,
-                CloseOnEscapeKey = true,
-                BackdropClick = false
-            });
+                { "PrefilledCode", Barcode },
+                { "AutoAssignCode", true }
+            };
 
-        var result = await dialog.Result;
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
+                parameters,
+                new DialogOptions
+                {
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    CloseButton = true,
+                    CloseOnEscapeKey = true,
+                    BackdropClick = false
+                });
 
-        if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
+            {
+                // Return the created product to the caller
+                MudDialog.Close(DialogResult.Ok(createdProduct));
+            }
+        }
+        catch (Exception ex)
         {
-            // Return the created product to the caller
-            MudDialog.Close(DialogResult.Ok(createdProduct));
+            Logger.LogError(ex, "Errore durante la creazione di un nuovo prodotto dal dialogo ProductNotFound.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la creazione del prodotto.");
         }
     }
 }

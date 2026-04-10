@@ -332,6 +332,7 @@ public class TenantService(
             }
 
             var tenant = await context.Tenants
+                .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
 
             return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
@@ -351,6 +352,7 @@ public class TenantService(
                 throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
 
             var tenants = await context.Tenants
+                .AsNoTracking()
                 .Where(t => !t.IsDeleted)
                 .OrderBy(t => t.Name)
                 .ToListAsync();
@@ -685,6 +687,7 @@ public class TenantService(
             }
 
             var adminTenants = await context.AdminTenants
+                .AsNoTracking()
                 .Include(at => at.User)
                 .Include(at => at.ManagedTenant)
                 .Where(at => at.ManagedTenantId == tenantId)
@@ -864,27 +867,47 @@ public class TenantService(
             throw new UnauthorizedAccessException("Only super administrators can view tenant statistics.");
         }
 
-        var totalTenants = await context.Tenants.CountAsync();
-        var activeTenants = await context.Tenants.CountAsync(t => t.IsActive);
-        var inactiveTenants = totalTenants - activeTenants;
-
-        var totalUsers = await context.Users.CountAsync();
-        var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-        var usersLastMonth = await context.Users.CountAsync(u => u.CreatedAt >= oneMonthAgo);
-
-        var tenantsNearLimit = await context.Tenants
-            .Where(t => t.IsActive)
-            .CountAsync(t => context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
-
-        return new TenantStatisticsDto
+        try
         {
-            TotalTenants = totalTenants,
-            ActiveTenants = activeTenants,
-            InactiveTenants = inactiveTenants,
-            TotalUsers = totalUsers,
-            UsersLastMonth = usersLastMonth,
-            TenantsNearLimit = tenantsNearLimit
-        };
+            var totalTenants = await context.Tenants.AsNoTracking().CountAsync();
+            var activeTenants = await context.Tenants.AsNoTracking().CountAsync(t => t.IsActive);
+            var inactiveTenants = totalTenants - activeTenants;
+
+            var totalUsers = await context.Users.AsNoTracking().CountAsync();
+            var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+            var usersLastMonth = await context.Users.AsNoTracking().CountAsync(u => u.CreatedAt >= oneMonthAgo);
+
+            // Batch load user counts per tenant to avoid correlated subquery N+1
+            var userCountsByTenant = await context.Users
+                .AsNoTracking()
+                .GroupBy(u => u.TenantId)
+                .Select(g => new { TenantId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.TenantId, x => x.Count);
+
+            var activeTenantsForLimit = await context.Tenants
+                .AsNoTracking()
+                .Where(t => t.IsActive)
+                .Select(t => new { t.Id, t.MaxUsers })
+                .ToListAsync();
+
+            var tenantsNearLimit = activeTenantsForLimit
+                .Count(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
+
+            return new TenantStatisticsDto
+            {
+                TotalTenants = totalTenants,
+                ActiveTenants = activeTenants,
+                InactiveTenants = inactiveTenants,
+                TotalUsers = totalUsers,
+                UsersLastMonth = usersLastMonth,
+                TenantsNearLimit = tenantsNearLimit
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore durante il recupero delle statistiche tenant.");
+            throw;
+        }
     }
 
     public async Task<PagedResult<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto)
@@ -894,92 +917,111 @@ public class TenantService(
             throw new UnauthorizedAccessException("Only super administrators can search tenants.");
         }
 
-        var query = context.Tenants.AsNoTracking().AsQueryable();
-
-        // Apply filters
-        if (!string.IsNullOrEmpty(searchDto.SearchTerm))
+        try
         {
-            var term = searchDto.SearchTerm.ToLower();
-            query = query.Where(t =>
-                t.Name.ToLower().Contains(term) ||
-                t.DisplayName.ToLower().Contains(term) ||
-                (t.Domain != null && t.Domain.ToLower().Contains(term)));
-        }
+            var query = context.Tenants.AsNoTracking().AsQueryable();
 
-        if (!string.IsNullOrEmpty(searchDto.Status) && searchDto.Status != "all")
-        {
-            var isActive = searchDto.Status == "active";
-            query = query.Where(t => t.IsActive == isActive);
-        }
-
-        if (searchDto.MaxUsers.HasValue)
-        {
-            query = query.Where(t => t.MaxUsers <= searchDto.MaxUsers.Value);
-        }
-
-        if (searchDto.CreatedAfter.HasValue)
-        {
-            query = query.Where(t => t.CreatedAt >= searchDto.CreatedAfter.Value);
-        }
-
-        if (searchDto.CreatedBefore.HasValue)
-        {
-            query = query.Where(t => t.CreatedAt <= searchDto.CreatedBefore.Value);
-        }
-
-        if (searchDto.NearUserLimit.HasValue && searchDto.NearUserLimit.Value)
-        {
-            query = query.Where(t => context.Users.Count(u => u.TenantId == t.Id) >= t.MaxUsers * 0.9);
-        }
-
-        // Apply sorting
-        if (!string.IsNullOrEmpty(searchDto.SortBy))
-        {
-            var isDesc = searchDto.SortOrder?.ToLower() == "desc";
-            query = searchDto.SortBy.ToLower() switch
+            // Apply filters
+            if (!string.IsNullOrEmpty(searchDto.SearchTerm))
             {
-                "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
-                "displayname" => isDesc ? query.OrderByDescending(t => t.DisplayName) : query.OrderBy(t => t.DisplayName),
-                "createdat" => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt),
-                "maxusers" => isDesc ? query.OrderByDescending(t => t.MaxUsers) : query.OrderBy(t => t.MaxUsers),
-                _ => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
+                var term = searchDto.SearchTerm.ToLower();
+                query = query.Where(t =>
+                    t.Name.ToLower().Contains(term) ||
+                    t.DisplayName.ToLower().Contains(term) ||
+                    (t.Domain != null && t.Domain.ToLower().Contains(term)));
+            }
+
+            if (!string.IsNullOrEmpty(searchDto.Status) && searchDto.Status != "all")
+            {
+                var isActive = searchDto.Status == "active";
+                query = query.Where(t => t.IsActive == isActive);
+            }
+
+            if (searchDto.MaxUsers.HasValue)
+            {
+                query = query.Where(t => t.MaxUsers <= searchDto.MaxUsers.Value);
+            }
+
+            if (searchDto.CreatedAfter.HasValue)
+            {
+                query = query.Where(t => t.CreatedAt >= searchDto.CreatedAfter.Value);
+            }
+
+            if (searchDto.CreatedBefore.HasValue)
+            {
+                query = query.Where(t => t.CreatedAt <= searchDto.CreatedBefore.Value);
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrEmpty(searchDto.SortBy))
+            {
+                var isDesc = searchDto.SortOrder?.ToLower() == "desc";
+                query = searchDto.SortBy.ToLower() switch
+                {
+                    "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
+                    "displayname" => isDesc ? query.OrderByDescending(t => t.DisplayName) : query.OrderBy(t => t.DisplayName),
+                    "createdat" => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt),
+                    "maxusers" => isDesc ? query.OrderByDescending(t => t.MaxUsers) : query.OrderBy(t => t.MaxUsers),
+                    _ => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
+                };
+            }
+            else
+            {
+                query = query.OrderByDescending(t => t.CreatedAt);
+            }
+
+            var totalCount = await query.CountAsync();
+            var tenants = await query
+                .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
+                .Take(searchDto.PageSize)
+                .ToListAsync();
+
+            // Apply NearUserLimit filter in-memory after fetching to avoid correlated subquery N+1
+            IEnumerable<Tenant> filteredTenants = tenants;
+            if (searchDto.NearUserLimit.HasValue && searchDto.NearUserLimit.Value)
+            {
+                var tenantIds = tenants.Select(t => t.Id).ToList();
+                var userCountsByTenant = await context.Users
+                    .AsNoTracking()
+                    .Where(u => tenantIds.Contains(u.TenantId))
+                    .GroupBy(u => u.TenantId)
+                    .Select(g => new { TenantId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.TenantId, x => x.Count);
+
+                filteredTenants = tenants
+                    .Where(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
+            }
+
+            var tenantDtos = filteredTenants.Select(t => new TenantResponseDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                DisplayName = t.DisplayName,
+                Description = t.Description,
+                Domain = t.Domain,
+                ContactEmail = t.ContactEmail,
+                MaxUsers = t.MaxUsers,
+                IsActive = t.IsActive,
+                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                CreatedAt = t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            }).ToList();
+
+            return new PagedResult<TenantResponseDto>
+            {
+                Items = tenantDtos,
+                TotalCount = totalCount,
+                Page = searchDto.PageNumber,
+                PageSize = searchDto.PageSize
             };
         }
-        else
+        catch (Exception ex)
         {
-            query = query.OrderByDescending(t => t.CreatedAt);
+            logger.LogError(ex, "Errore durante la ricerca dei tenant.");
+            throw;
         }
-
-        var totalCount = await query.CountAsync();
-        var tenants = await query
-            .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
-            .Take(searchDto.PageSize)
-            .ToListAsync();
-
-        var tenantDtos = tenants.Select(t => new TenantResponseDto
-        {
-            Id = t.Id,
-            Name = t.Name,
-            DisplayName = t.DisplayName,
-            Description = t.Description,
-            Domain = t.Domain,
-            ContactEmail = t.ContactEmail,
-            MaxUsers = t.MaxUsers,
-            IsActive = t.IsActive,
-            SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-            CreatedAt = t.CreatedAt,
-            CreatedBy = t.CreatedBy,
-            ModifiedAt = t.ModifiedAt,
-            ModifiedBy = t.ModifiedBy
-        }).ToList();
-
-        return new PagedResult<TenantResponseDto>
-        {
-            Items = tenantDtos,
-            TotalCount = totalCount,
-            Page = searchDto.PageNumber,
-            PageSize = searchDto.PageSize
-        };
     }
 
     public async Task<TenantDetailDto?> GetTenantDetailsAsync(Guid tenantId)
@@ -989,45 +1031,53 @@ public class TenantService(
             throw new UnauthorizedAccessException("Only super administrators can view tenant details.");
         }
 
-        var tenant = await context.Tenants.FindAsync(tenantId);
-        if (tenant is null)
+        try
         {
-            return null;
-        }
-
-        var admins = await GetTenantAdminsAsync(tenantId);
-        var limits = await GetTenantLimitsAsync(tenantId);
-        var usageStats = await GetTenantUsageStatsAsync(tenantId);
-        var recentActivities = await GetRecentActivitiesAsync(tenantId);
-
-        return new TenantDetailDto
-        {
-            Id = tenant.Id,
-            Name = tenant.Name,
-            DisplayName = tenant.DisplayName,
-            Description = tenant.Description,
-            Domain = tenant.Domain,
-            ContactEmail = tenant.ContactEmail,
-            MaxUsers = tenant.MaxUsers,
-            IsActive = tenant.IsActive,
-            SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
-            CreatedAt = tenant.CreatedAt,
-            CreatedBy = tenant.CreatedBy,
-            ModifiedAt = tenant.ModifiedAt,
-            ModifiedBy = tenant.ModifiedBy,
-            Admins = admins.Select(a => new TenantAdminResponseDto
+            var tenant = await context.Tenants.FindAsync(tenantId);
+            if (tenant is null)
             {
-                UserId = a.UserId,
-                Username = a.Username,
-                Email = a.Email,
-                FullName = a.FullName ?? string.Empty,
-                MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
-                GeneratedPassword = null // Only for creation
-            }).ToList(),
-            Limits = limits ?? new TenantLimitsDto { TenantId = tenantId },
-            UsageStats = usageStats,
-            RecentActivities = recentActivities
-        };
+                return null;
+            }
+
+            var admins = await GetTenantAdminsAsync(tenantId);
+            var limits = await GetTenantLimitsAsync(tenantId);
+            var usageStats = await GetTenantUsageStatsAsync(tenantId);
+            var recentActivities = await GetRecentActivitiesAsync(tenantId);
+
+            return new TenantDetailDto
+            {
+                Id = tenant.Id,
+                Name = tenant.Name,
+                DisplayName = tenant.DisplayName,
+                Description = tenant.Description,
+                Domain = tenant.Domain,
+                ContactEmail = tenant.ContactEmail,
+                MaxUsers = tenant.MaxUsers,
+                IsActive = tenant.IsActive,
+                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+                CreatedAt = tenant.CreatedAt,
+                CreatedBy = tenant.CreatedBy,
+                ModifiedAt = tenant.ModifiedAt,
+                ModifiedBy = tenant.ModifiedBy,
+                Admins = admins.Select(a => new TenantAdminResponseDto
+                {
+                    UserId = a.UserId,
+                    Username = a.Username,
+                    Email = a.Email,
+                    FullName = a.FullName ?? string.Empty,
+                    MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
+                    GeneratedPassword = null // Only for creation
+                }).ToList(),
+                Limits = limits ?? new TenantLimitsDto { TenantId = tenantId },
+                UsageStats = usageStats,
+                RecentActivities = recentActivities
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore durante il recupero dei dettagli del tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     public async Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid tenantId)
@@ -1037,26 +1087,34 @@ public class TenantService(
             throw new UnauthorizedAccessException("Only super administrators can view tenant limits.");
         }
 
-        var tenant = await context.Tenants.FindAsync(tenantId);
-        if (tenant is null)
+        try
         {
-            return null;
+            var tenant = await context.Tenants.FindAsync(tenantId);
+            if (tenant is null)
+            {
+                return null;
+            }
+
+            var currentUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
+            var currentStorage = await CalculateStorageUsageAsync(tenantId);
+            var currentEventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
+
+            return new TenantLimitsDto
+            {
+                TenantId = tenantId,
+                MaxUsers = tenant.MaxUsers,
+                CurrentUsers = currentUsers,
+                MaxStorageBytes = 1073741824, // Default 1GB - should be configurable
+                CurrentStorageBytes = currentStorage,
+                MaxEventsPerMonth = 1000, // Default - should be configurable
+                CurrentEventsThisMonth = currentEventsThisMonth
+            };
         }
-
-        var currentUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
-        var currentStorage = await CalculateStorageUsageAsync(tenantId);
-        var currentEventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
-
-        return new TenantLimitsDto
+        catch (Exception ex)
         {
-            TenantId = tenantId,
-            MaxUsers = tenant.MaxUsers,
-            CurrentUsers = currentUsers,
-            MaxStorageBytes = 1073741824, // Default 1GB - should be configurable
-            CurrentStorageBytes = currentStorage,
-            MaxEventsPerMonth = 1000, // Default - should be configurable
-            CurrentEventsThisMonth = currentEventsThisMonth
-        };
+            logger.LogError(ex, "Errore durante il recupero dei limiti del tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     public async Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, UpdateTenantLimitsDto updateDto)
@@ -1066,45 +1124,54 @@ public class TenantService(
             throw new UnauthorizedAccessException("Only super administrators can update tenant limits.");
         }
 
-        var tenant = await context.Tenants.FindAsync(tenantId);
-        if (tenant is null)
+        try
         {
-            throw new ArgumentException($"Tenant {tenantId} not found.");
+            var tenant = await context.Tenants.FindAsync(tenantId);
+            if (tenant is null)
+            {
+                throw new ArgumentException($"Tenant {tenantId} not found.");
+            }
+
+            tenant.MaxUsers = updateDto.MaxUsers;
+            tenant.ModifiedAt = DateTime.UtcNow;
+            tenant.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
+
+            _ = await context.SaveChangesAsync();
+
+            // Create audit trail entry
+            var auditTrail = new AuditTrail
+            {
+                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
+                OperationType = AuthAuditOperationType.TenantStatusChanged,
+                TargetTenantId = tenantId,
+                Details = $"Tenant limits updated: MaxUsers={updateDto.MaxUsers}, MaxStorage={updateDto.MaxStorageBytes}, MaxEvents={updateDto.MaxEventsPerMonth}. Reason: {updateDto.Reason}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = tenant.ModifiedBy
+            };
+
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
+
+            return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
         }
-
-        tenant.MaxUsers = updateDto.MaxUsers;
-        tenant.ModifiedAt = DateTime.UtcNow;
-        tenant.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
-
-        _ = await context.SaveChangesAsync();
-
-        // Create audit trail entry
-        var auditTrail = new AuditTrail
+        catch (Exception ex)
         {
-            PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
-            OperationType = AuthAuditOperationType.TenantStatusChanged,
-            TargetTenantId = tenantId,
-            Details = $"Tenant limits updated: MaxUsers={updateDto.MaxUsers}, MaxStorage={updateDto.MaxStorageBytes}, MaxEvents={updateDto.MaxEventsPerMonth}. Reason: {updateDto.Reason}",
-            WasSuccessful = true,
-            PerformedAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = tenant.ModifiedBy
-        };
-
-        _ = context.AuditTrails.Add(auditTrail);
-        _ = await context.SaveChangesAsync();
-
-        return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
+            logger.LogError(ex, "Errore durante l'aggiornamento dei limiti del tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     private async Task<TenantUsageStatsDto> GetTenantUsageStatsAsync(Guid tenantId)
     {
-        var totalUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
-        var activeUsers = await context.Users.CountAsync(u => u.TenantId == tenantId && u.IsActive);
-        var totalEvents = await context.Events.CountAsync(e => e.TenantId == tenantId);
+        var totalUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId);
+        var activeUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId && u.IsActive);
+        var totalEvents = await context.Events.AsNoTracking().CountAsync(e => e.TenantId == tenantId);
         var eventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
         var storageUsed = await CalculateStorageUsageAsync(tenantId);
         var lastActivity = await context.AuditTrails
+            .AsNoTracking()
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Select(a => a.PerformedAt)
@@ -1112,11 +1179,13 @@ public class TenantService(
 
         var today = DateTime.UtcNow.Date;
         var loginAttemptsToday = await context.AuditTrails
+            .AsNoTracking()
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantSwitch &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
 
         var failedLoginsToday = await context.AuditTrails
+            .AsNoTracking()
             .CountAsync(a => a.OperationType == AuthAuditOperationType.TenantStatusChanged &&
                            a.PerformedAt >= today &&
                            a.SourceTenantId == tenantId);
@@ -1137,6 +1206,7 @@ public class TenantService(
     private async Task<List<string>> GetRecentActivitiesAsync(Guid tenantId)
     {
         var recentAudits = await context.AuditTrails
+            .AsNoTracking()
             .Where(a => a.TargetTenantId == tenantId || a.SourceTenantId == tenantId)
             .OrderByDescending(a => a.PerformedAt)
             .Take(10)
@@ -1151,8 +1221,8 @@ public class TenantService(
         // This is a placeholder implementation
         // In a real application, you would calculate actual storage usage
         // from file uploads, documents, etc.
-        var userCount = await context.Users.CountAsync(u => u.TenantId == tenantId);
-        var eventCount = await context.Events.CountAsync(e => e.TenantId == tenantId);
+        var userCount = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId);
+        var eventCount = await context.Events.AsNoTracking().CountAsync(e => e.TenantId == tenantId);
 
         // Rough estimation: 1KB per user + 10KB per event
         return (userCount * 1024) + (eventCount * 10240);
@@ -1162,6 +1232,7 @@ public class TenantService(
     {
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         return await context.Events
+            .AsNoTracking()
             .CountAsync(e => e.TenantId == tenantId && e.CreatedAt >= startOfMonth);
     }
 
@@ -1170,35 +1241,43 @@ public class TenantService(
         if (!tenantContext.IsSuperAdmin)
             throw new UnauthorizedAccessException("Only super administrators can delete tenants.");
 
-        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
-        if (tenant is null)
-            throw new ArgumentException($"Tenant {tenantId} not found.");
-
-        if (tenant.IsDeleted)
-            throw new InvalidOperationException("Tenant is already deleted.");
-
-        tenant.IsDeleted = true;
-        tenant.IsActive = false;
-        tenant.ModifiedAt = DateTime.UtcNow;
-
-        _ = await context.SaveChangesAsync();
-
-        // Audit log
-        var currentUserId = tenantContext.CurrentUserId;
-        if (currentUserId.HasValue)
+        try
         {
-            var auditTrail = new AuditTrail
-            {
-                TenantId = tenant.Id,
-                OperationType = AuthAuditOperationType.TenantStatusChanged,
-                PerformedByUserId = currentUserId.Value,
-                TargetTenantId = tenant.Id,
-                Details = $"Tenant soft deleted: {reason}",
-                WasSuccessful = true,
-                PerformedAt = DateTime.UtcNow
-            };
-            _ = context.AuditTrails.Add(auditTrail);
+            var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+            if (tenant is null)
+                throw new ArgumentException($"Tenant {tenantId} not found.");
+
+            if (tenant.IsDeleted)
+                throw new InvalidOperationException("Tenant is already deleted.");
+
+            tenant.IsDeleted = true;
+            tenant.IsActive = false;
+            tenant.ModifiedAt = DateTime.UtcNow;
+
             _ = await context.SaveChangesAsync();
+
+            // Audit log
+            var currentUserId = tenantContext.CurrentUserId;
+            if (currentUserId.HasValue)
+            {
+                var auditTrail = new AuditTrail
+                {
+                    TenantId = tenant.Id,
+                    OperationType = AuthAuditOperationType.TenantStatusChanged,
+                    PerformedByUserId = currentUserId.Value,
+                    TargetTenantId = tenant.Id,
+                    Details = $"Tenant soft deleted: {reason}",
+                    WasSuccessful = true,
+                    PerformedAt = DateTime.UtcNow
+                };
+                _ = context.AuditTrails.Add(auditTrail);
+                _ = await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore durante la cancellazione soft del tenant {TenantId}.", tenantId);
+            throw;
         }
     }
 
@@ -1209,44 +1288,52 @@ public class TenantService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        // NOTE: No tenant filter - SuperAdmin sees all tenants
-        var query = context.Tenants
-            .AsNoTracking()
-            .Where(t => !t.IsDeleted);
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderBy(t => t.Name)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .Select(t => new TenantResponseDto
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Code = t.Code,
-                DisplayName = t.DisplayName,
-                Description = t.Description,
-                Domain = t.Domain,
-                ContactEmail = t.ContactEmail,
-                MaxUsers = t.MaxUsers,
-                IsActive = t.IsActive,
-                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-                CreatedAt = t.CreatedAt,
-                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
-                CreatedBy = t.CreatedBy,
-                ModifiedAt = t.ModifiedAt,
-                ModifiedBy = t.ModifiedBy
-            })
-            .ToListAsync(ct);
-
-        return new PagedResult<TenantResponseDto>
+        try
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
+            // NOTE: No tenant filter - SuperAdmin sees all tenants
+            var query = context.Tenants
+                .AsNoTracking()
+                .Where(t => !t.IsDeleted);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderBy(t => t.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(t => new TenantResponseDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Code = t.Code,
+                    DisplayName = t.DisplayName,
+                    Description = t.Description,
+                    Domain = t.Domain,
+                    ContactEmail = t.ContactEmail,
+                    MaxUsers = t.MaxUsers,
+                    IsActive = t.IsActive,
+                    SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                    CreatedAt = t.CreatedAt,
+                    UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                    CreatedBy = t.CreatedBy,
+                    ModifiedAt = t.ModifiedAt,
+                    ModifiedBy = t.ModifiedBy
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<TenantResponseDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore durante il recupero dei tenant.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -1256,43 +1343,51 @@ public class TenantService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = context.Tenants
-            .AsNoTracking()
-            .Where(t => !t.IsDeleted && t.IsActive);
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderBy(t => t.Name)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .Select(t => new TenantResponseDto
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Code = t.Code,
-                DisplayName = t.DisplayName,
-                Description = t.Description,
-                Domain = t.Domain,
-                ContactEmail = t.ContactEmail,
-                MaxUsers = t.MaxUsers,
-                IsActive = t.IsActive,
-                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-                CreatedAt = t.CreatedAt,
-                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
-                CreatedBy = t.CreatedBy,
-                ModifiedAt = t.ModifiedAt,
-                ModifiedBy = t.ModifiedBy
-            })
-            .ToListAsync(ct);
-
-        return new PagedResult<TenantResponseDto>
+        try
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
+            var query = context.Tenants
+                .AsNoTracking()
+                .Where(t => !t.IsDeleted && t.IsActive);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderBy(t => t.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(t => new TenantResponseDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Code = t.Code,
+                    DisplayName = t.DisplayName,
+                    Description = t.Description,
+                    Domain = t.Domain,
+                    ContactEmail = t.ContactEmail,
+                    MaxUsers = t.MaxUsers,
+                    IsActive = t.IsActive,
+                    SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                    CreatedAt = t.CreatedAt,
+                    UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                    CreatedBy = t.CreatedBy,
+                    ModifiedAt = t.ModifiedAt,
+                    ModifiedBy = t.ModifiedBy
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<TenantResponseDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore durante il recupero dei tenant attivi.");
+            throw;
+        }
     }
 
 }

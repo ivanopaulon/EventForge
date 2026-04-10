@@ -1,6 +1,8 @@
 @inject IJSRuntime JSRuntime
 @inject ITranslationService TranslationService
 @inject IHelpService HelpService
+@inject ILogger<InteractiveWalkthrough> Logger
+@inject IAppNotificationService AppNotification
 
 @* Interactive walkthrough overlay *@
 @if (IsActive)
@@ -132,19 +134,35 @@
 
     protected override async Task OnInitializedAsync()
     {
-        LoadStepsForComponent();
-        
-        if (IsActive && WalkthroughSteps.Any())
+        try
         {
-            await UpdateHighlight();
+            LoadStepsForComponent();
+            
+            if (IsActive && WalkthroughSteps.Any())
+            {
+                await UpdateHighlight();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (IsActive && WalkthroughSteps.Any())
+        try
         {
-            await UpdateHighlight();
+            if (IsActive && WalkthroughSteps.Any())
+            {
+                await UpdateHighlight();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnParametersSetAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -220,9 +238,10 @@
             
             StateHasChanged();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Element might not exist yet, continue with default positioning
+            // Element might not exist yet; log and continue with default positioning
+            Logger.LogDebug(ex, "Element not found for walkthrough highlight, using default positioning.");
             HighlightStyle = "top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 100px;";
             CardStyle = "top: 60%; left: 50%; transform: translateX(-50%);";
             StateHasChanged();
@@ -231,30 +250,54 @@
 
     private async Task NextStep()
     {
-        if (CurrentStepIndex < WalkthroughSteps.Count - 1)
+        try
         {
-            CurrentStepIndex++;
-            await UpdateHighlight();
+            if (CurrentStepIndex < WalkthroughSteps.Count - 1)
+            {
+                CurrentStepIndex++;
+                await UpdateHighlight();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in NextStep.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task PreviousStep()
     {
-        if (CurrentStepIndex > 0)
+        try
         {
-            CurrentStepIndex--;
-            await UpdateHighlight();
+            if (CurrentStepIndex > 0)
+            {
+                CurrentStepIndex--;
+                await UpdateHighlight();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in PreviousStep.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task CompleteWalkthrough()
     {
-        await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_walkthrough_completed");
-        await StopWalkthrough();
-        
-        if (OnWalkthroughCompleted.HasDelegate)
+        try
         {
-            await OnWalkthroughCompleted.InvokeAsync();
+            await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_walkthrough_completed");
+            await StopWalkthrough();
+            
+            if (OnWalkthroughCompleted.HasDelegate)
+            {
+                await OnWalkthroughCompleted.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in CompleteWalkthrough.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -269,10 +312,18 @@
     /// </summary>
     public async Task StartWalkthrough()
     {
-        CurrentStepIndex = 0;
-        IsActive = true;
-        await IsActiveChanged.InvokeAsync(true);
-        await UpdateHighlight();
+        try
+        {
+            CurrentStepIndex = 0;
+            IsActive = true;
+            await IsActiveChanged.InvokeAsync(true);
+            await UpdateHighlight();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in StartWalkthrough.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private record WalkthroughStep(string Id, string Title, string Description, string Selector, string? ActionText = null);

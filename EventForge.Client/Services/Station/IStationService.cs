@@ -9,34 +9,34 @@ namespace EventForge.Client.Services.Station;
 public interface IStationService
 {
     /// <summary>Gets all stations.</summary>
-    Task<List<StationDto>> GetAllAsync();
+    Task<List<StationDto>> GetAllAsync(CancellationToken ct = default);
 
     /// <summary>Gets a station by ID.</summary>
-    Task<StationDto?> GetByIdAsync(Guid id);
+    Task<StationDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>Creates a new station.</summary>
-    Task<StationDto?> CreateAsync(CreateStationDto createDto);
+    Task<StationDto?> CreateAsync(CreateStationDto createDto, CancellationToken ct = default);
 
     /// <summary>Updates an existing station.</summary>
-    Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto);
+    Task<StationDto?> UpdateAsync(Guid id, UpdateStationDto updateDto, CancellationToken ct = default);
 
     /// <summary>Deletes a station.</summary>
-    Task<bool> DeleteAsync(Guid id);
+    Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>Gets stations with pagination.</summary>
-    Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20);
+    Task<PagedResult<StationDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default);
 
     // ── Printer endpoints ─────────────────────────────────────
 
     /// <summary>Gets all printers.</summary>
-    Task<List<PrinterDto>> GetAllPrintersAsync();
+    Task<List<PrinterDto>> GetAllPrintersAsync(CancellationToken ct = default);
 
     /// <summary>Gets a printer by ID.</summary>
-    Task<PrinterDto?> GetPrinterByIdAsync(Guid id);
+    Task<PrinterDto?> GetPrinterByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>Creates a new printer.</summary>
-    Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto);
+    Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto, CancellationToken ct = default);
 
     /// <summary>Updates an existing printer.</summary>
-    Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto);
+    Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto, CancellationToken ct = default);
 }

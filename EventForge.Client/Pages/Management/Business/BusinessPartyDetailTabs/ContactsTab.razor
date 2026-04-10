@@ -82,7 +82,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadContactsAsync();
+        try
+        {
+            await LoadContactsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ContactsTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -138,58 +145,74 @@
 
     private async Task OpenAddDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["OwnerId"] = Party.Id,
-            ["OwnerType"] = "BusinessParty"
-        };
+            var parameters = new DialogParameters
+            {
+                ["OwnerId"] = Party.Id,
+                ["OwnerType"] = "BusinessParty"
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ContactDialog>(
-            TranslationService.GetTranslation("businessParty.addContact", "Aggiungi Contatto"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<ContactDialog>(
+                TranslationService.GetTranslation("businessParty.addContact", "Aggiungi Contatto"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadContactsAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadContactsAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenAddDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(ContactDto contact)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["Contact"] = contact
-        };
+            var parameters = new DialogParameters
+            {
+                ["Contact"] = contact
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<ContactDialog>(
-            TranslationService.GetTranslation("businessParty.editContact", "Modifica Contatto"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<ContactDialog>(
+                TranslationService.GetTranslation("businessParty.editContact", "Modifica Contatto"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadContactsAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadContactsAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

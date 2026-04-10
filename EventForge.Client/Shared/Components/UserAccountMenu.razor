@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<UserAccountMenu> Logger
 @implements IDisposable
 
 @if (_currentUser != null)
@@ -62,15 +63,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
-        await CheckAuthenticationState();
+        try
+        {
+            AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+            await CheckAuthenticationState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in UserAccountMenu.OnInitializedAsync.");
+        }
     }
 
     private async Task CheckAuthenticationState()
     {
-        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        _currentUser = isAuthenticated ? await AuthService.GetCurrentUserAsync() : null;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            _currentUser = isAuthenticated ? await AuthService.GetCurrentUserAsync() : null;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking authentication state in UserAccountMenu.");
+        }
     }
 
     // Avoid async void: schedule async work on the renderer

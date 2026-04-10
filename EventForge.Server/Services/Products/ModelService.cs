@@ -122,6 +122,7 @@ public class ModelService(
             }
 
             var model = await context.Models
+                .AsNoTracking()
                 .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .Include(m => m.Brand)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -150,6 +151,7 @@ public class ModelService(
 
             // Verify brand exists and belongs to the same tenant
             var brandExists = await context.Brands
+                .AsNoTracking()
                 .Where(b => b.Id == createModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
@@ -213,6 +215,7 @@ public class ModelService(
 
             // Verify brand exists and belongs to the same tenant
             var brandExists = await context.Brands
+                .AsNoTracking()
                 .Where(b => b.Id == updateModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
 
@@ -333,6 +336,7 @@ public class ModelService(
             }
 
             return await context.Models
+                .AsNoTracking()
                 .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .AnyAsync(cancellationToken);
         }

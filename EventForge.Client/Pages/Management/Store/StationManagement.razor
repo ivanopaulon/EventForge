@@ -7,6 +7,8 @@
 @inject EventForge.Client.Services.Station.IStationService StationService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<StationManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("station.list", "Stazioni")</PageTitle>
 <EntityManagementPage TEntity="StationDto"
@@ -169,10 +171,19 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(StationDetailDialog.EntityId)] = id };
-        var dialog = await DialogService.ShowAsync<StationDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(StationDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<StationDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening StationDetailDialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

@@ -29,6 +29,6 @@ namespace EventForge.Client.Services
         /// Key is automatically scoped to the current user if authenticated.
         /// </summary>
         /// <param name="componentKey">Unique identifier for the component (e.g., "VatRateManagement")</param>
-        Task ClearPreferencesAsync(string componentKey);
+        Task ClearPreferencesAsync(string componentKey, CancellationToken ct = default);
     }
 }

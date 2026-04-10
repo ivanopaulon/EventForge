@@ -294,7 +294,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing BusinessPartyGroupDetailDialog.");
+        }
     }
 
     private async Task LoadDataAsync()
@@ -425,69 +432,93 @@
 
     private async Task Cancel()
     {
-        if (HasUnsavedChanges())
+        try
         {
-            var result = await DialogService.ShowMessageBoxAsync(
-                "Conferma",
-                "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?",
-                yesText: "Salva",
-                noText: "Non salvare",
-                cancelText: "Annulla");
-            if (result == null) return;
-            if (result == true) { await SaveAsync(); return; }
+            if (HasUnsavedChanges())
+            {
+                var result = await DialogService.ShowMessageBoxAsync(
+                    "Conferma",
+                    "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?",
+                    yesText: "Salva",
+                    noText: "Non salvare",
+                    cancelText: "Annulla");
+                if (result == null) return;
+                if (result == true) { await SaveAsync(); return; }
+            }
+            MudDialog.Close();
         }
-        MudDialog.Close();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Cancel.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OpenManageMembersDialog()
     {
-        if (_group == null) return;
-
-        var parameters = new DialogParameters<ManageGroupMembersDialog>
+        try
         {
-            { x => x.GroupId, _group.Id },
-            { x => x.GroupType, _group.GroupType },
-            { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
-        };
+            if (_group == null) return;
 
-        var options = new DialogOptions
+            var parameters = new DialogParameters<ManageGroupMembersDialog>
+            {
+                { x => x.GroupId, _group.Id },
+                { x => x.GroupType, _group.GroupType },
+                { x => x.ExistingMemberIds, _members?.Select(m => m.BusinessPartyId).ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ManageGroupMembersDialog>(
+                "Gestione Membri Gruppo", parameters, options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data is int count && count > 0)
+                await LoadMembersAsync();
+        }
+        catch (Exception ex)
         {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ManageGroupMembersDialog>(
-            "Gestione Membri Gruppo", parameters, options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false } && result.Data is int count && count > 0)
-            await LoadMembersAsync();
+            Logger.LogError(ex, "Error in OpenManageMembersDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OpenEditMemberDialog(BusinessPartyGroupMemberDto member)
     {
-        if (_group == null) return;
-
-        var parameters = new DialogParameters<EditGroupMemberDialog>
+        try
         {
-            { x => x.Member, member },
-            { x => x.GroupId, _group.Id }
-        };
+            if (_group == null) return;
 
-        var options = new DialogOptions
+            var parameters = new DialogParameters<EditGroupMemberDialog>
+            {
+                { x => x.Member, member },
+                { x => x.GroupId, _group.Id }
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            var dialog = await DialogService.ShowAsync<EditGroupMemberDialog>(
+                "Modifica Membro Gruppo", parameters, options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await LoadMembersAsync();
+        }
+        catch (Exception ex)
         {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<EditGroupMemberDialog>(
-            "Modifica Membro Gruppo", parameters, options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await LoadMembersAsync();
+            Logger.LogError(ex, "Error in OpenEditMemberDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task RemoveMember(Guid businessPartyId)

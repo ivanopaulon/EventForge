@@ -1,4 +1,6 @@
 @using EventForge.Client.Models.Fidelity
+@inject ILogger<EditFidelityCardDialog> Logger
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.CardMembership"
           Title="Modifica Card Fedeltà"
@@ -166,6 +168,11 @@
             Card.Notes = _notes;
             
             MudDialog.Close(DialogResult.Ok(Card));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la modifica della card fedeltà {CardNumber}", Card.CardNumber);
+            AppNotification.ShowError("Errore durante la modifica della card.");
         }
         finally
         {

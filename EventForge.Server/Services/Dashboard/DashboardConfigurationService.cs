@@ -64,6 +64,11 @@ public class DashboardConfigurationService(
             logger.LogInformation("GetConfigurationsAsync operation was cancelled");
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving dashboard configurations for entity type {EntityType}.", entityType);
+            throw;
+        }
     }
 
     public async Task<DashboardConfigurationDto?> GetConfigurationByIdAsync(Guid id, CancellationToken ct = default)
@@ -112,6 +117,11 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetConfigurationByIdAsync operation was cancelled for ID: {Id}", id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving dashboard configuration {ConfigurationId}.", id);
             throw;
         }
     }
@@ -163,6 +173,11 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetDefaultConfigurationAsync operation was cancelled for entity type: {EntityType}", entityType);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving default dashboard configuration for entity type {EntityType}.", entityType);
             throw;
         }
     }
@@ -225,6 +240,11 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("CreateConfigurationAsync operation was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating dashboard configuration.");
             throw;
         }
     }
@@ -297,6 +317,11 @@ public class DashboardConfigurationService(
             logger.LogInformation("UpdateConfigurationAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating dashboard configuration {ConfigurationId}.", id);
+            throw;
+        }
     }
 
     public async Task DeleteConfigurationAsync(Guid id, CancellationToken ct = default)
@@ -329,6 +354,11 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("DeleteConfigurationAsync operation was cancelled for ID: {Id}", id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting dashboard configuration {ConfigurationId}.", id);
             throw;
         }
     }
@@ -364,6 +394,11 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("SetAsDefaultAsync operation was cancelled for ID: {Id}", id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting dashboard configuration {ConfigurationId} as default.", id);
             throw;
         }
     }

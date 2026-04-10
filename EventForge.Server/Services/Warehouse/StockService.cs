@@ -32,6 +32,7 @@ public class StockService(
             }
 
             var query = context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -97,6 +98,7 @@ public class StockService(
             }
 
             var stock = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -123,6 +125,7 @@ public class StockService(
             }
 
             var stocks = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -151,6 +154,7 @@ public class StockService(
             }
 
             var stocks = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -179,6 +183,7 @@ public class StockService(
             }
 
             var query = context.Stocks
+                .AsNoTracking()
                 .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value);
 
             if (lotId.HasValue)
@@ -206,6 +211,7 @@ public class StockService(
             }
 
             var query = context.Stocks
+                .AsNoTracking()
                 .Where(s => s.ProductId == productId &&
                            s.StorageLocationId == locationId &&
                            s.TenantId == currentTenantId.Value);
@@ -687,6 +693,7 @@ public class StockService(
             }
 
             var stocks = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -717,6 +724,7 @@ public class StockService(
             }
 
             var stocks = await context.Stocks
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
                     .ThenInclude(sl => sl!.Warehouse)
@@ -837,6 +845,7 @@ public class StockService(
                 // LEFT JOIN: Show all products + stock (if present)
                 // We use a different approach: query products and optionally include their stock data
                 query = from p in context.Products
+                            .AsNoTracking()
                             .Where(p => p.TenantId == currentTenantId.Value && p.IsActive)
                         from s in context.Stocks
                             .Include(s => s.StorageLocation)
@@ -870,6 +879,7 @@ public class StockService(
             {
                 // EXISTING QUERY: Only products with stock
                 var stockQuery = context.Stocks
+                    .AsNoTracking()
                     .Include(s => s.Product)
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)

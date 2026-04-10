@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Events;
 
-
 /// <summary>
 /// Represents the base class for an event entity in the domain.
 /// This entity contains only domain invariants and business logic that must always be enforced,

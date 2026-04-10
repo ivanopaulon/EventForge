@@ -27,6 +27,7 @@ public class BusinessPartyService(
             }
 
             var query = context.BusinessParties
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -39,33 +40,19 @@ public class BusinessPartyService(
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var businessPartyDtos = new List<BusinessPartyDto>();
-            foreach (var businessParty in businessParties)
+            if (businessParties.Count == 0)
             {
-                var addressCount = await context.Addresses
-                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await context.Contacts
-                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await context.References
-                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await context.BusinessPartyAccountings
-                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
-
-                // Get primary address for location info
-                var primaryAddress = await context.Addresses
-                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
-                    .OrderBy(a => a.CreatedAt)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                // Get contacts for tooltip
-                var contacts = await context.Contacts
-                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
-                    .OrderByDescending(c => c.IsPrimary)
-                    .ThenBy(c => c.ContactType)
-                    .ToListAsync(cancellationToken);
-
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
+                return new PagedResult<BusinessPartyDto>
+                {
+                    Items = new List<BusinessPartyDto>(),
+                    Page = pagination.Page,
+                    PageSize = pagination.PageSize,
+                    TotalCount = totalCount
+                };
             }
+
+            // Batch all related-entity counts in parallel to eliminate N+1 query pattern
+            var businessPartyDtos = await EnrichBusinessPartiesAsync(businessParties, currentTenantId.Value, cancellationToken);
 
             return new PagedResult<BusinessPartyDto>
             {
@@ -93,6 +80,7 @@ public class BusinessPartyService(
             }
 
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
@@ -103,22 +91,28 @@ public class BusinessPartyService(
                 return null;
 
             var addressCount = await context.Addresses
+                .AsNoTracking()
                 .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
             var contactCount = await context.Contacts
+                .AsNoTracking()
                 .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
             var referenceCount = await context.References
+                .AsNoTracking()
                 .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
             var hasAccountingData = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
 
             // Get primary address for location info
             var primaryAddress = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
                 .OrderBy(a => a.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Get contacts for tooltip
             var contacts = await context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
                 .OrderByDescending(c => c.IsPrimary)
                 .ThenBy(c => c.ContactType)
@@ -144,6 +138,7 @@ public class BusinessPartyService(
             }
 
             var businessParties = await context.BusinessParties
+                .AsNoTracking()
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
@@ -152,35 +147,7 @@ public class BusinessPartyService(
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
 
-            var businessPartyDtos = new List<BusinessPartyDto>();
-            foreach (var businessParty in businessParties)
-            {
-                var addressCount = await context.Addresses
-                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await context.Contacts
-                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await context.References
-                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await context.BusinessPartyAccountings
-                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
-
-                // Get primary address for location info
-                var primaryAddress = await context.Addresses
-                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
-                    .OrderBy(a => a.CreatedAt)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                // Get contacts for tooltip
-                var contacts = await context.Contacts
-                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
-                    .OrderByDescending(c => c.IsPrimary)
-                    .ThenBy(c => c.ContactType)
-                    .ToListAsync(cancellationToken);
-
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
-            }
-
-            return businessPartyDtos;
+            return await EnrichBusinessPartiesAsync(businessParties, currentTenantId.Value, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -205,6 +172,7 @@ public class BusinessPartyService(
             }
 
             var query = context.BusinessParties
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value);
 
             // Filter by party type if specified
@@ -237,35 +205,7 @@ public class BusinessPartyService(
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
-            var businessPartyDtos = new List<BusinessPartyDto>();
-            foreach (var businessParty in businessParties)
-            {
-                var addressCount = await context.Addresses
-                    .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value, cancellationToken);
-                var contactCount = await context.Contacts
-                    .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value, cancellationToken);
-                var referenceCount = await context.References
-                    .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == businessParty.Id && !r.IsDeleted && r.TenantId == currentTenantId.Value, cancellationToken);
-                var hasAccountingData = await context.BusinessPartyAccountings
-                    .AnyAsync(bpa => bpa.BusinessPartyId == businessParty.Id && !bpa.IsDeleted && bpa.TenantId == currentTenantId.Value, cancellationToken);
-
-                // Get primary address for location info
-                var primaryAddress = await context.Addresses
-                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == businessParty.Id && !a.IsDeleted && a.TenantId == currentTenantId.Value)
-                    .OrderBy(a => a.CreatedAt)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                // Get contacts for tooltip
-                var contacts = await context.Contacts
-                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == businessParty.Id && !c.IsDeleted && c.TenantId == currentTenantId.Value)
-                    .OrderByDescending(c => c.IsPrimary)
-                    .ThenBy(c => c.ContactType)
-                    .ToListAsync(cancellationToken);
-
-                businessPartyDtos.Add(MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts));
-            }
-
-            return businessPartyDtos;
+            return await EnrichBusinessPartiesAsync(businessParties, currentTenantId.Value, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -339,6 +279,7 @@ public class BusinessPartyService(
                 return null;
 
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
@@ -383,22 +324,28 @@ public class BusinessPartyService(
             logger.LogInformation("Business party {BusinessPartyId} updated by {User}", id, currentUser);
 
             var addressCount = await context.Addresses
+                .AsNoTracking()
                 .CountAsync(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted, cancellationToken);
             var contactCount = await context.Contacts
+                .AsNoTracking()
                 .CountAsync(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted, cancellationToken);
             var referenceCount = await context.References
+                .AsNoTracking()
                 .CountAsync(r => r.OwnerType == "BusinessParty" && r.OwnerId == id && !r.IsDeleted, cancellationToken);
             var hasAccountingData = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .AnyAsync(bpa => bpa.BusinessPartyId == id && !bpa.IsDeleted, cancellationToken);
 
             // Get primary address for location info
             var primaryAddress = await context.Addresses
+                .AsNoTracking()
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && !a.IsDeleted)
                 .OrderBy(a => a.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Get contacts for tooltip
             var contacts = await context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && !c.IsDeleted)
                 .OrderByDescending(c => c.IsPrimary)
                 .ThenBy(c => c.ContactType)
@@ -432,6 +379,7 @@ public class BusinessPartyService(
                 return false;
 
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -480,6 +428,7 @@ public class BusinessPartyService(
         try
         {
             var query = context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => !bpa.IsDeleted);
@@ -495,6 +444,7 @@ public class BusinessPartyService(
             foreach (var bpa in businessPartyAccountings)
             {
                 var businessPartyName = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(bp => bp.Id == bpa.BusinessPartyId && !bp.IsDeleted)
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -522,6 +472,7 @@ public class BusinessPartyService(
         try
         {
             var businessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
@@ -531,6 +482,7 @@ public class BusinessPartyService(
                 return null;
 
             var businessPartyName = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -549,6 +501,7 @@ public class BusinessPartyService(
         try
         {
             var businessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .Where(bpa => bpa.BusinessPartyId == businessPartyId && !bpa.IsDeleted)
@@ -558,6 +511,7 @@ public class BusinessPartyService(
                 return null;
 
             var businessPartyName = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -604,11 +558,13 @@ public class BusinessPartyService(
 
             // Reload with includes
             var createdBusinessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .FirstAsync(bpa => bpa.Id == businessPartyAccounting.Id, cancellationToken);
 
             var businessPartyName = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -635,6 +591,7 @@ public class BusinessPartyService(
                 return null;
 
             var businessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -666,11 +623,13 @@ public class BusinessPartyService(
 
             // Reload with includes
             var updatedBusinessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
                 .FirstAsync(bpa => bpa.Id == id, cancellationToken);
 
             var businessPartyName = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -701,6 +660,7 @@ public class BusinessPartyService(
                 return false;
 
             var businessPartyAccounting = await context.BusinessPartyAccountings
+                .AsNoTracking()
                 .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -744,32 +704,126 @@ public class BusinessPartyService(
 
     #region Helper Methods
 
+    /// <summary>
+    /// Enriches a list of BusinessParty entities by fetching all related counts and data in
+    /// 6 parallel batch queries instead of 6 sequential per-entity queries (N+1 elimination).
+    /// </summary>
+    private async Task<List<BusinessPartyDto>> EnrichBusinessPartiesAsync(
+        List<BusinessParty> businessParties,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (businessParties.Count == 0) return new List<BusinessPartyDto>();
+
+        var bpIds = businessParties.Select(bp => bp.Id).ToList();
+
+        var addressCountsTask = context.Addresses
+            .AsNoTracking()
+            .Where(a => a.OwnerType == "BusinessParty" && bpIds.Contains(a.OwnerId) && !a.IsDeleted && a.TenantId == tenantId)
+            .GroupBy(a => a.OwnerId)
+            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var contactCountsTask = context.Contacts
+            .AsNoTracking()
+            .Where(c => c.OwnerType == "BusinessParty" && bpIds.Contains(c.OwnerId) && !c.IsDeleted && c.TenantId == tenantId)
+            .GroupBy(c => c.OwnerId)
+            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var referenceCountsTask = context.References
+            .AsNoTracking()
+            .Where(r => r.OwnerType == "BusinessParty" && bpIds.Contains(r.OwnerId) && !r.IsDeleted && r.TenantId == tenantId)
+            .GroupBy(r => r.OwnerId)
+            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var accountingIdsTask = context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Where(bpa => bpIds.Contains(bpa.BusinessPartyId) && !bpa.IsDeleted && bpa.TenantId == tenantId)
+            .Select(bpa => bpa.BusinessPartyId)
+            .ToListAsync(cancellationToken);
+
+        var primaryAddressesTask = context.Addresses
+            .AsNoTracking()
+            .Where(a => a.OwnerType == "BusinessParty" && bpIds.Contains(a.OwnerId) && !a.IsDeleted && a.TenantId == tenantId)
+            .OrderBy(a => a.OwnerId).ThenBy(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var contactsTask = context.Contacts
+            .AsNoTracking()
+            .Where(c => c.OwnerType == "BusinessParty" && bpIds.Contains(c.OwnerId) && !c.IsDeleted && c.TenantId == tenantId)
+            .OrderByDescending(c => c.IsPrimary).ThenBy(c => c.ContactType)
+            .ToListAsync(cancellationToken);
+
+        await Task.WhenAll(addressCountsTask, contactCountsTask, referenceCountsTask, accountingIdsTask, primaryAddressesTask, contactsTask);
+
+        var addressCountMap = addressCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
+        var contactCountMap = contactCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
+        var referenceCountMap = referenceCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
+        var accountingSet = new HashSet<Guid>(accountingIdsTask.Result);
+        var primaryAddressMap = primaryAddressesTask.Result
+            .GroupBy(a => a.OwnerId)
+            .ToDictionary(g => g.Key, g => g.First());
+        var contactsMap = contactsTask.Result
+            .GroupBy(c => c.OwnerId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return businessParties.Select(bp => MapToBusinessPartyDto(
+            bp,
+            addressCountMap.GetValueOrDefault(bp.Id),
+            contactCountMap.GetValueOrDefault(bp.Id),
+            referenceCountMap.GetValueOrDefault(bp.Id),
+            accountingSet.Contains(bp.Id),
+            primaryAddressMap.GetValueOrDefault(bp.Id),
+            contactsMap.GetValueOrDefault(bp.Id) ?? new List<Data.Entities.Common.Contact>()
+        )).ToList();
+    }
+
     public async Task<bool> BusinessPartyExistsAsync(Guid businessPartyId, CancellationToken cancellationToken = default)
     {
-        return await context.BusinessParties
-            .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
+        try
+        {
+            return await context.BusinessParties
+                .AsNoTracking()
+                .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking existence of business party {BusinessPartyId}.", businessPartyId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue) return Enumerable.Empty<BusinessPartyDto>();
-
-        var parties = await context.BusinessParties
-            .Where(bp => !bp.IsDeleted && bp.DateOfBirth.HasValue && bp.TenantId == currentTenantId.Value)
-            .OrderBy(bp => bp.Name)
-            .ToListAsync(cancellationToken);
-
-        return parties.Select(bp => new BusinessPartyDto
+        try
         {
-            Id = bp.Id,
-            PartyType = (EventForge.DTOs.Common.BusinessPartyType)bp.PartyType,
-            Name = bp.Name,
-            DateOfBirth = bp.DateOfBirth,
-            IsActive = bp.IsActive,
-            CreatedAt = bp.CreatedAt,
-            CreatedBy = bp.CreatedBy
-        });
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue) return Enumerable.Empty<BusinessPartyDto>();
+
+            var parties = await context.BusinessParties
+                .AsNoTracking()
+                .Where(bp => !bp.IsDeleted && bp.DateOfBirth.HasValue && bp.TenantId == currentTenantId.Value)
+                .OrderBy(bp => bp.Name)
+                .ToListAsync(cancellationToken);
+
+            return parties.Select(bp => new BusinessPartyDto
+            {
+                Id = bp.Id,
+                PartyType = (EventForge.DTOs.Common.BusinessPartyType)bp.PartyType,
+                Name = bp.Name,
+                DateOfBirth = bp.DateOfBirth,
+                IsActive = bp.IsActive,
+                CreatedAt = bp.CreatedAt,
+                CreatedBy = bp.CreatedBy
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading business parties with birthday.");
+            throw;
+        }
     }
 
     private static BusinessPartyDto MapToBusinessPartyDto(BusinessParty businessParty, int addressCount, int contactCount, int referenceCount, bool hasAccountingData, Data.Entities.Common.Address? primaryAddress, List<Data.Entities.Common.Contact> contacts)
@@ -868,6 +922,7 @@ public class BusinessPartyService(
             }
 
             var query = context.DocumentHeaders
+                .AsNoTracking()
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.BusinessParty)
                 .Where(dh => !dh.IsDeleted && dh.TenantId == currentTenantId.Value && dh.BusinessPartyId == businessPartyId);
@@ -968,6 +1023,7 @@ public class BusinessPartyService(
 
             // Build base query with all document rows for this business party
             var rowsQuery = context.DocumentRows
+                .AsNoTracking()
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(h => h!.DocumentType)
                 .Include(r => r.Product)
@@ -1152,6 +1208,7 @@ public class BusinessPartyService(
 
             // ⚡ Single query con eager loading ottimizzato
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .Where(bp => bp.Id == id && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(cancellationToken);
@@ -1164,8 +1221,10 @@ public class BusinessPartyService(
 
             // Query contacts and addresses directly via OwnerId (polymorphic association)
             var contactsQuery = context.Contacts
+                .AsNoTracking()
                 .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && c.TenantId == currentTenantId.Value);
             var addressesQuery = context.Addresses
+                .AsNoTracking()
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && a.TenantId == currentTenantId.Value);
 
             var allContacts = await (includeInactive
@@ -1182,6 +1241,7 @@ public class BusinessPartyService(
 
             // ⚡ Carica i listini prezzi associati separatamente per evitare problemi con Include filtrati
             var priceListsQuery = await context.PriceListBusinessParties
+                .AsNoTracking()
                 .Where(plbp => plbp.BusinessPartyId == id
                             && !plbp.IsDeleted
                             && plbp.TenantId == currentTenantId.Value
@@ -1243,24 +1303,30 @@ public class BusinessPartyService(
 
         // ⚡ Query parallele per performance ottimali
         var contactsTask = context.Contacts
+            .AsNoTracking()
             .CountAsync(c => c.OwnerId == businessPartyId && c.OwnerType == "BusinessParty" && !c.IsDeleted && c.TenantId == tenantId, cancellationToken);
 
         var addressesTask = context.Addresses
+            .AsNoTracking()
             .CountAsync(a => a.OwnerId == businessPartyId && a.OwnerType == "BusinessParty" && !a.IsDeleted && a.TenantId == tenantId, cancellationToken);
 
         var priceListsTask = context.PriceListBusinessParties
+            .AsNoTracking()
             .CountAsync(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted && !plbp.PriceList.IsDeleted && plbp.TenantId == tenantId, cancellationToken);
 
         var documentsTask = context.DocumentHeaders
+            .AsNoTracking()
             .CountAsync(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId, cancellationToken);
 
         var lastOrderTask = context.DocumentHeaders
+            .AsNoTracking()
             .Where(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId)
             .OrderByDescending(d => d.Date)
             .Select(d => (DateTime?)d.Date)
             .FirstOrDefaultAsync(cancellationToken);
 
         var revenueTask = context.DocumentHeaders
+            .AsNoTracking()
             .Where(d => d.BusinessPartyId == businessPartyId
                      && !d.IsDeleted
                      && d.TenantId == tenantId
@@ -1403,51 +1469,60 @@ public class BusinessPartyService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for business party operations.");
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for business party operations.");
+            }
+
+            var query = context.BusinessParties
+                .AsNoTracking()
+                .Include(bp => bp.Addresses)
+                .Include(bp => bp.Contacts)
+                .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
+                .OrderBy(bp => bp.Name);
+
+            var totalCount = await query.CountAsync(ct);
+
+            logger.LogInformation("Export requested for {Count} business parties", totalCount);
+
+            // Use batch processing for large datasets
+            if (totalCount > 10000)
+            {
+                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+                return await GetBusinessPartiesInBatchesAsync(query, ct);
+            }
+
+            // Standard export for smaller datasets
+            var items = await query
+                .Take(pagination.PageSize)
+                .ToListAsync(ct);
+
+            return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+            {
+                Id = bp.Id,
+                Code = bp.TaxCode ?? string.Empty,
+                Name = bp.Name,
+                PartyType = bp.PartyType.ToString(),
+                VatNumber = bp.VatNumber,
+                FiscalCode = bp.TaxCode,
+                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
+                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+                Address = bp.Addresses.FirstOrDefault()?.Street,
+                City = bp.Addresses.FirstOrDefault()?.City,
+                PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
+                Country = bp.Addresses.FirstOrDefault()?.Country,
+                IsActive = bp.IsActive,
+                CreatedAt = bp.CreatedAt
+            });
         }
-
-        var query = context.BusinessParties
-            .Include(bp => bp.Addresses)
-            .Include(bp => bp.Contacts)
-            .Where(bp => !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
-            .OrderBy(bp => bp.Name);
-
-        var totalCount = await query.CountAsync(ct);
-
-        logger.LogInformation("Export requested for {Count} business parties", totalCount);
-
-        // Use batch processing for large datasets
-        if (totalCount > 10000)
+        catch (Exception ex)
         {
-            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-            return await GetBusinessPartiesInBatchesAsync(query, ct);
+            logger.LogError(ex, "Error in GetBusinessPartiesForExportAsync.");
+            throw;
         }
-
-        // Standard export for smaller datasets
-        var items = await query
-            .Take(pagination.PageSize)
-            .ToListAsync(ct);
-
-        return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
-        {
-            Id = bp.Id,
-            Code = bp.TaxCode ?? string.Empty,
-            Name = bp.Name,
-            PartyType = bp.PartyType.ToString(),
-            VatNumber = bp.VatNumber,
-            FiscalCode = bp.TaxCode,
-            Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
-            Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
-            Address = bp.Addresses.FirstOrDefault()?.Street,
-            City = bp.Addresses.FirstOrDefault()?.City,
-            PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
-            Country = bp.Addresses.FirstOrDefault()?.Country,
-            IsActive = bp.IsActive,
-            CreatedAt = bp.CreatedAt
-        });
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesInBatchesAsync(

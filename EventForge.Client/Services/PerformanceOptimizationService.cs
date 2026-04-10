@@ -9,10 +9,10 @@ namespace EventForge.Client.Services;
 /// </summary>
 public interface IPerformanceOptimizationService
 {
-    Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
+    Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null, CancellationToken ct = default);
     void InvalidateCache(string key);
     void InvalidateCachePattern(string pattern);
-    Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay);
+    Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay, CancellationToken ct = default);
     void PreloadData<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
     void SetCacheExpiration(string key, TimeSpan expiration);
     bool IsCached(string key);
@@ -61,7 +61,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
     /// <summary>
     /// Gets cached data or executes factory function with intelligent cache management.
     /// </summary>
-    public async Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null)
+    public async Task<T?> GetCachedDataAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Cache key cannot be null or empty", nameof(key));
@@ -152,7 +152,7 @@ public class PerformanceOptimizationService : IPerformanceOptimizationService, I
     /// <summary>
     /// Debounces an operation to reduce excessive API calls.
     /// </summary>
-    public async Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay)
+    public async Task<T> DebounceAsync<T>(string key, Func<Task<T>> operation, TimeSpan delay, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Debounce key cannot be null or empty", nameof(key));

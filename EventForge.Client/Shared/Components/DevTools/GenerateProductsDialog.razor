@@ -1,0 +1,277 @@
+@namespace EventForge.Client.Shared.Components.DevTools
+@using EventForge.DTOs.DevTools
+@using EventForge.Client.Shared.Components.Dialogs
+@using MudBlazor
+@inject IDevToolsService DevToolsService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject NavigationManager NavigationManager
+@inject ILogger<GenerateProductsDialog> Logger
+@implements IDisposable
+
+<EFDialog Icon="@Icons.Material.Outlined.Science"
+          Title="@TranslationService.GetTranslation("devtools.generateProducts.title", "Genera Prodotti di Test")"
+          IsProcessing="@(_isGenerating && !_isComplete && !_hasFailed)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        @if (!_isGenerating)
+        {
+            <MudText Typo="Typo.body1" Class="mb-4">
+                @TranslationService.GetTranslation("devtools.generateProducts.description",
+                    "Questa funzione creerà prodotti di test randomizzati nel database. È consigliato utilizzarla solo in ambienti di sviluppo o test.")
+            </MudText>
+
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                @TranslationService.GetTranslation("devtools.generateProducts.warning",
+                    "Attenzione: questa operazione creerà molti record nel database. Assicurati di avere un backup o di usare un database di test.")
+            </MudAlert>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_count"
+                                     Label="@TranslationService.GetTranslation("devtools.generateProducts.count", "Numero di prodotti")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="1"
+                                     Max="20000" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_batchSize"
+                                     Label="@TranslationService.GetTranslation("devtools.generateProducts.batchSize", "Dimensione batch")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="10"
+                                     Max="1000"
+                                     HelperText="@TranslationService.GetTranslation("devtools.generateProducts.batchSizeHelp", "Numero di prodotti da inserire per volta")" />
+                </MudItem>
+            </MudGrid>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-4">
+                @TranslationService.GetTranslation("devtools.generateProducts.inProgress",
+                    "Generazione in corso... Puoi chiudere questa finestra, il job continuerà in background.")
+            </MudText>
+
+            <MudProgressLinear Value="@_progress" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-4">
+                @string.Format(TranslationService.GetTranslation("devtools.generateProducts.progress",
+                    "Creati: {0} / {1} ({2:F1}%)"), _created, _total, _progress)
+            </MudText>
+
+            @if (_errors > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-2">
+                    @string.Format(TranslationService.GetTranslation("devtools.generateProducts.errors",
+                        "Errori riscontrati: {0}"), _errors)
+                </MudAlert>
+            }
+
+            <MudText Typo="Typo.caption" Class="mb-2">
+                @TranslationService.GetTranslation("devtools.generateProducts.jobId", "Job ID:") @_currentJobId
+            </MudText>
+        }
+
+        @if (_isComplete)
+        {
+            <MudAlert Severity="Severity.Success" Class="mb-4">
+                @string.Format(TranslationService.GetTranslation("devtools.generateProducts.complete",
+                    "Generazione completata! Creati {0} prodotti in {1:F1} secondi."), _created, _durationSeconds)
+            </MudAlert>
+        }
+
+        @if (_hasFailed)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">
+                @TranslationService.GetTranslation("devtools.generateProducts.failed",
+                    "Generazione fallita: {0}", _errorMessage ?? string.Empty)
+            </MudAlert>
+        }
+    </ChildContent>
+    <DialogActions>
+        @if (!_isGenerating)
+        {
+            <MudButton OnClick="Cancel" Variant="Variant.Text">
+                @TranslationService.GetTranslation("common.cancel", "Annulla")
+            </MudButton>
+            <MudButton OnClick="StartGenerationAsync" Color="Color.Warning" Variant="Variant.Filled">
+                @TranslationService.GetTranslation("devtools.generateProducts.confirm", "Conferma e Genera")
+            </MudButton>
+        }
+        else if (!_isComplete && !_hasFailed)
+        {
+            <MudButton OnClick="CancelGenerationAsync" Color="Color.Error" Variant="Variant.Text">
+                @TranslationService.GetTranslation("devtools.generateProducts.cancelJob", "Annulla Job")
+            </MudButton>
+            <MudButton OnClick="Cancel" Variant="Variant.Text">
+                @TranslationService.GetTranslation("common.close", "Chiudi")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="ReloadPage" Color="Color.Primary" Variant="Variant.Filled">
+                @TranslationService.GetTranslation("devtools.generateProducts.reloadPage", "Ricarica Pagina")
+            </MudButton>
+            <MudButton OnClick="Cancel" Variant="Variant.Text">
+                @TranslationService.GetTranslation("common.close", "Chiudi")
+            </MudButton>
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool _isGenerating = false;
+    private bool _isComplete = false;
+    private bool _hasFailed = false;
+
+    private int _count = 5000;
+    private int _batchSize = 100;
+
+    private string? _currentJobId;
+    private int _created = 0;
+    private int _total = 0;
+    private int _errors = 0;
+    private double _progress = 0;
+    private double _durationSeconds = 0;
+    private string? _errorMessage;
+
+    private Timer? _pollingTimer;
+    private bool _disposed;
+
+    private async Task StartGenerationAsync()
+    {
+        try
+        {
+            var request = new GenerateProductsRequestDto
+            {
+                Count = _count,
+                BatchSize = _batchSize
+            };
+
+            var response = await DevToolsService.GenerateProductsAsync(request);
+            if (response == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.startError",
+                    "Errore nell'avvio della generazione. Verifica che i devtools siano abilitati."));
+                return;
+            }
+
+            _currentJobId = response.JobId;
+            _total = _count;
+            _isGenerating = true;
+
+            AppNotification.ShowInfo(TranslationService.GetTranslation("devtools.generateProducts.started",
+                "Generazione avviata! Job ID: {0}", response.JobId));
+
+            _pollingTimer = new Timer(PollJobStatus, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nell'avvio della generazione");
+            AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.unexpectedError",
+                "Errore imprevisto: {0}", ex.Message));
+        }
+    }
+
+    private async void PollJobStatus(object? state)
+    {
+        if (_disposed || string.IsNullOrEmpty(_currentJobId))
+            return;
+
+        try
+        {
+            var status = await DevToolsService.GetGenerateProductsStatusAsync(_currentJobId);
+            if (status == null)
+                return;
+
+            _created = status.Created;
+            _errors = status.Errors;
+
+            if (status.Total > 0)
+            {
+                _progress = (double)status.Processed / status.Total * 100;
+            }
+
+            if (status.Status == ProductGenerationJobStatus.Done)
+            {
+                _isGenerating = false;
+                _isComplete = true;
+                _durationSeconds = status.DurationSeconds ?? 0;
+                _pollingTimer?.Dispose();
+
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("devtools.generateProducts.successNotification",
+                    "Generazione completata con successo! Creati {0} prodotti.", _created));
+            }
+            else if (status.Status == ProductGenerationJobStatus.Failed)
+            {
+                _isGenerating = false;
+                _hasFailed = true;
+                _errorMessage = status.ErrorMessage;
+                _pollingTimer?.Dispose();
+
+                AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.failedNotification",
+                    "Generazione fallita: {0}", status.ErrorMessage ?? string.Empty));
+            }
+            else if (status.Status == ProductGenerationJobStatus.Cancelled)
+            {
+                _isGenerating = false;
+                _pollingTimer?.Dispose();
+
+                AppNotification.ShowWarning(TranslationService.GetTranslation("devtools.generateProducts.cancelledNotification",
+                    "Generazione cancellata."));
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel polling dello stato del job");
+        }
+    }
+
+    private async Task CancelGenerationAsync()
+    {
+        if (string.IsNullOrEmpty(_currentJobId))
+            return;
+
+        try
+        {
+            var cancelled = await DevToolsService.CancelGenerateProductsAsync(_currentJobId);
+            if (cancelled)
+            {
+                AppNotification.ShowInfo(TranslationService.GetTranslation("devtools.generateProducts.cancelRequested",
+                    "Richiesta di cancellazione inviata."));
+            }
+            else
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("devtools.generateProducts.cancelFailed",
+                    "Impossibile cancellare il job."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nella cancellazione del job");
+            AppNotification.ShowError(TranslationService.GetTranslation("devtools.generateProducts.cancelError",
+                "Errore nella cancellazione: {0}", ex.Message));
+        }
+    }
+
+    private void ReloadPage()
+    {
+        MudDialog.Close();
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _pollingTimer?.Dispose();
+    }
+}

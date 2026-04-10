@@ -4,11 +4,11 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Drawers
 
-
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IServiceProvider ServiceProvider
 @inject IAuthenticationDialogService AuthenticationDialogService
+@inject ILogger<App> Logger
 @implements IDisposable
 
 <MudThemeProvider />
@@ -79,47 +79,69 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await base.OnAfterRenderAsync(firstRender);
-        
-        // Show login dialog immediately if not authenticated and dialog hasn't been shown yet
-        if (!_loginDialogShown)
+        try
         {
-            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-            var currentUri = NavigationManager.Uri;
+            await base.OnAfterRenderAsync(firstRender);
             
-            // Show login dialog if not authenticated and not already on login page
-            if (!isAuthenticated && !currentUri.Contains("/login"))
+            // Show login dialog immediately if not authenticated and dialog hasn't been shown yet
+            if (!_loginDialogShown)
             {
-                _loginDialogShown = true;
-                await ShowLoginDialog();
+                var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+                var currentUri = NavigationManager.Uri;
+                
+                // Show login dialog if not authenticated and not already on login page
+                if (!isAuthenticated && !currentUri.Contains("/login"))
+                {
+                    _loginDialogShown = true;
+                    await ShowLoginDialog();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il rendering iniziale dell'applicazione");
         }
     }
 
     private async void OnAuthenticationStateChanged()
     {
-        // Authentication state management for protected routes
-        // All pages except login require authentication
-        var isAuthenticated = await AuthService.IsAuthenticatedAsync();
-        var currentUri = NavigationManager.Uri;
-        
-        // Show login dialog if not authenticated and not already on login page
-        // This ensures all pages except login require authentication
-        if (!isAuthenticated && !currentUri.Contains("/login") && !_loginDialogShown)
+        try
         {
-            _loginDialogShown = true;
-            await InvokeAsync(ShowLoginDialog);
+            // Authentication state management for protected routes
+            // All pages except login require authentication
+            var isAuthenticated = await AuthService.IsAuthenticatedAsync();
+            var currentUri = NavigationManager.Uri;
+            
+            // Show login dialog if not authenticated and not already on login page
+            // This ensures all pages except login require authentication
+            if (!isAuthenticated && !currentUri.Contains("/login") && !_loginDialogShown)
+            {
+                _loginDialogShown = true;
+                await InvokeAsync(ShowLoginDialog);
+            }
+            
+            Logger.LogDebug("Auth state changed - Authenticated: {IsAuthenticated}, URI: {CurrentUri}", isAuthenticated, currentUri);
         }
-        
-        Console.WriteLine($"Auth state changed - Authenticated: {isAuthenticated}, URI: {currentUri}");
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del cambio stato di autenticazione");
+        }
     }
 
     private async Task ShowLoginDialog()
     {
-        var success = await AuthenticationDialogService.ShowLoginDialogAsync();
-        _loginDialogShown = false;
-        if (success)
-            StateHasChanged();
+        try
+        {
+            var success = await AuthenticationDialogService.ShowLoginDialogAsync();
+            _loginDialogShown = false;
+            if (success)
+                StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la visualizzazione del dialogo di login");
+            _loginDialogShown = false;
+        }
     }
 
     public void Dispose()

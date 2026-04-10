@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
-
 /// <summary>
 /// Link between a summary document (e.g., invoice) and a detailed document (e.g., delivery note).
 /// </summary>

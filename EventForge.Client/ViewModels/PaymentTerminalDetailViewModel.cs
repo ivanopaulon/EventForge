@@ -21,8 +21,8 @@ public class PaymentTerminalDetailViewModel(
         TimeoutMs = 30000
     };
 
-    protected override Task<PaymentTerminalDto?> LoadEntityFromServiceAsync(Guid entityId)
-        => paymentTerminalService.GetByIdAsync(entityId);
+    protected override Task<PaymentTerminalDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
+        => paymentTerminalService.GetByIdAsync(entityId, ct);
 
     protected override CreatePaymentTerminalDto MapToCreateDto(PaymentTerminalDto entity) => new()
     {
@@ -52,11 +52,17 @@ public class PaymentTerminalDetailViewModel(
         TerminalId = entity.TerminalId
     };
 
-    protected override async Task<PaymentTerminalDto?> CreateEntityAsync(CreatePaymentTerminalDto createDto)
-        => await paymentTerminalService.CreateAsync(createDto);
+    protected override Task<PaymentTerminalDto?> CreateEntityAsync(CreatePaymentTerminalDto createDto, CancellationToken ct = default)
+        => paymentTerminalService.CreateAsync(createDto, ct);
 
-    protected override async Task<PaymentTerminalDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTerminalDto updateDto)
-        => await paymentTerminalService.UpdateAsync(entityId, updateDto);
+    protected override Task<PaymentTerminalDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTerminalDto updateDto, CancellationToken ct = default)
+        => paymentTerminalService.UpdateAsync(entityId, updateDto, ct);
 
     protected override Guid GetEntityId(PaymentTerminalDto entity) => entity.Id;
+
+    /// <summary>
+    /// Tests the saved terminal's connection. Only valid for persisted terminals (Id != Guid.Empty).
+    /// </summary>
+    public Task TestConnectionAsync(Guid terminalId, CancellationToken ct = default)
+        => paymentTerminalService.TestConnectionAsync(terminalId, ct);
 }

@@ -339,20 +339,28 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Subscribe to ViewModel events
-        ViewModel.StateChanged += StateHasChanged;
-        ViewModel.OnNotification += HandleNotification;
+        try
+        {
+            // Subscribe to ViewModel events
+            ViewModel.StateChanged += StateHasChanged;
+            ViewModel.OnNotification += HandleNotification;
 
-        // Get current user
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var username = authState.User.Identity?.Name;
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
 
-        // Initialize ViewModel
-        await ViewModel.InitializeAsync(username);
-        
-        // Initialize split/merge functionality
-        await LoadOpenSessionsAsync();
-        await CheckCanSplitAsync();
+            // Initialize ViewModel
+            await ViewModel.InitializeAsync(username);
+            
+            // Initialize split/merge functionality
+            await LoadOpenSessionsAsync();
+            await CheckCanSplitAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del POS.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private void HandleNotification(string message, bool isSuccess)
@@ -367,16 +375,24 @@
     {
         if (product == null) return;
         
-        var result = await ViewModel.AddProductAsync(product);
-        
-        if (result.Success)
+        try
         {
-            _currentProduct = null;
-            AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            var result = await ViewModel.AddProductAsync(product);
+            
+            if (result.Success)
+            {
+                _currentProduct = null;
+                AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            }
+            else
+            {
+                AppNotification.ShowError(result.Error ?? "Errore");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            AppNotification.ShowError(result.Error ?? "Errore");
+            Logger.LogError(ex, "Errore durante l'aggiunta del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -390,47 +406,63 @@
 
     private async Task HandleProductNotFoundAsync(string barcode)
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "Barcode", barcode }
-        };
+            var parameters = new DialogParameters
+            {
+                { "Barcode", barcode }
+            };
 
-        var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
-            TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
-        );
+            var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+                TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+            );
 
-        var result = await dialog.Result;
-        
-        if (result is { Canceled: false } && result.Data != null)
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false } && result.Data != null)
+            {
+                // Handle "skip" action
+                if (result.Data is string action && action == "skip")
+                {
+                    AppNotification.ShowInfo(TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"));
+                    return;
+                }
+                
+                // Handle ProductDto (newly created product)
+                if (result.Data is ProductDto product)
+                {
+                    await OnProductSelectedAsync(product);
+                    return;
+                }
+                
+                // Handle product assignment result (from AssignBarcodeToProduct)
+                if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
+                {
+                    await OnProductSelectedAsync(assignResult.Product);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            // Handle "skip" action
-            if (result.Data is string action && action == "skip")
-            {
-                AppNotification.ShowInfo(TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"));
-                return;
-            }
-            
-            // Handle ProductDto (newly created product)
-            if (result.Data is ProductDto product)
-            {
-                await OnProductSelectedAsync(product);
-                return;
-            }
-            
-            // Handle product assignment result (from AssignBarcodeToProduct)
-            if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
-            {
-                await OnProductSelectedAsync(assignResult.Product);
-                return;
-            }
+            Logger.LogError(ex, "Error in HandleProductNotFoundAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
     {
-        await ViewModel.UpdateSelectedCustomerAsync(customer);
+        try
+        {
+            await ViewModel.UpdateSelectedCustomerAsync(customer);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnSelectedCustomerChangedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void IncreaseQuantityAsync(SaleItemDto item)
@@ -491,26 +523,34 @@
 
     private async Task EditItemNotesAsync(SaleItemDto item)
     {
-        // Prevent modifications during updates
-        if (ViewModel.IsUpdatingItems) return;
-        
-        var parameters = new DialogParameters
+        try
         {
-            { "InitialNotes", item.Notes ?? string.Empty },
-            { "Item", item }
-        };
+            // Prevent modifications during updates
+            if (ViewModel.IsUpdatingItems) return;
+            
+            var parameters = new DialogParameters
+            {
+                { "InitialNotes", item.Notes ?? string.Empty },
+                { "Item", item }
+            };
 
-        var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
-            TranslationService.GetTranslation("sales.editNotes", "Modifica Note"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
-        );
+            var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
+                TranslationService.GetTranslation("sales.editNotes", "Modifica Note"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
+            );
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false } && result.Data is string newNotes)
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data is string newNotes)
+            {
+                item.Notes = newNotes;
+                ViewModel.QueueItemUpdate(item);
+            }
+        }
+        catch (Exception ex)
         {
-            item.Notes = newNotes;
-            ViewModel.QueueItemUpdate(item);
+            Logger.LogError(ex, "Error in EditItemNotesAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -518,142 +558,190 @@
     {
         if (!ViewModel.HasActiveSession) return;
 
-        // Confirm removal for significant items
-        if (item.Quantity > 1 || item.TotalAmount > 50)
+        try
         {
-            bool? confirm = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("sales.confirmRemoveItem", 
-                    "Rimuovere {0} (x{1}) per {2}?", 
-                    item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
-                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-                cancelText: TranslationService.GetTranslation("common.no", "No")
-            );
+            // Confirm removal for significant items
+            if (item.Quantity > 1 || item.TotalAmount > 50)
+            {
+                bool? confirm = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("sales.confirmRemoveItem", 
+                        "Rimuovere {0} (x{1}) per {2}?", 
+                        item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
+                    yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                    cancelText: TranslationService.GetTranslation("common.no", "No")
+                );
 
-            if (confirm != true) return;
+                if (confirm != true) return;
+            }
+
+            var result = await ViewModel.RemoveItemAsync(item);
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError("❌ " + result.Error);
+            }
         }
-
-        var result = await ViewModel.RemoveItemAsync(item);
-        if (!result.Success && result.Error != null)
+        catch (Exception ex)
         {
-            AppNotification.ShowError("❌ " + result.Error);
+            Logger.LogError(ex, "Errore durante la rimozione dell'articolo.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task ApplyGlobalDiscountAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["CurrentTotal"] = ViewModel.CurrentSession?.FinalTotal ?? 0m
-        };
-
-        var dialog = await DialogService.ShowAsync<GlobalDiscountDialog>(
-            TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small });
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && result.Data is decimal discountPercent)
-        {
-            var dto = new ApplyGlobalDiscountDto
+            var parameters = new DialogParameters
             {
-                DiscountPercent = discountPercent,
-                Reason = TranslationService.GetTranslation("sales.globalDiscountReason", "Sconto globale POS")
+                ["CurrentTotal"] = ViewModel.CurrentSession?.FinalTotal ?? 0m
             };
-            
-            var updatedSession = await ViewModel.ApplyGlobalDiscountAsync(dto);
-            
-            if (updatedSession != null)
+
+            var dialog = await DialogService.ShowAsync<GlobalDiscountDialog>(
+                TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small });
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is decimal discountPercent)
             {
-                AppNotification.ShowSuccess($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}");
+                var dto = new ApplyGlobalDiscountDto
+                {
+                    DiscountPercent = discountPercent,
+                    Reason = TranslationService.GetTranslation("sales.globalDiscountReason", "Sconto globale POS")
+                };
+                
+                var updatedSession = await ViewModel.ApplyGlobalDiscountAsync(dto);
+                
+                if (updatedSession != null)
+                {
+                    AppNotification.ShowSuccess($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}");
+                }
+                else
+                {
+                    AppNotification.ShowError("❌ Errore applicazione sconto");
+                }
             }
-            else
-            {
-                AppNotification.ShowError("❌ Errore applicazione sconto");
-            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ApplyGlobalDiscountAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task ApplyCouponAsync()
     {
-        var dialog = await DialogService.ShowAsync<CouponInputDialog>(
-            TranslationService.GetTranslation("sales.applyCoupon", "Applica Coupon"),
-            new DialogOptions { MaxWidth = MaxWidth.Small });
-
-        var dialogResult = await dialog.Result;
-        if (dialogResult is not null && !dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
+        try
         {
-            var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
-            if (success)
-                AppNotification.ShowSuccess($"✅ Coupon applicato: {promotionName}");
-            else
-                AppNotification.ShowWarning($"❌ {error}");
+            var dialog = await DialogService.ShowAsync<CouponInputDialog>(
+                TranslationService.GetTranslation("sales.applyCoupon", "Applica Coupon"),
+                new DialogOptions { MaxWidth = MaxWidth.Small });
+
+            var dialogResult = await dialog.Result;
+            if (dialogResult is not null && !dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
+            {
+                var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
+                if (success)
+                    AppNotification.ShowSuccess($"✅ Coupon applicato: {promotionName}");
+                else
+                    AppNotification.ShowWarning($"❌ {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ApplyCouponAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task AddSessionNoteAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["SessionId"] = ViewModel.CurrentSession?.Id
-        };
+            var parameters = new DialogParameters
+            {
+                ["SessionId"] = ViewModel.CurrentSession?.Id
+            };
 
-        var dialog = await DialogService.ShowAsync<SessionNoteDialog>(
-            TranslationService.GetTranslation("sales.addSessionNote", "Aggiungi Nota Vendita"),
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small });
+            var dialog = await DialogService.ShowAsync<SessionNoteDialog>(
+                TranslationService.GetTranslation("sales.addSessionNote", "Aggiungi Nota Vendita"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small });
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false } && result.Data is AddSessionNoteDto noteDto)
+            if (result is { Canceled: false } && result.Data is AddSessionNoteDto noteDto)
+            {
+                // Chiamata backend REALE (rimuove TODO)
+                var updatedSession = await ViewModel.AddSessionNoteAsync(noteDto);
+                
+                if (updatedSession != null)
+                {
+                    AppNotification.ShowSuccess($"✅ Nota aggiunta: {noteDto.Text}");
+                }
+                else
+                {
+                    AppNotification.ShowError("❌ Errore aggiunta nota");
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            // Chiamata backend REALE (rimuove TODO)
-            var updatedSession = await ViewModel.AddSessionNoteAsync(noteDto);
-            
-            if (updatedSession != null)
-            {
-                AppNotification.ShowSuccess($"✅ Nota aggiunta: {noteDto.Text}");
-            }
-            else
-            {
-                AppNotification.ShowError("❌ Errore aggiunta nota");
-            }
+            Logger.LogError(ex, "Error in AddSessionNoteAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task RemoveLastItemAsync()
     {
-        if (ViewModel.CurrentSession?.Items.Any() != true) return;
-
-        var lastItem = ViewModel.CurrentSession.Items.Last();
-        var result = await ViewModel.RemoveItemAsync(lastItem);
-
-        if (result.Success)
+        try
         {
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"));
+            if (ViewModel.CurrentSession?.Items.Any() != true) return;
+
+            var lastItem = ViewModel.CurrentSession.Items.Last();
+            var result = await ViewModel.RemoveItemAsync(lastItem);
+
+            if (result.Success)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in RemoveLastItemAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task ClearCartAsync()
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
-            yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirmed == true)
+        try
         {
-            var items = ViewModel.CurrentSession?.Items.ToList();
-            if (items != null)
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
+                yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+            if (confirmed == true)
             {
-                foreach (var item in items)
+                var items = ViewModel.CurrentSession?.Items.ToList();
+                if (items != null)
                 {
-                    await ViewModel.RemoveItemAsync(item);
+                    foreach (var item in items)
+                    {
+                        await ViewModel.RemoveItemAsync(item);
+                    }
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"));
                 }
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"));
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ClearCartAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -678,81 +766,105 @@
             return;
         }
 
-        var parameters = new DialogParameters
+        try
         {
-            { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
-            { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
-            { "PaymentMethods", ViewModel.PaymentMethods }
-        };
+            var parameters = new DialogParameters
+            {
+                { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
+                { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
+                { "PaymentMethods", ViewModel.PaymentMethods }
+            };
 
-        var dialog = await DialogService.ShowAsync<PaymentDialog>(
-            TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
-            parameters
-        );
+            var dialog = await DialogService.ShowAsync<PaymentDialog>(
+                TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
+                parameters
+            );
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false } && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
+            if (result is { Canceled: false } && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
+            {
+                // Process all payments from the dialog
+                var successfulPayments = 0;
+                var failedPayments = 0;
+
+                foreach (var pendingPayment in paymentDialogResult.Payments)
+                {
+                    var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
+                    if (paymentResult.Success)
+                    {
+                        successfulPayments++;
+                    }
+                    else
+                    {
+                        failedPayments++;
+                    }
+                }
+
+                // Show summary
+                if (successfulPayments > 0)
+                {
+                    var message = successfulPayments == 1
+                        ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
+                        : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
+                    
+                    AppNotification.ShowSuccess(message);
+                }
+
+                if (failedPayments > 0)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            // Process all payments from the dialog
-            var successfulPayments = 0;
-            var failedPayments = 0;
-
-            foreach (var pendingPayment in paymentDialogResult.Payments)
-            {
-                var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
-                if (paymentResult.Success)
-                {
-                    successfulPayments++;
-                }
-                else
-                {
-                    failedPayments++;
-                }
-            }
-
-            // Show summary
-            if (successfulPayments > 0)
-            {
-                var message = successfulPayments == 1
-                    ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
-                    : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
-                
-                AppNotification.ShowSuccess(message);
-            }
-
-            if (failedPayments > 0)
-            {
-                AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
-            }
+            Logger.LogError(ex, "Errore durante l'aggiunta del pagamento.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task CloseSaleAsync()
     {
-        // Capture session data before closing (needed to build the fiscal receipt)
-        var sessionSnapshot = ViewModel.CurrentSession;
-
-        var result = await ViewModel.CloseSaleAsync();
-        if (!result.Success && result.Error != null)
+        try
         {
-            AppNotification.ShowError(result.Error);
-            return;
+            // Capture session data before closing (needed to build the fiscal receipt)
+            var sessionSnapshot = ViewModel.CurrentSession;
+
+            var result = await ViewModel.CloseSaleAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+                return;
+            }
+
+            // Trigger fiscal printing after successful sale closure
+            if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+            {
+                await TriggerFiscalPrintAsync(sessionSnapshot);
+            }
         }
-
-        // Trigger fiscal printing after successful sale closure
-        if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+        catch (Exception ex)
         {
-            await TriggerFiscalPrintAsync(sessionSnapshot);
+            Logger.LogError(ex, "Errore durante la chiusura della vendita.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
     private async Task ParkSessionAsync()
     {
-        var result = await ViewModel.ParkSessionAsync();
-        if (!result.Success && result.Error != null)
+        try
         {
-            AppNotification.ShowError(result.Error);
+            var result = await ViewModel.ParkSessionAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il parcheggio della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -761,20 +873,28 @@
         if (!ViewModel.HasActiveSession)
             return;
 
-        bool? confirm = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
-            TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
-            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
-            cancelText: TranslationService.GetTranslation("common.no", "No")
-        );
-
-        if (confirm == true)
+        try
         {
-            var result = await ViewModel.CancelSessionAsync();
-            if (!result.Success && result.Error != null)
+            bool? confirm = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
+                TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
+                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                cancelText: TranslationService.GetTranslation("common.no", "No")
+            );
+
+            if (confirm == true)
             {
-                AppNotification.ShowError(result.Error);
+                var result = await ViewModel.CancelSessionAsync();
+                if (!result.Success && result.Error != null)
+                {
+                    AppNotification.ShowError(result.Error);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'annullamento della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
 
@@ -793,8 +913,9 @@
 
             AppNotification.ShowInfo(TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error invoking printReceipt.");
             AppNotification.ShowError(TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"));
         }
     }
@@ -912,15 +1033,23 @@
     
     private async Task LoadOpenSessionsAsync()
     {
-        var allSessions = await SalesService.GetActiveSessionsAsync();
-        if (allSessions != null)
+        try
         {
-            // Filter to only show parent sessions (not child sessions from splits)
-            // Child sessions (with ParentSessionId) are sub-sessions from a split operation
-            // and should not be merged with other sessions to maintain split integrity
-            _openSessions = allSessions
-                .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
-                .ToList();
+            var allSessions = await SalesService.GetActiveSessionsAsync();
+            if (allSessions != null)
+            {
+                // Filter to only show parent sessions (not child sessions from splits)
+                // Child sessions (with ParentSessionId) are sub-sessions from a split operation
+                // and should not be merged with other sessions to maintain split integrity
+                _openSessions = allSessions
+                    .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento delle sessioni aperte.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
     
@@ -928,59 +1057,75 @@
     {
         if (ViewModel.CurrentSession == null) return;
         
-        var parameters = new DialogParameters
+        try
         {
-            { "Session", ViewModel.CurrentSession }
-        };
-        
-        var options = new DialogOptions 
-        { 
-            MaxWidth = MaxWidth.Medium, 
-            FullWidth = true,
-            CloseButton = true
-        };
-        
-        var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
-            TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
-            parameters, 
-            options);
-        var result = await dialog.Result;
-        
-        if (result is { Canceled: false })
+            var parameters = new DialogParameters
+            {
+                { "Session", ViewModel.CurrentSession }
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
+                TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
+                parameters, 
+                options);
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Refresh session
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            // Refresh session
-            await ViewModel.ReloadSessionAsync();
-            await LoadOpenSessionsAsync();
-            await CheckCanSplitAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di divisione conto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
     
     private async Task OpenMergeDialogAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "AvailableSessions", _openSessions }
-        };
-        
-        var options = new DialogOptions 
-        { 
-            MaxWidth = MaxWidth.Medium, 
-            FullWidth = true,
-            CloseButton = true
-        };
-        
-        var dialog = await DialogService.ShowAsync<MergeSessionsDialog>(
-            TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni"), 
-            parameters, 
-            options);
-        var result = await dialog.Result;
-        
-        if (result is { Canceled: false })
+            var parameters = new DialogParameters
+            {
+                { "AvailableSessions", _openSessions }
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            var dialog = await DialogService.ShowAsync<MergeSessionsDialog>(
+                TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni"), 
+                parameters, 
+                options);
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Refresh session
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            // Refresh session
-            await ViewModel.ReloadSessionAsync();
-            await LoadOpenSessionsAsync();
-            await CheckCanSplitAsync();
+            Logger.LogError(ex, "Error in OpenMergeDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1007,57 +1152,73 @@
     // Keyboard shortcuts
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        try
         {
-            // Import the module as ES6 module
-            _shortcutsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pos-shortcuts.js");
-            
-            // Create .NET reference and setup shortcuts
-            _dotNetRef = DotNetObjectReference.Create(this);
-            await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
+            if (firstRender)
+            {
+                // Import the module as ES6 module
+                _shortcutsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pos-shortcuts.js");
+                
+                // Create .NET reference and setup shortcuts
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
 
-            // Connect to fiscal printer hub if a printer is configured
-            await ConnectFiscalHubAsync();
-            // Load fiscal drawer for the current POS/operator selection
-            await LoadFiscalDrawerAsync();
+                // Connect to fiscal printer hub if a printer is configured
+                await ConnectFiscalHubAsync();
+                // Load fiscal drawer for the current POS/operator selection
+                await LoadFiscalDrawerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     [JSInvokable]
     public async Task HandleKeyboardShortcut(string key)
     {
-        if (!ViewModel.HasActiveSession && key != "Escape")
-            return;
-
-        switch (key)
+        try
         {
-            case "F2": // Payment
-                if (ViewModel.CanPay)
-                    await AddPaymentAsync();
-                break;
-                
-            case "F3": // Park
-                if (ViewModel.HasActiveSession)
-                    await ParkSessionAsync();
-                break;
-                
-            case "F4": // Remove last item
-                if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } lastItem)
-                    await RemoveItemAsync(lastItem);
-                break;
-                
-            case "F8": // Focus on barcode scanner (handled in JS)
-                break;
-                
-            case "F12": // Close sale
-                if (ViewModel.CanCloseSale)
-                    await CloseSaleAsync();
-                break;
-                
-            case "Escape": // Cancel session
-                if (ViewModel.HasActiveSession)
-                    await CancelSessionAsync();
-                break;
+            if (!ViewModel.HasActiveSession && key != "Escape")
+                return;
+
+            switch (key)
+            {
+                case "F2": // Payment
+                    if (ViewModel.CanPay)
+                        await AddPaymentAsync();
+                    break;
+                    
+                case "F3": // Park
+                    if (ViewModel.HasActiveSession)
+                        await ParkSessionAsync();
+                    break;
+                    
+                case "F4": // Remove last item
+                    if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } lastItem)
+                        await RemoveItemAsync(lastItem);
+                    break;
+                    
+                case "F8": // Focus on barcode scanner (handled in JS)
+                    break;
+                    
+                case "F12": // Close sale
+                    if (ViewModel.CanCloseSale)
+                        await CloseSaleAsync();
+                    break;
+                    
+                case "Escape": // Cancel session
+                    if (ViewModel.HasActiveSession)
+                        await CancelSessionAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleKeyboardShortcut.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1190,60 +1351,76 @@
 
     private async Task OpenDrawerSessionAsync()
     {
-        if (_fiscalDrawerSummary is null) return;
-        var dto = new OpenFiscalDrawerSessionDto { OpeningBalance = 0 };
-        var result = await FiscalDrawerService.OpenSessionAsync(_fiscalDrawerSummary.Id, dto);
-        if (result is not null)
+        try
         {
-            AppNotification.ShowSuccess("Sessione cassetto aperta.");
-            await LoadFiscalDrawerAsync();
+            if (_fiscalDrawerSummary is null) return;
+            var dto = new OpenFiscalDrawerSessionDto { OpeningBalance = 0 };
+            var result = await FiscalDrawerService.OpenSessionAsync(_fiscalDrawerSummary.Id, dto);
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess("Sessione cassetto aperta.");
+                await LoadFiscalDrawerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDrawerSessionAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType type)
     {
-        if (_fiscalDrawerSummary is null) return;
-        var parameters = new DialogParameters
+        try
         {
-            ["DrawerId"] = _fiscalDrawerSummary.Id,
-            ["TransactionType"] = type,
-            ["CurrencyCode"] = _fiscalDrawerSummary.CurrencyCode
-        };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
-            type == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-            await LoadFiscalDrawerAsync();
+            if (_fiscalDrawerSummary is null) return;
+            var parameters = new DialogParameters
+            {
+                ["DrawerId"] = _fiscalDrawerSummary.Id,
+                ["TransactionType"] = type,
+                ["CurrencyCode"] = _fiscalDrawerSummary.CurrencyCode
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
+                type == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo", parameters, options);
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+                await LoadFiscalDrawerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDrawerTransactionDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     /// <summary>Opens the daily closure dialog for the printer assigned to this POS.</summary>
     private async Task OpenDailyClosureDialogAsync()
     {
-        if (!_fiscalPrinterId.HasValue) return;
-
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId.Value,
-            [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
-        };
+            if (!_fiscalPrinterId.HasValue) return;
 
-        var options = new DialogOptions
+            var parameters = new DialogParameters
+            {
+                [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId.Value,
+                [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+            };
+
+            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+                string.Empty, parameters, EFDialogDefaults.Options);
+
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+            {
+                _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
         {
-            CloseOnEscapeKey = false,
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-            "Chiusura Giornaliera", parameters, options);
-
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
-            StateHasChanged();
+            Logger.LogError(ex, "Error in OpenDailyClosureDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

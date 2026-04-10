@@ -3,10 +3,8 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.ViewModels
-@using EventForge.Client.Services.Store
 @attribute [Authorize]
 @inject PaymentTerminalDetailViewModel ViewModel
-@inject IPaymentTerminalService PaymentTerminalService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject ILogger<PaymentTerminalDetailDialog> Logger
@@ -297,12 +295,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(TerminalId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(TerminalId ?? Guid.Empty);
 
-        // Sync agent ID text field
-        if (ViewModel.Entity?.AgentId.HasValue == true)
-            _agentIdText = ViewModel.Entity.AgentId.Value.ToString();
+            // Sync agent ID text field
+            if (ViewModel.Entity?.AgentId.HasValue == true)
+                _agentIdText = ViewModel.Entity.AgentId.Value.ToString();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PaymentTerminalDetailDialog.");
+        }
     }
 
     private void HandleEntityChanged() => ViewModel.NotifyEntityChanged();
@@ -322,14 +327,12 @@
         StateHasChanged();
         try
         {
-            // For unsaved terminal, test directly; for saved terminal, use the saved config
             if (ViewModel.Entity.Id != Guid.Empty)
             {
-                await PaymentTerminalService.TestConnectionAsync(ViewModel.Entity.Id);
+                await ViewModel.TestConnectionAsync(ViewModel.Entity.Id);
             }
             else
             {
-                // Unsaved: not supported — inform user to save first
                 _testResult = "Salva il terminale prima di testare la connessione.";
                 _testSuccess = false;
                 return;
@@ -346,7 +349,6 @@
         finally
         {
             _isTesting = false;
-            StateHasChanged();
         }
     }
 
@@ -358,18 +360,26 @@
             if (!_form.IsValid) return;
         }
 
-        var isNew = ViewModel.IsNewEntity;
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
+        try
         {
-            AppNotification.ShowSuccess(isNew
-                ? "Terminale POS creato con successo."
-                : "Terminale POS aggiornato con successo.");
-            MudDialog.Close(DialogResult.Ok(true));
+            var isNew = ViewModel.IsNewEntity;
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                AppNotification.ShowSuccess(isNew
+                    ? "Terminale POS creato con successo."
+                    : "Terminale POS aggiornato con successo.");
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                AppNotification.ShowError("Errore nel salvataggio del terminale POS.");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            AppNotification.ShowError("Errore nel salvataggio del terminale POS.");
+            Logger.LogError(ex, "Errore nel salvataggio del terminale POS.");
+            AppNotification.ShowError("Errore imprevisto nel salvataggio del terminale POS.");
         }
     }
 

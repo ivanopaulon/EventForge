@@ -88,53 +88,85 @@ public class ProductService(
 
     public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
-        var result = await httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
-        }
+            logger.LogInformation("Creating product with name: {Name}, code: {Code}", createDto.Name, createDto.Code);
+            var result = await httpClientService.PostAsync<CreateProductDto, ProductDto>(BaseUrl, createDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product created successfully with ID: {ProductId}", result.Id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating product {Name}", createDto.Name);
+            throw;
+        }
     }
 
     public async Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Creating product with codes and units: {Name}", createDto.Name);
-        var result = await httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
-            $"{BaseUrl}/create-with-codes-units",
-            createDto,
-            ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
-        }
+            logger.LogInformation("Creating product with codes and units: {Name}", createDto.Name);
+            var result = await httpClientService.PostAsync<CreateProductWithCodesAndUnitsDto, ProductDetailDto>(
+                $"{BaseUrl}/create-with-codes-units",
+                createDto,
+                ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product with codes and units created successfully with ID: {ProductId}", result.Id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating product with codes and units {Name}", createDto.Name);
+            throw;
+        }
     }
 
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}",
-            id, updateDto.Name, updateDto.IsVatIncluded);
-        var result = await httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product {ProductId} updated successfully", id);
-        }
+            logger.LogInformation("Updating product {ProductId} with name: {Name}, IsVatIncluded: {IsVatIncluded}",
+                id, updateDto.Name, updateDto.IsVatIncluded);
+            var result = await httpClientService.PutAsync<UpdateProductDto, ProductDto>($"{BaseUrl}/{id}", updateDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product {ProductId} updated successfully", id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating product {ProductId}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteProductAsync(Guid id, CancellationToken ct = default)
     {
-        logger.LogInformation("Deleting product {ProductId}", id);
-        await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
-        logger.LogInformation("Product {ProductId} deleted successfully", id);
-        return true;
+        try
+        {
+            logger.LogInformation("Deleting product {ProductId}", id);
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
+            logger.LogInformation("Product {ProductId} deleted successfully", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting product {ProductId}", id);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<UMDto>> GetUnitsOfMeasureAsync(CancellationToken ct = default)
@@ -281,36 +313,60 @@ public class ProductService(
 
     public async Task<ProductSupplierDto?> CreateProductSupplierAsync(CreateProductSupplierDto createDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
-        var result = await httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
-        }
+            logger.LogInformation("Creating product supplier for product {ProductId}", createDto.ProductId);
+            var result = await httpClientService.PostAsync<CreateProductSupplierDto, ProductSupplierDto>("api/v1/product-management/product-suppliers", createDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product supplier created successfully with ID: {ProductSupplierId}", result.Id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating product supplier for product {ProductId}", createDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<ProductSupplierDto?> UpdateProductSupplierAsync(Guid id, UpdateProductSupplierDto updateDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
-        var result = await httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
-        }
+            logger.LogInformation("Updating product supplier {ProductSupplierId}", id);
+            var result = await httpClientService.PutAsync<UpdateProductSupplierDto, ProductSupplierDto>($"api/v1/product-management/product-suppliers/{id}", updateDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product supplier {ProductSupplierId} updated successfully", id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating product supplier {ProductSupplierId}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteProductSupplierAsync(Guid id, CancellationToken ct = default)
     {
-        logger.LogInformation("Deleting product supplier {ProductSupplierId}", id);
-        await httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}", ct);
-        logger.LogInformation("Product supplier {ProductSupplierId} deleted successfully", id);
-        return true;
+        try
+        {
+            logger.LogInformation("Deleting product supplier {ProductSupplierId}", id);
+            await httpClientService.DeleteAsync($"api/v1/product-management/product-suppliers/{id}", ct);
+            logger.LogInformation("Product supplier {ProductSupplierId} deleted successfully", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting product supplier {ProductSupplierId}", id);
+            throw;
+        }
     }
 
     public async Task<bool> RemoveProductSupplierAsync(Guid id, CancellationToken ct = default)
@@ -383,36 +439,60 @@ public class ProductService(
 
     public async Task<ProductCodeDto?> CreateProductCodeAsync(CreateProductCodeDto createDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
-        var result = await httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
-        }
+            logger.LogInformation("Creating product code for product {ProductId}", createDto.ProductId);
+            var result = await httpClientService.PostAsync<CreateProductCodeDto, ProductCodeDto>($"{BaseUrl}/{createDto.ProductId}/codes", createDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product code created successfully with ID: {ProductCodeId}", result.Id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating product code for product {ProductId}", createDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<ProductCodeDto?> UpdateProductCodeAsync(Guid id, UpdateProductCodeDto updateDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Updating product code {ProductCodeId}", id);
-        var result = await httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
-        }
+            logger.LogInformation("Updating product code {ProductCodeId}", id);
+            var result = await httpClientService.PutAsync<UpdateProductCodeDto, ProductCodeDto>($"api/v1/product-management/product-codes/{id}", updateDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product code {ProductCodeId} updated successfully", id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating product code {ProductCodeId}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteProductCodeAsync(Guid id, CancellationToken ct = default)
     {
-        logger.LogInformation("Deleting product code {ProductCodeId}", id);
-        await httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}", ct);
-        logger.LogInformation("Product code {ProductCodeId} deleted successfully", id);
-        return true;
+        try
+        {
+            logger.LogInformation("Deleting product code {ProductCodeId}", id);
+            await httpClientService.DeleteAsync($"api/v1/product-management/product-codes/{id}", ct);
+            logger.LogInformation("Product code {ProductCodeId} deleted successfully", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting product code {ProductCodeId}", id);
+            throw;
+        }
     }
 
     // Product Unit management
@@ -444,36 +524,60 @@ public class ProductService(
 
     public async Task<ProductUnitDto?> CreateProductUnitAsync(CreateProductUnitDto createDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
-        var result = await httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
-        }
+            logger.LogInformation("Creating product unit for product {ProductId}", createDto.ProductId);
+            var result = await httpClientService.PostAsync<CreateProductUnitDto, ProductUnitDto>($"{BaseUrl}/{createDto.ProductId}/units", createDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product unit created successfully with ID: {ProductUnitId}", result.Id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating product unit for product {ProductId}", createDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<ProductUnitDto?> UpdateProductUnitAsync(Guid id, UpdateProductUnitDto updateDto, CancellationToken ct = default)
     {
-        logger.LogInformation("Updating product unit {ProductUnitId}", id);
-        var result = await httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto, ct);
-
-        if (result != null)
+        try
         {
-            logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
-        }
+            logger.LogInformation("Updating product unit {ProductUnitId}", id);
+            var result = await httpClientService.PutAsync<UpdateProductUnitDto, ProductUnitDto>($"api/v1/product-management/products/units/{id}", updateDto, ct);
 
-        return result;
+            if (result != null)
+            {
+                logger.LogInformation("Product unit {ProductUnitId} updated successfully", id);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating product unit {ProductUnitId}", id);
+            throw;
+        }
     }
 
     public async Task<bool> DeleteProductUnitAsync(Guid id, CancellationToken ct = default)
     {
-        logger.LogInformation("Deleting product unit {ProductUnitId}", id);
-        await httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}", ct);
-        logger.LogInformation("Product unit {ProductUnitId} deleted successfully", id);
-        return true;
+        try
+        {
+            logger.LogInformation("Deleting product unit {ProductUnitId}", id);
+            await httpClientService.DeleteAsync($"api/v1/product-management/products/units/{id}", ct);
+            logger.LogInformation("Product unit {ProductUnitId} deleted successfully", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting product unit {ProductUnitId}", id);
+            throw;
+        }
     }
 
     // Product Bundle Item management

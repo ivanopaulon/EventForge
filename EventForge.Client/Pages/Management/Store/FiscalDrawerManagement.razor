@@ -10,6 +10,8 @@
 @inject IFiscalDrawerService FiscalDrawerService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<FiscalDrawerManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("store.fiscalDrawers", "Cassetti Fiscali")</PageTitle>
 <EntityManagementPage TEntity="FiscalDrawerDto"
@@ -238,10 +240,19 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(FiscalDrawerDetailDialog.EntityId)] = id };
-        var dialog = await DialogService.ShowAsync<FiscalDrawerDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        try
+        {
+            var parameters = new DialogParameters { [nameof(FiscalDrawerDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<FiscalDrawerDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening FiscalDrawerDetailDialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

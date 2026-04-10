@@ -7,12 +7,12 @@ namespace EventForge.Client.Services;
 /// </summary>
 public interface IBackupService
 {
-    Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request);
-    Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId);
-    Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50);
-    Task CancelBackupAsync(Guid backupId);
-    Task<string> GetDownloadUrlAsync(Guid backupId);
-    Task DeleteBackupAsync(Guid backupId);
+    Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default);
+    Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default);
+    Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default);
+    Task CancelBackupAsync(Guid backupId, CancellationToken ct = default);
+    Task<string> GetDownloadUrlAsync(Guid backupId, CancellationToken ct = default);
+    Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default);
 }
 
 public class BackupService(
@@ -22,7 +22,7 @@ public class BackupService(
 {
     private const string BaseUrl = "api/v1/backup";
 
-    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request)
+    public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -32,7 +32,7 @@ public class BackupService(
             await loadingDialogService.UpdateOperationAsync("Invio richiesta di backup al server...");
             await loadingDialogService.UpdateProgressAsync(50);
 
-            var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request);
+            var result = await httpClientService.PostAsync<BackupRequestDto, BackupStatusDto>("api/v1/super-admin/backup", request, ct);
 
             await loadingDialogService.UpdateOperationAsync("Backup avviato con successo");
             await loadingDialogService.UpdateProgressAsync(100);
@@ -50,11 +50,12 @@ public class BackupService(
         }
     }
 
-    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId)
+    public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}");
+            return await httpClientService.GetAsync<BackupStatusDto>($"api/v1/super-admin/backup/{backupId}", ct);
+
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
@@ -67,11 +68,12 @@ public class BackupService(
         }
     }
 
-    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50)
+    public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}");
+            var response = await httpClientService.GetAsync<IEnumerable<BackupStatusDto>>($"api/v1/super-admin/backup?limit={limit}", ct);
+
             return response ?? Enumerable.Empty<BackupStatusDto>();
         }
         catch (Exception ex)
@@ -81,11 +83,12 @@ public class BackupService(
         }
     }
 
-    public async Task CancelBackupAsync(Guid backupId)
+    public async Task CancelBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {
-            await httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null);
+            await httpClientService.PostAsync<object?>($"api/v1/super-admin/backup/{backupId}/cancel", null, ct);
+
         }
         catch (Exception ex)
         {
@@ -94,7 +97,7 @@ public class BackupService(
         }
     }
 
-    public Task<string> GetDownloadUrlAsync(Guid backupId)
+    public Task<string> GetDownloadUrlAsync(Guid backupId, CancellationToken ct = default)
     {
         // This method constructs a URL and doesn't make HTTP call, so it doesn't need to be changed
         // However, I should get the base address from the HttpClientService somehow
@@ -102,7 +105,7 @@ public class BackupService(
         return Task.FromResult($"api/v1/super-admin/backup/{backupId}/download");
     }
 
-    public async Task DeleteBackupAsync(Guid backupId)
+    public async Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default)
     {
         try
         {

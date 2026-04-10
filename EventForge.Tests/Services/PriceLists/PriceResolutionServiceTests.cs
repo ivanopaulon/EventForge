@@ -33,7 +33,7 @@ public class PriceResolutionServiceTests : IDisposable
             .Options;
 
         _context = new EventForgeDbContext(options);
-        _service = new PriceResolutionService(_context);
+        _service = new PriceResolutionService(_context, Microsoft.Extensions.Logging.Abstractions.NullLogger<PriceResolutionService>.Instance);
 
         SeedTestData();
     }

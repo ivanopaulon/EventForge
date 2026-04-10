@@ -3,6 +3,7 @@
 @using EventForge.DTOs.FiscalPrinting
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.FiscalPrinting
+@using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -65,12 +66,12 @@
             <MudStack Row="true" Spacing="2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Search"
-                           OnClick="ApplyFiltersAsync">
+                           OnClick="ApplyFilters">
                     Cerca
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.Clear"
-                           OnClick="ClearFiltersAsync">
+                           OnClick="ClearFilters">
                     Pulisci
                 </MudButton>
                 <MudSpacer />
@@ -176,7 +177,7 @@
                 $"api/v1/stations/printers/{PrinterId}");
             _printerName = printer?.Name;
         }
-        catch { /* non-fatal */ }
+        catch (Exception ex) { Logger.LogWarning(ex, "Could not load printer name for {PrinterId}.", PrinterId); }
 
         _breadcrumbs =
         [
@@ -292,19 +293,17 @@
         _closuresFiltered = query.ToList();
     }
 
-    private async Task ApplyFiltersAsync()
+    private void ApplyFilters()
     {
         ApplyLocalFilters();
-        await Task.CompletedTask;
     }
 
-    private async Task ClearFiltersAsync()
+    private void ClearFilters()
     {
         _filterFromDate = null;
         _filterToDate = null;
         _filterZReport = string.Empty;
         ApplyLocalFilters();
-        await Task.CompletedTask;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -313,28 +312,28 @@
 
     private async Task OpenDailyClosureDialogAsync()
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
-            [nameof(DailyClosureDialog.PrinterName)] = _printerName
-        };
+            var parameters = new DialogParameters
+            {
+                [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
+                [nameof(DailyClosureDialog.PrinterName)] = _printerName
+            };
 
-        var options = new DialogOptions
+            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+                string.Empty, parameters, EFDialogDefaults.Options);
+
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+            {
+                // Refresh history after successful closure
+                await LoadHistoryAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            CloseOnEscapeKey = false,
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-            "Chiusura Giornaliera", parameters, options);
-
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            // Refresh history after successful closure
-            await LoadHistoryAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di chiusura giornaliera.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -355,17 +354,26 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "DownloadPdfAsync failed for closure {ClosureId}.", closureId);
             AppNotification.ShowError($"Errore download PDF: {ex.Message}");
         }
     }
 
     private async Task ReprintAsync(Guid closureId, int zNumber)
     {
-        var result = await FiscalPrintingService.ReprintZReportAsync(closureId);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess($"Z-Report #{zNumber} ristampato.");
-        else
-            AppNotification.ShowError($"Ristampa fallita: {result?.ErrorMessage ?? "errore"}");
+        try
+        {
+            var result = await FiscalPrintingService.ReprintZReportAsync(closureId);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess($"Z-Report #{zNumber} ristampato.");
+            else
+                AppNotification.ShowError($"Ristampa fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ristampa del Z-Report #{ZNumber} per la chiusura {ClosureId}.", zNumber, closureId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task ExportCsvAsync()

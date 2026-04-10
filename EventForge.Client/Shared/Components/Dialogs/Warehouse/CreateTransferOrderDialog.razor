@@ -249,8 +249,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadWarehouses();
-        _model.OrderDate = DateTime.UtcNow;
+        try
+        {
+            await LoadWarehouses();
+            _model.OrderDate = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnInitializedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task LoadWarehouses()
@@ -269,29 +277,45 @@
 
     private async Task OnSourceWarehouseChanged(Guid? warehouseId)
     {
-        _sourceWarehouseId = warehouseId;
-        _sourceLocations.Clear();
-        _newRow = new TransferRowModel();
-        
-        if (warehouseId.HasValue)
+        try
         {
-            await LoadSourceLocations(warehouseId.Value);
+            _sourceWarehouseId = warehouseId;
+            _sourceLocations.Clear();
+            _newRow = new TransferRowModel();
+
+            if (warehouseId.HasValue)
+            {
+                await LoadSourceLocations(warehouseId.Value);
+            }
+
+            StateHasChanged();
         }
-        
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnSourceWarehouseChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnDestinationWarehouseChanged(Guid? warehouseId)
     {
-        _destinationWarehouseId = warehouseId;
-        _destinationLocations.Clear();
-        
-        if (warehouseId.HasValue)
+        try
         {
-            await LoadDestinationLocations(warehouseId.Value);
+            _destinationWarehouseId = warehouseId;
+            _destinationLocations.Clear();
+
+            if (warehouseId.HasValue)
+            {
+                await LoadDestinationLocations(warehouseId.Value);
+            }
+
+            StateHasChanged();
         }
-        
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnDestinationWarehouseChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task LoadSourceLocations(Guid warehouseId)
@@ -322,28 +346,44 @@
 
     private async Task OnProductSelected(ProductDto? product)
     {
-        _newRow.Product = product;
-        _lots.Clear();
-        
-        if (product != null)
+        try
         {
-            await LoadLotsForProduct(product.Id);
-            await LoadStockForProduct(product.Id);
+            _newRow.Product = product;
+            _lots.Clear();
+
+            if (product != null)
+            {
+                await LoadLotsForProduct(product.Id);
+                await LoadStockForProduct(product.Id);
+            }
+
+            StateHasChanged();
         }
-        
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnProductSelected));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnSourceLocationChanged(Guid locationId)
     {
-        _newRow.SourceLocationId = locationId;
-        
-        if (_newRow.Product != null && locationId != Guid.Empty)
+        try
         {
-            await LoadStockForProduct(_newRow.Product.Id);
+            _newRow.SourceLocationId = locationId;
+
+            if (_newRow.Product != null && locationId != Guid.Empty)
+            {
+                await LoadStockForProduct(_newRow.Product.Id);
+            }
+
+            StateHasChanged();
         }
-        
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnSourceLocationChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task LoadLotsForProduct(Guid productId)

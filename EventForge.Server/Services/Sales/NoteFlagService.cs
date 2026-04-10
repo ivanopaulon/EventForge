@@ -63,6 +63,7 @@ public class NoteFlagService(
             }
 
             var noteFlags = await context.NoteFlags
+                .AsNoTracking()
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted)
                 .OrderBy(nf => nf.DisplayOrder)
                 .ThenBy(nf => nf.Name)
@@ -88,6 +89,7 @@ public class NoteFlagService(
             }
 
             var noteFlags = await context.NoteFlags
+                .AsNoTracking()
                 .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted && nf.IsActive)
                 .OrderBy(nf => nf.DisplayOrder)
                 .ThenBy(nf => nf.Name)
@@ -113,6 +115,7 @@ public class NoteFlagService(
             }
 
             var noteFlag = await context.NoteFlags
+                .AsNoTracking()
                 .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
 
             return noteFlag is null ? null : MapToDto(noteFlag);

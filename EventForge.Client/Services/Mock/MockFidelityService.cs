@@ -116,18 +116,18 @@ public class MockFidelityService : IMockFidelityService
         return string.Join("-", parts);
     }
 
-    public Task<IEnumerable<FidelityCardViewModel>> GetAllCardsAsync()
+    public Task<IEnumerable<FidelityCardViewModel>> GetAllCardsAsync(CancellationToken ct = default)
     {
         return Task.FromResult(_cards.AsEnumerable());
     }
 
-    public Task<FidelityCardViewModel?> GetCardByIdAsync(Guid id)
+    public Task<FidelityCardViewModel?> GetCardByIdAsync(Guid id, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == id);
         return Task.FromResult(card);
     }
 
-    public Task<FidelityCardViewModel> CreateCardAsync(FidelityCardViewModel card)
+    public Task<FidelityCardViewModel> CreateCardAsync(FidelityCardViewModel card, CancellationToken ct = default)
     {
         card.Id = Guid.NewGuid();
         card.CardNumber = GenerateCardNumber();
@@ -152,7 +152,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.FromResult(card);
     }
 
-    public Task<FidelityCardViewModel> UpdateCardAsync(FidelityCardViewModel card)
+    public Task<FidelityCardViewModel> UpdateCardAsync(FidelityCardViewModel card, CancellationToken ct = default)
     {
         var index = _cards.FindIndex(c => c.Id == card.Id);
         if (index >= 0)
@@ -162,7 +162,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.FromResult(card);
     }
 
-    public Task RevokeCardAsync(Guid cardId)
+    public Task RevokeCardAsync(Guid cardId, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card != null)
@@ -172,7 +172,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.CompletedTask;
     }
 
-    public Task SuspendCardAsync(Guid cardId)
+    public Task SuspendCardAsync(Guid cardId, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card != null)
@@ -182,7 +182,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.CompletedTask;
     }
 
-    public Task ActivateCardAsync(Guid cardId)
+    public Task ActivateCardAsync(Guid cardId, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card != null)
@@ -192,7 +192,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.CompletedTask;
     }
 
-    public Task AddPointsAsync(Guid cardId, int points, string description)
+    public Task AddPointsAsync(Guid cardId, int points, string description, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card != null)
@@ -214,7 +214,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.CompletedTask;
     }
 
-    public Task RedeemPointsAsync(Guid cardId, int points, string description)
+    public Task RedeemPointsAsync(Guid cardId, int points, string description, CancellationToken ct = default)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card != null && card.CurrentPoints >= points)
@@ -236,7 +236,7 @@ public class MockFidelityService : IMockFidelityService
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<FidelityPointsTransactionViewModel>> GetTransactionHistoryAsync(Guid cardId)
+    public Task<IEnumerable<FidelityPointsTransactionViewModel>> GetTransactionHistoryAsync(Guid cardId, CancellationToken ct = default)
     {
         var transactions = _transactions
             .Where(t => t.FidelityCardId == cardId)

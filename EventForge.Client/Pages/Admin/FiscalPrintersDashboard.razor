@@ -5,6 +5,7 @@
 @using EventForge.DTOs.Common
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.FiscalPrinting
+@using EventForge.Client.Shared.Components.Dialogs
 @using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
@@ -147,7 +148,7 @@
             <MudTd>
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
                     <MudMenuItem Icon="@Icons.Material.Filled.Info"
-                                 OnClick="@(() => ShowDetailAsync(context.Printer.Id))">
+                                 OnClick="@(() => ShowDetail(context.Printer.Id))">
                         Dettagli
                     </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.EventNote"
@@ -217,7 +218,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshAsync();
+        try
+        {
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing FiscalPrintersDashboard.");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -231,11 +239,18 @@
         _refreshTimer = new System.Threading.Timer(
             async _ =>
             {
-                await InvokeAsync(async () =>
+                try
                 {
-                    await RefreshAsync();
-                    StateHasChanged();
-                });
+                    await InvokeAsync(async () =>
+                    {
+                        await RefreshAsync();
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Auto-refresh timer failed.");
+                }
             },
             null,
             TimeSpan.FromSeconds(10),
@@ -258,14 +273,22 @@
                 .Where(p => p.IsFiscalPrinter)
                 .ToList() ?? new();
 
-            var newRows = new List<FiscalPrinterRow>();
-            foreach (var printer in printers)
+            // Fetch all statuses in parallel; individual failures return null (non-fatal)
+            var statusTasks = printers.Select(async p =>
             {
-                var status = await FiscalPrintingService.GetStatusAsync(printer.Id);
-                newRows.Add(new FiscalPrinterRow { Printer = printer, Status = status });
+                try { return await FiscalPrintingService.GetStatusAsync(p.Id); }
+                catch (Exception ex) { Logger.LogWarning(ex, "Failed to fetch status for printer {PrinterId}.", p.Id); return null; }
+            }).ToList();
+            var statuses = await Task.WhenAll(statusTasks);
 
-                // Subscribe newly loaded printers to SignalR
-                if (_hubConnection?.State == HubConnectionState.Connected)
+            var newRows = printers
+                .Zip(statuses, (p, s) => new FiscalPrinterRow { Printer = p, Status = s })
+                .ToList();
+
+            // Subscribe newly loaded printers to SignalR
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                foreach (var printer in printers)
                 {
                     try { await _hubConnection.SendAsync("SubscribeToPrinter", printer.Id); }
                     catch { /* non-fatal */ }
@@ -336,7 +359,7 @@
     //  Actions
     // ──────────────────────────────────────────────────────────
 
-    private async Task ShowDetailAsync(Guid printerId)
+    private void ShowDetail(Guid printerId)
     {
         var printer = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Printer;
         AppNotification.ShowInfo($"Stampante: {printer?.Name ?? printerId.ToString()}");
@@ -350,16 +373,8 @@
             [nameof(DailyClosureDialog.PrinterName)] = printerName
         };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = false,
-            CloseButton = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
         var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-            "Chiusura Giornaliera", parameters, options);
+            string.Empty, parameters, EFDialogDefaults.Options);
 
         var result = await dialog.Result;
         if (result?.Canceled == false)
@@ -368,26 +383,42 @@
 
     private async Task PrintTestAsync(Guid printerId)
     {
-        var testReceipt = new FiscalReceiptData
+        try
         {
-            Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
-            Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
-        };
+            var testReceipt = new FiscalReceiptData
+            {
+                Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
+                Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
+            };
 
-        var result = await FiscalPrintingService.PrintReceiptAsync(printerId, testReceipt);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess("Scontrino di test stampato.");
-        else
-            AppNotification.ShowError($"Stampa test fallita: {result?.ErrorMessage ?? "errore"}");
+            var result = await FiscalPrintingService.PrintReceiptAsync(printerId, testReceipt);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Scontrino di test stampato.");
+            else
+                AppNotification.ShowError($"Stampa test fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la stampa del test per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task OpenDrawerAsync(Guid printerId)
     {
-        var result = await FiscalPrintingService.OpenDrawerAsync(printerId);
-        if (result?.Success == true)
-            AppNotification.ShowSuccess("Cassetto aperto.");
-        else
-            AppNotification.ShowError($"Apertura cassetto fallita: {result?.ErrorMessage ?? "errore"}");
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(printerId);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowError($"Apertura cassetto fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del cassetto per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     // ──────────────────────────────────────────────────────────

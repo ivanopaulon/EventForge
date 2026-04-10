@@ -1,4 +1,6 @@
 @using EventForge.Client.Models.Fidelity
+@inject ILogger<CreateFidelityCardDialog> Logger
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.CardMembership"
           Title="Nuova Card Fedeltà"
@@ -163,6 +165,11 @@
             };
             
             MudDialog.Close(DialogResult.Ok(newCard));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la creazione della card fedeltà");
+            AppNotification.ShowError("Errore durante la creazione della card.");
         }
         finally
         {

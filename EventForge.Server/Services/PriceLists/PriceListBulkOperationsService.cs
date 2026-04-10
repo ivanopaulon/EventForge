@@ -25,6 +25,7 @@ public class PriceListBulkOperationsService(
         {
             // Verify price list exists
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .FirstOrDefaultAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (priceList is null)
@@ -52,6 +53,7 @@ public class PriceListBulkOperationsService(
                 {
                     // Validate product exists
                     var productExists = await context.Products
+                        .AsNoTracking()
                         .AnyAsync(p => p.Id == entryDto.ProductId && !p.IsDeleted, cancellationToken);
 
                     if (!productExists)
@@ -188,6 +190,7 @@ public class PriceListBulkOperationsService(
         {
             // Get price list entries with related product information
             var query = context.PriceListEntries
+                .AsNoTracking()
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .Include(ple => ple.Product!)
                 .ThenInclude(p => p.CategoryNode)
@@ -261,6 +264,7 @@ public class PriceListBulkOperationsService(
         {
             // Get all price lists for the event
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .ToListAsync(cancellationToken);
 
@@ -452,6 +456,7 @@ public class PriceListBulkOperationsService(
         {
             // Verifica esistenza listino
             var priceListExists = await context.PriceLists
+                .AsNoTracking()
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
@@ -461,6 +466,7 @@ public class PriceListBulkOperationsService(
 
             // Query base per gli items del listino
             IQueryable<PriceListEntry> query = context.PriceListEntries
+                .AsNoTracking()
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .Include(ple => ple.Product);
 
@@ -537,6 +543,7 @@ public class PriceListBulkOperationsService(
         {
             // Verifica esistenza listino
             var priceListExists = await context.PriceLists
+                .AsNoTracking()
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
@@ -724,6 +731,7 @@ public class PriceListBulkOperationsService(
 
         // 2. Carica listino con entries per ottenere TenantId
         var priceList = await context.PriceLists
+            .AsNoTracking()
             .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
             .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId && !pl.IsDeleted, cancellationToken);
 

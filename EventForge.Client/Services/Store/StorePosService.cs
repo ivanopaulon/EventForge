@@ -14,7 +14,7 @@ public class StorePosService(
 {
     private const string ApiBase = "api/v1/storeusers/pos";
 
-    public async Task<List<StorePosDto>> GetAllAsync()
+    public async Task<List<StorePosDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -22,7 +22,7 @@ public class StorePosService(
             try
             {
                 var activeEndpoint = ApiBase.Replace("/pos", "") + "/active";
-                var activeResponse = await httpClient.GetAsync(activeEndpoint);
+                var activeResponse = await httpClient.GetAsync(activeEndpoint, ct);
                 if (activeResponse.IsSuccessStatusCode)
                 {
                     var activePosResult = await activeResponse.Content.ReadFromJsonAsync<List<StorePosDto>>();
@@ -36,7 +36,7 @@ public class StorePosService(
             }
 
             // Fallback to paginated endpoint with reduced pageSize
-            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100");
+            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -59,11 +59,11 @@ public class StorePosService(
         }
     }
 
-    public async Task<List<StorePosDto>> GetActiveAsync()
+    public async Task<List<StorePosDto>> GetActiveAsync(CancellationToken ct = default)
     {
         try
         {
-            var allPos = await GetAllAsync();
+            var allPos = await GetAllAsync(ct);
             return allPos.Where(p => p.Status == CashRegisterStatus.Active).ToList();
         }
         catch (Exception ex)
@@ -73,11 +73,11 @@ public class StorePosService(
         }
     }
 
-    public async Task<StorePosDto?> GetByIdAsync(Guid id)
+    public async Task<StorePosDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StorePosDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<StorePosDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -85,18 +85,16 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting store POS {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting store POS {Id}", id);
             throw;
         }
     }
 
-    public async Task<StorePosDto?> CreateAsync(CreateStorePosDto createDto)
+    public async Task<StorePosDto?> CreateAsync(CreateStorePosDto createDto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -113,18 +111,16 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error creating store POS: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error creating store POS");
             throw new InvalidOperationException("Errore nella creazione del punto cassa. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<StorePosDto?> UpdateAsync(Guid id, UpdateStorePosDto updateDto)
+    public async Task<StorePosDto?> UpdateAsync(Guid id, UpdateStorePosDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -141,18 +137,16 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error updating store POS {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error updating store POS {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento del punto cassa. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -169,18 +163,16 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error deleting store POS {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error deleting store POS {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del punto cassa.", ex);
         }
     }
 
-    public async Task<PagedResult<StorePosDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<StorePosDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -199,8 +191,6 @@ public class StorePosService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StorePosService] Error getting paged store POS terminals (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StorePosService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting paged store POS terminals (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento dei punti cassa.", ex);
         }

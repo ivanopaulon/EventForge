@@ -44,12 +44,12 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         };
     }
 
-    protected override async Task<VatRateDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<VatRateDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _financialService.GetVatRateAsync(entityId);
+        return await _financialService.GetVatRateAsync(entityId, ct);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -60,7 +60,7 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         try
         {
             // Load VAT natures for dropdown
-            var vatNaturesResult = await _financialService.GetVatNaturesAsync(1, 100);
+            var vatNaturesResult = await _financialService.GetVatNaturesAsync(1, 100, ct);
             VatNatures = vatNaturesResult?.Items ?? new List<VatNatureDto>();
 
             Logger.LogInformation("Loaded {Count} VAT natures for VAT rate {Id}",
@@ -101,14 +101,14 @@ public class VatRateDetailViewModel : BaseEntityDetailViewModel<VatRateDto, Crea
         };
     }
 
-    protected override async Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto)
+    protected override async Task<VatRateDto?> CreateEntityAsync(CreateVatRateDto createDto, CancellationToken ct = default)
     {
-        return await _financialService.CreateVatRateAsync(createDto);
+        return await _financialService.CreateVatRateAsync(createDto, ct);
     }
 
-    protected override async Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto)
+    protected override async Task<VatRateDto?> UpdateEntityAsync(Guid entityId, UpdateVatRateDto updateDto, CancellationToken ct = default)
     {
-        return await _financialService.UpdateVatRateAsync(entityId, updateDto);
+        return await _financialService.UpdateVatRateAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(VatRateDto entity)

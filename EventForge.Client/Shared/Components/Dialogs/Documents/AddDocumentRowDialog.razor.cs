@@ -200,6 +200,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 await LoadRowForEdit(RowId.Value);
             }
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing AddDocumentRowDialog.");
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorInitializing", "Errore durante l'inizializzazione del dialogo."));
+        }
         finally
         {
             _state.Processing.IsLoadingData = false;
@@ -237,36 +242,44 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
             product?.Id, product?.Name ?? "NULL");
 
-        // Update local variable to match the parameter
-        _selectedProduct = product;
-
-        if (_selectedProduct != null)
+        try
         {
-            // Sync to state for other components that need it
-            _state.SelectedProduct = _selectedProduct;
-            _state.PreviousSelectedProduct = _selectedProduct;
+            // Update local variable to match the parameter
+            _selectedProduct = product;
 
-            Logger.LogInformation("Populating fields for product {ProductId}", _selectedProduct.Id);
+            if (_selectedProduct != null)
+            {
+                // Sync to state for other components that need it
+                _state.SelectedProduct = _selectedProduct;
+                _state.PreviousSelectedProduct = _selectedProduct;
 
-            // Populate all related fields from the selected product
-            await PopulateFromProductAsync(_selectedProduct);
+                Logger.LogInformation("Populating fields for product {ProductId}", _selectedProduct.Id);
 
-            // ✅ Force UI update after population
-            await InvokeAsync(StateHasChanged);
+                // Populate all related fields from the selected product
+                await PopulateFromProductAsync(_selectedProduct);
 
-            Logger.LogInformation("Product fields populated. UnitOfMeasureId: {UnitId}, VatRateId: {VatId}",
-                _state.SelectedUnitOfMeasureId, _state.SelectedVatRateId);
+                // ✅ Force UI update after population
+                await InvokeAsync(StateHasChanged);
+
+                Logger.LogInformation("Product fields populated. UnitOfMeasureId: {UnitId}, VatRateId: {VatId}",
+                    _state.SelectedUnitOfMeasureId, _state.SelectedVatRateId);
+            }
+            else
+            {
+                Logger.LogInformation("Product cleared");
+
+                // Product was cleared
+                _state.SelectedProduct = null;
+                _state.PreviousSelectedProduct = null;
+                ClearProductFields();
+
+                await InvokeAsync(StateHasChanged);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            Logger.LogInformation("Product cleared");
-
-            // Product was cleared
-            _state.SelectedProduct = null;
-            _state.PreviousSelectedProduct = null;
-            ClearProductFields();
-
-            await InvokeAsync(StateHasChanged);
+            Logger.LogError(ex, "Error in OnProductSelectedAsync for product {ProductId}.", product?.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorSelectingProduct", "Errore durante la selezione del prodotto."));
         }
     }
 
@@ -283,19 +296,26 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         if (firstRender)
         {
-            // Register keyboard shortcuts - PR #2c-Part1 Commit 2
-            _dotNetRef = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.register", _dotNetRef);
-
-            // Focus barcode field in create mode
-            if (!_isEditMode)
+            try
             {
-                // Try new component reference first
-                if (_barcodeScannerRef != null)
+                // Register keyboard shortcuts - PR #2c-Part1 Commit 2
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.register", _dotNetRef);
+
+                // Focus barcode field in create mode
+                if (!_isEditMode)
                 {
-                    await _barcodeScannerRef.FocusAsync();
+                    // Try new component reference first
+                    if (_barcodeScannerRef != null)
+                    {
+                        await _barcodeScannerRef.FocusAsync();
+                    }
+                    // Fallback removed - _barcodeScannerRef is the primary reference
                 }
-                // Fallback removed - _barcodeScannerRef is the primary reference
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error during first render initialization in AddDocumentRowDialog.");
             }
         }
     }
@@ -365,7 +385,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         public bool DiscountsPanelExpanded { get; set; }
         public bool NotesPanelExpanded { get; set; }
     }
-
 
     #endregion
 
@@ -649,6 +668,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             await Task.Delay(PriceFieldAnimationDurationMs);
             await InvokeAsync(StateHasChanged);
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying recent price {Price} in AddDocumentRowDialog.", price);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorApplyingPrice", "Errore durante l'applicazione del prezzo."));
+        }
         finally
         {
             await InvokeAsync(StateHasChanged);
@@ -737,28 +761,35 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OnDialogKeyDown(KeyboardEventArgs e)
     {
-        // Ctrl+E: Edit Product
-        if (e.CtrlKey && e.Key == "e")
+        try
         {
-            await OpenEditProductDialog();
-            return;
-        }
-
-        // Ctrl+S: Save (alternative to Enter)
-        if (e.CtrlKey && e.Key == "s")
-        {
-            if (IsValid() && !_state.Processing.IsSaving)
+            // Ctrl+E: Edit Product
+            if (e.CtrlKey && e.Key == "e")
             {
-                await SaveAndContinue();
+                await OpenEditProductDialog();
+                return;
             }
-            return;
-        }
 
-        // Escape: Close dialog
-        if (e.Key == "Escape")
+            // Ctrl+S: Save (alternative to Enter)
+            if (e.CtrlKey && e.Key == "s")
+            {
+                if (IsValid() && !_state.Processing.IsSaving)
+                {
+                    await SaveAndContinue();
+                }
+                return;
+            }
+
+            // Escape: Close dialog
+            if (e.Key == "Escape")
+            {
+                Cancel();
+                return;
+            }
+        }
+        catch (Exception ex)
         {
-            Cancel();
-            return;
+            Logger.LogError(ex, "Error handling keyboard shortcut '{Key}' in AddDocumentRowDialog.", e.Key);
         }
     }
 
@@ -1916,13 +1947,20 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task FocusBarcodeField()
     {
-        // Try new component reference first
-        if (_barcodeScannerRef != null)
+        try
         {
-            await Task.Delay(Delays.RenderDelayMs);
-            await _barcodeScannerRef.FocusAsync();
+            // Try new component reference first
+            if (_barcodeScannerRef != null)
+            {
+                await Task.Delay(Delays.RenderDelayMs);
+                await _barcodeScannerRef.FocusAsync();
+            }
+            // Fallback removed - _barcodeScannerRef is the primary reference
         }
-        // Fallback removed - _barcodeScannerRef is the primary reference
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Could not focus barcode field.");
+        }
     }
 
     /// <summary>
@@ -1985,67 +2023,75 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         Logger.LogInformation("Opening edit dialog for product {ProductId} - {ProductName}",
             productToEdit.Id, productToEdit.Name);
 
-        var parameters = new DialogParameters
+        try
         {
-            { "IsEditMode", true },
-            { "ProductId", productToEdit.Id },
-            { "ExistingProduct", productToEdit }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true,
-            CloseOnEscapeKey = true
-        };
-
-        var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
-            TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
-        {
-            Logger.LogInformation("Product updated: {ProductId} - {ProductName}",
-                updatedProduct.Id, updatedProduct.Name);
-
-            // ✅ Update both variables
-            _selectedProduct = updatedProduct;
-            _state.SelectedProduct = updatedProduct;
-
-            _state.Model.Description = updatedProduct.Description;
-            _state.Model.ProductCode = updatedProduct.Code;
-            _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
-
-            if (updatedProduct.VatRateId.HasValue)
+            var parameters = new DialogParameters
             {
-                _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
-                var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
-                if (vatRate != null)
+                { "IsEditMode", true },
+                { "ProductId", productToEdit.Id },
+                { "ExistingProduct", productToEdit }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
+                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
+            {
+                Logger.LogInformation("Product updated: {ProductId} - {ProductName}",
+                    updatedProduct.Id, updatedProduct.Name);
+
+                // ✅ Update both variables
+                _selectedProduct = updatedProduct;
+                _state.SelectedProduct = updatedProduct;
+
+                _state.Model.Description = updatedProduct.Description;
+                _state.Model.ProductCode = updatedProduct.Code;
+                _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
+
+                if (updatedProduct.VatRateId.HasValue)
                 {
-                    _state.Model.VatRate = vatRate.Percentage;
-                    _state.Model.VatDescription = vatRate.Name;
+                    _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+                    var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+                    if (vatRate != null)
+                    {
+                        _state.Model.VatRate = vatRate.Percentage;
+                        _state.Model.VatDescription = vatRate.Name;
+                    }
                 }
-            }
 
-            if (updatedProduct.UnitOfMeasureId.HasValue)
+                if (updatedProduct.UnitOfMeasureId.HasValue)
+                {
+                    _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+                }
+
+                // Invalidate cached calculation result
+                InvalidateCalculationCache();
+
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
+
+                await InvokeAsync(StateHasChanged);
+            }
+            else
             {
-                _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+                Logger.LogInformation("Product edit dialog canceled");
             }
-
-            // Invalidate cached calculation result
-            InvalidateCalculationCache();
-
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
-
-            await InvokeAsync(StateHasChanged);
         }
-        else
+        catch (Exception ex)
         {
-            Logger.LogInformation("Product edit dialog canceled");
+            Logger.LogError(ex, "Error in OpenEditProductDialog for product {ProductId}.", productToEdit.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.editError", "Errore durante la modifica del prodotto."));
         }
     }
 
@@ -2142,36 +2188,44 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task HandleProductUpdated(ProductDto updatedProduct)
     {
-        // Update our local reference with the updated product
-        _selectedProduct = updatedProduct;
-        _state.SelectedProduct = updatedProduct;
-
-        // Update the description and code fields
-        _state.Model.Description = updatedProduct.Name;
-        _state.Model.ProductCode = updatedProduct.Code;
-
-        // Update VAT if changed
-        if (updatedProduct.VatRateId.HasValue)
+        try
         {
-            _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
-            var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
-            if (vatRate != null)
+            // Update our local reference with the updated product
+            _selectedProduct = updatedProduct;
+            _state.SelectedProduct = updatedProduct;
+
+            // Update the description and code fields
+            _state.Model.Description = updatedProduct.Name;
+            _state.Model.ProductCode = updatedProduct.Code;
+
+            // Update VAT if changed
+            if (updatedProduct.VatRateId.HasValue)
             {
-                _state.Model.VatRate = vatRate.Percentage;
-                _state.Model.VatDescription = vatRate.Name;
+                _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
+                var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
+                if (vatRate != null)
+                {
+                    _state.Model.VatRate = vatRate.Percentage;
+                    _state.Model.VatDescription = vatRate.Name;
+                }
             }
-        }
 
-        // Update Unit of Measure if changed
-        if (updatedProduct.UnitOfMeasureId.HasValue)
+            // Update Unit of Measure if changed
+            if (updatedProduct.UnitOfMeasureId.HasValue)
+            {
+                _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+            }
+
+            // Invalidate cached calculation result
+            InvalidateCalculationCache();
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
         {
-            _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
+            Logger.LogError(ex, "Error in HandleProductUpdated for product {ProductId}.", updatedProduct.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("products.updateApplyError", "Errore durante l'applicazione dell'aggiornamento del prodotto."));
         }
-
-        // Invalidate cached calculation result
-        InvalidateCalculationCache();
-
-        await InvokeAsync(StateHasChanged);
     }
 
     #endregion
@@ -2184,51 +2238,58 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [JSInvokable]
     public async Task HandleKeyboardShortcut(string shortcut)
     {
-        switch (shortcut)
+        try
         {
-            case "ctrl+s":
-                await HandleSave();
-                break;
+            switch (shortcut)
+            {
+                case "ctrl+s":
+                    await HandleSave();
+                    break;
 
-            case "ctrl+enter":
-                await HandleSaveAndContinue();
-                break;
+                case "ctrl+enter":
+                    await HandleSaveAndContinue();
+                    break;
 
-            case "ctrl+e":
-                if (_state.SelectedProduct != null)
-                {
-                    await OpenEditProductDialog();
-                }
-                else
-                {
-                    AppNotification.ShowWarning("Seleziona prima un prodotto");
-                }
-                break;
+                case "ctrl+e":
+                    if (_state.SelectedProduct != null)
+                    {
+                        await OpenEditProductDialog();
+                    }
+                    else
+                    {
+                        AppNotification.ShowWarning("Seleziona prima un prodotto");
+                    }
+                    break;
 
-            case "?":
-                _showKeyboardHelp = !_showKeyboardHelp;
-                await InvokeAsync(StateHasChanged);
-                break;
+                case "?":
+                    _showKeyboardHelp = !_showKeyboardHelp;
+                    await InvokeAsync(StateHasChanged);
+                    break;
 
-            case "f2":
-                await FocusBarcodeField();
-                break;
+                case "f2":
+                    await FocusBarcodeField();
+                    break;
 
-            case "f3":
-                await FocusProductSearch();
-                break;
+                case "f3":
+                    await FocusProductSearch();
+                    break;
 
-            case "+":
-                IncrementQuantity();
-                break;
+                case "+":
+                    IncrementQuantity();
+                    break;
 
-            case "-":
-                DecrementQuantity();
-                break;
+                case "-":
+                    DecrementQuantity();
+                    break;
 
-            case "*":
-                await FocusQuantityField();
-                break;
+                case "*":
+                    await FocusQuantityField();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling keyboard shortcut '{Shortcut}'.", shortcut);
         }
     }
 

@@ -168,7 +168,7 @@ public class PaymentTerminalController(
         }
     }
 
-    [HttpGet("{id:guid}/test-connection")]
+    [HttpPost("{id:guid}/test-connection")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> TestConnection(Guid id, CancellationToken ct = default)
@@ -186,7 +186,7 @@ public class PaymentTerminalController(
         }
     }
 
-    [HttpGet("test-tcp")]
+    [HttpPost("test-tcp")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -194,9 +194,9 @@ public class PaymentTerminalController(
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
         if (string.IsNullOrWhiteSpace(host))
-            return CreateValidationProblemDetails();
+            return CreateValidationProblemDetails("Il parametro 'host' è obbligatorio.");
         if (port is < 1 or > 65535)
-            return CreateValidationProblemDetails();
+            return CreateValidationProblemDetails("La porta deve essere compresa tra 1 e 65535.");
         try
         {
             await paymentTerminalService.TestTcpConnectionAsync(host, port, timeoutMs, ct);
@@ -209,7 +209,7 @@ public class PaymentTerminalController(
         }
     }
 
-    [HttpGet("test-tcp-via-agent")]
+    [HttpPost("test-tcp-via-agent")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -218,9 +218,9 @@ public class PaymentTerminalController(
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } err) return err;
         if (string.IsNullOrWhiteSpace(host))
-            return CreateValidationProblemDetails();
+            return CreateValidationProblemDetails("Il parametro 'host' è obbligatorio.");
         if (port is < 1 or > 65535)
-            return CreateValidationProblemDetails();
+            return CreateValidationProblemDetails("La porta deve essere compresa tra 1 e 65535.");
 
         var agentUrl = configuration[$"AgentProxies:{agentId}"];
         if (string.IsNullOrWhiteSpace(agentUrl))

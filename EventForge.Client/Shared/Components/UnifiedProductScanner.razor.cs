@@ -150,8 +150,15 @@ namespace EventForge.Client.Shared.Components
 
         protected override async Task OnInitializedAsync()
         {
-            await LoadReferenceData();
-            UpdateDisplayValues();
+            try
+            {
+                await LoadReferenceData();
+                UpdateDisplayValues();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error initializing UnifiedProductScanner.");
+            }
         }
 
         protected override void OnParametersSet()
@@ -169,17 +176,24 @@ namespace EventForge.Client.Shared.Components
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (firstRender && AutoFocus && _autocomplete != null && SelectedProduct == null)
+            try
             {
-                await Task.Delay(100); // Small delay to ensure rendering is complete
-                await _autocomplete.FocusAsync();
-            }
+                if (firstRender && AutoFocus && _autocomplete != null && SelectedProduct == null)
+                {
+                    await Task.Delay(100); // Small delay to ensure rendering is complete
+                    await _autocomplete.FocusAsync();
+                }
 
-            if (_shouldFocusAfterProductAdded && _autocomplete != null && SelectedProduct == null)
+                if (_shouldFocusAfterProductAdded && _autocomplete != null && SelectedProduct == null)
+                {
+                    _shouldFocusAfterProductAdded = false;
+                    await Task.Delay(50);
+                    await _autocomplete.FocusAsync();
+                }
+            }
+            catch (Exception ex)
             {
-                _shouldFocusAfterProductAdded = false;
-                await Task.Delay(50);
-                await _autocomplete.FocusAsync();
+                Logger.LogError(ex, "Error in OnAfterRenderAsync for UnifiedProductScanner.");
             }
         }
 
@@ -255,25 +269,33 @@ namespace EventForge.Client.Shared.Components
             Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
                 product?.Id, product?.Name ?? "NULL");
 
-            // Track previous product BEFORE update so OnParametersSet can detect the
-            // parent-driven reset to null and restore focus for consecutive selections.
-            _previousSelectedProduct = product;
-
-            // Update local property
-            SelectedProduct = product;
-
-            // ✅ CRITICAL: Notify parent component (AddDocumentRowDialog, ProductNotFoundDialog, etc.)
-            // Without this, the parent never knows a product was selected!
-            if (SelectedProductChanged.HasDelegate)
+            try
             {
-                await SelectedProductChanged.InvokeAsync(product);
+                // Track previous product BEFORE update so OnParametersSet can detect the
+                // parent-driven reset to null and restore focus for consecutive selections.
+                _previousSelectedProduct = product;
+
+                // Update local property
+                SelectedProduct = product;
+
+                // ✅ CRITICAL: Notify parent component (AddDocumentRowDialog, ProductNotFoundDialog, etc.)
+                // Without this, the parent never knows a product was selected!
+                if (SelectedProductChanged.HasDelegate)
+                {
+                    await SelectedProductChanged.InvokeAsync(product);
+                }
+
+                // Update display values (unit of measure, VAT, etc.)
+                UpdateDisplayValues();
+
+                Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
+                    SelectedProduct?.Id, _currentUnitName, _currentVatName);
             }
-
-            // Update display values (unit of measure, VAT, etc.)
-            UpdateDisplayValues();
-
-            Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
-                SelectedProduct?.Id, _currentUnitName, _currentVatName);
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OnProductSelectionChangedAsync for product {ProductId}.", product?.Id);
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.selectingProduct", "Errore durante la selezione del prodotto."));
+            }
         }
 
         /// <summary>
@@ -444,43 +466,51 @@ namespace EventForge.Client.Shared.Components
         {
             if (SelectedProduct == null) return;
 
-            var parameters = new DialogParameters
+            try
             {
-                { "ProductId", SelectedProduct.Id },
-                { "IsEditMode", true },
-                { "ExistingProduct", SelectedProduct }
-            };
-
-            var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseOnEscapeKey = true
-            };
-
-            var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
-                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
-                parameters,
-                options);
-
-            var result = await dialog.Result;
-
-            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
-            {
-                // Update the selected product with the edited data
-                SelectedProduct = updatedProduct;
-                await SelectedProductChanged.InvokeAsync(SelectedProduct);
-
-                // Update display values
-                UpdateDisplayValues();
-
-                // Notify parent that product was updated
-                if (OnProductUpdated.HasDelegate)
+                var parameters = new DialogParameters
                 {
-                    await OnProductUpdated.InvokeAsync(updatedProduct);
-                }
+                    { "ProductId", SelectedProduct.Id },
+                    { "IsEditMode", true },
+                    { "ExistingProduct", SelectedProduct }
+                };
 
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
+                var options = new DialogOptions
+                {
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    CloseOnEscapeKey = true
+                };
+
+                var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
+                    TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
+                    parameters,
+                    options);
+
+                var result = await dialog.Result;
+
+                if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
+                {
+                    // Update the selected product with the edited data
+                    SelectedProduct = updatedProduct;
+                    await SelectedProductChanged.InvokeAsync(SelectedProduct);
+
+                    // Update display values
+                    UpdateDisplayValues();
+
+                    // Notify parent that product was updated
+                    if (OnProductUpdated.HasDelegate)
+                    {
+                        await OnProductUpdated.InvokeAsync(updatedProduct);
+                    }
+
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OpenEditProductDialog for product {ProductId}.", SelectedProduct?.Id);
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.editProduct", "Errore durante la modifica del prodotto."));
             }
         }
 
@@ -489,45 +519,53 @@ namespace EventForge.Client.Shared.Components
         /// </summary>
         private async Task OpenQuickCreateDialog(string barcode)
         {
-            var parameters = new DialogParameters
+            try
             {
-                { "PrefilledCode", barcode },
-                { "AutoAssignCode", true }
-            };
-
-            var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseOnEscapeKey = true
-            };
-
-            var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
-                TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
-                parameters,
-                options);
-
-            var result = await dialog.Result;
-
-            if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
-            {
-                // Set the created product as selected
-                SelectedProduct = createdProduct;
-                await SelectedProductChanged.InvokeAsync(SelectedProduct);
-
-                // Update display values
-                UpdateDisplayValues();
-
-                // Notify parent that product was created
-                if (OnProductCreated.HasDelegate)
+                var parameters = new DialogParameters
                 {
-                    await OnProductCreated.InvokeAsync(createdProduct);
+                    { "PrefilledCode", barcode },
+                    { "AutoAssignCode", true }
+                };
+
+                var options = new DialogOptions
+                {
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    CloseOnEscapeKey = true
+                };
+
+                var dialog = await DialogService.ShowAsync<Dialogs.QuickCreateProductDialog>(
+                    TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto"),
+                    parameters,
+                    options);
+
+                var result = await dialog.Result;
+
+                if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
+                {
+                    // Set the created product as selected
+                    SelectedProduct = createdProduct;
+                    await SelectedProductChanged.InvokeAsync(SelectedProduct);
+
+                    // Update display values
+                    UpdateDisplayValues();
+
+                    // Notify parent that product was created
+                    if (OnProductCreated.HasDelegate)
+                    {
+                        await OnProductCreated.InvokeAsync(createdProduct);
+                    }
+
+                    // Hide prompt if it was showing
+                    _showNotFoundPrompt = false;
+
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
                 }
-
-                // Hide prompt if it was showing
-                _showNotFoundPrompt = false;
-
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OpenQuickCreateDialog for barcode {Barcode}.", barcode);
+                AppNotification.ShowError(TranslationService.GetTranslation("errors.createProduct", "Errore durante la creazione del prodotto."));
             }
         }
 
@@ -537,13 +575,20 @@ namespace EventForge.Client.Shared.Components
 
         private async Task ClearSelection()
         {
-            SelectedProduct = null;
-            await SelectedProductChanged.InvokeAsync(null);
-            _searchText = string.Empty;
-
-            if (_autocomplete != null)
+            try
             {
-                await _autocomplete.FocusAsync();
+                SelectedProduct = null;
+                await SelectedProductChanged.InvokeAsync(null);
+                _searchText = string.Empty;
+
+                if (_autocomplete != null)
+                {
+                    await _autocomplete.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in ClearSelection for UnifiedProductScanner.");
             }
         }
 

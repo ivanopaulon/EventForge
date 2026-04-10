@@ -5,6 +5,7 @@
 @inject IProductService ProductService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
+@inject ILogger<InventoryRowDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Inventory2"
           Title="@(IsEditMode ? TranslationService.GetTranslation("warehouse.editRow", "Modifica Riga Inventario") : TranslationService.GetTranslation("warehouse.inventoryEntry", "Inserimento Inventario"))"
@@ -206,71 +207,95 @@
     {
         if (firstRender)
         {
-            if (IsEditMode)
+            try
             {
-                // In edit mode, focus on quantity field
-                if (_quantityField != null)
+                if (IsEditMode)
                 {
-                    await _quantityField.FocusAsync();
-                }
-            }
-            else
-            {
-                // Insert mode: Auto-select location if only one exists
-                if (Locations?.Count == 1)
-                {
-                    _selectedLocationId = Locations[0].Id;
-                    StateHasChanged();
-                    // Focus on quantity field since location is auto-selected
                     if (_quantityField != null)
                     {
                         await _quantityField.FocusAsync();
                     }
                 }
-                else if (_locationSelect != null)
+                else
                 {
-                    // Focus on location select if multiple locations
-                    await _locationSelect.FocusAsync();
+                    if (Locations?.Count == 1)
+                    {
+                        _selectedLocationId = Locations[0].Id;
+                        StateHasChanged();
+                        if (_quantityField != null)
+                        {
+                            await _quantityField.FocusAsync();
+                        }
+                    }
+                    else if (_locationSelect != null)
+                    {
+                        await _locationSelect.FocusAsync();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in {MethodName}.", nameof(OnAfterRenderAsync));
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
             }
         }
     }
 
     private async Task OnLocationKeyDown(KeyboardEventArgs e)
     {
-        // Tab or Enter to move to quantity field
-        if ((e.Key == "Tab" || e.Key == "Enter") && _selectedLocationId.HasValue)
+        try
         {
-            if (_quantityField != null)
+            if ((e.Key == "Tab" || e.Key == "Enter") && _selectedLocationId.HasValue)
             {
-                await Task.Delay(100); // Small delay to ensure location is set
-                await _quantityField.FocusAsync();
+                if (_quantityField != null)
+                {
+                    await Task.Delay(100);
+                    await _quantityField.FocusAsync();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnLocationKeyDown));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnQuantityKeyDown(KeyboardEventArgs e)
     {
-        // Ctrl+E to edit product info
-        if (e.Key.ToLower() == "e" && e.CtrlKey && _productQuickInfo != null)
+        try
         {
-            await _productQuickInfo.HandleKeyboardShortcut("e", true);
-            return;
+            if (e.Key.ToLower() == "e" && e.CtrlKey && _productQuickInfo != null)
+            {
+                await _productQuickInfo.HandleKeyboardShortcut("e", true);
+                return;
+            }
+
+            if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
+            {
+                Submit();
+            }
         }
-        
-        // Enter to submit if form is valid (skip notes)
-        if (e.Key == "Enter" && _isFormValid && !e.ShiftKey)
+        catch (Exception ex)
         {
-            Submit();
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnQuantityKeyDown));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnNotesKeyDown(KeyboardEventArgs e)
     {
-        // Ctrl+Enter to submit from notes field
-        if (e.Key == "Enter" && e.CtrlKey && _isFormValid)
+        try
         {
-            Submit();
+            if (e.Key == "Enter" && e.CtrlKey && _isFormValid)
+            {
+                Submit();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnNotesKeyDown));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -314,15 +339,22 @@
 
     private async Task OnProductUpdatedAsync()
     {
-        // Refresh product data after update
-        if (_localProduct?.Id != null)
+        try
         {
-            var refreshedProduct = await ProductService.GetProductByIdAsync(_localProduct.Id);
-            if (refreshedProduct != null)
+            if (_localProduct?.Id != null)
             {
-                _localProduct = refreshedProduct;
-                StateHasChanged();
+                var refreshedProduct = await ProductService.GetProductByIdAsync(_localProduct.Id);
+                if (refreshedProduct != null)
+                {
+                    _localProduct = refreshedProduct;
+                    StateHasChanged();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnProductUpdatedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

@@ -22,6 +22,7 @@ public class DocumentCommentService(
         try
         {
             var query = context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -51,6 +52,7 @@ public class DocumentCommentService(
         try
         {
             var query = context.DocumentComments
+                .AsNoTracking()
                 .Where(c => c.DocumentRowId == documentRowId && !c.IsDeleted && c.ParentCommentId == null);
 
             if (includeReplies)
@@ -79,7 +81,7 @@ public class DocumentCommentService(
     {
         try
         {
-            var query = context.DocumentComments.Where(c => c.Id == id && !c.IsDeleted);
+            var query = context.DocumentComments.AsNoTracking().Where(c => c.Id == id && !c.IsDeleted);
 
             if (includeReplies)
             {
@@ -314,19 +316,27 @@ public class DocumentCommentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comment = await context.DocumentComments
-            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+        try
+        {
+            var comment = await context.DocumentComments
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-        if (comment is null) return null;
+            if (comment is null) return null;
 
-        comment.Status = CommentStatus.Open;
-        comment.ResolvedAt = null;
-        comment.ResolvedBy = null;
-        comment.ModifiedAt = DateTime.UtcNow;
-        comment.ModifiedBy = currentUser;
+            comment.Status = CommentStatus.Open;
+            comment.ResolvedAt = null;
+            comment.ResolvedBy = null;
+            comment.ModifiedAt = DateTime.UtcNow;
+            comment.ModifiedBy = currentUser;
 
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return MapToDto(comment);
+            _ = await context.SaveChangesAsync(cancellationToken);
+            return MapToDto(comment);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ReopenCommentAsync for comment {CommentId}.", id);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -335,43 +345,52 @@ public class DocumentCommentService(
         string? statusFilter = null,
         CancellationToken cancellationToken = default)
     {
-        var query = context.DocumentComments
-            .Where(c => c.AssignedTo == username && !c.IsDeleted);
-
-        if (!string.IsNullOrEmpty(statusFilter) && Enum.TryParse<CommentStatus>(statusFilter, out var status))
+        try
         {
-            query = query.Where(c => c.Status == status);
-        }
+            var query = context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.AssignedTo == username && !c.IsDeleted);
 
-        return await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new DocumentCommentDto
+            if (!string.IsNullOrEmpty(statusFilter) && Enum.TryParse<CommentStatus>(statusFilter, out var status))
             {
-                Id = c.Id,
-                DocumentHeaderId = c.DocumentHeaderId,
-                DocumentRowId = c.DocumentRowId,
-                Content = c.Content,
-                CommentType = c.CommentType.ToString(),
-                Priority = c.Priority.ToString(),
-                Status = c.Status.ToString(),
-                ParentCommentId = c.ParentCommentId,
-                AssignedTo = c.AssignedTo,
-                DueDate = c.DueDate,
-                ResolvedAt = c.ResolvedAt,
-                ResolvedBy = c.ResolvedBy,
-                MentionedUsers = c.MentionedUsers,
-                IsPrivate = c.IsPrivate,
-                IsPinned = c.IsPinned,
-                Visibility = c.Visibility.ToString(),
-                Tags = c.Tags,
-                Metadata = c.Metadata,
-                CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy ?? string.Empty,
-                ModifiedAt = c.ModifiedAt,
-                ModifiedBy = c.ModifiedBy,
-                Replies = new List<DocumentCommentDto>()
-            })
-            .ToListAsync(cancellationToken);
+                query = query.Where(c => c.Status == status);
+            }
+
+            return await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new DocumentCommentDto
+                {
+                    Id = c.Id,
+                    DocumentHeaderId = c.DocumentHeaderId,
+                    DocumentRowId = c.DocumentRowId,
+                    Content = c.Content,
+                    CommentType = c.CommentType.ToString(),
+                    Priority = c.Priority.ToString(),
+                    Status = c.Status.ToString(),
+                    ParentCommentId = c.ParentCommentId,
+                    AssignedTo = c.AssignedTo,
+                    DueDate = c.DueDate,
+                    ResolvedAt = c.ResolvedAt,
+                    ResolvedBy = c.ResolvedBy,
+                    MentionedUsers = c.MentionedUsers,
+                    IsPrivate = c.IsPrivate,
+                    IsPinned = c.IsPinned,
+                    Visibility = c.Visibility.ToString(),
+                    Tags = c.Tags,
+                    Metadata = c.Metadata,
+                    CreatedAt = c.CreatedAt,
+                    CreatedBy = c.CreatedBy ?? string.Empty,
+                    ModifiedAt = c.ModifiedAt,
+                    ModifiedBy = c.ModifiedBy,
+                    Replies = new List<DocumentCommentDto>()
+                })
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetAssignedCommentsAsync for user {Username}.", username);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -379,39 +398,48 @@ public class DocumentCommentService(
         string priority,
         CancellationToken cancellationToken = default)
     {
-        if (!Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
-            return Enumerable.Empty<DocumentCommentDto>();
+        try
+        {
+            if (!Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
+                return Enumerable.Empty<DocumentCommentDto>();
 
-        return await context.DocumentComments
-            .Where(c => c.Priority == priorityEnum && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new DocumentCommentDto
-            {
-                Id = c.Id,
-                DocumentHeaderId = c.DocumentHeaderId,
-                DocumentRowId = c.DocumentRowId,
-                Content = c.Content,
-                CommentType = c.CommentType.ToString(),
-                Priority = c.Priority.ToString(),
-                Status = c.Status.ToString(),
-                ParentCommentId = c.ParentCommentId,
-                AssignedTo = c.AssignedTo,
-                DueDate = c.DueDate,
-                ResolvedAt = c.ResolvedAt,
-                ResolvedBy = c.ResolvedBy,
-                MentionedUsers = c.MentionedUsers,
-                IsPrivate = c.IsPrivate,
-                IsPinned = c.IsPinned,
-                Visibility = c.Visibility.ToString(),
-                Tags = c.Tags,
-                Metadata = c.Metadata,
-                CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy ?? string.Empty,
-                ModifiedAt = c.ModifiedAt,
-                ModifiedBy = c.ModifiedBy,
-                Replies = new List<DocumentCommentDto>()
-            })
-            .ToListAsync(cancellationToken);
+            return await context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.Priority == priorityEnum && !c.IsDeleted)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new DocumentCommentDto
+                {
+                    Id = c.Id,
+                    DocumentHeaderId = c.DocumentHeaderId,
+                    DocumentRowId = c.DocumentRowId,
+                    Content = c.Content,
+                    CommentType = c.CommentType.ToString(),
+                    Priority = c.Priority.ToString(),
+                    Status = c.Status.ToString(),
+                    ParentCommentId = c.ParentCommentId,
+                    AssignedTo = c.AssignedTo,
+                    DueDate = c.DueDate,
+                    ResolvedAt = c.ResolvedAt,
+                    ResolvedBy = c.ResolvedBy,
+                    MentionedUsers = c.MentionedUsers,
+                    IsPrivate = c.IsPrivate,
+                    IsPinned = c.IsPinned,
+                    Visibility = c.Visibility.ToString(),
+                    Tags = c.Tags,
+                    Metadata = c.Metadata,
+                    CreatedAt = c.CreatedAt,
+                    CreatedBy = c.CreatedBy ?? string.Empty,
+                    ModifiedAt = c.ModifiedAt,
+                    ModifiedBy = c.ModifiedBy,
+                    Replies = new List<DocumentCommentDto>()
+                })
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetCommentsByPriorityAsync for priority {Priority}.", priority);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -419,39 +447,48 @@ public class DocumentCommentService(
         string status,
         CancellationToken cancellationToken = default)
     {
-        if (!Enum.TryParse<CommentStatus>(status, out var statusEnum))
-            return Enumerable.Empty<DocumentCommentDto>();
+        try
+        {
+            if (!Enum.TryParse<CommentStatus>(status, out var statusEnum))
+                return Enumerable.Empty<DocumentCommentDto>();
 
-        return await context.DocumentComments
-            .Where(c => c.Status == statusEnum && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new DocumentCommentDto
-            {
-                Id = c.Id,
-                DocumentHeaderId = c.DocumentHeaderId,
-                DocumentRowId = c.DocumentRowId,
-                Content = c.Content,
-                CommentType = c.CommentType.ToString(),
-                Priority = c.Priority.ToString(),
-                Status = c.Status.ToString(),
-                ParentCommentId = c.ParentCommentId,
-                AssignedTo = c.AssignedTo,
-                DueDate = c.DueDate,
-                ResolvedAt = c.ResolvedAt,
-                ResolvedBy = c.ResolvedBy,
-                MentionedUsers = c.MentionedUsers,
-                IsPrivate = c.IsPrivate,
-                IsPinned = c.IsPinned,
-                Visibility = c.Visibility.ToString(),
-                Tags = c.Tags,
-                Metadata = c.Metadata,
-                CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy ?? string.Empty,
-                ModifiedAt = c.ModifiedAt,
-                ModifiedBy = c.ModifiedBy,
-                Replies = new List<DocumentCommentDto>()
-            })
-            .ToListAsync(cancellationToken);
+            return await context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.Status == statusEnum && !c.IsDeleted)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new DocumentCommentDto
+                {
+                    Id = c.Id,
+                    DocumentHeaderId = c.DocumentHeaderId,
+                    DocumentRowId = c.DocumentRowId,
+                    Content = c.Content,
+                    CommentType = c.CommentType.ToString(),
+                    Priority = c.Priority.ToString(),
+                    Status = c.Status.ToString(),
+                    ParentCommentId = c.ParentCommentId,
+                    AssignedTo = c.AssignedTo,
+                    DueDate = c.DueDate,
+                    ResolvedAt = c.ResolvedAt,
+                    ResolvedBy = c.ResolvedBy,
+                    MentionedUsers = c.MentionedUsers,
+                    IsPrivate = c.IsPrivate,
+                    IsPinned = c.IsPinned,
+                    Visibility = c.Visibility.ToString(),
+                    Tags = c.Tags,
+                    Metadata = c.Metadata,
+                    CreatedAt = c.CreatedAt,
+                    CreatedBy = c.CreatedBy ?? string.Empty,
+                    ModifiedAt = c.ModifiedAt,
+                    ModifiedBy = c.ModifiedBy,
+                    Replies = new List<DocumentCommentDto>()
+                })
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetCommentsByStatusAsync for status {Status}.", status);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -459,39 +496,48 @@ public class DocumentCommentService(
         string commentType,
         CancellationToken cancellationToken = default)
     {
-        if (!Enum.TryParse<DocumentCommentType>(commentType, out var typeEnum))
-            return Enumerable.Empty<DocumentCommentDto>();
+        try
+        {
+            if (!Enum.TryParse<DocumentCommentType>(commentType, out var typeEnum))
+                return Enumerable.Empty<DocumentCommentDto>();
 
-        return await context.DocumentComments
-            .Where(c => c.CommentType == typeEnum && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new DocumentCommentDto
-            {
-                Id = c.Id,
-                DocumentHeaderId = c.DocumentHeaderId,
-                DocumentRowId = c.DocumentRowId,
-                Content = c.Content,
-                CommentType = c.CommentType.ToString(),
-                Priority = c.Priority.ToString(),
-                Status = c.Status.ToString(),
-                ParentCommentId = c.ParentCommentId,
-                AssignedTo = c.AssignedTo,
-                DueDate = c.DueDate,
-                ResolvedAt = c.ResolvedAt,
-                ResolvedBy = c.ResolvedBy,
-                MentionedUsers = c.MentionedUsers,
-                IsPrivate = c.IsPrivate,
-                IsPinned = c.IsPinned,
-                Visibility = c.Visibility.ToString(),
-                Tags = c.Tags,
-                Metadata = c.Metadata,
-                CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy ?? string.Empty,
-                ModifiedAt = c.ModifiedAt,
-                ModifiedBy = c.ModifiedBy,
-                Replies = new List<DocumentCommentDto>()
-            })
-            .ToListAsync(cancellationToken);
+            return await context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.CommentType == typeEnum && !c.IsDeleted)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new DocumentCommentDto
+                {
+                    Id = c.Id,
+                    DocumentHeaderId = c.DocumentHeaderId,
+                    DocumentRowId = c.DocumentRowId,
+                    Content = c.Content,
+                    CommentType = c.CommentType.ToString(),
+                    Priority = c.Priority.ToString(),
+                    Status = c.Status.ToString(),
+                    ParentCommentId = c.ParentCommentId,
+                    AssignedTo = c.AssignedTo,
+                    DueDate = c.DueDate,
+                    ResolvedAt = c.ResolvedAt,
+                    ResolvedBy = c.ResolvedBy,
+                    MentionedUsers = c.MentionedUsers,
+                    IsPrivate = c.IsPrivate,
+                    IsPinned = c.IsPinned,
+                    Visibility = c.Visibility.ToString(),
+                    Tags = c.Tags,
+                    Metadata = c.Metadata,
+                    CreatedAt = c.CreatedAt,
+                    CreatedBy = c.CreatedBy ?? string.Empty,
+                    ModifiedAt = c.ModifiedAt,
+                    ModifiedBy = c.ModifiedBy,
+                    Replies = new List<DocumentCommentDto>()
+                })
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetCommentsByTypeAsync for type {CommentType}.", commentType);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -500,19 +546,28 @@ public class DocumentCommentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comments = await context.DocumentComments
-            .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        return new DocumentCommentStatsDto
+        try
         {
-            TotalComments = comments.Count,
-            OpenComments = comments.Count(c => c.Status == CommentStatus.Open),
-            ResolvedComments = comments.Count(c => c.Status == CommentStatus.Resolved),
-            TaskComments = comments.Count(c => c.CommentType == DocumentCommentType.Task),
-            HighPriorityComments = comments.Count(c => c.Priority == CommentPriority.High || c.Priority == CommentPriority.Critical),
-            AssignedToMe = comments.Count(c => c.AssignedTo == currentUser)
-        };
+            var comments = await context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.DocumentHeaderId == documentHeaderId && !c.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            return new DocumentCommentStatsDto
+            {
+                TotalComments = comments.Count,
+                OpenComments = comments.Count(c => c.Status == CommentStatus.Open),
+                ResolvedComments = comments.Count(c => c.Status == CommentStatus.Resolved),
+                TaskComments = comments.Count(c => c.CommentType == DocumentCommentType.Task),
+                HighPriorityComments = comments.Count(c => c.Priority == CommentPriority.High || c.Priority == CommentPriority.Critical),
+                AssignedToMe = comments.Count(c => c.AssignedTo == currentUser)
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetDocumentCommentStatsAsync for document {DocumentHeaderId}.", documentHeaderId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -520,12 +575,21 @@ public class DocumentCommentService(
         Guid parentCommentId,
         CancellationToken cancellationToken = default)
     {
-        var replies = await context.DocumentComments
-            .Where(c => c.ParentCommentId == parentCommentId && !c.IsDeleted)
-            .OrderBy(c => c.CreatedAt)
-            .ToListAsync(cancellationToken);
+        try
+        {
+            var replies = await context.DocumentComments
+                .AsNoTracking()
+                .Where(c => c.ParentCommentId == parentCommentId && !c.IsDeleted)
+                .OrderBy(c => c.CreatedAt)
+                .ToListAsync(cancellationToken);
 
-        return replies.Select(MapToDto);
+            return replies.Select(MapToDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetCommentRepliesAsync for parent comment {ParentCommentId}.", parentCommentId);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -535,17 +599,25 @@ public class DocumentCommentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        var comment = await context.DocumentComments
-            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+        try
+        {
+            var comment = await context.DocumentComments
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
 
-        if (comment is null) return null;
+            if (comment is null) return null;
 
-        comment.AssignedTo = assignToUsername;
-        comment.ModifiedAt = DateTime.UtcNow;
-        comment.ModifiedBy = currentUser;
+            comment.AssignedTo = assignToUsername;
+            comment.ModifiedAt = DateTime.UtcNow;
+            comment.ModifiedBy = currentUser;
 
-        _ = await context.SaveChangesAsync(cancellationToken);
-        return MapToDto(comment);
+            _ = await context.SaveChangesAsync(cancellationToken);
+            return MapToDto(comment);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in AssignCommentAsync for comment {CommentId}.", id);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -557,25 +629,33 @@ public class DocumentCommentService(
         string? assignedTo = null,
         CancellationToken cancellationToken = default)
     {
-        var query = context.DocumentComments.Where(c => !c.IsDeleted);
+        try
+        {
+            var query = context.DocumentComments.AsNoTracking().Where(c => !c.IsDeleted);
 
-        if (!string.IsNullOrEmpty(searchText))
-            query = query.Where(c => c.Content.Contains(searchText));
+            if (!string.IsNullOrEmpty(searchText))
+                query = query.Where(c => c.Content.Contains(searchText));
 
-        if (documentHeaderId.HasValue)
-            query = query.Where(c => c.DocumentHeaderId == documentHeaderId);
+            if (documentHeaderId.HasValue)
+                query = query.Where(c => c.DocumentHeaderId == documentHeaderId);
 
-        if (!string.IsNullOrEmpty(status) && Enum.TryParse<CommentStatus>(status, out var statusEnum))
-            query = query.Where(c => c.Status == statusEnum);
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<CommentStatus>(status, out var statusEnum))
+                query = query.Where(c => c.Status == statusEnum);
 
-        if (!string.IsNullOrEmpty(priority) && Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
-            query = query.Where(c => c.Priority == priorityEnum);
+            if (!string.IsNullOrEmpty(priority) && Enum.TryParse<CommentPriority>(priority, out var priorityEnum))
+                query = query.Where(c => c.Priority == priorityEnum);
 
-        if (!string.IsNullOrEmpty(assignedTo))
-            query = query.Where(c => c.AssignedTo == assignedTo);
+            if (!string.IsNullOrEmpty(assignedTo))
+                query = query.Where(c => c.AssignedTo == assignedTo);
 
-        var comments = await query.OrderByDescending(c => c.CreatedAt).ToListAsync(cancellationToken);
-        return comments.Select(MapToDto);
+            var comments = await query.OrderByDescending(c => c.CreatedAt).ToListAsync(cancellationToken);
+            return comments.Select(MapToDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in SearchCommentsAsync for text {SearchText}.", searchText);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -586,6 +666,7 @@ public class DocumentCommentService(
         try
         {
             return await context.DocumentComments
+                .AsNoTracking()
                 .AnyAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

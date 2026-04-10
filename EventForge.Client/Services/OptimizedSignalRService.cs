@@ -145,7 +145,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Starts all optimized SignalR connections with connection pooling.
     /// </summary>
-    public async Task StartAllConnectionsAsync()
+    public async Task StartAllConnectionsAsync(CancellationToken ct = default)
     {
         var connectionTasks = new List<Task>
         {
@@ -641,24 +641,31 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// </summary>
     private async void CheckConnectionHealthAsync(object? state)
     {
-        // Skip recovery entirely if the user session has expired
-        if (!await _authService.IsAuthenticatedAsync())
+        try
         {
-            _logger.LogDebug("Skipping connection health check: user is not authenticated");
-            return;
-        }
-
-        var healthCheckTasks = _connections.Select(async kvp =>
-        {
-            var (key, connection) = kvp;
-            if (connection.State == HubConnectionState.Disconnected)
+            // Skip recovery entirely if the user session has expired
+            if (!await _authService.IsAuthenticatedAsync())
             {
-                _logger.LogWarning("Connection {Key} is disconnected, attempting recovery", key);
-                await StartConnectionAsync(key, GetHubPath(key));
+                _logger.LogDebug("Skipping connection health check: user is not authenticated");
+                return;
             }
-        });
 
-        await Task.WhenAll(healthCheckTasks);
+            var healthCheckTasks = _connections.Select(async kvp =>
+            {
+                var (key, connection) = kvp;
+                if (connection.State == HubConnectionState.Disconnected)
+                {
+                    _logger.LogWarning("Connection {Key} is disconnected, attempting recovery", key);
+                    await StartConnectionAsync(key, GetHubPath(key));
+                }
+            });
+
+            await Task.WhenAll(healthCheckTasks);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error in SignalR connection health check");
+        }
     }
 
     private string GetHubPath(string connectionKey) => connectionKey switch
@@ -832,7 +839,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Sends a chat message with optimized delivery.
     /// </summary>
-    public async Task SendChatMessageAsync(SendMessageDto messageDto)
+    public async Task SendChatMessageAsync(SendMessageDto messageDto, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -856,7 +863,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Sends typing indicator with debouncing to reduce network traffic.
     /// </summary>
-    public async Task SendTypingIndicatorAsync(Guid chatId, bool isTyping)
+    public async Task SendTypingIndicatorAsync(Guid chatId, bool isTyping, CancellationToken ct = default)
     {
         try
         {
@@ -887,7 +894,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Stops all SignalR connections gracefully.
     /// </summary>
-    public async Task StopAllConnectionsAsync()
+    public async Task StopAllConnectionsAsync(CancellationToken ct = default)
     {
         var stopTasks = new List<Task>();
 
@@ -908,7 +915,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
-    public async Task StartAuditConnectionAsync()
+    public async Task StartAuditConnectionAsync(CancellationToken ct = default)
     {
         await StartConnectionAsync("app", "/hubs/app");
     }
@@ -916,7 +923,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Starts the unified app connection (audit, notifications, alerts, configuration, updates).
     /// </summary>
-    public async Task StartNotificationConnectionAsync()
+    public async Task StartNotificationConnectionAsync(CancellationToken ct = default)
     {
         await StartConnectionAsync("app", "/hubs/app");
     }
@@ -924,7 +931,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Starts chat connection.
     /// </summary>
-    public async Task StartChatConnectionAsync()
+    public async Task StartChatConnectionAsync(CancellationToken ct = default)
     {
         await StartConnectionAsync("chat", "/hubs/chat");
     }
@@ -932,7 +939,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Starts the document collaboration connection.
     /// </summary>
-    public async Task StartDocumentCollaborationConnectionAsync()
+    public async Task StartDocumentCollaborationConnectionAsync(CancellationToken ct = default)
     {
         await StartConnectionAsync("document-collaboration", "/hubs/document-collaboration");
     }
@@ -940,7 +947,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Joins a document collaboration room to receive real-time updates.
     /// </summary>
-    public async Task JoinDocumentAsync(Guid documentId)
+    public async Task JoinDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("document-collaboration", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -960,7 +967,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Leaves a document collaboration room.
     /// </summary>
-    public async Task LeaveDocumentAsync(Guid documentId)
+    public async Task LeaveDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("document-collaboration", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -980,7 +987,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Requests an exclusive edit lock for a document.
     /// </summary>
-    public async Task<bool> RequestDocumentEditLockAsync(Guid documentId)
+    public async Task<bool> RequestDocumentEditLockAsync(Guid documentId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("document-collaboration", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1009,7 +1016,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Releases the edit lock for a document.
     /// </summary>
-    public async Task ReleaseDocumentEditLockAsync(Guid documentId)
+    public async Task ReleaseDocumentEditLockAsync(Guid documentId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("document-collaboration", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1029,7 +1036,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Joins a chat room.
     /// </summary>
-    public async Task JoinChatAsync(Guid chatId)
+    public async Task JoinChatAsync(Guid chatId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1050,7 +1057,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Leaves a chat room.
     /// </summary>
-    public async Task LeaveChatAsync(Guid chatId)
+    public async Task LeaveChatAsync(Guid chatId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1071,7 +1078,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Creates a new chat.
     /// </summary>
-    public async Task CreateChatAsync(CreateChatDto createChatDto)
+    public async Task CreateChatAsync(CreateChatDto createChatDto, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1093,7 +1100,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Edits a message.
     /// </summary>
-    public async Task EditMessageAsync(EditMessageDto editDto)
+    public async Task EditMessageAsync(EditMessageDto editDto, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1114,7 +1121,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Deletes a message.
     /// </summary>
-    public async Task DeleteMessageAsync(Guid messageId, string? reason = null)
+    public async Task DeleteMessageAsync(Guid messageId, string? reason = null, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1135,7 +1142,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Marks message as read.
     /// </summary>
-    public async Task MarkMessageAsReadAsync(Guid messageId)
+    public async Task MarkMessageAsReadAsync(Guid messageId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("chat", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1156,7 +1163,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Subscribes to specific notification types.
     /// </summary>
-    public async Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes)
+    public async Task SubscribeToNotificationTypesAsync(List<NotificationTypes> notificationTypes, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1177,7 +1184,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Unsubscribes from specific notification types.
     /// </summary>
-    public async Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes)
+    public async Task UnsubscribeFromNotificationTypesAsync(List<NotificationTypes> notificationTypes, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1198,7 +1205,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Acknowledges a notification.
     /// </summary>
-    public async Task AcknowledgeNotificationAsync(Guid notificationId)
+    public async Task AcknowledgeNotificationAsync(Guid notificationId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1219,7 +1226,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     /// <summary>
     /// Archives a notification.
     /// </summary>
-    public async Task ArchiveNotificationAsync(Guid notificationId)
+    public async Task ArchiveNotificationAsync(Guid notificationId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("app", out var connection) &&
             connection.State == HubConnectionState.Connected)
@@ -1253,7 +1260,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public bool IsConfigurationConnected => IsAppConnected;
     public bool IsAllConnected => IsAppConnected && IsChatConnected && IsDocumentCollaborationConnected;
 
-    public async Task SubscribeToPrinterAsync(Guid printerId)
+    public async Task SubscribeToPrinterAsync(Guid printerId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
         {
@@ -1262,7 +1269,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         }
     }
 
-    public async Task UnsubscribeFromPrinterAsync(Guid printerId)
+    public async Task UnsubscribeFromPrinterAsync(Guid printerId, CancellationToken ct = default)
     {
         if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
         {

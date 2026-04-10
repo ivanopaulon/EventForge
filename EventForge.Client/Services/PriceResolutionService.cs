@@ -19,12 +19,13 @@ public class PriceResolutionService(
         Guid? forcedPriceListId = null,
         PriceListDirection? direction = null,
         decimal quantity = 1m,
-        Guid? unitOfMeasureId = null)
+        Guid? unitOfMeasureId = null,
+        CancellationToken ct = default)
     {
         try
         {
             var queryString = BuildQueryString(productId, documentHeaderId, businessPartyId, forcedPriceListId, direction, quantity, unitOfMeasureId);
-            var result = await httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}");
+            var result = await httpClientService.GetAsync<PriceResolutionResult>($"{BaseUrl}?{queryString}", ct);
 
             return result ?? new PriceResolutionResult
             {
@@ -79,7 +80,7 @@ public class PriceResolutionService(
         return query;
     }
 
-    public async Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request)
+    public async Task<BatchPriceResolutionResponse?> ResolvePricesBatchAsync(BatchPriceResolutionRequest request, CancellationToken ct = default)
     {
         try
         {

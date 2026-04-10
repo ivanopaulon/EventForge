@@ -1,5 +1,6 @@
 @using EventForge.Client.Services
 @inject ILoadingDialogService LoadingDialogService
+@inject ILogger<GlobalLoadingDialog> Logger
 @implements IDisposable
 
 <!-- Global Loading Dialog - controlled by LoadingDialogService -->
@@ -26,31 +27,38 @@
 
     private async void OnStateChanged(LoadingDialogState newState)
     {
-        _state = newState;
-        
-        if (_loadingDialog != null)
+        try
         {
-            if (newState.IsVisible)
+            _state = newState;
+
+            if (_loadingDialog != null)
             {
-                await _loadingDialog.ShowAsync();
-            }
-            else
-            {
-                await _loadingDialog.HideAsync();
-            }
-            
-            // Update operation and progress if dialog is visible
-            if (newState.IsVisible)
-            {
-                await _loadingDialog.UpdateOperationAsync(newState.CurrentOperation);
-                if (newState.Progress.HasValue)
+                if (newState.IsVisible)
                 {
-                    await _loadingDialog.UpdateProgressAsync(newState.Progress.Value);
+                    await _loadingDialog.ShowAsync();
+                }
+                else
+                {
+                    await _loadingDialog.HideAsync();
+                }
+
+                // Update operation and progress if dialog is visible
+                if (newState.IsVisible)
+                {
+                    await _loadingDialog.UpdateOperationAsync(newState.CurrentOperation);
+                    if (newState.Progress.HasValue)
+                    {
+                        await _loadingDialog.UpdateProgressAsync(newState.Progress.Value);
+                    }
                 }
             }
+
+            await InvokeAsync(StateHasChanged);
         }
-        
-        await InvokeAsync(StateHasChanged);
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in GlobalLoadingDialog.OnStateChanged.");
+        }
     }
 
     public void Dispose()

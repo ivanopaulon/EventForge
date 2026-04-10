@@ -60,12 +60,12 @@ public class BusinessPartyDetailViewModel : BaseEntityDetailViewModel<BusinessPa
         };
     }
 
-    protected override async Task<BusinessPartyDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<BusinessPartyDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _businessPartyService.GetBusinessPartyAsync(entityId);
+        return await _businessPartyService.GetBusinessPartyAsync(entityId, ct);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         // Related entities are loaded lazily per tab
         // Reset tab loaded states
@@ -194,14 +194,14 @@ public class BusinessPartyDetailViewModel : BaseEntityDetailViewModel<BusinessPa
         };
     }
 
-    protected override async Task<BusinessPartyDto?> CreateEntityAsync(CreateBusinessPartyDto createDto)
+    protected override async Task<BusinessPartyDto?> CreateEntityAsync(CreateBusinessPartyDto createDto, CancellationToken ct = default)
     {
-        return await _businessPartyService.CreateBusinessPartyAsync(createDto);
+        return await _businessPartyService.CreateBusinessPartyAsync(createDto, ct);
     }
 
-    protected override async Task<BusinessPartyDto?> UpdateEntityAsync(Guid entityId, UpdateBusinessPartyDto updateDto)
+    protected override async Task<BusinessPartyDto?> UpdateEntityAsync(Guid entityId, UpdateBusinessPartyDto updateDto, CancellationToken ct = default)
     {
-        return await _businessPartyService.UpdateBusinessPartyAsync(entityId, updateDto);
+        return await _businessPartyService.UpdateBusinessPartyAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(BusinessPartyDto entity)

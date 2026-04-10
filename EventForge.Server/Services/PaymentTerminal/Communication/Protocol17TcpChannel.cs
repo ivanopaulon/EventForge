@@ -46,15 +46,26 @@ internal sealed class Protocol17TcpChannel(string host, int port, int timeoutMs 
         using var client = new TcpClient();
         await client.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
 
-        var stream = client.GetStream();
+        using var stream = client.GetStream();
         var requestBytes = Protocol17Protocol.BuildRequest(command, amount);
         await stream.WriteAsync(requestBytes, cts.Token).ConfigureAwait(false);
         await stream.FlushAsync(cts.Token).ConfigureAwait(false);
 
+        // Read until full frame (STX … ETX BCC) is received — TCP may split data across reads
         var buffer = new byte[256];
-        int read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+        int totalRead = 0;
+        while (totalRead < buffer.Length)
+        {
+            int read = await stream.ReadAsync(buffer.AsMemory(totalRead), cts.Token).ConfigureAwait(false);
+            if (read == 0) break; // connection closed
+            totalRead += read;
 
-        var parsed = Protocol17Protocol.Parse(buffer.AsSpan(0, read).ToArray());
+            // Stop once we have at least ETX + BCC (ETX=0x03 at some position, with one more byte after)
+            int etxPos = Array.IndexOf(buffer, (byte)0x03, 0, totalRead);
+            if (etxPos >= 0 && totalRead > etxPos + 1) break;
+        }
+
+        var parsed = Protocol17Protocol.Parse(buffer.AsSpan(0, totalRead).ToArray());
         return new Protocol17Response(parsed.Approved, parsed.ResponseCode, parsed.AuthorizationCode, parsed.Amount, parsed.ErrorMessage);
     }
 

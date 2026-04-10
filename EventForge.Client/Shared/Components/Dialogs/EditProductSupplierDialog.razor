@@ -198,25 +198,32 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isEditMode = ProductSupplier != null;
-        if (_isEditMode)
+        try
         {
-            _supplierProductCode = ProductSupplier!.SupplierProductCode;
-            _purchaseDescription = ProductSupplier.PurchaseDescription;
-            _unitCost = ProductSupplier.UnitCost;
-            _currency = ProductSupplier.Currency;
-            _minOrderQty = ProductSupplier.MinOrderQty;
-            _incrementQty = ProductSupplier.IncrementQty;
-            _leadTimeDays = ProductSupplier.LeadTimeDays;
-            _lastPurchasePrice = ProductSupplier.LastPurchasePrice;
-            _preferred = ProductSupplier.Preferred;
-            _notes = ProductSupplier.Notes;
-            if (ProductSupplier.LastPurchaseDate.HasValue)
-                _lastPurchaseDate = ProductSupplier.LastPurchaseDate.Value;
+            _isEditMode = ProductSupplier != null;
+            if (_isEditMode)
+            {
+                _supplierProductCode = ProductSupplier!.SupplierProductCode;
+                _purchaseDescription = ProductSupplier.PurchaseDescription;
+                _unitCost = ProductSupplier.UnitCost;
+                _currency = ProductSupplier.Currency;
+                _minOrderQty = ProductSupplier.MinOrderQty;
+                _incrementQty = ProductSupplier.IncrementQty;
+                _leadTimeDays = ProductSupplier.LeadTimeDays;
+                _lastPurchasePrice = ProductSupplier.LastPurchasePrice;
+                _preferred = ProductSupplier.Preferred;
+                _notes = ProductSupplier.Notes;
+                if (ProductSupplier.LastPurchaseDate.HasValue)
+                    _lastPurchaseDate = ProductSupplier.LastPurchaseDate.Value;
+            }
+            else
+            {
+                await LoadSuppliersAsync();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await LoadSuppliersAsync();
+            Logger.LogError(ex, "Error initializing EditProductSupplierDialog.");
         }
     }
 

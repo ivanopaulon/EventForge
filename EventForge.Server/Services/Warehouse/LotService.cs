@@ -90,6 +90,7 @@ public class LotService(
             }
 
             var lot = await context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
@@ -114,6 +115,7 @@ public class LotService(
             }
 
             var lot = await context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .FirstOrDefaultAsync(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
@@ -138,6 +140,7 @@ public class LotService(
             }
 
             var lots = await context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => l.ProductId == productId && l.TenantId == currentTenantId.Value && !l.IsDeleted)
@@ -166,6 +169,7 @@ public class LotService(
             var expiryThreshold = DateTime.UtcNow.AddDays(daysAhead);
 
             var lots = await context.Lots
+                .AsNoTracking()
                 .Include(l => l.Product)
                 .Include(l => l.Supplier)
                 .Where(l => l.TenantId == currentTenantId.Value &&
@@ -530,6 +534,7 @@ public class LotService(
             }
 
             var totalQuantity = await context.Stocks
+                .AsNoTracking()
                 .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
                 .SumAsync(s => s.AvailableQuantity, cancellationToken);
 
@@ -553,6 +558,7 @@ public class LotService(
             }
 
             var query = context.Lots
+                .AsNoTracking()
                 .Where(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted);
 
             if (excludeId.HasValue)

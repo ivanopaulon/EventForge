@@ -6,6 +6,8 @@
 @inject IUMService UMService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<UnitOfMeasureManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("um.management", "Gestione Unità di Misura")</PageTitle>
 <EntityManagementPage TEntity="UMDto"
@@ -158,11 +160,19 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters { [nameof(UnitOfMeasureDetailDialog.EntityId)] = id };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<UnitOfMeasureDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+        try
+        {
+            var parameters = new DialogParameters { [nameof(UnitOfMeasureDetailDialog.EntityId)] = id };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<UnitOfMeasureDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening unit of measure detail dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

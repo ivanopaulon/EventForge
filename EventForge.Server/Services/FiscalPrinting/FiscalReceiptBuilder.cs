@@ -12,7 +12,7 @@ namespace EventForge.Server.Services.FiscalPrinting;
 /// <remarks>
 /// Instantiate once per receipt operation. All <c>Build*</c> methods are pure
 /// (no side effects) and return independent byte arrays ready to be sent via
-/// <see cref="Communication.ICustomPrinterCommunication.SendCommandAsync"/>.
+/// <see cref="ICustomPrinterCommunication.SendCommandAsync"/>.
 /// </remarks>
 public sealed class FiscalReceiptBuilder
 {

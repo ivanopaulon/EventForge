@@ -789,6 +789,7 @@ public class NotificationService(
         try
         {
             var notificationRecipient = await context.NotificationRecipients
+                .AsNoTracking()
                 .Include(nr => nr.Notification)
                 .Where(nr => nr.NotificationId == notificationId && nr.UserId == userId)
                 .Where(nr => !tenantId.HasValue || nr.TenantId == tenantId.Value)
@@ -1058,6 +1059,7 @@ public class NotificationService(
 
             // Update notification archive flag if all recipients have archived
             var allRecipients = await context.NotificationRecipients
+                .AsNoTracking()
                 .Where(nr => nr.NotificationId == notificationId)
                 .ToListAsync(cancellationToken);
 
@@ -1190,6 +1192,7 @@ public class NotificationService(
         {
             // 1. Query User entity by userId and tenantId
             var user = await context.Users
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
 
             // 2. If user found and has preferences in metadata
@@ -1343,53 +1346,61 @@ public class NotificationService(
         Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        // 1. Check if already in target locale (early return)
-        if (notification.Payload.Locale == targetLocale)
+        try
         {
-            logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
+            // 1. Check if already in target locale (early return)
+            if (notification.Payload.Locale == targetLocale)
+            {
+                logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
+                    notification.Id, targetLocale);
+                return notification;
+            }
+
+            logger.LogInformation(
+                "Localizing notification {NotificationId} to locale {Locale} for user {UserId}",
+                notification.Id, targetLocale, userId);
+
+            // 2. Update notification.Payload.Locale
+            notification.Payload.Locale = targetLocale;
+
+            // 3. TODO: Future implementation - Integrate with ITranslationService
+            // When ITranslationService is available:
+            // if (notification.Payload.LocalizationParams != null)
+            // {
+            //     var translationKey = $"notification.{notification.Type}.{notification.Payload.Title}";
+            //     var translatedTitle = await _translationService.TranslateAsync(
+            //         translationKey, 
+            //         targetLocale, 
+            //         notification.Payload.LocalizationParams);
+            //     
+            //     notification.Payload.Title = translatedTitle;
+            //     
+            //     // Same for message
+            //     var messageKey = $"notification.{notification.Type}.{notification.Payload.Message}";
+            //     var translatedMessage = await _translationService.TranslateAsync(
+            //         messageKey,
+            //         targetLocale,
+            //         notification.Payload.LocalizationParams);
+            //     
+            //     notification.Payload.Message = translatedMessage;
+            // }
+
+            // 4. Log localization request for analytics
+            logger.LogDebug(
+                "Localized notification {NotificationId} to {ToLocale} (translation service integration pending)",
                 notification.Id, targetLocale);
+
+            // Suppress async warning for future-proofing
+            await Task.CompletedTask;
+
+            // 5. Return localized notification
             return notification;
         }
-
-        logger.LogInformation(
-            "Localizing notification {NotificationId} to locale {Locale} for user {UserId}",
-            notification.Id, targetLocale, userId);
-
-        // 2. Update notification.Payload.Locale
-        notification.Payload.Locale = targetLocale;
-
-        // 3. TODO: Future implementation - Integrate with ITranslationService
-        // When ITranslationService is available:
-        // if (notification.Payload.LocalizationParams != null)
-        // {
-        //     var translationKey = $"notification.{notification.Type}.{notification.Payload.Title}";
-        //     var translatedTitle = await _translationService.TranslateAsync(
-        //         translationKey, 
-        //         targetLocale, 
-        //         notification.Payload.LocalizationParams);
-        //     
-        //     notification.Payload.Title = translatedTitle;
-        //     
-        //     // Same for message
-        //     var messageKey = $"notification.{notification.Type}.{notification.Payload.Message}";
-        //     var translatedMessage = await _translationService.TranslateAsync(
-        //         messageKey,
-        //         targetLocale,
-        //         notification.Payload.LocalizationParams);
-        //     
-        //     notification.Payload.Message = translatedMessage;
-        // }
-
-        // 4. Log localization request for analytics
-        logger.LogDebug(
-            "Localized notification {NotificationId} to {ToLocale} (translation service integration pending)",
-            notification.Id, targetLocale);
-
-        // Suppress async warning for future-proofing
-        await Task.CompletedTask;
-
-        // 5. Return localized notification
-        return notification;
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error localizing notification {NotificationId}.", notification.Id);
+            throw;
+        }
     }
 
     #endregion
@@ -1549,22 +1560,30 @@ public class NotificationService(
         NotificationCleanupPolicyDto cleanupPolicy,
         CancellationToken cancellationToken = default)
     {
-        var stopwatch = Stopwatch.StartNew();
-
-        logger.LogInformation(
-            "Cleaning up notification data for tenant {TenantId} with retention period {RetentionPeriod}",
-            cleanupPolicy.TenantId?.ToString() ?? "ALL", cleanupPolicy.RetentionPeriod);
-
-        // TODO: Implement cleanup logic
-        await Task.Delay(100, cancellationToken);
-
-        return new CleanupResultDto
+        try
         {
-            CleanedCount = 0,
-            AnonymizedCount = 0,
-            FreedBytes = 0,
-            ProcessingTime = stopwatch.Elapsed
-        };
+            var stopwatch = Stopwatch.StartNew();
+
+            logger.LogInformation(
+                "Cleaning up notification data for tenant {TenantId} with retention period {RetentionPeriod}",
+                cleanupPolicy.TenantId?.ToString() ?? "ALL", cleanupPolicy.RetentionPeriod);
+
+            // TODO: Implement cleanup logic
+            await Task.Delay(100, cancellationToken);
+
+            return new CleanupResultDto
+            {
+                CleanedCount = 0,
+                AnonymizedCount = 0,
+                FreedBytes = 0,
+                ProcessingTime = stopwatch.Elapsed
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error cleaning up notification data.");
+            throw;
+        }
     }
 
     #endregion
@@ -1654,22 +1673,30 @@ public class NotificationService(
         RateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "RateLimitPolicy",
-            entityId: tenantId,
-            propertyName: "Update",
-            operationType: "Update",
-            oldValue: "Previous policy",
-            newValue: $"GlobalLimit: {rateLimitPolicy.GlobalLimit}, Window: {rateLimitPolicy.WindowSize}",
-            changedBy: "System",
-            entityDisplayName: $"Rate Limit Policy: {tenantId}",
-            cancellationToken: cancellationToken);
+        try
+        {
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "RateLimitPolicy",
+                entityId: tenantId,
+                propertyName: "Update",
+                operationType: "Update",
+                oldValue: "Previous policy",
+                newValue: $"GlobalLimit: {rateLimitPolicy.GlobalLimit}, Window: {rateLimitPolicy.WindowSize}",
+                changedBy: "System",
+                entityDisplayName: $"Rate Limit Policy: {tenantId}",
+                cancellationToken: cancellationToken);
 
-        logger.LogInformation(
-            "Updated rate limit policy for tenant {TenantId}: GlobalLimit={GlobalLimit}",
-            tenantId, rateLimitPolicy.GlobalLimit);
+            logger.LogInformation(
+                "Updated rate limit policy for tenant {TenantId}: GlobalLimit={GlobalLimit}",
+                tenantId, rateLimitPolicy.GlobalLimit);
 
-        return rateLimitPolicy;
+            return rateLimitPolicy;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating rate limit policy for tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1681,27 +1708,35 @@ public class NotificationService(
         DateRange? dateRange = null,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-            tenantId?.ToString() ?? "ALL",
-            dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
-            dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
-
-        // TODO: Implement database aggregation queries
-        await Task.Delay(50, cancellationToken);
-
-        return new NotificationStatsDto
+        try
         {
-            TenantId = tenantId,
-            TotalNotifications = 0,
-            UnreadCount = 0,
-            AcknowledgedCount = 0,
-            SilencedCount = 0,
-            ArchivedCount = 0,
-            ExpiredCount = 0,
-            CountByType = new Dictionary<NotificationTypes, int>(),
-            CountByPriority = new Dictionary<NotificationPriority, int>()
-        };
+            logger.LogInformation(
+                "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
+                tenantId?.ToString() ?? "ALL",
+                dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
+                dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
+
+            // TODO: Implement database aggregation queries
+            await Task.Delay(50, cancellationToken);
+
+            return new NotificationStatsDto
+            {
+                TenantId = tenantId,
+                TotalNotifications = 0,
+                UnreadCount = 0,
+                AcknowledgedCount = 0,
+                SilencedCount = 0,
+                ArchivedCount = 0,
+                ExpiredCount = 0,
+                CountByType = new Dictionary<NotificationTypes, int>(),
+                CountByPriority = new Dictionary<NotificationPriority, int>()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving notification statistics for tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     #endregion
@@ -1717,28 +1752,36 @@ public class NotificationService(
         Guid adminUserId,
         CancellationToken cancellationToken = default)
     {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "SystemNotification",
-            entityId: Guid.NewGuid(),
-            propertyName: "Send",
-            operationType: "Insert",
-            oldValue: null,
-            newValue: $"Emergency: {systemNotification.IsEmergency}, Override: {systemNotification.OverrideUserPreferences}",
-            changedBy: adminUserId.ToString(),
-            entityDisplayName: $"System Notification: {systemNotification.Payload.Title}",
-            cancellationToken: cancellationToken);
-
-        logger.LogWarning(
-            "System notification sent by admin {AdminId}: Emergency={Emergency}, Title={Title}",
-            adminUserId, systemNotification.IsEmergency, systemNotification.Payload.Title);
-
-        return new SystemNotificationResultDto
+        try
         {
-            NotificationId = Guid.NewGuid(),
-            TotalRecipients = systemNotification.RecipientIds.Count,
-            DeliveredCount = systemNotification.RecipientIds.Count,
-            FailedCount = 0
-        };
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "SystemNotification",
+                entityId: Guid.NewGuid(),
+                propertyName: "Send",
+                operationType: "Insert",
+                oldValue: null,
+                newValue: $"Emergency: {systemNotification.IsEmergency}, Override: {systemNotification.OverrideUserPreferences}",
+                changedBy: adminUserId.ToString(),
+                entityDisplayName: $"System Notification: {systemNotification.Payload.Title}",
+                cancellationToken: cancellationToken);
+
+            logger.LogWarning(
+                "System notification sent by admin {AdminId}: Emergency={Emergency}, Title={Title}",
+                adminUserId, systemNotification.IsEmergency, systemNotification.Payload.Title);
+
+            return new SystemNotificationResultDto
+            {
+                NotificationId = Guid.NewGuid(),
+                TotalRecipients = systemNotification.RecipientIds.Count,
+                DeliveredCount = systemNotification.RecipientIds.Count,
+                FailedCount = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error sending system notification by admin {AdminUserId}.", adminUserId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1749,20 +1792,28 @@ public class NotificationService(
         NotificationAuditQueryDto auditQuery,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving notification audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
-            auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
-
-        // TODO: Query audit log entries from database
-        await Task.Delay(20, cancellationToken);
-
-        return new PagedResult<NotificationAuditEntryDto>
+        try
         {
-            Items = [],
-            Page = auditQuery.PageNumber,
-            PageSize = auditQuery.PageSize,
-            TotalCount = 0
-        };
+            logger.LogInformation(
+                "Retrieving notification audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
+                auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
+
+            // TODO: Query audit log entries from database
+            await Task.Delay(20, cancellationToken);
+
+            return new PagedResult<NotificationAuditEntryDto>
+            {
+                Items = [],
+                Page = auditQuery.PageNumber,
+                PageSize = auditQuery.PageSize,
+                TotalCount = 0
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving notification audit trail.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -1772,25 +1823,33 @@ public class NotificationService(
     public async Task<NotificationSystemHealthDto> GetSystemHealthAsync(
         CancellationToken cancellationToken = default)
     {
-        logger.LogDebug("Checking notification system health");
-
-        // TODO: Implement health checks for database, cache, external services
-        await Task.Delay(10, cancellationToken);
-
-        return new NotificationSystemHealthDto
+        try
         {
-            Status = "Healthy",
-            Metrics = new Dictionary<string, object>
+            logger.LogDebug("Checking notification system health");
+
+            // TODO: Implement health checks for database, cache, external services
+            await Task.Delay(10, cancellationToken);
+
+            return new NotificationSystemHealthDto
             {
-                ["DatabaseConnected"] = true,
-                ["CacheConnected"] = true,
-                ["ExternalProvidersConnected"] = true,
-                ["QueueLength"] = 0,
-                ["ProcessingRate"] = "0 notifications/sec",
-                ["LastHealthCheck"] = DateTime.UtcNow
-            },
-            Alerts = new List<string>()
-        };
+                Status = "Healthy",
+                Metrics = new Dictionary<string, object>
+                {
+                    ["DatabaseConnected"] = true,
+                    ["CacheConnected"] = true,
+                    ["ExternalProvidersConnected"] = true,
+                    ["QueueLength"] = 0,
+                    ["ProcessingRate"] = "0 notifications/sec",
+                    ["LastHealthCheck"] = DateTime.UtcNow
+                },
+                Alerts = new List<string>()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking notification system health.");
+            throw;
+        }
     }
 
     #endregion

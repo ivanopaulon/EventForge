@@ -5,6 +5,7 @@
 @attribute [Authorize]
 @inject ITransferOrderService TransferOrderService
 @inject IAppNotificationService AppNotification
+@inject ILogger<TransferOrderDetailDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.SwapHoriz"
           Title="@(_transferOrder != null ? $"Transfer Order {_transferOrder.Number}" : "Transfer Order")"
@@ -167,7 +168,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTransferOrderAsync();
+        try
+        {
+            await LoadTransferOrderAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing TransferOrderDetailDialog.");
+        }
     }
 
     private async Task LoadTransferOrderAsync()

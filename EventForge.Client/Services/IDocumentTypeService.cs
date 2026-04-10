@@ -11,21 +11,21 @@ public interface IDocumentTypeService
     /// Gets all document types.
     /// </summary>
     /// <returns>Collection of document types</returns>
-    Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync();
+    Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets a document type by ID.
     /// </summary>
     /// <param name="id">Document type ID</param>
     /// <returns>Document type details or null if not found</returns>
-    Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id);
+    Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     /// Creates a new document type.
     /// </summary>
     /// <param name="createDto">Document type creation data</param>
     /// <returns>Created document type</returns>
-    Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto);
+    Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto, CancellationToken ct = default);
 
     /// <summary>
     /// Updates an existing document type.
@@ -33,12 +33,12 @@ public interface IDocumentTypeService
     /// <param name="id">Document type ID</param>
     /// <param name="updateDto">Document type update data</param>
     /// <returns>Updated document type or null if not found</returns>
-    Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto);
+    Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes a document type.
     /// </summary>
     /// <param name="id">Document type ID</param>
     /// <returns>True if deleted successfully</returns>
-    Task<bool> DeleteDocumentTypeAsync(Guid id);
+    Task<bool> DeleteDocumentTypeAsync(Guid id, CancellationToken ct = default);
 }

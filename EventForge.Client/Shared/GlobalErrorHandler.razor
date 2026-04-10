@@ -5,15 +5,23 @@
 @inject IJSRuntime JSRuntime
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<GlobalErrorHandler> Logger
 
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // Set up global .NET error handler
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-        
-        // Set up JavaScript error handler
-        await SetupJavaScriptErrorHandlerAsync();
+        try
+        {
+            // Set up global .NET error handler
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+            
+            // Set up JavaScript error handler
+            await SetupJavaScriptErrorHandlerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing GlobalErrorHandler.");
+        }
     }
 
     private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -43,8 +51,8 @@
                 }
                 catch
                 {
-                    // Fallback to console if logging fails
-                    Console.WriteLine($"[CRITICAL ERROR] {message}");
+                    // Fallback: logging service unavailable
+                    Logger.LogCritical("Critical error occurred and logging service was unavailable: {Message}", message);
                 }
             });
         }
@@ -114,7 +122,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to setup JavaScript error handler: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to setup JavaScript error handler");
         }
     }
 

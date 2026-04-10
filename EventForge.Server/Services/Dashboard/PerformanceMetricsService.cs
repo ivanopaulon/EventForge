@@ -34,6 +34,7 @@ public class PerformanceMetricsService(
         {
             var oneMinuteAgo = DateTime.UtcNow.AddMinutes(-1);
             var recentLogs = await dbContext.SystemOperationLogs
+                .AsNoTracking()
                 .Where(l => l.CreatedAt > oneMinuteAgo)
                 .CountAsync(cancellationToken);
 
@@ -50,6 +51,7 @@ public class PerformanceMetricsService(
             var oneHourAgo = DateTime.UtcNow.AddHours(-1);
 
             var slowQueries = await dbContext.SystemOperationLogs
+                .AsNoTracking()
                 .Where(l => l.CreatedAt > oneHourAgo &&
                            l.DurationMs.HasValue &&
                            l.DurationMs.Value > slowQueryThresholdMs &&

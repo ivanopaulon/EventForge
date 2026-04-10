@@ -58,6 +58,7 @@ public class VatRateService(
         try
         {
             var vatRate = await context.VatRates
+                .AsNoTracking()
                 .Include(v => v.VatNature)
                 .Where(v => v.Id == id && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -221,6 +222,7 @@ public class VatRateService(
         try
         {
             return await context.VatRates
+                .AsNoTracking()
                 .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

@@ -90,6 +90,7 @@ public class PriceListService(
         try
         {
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
@@ -110,6 +111,7 @@ public class PriceListService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -128,6 +130,7 @@ public class PriceListService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -318,6 +321,7 @@ public class PriceListService(
         try
         {
             var entries = await context.PriceListEntries
+                .AsNoTracking()
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .OrderBy(ple => ple.ProductId)
@@ -337,6 +341,7 @@ public class PriceListService(
         try
         {
             var entry = await context.PriceListEntries
+                .AsNoTracking()
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.Id == id && !ple.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -671,17 +676,41 @@ public class PriceListService(
         int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
+        try
+        {
+            return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetAppliedPriceAsync for product {ProductId} event {EventId}.", productId, eventId);
+            throw;
+        }
     }
 
     public async Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
     {
-        return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
+        try
+        {
+            return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetAppliedPriceWithUnitConversionAsync for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
+        try
+        {
+            return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetPriceHistoryAsync for product {ProductId} event {EventId}.", productId, eventId);
+            throw;
+        }
     }
 
     public async Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
@@ -690,7 +719,15 @@ public class PriceListService(
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
-        return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
+        try
+        {
+            return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetPurchasePriceComparisonAsync for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -700,7 +737,15 @@ public class PriceListService(
         GetProductPriceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        return await calculationService.GetProductPriceAsync(request, cancellationToken);
+        try
+        {
+            return await calculationService.GetProductPriceAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetProductPriceAsync.");
+            throw;
+        }
     }
 
     #endregion
@@ -709,17 +754,41 @@ public class PriceListService(
 
     public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in BulkImportPriceListEntriesAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ExportPriceListEntriesAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ValidatePriceListPrecedenceAsync for event {EventId}.", eventId);
+            throw;
+        }
     }
 
     #endregion
@@ -728,17 +797,41 @@ public class PriceListService(
 
     public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
+        try
+        {
+            return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in AssignBusinessPartyAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
     {
-        return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
+        try
+        {
+            return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in RemoveBusinessPartyAsync for price list {PriceListId} business party {BusinessPartyId}.", priceListId, businessPartyId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
+        try
+        {
+            return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetBusinessPartiesForPriceListAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default)
@@ -746,6 +839,7 @@ public class PriceListService(
         try
         {
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Type == type && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
@@ -763,7 +857,15 @@ public class PriceListService(
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
     {
-        return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
+        try
+        {
+            return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetPriceListsByBusinessPartyAsync for business party {BusinessPartyId}.", businessPartyId);
+            throw;
+        }
     }
 
     #endregion
@@ -783,7 +885,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
+        try
+        {
+            return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DuplicatePriceListAsync for source price list {SourcePriceListId}.", sourcePriceListId);
+            throw;
+        }
     }
 
     #region Bulk Price Update Methods
@@ -796,7 +906,15 @@ public class PriceListService(
         BulkPriceUpdateDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PreviewBulkUpdateAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -808,7 +926,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in BulkUpdatePricesAsync for price list {PriceListId}.", priceListId);
+            throw;
+        }
     }
 
     #endregion
@@ -822,7 +948,15 @@ public class PriceListService(
         GeneratePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+        try
+        {
+            return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PreviewGenerateFromPurchasesAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -833,7 +967,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        try
+        {
+            return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GenerateFromPurchasesAsync for user {User}.", currentUser);
+            throw;
+        }
     }
 
     /// <summary>
@@ -843,7 +985,15 @@ public class PriceListService(
         UpdatePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+        try
+        {
+            return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PreviewUpdateFromPurchasesAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -854,7 +1004,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        try
+        {
+            return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateFromPurchasesAsync for user {User}.", currentUser);
+            throw;
+        }
     }
 
     #endregion
@@ -869,7 +1027,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
+        try
+        {
+            return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GenerateFromProductPricesAsync for user {User}.", currentUser);
+            throw;
+        }
     }
 
     /// <summary>
@@ -879,7 +1045,15 @@ public class PriceListService(
         GeneratePriceListFromProductsDto dto,
         CancellationToken cancellationToken = default)
     {
-        return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
+        try
+        {
+            return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in PreviewGenerateFromProductPricesAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -890,7 +1064,15 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
+        try
+        {
+            return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ApplyPriceListToProductsAsync for user {User}.", currentUser);
+            throw;
+        }
     }
 
     #endregion

@@ -28,6 +28,7 @@ public class PriceCalculationService(
 
             // Step 1: Trova listini vendita applicabili
             var query = context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Type == PriceListType.Sales &&
                              pl.Direction == PriceListDirection.Output &&
                              !pl.IsDeleted &&
@@ -150,6 +151,7 @@ public class PriceCalculationService(
 
             // Get the target unit information
             var targetProductUnit = await context.ProductUnits
+                .AsNoTracking()
                 .Include(pu => pu.UnitOfMeasure)
                 .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
                                          pu.UnitOfMeasureId == targetUnitId &&
@@ -165,6 +167,7 @@ public class PriceCalculationService(
 
             // Get the base unit information for conversion
             var baseProductUnit = await context.ProductUnits
+                .AsNoTracking()
                 .Include(pu => pu.UnitOfMeasure)
                 .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
                                          pu.UnitOfMeasureId == basePrice.UnitOfMeasureId &&
@@ -234,6 +237,7 @@ public class PriceCalculationService(
 
             // Get all price lists for the event
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted))
                 .ToListAsync(cancellationToken);
@@ -313,6 +317,7 @@ public class PriceCalculationService(
         {
             // 1. Recupera il prodotto
             var product = await context.Products
+                .AsNoTracking()
                 .Include(p => p.Codes)
                 .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
 
@@ -355,6 +360,7 @@ public class PriceCalculationService(
 
             // Trova tutti i listini acquisto applicabili
             var purchasePriceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Type == PriceListType.Purchase &&
                              pl.Direction == PriceListDirection.Input &&
                              !pl.IsDeleted &&
@@ -455,6 +461,7 @@ public class PriceCalculationService(
 
         // 3. Configurazione del BusinessParty
         var businessParty = await context.BusinessParties
+            .AsNoTracking()
             .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
 
         if (businessParty is null)
@@ -510,6 +517,7 @@ public class PriceCalculationService(
         if (!forcedPriceListId.HasValue && request.BusinessPartyId.HasValue)
         {
             var businessParty = await context.BusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == request.BusinessPartyId.Value && !bp.IsDeleted, cancellationToken);
 
             forcedPriceListId = businessParty?.ForcedPriceListId;
@@ -524,6 +532,7 @@ public class PriceCalculationService(
 
         // Cerca il prezzo nel listino forzato
         var priceEntry = await context.PriceListEntries
+            .AsNoTracking()
             .Include(e => e.PriceList)
             .Where(e => e.PriceListId == forcedPriceListId.Value
                      && e.ProductId == product.Id
@@ -548,6 +557,7 @@ public class PriceCalculationService(
         if (request.BusinessPartyId.HasValue)
         {
             var businessPartyRelation = await context.PriceListBusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(plbp => plbp.PriceListId == forcedPriceListId.Value
                                           && plbp.BusinessPartyId == request.BusinessPartyId.Value
                                           && !plbp.IsDeleted
@@ -596,6 +606,7 @@ public class PriceCalculationService(
 
         // Recupera tutti i listini applicabili (attivi, validi per data)
         var applicablePriceEntries = await context.PriceListEntries
+            .AsNoTracking()
             .Include(e => e.PriceList)
                 .ThenInclude(pl => pl!.BusinessParties.Where(bp => !bp.IsDeleted))
             .Where(e => e.ProductId == product.Id

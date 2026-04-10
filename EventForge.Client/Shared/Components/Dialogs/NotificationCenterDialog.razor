@@ -118,12 +118,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        NotificationService.NotificationReceived += OnNotificationReceived;
-        NotificationService.NotificationRead += OnNotificationRead;
-        NotificationService.NotificationArchived += OnNotificationArchived;
-        NotificationService.StatsUpdated += OnStatsUpdated;
+        try
+        {
+            NotificationService.NotificationReceived += OnNotificationReceived;
+            NotificationService.NotificationRead += OnNotificationRead;
+            NotificationService.NotificationArchived += OnNotificationArchived;
+            NotificationService.StatsUpdated += OnStatsUpdated;
 
-        await LoadNotificationsAsync();
+            await LoadNotificationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing NotificationCenterDialog.");
+        }
     }
 
     private async Task LoadNotificationsAsync()

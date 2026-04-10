@@ -35,6 +35,7 @@ public class StockMovementService(
             }
 
             var query = context.StockMovements
+                .AsNoTracking()
                 .Include(sm => sm.Product)
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.Serial)
@@ -114,6 +115,7 @@ public class StockMovementService(
             }
 
             var movement = await context.StockMovements
+                .AsNoTracking()
                 .Include(sm => sm.Product)
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.Serial)
@@ -132,86 +134,133 @@ public class StockMovementService(
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var movements = await context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Lot)
-            .Include(sm => sm.FromLocation)
-            .Include(sm => sm.ToLocation)
-            .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId)
-            .OrderByDescending(sm => sm.MovementDate)
-            .ToListAsync(cancellationToken);
+            var movements = await context.StockMovements
+                .AsNoTracking()
+                .Include(sm => sm.Product)
+                .Include(sm => sm.Lot)
+                .Include(sm => sm.FromLocation)
+                .Include(sm => sm.ToLocation)
+                .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId)
+                .OrderByDescending(sm => sm.MovementDate)
+                .ToListAsync(cancellationToken);
 
-        return movements.Select(m => m.ToStockMovementDto());
+            return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting stock movements for product ID: {ProductId}", productId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLotIdAsync(Guid lotId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var movements = await context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Lot)
-            .Include(sm => sm.FromLocation)
-            .Include(sm => sm.ToLocation)
-            .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId)
-            .OrderByDescending(sm => sm.MovementDate)
-            .ToListAsync(cancellationToken);
+            var movements = await context.StockMovements
+                .AsNoTracking()
+                .Include(sm => sm.Product)
+                .Include(sm => sm.Lot)
+                .Include(sm => sm.FromLocation)
+                .Include(sm => sm.ToLocation)
+                .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId)
+                .OrderByDescending(sm => sm.MovementDate)
+                .ToListAsync(cancellationToken);
 
-        return movements.Select(m => m.ToStockMovementDto());
+            return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting stock movements for lot ID: {LotId}", lotId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsBySerialIdAsync(Guid serialId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var movements = await context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Serial)
-            .Include(sm => sm.FromLocation)
-            .Include(sm => sm.ToLocation)
-            .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId)
-            .OrderByDescending(sm => sm.MovementDate)
-            .ToListAsync(cancellationToken);
+            var movements = await context.StockMovements
+                .AsNoTracking()
+                .Include(sm => sm.Product)
+                .Include(sm => sm.Serial)
+                .Include(sm => sm.FromLocation)
+                .Include(sm => sm.ToLocation)
+                .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId)
+                .OrderByDescending(sm => sm.MovementDate)
+                .ToListAsync(cancellationToken);
 
-        return movements.Select(m => m.ToStockMovementDto());
+            return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting stock movements for serial ID: {SerialId}", serialId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var movements = await context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Lot)
-            .Include(sm => sm.FromLocation)
-            .Include(sm => sm.ToLocation)
-            .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId)
-            .OrderByDescending(sm => sm.MovementDate)
-            .ToListAsync(cancellationToken);
+            var movements = await context.StockMovements
+                .AsNoTracking()
+                .Include(sm => sm.Product)
+                .Include(sm => sm.Lot)
+                .Include(sm => sm.FromLocation)
+                .Include(sm => sm.ToLocation)
+                .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId)
+                .OrderByDescending(sm => sm.MovementDate)
+                .ToListAsync(cancellationToken);
 
-        return movements.Select(m => m.ToStockMovementDto());
+            return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting stock movements for location ID: {LocationId}", locationId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-        var movements = await context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Lot)
-            .Include(sm => sm.FromLocation)
-            .Include(sm => sm.ToLocation)
-            .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId)
-            .OrderByDescending(sm => sm.MovementDate)
-            .ToListAsync(cancellationToken);
+            var movements = await context.StockMovements
+                .AsNoTracking()
+                .Include(sm => sm.Product)
+                .Include(sm => sm.Lot)
+                .Include(sm => sm.FromLocation)
+                .Include(sm => sm.ToLocation)
+                .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId)
+                .OrderByDescending(sm => sm.MovementDate)
+                .ToListAsync(cancellationToken);
 
-        return movements.Select(m => m.ToStockMovementDto());
+            return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting stock movements for document ID: {DocumentId}", documentId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> CreateMovementAsync(CreateStockMovementDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var movement = new StockMovement
@@ -257,6 +306,12 @@ public class StockMovementService(
         await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
 
         return movement.ToStockMovementDto();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating stock movement for product {ProductId}.", createDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> CreateMovementsBatchAsync(
@@ -264,6 +319,8 @@ public class StockMovementService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         // Process in chunks to keep each SaveChangesAsync batch manageable.
         // The custom SaveChangesAsync generates one EntityChangeLog row per property per entity;
         // large batches produce thousands of audit INSERTs that exceed SQL Server limits.
@@ -315,6 +372,12 @@ public class StockMovementService(
             null, $"Created {allMovements.Count} stock movements", currentUser);
 
         return allMovements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating batch stock movements for user {User}.", currentUser);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessInboundMovementAsync(
@@ -331,6 +394,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Inbound.ToString(),
@@ -348,6 +413,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing inbound movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessOutboundMovementAsync(
@@ -363,6 +434,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Outbound.ToString(),
@@ -379,6 +452,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing outbound movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessTransferMovementAsync(
@@ -392,6 +471,8 @@ public class StockMovementService(
         string? currentUser = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Transfer.ToString(),
@@ -406,6 +487,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing transfer movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ProcessAdjustmentMovementAsync(
@@ -419,6 +506,8 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var createDto = new CreateStockMovementDto
         {
             MovementType = StockMovementType.Adjustment.ToString(),
@@ -433,10 +522,18 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing adjustment movement for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ReverseMovementAsync(Guid movementId, string reason, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var originalMovement = await context.StockMovements.FindAsync(new object[] { movementId }, cancellationToken);
         if (originalMovement is null)
         {
@@ -464,6 +561,12 @@ public class StockMovementService(
         };
 
         return await CreateMovementAsync(reverseDto, currentUser, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reversing stock movement {MovementId}.", movementId);
+            throw;
+        }
     }
 
     public async Task<MovementSummaryDto> GetMovementSummaryAsync(
@@ -473,9 +576,12 @@ public class StockMovementService(
         Guid? locationId = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var query = context.StockMovements
+            .AsNoTracking()
             .Where(sm => sm.TenantId == currentTenantId
                       && sm.MovementDate >= fromDate
                       && sm.MovementDate <= toDate);
@@ -508,10 +614,18 @@ public class StockMovementService(
             TotalInboundValue = inboundMovements.Sum(m => m.TotalValue),
             TotalOutboundValue = outboundMovements.Sum(m => m.TotalValue)
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting movement summary.");
+            throw;
+        }
     }
 
     public async Task<MovementValidationResult> ValidateMovementAsync(CreateStockMovementDto movementDto, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var result = new MovementValidationResult { IsValid = true };
 
         // Validate product exists
@@ -564,13 +678,22 @@ public class StockMovementService(
         }
 
         return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error validating movement for product {ProductId}.", movementDto.ProductId);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetPendingMovementsAsync(CancellationToken cancellationToken = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var movements = await context.StockMovements
+            .AsNoTracking()
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
             .Include(sm => sm.FromLocation)
@@ -580,10 +703,18 @@ public class StockMovementService(
             .ToListAsync(cancellationToken);
 
         return movements.Select(m => m.ToStockMovementDto());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting pending movements.");
+            throw;
+        }
     }
 
     public async Task<StockMovementDto> ExecutePlannedMovementAsync(Guid movementPlanId, string currentUser, CancellationToken cancellationToken = default)
     {
+        try
+        {
         var movement = await context.StockMovements.FindAsync(new object[] { movementPlanId }, cancellationToken);
         if (movement is null)
         {
@@ -614,6 +745,12 @@ public class StockMovementService(
         await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
 
         return movement.ToStockMovementDto();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error executing planned movement {MovementPlanId}.", movementPlanId);
+            throw;
+        }
     }
 
     private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken, bool throwOnMissingSourceStock = true)
@@ -754,6 +891,8 @@ public class StockMovementService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
+        try
+        {
         var currentTenantId = tenantContext.CurrentTenantId;
         if (!currentTenantId.HasValue)
         {
@@ -787,6 +926,12 @@ public class StockMovementService(
             .ToListAsync(ct);
 
         return items.Select(MapToInventoryExportDto);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting inventory for export.");
+            throw;
+        }
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(

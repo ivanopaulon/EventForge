@@ -49,7 +49,7 @@ public class PaymentTerminalManagementService(IPaymentTerminalService paymentTer
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var success = await paymentTerminalService.DeleteAsync(id);
+        var success = await paymentTerminalService.DeleteAsync(id, ct);
         if (!success)
             throw new InvalidOperationException($"Impossibile eliminare il terminale POS {id}.");
     }

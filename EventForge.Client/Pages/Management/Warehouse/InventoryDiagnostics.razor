@@ -308,16 +308,24 @@
 
     private async Task LoadDraftDocuments()
     {
-        var result = await InventoryService.GetInventoryDocumentsAsync(
-            page: 1,
-            pageSize: 100,
-            status: "Draft",
-            includeRows: false
-        );
-
-        if (result?.Items != null)
+        try
         {
-            _draftDocuments = result.Items.ToList();
+            var result = await InventoryService.GetInventoryDocumentsAsync(
+                page: 1,
+                pageSize: 100,
+                status: "Draft",
+                includeRows: false
+            );
+
+            if (result?.Items != null)
+            {
+                _draftDocuments = result.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading draft inventory documents.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei documenti.");
         }
     }
 

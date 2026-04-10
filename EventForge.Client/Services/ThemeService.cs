@@ -11,10 +11,10 @@ public interface IThemeService
     bool IsDarkMode { get; }
     string CurrentTheme { get; }
     event Action? OnThemeChanged;
-    Task ToggleThemeAsync();
-    Task SetThemeAsync(bool isDarkMode);
-    Task SetThemeAsync(string themeKey);
-    Task InitializeAsync();
+    Task ToggleThemeAsync(CancellationToken ct = default);
+    Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default);
+    Task SetThemeAsync(string themeKey, CancellationToken ct = default);
+    Task InitializeAsync(CancellationToken ct = default);
 }
 
 public class ThemeInfo
@@ -44,7 +44,9 @@ public class ThemeInfo
     };
 }
 
-public class ThemeService(IJSRuntime jsRuntime) : IThemeService
+public class ThemeService(
+    IJSRuntime jsRuntime,
+    ILogger<ThemeService> logger) : IThemeService
 {
     private const string ThemeKey = "eventforge-theme";
 
@@ -60,7 +62,7 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
     public string CurrentTheme => _currentTheme;
     public event Action? OnThemeChanged;
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -78,25 +80,34 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
 
             await ApplyThemeToDocumentAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Failed to initialize theme from localStorage, using default");
             _currentTheme = ThemeInfo.CarbonNeonLight.Key;
         }
     }
 
-    public async Task ToggleThemeAsync()
+    public async Task ToggleThemeAsync(CancellationToken ct = default)
     {
-        var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
-            ? ThemeInfo.CarbonNeonLight.Key
-            : ThemeInfo.CarbonNeonDark.Key;
+        try
+        {
+            var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
+                ? ThemeInfo.CarbonNeonLight.Key
+                : ThemeInfo.CarbonNeonDark.Key;
 
-        await SetThemeAsync(next);
+            await SetThemeAsync(next);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error toggling theme");
+            throw;
+        }
     }
 
-    public Task SetThemeAsync(bool isDarkMode)
+    public Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default)
         => SetThemeAsync(isDarkMode ? ThemeInfo.CarbonNeonDark.Key : ThemeInfo.CarbonNeonLight.Key);
 
-    public async Task SetThemeAsync(string themeKey)
+    public async Task SetThemeAsync(string themeKey, CancellationToken ct = default)
     {
         if (!AvailableThemes.Any(t => t.Key == themeKey))
             themeKey = ThemeInfo.CarbonNeonLight.Key;
@@ -108,7 +119,10 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
             await jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, _currentTheme);
             await ApplyThemeToDocumentAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to persist theme {ThemeKey} to localStorage", themeKey);
+        }
 
         OnThemeChanged?.Invoke();
     }
@@ -119,6 +133,9 @@ public class ThemeService(IJSRuntime jsRuntime) : IThemeService
         {
             await jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to apply theme to document (normal in SSR)");
+        }
     }
 }

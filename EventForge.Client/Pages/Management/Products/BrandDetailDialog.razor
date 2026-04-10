@@ -258,7 +258,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBrandAsync();
+        try
+        {
+            await LoadBrandAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing BrandDetailDialog.");
+        }
     }
 
     private async Task LoadBrandAsync()
@@ -392,64 +399,88 @@
 
     private async Task Cancel()
     {
-        if (HasUnsavedChanges())
+        try
         {
-            var result = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("brand.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
-                yesText: TranslationService.GetTranslation("common.save", "Salva"),
-                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
-                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-            if (result == null) return;
-            if (result == true) { await SaveBrandAsync(); return; }
+            if (HasUnsavedChanges())
+            {
+                var result = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("brand.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                    yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                    noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                    cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+                if (result == null) return;
+                if (result == true) { await SaveBrandAsync(); return; }
+            }
+            MudDialog.Close();
         }
-        MudDialog.Close();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Cancel.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     #region Model Management
 
     private async Task OpenAddModelDialog()
     {
-        if (_brand == null) return;
-
-        var parameters = new DialogParameters
+        try
         {
-            ["BrandId"] = _brand.Id,
-            ["BrandName"] = _brand.Name
-        };
+            if (_brand == null) return;
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ModelDialog>(
-            TranslationService.GetTranslation("dialog.addModel", "Aggiungi Modello"),
-            parameters,
-            options
-        );
+            var parameters = new DialogParameters
+            {
+                ["BrandId"] = _brand.Id,
+                ["BrandName"] = _brand.Name
+            };
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<ModelDialog>(
+                TranslationService.GetTranslation("dialog.addModel", "Aggiungi Modello"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadModelsAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadModelsAsync();
+            Logger.LogError(ex, "Error in OpenAddModelDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditModelDialog(ModelDto model)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["Model"] = model
-        };
+            var parameters = new DialogParameters
+            {
+                ["Model"] = model
+            };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ModelDialog>(
-            TranslationService.GetTranslation("dialog.editModel", "Modifica Modello"),
-            parameters,
-            options
-        );
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<ModelDialog>(
+                TranslationService.GetTranslation("dialog.editModel", "Modifica Modello"),
+                parameters,
+                options
+            );
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadModelsAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadModelsAsync();
+            Logger.LogError(ex, "Error in OpenEditModelDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

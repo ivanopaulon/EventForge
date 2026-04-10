@@ -3,6 +3,8 @@
 @using EventForge.Client.Services.Sales
 @inject ITranslationService TranslationService
 @inject INoteFlagService NoteFlagService
+@inject IAppNotificationService AppNotification
+@inject ILogger<SessionNoteDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.StickyNote2"
           Title="Nota Sessione"
@@ -74,13 +76,21 @@
     
     protected override async Task OnInitializedAsync()
     {
-        // Carica flags attivi da backend
-        _noteFlags = await NoteFlagService.GetActiveAsync();
-        
-        // Pre-seleziona primo flag se disponibile
-        if (_noteFlags != null && _noteFlags.Count > 0)
+        try
         {
-            _selectedNoteFlagId = _noteFlags.First().Id;
+            // Carica flags attivi da backend
+            _noteFlags = await NoteFlagService.GetActiveAsync();
+
+            // Pre-seleziona primo flag se disponibile
+            if (_noteFlags != null && _noteFlags.Count > 0)
+            {
+                _selectedNoteFlagId = _noteFlags.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading note flags");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.loadFailed", "Errore durante il caricamento dei dati"));
         }
     }
     

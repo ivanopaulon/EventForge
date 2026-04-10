@@ -14,11 +14,12 @@ public class ProfileService(
     ITranslationService translationService) : IProfileService
 {
 
-    public async Task<UserProfileDto?> GetProfileAsync()
+    public async Task<UserProfileDto?> GetProfileAsync(CancellationToken ct = default)
     {
         try
         {
-            var profile = await httpClientService.GetAsync<UserProfileDto>("/api/v1/profile");
+            var profile = await httpClientService.GetAsync<UserProfileDto>("/api/v1/profile", ct);
+
             return profile;
         }
         catch (Exception ex)
@@ -31,11 +32,11 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UpdateProfileAsync(UpdateProfileDto updateDto)
+    public async Task<UserProfileDto?> UpdateProfileAsync(UpdateProfileDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var profile = await httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto);
+            var profile = await httpClientService.PutAsync<UpdateProfileDto, UserProfileDto>("/api/v1/profile", updateDto, ct);
 
             if (profile != null)
             {
@@ -56,7 +57,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType)
+    public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
     {
         var httpClient = httpClientFactory.CreateClient("ApiClient");
         try
@@ -110,7 +111,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> DeleteAvatarAsync()
+    public async Task<bool> DeleteAvatarAsync(CancellationToken ct = default)
     {
         try
         {
@@ -130,7 +131,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> ChangePasswordAsync(ChangePasswordDto changePasswordDto)
+    public async Task<bool> ChangePasswordAsync(ChangePasswordDto changePasswordDto, CancellationToken ct = default)
     {
         try
         {
@@ -150,7 +151,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<UserProfileDto?> UpdateNotificationPreferencesAsync(UpdateNotificationPreferencesDto preferencesDto)
+    public async Task<UserProfileDto?> UpdateNotificationPreferencesAsync(UpdateNotificationPreferencesDto preferencesDto, CancellationToken ct = default)
     {
         try
         {
@@ -177,11 +178,12 @@ public class ProfileService(
         }
     }
 
-    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync()
+    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync(CancellationToken ct = default)
     {
         try
         {
-            var sessions = await httpClientService.GetAsync<List<ActiveSessionDto>>("/api/v1/profile/sessions");
+            var sessions = await httpClientService.GetAsync<List<ActiveSessionDto>>("/api/v1/profile/sessions", ct);
+
             return sessions ?? new List<ActiveSessionDto>();
         }
         catch (Exception ex)
@@ -194,7 +196,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> TerminateSessionAsync(Guid sessionId)
+    public async Task<bool> TerminateSessionAsync(Guid sessionId, CancellationToken ct = default)
     {
         try
         {
@@ -214,7 +216,7 @@ public class ProfileService(
         }
     }
 
-    public async Task<bool> TerminateAllOtherSessionsAsync()
+    public async Task<bool> TerminateAllOtherSessionsAsync(CancellationToken ct = default)
     {
         try
         {
@@ -234,11 +236,12 @@ public class ProfileService(
         }
     }
 
-    public async Task<List<LoginHistoryDto>> GetLoginHistoryAsync(int days = 30)
+    public async Task<List<LoginHistoryDto>> GetLoginHistoryAsync(int days = 30, CancellationToken ct = default)
     {
         try
         {
-            var history = await httpClientService.GetAsync<List<LoginHistoryDto>>($"/api/v1/profile/login-history?days={days}");
+            var history = await httpClientService.GetAsync<List<LoginHistoryDto>>($"/api/v1/profile/login-history?days={days}", ct);
+
             return history ?? new List<LoginHistoryDto>();
         }
         catch (Exception ex)

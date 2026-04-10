@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Business;
 
-
 /// <summary>
 /// Represents a business entity (customer, supplier, or both).
 /// </summary>

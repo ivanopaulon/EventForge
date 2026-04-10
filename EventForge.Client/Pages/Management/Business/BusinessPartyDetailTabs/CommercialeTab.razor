@@ -157,10 +157,17 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(
-            LoadPriceListsAsync(),
-            LoadFidelityCardsAsync()
-        );
+        try
+        {
+            await Task.WhenAll(
+                LoadPriceListsAsync(),
+                LoadFidelityCardsAsync()
+            );
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing CommercialeTab.");
+        }
     }
     
     private async Task LoadPriceListsAsync()

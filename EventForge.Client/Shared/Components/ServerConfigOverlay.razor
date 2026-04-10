@@ -1,6 +1,8 @@
 @namespace EventForge.Client.Shared.Components
 @inject IServerConfigOverlayService OverlayService
 @inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ServerConfigOverlay> Logger
 @implements IDisposable
 
 @code {
@@ -16,20 +18,36 @@
 
     protected override async Task OnInitializedAsync()
     {
-        OverlayService.OnVisibilityChanged += OnVisibilityChanged;
+        try
+        {
+            OverlayService.OnVisibilityChanged += OnVisibilityChanged;
 
-        if (OverlayService.IsVisible)
-            await OpenDialogAsync();
+            if (OverlayService.IsVisible)
+                await OpenDialogAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnInitializedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnVisibilityChanged()
     {
         InvokeAsync(async () =>
         {
-            if (OverlayService.IsVisible)
-                await OpenDialogAsync();
-            else
-                await CloseDialogAsync();
+            try
+            {
+                if (OverlayService.IsVisible)
+                    await OpenDialogAsync();
+                else
+                    await CloseDialogAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in {MethodName}.", nameof(OnVisibilityChanged));
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            }
         });
     }
 

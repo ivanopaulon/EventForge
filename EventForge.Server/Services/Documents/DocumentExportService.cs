@@ -42,6 +42,7 @@ public class DocumentExportService(
 
             // Build query for documents to export
             var query = context.DocumentHeaders
+                .AsNoTracking()
                 .Include(d => d.DocumentType)
                 .Include(d => d.BusinessParty)
                 .Include(d => d.Rows)

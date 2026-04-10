@@ -16,7 +16,7 @@ public class PaymentMethodService(
     private const string BaseUrl = "api/v1/payment-methods";
     private const int DefaultPageSize = 100;
 
-    public async Task<List<PaymentMethodDto>?> GetAllAsync()
+    public async Task<List<PaymentMethodDto>?> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
@@ -29,7 +29,7 @@ public class PaymentMethodService(
             while (true)
             {
                 // Server returns PagedResult<PaymentMethodDto>
-                var pagedResult = await httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+                var pagedResult = await httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
 
                 if (pagedResult?.Items == null || !pagedResult.Items.Any())
                 {
@@ -52,14 +52,12 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving all payment methods: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving all payment methods");
             throw;
         }
     }
 
-    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50)
+    public async Task<PagedResult<PaymentMethodDto>> GetPagedAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
@@ -69,14 +67,12 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving paged payment methods (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving paged payment methods");
             throw;
         }
     }
 
-    public async Task<List<PaymentMethodDto>?> GetActiveAsync()
+    public async Task<List<PaymentMethodDto>?> GetActiveAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(CacheHelper.ACTIVE_PAYMENT_METHODS, out List<PaymentMethodDto>? cached) && cached != null)
         {
@@ -88,7 +84,8 @@ public class PaymentMethodService(
 
         try
         {
-            var pagedResult = await httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}/active");
+            var pagedResult = await httpClientService.GetAsync<PagedResult<PaymentMethodDto>>($"{BaseUrl}/active", ct);
+
             var activePaymentMethods = pagedResult?.Items?.ToList() ?? [];
 
             cache.Set(
@@ -107,33 +104,30 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving active payment methods: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving active payment methods");
             throw;
         }
     }
 
-    public async Task<PaymentMethodDto?> GetByIdAsync(Guid id)
+    public async Task<PaymentMethodDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<PaymentMethodDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<PaymentMethodDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error retrieving payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error retrieving payment method {Id}", id);
             throw;
         }
     }
 
-    public async Task<PaymentMethodDto?> CreateAsync(CreatePaymentMethodDto createDto)
+    public async Task<PaymentMethodDto?> CreateAsync(CreatePaymentMethodDto createDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto);
+            var result = await httpClientService.PostAsync<CreatePaymentMethodDto, PaymentMethodDto>(BaseUrl, createDto, ct);
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
@@ -143,18 +137,16 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error creating payment method: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error creating payment method");
             throw;
         }
     }
 
-    public async Task<PaymentMethodDto?> UpdateAsync(Guid id, UpdatePaymentMethodDto updateDto)
+    public async Task<PaymentMethodDto?> UpdateAsync(Guid id, UpdatePaymentMethodDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto);
+            var result = await httpClientService.PutAsync<UpdatePaymentMethodDto, PaymentMethodDto>($"{BaseUrl}/{id}", updateDto, ct);
 
             // Invalidate cache
             cache.Remove(CacheHelper.ACTIVE_PAYMENT_METHODS);
@@ -164,14 +156,12 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error updating payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error updating payment method {Id}", id);
             throw;
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -185,8 +175,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[PaymentMethodService] Error deleting payment method {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[PaymentMethodService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error deleting payment method {Id}", id);
             throw;
         }

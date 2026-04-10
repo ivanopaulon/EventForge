@@ -5,6 +5,7 @@
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<Admin> Logger
 
 <PageTitle>@TranslationService.GetTranslation("navigation.dashboard", "Admin Dashboard") - PRYM</PageTitle>
 
@@ -181,6 +182,7 @@ else
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading admin page");
             AppNotification.ShowError(TranslationService.GetTranslation("admin.loadError", "Error loading admin page: {0}", ex.Message));
             await ShowLoginDialog();
         }

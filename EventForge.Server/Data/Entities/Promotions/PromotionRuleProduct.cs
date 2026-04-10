@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Promotions;
 
-
 /// <summary>
 /// Associates a product with a promotion rule.
 /// </summary>

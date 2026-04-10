@@ -79,7 +79,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAddressesAsync();
+        try
+        {
+            await LoadAddressesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing AddressesTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -123,58 +130,74 @@
 
     private async Task OpenAddDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["OwnerId"] = Party.Id,
-            ["OwnerType"] = "BusinessParty"
-        };
+            var parameters = new DialogParameters
+            {
+                ["OwnerId"] = Party.Id,
+                ["OwnerType"] = "BusinessParty"
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<AddressDialog>(
-            TranslationService.GetTranslation("businessParty.addAddress", "Aggiungi Indirizzo"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<AddressDialog>(
+                TranslationService.GetTranslation("businessParty.addAddress", "Aggiungi Indirizzo"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadAddressesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadAddressesAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenAddDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(AddressDto address)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["Address"] = address
-        };
+            var parameters = new DialogParameters
+            {
+                ["Address"] = address
+            };
 
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+            var options = new DialogOptions 
+            { 
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
 
-        var dialog = await DialogService.ShowAsync<AddressDialog>(
-            TranslationService.GetTranslation("businessParty.editAddress", "Modifica Indirizzo"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<AddressDialog>(
+                TranslationService.GetTranslation("businessParty.editAddress", "Modifica Indirizzo"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
+            var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+            if (result is { Canceled: false })
+            {
+                await LoadAddressesAsync();
+                await OnPartyUpdated.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadAddressesAsync();
-            await OnPartyUpdated.InvokeAsync();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

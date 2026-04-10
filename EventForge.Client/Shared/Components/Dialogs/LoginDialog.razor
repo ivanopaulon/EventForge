@@ -5,6 +5,7 @@
 @inject IProfileService ProfileService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<LoginDialog> Logger
 
 <EFDialog Icon="@(_isChangePasswordMode ? Icons.Material.Outlined.Lock : Icons.Material.Outlined.Login)"
           Title="@(_isChangePasswordMode
@@ -176,119 +177,102 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTenantsAsync();
+        try
+        {
+            await LoadTenantsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing LoginDialog.");
+        }
     }
 
     private async Task LoadTenantsAsync()
     {
+        _isLoadingTenants = true;
+        StateHasChanged();
         try
         {
-            _isLoadingTenants = true;
-            StateHasChanged(); // Force UI update
-            
             _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
-
-            // Auto-select first tenant if none chosen
             if (_tenants.Any())
-            {
                 _selectedTenantId ??= _tenants.First().Id.ToString();
-            }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError", 
-                    "Errore nel caricamento dei tenant: {0}", ex.Message));
+            Logger.LogError(ex, "Failed to load tenants.");
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError",
+                "Errore nel caricamento dei tenant: {0}", ex.Message));
             _tenants = new List<TenantResponseDto>();
         }
         finally
         {
             _isLoadingTenants = false;
-            StateHasChanged(); // Force UI update
         }
     }
 
     private async Task HandleLogin()
     {
-        // Ensure form validation runs
         await form.ValidateAsync();
         if (!_isFormValid) return;
 
-        // Ensure tenant selected
         if (string.IsNullOrWhiteSpace(_selectedTenantId))
         {
             AppNotification.ShowWarning(TranslationService.GetTranslation("auth.tenantRequired", "Seleziona un tenant"));
             return;
         }
 
-        // Set tenant code on request
         _loginRequest.TenantCode = _selectedTenantId;
-
         _isLoading = true;
-        StateHasChanged(); // Force UI update
-        
+        StateHasChanged();
+
         try
         {
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"));
-                
-                // Check if user must change password
                 if (result.MustChangePassword)
-                {
                     HandleMustChangePassword();
-                }
                 else
-                {
-                    // Close dialog with success result
                     MudDialog.Close(DialogResult.Ok(true));
-                }
             }
             else
             {
-                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", 
-                        "Login failed. Please check your credentials."));
+                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed",
+                    "Login failed. Please check your credentials."));
             }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", 
-                    "Errore durante il login: {0}", ex.Message));
+            Logger.LogError(ex, "Login failed.");
+            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError",
+                "Errore durante il login: {0}", ex.Message));
         }
         finally
         {
             _isLoading = false;
-            StateHasChanged(); // Force UI update
         }
     }
 
     private void HandleMustChangePassword()
     {
-        // Switch to inline change password mode (mandatory)
         _isChangePasswordMode = true;
         _changePasswordIsMandatory = true;
         _isLoading = false;
-        StateHasChanged();
     }
 
     private void OpenChangePasswordInline()
     {
-        // Switch to inline change password mode (voluntary)
         _isChangePasswordMode = true;
         _changePasswordIsMandatory = false;
-        StateHasChanged();
     }
 
-    private async Task HandlePasswordChangeCompleted()
+    private void HandlePasswordChangeCompleted()
     {
         if (_changePasswordIsMandatory)
-        {
-            // Mandatory change: close dialog with success
             MudDialog.Close(DialogResult.Ok(true));
-        }
         else
         {
-            // Voluntary change: return to login form
             _isChangePasswordMode = false;
             StateHasChanged();
         }
@@ -298,41 +282,23 @@
     {
         if (_changePasswordIsMandatory)
         {
-            // Mandatory change cancelled: logout and close dialog
-            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired", 
-                    "Password change is required. You have been logged out."));
-            
+            AppNotification.ShowWarning(TranslationService.GetTranslation("auth.passwordChangeRequired",
+                "Password change is required. You have been logged out."));
             await AuthService.LogoutAsync();
-            
-            // Close the dialog
             MudDialog.Cancel();
         }
         else
         {
-            // Voluntary change cancelled: return to login form
             _isChangePasswordMode = false;
-            StateHasChanged();
         }
     }
 
     private void TogglePasswordVisibility()
     {
-        if (_passwordVisible)
-        {
-            _passwordVisible = false;
-            _passwordInputType = InputType.Password;
-            _passwordVisibilityIcon = Icons.Material.Filled.VisibilityOff;
-        }
-        else
-        {
-            _passwordVisible = true;
-            _passwordInputType = InputType.Text;
-            _passwordVisibilityIcon = Icons.Material.Filled.Visibility;
-        }
+        _passwordVisible = !_passwordVisible;
+        _passwordInputType = _passwordVisible ? InputType.Text : InputType.Password;
+        _passwordVisibilityIcon = _passwordVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff;
     }
 
-    private void Cancel()
-    {
-        MudDialog.Cancel();
-    }
+    private void Cancel() => MudDialog.Cancel();
 }

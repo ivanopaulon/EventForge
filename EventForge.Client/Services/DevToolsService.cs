@@ -12,21 +12,21 @@ public interface IDevToolsService
     /// </summary>
     /// <param name="request">Parametri di generazione</param>
     /// <returns>Risposta con ID del job avviato</returns>
-    Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request);
+    Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Ottiene lo stato di un job di generazione prodotti.
     /// </summary>
     /// <param name="jobId">ID del job</param>
     /// <returns>Stato del job</returns>
-    Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId);
+    Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId, CancellationToken ct = default);
 
     /// <summary>
     /// Cancella un job di generazione prodotti.
     /// </summary>
     /// <param name="jobId">ID del job da cancellare</param>
     /// <returns>True se cancellato con successo</returns>
-    Task<bool> CancelGenerateProductsAsync(string jobId);
+    Task<bool> CancelGenerateProductsAsync(string jobId, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -38,7 +38,7 @@ public class DevToolsService(
 {
     private const string BaseUrl = "api/v1/devtools";
 
-    public async Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request)
+    public async Task<GenerateProductsResponseDto?> GenerateProductsAsync(GenerateProductsRequestDto request, CancellationToken ct = default)
     {
         try
         {
@@ -54,7 +54,7 @@ public class DevToolsService(
         }
     }
 
-    public async Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId)
+    public async Task<GenerateProductsStatusDto?> GetGenerateProductsStatusAsync(string jobId, CancellationToken ct = default)
     {
         try
         {
@@ -68,7 +68,7 @@ public class DevToolsService(
         }
     }
 
-    public async Task<bool> CancelGenerateProductsAsync(string jobId)
+    public async Task<bool> CancelGenerateProductsAsync(string jobId, CancellationToken ct = default)
     {
         try
         {

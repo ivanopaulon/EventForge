@@ -6,7 +6,8 @@ namespace EventForge.Server.Services.Logging;
 /// Service implementation for managing application logs.
 /// </summary>
 public class ApplicationLogService(
-    EventForgeDbContext context) : IApplicationLogService
+    EventForgeDbContext context,
+    ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
 
     /// <summary>
@@ -16,33 +17,41 @@ public class ApplicationLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = context.LogEntries.AsQueryable();
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderByDescending(log => log.TimeStamp)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .Select(log => new DTOs.Logging.ApplicationLogDto
-            {
-                Id = log.Id,
-                TimeStamp = log.TimeStamp,
-                Level = log.Level,
-                Message = log.Message,
-                Exception = log.Exception,
-                MachineName = log.MachineName,
-                UserName = log.UserName
-            })
-            .ToListAsync(ct);
-
-        return new PagedResult<DTOs.Logging.ApplicationLogDto>
+        try
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
+            var query = context.LogEntries.AsNoTracking().AsQueryable();
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(log => log.TimeStamp)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(log => new DTOs.Logging.ApplicationLogDto
+                {
+                    Id = log.Id,
+                    TimeStamp = log.TimeStamp,
+                    Level = log.Level,
+                    Message = log.Message,
+                    Exception = log.Exception,
+                    MachineName = log.MachineName,
+                    UserName = log.UserName
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<DTOs.Logging.ApplicationLogDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetApplicationLogsAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -53,34 +62,42 @@ public class ApplicationLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var query = context.LogEntries
-            .Where(log => log.Level == level);
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderByDescending(log => log.TimeStamp)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .Select(log => new DTOs.Logging.ApplicationLogDto
-            {
-                Id = log.Id,
-                TimeStamp = log.TimeStamp,
-                Level = log.Level,
-                Message = log.Message,
-                Exception = log.Exception,
-                MachineName = log.MachineName,
-                UserName = log.UserName
-            })
-            .ToListAsync(ct);
-
-        return new PagedResult<DTOs.Logging.ApplicationLogDto>
+        try
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
+            var query = context.LogEntries.AsNoTracking()
+                .Where(log => log.Level == level);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(log => log.TimeStamp)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(log => new DTOs.Logging.ApplicationLogDto
+                {
+                    Id = log.Id,
+                    TimeStamp = log.TimeStamp,
+                    Level = log.Level,
+                    Message = log.Message,
+                    Exception = log.Exception,
+                    MachineName = log.MachineName,
+                    UserName = log.UserName
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<DTOs.Logging.ApplicationLogDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetLogsByLevelAsync for level {Level}.", level);
+            throw;
+        }
     }
 
     /// <summary>
@@ -92,36 +109,44 @@ public class ApplicationLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var end = endDate ?? DateTime.UtcNow;
-
-        var query = context.LogEntries
-            .Where(log => log.TimeStamp >= startDate && log.TimeStamp <= end);
-
-        var totalCount = await query.CountAsync(ct);
-
-        var items = await query
-            .OrderByDescending(log => log.TimeStamp)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .Select(log => new DTOs.Logging.ApplicationLogDto
-            {
-                Id = log.Id,
-                TimeStamp = log.TimeStamp,
-                Level = log.Level,
-                Message = log.Message,
-                Exception = log.Exception,
-                MachineName = log.MachineName,
-                UserName = log.UserName
-            })
-            .ToListAsync(ct);
-
-        return new PagedResult<DTOs.Logging.ApplicationLogDto>
+        try
         {
-            Items = items,
-            TotalCount = totalCount,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize
-        };
+            var end = endDate ?? DateTime.UtcNow;
+
+            var query = context.LogEntries.AsNoTracking()
+                .Where(log => log.TimeStamp >= startDate && log.TimeStamp <= end);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(log => log.TimeStamp)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .Select(log => new DTOs.Logging.ApplicationLogDto
+                {
+                    Id = log.Id,
+                    TimeStamp = log.TimeStamp,
+                    Level = log.Level,
+                    Message = log.Message,
+                    Exception = log.Exception,
+                    MachineName = log.MachineName,
+                    UserName = log.UserName
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<DTOs.Logging.ApplicationLogDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetLogsByDateRangeAsync from {StartDate} to {EndDate}.", startDate, endDate);
+            throw;
+        }
     }
 
 }

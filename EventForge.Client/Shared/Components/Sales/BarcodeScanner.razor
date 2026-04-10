@@ -99,7 +99,15 @@
     {
         if (firstRender && _barcodeInput != null)
         {
-            await _barcodeInput.FocusAsync();
+            try
+            {
+                await _barcodeInput.FocusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Errore nel focus iniziale del campo barcode.");
+                AppNotification.ShowWarning("Si è verificato un errore.");
+            }
         }
     }
 
@@ -107,7 +115,15 @@
     {
         if (_barcodeInput != null)
         {
-            await _barcodeInput.FocusAsync();
+            try
+            {
+                await _barcodeInput.FocusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Errore nel focus del campo barcode.");
+                AppNotification.ShowWarning("Si è verificato un errore.");
+            }
         }
     }
 

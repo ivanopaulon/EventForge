@@ -13,14 +13,14 @@ public interface IBrandingService
     /// </summary>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <returns>Branding configuration</returns>
-    Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null);
+    Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null, CancellationToken ct = default);
 
     /// <summary>
     /// Updates global branding configuration (requires SuperAdmin).
     /// </summary>
     /// <param name="updateDto">Branding update data</param>
     /// <returns>Updated branding configuration</returns>
-    Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto);
+    Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto, CancellationToken ct = default);
 
     /// <summary>
     /// Updates tenant-specific branding override (requires Manager).
@@ -28,13 +28,13 @@ public interface IBrandingService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="updateDto">Branding update data</param>
     /// <returns>Updated branding configuration</returns>
-    Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto);
+    Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes tenant branding override, reverting to global settings.
     /// </summary>
     /// <param name="tenantId">Tenant ID</param>
-    Task DeleteTenantBrandingAsync(Guid tenantId);
+    Task DeleteTenantBrandingAsync(Guid tenantId, CancellationToken ct = default);
 
     /// <summary>
     /// Uploads a logo file.
@@ -43,7 +43,7 @@ public interface IBrandingService
     /// <param name="fileName">File name</param>
     /// <param name="tenantId">Optional tenant ID for tenant-specific logo</param>
     /// <returns>Uploaded logo URL</returns>
-    Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null);
+    Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -58,7 +58,7 @@ public class BrandingService(
     private const string CacheKeyPrefix = "branding_client_";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
-    public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null)
+    public async Task<BrandingConfigurationDto> GetBrandingAsync(Guid? tenantId = null, CancellationToken ct = default)
     {
         try
         {
@@ -72,7 +72,7 @@ public class BrandingService(
             }
 
             var url = tenantId.HasValue ? $"{BaseUrl}?tenantId={tenantId}" : BaseUrl;
-            var branding = await httpClientService.GetAsync<BrandingConfigurationDto>(url);
+            var branding = await httpClientService.GetAsync<BrandingConfigurationDto>(url, ct);
 
             if (branding != null)
             {
@@ -97,7 +97,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto)
+    public async Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -116,7 +116,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto)
+    public async Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto, CancellationToken ct = default)
     {
         try
         {
@@ -135,7 +135,7 @@ public class BrandingService(
         }
     }
 
-    public async Task DeleteTenantBrandingAsync(Guid tenantId)
+    public async Task DeleteTenantBrandingAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -151,7 +151,7 @@ public class BrandingService(
         }
     }
 
-    public async Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null)
+    public async Task<string> UploadLogoAsync(byte[] content, string fileName, Guid? tenantId = null, CancellationToken ct = default)
     {
         try
         {
@@ -162,7 +162,7 @@ public class BrandingService(
 
             var url = tenantId.HasValue ? $"{BaseUrl}/upload?tenantId={tenantId}" : $"{BaseUrl}/upload";
 
-            var result = await httpClientService.PostAsync<MultipartFormDataContent, dynamic>(url, formContent);
+            var result = await httpClientService.PostAsync<MultipartFormDataContent, dynamic>(url, formContent, ct);
 
             if (result == null)
             {

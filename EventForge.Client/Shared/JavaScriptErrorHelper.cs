@@ -55,7 +55,10 @@ namespace EventForge.Client.Shared
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to handle JavaScript error: {ex.Message}");
+                // Last-resort fallback: logger may be unavailable if ServiceProvider is not set
+                var fallbackLogger = ServiceProvider?.GetService<ILoggerFactory>()?.CreateLogger("JavaScriptErrorHelper");
+                if (fallbackLogger != null)
+                    fallbackLogger.LogError(ex, "Failed to handle JavaScript error");
             }
         }
     }

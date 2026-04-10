@@ -1,5 +1,7 @@
 @using MudBlazor
 @using EventForge.DTOs.Notifications
+@inject ILogger<NotificationDetailDialog> Logger
+@inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Notifications"
           Title="@(Notification?.Payload?.Title ?? "Dettaglio notifica")"
@@ -128,9 +130,17 @@
 
     private async Task HandleMarkAsRead()
     {
-        if (Notification != null)
-            await OnMarkAsRead.InvokeAsync(Notification);
-        MudDialog.Close(DialogResult.Ok(true));
+        try
+        {
+            if (Notification != null)
+                await OnMarkAsRead.InvokeAsync(Notification);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la marcatura della notifica come letta");
+            AppNotification.ShowError("Errore durante l'aggiornamento della notifica.");
+        }
     }
 
     private Color GetPriorityColor(NotificationPriority priority) => priority switch

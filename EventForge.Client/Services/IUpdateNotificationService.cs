@@ -76,5 +76,5 @@ public interface IUpdateNotificationService
     Task TriggerUnblockQueueAsync(Guid installationId, Guid packageId, bool skipAndRemove, CancellationToken ct = default);
 
     /// <summary>Refreshes <see cref="AvailableUpdatesCount"/> from the UpdateHub (SuperAdmin only).</summary>
-    Task RefreshAvailableUpdatesCountAsync();
+    Task RefreshAvailableUpdatesCountAsync(CancellationToken ct = default);
 }

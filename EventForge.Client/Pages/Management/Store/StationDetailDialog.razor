@@ -9,6 +9,7 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<StationDetailDialog> Logger
+@inject IAppNotificationService AppNotification
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Kitchen"
@@ -163,8 +164,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing StationDetailDialog.");
+        }
     }
 
     private void HandleEntityChanged()
@@ -180,10 +188,18 @@
             if (!_form.IsValid) return;
         }
 
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
+        try
         {
-            MudDialog.Close(DialogResult.Ok(true));
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving station.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
         }
     }
 

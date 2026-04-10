@@ -13,7 +13,9 @@ public class InventoryDiagnosticService(
 
     public async Task<InventoryDiagnosticReportDto> DiagnoseDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting diagnostic for inventory document {DocumentId}", documentId);
+        try
+        {
+            logger.LogInformation("Starting diagnostic for inventory document {DocumentId}", documentId);
 
         var report = new InventoryDiagnosticReportDto
         {
@@ -156,6 +158,12 @@ public class InventoryDiagnosticService(
             documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
 
         return report;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DiagnoseDocumentAsync for {DocumentId}.", documentId);
+            throw;
+        }
     }
 
     public async Task<InventoryRepairResultDto> AutoRepairDocumentAsync(
@@ -317,53 +325,61 @@ public class InventoryDiagnosticService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Repairing row {RowId} in document {DocumentId}", rowId, documentId);
-
-        var row = await context.DocumentRows
-            .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && !r.IsDeleted)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (row is null)
+        try
         {
-            logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
-            return false;
+            logger.LogInformation("Repairing row {RowId} in document {DocumentId}", rowId, documentId);
+
+            var row = await context.DocumentRows
+                .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (row is null)
+            {
+                logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
+                return false;
+            }
+
+            var modified = false;
+
+            if (repairData.NewProductId.HasValue && repairData.NewProductId.Value != row.ProductId)
+            {
+                row.ProductId = repairData.NewProductId.Value;
+                modified = true;
+            }
+
+            if (repairData.NewLocationId.HasValue && repairData.NewLocationId.Value != row.LocationId)
+            {
+                row.LocationId = repairData.NewLocationId.Value;
+                modified = true;
+            }
+
+            if (repairData.NewQuantity.HasValue && repairData.NewQuantity.Value != row.Quantity)
+            {
+                row.Quantity = repairData.NewQuantity.Value;
+                modified = true;
+            }
+
+            if (repairData.NewNotes is not null && repairData.NewNotes != row.Notes)
+            {
+                row.Notes = repairData.NewNotes;
+                modified = true;
+            }
+
+            if (modified)
+            {
+                row.ModifiedBy = currentUser;
+                row.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Row {RowId} repaired successfully", rowId);
+            }
+
+            return modified;
         }
-
-        var modified = false;
-
-        if (repairData.NewProductId.HasValue && repairData.NewProductId.Value != row.ProductId)
+        catch (Exception ex)
         {
-            row.ProductId = repairData.NewProductId.Value;
-            modified = true;
+            logger.LogError(ex, "Error in RepairRowAsync for row {RowId} in document {DocumentId}.", rowId, documentId);
+            throw;
         }
-
-        if (repairData.NewLocationId.HasValue && repairData.NewLocationId.Value != row.LocationId)
-        {
-            row.LocationId = repairData.NewLocationId.Value;
-            modified = true;
-        }
-
-        if (repairData.NewQuantity.HasValue && repairData.NewQuantity.Value != row.Quantity)
-        {
-            row.Quantity = repairData.NewQuantity.Value;
-            modified = true;
-        }
-
-        if (repairData.NewNotes is not null && repairData.NewNotes != row.Notes)
-        {
-            row.Notes = repairData.NewNotes;
-            modified = true;
-        }
-
-        if (modified)
-        {
-            row.ModifiedBy = currentUser;
-            row.ModifiedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync(cancellationToken);
-            logger.LogInformation("Row {RowId} repaired successfully", rowId);
-        }
-
-        return modified;
     }
 
     public async Task<int> RemoveProblematicRowsAsync(
@@ -372,24 +388,32 @@ public class InventoryDiagnosticService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Removing {Count} problematic rows from document {DocumentId}", rowIds.Count, documentId);
-
-        var rows = await context.DocumentRows
-            .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && !r.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        foreach (var row in rows)
+        try
         {
-            row.IsDeleted = true;
-            row.ModifiedBy = currentUser;
-            row.ModifiedAt = DateTime.UtcNow;
+            logger.LogInformation("Removing {Count} problematic rows from document {DocumentId}", rowIds.Count, documentId);
+
+            var rows = await context.DocumentRows
+                .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+            {
+                row.IsDeleted = true;
+                row.ModifiedBy = currentUser;
+                row.ModifiedAt = DateTime.UtcNow;
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Removed {Count} rows from document {DocumentId}", rows.Count, documentId);
+
+            return rows.Count;
         }
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation("Removed {Count} rows from document {DocumentId}", rows.Count, documentId);
-
-        return rows.Count;
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in RemoveProblematicRowsAsync for document {DocumentId}.", documentId);
+            throw;
+        }
     }
 
 }

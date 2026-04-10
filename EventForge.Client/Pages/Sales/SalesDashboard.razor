@@ -6,6 +6,8 @@
 @inject IFiscalDrawerService FiscalDrawerService
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
+@inject ILogger<SalesDashboard> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("sales.dashboard", "Dashboard Vendite")</PageTitle>
 
@@ -196,9 +198,20 @@
     {
         _loading = true;
         StateHasChanged();
-        _dashboard = await FiscalDrawerService.GetSalesDashboardAsync();
-        _loading = false;
-        StateHasChanged();
+        try
+        {
+            _dashboard = await FiscalDrawerService.GetSalesDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading sales dashboard data.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento del dashboard.");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private static string FormatEuro(decimal amount) => $"€ {amount:N2}";

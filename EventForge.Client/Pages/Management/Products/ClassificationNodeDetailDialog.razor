@@ -595,57 +595,89 @@
 
     private async Task OpenCreateChildDialogAsync()
     {
-        if (_node == null) return;
-        var p = new DialogParameters
+        try
         {
-            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
-            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)_node.Id
-        };
-        var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
+            if (_node == null) return;
+            var p = new DialogParameters
+            {
+                [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
+                [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)_node.Id
+            };
+            var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
+            var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenCreateChildDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OpenChildDetailDialogAsync(Guid childId)
     {
-        var p = new DialogParameters
+        try
         {
-            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)childId
-        };
-        var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
-        var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
+            var p = new DialogParameters
+            {
+                [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)childId
+            };
+            var d = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, p, EFDialogDefaults.Options);
+            var _dr = await d.Result; if (_dr is { Canceled: false }) await LoadChildrenAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenChildDetailDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OpenAuditDialog()
     {
-        if (_node == null || _isCreateMode) return;
-
-        var parameters = new DialogParameters<AuditHistoryDialog>
+        try
         {
-            { x => x.EntityType, "ClassificationNode" },
-            { x => x.EntityId, _node.Id },
-            { x => x.EntityName, _node.Name }
-        };
+            if (_node == null || _isCreateMode) return;
 
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, "ClassificationNode" },
+                { x => x.EntityId, _node.Id },
+                { x => x.EntityName, _node.Name }
+            };
+
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenAuditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task Cancel()
     {
-        if (HasUnsavedChanges())
+        try
         {
-            var result = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("classificationNode.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
-                yesText: TranslationService.GetTranslation("common.save", "Salva"),
-                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
-                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-            if (result == null) return;
-            if (result == true) { await SaveAsync(); return; }
+            if (HasUnsavedChanges())
+            {
+                var result = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("classificationNode.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                    yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                    noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                    cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+                if (result == null) return;
+                if (result == true) { await SaveAsync(); return; }
+            }
+            MudDialog.Close();
         }
-        MudDialog.Close();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Cancel.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private string GetNodeDisplayName(ClassificationNodeDto node)

@@ -38,8 +38,6 @@ public class LicenseFeature : AuditableEntity
     [Display(Name = "Category", Description = "Category/module this feature belongs to.")]
     public string Category { get; set; } = string.Empty;
 
-
-
     /// <summary>
     /// Foreign key to the license this feature belongs to.
     /// </summary>

@@ -207,8 +207,6 @@
             </MudGrid>
         </MudPaper>
 
-
-
         <!-- Inventory Document Rows with Enhanced Features -->
         @if (_currentDocument?.Rows?.Any() == true)
         {
@@ -535,9 +533,17 @@
 
     private async Task HandleSearch(string searchTerm)
     {
-        _searchTerm = searchTerm;
-        StateHasChanged();
-        await Task.CompletedTask;
+        try
+        {
+            _searchTerm = searchTerm;
+            StateHasChanged();
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleSearch.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task RestoreInventorySessionAsync()
@@ -822,14 +828,22 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        try
         {
-            // Auto-focus on barcode input when page loads with an active session
-            if (_barcodeInput != null && _currentDocument != null)
+            if (firstRender)
             {
-                await Task.Delay(100); // Small delay to ensure DOM is ready
-                await _barcodeInput.FocusAsync();
+                // Auto-focus on barcode input when page loads with an active session
+                if (_barcodeInput != null && _currentDocument != null)
+                {
+                    await Task.Delay(100); // Small delay to ensure DOM is ready
+                    await _barcodeInput.FocusAsync();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1217,17 +1231,25 @@
 
     private async Task OnBarcodeKeyDown(KeyboardEventArgs e)
     {
-        // Read value directly from component reference instead of bound variable
-        // to avoid synchronization issues between KeyDown event and data binding
-        if (e.Key == "Enter")
+        try
         {
-            var currentValue = _scannedBarcode;
-            if (!string.IsNullOrWhiteSpace(currentValue))
+            // Read value directly from component reference instead of bound variable
+            // to avoid synchronization issues between KeyDown event and data binding
+            if (e.Key == "Enter")
             {
-                // Update the bound variable to stay in sync before calling search
-                _scannedBarcode = currentValue;
-                await SearchBarcode();
+                var currentValue = _scannedBarcode;
+                if (!string.IsNullOrWhiteSpace(currentValue))
+                {
+                    // Update the bound variable to stay in sync before calling search
+                    _scannedBarcode = currentValue;
+                    await SearchBarcode();
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnBarcodeKeyDown.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -1971,7 +1993,6 @@
         }
     }
 
-
     private async Task EditInventoryRow(InventoryDocumentRowDto row)
     {
         if (_currentDocument == null)
@@ -2277,10 +2298,18 @@
 
     private async Task OpenManageInventoriesDialog()
     {
-        var mode = _currentDocument != null 
-            ? ManageActiveInventoriesDialog.InventoryDialogMode.SwitchInventory 
-            : ManageActiveInventoriesDialog.InventoryDialogMode.InitialCheck;
-        await ShowManageInventoriesDialog(mode, autoShow: false);
+        try
+        {
+            var mode = _currentDocument != null 
+                ? ManageActiveInventoriesDialog.InventoryDialogMode.SwitchInventory 
+                : ManageActiveInventoriesDialog.InventoryDialogMode.InitialCheck;
+            await ShowManageInventoriesDialog(mode, autoShow: false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenManageInventoriesDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ShowManageInventoriesDialog(ManageActiveInventoriesDialog.InventoryDialogMode mode, bool autoShow)

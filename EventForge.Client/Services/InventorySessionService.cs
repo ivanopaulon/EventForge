@@ -88,32 +88,32 @@ public interface IInventorySessionService
     /// <summary>
     /// Saves the current inventory session state.
     /// </summary>
-    Task SaveSessionAsync(InventorySessionState state);
+    Task SaveSessionAsync(InventorySessionState state, CancellationToken ct = default);
 
     /// <summary>
     /// Loads the current inventory session state.
     /// </summary>
-    Task<InventorySessionState?> LoadSessionAsync();
+    Task<InventorySessionState?> LoadSessionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Clears the current inventory session state.
     /// </summary>
-    Task ClearSessionAsync();
+    Task ClearSessionAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Checks if there's an active inventory session.
     /// </summary>
-    Task<bool> HasActiveSessionAsync();
+    Task<bool> HasActiveSessionAsync(CancellationToken ct = default);
 }
 
 /// <summary>
 /// Implementation of inventory session service using localStorage for persistence.
 /// </summary>
-public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionService
+public class InventorySessionService(IJSRuntime jsRuntime, ILogger<InventorySessionService> logger) : IInventorySessionService
 {
     private const string SessionKey = "eventforge-inventory-session";
 
-    public async Task SaveSessionAsync(InventorySessionState state)
+    public async Task SaveSessionAsync(InventorySessionState state, CancellationToken ct = default)
     {
         try
         {
@@ -122,11 +122,11 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving inventory session: {ex.Message}");
+            logger.LogError(ex, "Error saving inventory session");
         }
     }
 
-    public async Task<InventorySessionState?> LoadSessionAsync()
+    public async Task<InventorySessionState?> LoadSessionAsync(CancellationToken ct = default)
     {
         try
         {
@@ -140,12 +140,12 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading inventory session: {ex.Message}");
+            logger.LogError(ex, "Error loading inventory session");
             return null;
         }
     }
 
-    public async Task ClearSessionAsync()
+    public async Task ClearSessionAsync(CancellationToken ct = default)
     {
         try
         {
@@ -153,11 +153,11 @@ public class InventorySessionService(IJSRuntime jsRuntime) : IInventorySessionSe
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error clearing inventory session: {ex.Message}");
+            logger.LogError(ex, "Error clearing inventory session");
         }
     }
 
-    public async Task<bool> HasActiveSessionAsync()
+    public async Task<bool> HasActiveSessionAsync(CancellationToken ct = default)
     {
         var session = await LoadSessionAsync();
         return session != null;

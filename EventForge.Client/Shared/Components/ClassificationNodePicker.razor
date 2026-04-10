@@ -91,8 +91,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Title = string.IsNullOrWhiteSpace(Title) ? TranslationService.GetTranslation("classificationNode.selectNode", "Seleziona nodo") : Title;
-        await LoadNodesAsync();
+        try
+        {
+            Title = string.IsNullOrWhiteSpace(Title) ? TranslationService.GetTranslation("classificationNode.selectNode", "Seleziona nodo") : Title;
+            await LoadNodesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del selettore nodi.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task LoadNodesAsync()
@@ -189,17 +197,33 @@
 
     private async Task ToggleSelect(ClassificationNodeTreeItem item)
     {
-        if (!item.IsSelectable) return;
-        SelectedId = item.Node.Id;
-        _selectedNode = item.Node;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            if (!item.IsSelectable) return;
+            SelectedId = item.Node.Id;
+            _selectedNode = item.Node;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nella selezione del nodo di classificazione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task OnSearchChanged(string value)
     {
-        _searchTerm = value;
-        RecomputeTree();
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _searchTerm = value;
+            RecomputeTree();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la ricerca dei nodi di classificazione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private void Cancel()

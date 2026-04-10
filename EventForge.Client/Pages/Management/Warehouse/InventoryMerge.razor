@@ -5,6 +5,7 @@
 @inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject ILogger<InventoryMerge> Logger
 
 <PageTitle>Accorpamento Inventari</PageTitle>
 
@@ -355,7 +356,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadOpenDocumentsAsync();
+        try
+        {
+            await LoadOpenDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task LoadOpenDocumentsAsync()
@@ -451,13 +460,21 @@
 
     private async Task ResetWizard()
     {
-        _preview           = null;
-        _result            = null;
-        _selectedDocuments = new();
-        _targetDocumentId  = null;
-        _mergeNotes        = null;
-        _activeStep        = 0;
-        await LoadOpenDocumentsAsync();
+        try
+        {
+            _preview           = null;
+            _result            = null;
+            _selectedDocuments = new();
+            _targetDocumentId  = null;
+            _mergeNotes        = null;
+            _activeStep        = 0;
+            await LoadOpenDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ResetWizard.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private static Color GetStatusColor(string? status) => status switch

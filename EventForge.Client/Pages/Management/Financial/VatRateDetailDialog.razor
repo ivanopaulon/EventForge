@@ -211,8 +211,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadVatNaturesAsync();
-        await LoadVatRateAsync();
+        try
+        {
+            await LoadVatNaturesAsync();
+            await LoadVatRateAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing VatRateDetailDialog.");
+        }
     }
 
     private async Task LoadVatRateAsync()

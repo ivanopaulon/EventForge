@@ -34,12 +34,12 @@ public class PaymentTermDetailViewModel : BaseEntityDetailViewModel<PaymentTermD
         };
     }
 
-    protected override async Task<PaymentTermDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override async Task<PaymentTermDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return await _financialService.GetPaymentTermAsync(entityId);
+        return await _financialService.GetPaymentTermAsync(entityId, ct);
     }
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         // PaymentTerm is standalone - no related entities
         await Task.CompletedTask;
@@ -67,14 +67,14 @@ public class PaymentTermDetailViewModel : BaseEntityDetailViewModel<PaymentTermD
         };
     }
 
-    protected override async Task<PaymentTermDto?> CreateEntityAsync(CreatePaymentTermDto createDto)
+    protected override async Task<PaymentTermDto?> CreateEntityAsync(CreatePaymentTermDto createDto, CancellationToken ct = default)
     {
-        return await _financialService.CreatePaymentTermAsync(createDto);
+        return await _financialService.CreatePaymentTermAsync(createDto, ct);
     }
 
-    protected override async Task<PaymentTermDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTermDto updateDto)
+    protected override async Task<PaymentTermDto?> UpdateEntityAsync(Guid entityId, UpdatePaymentTermDto updateDto, CancellationToken ct = default)
     {
-        return await _financialService.UpdatePaymentTermAsync(entityId, updateDto);
+        return await _financialService.UpdatePaymentTermAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(PaymentTermDto entity)

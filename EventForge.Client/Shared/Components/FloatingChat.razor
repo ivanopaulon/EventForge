@@ -496,22 +496,29 @@
     // ─── Lifecycle ────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        var user = await AuthService.GetCurrentUserAsync();
-        if (user != null)
+        try
         {
-            _currentUserId = user.Id;
-            _currentTenantId = user.TenantId;
-        }
+            var user = await AuthService.GetCurrentUserAsync();
+            if (user != null)
+            {
+                _currentUserId = user.Id;
+                _currentTenantId = user.TenantId;
+            }
 
-        if (!RealtimeService.IsChatConnected)
+            if (!RealtimeService.IsChatConnected)
+            {
+                await RealtimeService.StartChatConnectionAsync();
+            }
+
+            ChatService.ChatCreated += OnChatCreated;
+            ChatService.MessageReceived += OnMessageReceived;
+            ChatService.TypingIndicator += OnTypingIndicator;
+            ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
+        }
+        catch (Exception ex)
         {
-            await RealtimeService.StartChatConnectionAsync();
+            Logger.LogError(ex, "Error initializing FloatingChat.");
         }
-
-        ChatService.ChatCreated += OnChatCreated;
-        ChatService.MessageReceived += OnMessageReceived;
-        ChatService.TypingIndicator += OnTypingIndicator;
-        ChatService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -561,6 +568,10 @@
         {
             _chats = await ChatService.GetChatsAsync();
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading chat list");
+        }
         finally
         {
             _isLoading = false;
@@ -590,7 +601,12 @@
             {
                 Logger.LogDebug(ex, "JoinChatAsync could not join chat room {ChatId}", chat.Id);
                 // JoinChatAsync may be unavailable in some configurations
+                Logger.LogWarning(ex, "Could not join SignalR chat room {ChatId}", chat.Id);
             }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening chat {ChatId}", chat.Id);
         }
         finally
         {

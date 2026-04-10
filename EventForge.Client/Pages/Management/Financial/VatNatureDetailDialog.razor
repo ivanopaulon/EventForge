@@ -149,7 +149,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadVatNatureAsync();
+        try
+        {
+            await LoadVatNatureAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing VatNatureDetailDialog.");
+        }
     }
 
     private async Task LoadVatNatureAsync()

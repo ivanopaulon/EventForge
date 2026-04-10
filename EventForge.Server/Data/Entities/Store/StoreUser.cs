@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Store;
 
-
 /// <summary>
 /// Represents an operator/cashier who can use a cash register.
 /// </summary>

@@ -6,20 +6,20 @@ namespace EventForge.Client.Services
 {
     public interface IHealthService
     {
-        Task<HealthStatusDto?> GetHealthAsync();
-        Task<DetailedHealthStatusDto?> GetDetailedHealthAsync();
+        Task<HealthStatusDto?> GetHealthAsync(CancellationToken ct = default);
+        Task<DetailedHealthStatusDto?> GetDetailedHealthAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Fetches the status of the co-located UpdateAgent from the Server proxy.
         /// Returns null when the Agent is not configured or unreachable.
         /// </summary>
-        Task<AgentStatusClientDto?> GetAgentStatusAsync();
+        Task<AgentStatusClientDto?> GetAgentStatusAsync(CancellationToken ct = default);
 
         /// <summary>
         /// Asks the Server to restart the co-located UpdateAgent Windows Service.
         /// Requires SuperAdmin. Returns (Success, Message).
         /// </summary>
-        Task<(bool Success, string Message)> RestartAgentAsync();
+        Task<(bool Success, string Message)> RestartAgentAsync(CancellationToken ct = default);
     }
 
     public class HealthService(
@@ -27,21 +27,22 @@ namespace EventForge.Client.Services
         IHttpClientService httpClientService,
         ILogger<HealthService> logger) : IHealthService
     {
-        public Task<HealthStatusDto?> GetHealthAsync()
+        public Task<HealthStatusDto?> GetHealthAsync(CancellationToken ct = default)
             => GetAnonymousAsync<HealthStatusDto>("api/v1/health");
 
-        public Task<DetailedHealthStatusDto?> GetDetailedHealthAsync()
+        public Task<DetailedHealthStatusDto?> GetDetailedHealthAsync(CancellationToken ct = default)
             => GetAnonymousAsync<DetailedHealthStatusDto>("api/v1/health/detailed");
 
         /// <summary>
         /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
         /// is included — required because <c>GET api/v1/system/agent-status</c> has [Authorize].
         /// </summary>
-        public async Task<AgentStatusClientDto?> GetAgentStatusAsync()
+        public async Task<AgentStatusClientDto?> GetAgentStatusAsync(CancellationToken ct = default)
         {
             try
             {
-                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status");
+                return await httpClientService.GetAsync<AgentStatusClientDto>("api/v1/system/agent-status", ct);
+
             }
             catch (Exception ex)
             {
@@ -54,7 +55,7 @@ namespace EventForge.Client.Services
         /// Uses the authenticated <see cref="IHttpClientService"/> so the JWT Bearer token
         /// is included — required because <c>POST api/v1/system/agent-status/restart</c> has [Authorize(Roles="SuperAdmin")].
         /// </summary>
-        public async Task<(bool Success, string Message)> RestartAgentAsync()
+        public async Task<(bool Success, string Message)> RestartAgentAsync(CancellationToken ct = default)
         {
             try
             {

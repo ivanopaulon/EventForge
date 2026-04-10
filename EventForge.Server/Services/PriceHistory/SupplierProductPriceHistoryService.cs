@@ -169,6 +169,7 @@ public class SupplierProductPriceHistoryService(
             }
 
             var query = context.SupplierProductPriceHistories
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId && h.ProductId == productId);
 
@@ -190,6 +191,7 @@ public class SupplierProductPriceHistoryService(
 
             var statistics = await CalculateStatisticsAsync(
                 context.SupplierProductPriceHistories
+                    .AsNoTracking()
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.SupplierId == supplierId && h.ProductId == productId),
                 cancellationToken);
@@ -226,6 +228,7 @@ public class SupplierProductPriceHistoryService(
             }
 
             var query = context.SupplierProductPriceHistories
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId);
 
@@ -247,6 +250,7 @@ public class SupplierProductPriceHistoryService(
 
             var statistics = await CalculateStatisticsAsync(
                 context.SupplierProductPriceHistories
+                    .AsNoTracking()
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.SupplierId == supplierId),
                 cancellationToken);
@@ -283,6 +287,7 @@ public class SupplierProductPriceHistoryService(
             }
 
             var query = context.SupplierProductPriceHistories
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.ProductId == productId);
 
@@ -304,6 +309,7 @@ public class SupplierProductPriceHistoryService(
 
             var statistics = await CalculateStatisticsAsync(
                 context.SupplierProductPriceHistories
+                    .AsNoTracking()
                     .WhereActiveTenant(currentTenantId.Value)
                     .Where(h => h.ProductId == productId),
                 cancellationToken);
@@ -340,6 +346,7 @@ public class SupplierProductPriceHistoryService(
             }
 
             var query = context.SupplierProductPriceHistories
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId);
 
@@ -374,6 +381,7 @@ public class SupplierProductPriceHistoryService(
             }
 
             var trendData = await context.SupplierProductPriceHistories
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Where(h => h.SupplierId == supplierId && h.ProductId == productId)
                 .Where(h => h.ChangedAt >= fromDate && h.ChangedAt <= toDate)

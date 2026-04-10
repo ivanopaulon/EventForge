@@ -33,166 +33,182 @@ public class SupplierSuggestionService(
 
     public async Task<SupplierSuggestionResponse> GetSupplierSuggestionsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
-        if (tenantId == Guid.Empty)
+        try
         {
-            throw new InvalidOperationException("Tenant context is not available.");
-        }
+            var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
+            if (tenantId == Guid.Empty)
+            {
+                throw new InvalidOperationException("Tenant context is not available.");
+            }
 
-        // Get product details
-        var product = await context.Products
-            .Where(p => p.Id == productId && p.TenantId == tenantId)
-            .FirstOrDefaultAsync(cancellationToken);
+            // Get product details
+            var product = await context.Products.AsNoTracking()
+                .Where(p => p.Id == productId && p.TenantId == tenantId)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        if (product is null)
-        {
-            throw new InvalidOperationException($"Product with ID {productId} not found.");
-        }
+            if (product is null)
+            {
+                throw new InvalidOperationException($"Product with ID {productId} not found.");
+            }
 
-        // Calculate suggestions
-        var suggestions = await CalculateSuggestionsAsync(productId, cancellationToken);
+            // Calculate suggestions
+            var suggestions = await CalculateSuggestionsAsync(productId, cancellationToken);
 
-        if (suggestions.Count == 0)
-        {
+            if (suggestions.Count == 0)
+            {
+                return new SupplierSuggestionResponse
+                {
+                    ProductId = productId,
+                    ProductCode = product.Code,
+                    ProductName = product.Name,
+                    Suggestions = suggestions,
+                    RecommendedSupplier = null,
+                    PotentialSavings = 0,
+                    RecommendationExplanation = "No suppliers available for comparison."
+                };
+            }
+
+            // Get the recommended supplier (highest score)
+            var recommended = suggestions.OrderByDescending(s => s.TotalScore).First();
+
+            // Calculate potential savings compared to current preferred
+            var currentPreferred = suggestions.FirstOrDefault(s => s.IsCurrentPreferred);
+            var potentialSavings = 0m;
+            if (currentPreferred is not null && currentPreferred.UnitCost.HasValue && recommended.UnitCost.HasValue)
+            {
+                potentialSavings = currentPreferred.UnitCost.Value - recommended.UnitCost.Value;
+            }
+
+            // Generate explanation
+            var explanation = await GenerateRecommendationExplanationAsync(recommended, product);
+
+            // Generate alert if there's a significantly better supplier (FASE 5 integration)
+            if (alertService is not null && currentPreferred is not null && recommended is not null &&
+                recommended.SupplierId != currentPreferred.SupplierId &&
+                recommended.TotalScore > currentPreferred.TotalScore + _alertScoreDifferenceThreshold)
+            {
+                try
+                {
+                    await alertService.Value.GenerateAlertsForBetterSupplierAsync(
+                        productId,
+                        currentPreferred.SupplierId,
+                        recommended.SupplierId,
+                        cancellationToken);
+                }
+                catch (Exception alertEx)
+                {
+                    logger.LogWarning(alertEx, "Failed to generate better supplier alert for product {ProductId}", productId);
+                    // Don't throw - alerts are not critical to suggestions
+                }
+            }
+
             return new SupplierSuggestionResponse
             {
                 ProductId = productId,
                 ProductCode = product.Code,
                 ProductName = product.Name,
                 Suggestions = suggestions,
-                RecommendedSupplier = null,
-                PotentialSavings = 0,
-                RecommendationExplanation = "No suppliers available for comparison."
+                RecommendedSupplier = recommended,
+                PotentialSavings = potentialSavings,
+                RecommendationExplanation = explanation
             };
         }
-
-        // Get the recommended supplier (highest score)
-        var recommended = suggestions.OrderByDescending(s => s.TotalScore).First();
-
-        // Calculate potential savings compared to current preferred
-        var currentPreferred = suggestions.FirstOrDefault(s => s.IsCurrentPreferred);
-        var potentialSavings = 0m;
-        if (currentPreferred is not null && currentPreferred.UnitCost.HasValue && recommended.UnitCost.HasValue)
+        catch (Exception ex)
         {
-            potentialSavings = currentPreferred.UnitCost.Value - recommended.UnitCost.Value;
+            logger.LogError(ex, "Error in GetSupplierSuggestionsAsync for product {ProductId}.", productId);
+            throw;
         }
-
-        // Generate explanation
-        var explanation = await GenerateRecommendationExplanationAsync(recommended, product);
-
-        // Generate alert if there's a significantly better supplier (FASE 5 integration)
-        if (alertService is not null && currentPreferred is not null && recommended is not null &&
-            recommended.SupplierId != currentPreferred.SupplierId &&
-            recommended.TotalScore > currentPreferred.TotalScore + _alertScoreDifferenceThreshold)
-        {
-            try
-            {
-                await alertService.Value.GenerateAlertsForBetterSupplierAsync(
-                    productId,
-                    currentPreferred.SupplierId,
-                    recommended.SupplierId,
-                    cancellationToken);
-            }
-            catch (Exception alertEx)
-            {
-                logger.LogWarning(alertEx, "Failed to generate better supplier alert for product {ProductId}", productId);
-                // Don't throw - alerts are not critical to suggestions
-            }
-        }
-
-        return new SupplierSuggestionResponse
-        {
-            ProductId = productId,
-            ProductCode = product.Code,
-            ProductName = product.Name,
-            Suggestions = suggestions,
-            RecommendedSupplier = recommended,
-            PotentialSavings = potentialSavings,
-            RecommendationExplanation = explanation
-        };
     }
 
     public async Task<List<SupplierSuggestion>> CalculateSuggestionsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
-        var cacheKey = $"SupplierSuggestions_{productId}_{tenantId}";
-
-        // Try to get from cache
-        if (cache.TryGetValue<List<SupplierSuggestion>>(cacheKey, out var cachedSuggestions) && cachedSuggestions is not null)
+        try
         {
-            return cachedSuggestions;
-        }
+            var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
+            var cacheKey = $"SupplierSuggestions_{productId}_{tenantId}";
 
-        if (tenantId == Guid.Empty)
-        {
-            throw new InvalidOperationException("Tenant context is not available.");
-        }
-
-        // Get all suppliers for this product
-        var productSuppliers = await context.ProductSuppliers
-            .Include(ps => ps.Supplier)
-            .Where(ps => ps.ProductId == productId && ps.TenantId == tenantId)
-            .ToListAsync(cancellationToken);
-
-        if (productSuppliers.Count < 2)
-        {
-            // Need at least 2 suppliers for comparison
-            return [];
-        }
-
-        var suggestions = new List<SupplierSuggestion>();
-
-        foreach (var ps in productSuppliers)
-        {
-            if (ps.Supplier is null) continue;
-
-            var suggestion = new SupplierSuggestion
+            // Try to get from cache
+            if (cache.TryGetValue<List<SupplierSuggestion>>(cacheKey, out var cachedSuggestions) && cachedSuggestions is not null)
             {
-                SupplierId = ps.SupplierId,
-                SupplierName = ps.Supplier.Name,
-                IsCurrentPreferred = ps.Preferred,
-                UnitCost = ps.UnitCost,
-                Currency = ps.Currency ?? "EUR",
-                LeadTimeDays = ps.LeadTimeDays
+                return cachedSuggestions;
+            }
+
+            if (tenantId == Guid.Empty)
+            {
+                throw new InvalidOperationException("Tenant context is not available.");
+            }
+
+            // Get all suppliers for this product
+            var productSuppliers = await context.ProductSuppliers.AsNoTracking()
+                .Include(ps => ps.Supplier)
+                .Where(ps => ps.ProductId == productId && ps.TenantId == tenantId)
+                .ToListAsync(cancellationToken);
+
+            if (productSuppliers.Count < 2)
+            {
+                // Need at least 2 suppliers for comparison
+                return [];
+            }
+
+            var suggestions = new List<SupplierSuggestion>();
+
+            foreach (var ps in productSuppliers)
+            {
+                if (ps.Supplier is null) continue;
+
+                var suggestion = new SupplierSuggestion
+                {
+                    SupplierId = ps.SupplierId,
+                    SupplierName = ps.Supplier.Name,
+                    IsCurrentPreferred = ps.Preferred,
+                    UnitCost = ps.UnitCost,
+                    Currency = ps.Currency ?? "EUR",
+                    LeadTimeDays = ps.LeadTimeDays
+                };
+
+                // Calculate individual scores
+                suggestion.ScoreBreakdown.PriceScore = await CalculatePriceScoreAsync(productId, ps, productSuppliers, cancellationToken);
+                suggestion.ScoreBreakdown.LeadTimeScore = CalculateLeadTimeScore(ps, productSuppliers);
+                suggestion.ScoreBreakdown.ReliabilityScore = await CalculateReliabilityScoreAsync(ps.SupplierId, cancellationToken);
+                suggestion.ScoreBreakdown.TrendScore = await CalculateTrendScoreAsync(ps.SupplierId, productId, cancellationToken);
+
+                // Calculate total weighted score
+                suggestion.TotalScore =
+                    (suggestion.ScoreBreakdown.PriceScore * _priceWeight) +
+                    (suggestion.ScoreBreakdown.LeadTimeScore * _leadTimeWeight) +
+                    (suggestion.ScoreBreakdown.ReliabilityScore * _reliabilityWeight) +
+                    (suggestion.ScoreBreakdown.TrendScore * _trendWeight);
+
+                // Determine confidence level
+                suggestion.Confidence = DetermineConfidenceLevel(suggestion.TotalScore);
+
+                // Generate recommendation reason
+                suggestion.RecommendationReason = GenerateRecommendationReason(suggestion);
+
+                // Add explanations
+                suggestion.ScoreBreakdown.Explanations = GenerateScoreExplanations(suggestion, ps, productSuppliers);
+
+                suggestions.Add(suggestion);
+            }
+
+            // Sort by total score descending
+            suggestions = suggestions.OrderByDescending(s => s.TotalScore).ToList();
+
+            // Cache the results
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheScoresDurationMinutes),
+                Size = 1
             };
+            cache.Set(cacheKey, suggestions, cacheOptions);
 
-            // Calculate individual scores
-            suggestion.ScoreBreakdown.PriceScore = await CalculatePriceScoreAsync(productId, ps, productSuppliers, cancellationToken);
-            suggestion.ScoreBreakdown.LeadTimeScore = CalculateLeadTimeScore(ps, productSuppliers);
-            suggestion.ScoreBreakdown.ReliabilityScore = await CalculateReliabilityScoreAsync(ps.SupplierId, cancellationToken);
-            suggestion.ScoreBreakdown.TrendScore = await CalculateTrendScoreAsync(ps.SupplierId, productId, cancellationToken);
-
-            // Calculate total weighted score
-            suggestion.TotalScore =
-                (suggestion.ScoreBreakdown.PriceScore * _priceWeight) +
-                (suggestion.ScoreBreakdown.LeadTimeScore * _leadTimeWeight) +
-                (suggestion.ScoreBreakdown.ReliabilityScore * _reliabilityWeight) +
-                (suggestion.ScoreBreakdown.TrendScore * _trendWeight);
-
-            // Determine confidence level
-            suggestion.Confidence = DetermineConfidenceLevel(suggestion.TotalScore);
-
-            // Generate recommendation reason
-            suggestion.RecommendationReason = GenerateRecommendationReason(suggestion);
-
-            // Add explanations
-            suggestion.ScoreBreakdown.Explanations = GenerateScoreExplanations(suggestion, ps, productSuppliers);
-
-            suggestions.Add(suggestion);
+            return suggestions;
         }
-
-        // Sort by total score descending
-        suggestions = suggestions.OrderByDescending(s => s.TotalScore).ToList();
-
-        // Cache the results
-        var cacheOptions = new MemoryCacheEntryOptions
+        catch (Exception ex)
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheScoresDurationMinutes),
-            Size = 1
-        };
-        cache.Set(cacheKey, suggestions, cacheOptions);
-
-        return suggestions;
+            logger.LogError(ex, "Error in CalculateSuggestionsAsync for product {ProductId}.", productId);
+            throw;
+        }
     }
 
     public async Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason, CancellationToken cancellationToken = default)
@@ -252,91 +268,107 @@ public class SupplierSuggestionService(
 
     public async Task<SupplierReliabilityResponse> GetSupplierReliabilityAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
-        if (tenantId == Guid.Empty)
+        try
         {
-            throw new InvalidOperationException("Tenant context is not available.");
+            var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
+            if (tenantId == Guid.Empty)
+            {
+                throw new InvalidOperationException("Tenant context is not available.");
+            }
+
+            var supplier = await context.BusinessParties.AsNoTracking()
+                .Where(bp => bp.Id == supplierId && bp.TenantId == tenantId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (supplier is null)
+            {
+                throw new InvalidOperationException($"Supplier with ID {supplierId} not found.");
+            }
+
+            var metrics = await CalculateReliabilityMetricsAsync(supplierId, cancellationToken);
+            var score = CalculateReliabilityScoreFromMetrics(metrics);
+
+            return new SupplierReliabilityResponse
+            {
+                SupplierId = supplierId,
+                SupplierName = supplier.Name,
+                OverallReliabilityScore = score,
+                Metrics = metrics
+            };
         }
-
-        var supplier = await context.BusinessParties
-            .Where(bp => bp.Id == supplierId && bp.TenantId == tenantId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (supplier is null)
+        catch (Exception ex)
         {
-            throw new InvalidOperationException($"Supplier with ID {supplierId} not found.");
+            logger.LogError(ex, "Error in GetSupplierReliabilityAsync for supplier {SupplierId}.", supplierId);
+            throw;
         }
-
-        var metrics = await CalculateReliabilityMetricsAsync(supplierId, cancellationToken);
-        var score = CalculateReliabilityScoreFromMetrics(metrics);
-
-        return new SupplierReliabilityResponse
-        {
-            SupplierId = supplierId,
-            SupplierName = supplier.Name,
-            OverallReliabilityScore = score,
-            Metrics = metrics
-        };
     }
 
     public async Task<string> GenerateRecommendationExplanationAsync(SupplierSuggestion suggestion, Product product)
     {
-        await Task.CompletedTask; // Make async to allow for future AI integration
+        try
+        {
+            await Task.CompletedTask; // Make async to allow for future AI integration
 
-        var explanation = $"We recommend {suggestion.SupplierName} for {product.Name}";
+            var explanation = $"We recommend {suggestion.SupplierName} for {product.Name}";
 
-        var reasons = new List<string>();
+            var reasons = new List<string>();
 
-        // Price reason
-        if (suggestion.ScoreBreakdown.PriceScore > 80)
-        {
-            reasons.Add($"they offer the best price ({suggestion.Currency} {suggestion.UnitCost:N2})");
-        }
-        else if (suggestion.ScoreBreakdown.PriceScore > 60)
-        {
-            reasons.Add($"they offer competitive pricing ({suggestion.Currency} {suggestion.UnitCost:N2})");
-        }
+            // Price reason
+            if (suggestion.ScoreBreakdown.PriceScore > 80)
+            {
+                reasons.Add($"they offer the best price ({suggestion.Currency} {suggestion.UnitCost:N2})");
+            }
+            else if (suggestion.ScoreBreakdown.PriceScore > 60)
+            {
+                reasons.Add($"they offer competitive pricing ({suggestion.Currency} {suggestion.UnitCost:N2})");
+            }
 
-        // Lead time reason
-        if (suggestion.ScoreBreakdown.LeadTimeScore > 80 && suggestion.LeadTimeDays.HasValue)
-        {
-            reasons.Add($"excellent delivery time ({suggestion.LeadTimeDays} days)");
-        }
-        else if (suggestion.ScoreBreakdown.LeadTimeScore > 60 && suggestion.LeadTimeDays.HasValue)
-        {
-            reasons.Add($"good delivery time ({suggestion.LeadTimeDays} days)");
-        }
+            // Lead time reason
+            if (suggestion.ScoreBreakdown.LeadTimeScore > 80 && suggestion.LeadTimeDays.HasValue)
+            {
+                reasons.Add($"excellent delivery time ({suggestion.LeadTimeDays} days)");
+            }
+            else if (suggestion.ScoreBreakdown.LeadTimeScore > 60 && suggestion.LeadTimeDays.HasValue)
+            {
+                reasons.Add($"good delivery time ({suggestion.LeadTimeDays} days)");
+            }
 
-        // Reliability reason
-        if (suggestion.ScoreBreakdown.ReliabilityScore > 80)
-        {
-            reasons.Add("high reliability");
-        }
-        else if (suggestion.ScoreBreakdown.ReliabilityScore > 60)
-        {
-            reasons.Add("good reliability");
-        }
+            // Reliability reason
+            if (suggestion.ScoreBreakdown.ReliabilityScore > 80)
+            {
+                reasons.Add("high reliability");
+            }
+            else if (suggestion.ScoreBreakdown.ReliabilityScore > 60)
+            {
+                reasons.Add("good reliability");
+            }
 
-        // Trend reason
-        if (suggestion.ScoreBreakdown.TrendScore > 80)
-        {
-            reasons.Add("stable or decreasing pricing trend");
-        }
-        else if (suggestion.ScoreBreakdown.TrendScore < 40)
-        {
-            reasons.Add("but note: prices have been increasing");
-        }
+            // Trend reason
+            if (suggestion.ScoreBreakdown.TrendScore > 80)
+            {
+                reasons.Add("stable or decreasing pricing trend");
+            }
+            else if (suggestion.ScoreBreakdown.TrendScore < 40)
+            {
+                reasons.Add("but note: prices have been increasing");
+            }
 
-        if (reasons.Any())
-        {
-            explanation += $" because {string.Join(", ", reasons)}.";
-        }
-        else
-        {
-            explanation += " based on overall scoring.";
-        }
+            if (reasons.Any())
+            {
+                explanation += $" because {string.Join(", ", reasons)}.";
+            }
+            else
+            {
+                explanation += " based on overall scoring.";
+            }
 
-        return explanation;
+            return explanation;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GenerateRecommendationExplanationAsync for supplier {SupplierId}.", suggestion.SupplierId);
+            throw;
+        }
     }
 
     #region Private Helper Methods

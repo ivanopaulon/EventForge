@@ -9,7 +9,7 @@ public class VatLookupService(
     IHttpClientService httpClientService,
     ILogger<VatLookupService> logger) : IVatLookupService
 {
-    public async Task<VatLookupResultDto?> LookupAsync(string vatNumber)
+    public async Task<VatLookupResultDto?> LookupAsync(string vatNumber, CancellationToken ct = default)
     {
         try
         {

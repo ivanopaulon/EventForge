@@ -13,11 +13,11 @@ public class StoreUserService(
 {
     private const string ApiBase = "api/v1/storeusers";
 
-    public async Task<List<StoreUserDto>> GetAllAsync()
+    public async Task<List<StoreUserDto>> GetAllAsync(CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000");
+            var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=1000", ct);
             response.EnsureSuccessStatusCode();
 
             var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<StoreUserDto>>();
@@ -25,18 +25,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error getting all store users: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting all store users");
             throw;
         }
     }
 
-    public async Task<StoreUserDto?> GetByIdAsync(Guid id)
+    public async Task<StoreUserDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/{id}");
+            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/{id}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -44,18 +42,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error getting store user {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting store user {Id}", id);
             throw;
         }
     }
 
-    public async Task<StoreUserDto?> GetByUsernameAsync(string username)
+    public async Task<StoreUserDto?> GetByUsernameAsync(string username, CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/by-username/{username}");
+            return await httpClient.GetFromJsonAsync<StoreUserDto>($"{ApiBase}/by-username/{username}", ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -63,18 +59,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error getting store user by username {username}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting store user by username {Username}", username);
             throw;
         }
     }
 
-    public async Task<StoreUserDto?> CreateAsync(CreateStoreUserDto createDto)
+    public async Task<StoreUserDto?> CreateAsync(CreateStoreUserDto createDto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto);
+            var response = await httpClient.PostAsJsonAsync(ApiBase, createDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -91,18 +85,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error creating store user: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error creating store user");
             throw new InvalidOperationException("Errore nella creazione dell'operatore. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<StoreUserDto?> UpdateAsync(Guid id, UpdateStoreUserDto updateDto)
+    public async Task<StoreUserDto?> UpdateAsync(Guid id, UpdateStoreUserDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto);
+            var response = await httpClient.PutAsJsonAsync($"{ApiBase}/{id}", updateDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -119,18 +111,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error updating store user {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error updating store user {Id}", id);
             throw new InvalidOperationException("Errore nell'aggiornamento dell'operatore. Verifica i dati e riprova.", ex);
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}");
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -147,18 +137,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error deleting store user {id}: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error deleting store user {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione dell'operatore.", ex);
         }
     }
 
-    public async Task<PagedResult<StoreUserDto>> GetPagedAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<StoreUserDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
-            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}");
+            var response = await httpClient.GetAsync($"{ApiBase}?page={page}&pageSize={pageSize}", ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -177,18 +165,16 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[StoreUserService] Error getting paged store users (page: {page}, pageSize: {pageSize}): {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"[StoreUserService] StackTrace: {ex.StackTrace}");
             logger.LogError(ex, "Error getting paged store users (page: {Page}, pageSize: {PageSize})", page, pageSize);
             throw new InvalidOperationException("Errore nel caricamento degli operatori.", ex);
         }
     }
 
-    public async Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync()
+    public async Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClient.GetFromJsonAsync<IEnumerable<StoreUserDto>>($"{ApiBase}/with-birthdays")
+            return await httpClient.GetFromJsonAsync<IEnumerable<StoreUserDto>>($"{ApiBase}/with-birthdays", ct)
                 ?? Enumerable.Empty<StoreUserDto>();
         }
         catch (Exception ex)

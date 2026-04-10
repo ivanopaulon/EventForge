@@ -15,7 +15,6 @@ public partial class EventForgeDbContext
             .ValueGeneratedNever();
     }
 
-
     private static void ConfigureDecimalPrecision(ModelBuilder modelBuilder)
     {
         // RowVersion (optimistic concurrency) is configured via [Timestamp] on AuditableEntity — no
@@ -100,7 +99,6 @@ public partial class EventForgeDbContext
         _ = modelBuilder.Entity<WasteManagementRecord>().Property(x => x.RecyclingRatePercentage).HasPrecision(5, 2);
     }
 
-
     private static void ConfigureGlobalQueryFilters(ModelBuilder modelBuilder)
     {
         // Apply soft delete filter to all entities that inherit from AuditableEntity
@@ -123,7 +121,6 @@ public partial class EventForgeDbContext
         }
     }
 
-
     private static void ConfigureDailySequence(ModelBuilder modelBuilder)
     {
         // Configure DailySequence
@@ -140,8 +137,6 @@ public partial class EventForgeDbContext
             .IsUnique()
             .HasDatabaseName("UQ_Products_Code");
     }
-
-
 
     /// <summary>
     /// Configures EntityChangeLog for optimal storage and query performance.

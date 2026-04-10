@@ -27,10 +27,12 @@ public class ReferenceService(
             var skip = (page - 1) * pageSize;
 
             var totalCount = await context.References
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .LongCountAsync(cancellationToken);
 
             var entities = await context.References
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(r => r.LastName)
                 .ThenBy(r => r.FirstName)

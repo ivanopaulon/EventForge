@@ -22,12 +22,12 @@ public interface IStockService
     /// <summary>
     /// Gets a stock entry by ID.
     /// </summary>
-    Task<StockDto?> GetStockByIdAsync(Guid id);
+    Task<StockDto?> GetStockByIdAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
     /// Gets stock entries by product ID.
     /// </summary>
-    Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId);
+    Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets stock overview with optional pagination and filtering.
@@ -49,17 +49,17 @@ public interface IStockService
     /// <summary>
     /// Adjusts stock quantity for a given stock entry.
     /// </summary>
-    Task<StockDto?> AdjustStockAsync(AdjustStockDto dto);
+    Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// Creates or updates a stock entry.
     /// </summary>
-    Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto);
+    Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto, CancellationToken ct = default);
 
     /// <summary>
     /// Creates or updates a stock entry with enhanced validation.
     /// If dto.StockId is provided, updates existing stock (warehouse/location cannot be changed).
     /// If dto.StockId is null/empty, creates new stock entry.
     /// </summary>
-    Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto);
+    Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, CancellationToken ct = default);
 }

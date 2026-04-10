@@ -4,6 +4,7 @@
 @inject ITranslationService TranslationService
 @inject IJSRuntime JSRuntime
 @inject IAppNotificationService AppNotification
+@inject ILogger<EnhancedMessageComposer> Logger
 
 <MudPaper Elevation="3" Class="pa-3 enhanced-message-composer" Style="@ComposerStyle">
     <!-- Reply indicator if replying to a message -->
@@ -257,9 +258,17 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        try
         {
-            await JSRuntime.InvokeVoidAsync("addMessageComposerKeyboardShortcuts");
+            if (firstRender)
+            {
+                await JSRuntime.InvokeVoidAsync("addMessageComposerKeyboardShortcuts");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -293,52 +302,68 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        // Handle Enter key
-        if (e.Key == "Enter")
+        try
         {
-            if (e.ShiftKey)
+            // Handle Enter key
+            if (e.Key == "Enter")
             {
-                // Allow new line with Shift+Enter
-                return;
+                if (e.ShiftKey)
+                {
+                    // Allow new line with Shift+Enter
+                    return;
+                }
+                else
+                {
+                    // Send message with Enter
+                    await SendMessage();
+                }
             }
-            else
+            
+            // Handle Escape key
+            if (e.Key == "Escape")
             {
-                // Send message with Enter
-                await SendMessage();
+                if (ShowMentionSuggestions)
+                {
+                    ShowMentionSuggestions = false;
+                    StateHasChanged();
+                }
+                else if (ReplyToMessage != null)
+                {
+                    await CancelReply();
+                }
             }
-        }
-        
-        // Handle Escape key
-        if (e.Key == "Escape")
-        {
-            if (ShowMentionSuggestions)
-            {
-                ShowMentionSuggestions = false;
-                StateHasChanged();
-            }
-            else if (ReplyToMessage != null)
-            {
-                await CancelReply();
-            }
-        }
 
-        // Handle navigation in mention suggestions
-        if (ShowMentionSuggestions && (e.Key == "ArrowUp" || e.Key == "ArrowDown"))
+            // Handle navigation in mention suggestions
+            if (ShowMentionSuggestions && (e.Key == "ArrowUp" || e.Key == "ArrowDown"))
+            {
+                // TODO: Implement keyboard navigation for mention suggestions
+            }
+        }
+        catch (Exception ex)
         {
-            // TODO: Implement keyboard navigation for mention suggestions
+            Logger.LogError(ex, "Error in OnKeyDown.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OnInput(ChangeEventArgs e)
     {
-        var text = e.Value?.ToString() ?? "";
-        MessageText = text;
+        try
+        {
+            var text = e.Value?.ToString() ?? "";
+            MessageText = text;
 
-        // Check for mentions
-        await CheckForMentions(text);
-        
-        // Send typing indicator
-        await SendTypingIndicator();
+            // Check for mentions
+            await CheckForMentions(text);
+            
+            // Send typing indicator
+            await SendTypingIndicator();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInput.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task CheckForMentions(string text)
@@ -407,26 +432,34 @@
 
     private async Task InsertMention(UserMentionSuggestionDto user)
     {
-        if (MentionStartPosition >= 0)
+        try
         {
-            var beforeMention = MessageText.Substring(0, MentionStartPosition);
-            var afterMention = MessageText.Substring(MentionStartPosition + LastMentionQuery.Length + 1);
-            
-            MessageText = $"{beforeMention}@{user.Username} {afterMention}";
-            
-            if (!MentionedUserIds.Contains(user.Id))
+            if (MentionStartPosition >= 0)
             {
-                MentionedUserIds.Add(user.Id);
+                var beforeMention = MessageText.Substring(0, MentionStartPosition);
+                var afterMention = MessageText.Substring(MentionStartPosition + LastMentionQuery.Length + 1);
+                
+                MessageText = $"{beforeMention}@{user.Username} {afterMention}";
+                
+                if (!MentionedUserIds.Contains(user.Id))
+                {
+                    MentionedUserIds.Add(user.Id);
+                }
+            }
+
+            ShowMentionSuggestions = false;
+            StateHasChanged();
+
+            // Focus back to input
+            if (messageInput != null)
+            {
+                await messageInput.FocusAsync();
             }
         }
-
-        ShowMentionSuggestions = false;
-        StateHasChanged();
-
-        // Focus back to input
-        if (messageInput != null)
+        catch (Exception ex)
         {
-            await messageInput.FocusAsync();
+            Logger.LogError(ex, "Error in InsertMention.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -438,59 +471,91 @@
 
     private async Task InsertEmoji(string emoji)
     {
-        MessageText += emoji;
-        ShowEmojiPicker = false;
-        StateHasChanged();
-
-        // Focus back to input
-        if (messageInput != null)
+        try
         {
-            await messageInput.FocusAsync();
+            MessageText += emoji;
+            ShowEmojiPicker = false;
+            StateHasChanged();
+
+            // Focus back to input
+            if (messageInput != null)
+            {
+                await messageInput.FocusAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in InsertEmoji.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task ToggleFormat(string startTag, string endTag)
     {
-        // TODO: Implement text formatting with selection support
-        // For now, just append the format tags
-        var selectionStart = MessageText.Length;
-        MessageText = MessageText.Insert(selectionStart, startTag + endTag);
-        StateHasChanged();
-
-        if (messageInput != null)
+        try
         {
-            await messageInput.FocusAsync();
+            // TODO: Implement text formatting with selection support
+            // For now, just append the format tags
+            var selectionStart = MessageText.Length;
+            MessageText = MessageText.Insert(selectionStart, startTag + endTag);
+            StateHasChanged();
+
+            if (messageInput != null)
+            {
+                await messageInput.FocusAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ToggleFormat.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(MessageText) || CurrentChat == null)
-            return;
-
-        var message = new SendMessageDto
+        try
         {
-            ChatId = CurrentChat.Id,
-            SenderId = Guid.Empty, // Will be set by the service
-            Content = MessageText.Trim(),
-            ReplyToMessageId = ReplyToMessage?.Id,
-            MentionedUserIds = MentionedUserIds.ToList(),
-            Format = MessageFormat.Markdown, // Assuming markdown for now
-            Attachments = PendingAttachments?.ToList()
-        };
+            if (string.IsNullOrWhiteSpace(MessageText) || CurrentChat == null)
+                return;
 
-        // Clear the composer
-        MessageText = "";
-        MentionedUserIds.Clear();
-        ShowEmojiPicker = false;
-        ShowMentionSuggestions = false;
+            var message = new SendMessageDto
+            {
+                ChatId = CurrentChat.Id,
+                SenderId = Guid.Empty, // Will be set by the service
+                Content = MessageText.Trim(),
+                ReplyToMessageId = ReplyToMessage?.Id,
+                MentionedUserIds = MentionedUserIds.ToList(),
+                Format = MessageFormat.Markdown, // Assuming markdown for now
+                Attachments = PendingAttachments?.ToList()
+            };
 
-        await OnSendMessage.InvokeAsync(message);
+            // Clear the composer
+            MessageText = "";
+            MentionedUserIds.Clear();
+            ShowEmojiPicker = false;
+            ShowMentionSuggestions = false;
+
+            await OnSendMessage.InvokeAsync(message);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in SendMessage.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task CancelReply()
     {
-        await OnCancelReply.InvokeAsync();
+        try
+        {
+            await OnCancelReply.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in CancelReply.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task SendTypingIndicator()
@@ -501,8 +566,16 @@
 
     private async Task OnFileSelected(ChangeEventArgs e)
     {
-        // File selection will be handled by parent component
-        await OnAttachFile.InvokeAsync();
+        try
+        {
+            // File selection will be handled by parent component
+            await OnAttachFile.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnFileSelected.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task OnFileInputChanged(InputFileChangeEventArgs e)
@@ -512,8 +585,16 @@
 
     private async Task SelectFile()
     {
-        // Trigger file input click
-        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('file-input').click()");
+        try
+        {
+            // Trigger file input click
+            await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('file-input').click()");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in SelectFile.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private string GetFileIcon(string? contentType)

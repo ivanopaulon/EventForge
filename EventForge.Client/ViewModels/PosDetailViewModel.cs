@@ -29,9 +29,9 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
         };
     }
 
-    protected override Task<StorePosDto?> LoadEntityFromServiceAsync(Guid entityId)
+    protected override Task<StorePosDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
     {
-        return _posService.GetByIdAsync(entityId);
+        return _posService.GetByIdAsync(entityId, ct);
     }
 
     protected override CreateStorePosDto MapToCreateDto(StorePosDto entity)
@@ -73,14 +73,14 @@ public class PosDetailViewModel : BaseEntityDetailViewModel<StorePosDto, CreateS
         };
     }
 
-    protected override Task<StorePosDto?> CreateEntityAsync(CreateStorePosDto createDto)
+    protected override Task<StorePosDto?> CreateEntityAsync(CreateStorePosDto createDto, CancellationToken ct = default)
     {
-        return _posService.CreateAsync(createDto);
+        return _posService.CreateAsync(createDto, ct);
     }
 
-    protected override Task<StorePosDto?> UpdateEntityAsync(Guid entityId, UpdateStorePosDto updateDto)
+    protected override Task<StorePosDto?> UpdateEntityAsync(Guid entityId, UpdateStorePosDto updateDto, CancellationToken ct = default)
     {
-        return _posService.UpdateAsync(entityId, updateDto);
+        return _posService.UpdateAsync(entityId, updateDto, ct);
     }
 
     protected override Guid GetEntityId(StorePosDto entity)

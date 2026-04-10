@@ -10,11 +10,11 @@ public class SupplierSuggestionService(
     ILogger<SupplierSuggestionService> logger) : ISupplierSuggestionService
 {
 
-    public async Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId)
+    public async Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}");
+            return await httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}", ct);
         }
         catch (Exception ex)
         {
@@ -23,7 +23,7 @@ public class SupplierSuggestionService(
         }
     }
 
-    public async Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason)
+    public async Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason, CancellationToken ct = default)
     {
         try
         {
@@ -46,11 +46,11 @@ public class SupplierSuggestionService(
         }
     }
 
-    public async Task<SupplierReliabilityResponse?> GetSupplierReliabilityAsync(Guid supplierId)
+    public async Task<SupplierReliabilityResponse?> GetSupplierReliabilityAsync(Guid supplierId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability");
+            return await httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability", ct);
         }
         catch (Exception ex)
         {

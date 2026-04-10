@@ -19,6 +19,7 @@ public class DocumentCounterService(
         try
         {
             var counters = await context.DocumentCounters
+                .AsNoTracking()
                 .Include(dc => dc.DocumentType)
                 .Where(dc => !dc.IsDeleted)
                 .OrderBy(dc => dc.DocumentType!.Name)
@@ -39,6 +40,7 @@ public class DocumentCounterService(
         try
         {
             var counters = await context.DocumentCounters
+                .AsNoTracking()
                 .Include(dc => dc.DocumentType)
                 .Where(dc => dc.DocumentTypeId == documentTypeId && !dc.IsDeleted)
                 .OrderBy(dc => dc.Series)
@@ -58,6 +60,7 @@ public class DocumentCounterService(
         try
         {
             var counter = await context.DocumentCounters
+                .AsNoTracking()
                 .Include(dc => dc.DocumentType)
                 .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
 
@@ -79,6 +82,7 @@ public class DocumentCounterService(
         try
         {
             var counter = await context.DocumentCounters
+                .AsNoTracking()
                 .Include(dc => dc.DocumentType)
                 .FirstOrDefaultAsync(dc =>
                     dc.DocumentTypeId == documentTypeId &&
@@ -110,6 +114,7 @@ public class DocumentCounterService(
 
             // Check if counter already exists
             var existingCounter = await context.DocumentCounters
+                .AsNoTracking()
                 .FirstOrDefaultAsync(dc =>
                     dc.DocumentTypeId == createDto.DocumentTypeId &&
                     dc.Series == createDto.Series &&

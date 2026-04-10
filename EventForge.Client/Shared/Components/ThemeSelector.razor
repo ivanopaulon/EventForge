@@ -1,6 +1,8 @@
 @using EventForge.Client.Services
+@implements IDisposable
 @inject IThemeService ThemeService
 @inject ITranslationService TranslationService
+@inject ILogger<ThemeSelector> Logger
 
 <!-- Simplified theme selector: only dark / light toggle via ThemeService.ToggleThemeAsync -->
 <MudTooltip Text="@TranslationService.GetTranslation("theme.selectTheme", "Select theme")">
@@ -17,8 +19,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ThemeService.OnThemeChanged += OnThemeChanged;
-        await base.OnInitializedAsync();
+        try
+        {
+            ThemeService.OnThemeChanged += OnThemeChanged;
+            await base.OnInitializedAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ThemeSelector.");
+        }
     }
 
     private void OnThemeChanged()
@@ -28,8 +37,20 @@
 
     private async Task HandleThemeSelection(string themeKey)
     {
-        await ThemeService.SetThemeAsync(themeKey);
+        try
+        {
+            await ThemeService.SetThemeAsync(themeKey);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting theme {ThemeKey}", themeKey);
+        }
     }
 
     private string GetCurrentThemeIcon() => ThemeService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode;
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
+    }
 }

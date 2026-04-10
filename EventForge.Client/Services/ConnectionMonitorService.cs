@@ -18,7 +18,7 @@ public interface IConnectionMonitorService : IDisposable
     event Action<ConnectionStatus>? StatusChanged;
     void Start();
     void Stop();
-    Task CheckNowAsync();
+    Task CheckNowAsync(CancellationToken ct = default);
 }
 
 public class ConnectionMonitorService(
@@ -56,7 +56,7 @@ public class ConnectionMonitorService(
         _timer = null;
     }
 
-    public async Task CheckNowAsync()
+    public async Task CheckNowAsync(CancellationToken ct = default)
     {
         var previousStatus = Status;
 

@@ -12,11 +12,12 @@ public class InventoryService(
 {
     private const string BaseUrl = "api/v1/warehouse/inventory";
 
-    public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20)
+    public async Task<PagedResult<InventoryEntryDto>?> GetInventoryEntriesAsync(int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryEntryDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
+
         }
         catch (Exception ex)
         {
@@ -25,11 +26,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto)
+    public async Task<InventoryEntryDto?> CreateInventoryEntryAsync(CreateInventoryEntryDto createDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateInventoryEntryDto, InventoryEntryDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -38,11 +40,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto)
+    public async Task<InventoryDocumentDto?> StartInventoryDocumentAsync(CreateInventoryDocumentDto createDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto);
+            return await httpClientService.PostAsync<CreateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/start", createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -51,11 +54,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentAsync(Guid documentId, UpdateInventoryDocumentDto updateDto)
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentAsync(Guid documentId, UpdateInventoryDocumentDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", updateDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -64,11 +68,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto)
+    public async Task<InventoryDocumentDto?> AddInventoryDocumentRowAsync(Guid documentId, AddInventoryDocumentRowDto rowDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto);
+            return await httpClientService.PostAsync<AddInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row", rowDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -77,11 +82,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentRowAsync(Guid documentId, Guid rowId, UpdateInventoryDocumentRowDto rowDto)
+    public async Task<InventoryDocumentDto?> UpdateInventoryDocumentRowAsync(Guid documentId, Guid rowId, UpdateInventoryDocumentRowDto rowDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto);
+            return await httpClientService.PutAsync<UpdateInventoryDocumentRowDto, InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", rowDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -90,12 +96,13 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId)
+    public async Task<InventoryDocumentDto?> DeleteInventoryDocumentRowAsync(Guid documentId, Guid rowId, CancellationToken ct = default)
     {
         try
         {
             // Delete returns the updated document in our case
-            return await httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}");
+            return await httpClientService.DeleteAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}/row/{rowId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -104,7 +111,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDocumentDto?> FinalizeInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -117,11 +124,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDocumentDto?> GetInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}");
+            return await httpClientService.GetAsync<InventoryDocumentDto>($"{BaseUrl}/document/{documentId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -130,7 +138,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false)
+    public async Task<PagedResult<InventoryDocumentDto>?> GetInventoryDocumentsAsync(int page = 1, int pageSize = 20, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, bool includeRows = false, CancellationToken ct = default)
     {
         try
         {
@@ -157,7 +165,8 @@ public class InventoryService(
             }
 
             var queryString = string.Join("&", queryParams);
-            return await httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentDto>>($"{BaseUrl}/documents?{queryString}", ct);
+
         }
         catch (Exception ex)
         {
@@ -166,7 +175,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync()
+    public async Task<InventoryDocumentDto?> GetMostRecentOpenInventoryDocumentAsync(CancellationToken ct = default)
     {
         try
         {
@@ -182,7 +191,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryValidationResultDto?> ValidateInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -195,11 +204,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync()
+    public async Task<List<InventoryDocumentDto>?> GetOpenInventoryDocumentsAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open");
+            return await httpClientService.GetAsync<List<InventoryDocumentDto>>($"{BaseUrl}/documents/open", ct);
+
         }
         catch (Exception ex)
         {
@@ -208,11 +218,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync()
+    public async Task<List<InventoryDocumentHeaderDto>?> GetOpenInventoryDocumentHeadersAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers");
+            return await httpClientService.GetAsync<List<InventoryDocumentHeaderDto>>($"{BaseUrl}/documents/open-headers", ct);
+
         }
         catch (Exception ex)
         {
@@ -221,11 +232,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50)
+    public async Task<PagedResult<InventoryDocumentRowDto>?> GetInventoryDocumentRowsAsync(Guid documentId, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<InventoryDocumentRowDto>>($"{BaseUrl}/documents/{documentId}/rows?page={page}&pageSize={pageSize}", ct);
+
         }
         catch (Exception ex)
         {
@@ -233,7 +245,7 @@ public class InventoryService(
             return null;
         }
     }
-    public async Task<bool> CancelInventoryDocumentAsync(Guid documentId)
+    public async Task<bool> CancelInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -247,7 +259,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync()
+    public async Task<List<InventoryDocumentDto>?> FinalizeAllOpenInventoriesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -260,7 +272,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<int> CancelAllOpenInventoriesAsync()
+    public async Task<int> CancelAllOpenInventoriesAsync(CancellationToken ct = default)
     {
         try
         {
@@ -274,7 +286,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null)
+    public async Task<InventoryDocumentDto?> MergeInventoryDocumentsAsync(List<Guid> sourceDocumentIds, string? notes = null, CancellationToken ct = default)
     {
         try
         {
@@ -288,12 +300,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds)
+    public async Task<MergeInventoryDocumentsPreviewDto?> PreviewMergeInventoryDocumentsAsync(List<Guid> documentIds, CancellationToken ct = default)
     {
         try
         {
             return await httpClientService.PostAsync<List<Guid>, MergeInventoryDocumentsPreviewDto>(
-                $"{BaseUrl}/documents/merge-preview", documentIds);
+                $"{BaseUrl}/documents/merge-preview", documentIds, ct);
         }
         catch (Exception ex)
         {
@@ -302,12 +314,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto)
+    public async Task<MergeInventoryDocumentsResultDto?> MergeInventoryDocumentsExtendedAsync(MergeInventoryDocumentsDto mergeDto, CancellationToken ct = default)
     {
         try
         {
             return await httpClientService.PostAsync<MergeInventoryDocumentsDto, MergeInventoryDocumentsResultDto>(
-                $"{BaseUrl}/documents/merge", mergeDto);
+                $"{BaseUrl}/documents/merge", mergeDto, ct);
         }
         catch (Exception ex)
         {
@@ -316,7 +328,7 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId)
+    public async Task<InventoryDiagnosticReportDto?> DiagnoseInventoryDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         try
         {
@@ -329,11 +341,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options)
+    public async Task<InventoryRepairResultDto?> AutoRepairInventoryDocumentAsync(Guid documentId, InventoryAutoRepairOptionsDto options, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options);
+            return await httpClientService.PostAsync<InventoryAutoRepairOptionsDto, InventoryRepairResultDto>($"{BaseUrl}/documents/{documentId}/auto-repair", options, ct);
+
         }
         catch (Exception ex)
         {
@@ -342,11 +355,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData)
+    public async Task<bool> RepairInventoryRowAsync(Guid documentId, Guid rowId, InventoryRowRepairDto repairData, CancellationToken ct = default)
     {
         try
         {
-            await httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData);
+            await httpClientService.PatchAsync<InventoryRowRepairDto, object>($"{BaseUrl}/documents/{documentId}/rows/{rowId}/repair", repairData, ct);
+
             return true;
         }
         catch (Exception ex)
@@ -356,11 +370,12 @@ public class InventoryService(
         }
     }
 
-    public async Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds)
+    public async Task<int> RemoveProblematicRowsAsync(Guid documentId, List<Guid> rowIds, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds);
+            var result = await httpClientService.PostAsync<List<Guid>, Dictionary<string, int>>($"{BaseUrl}/documents/{documentId}/remove-problematic-rows", rowIds, ct);
+
             return result?.GetValueOrDefault("removedCount", 0) ?? 0;
         }
         catch (Exception ex)

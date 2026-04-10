@@ -14,6 +14,7 @@ public class CreatePaymentTerminalDto
     public bool IsEnabled { get; set; } = true;
 
     [Required(ErrorMessage = "Il tipo di connessione è obbligatorio.")]
+    [RegularExpression("^(Tcp|TcpViaAgent)$", ErrorMessage = "Il tipo di connessione deve essere 'Tcp' o 'TcpViaAgent'.")]
     [MaxLength(20, ErrorMessage = "Il tipo di connessione non può superare 20 caratteri.")]
     public string ConnectionType { get; set; } = "Tcp";
 

@@ -137,7 +137,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ClassificationTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -195,7 +202,10 @@
 
             StateHasChanged();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error ensuring selected brand/model/UM is present in lookup lists.");
+        }
     }
 
     private async Task LoadDataAsync()

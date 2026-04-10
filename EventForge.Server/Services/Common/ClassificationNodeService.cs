@@ -79,6 +79,7 @@ public class ClassificationNodeService(
             logger.LogDebug("Getting classification node by ID: {Id}", id);
 
             var node = await context.ClassificationNodes
+                .AsNoTracking()
                 .Where(cn => cn.Id == id)
                 .Select(cn => new ClassificationNodeDto
                 {
@@ -115,6 +116,7 @@ public class ClassificationNodeService(
             logger.LogDebug("Getting root classification nodes");
 
             var nodes = await context.ClassificationNodes
+                .AsNoTracking()
                 .Where(cn => cn.ParentId == null)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
@@ -153,6 +155,7 @@ public class ClassificationNodeService(
             logger.LogDebug("Getting children for classification node: {ParentId}", parentId);
 
             var children = await context.ClassificationNodes
+                .AsNoTracking()
                 .Where(cn => cn.ParentId == parentId)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
@@ -194,6 +197,7 @@ public class ClassificationNodeService(
             if (createDto.ParentId.HasValue)
             {
                 var parentExists = await context.ClassificationNodes
+                    .AsNoTracking()
                     .AnyAsync(cn => cn.Id == createDto.ParentId.Value, cancellationToken);
 
                 if (!parentExists)
@@ -207,6 +211,7 @@ public class ClassificationNodeService(
             if (!string.IsNullOrEmpty(createDto.Code))
             {
                 var codeExists = await context.ClassificationNodes
+                    .AsNoTracking()
                     .AnyAsync(cn => cn.Code == createDto.Code, cancellationToken);
 
                 if (codeExists)
@@ -299,6 +304,7 @@ public class ClassificationNodeService(
                 }
 
                 var parentExists = await context.ClassificationNodes
+                    .AsNoTracking()
                     .AnyAsync(cn => cn.Id == updateDto.ParentId.Value, cancellationToken);
 
                 if (!parentExists)
@@ -312,6 +318,7 @@ public class ClassificationNodeService(
             if (!string.IsNullOrEmpty(updateDto.Code) && updateDto.Code != node.Code)
             {
                 var codeExists = await context.ClassificationNodes
+                    .AsNoTracking()
                     .AnyAsync(cn => cn.Code == updateDto.Code && cn.Id != id, cancellationToken);
 
                 if (codeExists)
@@ -398,6 +405,7 @@ public class ClassificationNodeService(
 
             // Check if it has children
             var hasChildren = await context.ClassificationNodes
+                .AsNoTracking()
                 .AnyAsync(cn => cn.ParentId == id, cancellationToken);
 
             if (hasChildren)

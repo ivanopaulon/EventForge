@@ -19,6 +19,7 @@ public class DocumentTemplateService(
         try
         {
             var entities = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .Where(dt => dt.IsActive)
                 .OrderBy(dt => dt.Name)
@@ -39,6 +40,7 @@ public class DocumentTemplateService(
         try
         {
             var entity = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.IsActive, cancellationToken);
 
@@ -57,6 +59,7 @@ public class DocumentTemplateService(
         try
         {
             var entities = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .Where(dt => dt.DocumentTypeId == documentTypeId && dt.IsActive)
                 .OrderBy(dt => dt.Name)
@@ -77,6 +80,7 @@ public class DocumentTemplateService(
         try
         {
             var entities = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .Where(dt => dt.IsPublic && dt.IsActive)
                 .OrderBy(dt => dt.Name)
@@ -99,6 +103,7 @@ public class DocumentTemplateService(
             ArgumentException.ThrowIfNullOrWhiteSpace(owner);
 
             var entities = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .Where(dt => (dt.Owner == owner || dt.IsPublic) && dt.IsActive)
                 .OrderBy(dt => dt.Name)
@@ -121,6 +126,7 @@ public class DocumentTemplateService(
             ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
             var entities = await context.DocumentTemplates
+                .AsNoTracking()
                 .Include(dt => dt.DocumentType)
                 .Where(dt => dt.Category == category && dt.IsActive)
                 .OrderBy(dt => dt.Name)

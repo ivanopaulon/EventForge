@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
 /// <summary>
 /// Represents a unit of measure entity (e.g., "Kg", "L", "Pcs").
 /// </summary>
@@ -30,8 +29,6 @@ public class UM : AuditableEntity
     [MaxLength(200, ErrorMessage = "The description cannot exceed 200 characters.")]
     [Display(Name = "Description", Description = "Description of the unit of measure.")]
     public string? Description { get; set; }
-
-
 
     /// <summary>
     /// Indicates if this is the default unit of measure.

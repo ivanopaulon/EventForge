@@ -66,25 +66,34 @@ public class DocumentAccessLogService(
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = context.Set<DocumentAccessLog>()
-            .Include(l => l.DocumentHeader)
-            .Where(l => l.DocumentHeaderId == documentId);
-
-        if (fromDate.HasValue)
+        try
         {
-            query = query.Where(l => l.AccessedAt >= fromDate.Value);
-        }
+            var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
+                .Include(l => l.DocumentHeader)
+                .Where(l => l.DocumentHeaderId == documentId);
 
-        if (toDate.HasValue)
+            if (fromDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt <= toDate.Value);
+            }
+
+            var logs = await query
+                .OrderByDescending(l => l.AccessedAt)
+                .ToListAsync(cancellationToken);
+
+            return logs.Select(MapToDto);
+        }
+        catch (Exception ex)
         {
-            query = query.Where(l => l.AccessedAt <= toDate.Value);
+            logger.LogError(ex, "Error in GetDocumentAccessLogsAsync for document {DocumentId}.", documentId);
+            throw;
         }
-
-        var logs = await query
-            .OrderByDescending(l => l.AccessedAt)
-            .ToListAsync(cancellationToken);
-
-        return logs.Select(MapToDto);
     }
 
     public async Task<IEnumerable<DocumentAccessLogDto>> GetUserAccessLogsAsync(
@@ -93,25 +102,34 @@ public class DocumentAccessLogService(
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = context.Set<DocumentAccessLog>()
-            .Include(l => l.DocumentHeader)
-            .Where(l => l.UserId == userId);
-
-        if (fromDate.HasValue)
+        try
         {
-            query = query.Where(l => l.AccessedAt >= fromDate.Value);
-        }
+            var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
+                .Include(l => l.DocumentHeader)
+                .Where(l => l.UserId == userId);
 
-        if (toDate.HasValue)
+            if (fromDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt <= toDate.Value);
+            }
+
+            var logs = await query
+                .OrderByDescending(l => l.AccessedAt)
+                .ToListAsync(cancellationToken);
+
+            return logs.Select(MapToDto);
+        }
+        catch (Exception ex)
         {
-            query = query.Where(l => l.AccessedAt <= toDate.Value);
+            logger.LogError(ex, "Error in GetUserAccessLogsAsync for user {UserId}.", userId);
+            throw;
         }
-
-        var logs = await query
-            .OrderByDescending(l => l.AccessedAt)
-            .ToListAsync(cancellationToken);
-
-        return logs.Select(MapToDto);
     }
 
     public async Task<PagedResult<DocumentAccessLogDto>> GetAccessLogsAsync(
@@ -125,79 +143,96 @@ public class DocumentAccessLogService(
         int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
-        var query = context.Set<DocumentAccessLog>()
-            .Include(l => l.DocumentHeader)
-            .Where(l => l.TenantId == tenantId);
-
-        if (documentId.HasValue)
+        try
         {
-            query = query.Where(l => l.DocumentHeaderId == documentId.Value);
+            var query = context.Set<DocumentAccessLog>()
+                .AsNoTracking()
+                .Include(l => l.DocumentHeader)
+                .Where(l => l.TenantId == tenantId);
+
+            if (documentId.HasValue)
+            {
+                query = query.Where(l => l.DocumentHeaderId == documentId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                query = query.Where(l => l.UserId == userId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(accessType))
+            {
+                query = query.Where(l => l.AccessType == accessType);
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(l => l.AccessedAt <= toDate.Value);
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var logs = await query
+                .OrderByDescending(l => l.AccessedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<DocumentAccessLogDto>
+            {
+                Items = logs.Select(MapToDto).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
-
-        if (!string.IsNullOrWhiteSpace(userId))
+        catch (Exception ex)
         {
-            query = query.Where(l => l.UserId == userId);
+            logger.LogError(ex, "Error in GetAccessLogsAsync for tenant {TenantId}.", tenantId);
+            throw;
         }
-
-        if (!string.IsNullOrWhiteSpace(accessType))
-        {
-            query = query.Where(l => l.AccessType == accessType);
-        }
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(l => l.AccessedAt >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(l => l.AccessedAt <= toDate.Value);
-        }
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var logs = await query
-            .OrderByDescending(l => l.AccessedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<DocumentAccessLogDto>
-        {
-            Items = logs.Select(MapToDto).ToList(),
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        };
     }
 
     public async Task<int> DeleteOldLogsAsync(
         int retentionDays,
         CancellationToken cancellationToken = default)
     {
-        var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
-
-        var oldLogs = await context.Set<DocumentAccessLog>()
-            .Where(l => l.AccessedAt < cutoffDate)
-            .ToListAsync(cancellationToken);
-
-        if (oldLogs.Count == 0)
+        try
         {
-            return 0;
+            var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
+
+            var oldLogs = await context.Set<DocumentAccessLog>()
+                .Where(l => l.AccessedAt < cutoffDate)
+                .ToListAsync(cancellationToken);
+
+            if (oldLogs.Count == 0)
+            {
+                return 0;
+            }
+
+            logger.LogInformation(
+                "Deleting {Count} access log entries older than {Date}",
+                oldLogs.Count, cutoffDate);
+
+            context.Set<DocumentAccessLog>().RemoveRange(oldLogs);
+            _ = await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation(
+                "Deleted {Count} old access log entries",
+                oldLogs.Count);
+
+            return oldLogs.Count;
         }
-
-        logger.LogInformation(
-            "Deleting {Count} access log entries older than {Date}",
-            oldLogs.Count, cutoffDate);
-
-        context.Set<DocumentAccessLog>().RemoveRange(oldLogs);
-        _ = await context.SaveChangesAsync(cancellationToken);
-
-        logger.LogInformation(
-            "Deleted {Count} old access log entries",
-            oldLogs.Count);
-
-        return oldLogs.Count;
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteOldLogsAsync for retentionDays {RetentionDays}.", retentionDays);
+            throw;
+        }
     }
 
     private DocumentAccessLogDto MapToDto(DocumentAccessLog log)

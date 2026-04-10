@@ -37,6 +37,7 @@ public class DocumentTypeService(
                 async (ct) =>
                 {
                     var entities = await context.DocumentTypes
+                        .AsNoTracking()
                         .Include(dt => dt.DefaultWarehouse)
                         .Where(dt => dt.TenantId == tenantId.Value)
                         .OrderBy(dt => dt.Name)
@@ -70,6 +71,7 @@ public class DocumentTypeService(
             }
 
             var entity = await context.DocumentTypes
+                .AsNoTracking()
                 .Include(dt => dt.DefaultWarehouse)
                 .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == tenantId.Value, cancellationToken);
 

@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Products;
 
-
 /// <summary>
 /// Represents a product in the inventory.
 /// </summary>

@@ -3,6 +3,7 @@
 @inject IConnectionMonitorService ConnectionMonitor
 @inject IServerConfigOverlayService ServerConfigOverlayService
 @inject IHealthService HealthService
+@inject ILogger<ConnectionLostSystemDialog> Logger
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
@@ -213,12 +214,21 @@
 
     private async Task RetryNowAsync()
     {
-        _retrying = true;
-        StateHasChanged();
-        await ConnectionMonitor.CheckNowAsync();
-        _retrying = false;
-        SyncFromMonitor(ConnectionMonitor.Status);
-        StateHasChanged();
+        try
+        {
+            _retrying = true;
+            StateHasChanged();
+            await ConnectionMonitor.CheckNowAsync();
+            _retrying = false;
+            SyncFromMonitor(ConnectionMonitor.Status);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il tentativo di riconnessione");
+            _retrying = false;
+            StateHasChanged();
+        }
     }
 
     private void OpenServerConfig()

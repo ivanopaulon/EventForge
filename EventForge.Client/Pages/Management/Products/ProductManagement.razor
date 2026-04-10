@@ -9,6 +9,8 @@
 @inject IProductService ProductService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<ProductManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("product.management", "Gestione Prodotti")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
@@ -168,28 +170,44 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(ProductDetailDialog.EntityId)] = id
-        };
-        var dialog = await DialogService.ShowAsync<ProductDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+            var parameters = new DialogParameters
+            {
+                [nameof(ProductDetailDialog.EntityId)] = id
+            };
+            var dialog = await DialogService.ShowAsync<ProductDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening product detail dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task ViewProductAuditLog(ProductDto product)
     {
-        var parameters = new DialogParameters<AuditHistoryDialog>
+        try
         {
-            { x => x.EntityType, "Product" },
-            { x => x.EntityId, product.Id },
-            { x => x.EntityName, product.Name }
-        };
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, "Product" },
+                { x => x.EntityId, product.Id },
+                { x => x.EntityName, product.Name }
+            };
 
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening audit log for product {ProductId}.", product.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

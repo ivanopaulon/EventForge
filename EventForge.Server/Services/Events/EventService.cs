@@ -199,6 +199,7 @@ public class EventService(
             }
 
             var eventEntity = await context.Events
+                .AsNoTracking()
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                 .Include(e => e.TimeSlots.OrderBy(s => s.SortOrder))
@@ -230,6 +231,7 @@ public class EventService(
             }
 
             var eventEntity = await context.Events
+                .AsNoTracking()
                 .Where(e => e.Id == id && e.TenantId == currentTenantId.Value && !e.IsDeleted)
                 .Include(e => e.Teams.Where(t => !t.IsDeleted && t.TenantId == currentTenantId.Value))
                     .ThenInclude(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
@@ -456,6 +458,13 @@ public class EventService(
                 }
             );
 
+            // Batch load all team members upfront to avoid N+1 per-team query
+            var teamIds = teams.Select(t => t.Id).ToList();
+            var allMembers = await context.TeamMembers
+                .Where(m => teamIds.Contains(m.TeamId) && !m.IsDeleted)
+                .ToListAsync(cancellationToken);
+            var membersByTeamId = allMembers.ToLookup(m => m.TeamId);
+
             foreach (var team in teams)
             {
                 var originalTeam = originalTeams[team.Id];
@@ -466,9 +475,7 @@ public class EventService(
 
                 _ = await auditLogService.TrackEntityChangesAsync(team, "Delete", currentUser, originalTeam, cancellationToken);
 
-                var members = await context.TeamMembers
-                    .Where(m => m.TeamId == team.Id && !m.IsDeleted)
-                    .ToListAsync(cancellationToken);
+                var members = membersByTeamId[team.Id].ToList();
 
                 // Create snapshots of all members BEFORE modifying them
                 var originalMembers = members.ToDictionary(
@@ -520,6 +527,7 @@ public class EventService(
         try
         {
             return await context.Events
+                .AsNoTracking()
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

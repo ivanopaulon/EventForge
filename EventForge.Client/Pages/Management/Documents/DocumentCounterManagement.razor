@@ -216,7 +216,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentTypesAsync();
+        try
+        {
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing DocumentCounterManagement.");
+        }
     }
 
     private async Task LoadDocumentTypesAsync()
@@ -240,40 +247,56 @@
 
     private async Task OpenCreateDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "DocumentTypes", _documentTypes }
-        };
+            var parameters = new DialogParameters
+            {
+                { "DocumentTypes", _documentTypes }
+            };
 
-        var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
-            TranslationService.GetTranslation("documentCounter.create", "Nuovo Contatore"),
-            parameters,
-            _dialogOptions);
+            var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
+                TranslationService.GetTranslation("documentCounter.create", "Nuovo Contatore"),
+                parameters,
+                _dialogOptions);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _managementPage.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await _managementPage.RefreshAsync();
+            Logger.LogError(ex, "Error opening create document counter dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 
     private async Task OpenEditDialog(DocumentCounterDto counter)
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "Counter", counter },
-            { "DocumentTypes", _documentTypes }
-        };
+            var parameters = new DialogParameters
+            {
+                { "Counter", counter },
+                { "DocumentTypes", _documentTypes }
+            };
 
-        var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
-            TranslationService.GetTranslation("documentCounter.edit", "Modifica Contatore"),
-            parameters,
-            _dialogOptions);
+            var dialog = await DialogService.ShowAsync<DocumentCounterDialog>(
+                TranslationService.GetTranslation("documentCounter.edit", "Modifica Contatore"),
+                parameters,
+                _dialogOptions);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _managementPage.RefreshAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            await _managementPage.RefreshAsync();
+            Logger.LogError(ex, "Error opening edit document counter dialog for {CounterId}.", counter.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
     }
 }

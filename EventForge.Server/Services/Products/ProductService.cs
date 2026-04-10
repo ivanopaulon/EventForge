@@ -87,6 +87,7 @@ public class ProductService(
         try
         {
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -103,6 +104,7 @@ public class ProductService(
             {
                 var currentTenantId = tenantContext.CurrentTenantId;
                 preferredSupplierName = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -124,6 +126,7 @@ public class ProductService(
         try
         {
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == id && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -140,6 +143,7 @@ public class ProductService(
             {
                 var currentTenantId = tenantContext.CurrentTenantId;
                 preferredSupplierName = await context.BusinessParties
+                    .AsNoTracking()
                     .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
                     .Select(bp => bp.Name)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -386,6 +390,7 @@ public class ProductService(
 
                 // Reload product with all related entities for the response
                 var createdProduct = await context.Products
+                    .AsNoTracking()
                     .Where(p => p.Id == product.Id && !p.IsDeleted)
                     .Include(p => p.Codes.Where(c => !c.IsDeleted))
                     .Include(p => p.Units.Where(u => !u.IsDeleted))
@@ -643,6 +648,7 @@ public class ProductService(
         try
         {
             var codes = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.ProductId == productId && !pc.IsDeleted)
                 .OrderBy(pc => pc.CodeType)
                 .ThenBy(pc => pc.Code)
@@ -662,6 +668,7 @@ public class ProductService(
         try
         {
             var code = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Id == id && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -681,6 +688,7 @@ public class ProductService(
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -706,6 +714,7 @@ public class ProductService(
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.VatRate)       // ✅ Include VatRate for continuous scan
@@ -904,6 +913,7 @@ public class ProductService(
         try
         {
             var units = await context.ProductUnits
+                .AsNoTracking()
                 .Where(pu => pu.ProductId == productId && !pu.IsDeleted)
                 .OrderBy(pu => pu.UnitType)
                 .ThenBy(pu => pu.ConversionFactor)
@@ -923,6 +933,7 @@ public class ProductService(
         try
         {
             var unit = await context.ProductUnits
+                .AsNoTracking()
                 .Where(pu => pu.Id == id && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1106,6 +1117,7 @@ public class ProductService(
         try
         {
             var bundleItems = await context.ProductBundleItems
+                .AsNoTracking()
                 .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
                 .OrderBy(pbi => pbi.ComponentProductId)
                 .ToListAsync(cancellationToken);
@@ -1124,6 +1136,7 @@ public class ProductService(
         try
         {
             var bundleItem = await context.ProductBundleItems
+                .AsNoTracking()
                 .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1440,6 +1453,7 @@ public class ProductService(
             }
 
             var product = await context.Products
+                .AsNoTracking()
                 .Include(p => p.ImageDocument)
                 .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1655,6 +1669,7 @@ public class ProductService(
         try
         {
             return await context.Products
+                .AsNoTracking()
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -1702,6 +1717,7 @@ public class ProductService(
             }
 
             var suppliers = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.ProductId == productId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)
@@ -1729,6 +1745,7 @@ public class ProductService(
             }
 
             var supplier = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.Id == id && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
                 .Include(ps => ps.Supplier)
                 .Include(ps => ps.Product)
@@ -1755,6 +1772,7 @@ public class ProductService(
 
             // Validate product exists
             var product = await context.Products
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == createProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
             if (product is null)
@@ -1770,6 +1788,7 @@ public class ProductService(
 
             // Validate supplier exists and is a supplier type
             var supplier = await context.BusinessParties
+                .AsNoTracking()
                 .FirstOrDefaultAsync(bp => bp.Id == createProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
             if (supplier is null)
@@ -1869,6 +1888,7 @@ public class ProductService(
             if (productSupplier.ProductId != updateProductSupplierDto.ProductId)
             {
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == updateProductSupplierDto.ProductId && !p.IsDeleted && p.TenantId == currentTenantId.Value, cancellationToken);
 
                 if (product is null)
@@ -1886,6 +1906,7 @@ public class ProductService(
             if (productSupplier.SupplierId != updateProductSupplierDto.SupplierId)
             {
                 var supplier = await context.BusinessParties
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(bp => bp.Id == updateProductSupplierDto.SupplierId && !bp.IsDeleted && bp.TenantId == currentTenantId.Value, cancellationToken);
 
                 if (supplier is null)
@@ -2059,103 +2080,121 @@ public class ProductService(
 
     public async Task<IEnumerable<ProductWithAssociationDto>> GetProductsWithSupplierAssociationAsync(Guid supplierId, CancellationToken cancellationToken = default)
     {
-        // Ensure tenant context available for association filtering
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
-        }
-
-        // Get all products (preserve previous behaviour: products may be global)
-        var products = await context.Products
-            .Where(p => !p.IsDeleted)
-            .OrderBy(p => p.Name)
-            .ToListAsync(cancellationToken);
-
-        // Get all existing associations for this supplier within the current tenant
-        var associations = await context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
-            .ToListAsync(cancellationToken);
-
-        var associationDict = associations.ToDictionary(a => a.ProductId);
-
-        return products.Select(p =>
-        {
-            // Try to get association; use null-safe operators to avoid possible null dereference warnings
-            associationDict.TryGetValue(p.Id, out var association);
-            return new ProductWithAssociationDto
+            // Ensure tenant context available for association filtering
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
             {
-                ProductId = p.Id,
-                Code = p.Code,
-                Name = p.Name,
-                Description = p.ShortDescription,
-                IsAssociated = association != null,
-                ProductSupplierId = association?.Id,
-                UnitCost = association?.UnitCost,
-                SupplierProductCode = association?.SupplierProductCode,
-                Preferred = association?.Preferred ?? false
-            };
-        }).ToList();
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
+
+            // Get all products (preserve previous behaviour: products may be global)
+            var products = await context.Products
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.Name)
+                .ToListAsync(cancellationToken);
+
+            // Get all existing associations for this supplier within the current tenant
+            var associations = await context.ProductSuppliers
+                .AsNoTracking()
+                .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            var associationDict = associations.ToDictionary(a => a.ProductId);
+
+            return products.Select(p =>
+            {
+                // Try to get association; use null-safe operators to avoid possible null dereference warnings
+                associationDict.TryGetValue(p.Id, out var association);
+                return new ProductWithAssociationDto
+                {
+                    ProductId = p.Id,
+                    Code = p.Code,
+                    Name = p.Name,
+                    Description = p.ShortDescription,
+                    IsAssociated = association != null,
+                    ProductSupplierId = association?.Id,
+                    UnitCost = association?.UnitCost,
+                    SupplierProductCode = association?.SupplierProductCode,
+                    Preferred = association?.Preferred ?? false
+                };
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetProductsWithSupplierAssociationAsync for supplier {SupplierId}.", supplierId);
+            throw;
+        }
     }
 
     public async Task<int> BulkUpdateProductSupplierAssociationsAsync(Guid supplierId, IEnumerable<Guid> productIds, string currentUser, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-        var productIdList = productIds.ToList();
-        var now = DateTime.UtcNow;
-
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product supplier operations.");
-        }
+            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-        // Get existing associations for this supplier within the tenant
-        var existingAssociations = await context.ProductSuppliers
-            .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
-            .ToListAsync(cancellationToken);
+            var productIdList = productIds.ToList();
+            var now = DateTime.UtcNow;
 
-        var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
-
-        // Determine which associations to add
-        var productIdsToAdd = productIdList.Except(existingProductIds).ToList();
-
-        // Determine which associations to remove (soft delete)
-        var associationsToRemove = existingAssociations
-            .Where(a => !productIdList.Contains(a.ProductId))
-            .ToList();
-
-        // Add new associations and set TenantId
-        foreach (var productId in productIdsToAdd)
-        {
-            var newAssociation = new ProductSupplier
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
             {
-                Id = Guid.NewGuid(),
-                ProductId = productId,
-                SupplierId = supplierId,
-                Preferred = false,
-                CreatedAt = now,
-                CreatedBy = currentUser,
-                ModifiedAt = now,
-                ModifiedBy = currentUser,
-                IsDeleted = false,
-                TenantId = currentTenantId.Value
-            };
-            context.ProductSuppliers.Add(newAssociation);
-        }
+                throw new InvalidOperationException("Tenant context is required for product supplier operations.");
+            }
 
-        // Soft delete removed associations (already scoped to tenant)
-        foreach (var association in associationsToRemove)
+            // Get existing associations for this supplier within the tenant
+            var existingAssociations = await context.ProductSuppliers
+                .Where(ps => ps.SupplierId == supplierId && !ps.IsDeleted && ps.TenantId == currentTenantId.Value)
+                .ToListAsync(cancellationToken);
+
+            var existingProductIds = existingAssociations.Select(a => a.ProductId).ToHashSet();
+
+            // Determine which associations to add
+            var productIdsToAdd = productIdList.Except(existingProductIds).ToList();
+
+            // Determine which associations to remove (soft delete)
+            var associationsToRemove = existingAssociations
+                .Where(a => !productIdList.Contains(a.ProductId))
+                .ToList();
+
+            // Add new associations and set TenantId
+            foreach (var productId in productIdsToAdd)
+            {
+                var newAssociation = new ProductSupplier
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = productId,
+                    SupplierId = supplierId,
+                    Preferred = false,
+                    CreatedAt = now,
+                    CreatedBy = currentUser,
+                    ModifiedAt = now,
+                    ModifiedBy = currentUser,
+                    IsDeleted = false,
+                    TenantId = currentTenantId.Value
+                };
+                context.ProductSuppliers.Add(newAssociation);
+            }
+
+            // Soft delete removed associations (already scoped to tenant)
+            foreach (var association in associationsToRemove)
+            {
+                association.IsDeleted = true;
+                association.ModifiedAt = now;
+                association.ModifiedBy = currentUser;
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return productIdsToAdd.Count;
+        }
+        catch (Exception ex)
         {
-            association.IsDeleted = true;
-            association.ModifiedAt = now;
-            association.ModifiedBy = currentUser;
+            logger.LogError(ex, "Error in BulkUpdateProductSupplierAssociationsAsync for supplier {SupplierId}.", supplierId);
+            throw;
         }
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        return productIdsToAdd.Count;
     }
 
     public async Task<PagedResult<ProductSupplierDto>> GetProductsBySupplierAsync(
@@ -2194,6 +2233,7 @@ public class ProductService(
 
             // Get latest purchase prices from approved document rows
             var latestPurchases = await context.DocumentRows
+                .AsNoTracking()
                 .Where(dr => dr.ProductId.HasValue &&
                             productIds.Contains(dr.ProductId.Value) &&
                             !dr.IsDeleted &&
@@ -2290,6 +2330,7 @@ public class ProductService(
 
             // Query document rows with all necessary joins
             var query = context.DocumentRows
+                .AsNoTracking()
                 .Where(r => r.ProductId == productId &&
                             !r.IsDeleted &&
                             r.TenantId == currentTenantId.Value)
@@ -2397,6 +2438,7 @@ public class ProductService(
 
             // Step 1: Try exact match on ProductCodes.Code (case-insensitive)
             var productCode = await context.ProductCodes
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.Brand)
@@ -2420,6 +2462,7 @@ public class ProductService(
 
             // Step 2: Try exact match on Product.Code (case-insensitive)
             var productByCode = await context.Products
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
@@ -2441,6 +2484,7 @@ public class ProductService(
             var searchWords = queryTrimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var textQuery = context.Products
+                .AsNoTracking()
                 .WhereActiveTenant(currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
@@ -2478,52 +2522,61 @@ public class ProductService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var currentTenantId = tenantContext.CurrentTenantId;
-        if (!currentTenantId.HasValue)
+        try
         {
-            throw new InvalidOperationException("Tenant context is required for product operations.");
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product operations.");
+            }
+
+            var query = context.Products
+                .AsNoTracking()
+                .Include(p => p.Brand)
+                .Include(p => p.Model)
+                .Include(p => p.UnitOfMeasure)
+                .Include(p => p.CategoryNode)
+                .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
+                .OrderBy(p => p.Name);
+
+            var totalCount = await query.CountAsync(ct);
+
+            logger.LogInformation("Export requested for {Count} products", totalCount);
+
+            // Use batch processing for large datasets
+            if (totalCount > 10000)
+            {
+                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+                return await GetProductsInBatchesAsync(query, ct);
+            }
+
+            // Standard export for smaller datasets
+            var items = await query
+                .Take(pagination.PageSize)
+                .ToListAsync(ct);
+
+            return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
+            {
+                Id = p.Id,
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description,
+                Category = p.CategoryNode?.Name ?? string.Empty,
+                UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
+                Price = p.DefaultPrice ?? 0,
+                Cost = 0, // Not available in Product entity
+                StockQuantity = 0, // Not available in Product entity
+                Brand = p.Brand?.Name,
+                Model = p.Model?.Name,
+                IsActive = p.Status == EntityProductStatus.Active,
+                CreatedAt = p.CreatedAt
+            });
         }
-
-        var query = context.Products
-            .Include(p => p.Brand)
-            .Include(p => p.Model)
-            .Include(p => p.UnitOfMeasure)
-            .Include(p => p.CategoryNode)
-            .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
-            .OrderBy(p => p.Name);
-
-        var totalCount = await query.CountAsync(ct);
-
-        logger.LogInformation("Export requested for {Count} products", totalCount);
-
-        // Use batch processing for large datasets
-        if (totalCount > 10000)
+        catch (Exception ex)
         {
-            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-            return await GetProductsInBatchesAsync(query, ct);
+            logger.LogError(ex, "Error in GetProductsForExportAsync.");
+            throw;
         }
-
-        // Standard export for smaller datasets
-        var items = await query
-            .Take(pagination.PageSize)
-            .ToListAsync(ct);
-
-        return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
-        {
-            Id = p.Id,
-            Code = p.Code,
-            Name = p.Name,
-            Description = p.Description,
-            Category = p.CategoryNode?.Name ?? string.Empty,
-            UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
-            Price = p.DefaultPrice ?? 0,
-            Cost = 0, // Not available in Product entity
-            StockQuantity = 0, // Not available in Product entity
-            Brand = p.Brand?.Name,
-            Model = p.Model?.Name,
-            IsActive = p.Status == EntityProductStatus.Active,
-            CreatedAt = p.CreatedAt
-        });
     }
 
     private async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsInBatchesAsync(

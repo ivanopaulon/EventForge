@@ -271,10 +271,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        InitCategories();
-        InitEventStatusFilters();
-        ApplyQueryFilter();
-        await LoadAllDataAsync();
+        try
+        {
+            InitCategories();
+            InitEventStatusFilters();
+            ApplyQueryFilter();
+            await LoadAllDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnInitializedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     protected override void OnParametersSet() => ApplyQueryFilter();
@@ -353,32 +361,48 @@
 
     private async Task LoadEventsAsync()
     {
-        var startRange = DateTime.UtcNow.AddMonths(-12);
-        var endRange   = DateTime.UtcNow.AddMonths(12);
-        var items = (await EventService.GetEventsByDateRangeAsync(startRange, endRange)).ToList();
-        _eventsMap = items.ToDictionary(e => e.Id);
-        ReplaceCategory("events", items.Select(e => new SchedulerItem
+        try
         {
-            EntityId = $"ev_{e.Id}", Subject = e.Name,
-            StartTime = e.StartDate.ToLocalTime(),
-            EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
-            Location = e.Location, Description = e.ShortDescription,
-            Color = e.Color ?? "#4285F4", CategoryKey = "events",
-            EventStatus = e.Status, AssignedTo = e.AssignedToUserId,
-            IsPrivate = e.Visibility == CalendarVisibility.Private
-        }));
+            var startRange = DateTime.UtcNow.AddMonths(-12);
+            var endRange   = DateTime.UtcNow.AddMonths(12);
+            var items = (await EventService.GetEventsByDateRangeAsync(startRange, endRange)).ToList();
+            _eventsMap = items.ToDictionary(e => e.Id);
+            ReplaceCategory("events", items.Select(e => new SchedulerItem
+            {
+                EntityId = $"ev_{e.Id}", Subject = e.Name,
+                StartTime = e.StartDate.ToLocalTime(),
+                EndTime = (e.EndDate ?? e.StartDate.AddHours(1)).ToLocalTime(),
+                Location = e.Location, Description = e.ShortDescription,
+                Color = e.Color ?? "#4285F4", CategoryKey = "events",
+                EventStatus = e.Status, AssignedTo = e.AssignedToUserId,
+                IsPrivate = e.Visibility == CalendarVisibility.Private
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading events.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento degli eventi.");
+        }
     }
 
     private async Task LoadRemindersAndTasksAsync()
     {
-        var startRange = DateTime.UtcNow.AddMonths(-12);
-        var endRange   = DateTime.UtcNow.AddMonths(12);
-        var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
-        _remindersMap    = items.ToDictionary(r => r.Id);
-        _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
-        _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
-        ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
-        ReplaceCategory("tasks",     items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
+        try
+        {
+            var startRange = DateTime.UtcNow.AddMonths(-12);
+            var endRange   = DateTime.UtcNow.AddMonths(12);
+            var items = (await CalendarReminderService.GetCalendarRemindersByDateRangeAsync(startRange, endRange)).ToList();
+            _remindersMap    = items.ToDictionary(r => r.Id);
+            _activeReminders = items.Where(r => r.ItemType == CalendarItemType.Reminder && !r.IsCompleted).ToList();
+            _activeTasks     = items.Where(r => r.ItemType == CalendarItemType.Task      && !r.IsCompleted).ToList();
+            ReplaceCategory("reminders", items.Where(r => r.ItemType == CalendarItemType.Reminder).Select(r => ToSchedulerItem(r, "reminders")));
+            ReplaceCategory("tasks",     items.Where(r => r.ItemType == CalendarItemType.Task).Select(r => ToSchedulerItem(r, "tasks")));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reminders and tasks.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento di promemoria e attività.");
+        }
     }
 
     private static SchedulerItem ToSchedulerItem(CalendarReminderDto r, string cat) => new()
@@ -394,59 +418,91 @@
 
     private async Task LoadPriceListsAsync()
     {
-        var result = await PriceListService.GetPagedAsync(1, 100);
-        ReplaceCategory("pricelists", result.Items.Where(pl => pl.ValidFrom.HasValue || pl.ValidTo.HasValue).Select(pl => new SchedulerItem
+        try
         {
-            EntityId = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
-            StartTime = (pl.ValidFrom ?? pl.ValidTo!.Value.AddDays(-1)).ToLocalTime(),
-            EndTime   = (pl.ValidTo   ?? pl.ValidFrom!.Value.AddDays(1)).ToLocalTime(),
-            IsAllDay  = true, Description = $"Listino: {pl.Name}",
-            Color = pl.Status == PriceListStatus.Active ? "#00BCD4" : "#607D8B",
-            CategoryKey = "pricelists"
-        }));
+            var result = await PriceListService.GetPagedAsync(1, 100);
+            ReplaceCategory("pricelists", result.Items.Where(pl => pl.ValidFrom.HasValue || pl.ValidTo.HasValue).Select(pl => new SchedulerItem
+            {
+                EntityId = $"pl_{pl.Id}", Subject = $"\U0001f4cb {pl.Name}",
+                StartTime = (pl.ValidFrom ?? pl.ValidTo!.Value.AddDays(-1)).ToLocalTime(),
+                EndTime   = (pl.ValidTo   ?? pl.ValidFrom!.Value.AddDays(1)).ToLocalTime(),
+                IsAllDay  = true, Description = $"Listino: {pl.Name}",
+                Color = pl.Status == PriceListStatus.Active ? "#00BCD4" : "#607D8B",
+                CategoryKey = "pricelists"
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel caricamento dei listini prezzi.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei listini.");
+        }
     }
 
     private async Task LoadPromotionsAsync()
     {
-        var promos = await PromotionService.GetActiveAsync();
-        ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
+        try
         {
-            EntityId = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
-            StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
-            IsAllDay = true, Description = p.Name,
-            Color = "#34A853", CategoryKey = "promotions"
-        }));
+            var promos = await PromotionService.GetActiveAsync();
+            ReplaceCategory("promotions", promos.Select(p => new SchedulerItem
+            {
+                EntityId = $"promo_{p.Id}", Subject = $"\U0001f3f7\ufe0f {p.Name}",
+                StartTime = p.StartDate.ToLocalTime(), EndTime = p.EndDate.ToLocalTime(),
+                IsAllDay = true, Description = p.Name,
+                Color = "#34A853", CategoryKey = "promotions"
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading promotions.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento delle promozioni.");
+        }
     }
 
     private async Task LoadLotsAsync()
     {
-        var lots = await LotService.GetExpiringLotsAsync(365);
-        ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
+        try
         {
-            EntityId = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
-            StartTime = l.ExpiryDate!.Value.ToLocalTime(),
-            EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
-            IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
-            Color = l.ExpiryDate.Value < DateTime.UtcNow.AddDays(30) ? "#F44336" : "#FF9800",
-            CategoryKey = "lots"
-        }));
+            var lots = await LotService.GetExpiringLotsAsync(365);
+            ReplaceCategory("lots", (lots ?? Enumerable.Empty<LotDto>()).Where(l => l.ExpiryDate.HasValue).Select(l => new SchedulerItem
+            {
+                EntityId = $"lot_{l.Id}", Subject = $"\u26a0\ufe0f {l.Code}",
+                StartTime = l.ExpiryDate!.Value.ToLocalTime(),
+                EndTime   = l.ExpiryDate!.Value.ToLocalTime().AddHours(1),
+                IsAllDay  = true, Description = $"Lotto {l.Code} | {l.ProductCode}",
+                Color = l.ExpiryDate.Value < DateTime.UtcNow.AddDays(30) ? "#F44336" : "#FF9800",
+                CategoryKey = "lots"
+            }));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei lotti.");
+        }
     }
 
     private async Task LoadBirthdaysAsync()
     {
-        var teamMembers = await HttpClientService.GetAsync<IEnumerable<TeamMemberDto>>("api/v1/teams/members-with-birthdays") ?? Enumerable.Empty<TeamMemberDto>();
-        var parties     = await BusinessPartyService.GetBusinessPartiesWithBirthdayAsync();
-        var storeUsers  = await StoreUserService.GetWithBirthdayAsync();
+        try
+        {
+            var teamMembers = await HttpClientService.GetAsync<IEnumerable<TeamMemberDto>>("api/v1/teams/members-with-birthdays") ?? Enumerable.Empty<TeamMemberDto>();
+            var parties     = await BusinessPartyService.GetBusinessPartiesWithBirthdayAsync();
+            var storeUsers  = await StoreUserService.GetWithBirthdayAsync();
 
-        var items = new List<SchedulerItem>();
-        foreach (var m in teamMembers.Where(m => m.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday($"{m.FirstName} {m.LastName}".Trim(), m.DateOfBirth!.Value, $"tm_{m.Id}"));
-        foreach (var p in parties.Where(p => p.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday(p.Name, p.DateOfBirth!.Value, $"bp_{p.Id}"));
-        foreach (var u in storeUsers.Where(u => u.DateOfBirth.HasValue))
-            items.AddRange(ProjectBirthday(u.Name, u.DateOfBirth!.Value, $"su_{u.Id}"));
+            var items = new List<SchedulerItem>();
+            foreach (var m in teamMembers.Where(m => m.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday($"{m.FirstName} {m.LastName}".Trim(), m.DateOfBirth!.Value, $"tm_{m.Id}"));
+            foreach (var p in parties.Where(p => p.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday(p.Name, p.DateOfBirth!.Value, $"bp_{p.Id}"));
+            foreach (var u in storeUsers.Where(u => u.DateOfBirth.HasValue))
+                items.AddRange(ProjectBirthday(u.Name, u.DateOfBirth!.Value, $"su_{u.Id}"));
 
-        ReplaceCategory("birthdays", items);
+            ReplaceCategory("birthdays", items);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading birthdays.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei compleanni.");
+        }
     }
 
     private static IEnumerable<SchedulerItem> ProjectBirthday(string name, DateTime dob, string idPrefix)
@@ -483,115 +539,172 @@
         return rule;
     }
 
-    private async Task ToggleCategoryAsync(SchedulerCategory cat) { cat.Enabled = !cat.Enabled; await RefreshSchedulerAsync(); }
-    private async Task ToggleEventStatusFilterAsync(EventStatusFilter sf) { sf.Active = !sf.Active; await RefreshSchedulerAsync(); }
+    private async Task ToggleCategoryAsync(SchedulerCategory cat)
+    {
+        try
+        {
+            cat.Enabled = !cat.Enabled;
+            await RefreshSchedulerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ToggleCategoryAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task ToggleEventStatusFilterAsync(EventStatusFilter sf)
+    {
+        try
+        {
+            sf.Active = !sf.Active;
+            await RefreshSchedulerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ToggleEventStatusFilterAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
 
     private async Task OpenCreateEventDialog(DateTime? start = null, DateTime? end = null)
     {
-        var p = new DialogParameters<CreateEventDialog>
+        try
         {
-            { x => x.PrefilledStartDate, start },
-            { x => x.PrefilledEndDate,   end   }
-        };
-        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
-        var res  = await dlg.Result;
-        if (res is { Canceled: false, Data: EventDto created })
-        {
-            _eventsMap[created.Id] = created;
-            _allItems.Add(new SchedulerItem
+            var p = new DialogParameters<CreateEventDialog>
             {
-                EntityId = $"ev_{created.Id}", Subject = created.Name,
-                StartTime = created.StartDate.ToLocalTime(),
-                EndTime = (created.EndDate ?? created.StartDate.AddHours(1)).ToLocalTime(),
-                Location = created.Location, Description = created.ShortDescription,
-                Color = created.Color ?? "#4285F4", CategoryKey = "events",
-                EventStatus = created.Status, AssignedTo = created.AssignedToUserId,
-                IsPrivate = created.Visibility == CalendarVisibility.Private
-            });
-            UpdateCount("events"); await RefreshSchedulerAsync();
+                { x => x.PrefilledStartDate, start },
+                { x => x.PrefilledEndDate,   end   }
+            };
+            var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+            var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
+            var res  = await dlg.Result;
+            if (res is { Canceled: false, Data: EventDto created })
+            {
+                _eventsMap[created.Id] = created;
+                _allItems.Add(new SchedulerItem
+                {
+                    EntityId = $"ev_{created.Id}", Subject = created.Name,
+                    StartTime = created.StartDate.ToLocalTime(),
+                    EndTime = (created.EndDate ?? created.StartDate.AddHours(1)).ToLocalTime(),
+                    Location = created.Location, Description = created.ShortDescription,
+                    Color = created.Color ?? "#4285F4", CategoryKey = "events",
+                    EventStatus = created.Status, AssignedTo = created.AssignedToUserId,
+                    IsPrivate = created.Visibility == CalendarVisibility.Private
+                });
+                UpdateCount("events"); await RefreshSchedulerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di creazione evento.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la creazione dell'evento.");
         }
     }
 
     private async Task OpenEditEventDialog(EventDto ev)
     {
-        var p = new DialogParameters<CreateEventDialog>
+        try
         {
-            { x => x.ExistingEvent, ev }
-        };
-        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
-        var res  = await dlg.Result;
-        if (res is { Canceled: false, Data: EventDto updated })
-        {
-            _eventsMap[updated.Id] = updated;
-            var idx = _allItems.FindIndex(i => i.EntityId == $"ev_{updated.Id}");
-            var item = new SchedulerItem
+            var p = new DialogParameters<CreateEventDialog>
             {
-                EntityId = $"ev_{updated.Id}", Subject = updated.Name,
-                StartTime = updated.StartDate.ToLocalTime(),
-                EndTime = (updated.EndDate ?? updated.StartDate.AddHours(1)).ToLocalTime(),
-                Location = updated.Location, Description = updated.ShortDescription,
-                Color = updated.Color ?? "#4285F4", CategoryKey = "events",
-                EventStatus = updated.Status, AssignedTo = updated.AssignedToUserId,
-                IsPrivate = updated.Visibility == CalendarVisibility.Private
+                { x => x.ExistingEvent, ev }
             };
-            if (idx >= 0) _allItems[idx] = item;
-            else _allItems.Add(item);
-            UpdateCount("events"); await RefreshSchedulerAsync();
+            var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+            var dlg  = await DialogService.ShowAsync<CreateEventDialog>(string.Empty, p, opts);
+            var res  = await dlg.Result;
+            if (res is { Canceled: false, Data: EventDto updated })
+            {
+                _eventsMap[updated.Id] = updated;
+                var idx = _allItems.FindIndex(i => i.EntityId == $"ev_{updated.Id}");
+                var item = new SchedulerItem
+                {
+                    EntityId = $"ev_{updated.Id}", Subject = updated.Name,
+                    StartTime = updated.StartDate.ToLocalTime(),
+                    EndTime = (updated.EndDate ?? updated.StartDate.AddHours(1)).ToLocalTime(),
+                    Location = updated.Location, Description = updated.ShortDescription,
+                    Color = updated.Color ?? "#4285F4", CategoryKey = "events",
+                    EventStatus = updated.Status, AssignedTo = updated.AssignedToUserId,
+                    IsPrivate = updated.Visibility == CalendarVisibility.Private
+                };
+                if (idx >= 0) _allItems[idx] = item;
+                else _allItems.Add(item);
+                UpdateCount("events"); await RefreshSchedulerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di modifica evento.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica dell'evento.");
         }
     }
 
     private async Task OpenCreateReminderDialog(CalendarItemType itemType, DateTime? due = null)
     {
-        var p = new DialogParameters<CreateCalendarReminderDialog>
+        try
         {
-            { x => x.ItemType,         itemType },
-            { x => x.PrefilledDueDate, due      }
-        };
-        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
-        var res  = await dlg.Result;
-        if (res is { Canceled: false, Data: CalendarReminderDto created })
+            var p = new DialogParameters<CreateCalendarReminderDialog>
+            {
+                { x => x.ItemType,         itemType },
+                { x => x.PrefilledDueDate, due      }
+            };
+            var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+            var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
+            var res  = await dlg.Result;
+            if (res is { Canceled: false, Data: CalendarReminderDto created })
+            {
+                var cat = itemType == CalendarItemType.Task ? "tasks" : "reminders";
+                _allItems.Add(ToSchedulerItem(created, cat));
+                _remindersMap[created.Id] = created;
+                if (itemType == CalendarItemType.Reminder && !created.IsCompleted) _activeReminders.Insert(0, created);
+                else if (itemType == CalendarItemType.Task && !created.IsCompleted) _activeTasks.Insert(0, created);
+                UpdateCount(cat); await RefreshSchedulerAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            var cat = itemType == CalendarItemType.Task ? "tasks" : "reminders";
-            _allItems.Add(ToSchedulerItem(created, cat));
-            _remindersMap[created.Id] = created;
-            if (itemType == CalendarItemType.Reminder && !created.IsCompleted) _activeReminders.Insert(0, created);
-            else if (itemType == CalendarItemType.Task && !created.IsCompleted) _activeTasks.Insert(0, created);
-            UpdateCount(cat); await RefreshSchedulerAsync();
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di creazione promemoria/task.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la creazione del promemoria.");
         }
     }
 
     private async Task OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerItem> args)
     {
-        if (args.Type is PopupType.QuickInfo or PopupType.Editor)
-            args.Cancel = true;
-
-        if (args.Type != PopupType.Editor) return;
-
-        var itemId = args.Data?.EntityId ?? string.Empty;
-
-        if (itemId.StartsWith("ev_", StringComparison.Ordinal)
-            && Guid.TryParse(itemId[3..], out var eventId)
-            && _eventsMap.TryGetValue(eventId, out var ev))
+        try
         {
-            await OpenEditEventDialog(ev);
+            if (args.Type is PopupType.QuickInfo or PopupType.Editor)
+                args.Cancel = true;
+
+            if (args.Type != PopupType.Editor) return;
+
+            var itemId = args.Data?.EntityId ?? string.Empty;
+
+            if (itemId.StartsWith("ev_", StringComparison.Ordinal)
+                && Guid.TryParse(itemId[3..], out var eventId)
+                && _eventsMap.TryGetValue(eventId, out var ev))
+            {
+                await OpenEditEventDialog(ev);
+            }
+            else if (itemId.StartsWith("rem_", StringComparison.Ordinal)
+                && Guid.TryParse(itemId[4..], out var remId)
+                && _remindersMap.TryGetValue(remId, out var rem))
+            {
+                await OpenEditReminderDialog(rem);
+            }
+            else if (!itemId.StartsWith("pl_", StringComparison.Ordinal)
+                  && !itemId.StartsWith("promo_", StringComparison.Ordinal)
+                  && !itemId.StartsWith("lot_", StringComparison.Ordinal)
+                  && !itemId.StartsWith("bd_", StringComparison.Ordinal))
+            {
+                var s = args.Data?.StartTime;
+                var e = args.Data?.EndTime;
+                await OpenCreateEventDialog(s, e);
+            }
         }
-        else if (itemId.StartsWith("rem_", StringComparison.Ordinal)
-            && Guid.TryParse(itemId[4..], out var remId)
-            && _remindersMap.TryGetValue(remId, out var rem))
+        catch (Exception ex)
         {
-            await OpenEditReminderDialog(rem);
-        }
-        else if (!itemId.StartsWith("pl_", StringComparison.Ordinal)
-              && !itemId.StartsWith("promo_", StringComparison.Ordinal)
-              && !itemId.StartsWith("lot_", StringComparison.Ordinal)
-              && !itemId.StartsWith("bd_", StringComparison.Ordinal))
-        {
-            var s = args.Data?.StartTime;
-            var e = args.Data?.EndTime;
-            await OpenCreateEventDialog(s, e);
+            Logger.LogError(ex, "Errore durante la gestione del popup dello scheduler.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'apertura del dialogo.");
         }
     }
 
@@ -624,35 +737,43 @@
 
     private async Task OpenEditReminderDialog(CalendarReminderDto reminder)
     {
-        var p = new DialogParameters<CreateCalendarReminderDialog>
+        try
         {
-            { x => x.ExistingReminder, reminder }
-        };
-        var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
-        var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
-        var res  = await dlg.Result;
-        if (res is { Canceled: false, Data: CalendarReminderDto updated })
-        {
-            _remindersMap[updated.Id] = updated;
-            var cat = updated.ItemType == CalendarItemType.Task ? "tasks" : "reminders";
-            var idx = _allItems.FindIndex(i => i.EntityId == $"rem_{updated.Id}");
-            var item = ToSchedulerItem(updated, cat);
-            if (idx >= 0) _allItems[idx] = item;
-            else _allItems.Add(item);
-            if (!updated.IsCompleted)
+            var p = new DialogParameters<CreateCalendarReminderDialog>
             {
-                if (updated.ItemType == CalendarItemType.Reminder)
+                { x => x.ExistingReminder, reminder }
+            };
+            var opts = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false };
+            var dlg  = await DialogService.ShowAsync<CreateCalendarReminderDialog>(string.Empty, p, opts);
+            var res  = await dlg.Result;
+            if (res is { Canceled: false, Data: CalendarReminderDto updated })
+            {
+                _remindersMap[updated.Id] = updated;
+                var cat = updated.ItemType == CalendarItemType.Task ? "tasks" : "reminders";
+                var idx = _allItems.FindIndex(i => i.EntityId == $"rem_{updated.Id}");
+                var item = ToSchedulerItem(updated, cat);
+                if (idx >= 0) _allItems[idx] = item;
+                else _allItems.Add(item);
+                if (!updated.IsCompleted)
                 {
-                    var ri = _activeReminders.FindIndex(r => r.Id == updated.Id);
-                    if (ri >= 0) _activeReminders[ri] = updated; else _activeReminders.Insert(0, updated);
+                    if (updated.ItemType == CalendarItemType.Reminder)
+                    {
+                        var ri = _activeReminders.FindIndex(r => r.Id == updated.Id);
+                        if (ri >= 0) _activeReminders[ri] = updated; else _activeReminders.Insert(0, updated);
+                    }
+                    else
+                    {
+                        var ti = _activeTasks.FindIndex(t => t.Id == updated.Id);
+                        if (ti >= 0) _activeTasks[ti] = updated; else _activeTasks.Insert(0, updated);
+                    }
                 }
-                else
-                {
-                    var ti = _activeTasks.FindIndex(t => t.Id == updated.Id);
-                    if (ti >= 0) _activeTasks[ti] = updated; else _activeTasks.Insert(0, updated);
-                }
+                UpdateCount(cat); await RefreshSchedulerAsync();
             }
-            UpdateCount(cat); await RefreshSchedulerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di modifica promemoria.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica del promemoria.");
         }
     }
 

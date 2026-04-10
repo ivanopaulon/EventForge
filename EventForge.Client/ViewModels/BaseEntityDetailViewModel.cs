@@ -56,7 +56,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Loads an entity by its ID
     /// </summary>
-    public virtual async Task LoadEntityAsync(Guid entityId)
+    public virtual async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         IsLoading = true;
         NotifyStateChanged();
@@ -71,10 +71,10 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
             else
             {
                 IsNewEntity = false;
-                Entity = await LoadEntityFromServiceAsync(entityId);
+                Entity = await LoadEntityFromServiceAsync(entityId, ct);
                 if (Entity != null)
                 {
-                    await LoadRelatedEntitiesAsync(entityId);
+                    await LoadRelatedEntitiesAsync(entityId, ct);
                 }
             }
 
@@ -95,7 +95,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Saves the current entity (create or update)
     /// </summary>
-    public async Task<bool> SaveEntityAsync()
+    public async Task<bool> SaveEntityAsync(CancellationToken ct = default)
     {
         if (Entity == null) return false;
 
@@ -107,7 +107,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
             if (IsNewEntity)
             {
                 var createDto = MapToCreateDto(Entity);
-                var created = await CreateEntityAsync(createDto);
+                var created = await CreateEntityAsync(createDto, ct);
                 if (created != null)
                 {
                     Entity = created;
@@ -121,7 +121,7 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
             {
                 var updateDto = MapToUpdateDto(Entity);
                 var entityId = GetEntityId(Entity);
-                var updated = await UpdateEntityAsync(entityId, updateDto);
+                var updated = await UpdateEntityAsync(entityId, updateDto, ct);
                 if (updated != null)
                 {
                     Entity = updated;
@@ -165,11 +165,11 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Reloads the entity from the service
     /// </summary>
-    public async Task ReloadEntityAsync()
+    public async Task ReloadEntityAsync(CancellationToken ct = default)
     {
         if (Entity == null || IsNewEntity) return;
         var entityId = GetEntityId(Entity);
-        await LoadEntityAsync(entityId);
+        await LoadEntityAsync(entityId, ct);
     }
 
     /// <summary>
@@ -201,12 +201,12 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Loads entity from the service
     /// </summary>
-    protected abstract Task<TDto?> LoadEntityFromServiceAsync(Guid entityId);
+    protected abstract Task<TDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default);
 
     /// <summary>
     /// Loads related entities (optional)
     /// </summary>
-    protected virtual Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected virtual Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         return Task.CompletedTask;
     }
@@ -224,12 +224,12 @@ public abstract class BaseEntityDetailViewModel<TDto, TCreateDto, TUpdateDto> : 
     /// <summary>
     /// Creates entity via service
     /// </summary>
-    protected abstract Task<TDto?> CreateEntityAsync(TCreateDto createDto);
+    protected abstract Task<TDto?> CreateEntityAsync(TCreateDto createDto, CancellationToken ct = default);
 
     /// <summary>
     /// Updates entity via service
     /// </summary>
-    protected abstract Task<TDto?> UpdateEntityAsync(Guid entityId, TUpdateDto updateDto);
+    protected abstract Task<TDto?> UpdateEntityAsync(Guid entityId, TUpdateDto updateDto, CancellationToken ct = default);
 
     /// <summary>
     /// Gets the entity ID

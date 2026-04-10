@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Promotions;
 
-
 /// <summary>
 /// Represents a promotion campaign.
 /// </summary>

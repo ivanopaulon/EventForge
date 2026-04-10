@@ -42,6 +42,7 @@ public class AnalyticsService(
 
             // Top promotions by CurrentUses
             var topPromotions = await context.Promotions
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderByDescending(p => p.CurrentUses)
                 .Take(top)
@@ -53,6 +54,7 @@ public class AnalyticsService(
             var dateTo = filter.DateTo ?? now;
 
             var trendRaw = await context.DocumentRows
+                .AsNoTracking()
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.AppliedPromotionsJSON != null
@@ -95,6 +97,7 @@ public class AnalyticsService(
 
             // Active promotions
             var activeCount = await context.Promotions
+                .AsNoTracking()
                 .CountAsync(p => !p.IsDeleted
                     && p.TenantId == tenantId.Value
                     && p.StartDate <= now
@@ -149,6 +152,7 @@ public class AnalyticsService(
 
             // Top price lists by usage
             var priceListUsage = await context.DocumentRows
+                .AsNoTracking()
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.AppliedPriceListId.HasValue
@@ -169,6 +173,7 @@ public class AnalyticsService(
 
             var priceListIds = priceListUsage.Select(x => x.PriceListId).ToList();
             var priceListNames = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => priceListIds.Contains(pl.Id))
                 .Select(pl => new { pl.Id, pl.Name })
                 .ToDictionaryAsync(pl => pl.Id, pl => pl.Name, ct);
@@ -186,6 +191,7 @@ public class AnalyticsService(
 
             // Manual price overrides trend
             var manualRaw = await context.DocumentRows
+                .AsNoTracking()
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.IsPriceManual
@@ -211,6 +217,7 @@ public class AnalyticsService(
 
             // Total rows vs manual rows for automatic pricing percentage
             var totalRows = await context.DocumentRows
+                .AsNoTracking()
                 .CountAsync(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.DocumentHeader != null
@@ -266,6 +273,7 @@ public class AnalyticsService(
 
             // Sales trend from DocumentHeaders (exclude cancelled)
             var headersRaw = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(h => !h.IsDeleted
                     && h.TenantId == tenantId.Value
                     && h.Status != DocumentStatus.Cancelled
@@ -282,6 +290,7 @@ public class AnalyticsService(
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 var totalDocsInRange = await context.DocumentHeaders
+                    .AsNoTracking()
                     .CountAsync(h => !h.IsDeleted && h.TenantId == tenantId.Value && h.Date >= dateFrom && h.Date <= dateTo, ct);
                 logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
                     totalDocsInRange, dateFrom, dateTo, headersRaw.Count, headersRaw.Sum(h => h.Amount));
@@ -312,6 +321,7 @@ public class AnalyticsService(
                 logger.LogInformation("Sales analytics: TotalNetAmount is 0 on all {Count} headers for tenant {TenantId}, falling back to DocumentRows sum",
                     headersRaw.Count, tenantId);
                 var rowsRevenue = await context.DocumentRows
+                    .AsNoTracking()
                     .Where(r => !r.IsDeleted
                         && r.TenantId == tenantId.Value
                         && r.DocumentHeader != null
@@ -334,6 +344,7 @@ public class AnalyticsService(
 
             // Top products by revenue
             var productRows = await context.DocumentRows
+                .AsNoTracking()
                 .Where(r => !r.IsDeleted
                     && r.TenantId == tenantId.Value
                     && r.ProductId.HasValue

@@ -2,6 +2,7 @@
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 @inject IAppNotificationService AppNotification
+@inject ILogger<RichNotificationCard> Logger
 
 <MudCard Class="@($"notification-card {GetNotificationCssClass()}")" Elevation="@(Notification.Status == NotificationStatus.Read ? 1 : 3)">
     <MudCardContent Class="pa-3">
@@ -316,17 +317,41 @@
 
     private async Task MarkAsRead()
     {
-        await OnMarkAsRead.InvokeAsync(Notification);
+        try
+        {
+            await OnMarkAsRead.InvokeAsync(Notification);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(MarkAsRead));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task Archive()
     {
-        await OnArchive.InvokeAsync(Notification);
+        try
+        {
+            await OnArchive.InvokeAsync(Notification);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(Archive));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task ShowDetails()
     {
-        await OnShowDetails.InvokeAsync(Notification);
+        try
+        {
+            await OnShowDetails.InvokeAsync(Notification);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ShowDetails));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void NavigateToUrl(string url)

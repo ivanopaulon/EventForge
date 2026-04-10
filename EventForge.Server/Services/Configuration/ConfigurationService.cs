@@ -30,6 +30,11 @@ public class ConfigurationService(
             logger.LogInformation("GetAllConfigurationsAsync operation was cancelled");
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetAllConfigurationsAsync.");
+            throw;
+        }
     }
 
     public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category, CancellationToken ct = default)
@@ -49,6 +54,11 @@ public class ConfigurationService(
             logger.LogInformation("GetConfigurationsByCategoryAsync operation was cancelled for category {Category}", category);
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetConfigurationsByCategoryAsync for category {Category}.", category);
+            throw;
+        }
     }
 
     public async Task<ConfigurationDto?> GetConfigurationAsync(string key, CancellationToken ct = default)
@@ -64,6 +74,11 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetConfigurationAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetConfigurationAsync for key {Key}.", key);
             throw;
         }
     }
@@ -118,6 +133,11 @@ public class ConfigurationService(
             logger.LogInformation("CreateConfigurationAsync operation was cancelled for key {Key}", createDto.Key);
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in CreateConfigurationAsync for key {Key}.", createDto.Key);
+            throw;
+        }
     }
 
     public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto, CancellationToken ct = default)
@@ -168,6 +188,11 @@ public class ConfigurationService(
             logger.LogInformation("UpdateConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateConfigurationAsync for key {Key}.", key);
+            throw;
+        }
     }
 
     public async Task DeleteConfigurationAsync(string key, CancellationToken ct = default)
@@ -208,6 +233,11 @@ public class ConfigurationService(
             logger.LogInformation("DeleteConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteConfigurationAsync for key {Key}.", key);
+            throw;
+        }
     }
 
     public async Task<string> GetValueAsync(string key, string defaultValue = "", CancellationToken ct = default)
@@ -228,6 +258,11 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetValueAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetValueAsync for key {Key}.", key);
             throw;
         }
     }
@@ -265,6 +300,11 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("SetValueAsync operation was cancelled for key {Key}", key);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in SetValueAsync for key {Key}.", key);
             throw;
         }
     }
@@ -336,17 +376,25 @@ public class ConfigurationService(
 
     public async Task ReloadConfigurationAsync(CancellationToken ct = default)
     {
-        // This would trigger a configuration reload in the application
-        // Implementation depends on how configuration is managed in the app
-        // NOTE: CancellationToken will be used when actual implementation is added
-        logger.LogInformation("Configuration reload requested");
+        try
+        {
+            // This would trigger a configuration reload in the application
+            // Implementation depends on how configuration is managed in the app
+            // NOTE: CancellationToken will be used when actual implementation is added
+            logger.LogInformation("Configuration reload requested");
 
-        // Here you could implement logic to:
-        // 1. Clear configuration cache
-        // 2. Reload configuration from database
-        // 3. Notify other services about configuration changes
+            // Here you could implement logic to:
+            // 1. Clear configuration cache
+            // 2. Reload configuration from database
+            // 3. Notify other services about configuration changes
 
-        await Task.CompletedTask;
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ReloadConfigurationAsync.");
+            throw;
+        }
     }
 
     public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)
@@ -365,6 +413,11 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetCategoriesAsync operation was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetCategoriesAsync.");
             throw;
         }
     }

@@ -649,11 +649,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
 
-        // Load printers and groups in parallel
-        await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync(), LoadTerminalsAsync());
+            // Load printers and groups in parallel
+            await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync(), LoadTerminalsAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PosDetailDialog.");
+        }
     }
 
     private async Task LoadPrintersAsync()
@@ -814,10 +821,18 @@
             if (!_form.IsValid) return;
         }
 
-        var success = await ViewModel.SaveEntityAsync();
-        if (success)
+        try
         {
-            MudDialog.Close(DialogResult.Ok(true));
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving POS.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
         }
     }
 

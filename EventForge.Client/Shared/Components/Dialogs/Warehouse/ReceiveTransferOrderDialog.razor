@@ -185,15 +185,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (TransferOrder == null)
+        try
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"));
-            MudDialog.Cancel();
-            return;
-        }
+            if (TransferOrder == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"));
+                MudDialog.Cancel();
+                return;
+            }
 
-        await LoadDestinationLocations();
-        InitializeReceiveRows();
+            await LoadDestinationLocations();
+            InitializeReceiveRows();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ReceiveTransferOrderDialog.");
+        }
     }
 
     private async Task LoadDestinationLocations()

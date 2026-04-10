@@ -216,73 +216,81 @@ public class ChatService(
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving chat {ChatId} for user {UserId} in tenant {TenantId}",
-            chatId, userId, tenantId);
-
-        var thread = await context.ChatThreads
-            .AsNoTracking()
-            .Where(ct => ct.Id == chatId
-                      && !ct.IsDeleted
-                      && ct.IsActive
-                      && (tenantId == null || ct.TenantId == tenantId.Value))
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (thread is null)
-            return null;
-
-        // Verify the requesting user is a member (skip check when userId is empty – server-side call)
-        if (userId != Guid.Empty)
+        try
         {
-            var isMember = await context.ChatMembers
-                .AnyAsync(cm => cm.ChatThreadId == chatId
-                             && cm.UserId == userId
-                             && !cm.IsDeleted, cancellationToken);
+            logger.LogInformation(
+                "Retrieving chat {ChatId} for user {UserId} in tenant {TenantId}",
+                chatId, userId, tenantId);
 
-            if (!isMember)
+            var thread = await context.ChatThreads
+                .AsNoTracking()
+                .Where(ct => ct.Id == chatId
+                          && !ct.IsDeleted
+                          && ct.IsActive
+                          && (tenantId == null || ct.TenantId == tenantId.Value))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (thread is null)
                 return null;
-        }
 
-        var members = await BuildMemberDtosAsync(chatId, cancellationToken);
-
-        var lastMessage = await context.ChatMessages
-            .AsNoTracking()
-            .Where(m => m.ChatThreadId == chatId && !m.IsDeleted)
-            .OrderByDescending(m => m.SentAt)
-            .Join(context.Users,
-                m => m.SenderId,
-                u => u.Id,
-                (m, u) => new
-                {
-                    m.Id,
-                    m.ChatThreadId,
-                    m.SenderId,
-                    SenderFullName = (u.FirstName + " " + u.LastName).Trim(),
-                    u.Username,
-                    m.Content,
-                    m.SentAt
-                })
-            .Select(x => new ChatMessageDto
+            // Verify the requesting user is a member (skip check when userId is empty – server-side call)
+            if (userId != Guid.Empty)
             {
-                Id = x.Id,
-                ChatId = x.ChatThreadId,
-                SenderId = x.SenderId ?? Guid.Empty,
-                SenderName = x.SenderFullName.Length > 0 ? x.SenderFullName : x.Username,
-                Content = x.Content,
-                SentAt = x.SentAt
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+                var isMember = await context.ChatMembers
+                    .AnyAsync(cm => cm.ChatThreadId == chatId
+                                 && cm.UserId == userId
+                                 && !cm.IsDeleted, cancellationToken);
 
-        var unreadCount = userId != Guid.Empty
-            ? await context.ChatMessages
-                .CountAsync(m => m.ChatThreadId == chatId
-                              && !m.IsDeleted
-                              && m.SenderId != userId
-                              && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == userId),
-                             cancellationToken)
-            : 0;
+                if (!isMember)
+                    return null;
+            }
 
-        return MapToChatResponseDto(thread, members, lastMessage, unreadCount);
+            var members = await BuildMemberDtosAsync(chatId, cancellationToken);
+
+            var lastMessage = await context.ChatMessages
+                .AsNoTracking()
+                .Where(m => m.ChatThreadId == chatId && !m.IsDeleted)
+                .OrderByDescending(m => m.SentAt)
+                .Join(context.Users,
+                    m => m.SenderId,
+                    u => u.Id,
+                    (m, u) => new
+                    {
+                        m.Id,
+                        m.ChatThreadId,
+                        m.SenderId,
+                        SenderFullName = (u.FirstName + " " + u.LastName).Trim(),
+                        u.Username,
+                        m.Content,
+                        m.SentAt
+                    })
+                .Select(x => new ChatMessageDto
+                {
+                    Id = x.Id,
+                    ChatId = x.ChatThreadId,
+                    SenderId = x.SenderId ?? Guid.Empty,
+                    SenderName = x.SenderFullName.Length > 0 ? x.SenderFullName : x.Username,
+                    Content = x.Content,
+                    SentAt = x.SentAt
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var unreadCount = userId != Guid.Empty
+                ? await context.ChatMessages
+                    .CountAsync(m => m.ChatThreadId == chatId
+                                  && !m.IsDeleted
+                                  && m.SenderId != userId
+                                  && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == userId),
+                                 cancellationToken)
+                : 0;
+
+            return MapToChatResponseDto(thread, members, lastMessage, unreadCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -293,6 +301,8 @@ public class ChatService(
         ChatSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         // Base query: threads where the user is an active member
         var query = context.ChatThreads
             .AsNoTracking()
@@ -479,6 +489,12 @@ public class ChatService(
             Page = page,
             PageSize = pageSize
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in SearchChatsAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -491,6 +507,8 @@ public class ChatService(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
@@ -516,6 +534,12 @@ public class ChatService(
             PreferredLocale = updateDto.PreferredLocale,
             UpdatedAt = DateTime.UtcNow
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateChatAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -529,6 +553,8 @@ public class ChatService(
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "ChatThread",
             entityId: chatId,
@@ -555,6 +581,12 @@ public class ChatService(
                 ["Reason"] = reason ?? "No reason provided"
             }
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteChatAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     #endregion
@@ -709,83 +741,91 @@ public class ChatService(
         MessageSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
-            searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
-
-        // 1. Build query from ChatMessages DbSet
-        var query = context.ChatMessages
-            .AsNoTracking()
-            .Where(m => !m.IsDeleted || searchDto.IncludeDeleted)
-            .AsQueryable();
-
-        // 2. Apply filters from searchDto
-        if (searchDto.ChatId.HasValue)
+        try
         {
-            query = query.Where(m => m.ChatThreadId == searchDto.ChatId.Value);
+            logger.LogInformation(
+                "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
+                searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
+
+            // 1. Build query from ChatMessages DbSet
+            var query = context.ChatMessages
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted || searchDto.IncludeDeleted)
+                .AsQueryable();
+
+            // 2. Apply filters from searchDto
+            if (searchDto.ChatId.HasValue)
+            {
+                query = query.Where(m => m.ChatThreadId == searchDto.ChatId.Value);
+            }
+
+            if (searchDto.TenantId.HasValue)
+            {
+                query = query.Where(m => m.TenantId == searchDto.TenantId.Value);
+            }
+
+            if (searchDto.SenderId.HasValue)
+            {
+                query = query.Where(m => m.SenderId == searchDto.SenderId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+            {
+                query = query.Where(m => m.Content != null && m.Content.Contains(searchDto.SearchTerm));
+            }
+
+            if (searchDto.FromDate.HasValue)
+            {
+                query = query.Where(m => m.SentAt >= searchDto.FromDate.Value);
+            }
+
+            if (searchDto.ToDate.HasValue)
+            {
+                query = query.Where(m => m.SentAt <= searchDto.ToDate.Value);
+            }
+
+            if (searchDto.HasMediaType.HasValue)
+            {
+                query = query.Where(m => m.Attachments.Any(a => a.MediaType == searchDto.HasMediaType.Value));
+            }
+
+            // 3. Include related entities
+            query = query
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts)
+                .Include(m => m.ReplyToMessage);
+
+            // 4. Get total count for pagination
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // 5. Apply sorting
+            query = searchDto.SortOrder.ToLowerInvariant() == "asc"
+                ? query.OrderBy(m => m.SentAt)
+                : query.OrderByDescending(m => m.SentAt);
+
+            // 6. Apply pagination
+            query = query
+                .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
+                .Take(searchDto.PageSize);
+
+            // 7. Execute query and map to DTOs
+            var messages = await query.ToListAsync(cancellationToken);
+            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+            // 8. Return PagedResult
+            return new PagedResult<ChatMessageDto>
+            {
+                Items = messageDtos,
+                Page = searchDto.PageNumber,
+                PageSize = searchDto.PageSize,
+                TotalCount = totalCount
+            };
         }
-
-        if (searchDto.TenantId.HasValue)
+        catch (Exception ex)
         {
-            query = query.Where(m => m.TenantId == searchDto.TenantId.Value);
+            logger.LogError(ex, "Error retrieving messages.");
+            throw;
         }
-
-        if (searchDto.SenderId.HasValue)
-        {
-            query = query.Where(m => m.SenderId == searchDto.SenderId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
-        {
-            query = query.Where(m => m.Content != null && m.Content.Contains(searchDto.SearchTerm));
-        }
-
-        if (searchDto.FromDate.HasValue)
-        {
-            query = query.Where(m => m.SentAt >= searchDto.FromDate.Value);
-        }
-
-        if (searchDto.ToDate.HasValue)
-        {
-            query = query.Where(m => m.SentAt <= searchDto.ToDate.Value);
-        }
-
-        if (searchDto.HasMediaType.HasValue)
-        {
-            query = query.Where(m => m.Attachments.Any(a => a.MediaType == searchDto.HasMediaType.Value));
-        }
-
-        // 3. Include related entities
-        query = query
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts)
-            .Include(m => m.ReplyToMessage);
-
-        // 4. Get total count for pagination
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        // 5. Apply sorting
-        query = searchDto.SortOrder.ToLowerInvariant() == "asc"
-            ? query.OrderBy(m => m.SentAt)
-            : query.OrderByDescending(m => m.SentAt);
-
-        // 6. Apply pagination
-        query = query
-            .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
-            .Take(searchDto.PageSize);
-
-        // 7. Execute query and map to DTOs
-        var messages = await query.ToListAsync(cancellationToken);
-        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
-
-        // 8. Return PagedResult
-        return new PagedResult<ChatMessageDto>
-        {
-            Items = messageDtos,
-            Page = searchDto.PageNumber,
-            PageSize = searchDto.PageSize,
-            TotalCount = totalCount
-        };
     }
 
     /// <summary>
@@ -795,32 +835,40 @@ public class ChatService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
-
-        var query = context.ChatMessages
-            .AsNoTracking()
-            .Where(m => !m.IsDeleted)
-            .Include(m => m.ChatThread)
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var messages = await query
-            .OrderByDescending(m => m.SentAt)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
-
-        return new PagedResult<ChatMessageDto>
+        try
         {
-            Items = messageDtos,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize,
-            TotalCount = totalCount
-        };
+            logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
+
+            var query = context.ChatMessages
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted)
+                .Include(m => m.ChatThread)
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var messages = await query
+                .OrderByDescending(m => m.SentAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+            return new PagedResult<ChatMessageDto>
+            {
+                Items = messageDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving messages.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -831,33 +879,41 @@ public class ChatService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving messages for conversation {ConversationId} - Page {Page}",
-            conversationId, pagination.Page);
-
-        var query = context.ChatMessages
-            .AsNoTracking()
-            .Where(m => !m.IsDeleted && m.ChatThreadId == conversationId)
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var messages = await query
-            .OrderBy(m => m.SentAt)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
-
-        return new PagedResult<ChatMessageDto>
+        try
         {
-            Items = messageDtos,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize,
-            TotalCount = totalCount
-        };
+            logger.LogInformation(
+                "Retrieving messages for conversation {ConversationId} - Page {Page}",
+                conversationId, pagination.Page);
+
+            var query = context.ChatMessages
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted && m.ChatThreadId == conversationId)
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var messages = await query
+                .OrderBy(m => m.SentAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+            return new PagedResult<ChatMessageDto>
+            {
+                Items = messageDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving messages for conversation {ConversationId}.", conversationId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -868,38 +924,46 @@ public class ChatService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
-
-        // NOTE: This is a simplified implementation.
-        // In a full implementation, you would need to:
-        // 1. Get current user ID from context (e.g., IHttpContextAccessor or parameter)
-        // 2. Query messages where ReadReceipts don't contain current user's read receipt
-        // For now, we'll return messages with no read receipts
-
-        var query = context.ChatMessages
-            .AsNoTracking()
-            .Where(m => !m.IsDeleted && m.ReadAt == null)
-            .Include(m => m.ChatThread)
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var messages = await query
-            .OrderByDescending(m => m.SentAt)
-            .Skip(pagination.CalculateSkip())
-            .Take(pagination.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var messageDtos = messages.Select(MapToChatMessageDto).ToList();
-
-        return new PagedResult<ChatMessageDto>
+        try
         {
-            Items = messageDtos,
-            Page = pagination.Page,
-            PageSize = pagination.PageSize,
-            TotalCount = totalCount
-        };
+            logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
+
+            // NOTE: This is a simplified implementation.
+            // In a full implementation, you would need to:
+            // 1. Get current user ID from context (e.g., IHttpContextAccessor or parameter)
+            // 2. Query messages where ReadReceipts don't contain current user's read receipt
+            // For now, we'll return messages with no read receipts
+
+            var query = context.ChatMessages
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted && m.ReadAt == null)
+                .Include(m => m.ChatThread)
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var messages = await query
+                .OrderByDescending(m => m.SentAt)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+
+            return new PagedResult<ChatMessageDto>
+            {
+                Items = messageDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving unread messages.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -911,54 +975,63 @@ public class ChatService(
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving message {MessageId} for user {UserId} in tenant {TenantId}",
-            messageId, userId, tenantId);
-
-        // 1. Query ChatMessages by messageId with related entities
-        var message = await context.ChatMessages
-            .Include(m => m.ChatThread)
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts)
-            .Include(m => m.ReplyToMessage)
-            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-
-        if (message is null)
+        try
         {
-            logger.LogWarning("Message {MessageId} not found", messageId);
-            return null;
-        }
+            logger.LogInformation(
+                "Retrieving message {MessageId} for user {UserId} in tenant {TenantId}",
+                messageId, userId, tenantId);
 
-        // 2. Validate tenant access
-        if (tenantId.HasValue && message.TenantId != tenantId.Value)
+            // 1. Query ChatMessages by messageId with related entities
+            var message = await context.ChatMessages
+                .AsNoTracking()
+                .Include(m => m.ChatThread)
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts)
+                .Include(m => m.ReplyToMessage)
+                .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+
+            if (message is null)
+            {
+                logger.LogWarning("Message {MessageId} not found", messageId);
+                return null;
+            }
+
+            // 2. Validate tenant access
+            if (tenantId.HasValue && message.TenantId != tenantId.Value)
+            {
+                logger.LogWarning(
+                    "Access denied: Message {MessageId} belongs to tenant {MessageTenantId}, but requested by tenant {RequestTenantId}",
+                    messageId, message.TenantId, tenantId.Value);
+                return null;
+            }
+
+            // 3. Validate user is member of chat
+            var isMember = await context.ChatMembers
+                .AnyAsync(cm => cm.ChatThreadId == message.ChatThreadId && cm.UserId == userId, cancellationToken);
+
+            if (!isMember)
+            {
+                logger.LogWarning(
+                    "Access denied: User {UserId} is not a member of chat {ChatId}",
+                    userId, message.ChatThreadId);
+                return null;
+            }
+
+            // 4. Check if message is deleted
+            if (message.IsDeleted)
+            {
+                logger.LogWarning("Message {MessageId} is deleted", messageId);
+                return null;
+            }
+
+            // 5. Map to ChatMessageDto
+            return MapToChatMessageDto(message);
+        }
+        catch (Exception ex)
         {
-            logger.LogWarning(
-                "Access denied: Message {MessageId} belongs to tenant {MessageTenantId}, but requested by tenant {RequestTenantId}",
-                messageId, message.TenantId, tenantId.Value);
-            return null;
+            logger.LogError(ex, "Error retrieving message {MessageId}.", messageId);
+            throw;
         }
-
-        // 3. Validate user is member of chat
-        var isMember = await context.ChatMembers
-            .AnyAsync(cm => cm.ChatThreadId == message.ChatThreadId && cm.UserId == userId, cancellationToken);
-
-        if (!isMember)
-        {
-            logger.LogWarning(
-                "Access denied: User {UserId} is not a member of chat {ChatId}",
-                userId, message.ChatThreadId);
-            return null;
-        }
-
-        // 4. Check if message is deleted
-        if (message.IsDeleted)
-        {
-            logger.LogWarning("Message {MessageId} is deleted", messageId);
-            return null;
-        }
-
-        // 5. Map to ChatMessageDto
-        return MapToChatMessageDto(message);
     }
 
     /// <summary>
@@ -968,85 +1041,93 @@ public class ChatService(
         EditMessageDto editDto,
         CancellationToken cancellationToken = default)
     {
-        // 1. Find message by editDto.MessageId
-        var message = await context.ChatMessages
-            .Include(m => m.Attachments)
-            .Include(m => m.ReadReceipts)
-            .Include(m => m.ReplyToMessage)
-            .FirstOrDefaultAsync(m => m.Id == editDto.MessageId, cancellationToken);
-
-        if (message is null)
+        try
         {
-            throw new InvalidOperationException($"Message {editDto.MessageId} not found");
-        }
+            // 1. Find message by editDto.MessageId
+            var message = await context.ChatMessages
+                .Include(m => m.Attachments)
+                .Include(m => m.ReadReceipts)
+                .Include(m => m.ReplyToMessage)
+                .FirstOrDefaultAsync(m => m.Id == editDto.MessageId, cancellationToken);
 
-        // 2. Validate user is sender
-        if (message.SenderId != editDto.UserId)
+            if (message is null)
+            {
+                throw new InvalidOperationException($"Message {editDto.MessageId} not found");
+            }
+
+            // 2. Validate user is sender
+            if (message.SenderId != editDto.UserId)
+            {
+                throw new UnauthorizedAccessException($"User {editDto.UserId} is not the sender of message {editDto.MessageId}");
+            }
+
+            // 3. Validate message is not deleted
+            if (message.IsDeleted)
+            {
+                throw new InvalidOperationException($"Cannot edit deleted message {editDto.MessageId}");
+            }
+
+            // 4. Store original content in metadata (if first edit)
+            var metadata = string.IsNullOrEmpty(message.MetadataJson)
+                ? new Dictionary<string, object>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
+
+            var oldContent = message.Content ?? string.Empty;
+
+            if (!message.IsEdited && !metadata.ContainsKey("OriginalContent"))
+            {
+                metadata["OriginalContent"] = oldContent;
+            }
+
+            // 5. Store edit reason in metadata
+            if (!string.IsNullOrEmpty(editDto.EditReason))
+            {
+                metadata["EditReason"] = editDto.EditReason;
+            }
+            metadata["EditedBy"] = editDto.UserId.ToString();
+            metadata["LastEditedAt"] = DateTime.UtcNow.ToString("O");
+
+            // 6. Update message fields
+            message.Content = editDto.Content;
+            message.IsEdited = true;
+            message.EditedAt = DateTime.UtcNow;
+            message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+            message.ModifiedAt = DateTime.UtcNow;
+
+            // 7. Save to database
+            await context.SaveChangesAsync(cancellationToken);
+
+            // 8. Log audit trail with old and new content
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatMessage",
+                entityId: editDto.MessageId,
+                propertyName: "Content",
+                operationType: "Update",
+                oldValue: oldContent,
+                newValue: editDto.Content,
+                changedBy: editDto.UserId.ToString(),
+                entityDisplayName: $"Message Edit: {editDto.MessageId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogInformation(
+                "User {UserId} edited message {MessageId} with reason: {Reason}",
+                editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
+
+            // 9. Map to DTO using helper method
+            var mappedDto = MapToChatMessageDto(message);
+
+            // 10. Send SignalR notification to chat members
+            await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+                .SendAsync("MessageEdited", mappedDto, cancellationToken);
+
+            // 11. Return updated ChatMessageDto
+            return mappedDto;
+        }
+        catch (Exception ex)
         {
-            throw new UnauthorizedAccessException($"User {editDto.UserId} is not the sender of message {editDto.MessageId}");
+            logger.LogError(ex, "Error editing message {MessageId}.", editDto.MessageId);
+            throw;
         }
-
-        // 3. Validate message is not deleted
-        if (message.IsDeleted)
-        {
-            throw new InvalidOperationException($"Cannot edit deleted message {editDto.MessageId}");
-        }
-
-        // 4. Store original content in metadata (if first edit)
-        var metadata = string.IsNullOrEmpty(message.MetadataJson)
-            ? new Dictionary<string, object>()
-            : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
-
-        var oldContent = message.Content ?? string.Empty;
-
-        if (!message.IsEdited && !metadata.ContainsKey("OriginalContent"))
-        {
-            metadata["OriginalContent"] = oldContent;
-        }
-
-        // 5. Store edit reason in metadata
-        if (!string.IsNullOrEmpty(editDto.EditReason))
-        {
-            metadata["EditReason"] = editDto.EditReason;
-        }
-        metadata["EditedBy"] = editDto.UserId.ToString();
-        metadata["LastEditedAt"] = DateTime.UtcNow.ToString("O");
-
-        // 6. Update message fields
-        message.Content = editDto.Content;
-        message.IsEdited = true;
-        message.EditedAt = DateTime.UtcNow;
-        message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
-        message.ModifiedAt = DateTime.UtcNow;
-
-        // 7. Save to database
-        await context.SaveChangesAsync(cancellationToken);
-
-        // 8. Log audit trail with old and new content
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatMessage",
-            entityId: editDto.MessageId,
-            propertyName: "Content",
-            operationType: "Update",
-            oldValue: oldContent,
-            newValue: editDto.Content,
-            changedBy: editDto.UserId.ToString(),
-            entityDisplayName: $"Message Edit: {editDto.MessageId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogInformation(
-            "User {UserId} edited message {MessageId} with reason: {Reason}",
-            editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
-
-        // 9. Map to DTO using helper method
-        var mappedDto = MapToChatMessageDto(message);
-
-        // 10. Send SignalR notification to chat members
-        await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
-            .SendAsync("MessageEdited", mappedDto, cancellationToken);
-
-        // 11. Return updated ChatMessageDto
-        return mappedDto;
     }
 
     /// <summary>
@@ -1059,95 +1140,103 @@ public class ChatService(
         bool softDelete = true,
         CancellationToken cancellationToken = default)
     {
-        // 1. Find message by messageId
-        var message = await context.ChatMessages
-            .Include(m => m.ChatThread)
-                .ThenInclude(ct => ct.Members)
-            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-
-        if (message is null)
+        try
         {
-            throw new InvalidOperationException($"Message {messageId} not found");
-        }
+            // 1. Find message by messageId
+            var message = await context.ChatMessages
+                .Include(m => m.ChatThread)
+                    .ThenInclude(ct => ct.Members)
+                .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
-        // 2. Validate user is sender OR chat owner/admin
-        var isSender = message.SenderId == userId;
-        var isOwnerOrAdmin = await context.ChatMembers
-            .AnyAsync(cm =>
-                cm.ChatThreadId == message.ChatThreadId &&
-                cm.UserId == userId &&
-                (cm.Role == ChatMemberRole.Owner || cm.Role == ChatMemberRole.Admin),
-                cancellationToken);
-
-        if (!isSender && !isOwnerOrAdmin)
-        {
-            throw new UnauthorizedAccessException($"User {userId} does not have permission to delete message {messageId}");
-        }
-
-        var oldStatus = message.IsDeleted ? "Deleted" : "Active";
-
-        if (softDelete)
-        {
-            // 3. Soft delete: Set IsDeleted = true
-            message.IsDeleted = true;
-            message.DeletedAt = DateTime.UtcNow;
-            message.Status = MessageStatus.Deleted;
-            message.ModifiedAt = DateTime.UtcNow;
-
-            // Store delete reason in metadata
-            var metadata = string.IsNullOrEmpty(message.MetadataJson)
-                ? new Dictionary<string, object>()
-                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
-
-            if (!string.IsNullOrEmpty(reason))
+            if (message is null)
             {
-                metadata["DeleteReason"] = reason;
+                throw new InvalidOperationException($"Message {messageId} not found");
             }
-            metadata["DeletedBy"] = userId.ToString();
-            metadata["DeletedAt"] = DateTime.UtcNow.ToString("O");
 
-            message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+            // 2. Validate user is sender OR chat owner/admin
+            var isSender = message.SenderId == userId;
+            var isOwnerOrAdmin = await context.ChatMembers
+                .AnyAsync(cm =>
+                    cm.ChatThreadId == message.ChatThreadId &&
+                    cm.UserId == userId &&
+                    (cm.Role == ChatMemberRole.Owner || cm.Role == ChatMemberRole.Admin),
+                    cancellationToken);
+
+            if (!isSender && !isOwnerOrAdmin)
+            {
+                throw new UnauthorizedAccessException($"User {userId} does not have permission to delete message {messageId}");
+            }
+
+            var oldStatus = message.IsDeleted ? "Deleted" : "Active";
+
+            if (softDelete)
+            {
+                // 3. Soft delete: Set IsDeleted = true
+                message.IsDeleted = true;
+                message.DeletedAt = DateTime.UtcNow;
+                message.Status = MessageStatus.Deleted;
+                message.ModifiedAt = DateTime.UtcNow;
+
+                // Store delete reason in metadata
+                var metadata = string.IsNullOrEmpty(message.MetadataJson)
+                    ? new Dictionary<string, object>()
+                    : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(message.MetadataJson) ?? new Dictionary<string, object>();
+
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    metadata["DeleteReason"] = reason;
+                }
+                metadata["DeletedBy"] = userId.ToString();
+                metadata["DeletedAt"] = DateTime.UtcNow.ToString("O");
+
+                message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+            }
+            else
+            {
+                // 4. Hard delete: Remove from database (only SuperAdmin should do this - validation should be done at controller level)
+                context.ChatMessages.Remove(message);
+            }
+
+            // 5. Save changes
+            await context.SaveChangesAsync(cancellationToken);
+
+            // 6. Log audit trail
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatMessage",
+                entityId: messageId,
+                propertyName: softDelete ? "SoftDelete" : "HardDelete",
+                operationType: "Delete",
+                oldValue: oldStatus,
+                newValue: softDelete ? "Deleted" : "Permanently Deleted",
+                changedBy: userId.ToString(),
+                entityDisplayName: $"Message Deletion: {messageId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogInformation(
+                "User {UserId} {DeleteType} message {MessageId} with reason: {Reason}",
+                userId, softDelete ? "soft deleted" : "hard deleted", messageId, reason ?? "No reason provided");
+
+            // 7. Send SignalR notification
+            if (softDelete)
+            {
+                await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+                    .SendAsync("MessageDeleted", new { MessageId = messageId, DeletedAt = DateTime.UtcNow }, cancellationToken);
+            }
+
+            // 8. Return MessageOperationResultDto with success status
+            return new MessageOperationResultDto
+            {
+                MessageId = messageId,
+                Success = true,
+                NewStatus = MessageStatus.Deleted,
+                ProcessedAt = DateTime.UtcNow
+            };
         }
-        else
+        catch (Exception ex)
         {
-            // 4. Hard delete: Remove from database (only SuperAdmin should do this - validation should be done at controller level)
-            context.ChatMessages.Remove(message);
+            logger.LogError(ex, "Error deleting message {MessageId}.", messageId);
+            throw;
         }
-
-        // 5. Save changes
-        await context.SaveChangesAsync(cancellationToken);
-
-        // 6. Log audit trail
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatMessage",
-            entityId: messageId,
-            propertyName: softDelete ? "SoftDelete" : "HardDelete",
-            operationType: "Delete",
-            oldValue: oldStatus,
-            newValue: softDelete ? "Deleted" : "Permanently Deleted",
-            changedBy: userId.ToString(),
-            entityDisplayName: $"Message Deletion: {messageId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogInformation(
-            "User {UserId} {DeleteType} message {MessageId} with reason: {Reason}",
-            userId, softDelete ? "soft deleted" : "hard deleted", messageId, reason ?? "No reason provided");
-
-        // 7. Send SignalR notification
-        if (softDelete)
-        {
-            await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
-                .SendAsync("MessageDeleted", new { MessageId = messageId, DeletedAt = DateTime.UtcNow }, cancellationToken);
-        }
-
-        // 8. Return MessageOperationResultDto with success status
-        return new MessageOperationResultDto
-        {
-            MessageId = messageId,
-            Success = true,
-            NewStatus = MessageStatus.Deleted,
-            ProcessedAt = DateTime.UtcNow
-        };
     }
 
     #endregion
@@ -1165,28 +1254,36 @@ public class ChatService(
         Dictionary<string, object>? metadata = null,
         CancellationToken cancellationToken = default)
     {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatMessage",
-            entityId: messageId,
-            propertyName: "Status",
-            operationType: "Update",
-            oldValue: "Previous status",
-            newValue: status.ToString(),
-            changedBy: userId.ToString(),
-            entityDisplayName: $"Message Status Update: {messageId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogInformation(
-            "Message {MessageId} status updated to {Status} by user {UserId}",
-            messageId, status, userId);
-
-        return new MessageStatusUpdateResultDto
+        try
         {
-            MessageId = messageId,
-            Status = status,
-            UserId = userId,
-            Metadata = metadata
-        };
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatMessage",
+                entityId: messageId,
+                propertyName: "Status",
+                operationType: "Update",
+                oldValue: "Previous status",
+                newValue: status.ToString(),
+                changedBy: userId.ToString(),
+                entityDisplayName: $"Message Status Update: {messageId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogInformation(
+                "Message {MessageId} status updated to {Status} by user {UserId}",
+                messageId, status, userId);
+
+            return new MessageStatusUpdateResultDto
+            {
+                MessageId = messageId,
+                Status = status,
+                UserId = userId,
+                Metadata = metadata
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating status for message {MessageId}.", messageId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1199,29 +1296,37 @@ public class ChatService(
         DateTime? readAt = null,
         CancellationToken cancellationToken = default)
     {
-        var readTimestamp = readAt ?? DateTime.UtcNow;
-
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "MessageReadReceipt",
-            entityId: messageId,
-            propertyName: "ReadAt",
-            operationType: "Insert",
-            oldValue: null,
-            newValue: readTimestamp.ToString(),
-            changedBy: userId.ToString(),
-            entityDisplayName: $"Message Read: {messageId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogDebug(
-            "User {UserId} marked message {MessageId} as read at {ReadAt}",
-            userId, messageId, readTimestamp);
-
-        return new MessageReadReceiptDto
+        try
         {
-            UserId = userId,
-            Username = $"User_{userId:N}", // TODO: Resolve username from user service
-            ReadAt = readTimestamp
-        };
+            var readTimestamp = readAt ?? DateTime.UtcNow;
+
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "MessageReadReceipt",
+                entityId: messageId,
+                propertyName: "ReadAt",
+                operationType: "Insert",
+                oldValue: null,
+                newValue: readTimestamp.ToString(),
+                changedBy: userId.ToString(),
+                entityDisplayName: $"Message Read: {messageId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogDebug(
+                "User {UserId} marked message {MessageId} as read at {ReadAt}",
+                userId, messageId, readTimestamp);
+
+            return new MessageReadReceiptDto
+            {
+                UserId = userId,
+                Username = $"User_{userId:N}", // TODO: Resolve username from user service
+                ReadAt = readTimestamp
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error marking message {MessageId} as read.", messageId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1233,14 +1338,22 @@ public class ChatService(
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogDebug(
-            "Retrieving read receipts for message {MessageId} requested by user {UserId}",
-            messageId, requestingUserId);
+        try
+        {
+            logger.LogDebug(
+                "Retrieving read receipts for message {MessageId} requested by user {UserId}",
+                messageId, requestingUserId);
 
-        // TODO: Implement database query for read receipts
-        await Task.Delay(5, cancellationToken); // Simulate async operation
+            // TODO: Implement database query for read receipts
+            await Task.Delay(5, cancellationToken); // Simulate async operation
 
-        return [];
+            return [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving read receipts for message {MessageId}.", messageId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1252,37 +1365,45 @@ public class ChatService(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var successCount = 0;
-        var processedIds = new List<Guid>();
-        var errors = new List<string>();
-
-        logger.LogInformation(
-            "User {UserId} bulk marking {Count} messages as read",
-            userId, messageIds.Count);
-
-        foreach (var messageId in messageIds)
+        try
         {
-            try
+            var successCount = 0;
+            var processedIds = new List<Guid>();
+            var errors = new List<string>();
+
+            logger.LogInformation(
+                "User {UserId} bulk marking {Count} messages as read",
+                userId, messageIds.Count);
+
+            foreach (var messageId in messageIds)
             {
-                _ = await MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
-                processedIds.Add(messageId);
-                successCount++;
+                try
+                {
+                    _ = await MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
+                    processedIds.Add(messageId);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Failed to mark message {messageId} as read: {ex.Message}");
+                    logger.LogWarning(ex, "Failed to mark message {MessageId} as read for user {UserId}", messageId, userId);
+                }
             }
-            catch (Exception ex)
+
+            return new BulkReadResultDto
             {
-                errors.Add($"Failed to mark message {messageId} as read: {ex.Message}");
-                logger.LogWarning(ex, "Failed to mark message {MessageId} as read for user {UserId}", messageId, userId);
-            }
+                TotalCount = messageIds.Count,
+                SuccessCount = successCount,
+                FailureCount = messageIds.Count - successCount,
+                ProcessedMessageIds = processedIds,
+                Errors = errors
+            };
         }
-
-        return new BulkReadResultDto
+        catch (Exception ex)
         {
-            TotalCount = messageIds.Count,
-            SuccessCount = successCount,
-            FailureCount = messageIds.Count - successCount,
-            ProcessedMessageIds = processedIds,
-            Errors = errors
-        };
+            logger.LogError(ex, "Error bulk marking messages as read for user {UserId}.", userId);
+            throw;
+        }
     }
 
     #endregion
@@ -1369,23 +1490,31 @@ public class ChatService(
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "User {UserId} requesting download info for attachment {AttachmentId} in tenant {TenantId}",
-            userId, attachmentId, tenantId);
-
-        // TODO: Implement access validation and secure URL generation
-        await Task.Delay(5, cancellationToken); // Simulate async operation
-
-        // Return mock download info (in real implementation, validate access first)
-        return new FileDownloadInfoDto
+        try
         {
-            AttachmentId = attachmentId,
-            FileName = "sample-file.pdf",
-            DownloadUrl = $"/api/files/{attachmentId}/secure-download?token=mock-token",
-            ExpiresAt = DateTime.UtcNow.AddHours(1),
-            FileSize = 1024 * 1024, // 1MB
-            ContentType = "application/pdf"
-        };
+            logger.LogInformation(
+                "User {UserId} requesting download info for attachment {AttachmentId} in tenant {TenantId}",
+                userId, attachmentId, tenantId);
+
+            // TODO: Implement access validation and secure URL generation
+            await Task.Delay(5, cancellationToken); // Simulate async operation
+
+            // Return mock download info (in real implementation, validate access first)
+            return new FileDownloadInfoDto
+            {
+                AttachmentId = attachmentId,
+                FileName = "sample-file.pdf",
+                DownloadUrl = $"/api/files/{attachmentId}/secure-download?token=mock-token",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                FileSize = 1024 * 1024, // 1MB
+                ContentType = "application/pdf"
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving download info for attachment {AttachmentId}.", attachmentId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1397,6 +1526,8 @@ public class ChatService(
         MediaProcessingOptionsDto processingOptions,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Processing media {AttachmentId} with options: Thumbnails={GenerateThumbnails}, Optimize={OptimizeForWeb}",
             attachmentId, processingOptions.GenerateThumbnails, processingOptions.OptimizeForWeb);
@@ -1445,6 +1576,12 @@ public class ChatService(
             Success = true,
             GeneratedVariants = variants
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ProcessMediaAsync for attachment {AttachmentId}.", attachmentId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1457,6 +1594,8 @@ public class ChatService(
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         _ = await auditLogService.LogEntityChangeAsync(
             entityName: "MessageAttachment",
             entityId: attachmentId,
@@ -1480,6 +1619,12 @@ public class ChatService(
             AttachmentId = attachmentId,
             Success = true
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in DeleteFileAsync for attachment {AttachmentId}.", attachmentId);
+            throw;
+        }
     }
 
     #endregion
@@ -1498,6 +1643,8 @@ public class ChatService(
         string? welcomeMessage = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1551,6 +1698,12 @@ public class ChatService(
             FailureCount = userIds.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in AddMembersAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1564,6 +1717,8 @@ public class ChatService(
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1616,6 +1771,12 @@ public class ChatService(
             FailureCount = userIds.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in RemoveMembersAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1628,6 +1789,8 @@ public class ChatService(
         Guid updatedBy,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         var results = new List<MemberOperationDetail>();
         var successCount = 0;
 
@@ -1681,6 +1844,12 @@ public class ChatService(
             FailureCount = roleUpdates.Count - successCount,
             Results = results
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in UpdateMemberRolesAsync for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1691,23 +1860,31 @@ public class ChatService(
         Guid requestingUserId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "User {UserId} requesting members for chat {ChatId}",
-            requestingUserId, chatId);
-
-        // Verify the requesting user is a member (unless it is a server-side call)
-        if (requestingUserId != Guid.Empty)
+        try
         {
-            var isMember = await context.ChatMembers
-                .AnyAsync(cm => cm.ChatThreadId == chatId
-                             && cm.UserId == requestingUserId
-                             && !cm.IsDeleted, cancellationToken);
+            logger.LogInformation(
+                "User {UserId} requesting members for chat {ChatId}",
+                requestingUserId, chatId);
 
-            if (!isMember)
-                return [];
+            // Verify the requesting user is a member (unless it is a server-side call)
+            if (requestingUserId != Guid.Empty)
+            {
+                var isMember = await context.ChatMembers
+                    .AnyAsync(cm => cm.ChatThreadId == chatId
+                                 && cm.UserId == requestingUserId
+                                 && !cm.IsDeleted, cancellationToken);
+
+                if (!isMember)
+                    return [];
+            }
+
+            return await BuildMemberDtosAsync(chatId, cancellationToken);
         }
-
-        return await BuildMemberDtosAsync(chatId, cancellationToken);
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving members for chat {ChatId}.", chatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1717,28 +1894,36 @@ public class ChatService(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Getting available chat users for tenant {TenantId}", tenantId);
-
-        var users = await context.Users
-            .AsNoTracking()
-            .Where(u => !u.IsDeleted && u.IsActive && u.TenantId == tenantId)
-            .OrderBy(u => u.FirstName)
-            .ThenBy(u => u.LastName)
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                FullName = (u.FirstName + " " + u.LastName).Trim()
-            })
-            .ToListAsync(cancellationToken);
-
-        return users.Select(u => new ChatAvailableUserDto
+        try
         {
-            Id = u.Id,
-            Username = u.Username,
-            DisplayName = u.FullName.Length > 0 ? u.FullName : u.Username,
-            IsOnline = onlineUserTracker.IsOnline(u.Id)
-        }).ToList();
+            logger.LogInformation("Getting available chat users for tenant {TenantId}", tenantId);
+
+            var users = await context.Users
+                .AsNoTracking()
+                .Where(u => !u.IsDeleted && u.IsActive && u.TenantId == tenantId)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Username,
+                    FullName = (u.FirstName + " " + u.LastName).Trim()
+                })
+                .ToListAsync(cancellationToken);
+
+            return users.Select(u => new ChatAvailableUserDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                DisplayName = u.FullName.Length > 0 ? u.FullName : u.Username,
+                IsOnline = onlineUserTracker.IsOnline(u.Id)
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving available users for tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     #endregion
@@ -1827,22 +2012,30 @@ public class ChatService(
         ChatRateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatRateLimitPolicy",
-            entityId: tenantId,
-            propertyName: "Update",
-            operationType: "Update",
-            oldValue: "Previous policy",
-            newValue: $"MessageLimit: {rateLimitPolicy.GlobalMessageLimit}, MaxFileSize: {rateLimitPolicy.MaxFileSize}",
-            changedBy: "System",
-            entityDisplayName: $"Chat Rate Limit Policy: {tenantId}",
-            cancellationToken: cancellationToken);
+        try
+        {
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatRateLimitPolicy",
+                entityId: tenantId,
+                propertyName: "Update",
+                operationType: "Update",
+                oldValue: "Previous policy",
+                newValue: $"MessageLimit: {rateLimitPolicy.GlobalMessageLimit}, MaxFileSize: {rateLimitPolicy.MaxFileSize}",
+                changedBy: "System",
+                entityDisplayName: $"Chat Rate Limit Policy: {tenantId}",
+                cancellationToken: cancellationToken);
 
-        logger.LogInformation(
-            "Updated chat rate limit policy for tenant {TenantId}: MessageLimit={MessageLimit}",
-            tenantId, rateLimitPolicy.GlobalMessageLimit);
+            logger.LogInformation(
+                "Updated chat rate limit policy for tenant {TenantId}: MessageLimit={MessageLimit}",
+                tenantId, rateLimitPolicy.GlobalMessageLimit);
 
-        return rateLimitPolicy;
+            return rateLimitPolicy;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating chat rate limit policy for tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1854,27 +2047,35 @@ public class ChatService(
         DateRange? dateRange = null,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving chat statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-            tenantId?.ToString() ?? "ALL",
-            dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
-            dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
-
-        // TODO: Implement database aggregation queries
-        await Task.Delay(30, cancellationToken);
-
-        return new ChatStatsDto
+        try
         {
-            TenantId = tenantId,
-            TotalChats = 0,
-            ActiveChats = 0,
-            DirectMessageChats = 0,
-            GroupChats = 0,
-            TotalMessages = 0,
-            MessagesLastWeek = 0,
-            MessagesLastMonth = 0,
-            MediaCountByType = new Dictionary<MediaType, int>()
-        };
+            logger.LogInformation(
+                "Retrieving chat statistics for tenant {TenantId} from {StartDate} to {EndDate}",
+                tenantId?.ToString() ?? "ALL",
+                dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
+                dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
+
+            // TODO: Implement database aggregation queries
+            await Task.Delay(30, cancellationToken);
+
+            return new ChatStatsDto
+            {
+                TenantId = tenantId,
+                TotalChats = 0,
+                ActiveChats = 0,
+                DirectMessageChats = 0,
+                GroupChats = 0,
+                TotalMessages = 0,
+                MessagesLastWeek = 0,
+                MessagesLastMonth = 0,
+                MediaCountByType = new Dictionary<MediaType, int>()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving chat statistics for tenant {TenantId}.", tenantId);
+            throw;
+        }
     }
 
     #endregion
@@ -1889,37 +2090,45 @@ public class ChatService(
         ChatModerationActionDto moderationAction,
         CancellationToken cancellationToken = default)
     {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatModeration",
-            entityId: moderationAction.ChatId,
-            propertyName: "ModerateAction",
-            operationType: "Update",
-            oldValue: "Active",
-            newValue: moderationAction.Action,
-            changedBy: moderationAction.ModeratorId.ToString(),
-            entityDisplayName: $"Chat Moderation: {moderationAction.ChatId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogWarning(
-            "Moderator {ModeratorId} performed action '{Action}' on chat {ChatId} with reason: {Reason}",
-            moderationAction.ModeratorId, moderationAction.Action, moderationAction.ChatId, moderationAction.Reason);
-
-        // TODO: Implement actual moderation logic
-        await Task.Delay(50, cancellationToken);
-
-        return new ModerationResultDto
+        try
         {
-            Success = true,
-            Action = moderationAction.Action,
-            Reason = moderationAction.Reason,
-            AffectedItems = new List<string> { moderationAction.ChatId.ToString() },
-            Metadata = new Dictionary<string, object>
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatModeration",
+                entityId: moderationAction.ChatId,
+                propertyName: "ModerateAction",
+                operationType: "Update",
+                oldValue: "Active",
+                newValue: moderationAction.Action,
+                changedBy: moderationAction.ModeratorId.ToString(),
+                entityDisplayName: $"Chat Moderation: {moderationAction.ChatId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogWarning(
+                "Moderator {ModeratorId} performed action '{Action}' on chat {ChatId} with reason: {Reason}",
+                moderationAction.ModeratorId, moderationAction.Action, moderationAction.ChatId, moderationAction.Reason);
+
+            // TODO: Implement actual moderation logic
+            await Task.Delay(50, cancellationToken);
+
+            return new ModerationResultDto
             {
-                ["ModeratorId"] = moderationAction.ModeratorId,
-                ["ExpiresAt"] = moderationAction.ExpiresAt?.ToString() ?? string.Empty,
-                ["NotifyMembers"] = moderationAction.NotifyMembers
-            }
-        };
+                Success = true,
+                Action = moderationAction.Action,
+                Reason = moderationAction.Reason,
+                AffectedItems = new List<string> { moderationAction.ChatId.ToString() },
+                Metadata = new Dictionary<string, object>
+                {
+                    ["ModeratorId"] = moderationAction.ModeratorId,
+                    ["ExpiresAt"] = moderationAction.ExpiresAt?.ToString() ?? string.Empty,
+                    ["NotifyMembers"] = moderationAction.NotifyMembers
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error moderating chat {ChatId}.", moderationAction.ChatId);
+            throw;
+        }
     }
 
     /// <summary>
@@ -1930,6 +2139,8 @@ public class ChatService(
         ChatAuditQueryDto auditQuery,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Retrieving chat audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
             auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
@@ -1944,6 +2155,12 @@ public class ChatService(
             PageSize = auditQuery.PageSize,
             TotalCount = 0
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetChatAuditTrailAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -1953,6 +2170,8 @@ public class ChatService(
     public async Task<ChatSystemHealthDto> GetChatSystemHealthAsync(
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogDebug("Checking chat system health");
 
         // TODO: Implement health checks
@@ -1973,6 +2192,12 @@ public class ChatService(
             },
             Alerts = new List<string>()
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in GetChatSystemHealthAsync.");
+            throw;
+        }
     }
 
     #endregion
@@ -1988,6 +2213,8 @@ public class ChatService(
         Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Localizing message {MessageId} to locale {Locale} for user {UserId}",
             message.Id, targetLocale, userId);
@@ -2022,6 +2249,12 @@ public class ChatService(
 
         // 4. Return localized ChatMessageDto
         return message;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in LocalizeChatMessageAsync for message {MessageId}.", message.Id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -2032,43 +2265,51 @@ public class ChatService(
         ChatLocalizationPreferencesDto preferences,
         CancellationToken cancellationToken = default)
     {
-        // 1. Find user
-        var user = await context.Users
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-
-        if (user is null)
+        try
         {
-            throw new InvalidOperationException($"User {userId} not found");
+            // 1. Find user
+            var user = await context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            if (user is null)
+            {
+                throw new InvalidOperationException($"User {userId} not found");
+            }
+
+            // 2. Store preferences in User's PreferredLanguage field
+            // For Phase 1: Simple implementation using existing User fields
+            var oldLocale = user.PreferredLanguage;
+            user.PreferredLanguage = preferences.PreferredLocale;
+            user.ModifiedAt = DateTime.UtcNow;
+
+            // 3. Save to database
+            await context.SaveChangesAsync(cancellationToken);
+
+            // 4. Log audit trail
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "ChatLocalizationPreferences",
+                entityId: userId,
+                propertyName: "PreferredLocale",
+                operationType: "Update",
+                oldValue: oldLocale,
+                newValue: preferences.PreferredLocale,
+                changedBy: userId.ToString(),
+                entityDisplayName: $"Chat Localization: {userId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogInformation(
+                "Updated chat localization preferences for user {UserId}: Locale={Locale}, AutoTranslate={AutoTranslate}",
+                userId, preferences.PreferredLocale, preferences.AutoTranslate);
+
+            // 5. Return updated preferences
+            preferences.UserId = userId;
+            return preferences;
         }
-
-        // 2. Store preferences in User's PreferredLanguage field
-        // For Phase 1: Simple implementation using existing User fields
-        var oldLocale = user.PreferredLanguage;
-        user.PreferredLanguage = preferences.PreferredLocale;
-        user.ModifiedAt = DateTime.UtcNow;
-
-        // 3. Save to database
-        await context.SaveChangesAsync(cancellationToken);
-
-        // 4. Log audit trail
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "ChatLocalizationPreferences",
-            entityId: userId,
-            propertyName: "PreferredLocale",
-            operationType: "Update",
-            oldValue: oldLocale,
-            newValue: preferences.PreferredLocale,
-            changedBy: userId.ToString(),
-            entityDisplayName: $"Chat Localization: {userId}",
-            cancellationToken: cancellationToken);
-
-        logger.LogInformation(
-            "Updated chat localization preferences for user {UserId}: Locale={Locale}, AutoTranslate={AutoTranslate}",
-            userId, preferences.PreferredLocale, preferences.AutoTranslate);
-
-        // 5. Return updated preferences
-        preferences.UserId = userId;
-        return preferences;
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating chat localization preferences for user {UserId}.", userId);
+            throw;
+        }
     }
 
     #endregion
@@ -2264,6 +2505,8 @@ public class ChatService(
         MessageReactionActionDto reactionDto,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
         logger.LogInformation(
             "Toggling reaction {Emoji} on message {MessageId} by user {UserId}",
             reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
@@ -2282,6 +2525,12 @@ public class ChatService(
             Success = true,
             MessageId = reactionDto.MessageId
         };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ToggleMessageReactionAsync for message {MessageId}.", reactionDto.MessageId);
+            throw;
+        }
     }
 
     #endregion

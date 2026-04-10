@@ -12,26 +12,58 @@ public class CacheInvalidationService(
 
     public async Task InvalidateStaticEntitiesAsync(CancellationToken ct = default)
     {
-        logger.LogInformation("Invalidating static entities cache");
-        await cache.EvictByTagAsync("static", ct);
+        try
+        {
+            logger.LogInformation("Invalidating static entities cache");
+            await cache.EvictByTagAsync("static", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in InvalidateStaticEntitiesAsync.");
+            throw;
+        }
     }
 
     public async Task InvalidateSemiStaticEntitiesAsync(CancellationToken ct = default)
     {
-        logger.LogInformation("Invalidating semi-static entities cache");
-        await cache.EvictByTagAsync("semi-static", ct);
+        try
+        {
+            logger.LogInformation("Invalidating semi-static entities cache");
+            await cache.EvictByTagAsync("semi-static", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in InvalidateSemiStaticEntitiesAsync.");
+            throw;
+        }
     }
 
     public async Task InvalidateRealTimeEntitiesAsync(CancellationToken ct = default)
     {
-        logger.LogInformation("Invalidating real-time entities cache");
-        await cache.EvictByTagAsync("realtime", ct);
+        try
+        {
+            logger.LogInformation("Invalidating real-time entities cache");
+            await cache.EvictByTagAsync("realtime", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in InvalidateRealTimeEntitiesAsync.");
+            throw;
+        }
     }
 
     public async Task InvalidateByTagAsync(string tag, CancellationToken ct = default)
     {
-        logger.LogInformation("Invalidating cache tag: {Tag}", tag);
-        await cache.EvictByTagAsync(tag, ct);
+        try
+        {
+            logger.LogInformation("Invalidating cache tag: {Tag}", tag);
+            await cache.EvictByTagAsync(tag, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in InvalidateByTagAsync for tag {Tag}.", tag);
+            throw;
+        }
     }
 
 }

@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Store;
 
-
 /// <summary>
 /// Represents a physical or virtual point of sale (POS).
 /// </summary>

@@ -1,5 +1,6 @@
 @using EventForge.Client.Services
 @inject ITranslationService TranslationService
+@inject ILogger<LanguageSelector> Logger
 @implements IDisposable
 
 <MudSelect T="string" 
@@ -46,7 +47,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        TranslationService.LanguageChanged += OnLanguageChangedEvent;
+        try
+        {
+            TranslationService.LanguageChanged += OnLanguageChangedEvent;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing LanguageSelector.");
+        }
     }
 
     private async Task OnLanguageChanged(string newLanguage)
@@ -59,7 +67,7 @@
         catch (Exception ex)
         {
             // Handle error - could show snackbar or toast
-            Console.Error.WriteLine($"Error changing language: {ex.Message}");
+            Logger.LogError(ex, "Error changing language to {Language}", newLanguage);
         }
     }
 

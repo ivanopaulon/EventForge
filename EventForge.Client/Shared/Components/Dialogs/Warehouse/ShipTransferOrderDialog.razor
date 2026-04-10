@@ -176,15 +176,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (TransferOrder == null)
+        try
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"));
-            MudDialog.Cancel();
-            return;
-        }
+            if (TransferOrder == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("transferOrder.invalidOrder", "Ordine non valido"));
+                MudDialog.Cancel();
+                return;
+            }
 
-        _model.ShipmentDate = DateTime.UtcNow;
-        await ValidateStock();
+            _model.ShipmentDate = DateTime.UtcNow;
+            await ValidateStock();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ShipTransferOrderDialog.");
+        }
     }
 
     private async Task ValidateStock()

@@ -76,6 +76,7 @@ public class DocumentAnalyticsService(
         try
         {
             var analytics = await context.DocumentAnalytics
+                .AsNoTracking()
                 .Include(a => a.DocumentHeader)
                 .Include(a => a.DocumentType)
                 .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
@@ -97,7 +98,7 @@ public class DocumentAnalyticsService(
     {
         try
         {
-            var query = context.DocumentAnalytics.AsQueryable();
+            var query = context.DocumentAnalytics.AsNoTracking();
 
             // Apply date filters
             if (from.HasValue)
@@ -192,6 +193,7 @@ public class DocumentAnalyticsService(
         try
         {
             var analytics = await context.DocumentAnalytics
+                .AsNoTracking()
                 .Where(a => a.AnalyticsDate >= from.Date && a.AnalyticsDate <= to.Date)
                 .ToListAsync(cancellationToken);
 
@@ -230,6 +232,7 @@ public class DocumentAnalyticsService(
     {
         // Get document header with related data
         var document = await context.DocumentHeaders
+            .AsNoTracking()
             .Include(d => d.DocumentType)
             .Include(d => d.WorkflowExecutions)
                 .ThenInclude(we => we.WorkflowSteps)

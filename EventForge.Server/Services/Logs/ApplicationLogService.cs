@@ -24,10 +24,12 @@ internal class DbLogRecord
 /// Provides read-only access to Serilog logs stored in the database.
 /// </summary>
 public class ApplicationLogService(
-    IConfiguration configuration) : IApplicationLogService
+    IConfiguration configuration,
+    ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
     private readonly string _logDbConnectionString = configuration.GetConnectionString("LogDb")
             ?? throw new InvalidOperationException("LogDb connection string not found.");
+    private readonly ILogger<ApplicationLogService> _logger = logger;
 
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);
 
@@ -77,25 +79,33 @@ public class ApplicationLogService(
     {
         ArgumentNullException.ThrowIfNull(queryParameters);
 
-        var query = BuildLogsQuery(queryParameters);
-        var countQuery = BuildCountQuery(queryParameters);
-
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
-
-        var totalCount = await connection.QuerySingleAsync<long>(countQuery, queryParameters);
-        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, queryParameters);
-
-        // Map database records to DTOs
-        var logs = dbRecords.Select(MapDbRecordToSystemLogDto);
-
-        return new PagedResult<SystemLogDto>
+        try
         {
-            Items = logs,
-            Page = queryParameters.Page,
-            PageSize = queryParameters.PageSize,
-            TotalCount = totalCount
-        };
+            var query = BuildLogsQuery(queryParameters);
+            var countQuery = BuildCountQuery(queryParameters);
+
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
+
+            var totalCount = await connection.QuerySingleAsync<long>(countQuery, queryParameters);
+            var dbRecords = await connection.QueryAsync<DbLogRecord>(query, queryParameters);
+
+            // Map database records to DTOs
+            var logs = dbRecords.Select(MapDbRecordToSystemLogDto);
+
+            return new PagedResult<SystemLogDto>
+            {
+                Items = logs,
+                Page = queryParameters.Page,
+                PageSize = queryParameters.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetPagedLogsAsync for page {Page}, pageSize {PageSize}.", queryParameters.Page, queryParameters.PageSize);
+            throw;
+        }
     }
 
     /// <summary>
@@ -115,11 +125,19 @@ public class ApplicationLogService(
             FROM Logs 
             WHERE Id = @Id";
 
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
 
-        var dbRecord = await connection.QuerySingleOrDefaultAsync<DbLogRecord>(query, new { Id = id });
-        return dbRecord is not null ? MapDbRecordToSystemLogDto(dbRecord) : null;
+            var dbRecord = await connection.QuerySingleOrDefaultAsync<DbLogRecord>(query, new { Id = id });
+            return dbRecord is not null ? MapDbRecordToSystemLogDto(dbRecord) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetLogByIdAsync for log {Id}.", id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -144,11 +162,19 @@ public class ApplicationLogService(
             WHERE Level = @Level
             ORDER BY TimeStamp DESC";
 
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
 
-        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { Level = level });
-        return dbRecords.Select(MapDbRecordToSystemLogDto);
+            var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { Level = level });
+            return dbRecords.Select(MapDbRecordToSystemLogDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetLogsByLevelAsync for level {Level}.", level);
+            throw;
+        }
     }
 
     /// <summary>
@@ -172,11 +198,19 @@ public class ApplicationLogService(
             WHERE TimeStamp >= @FromDate AND TimeStamp <= @ToDate
             ORDER BY TimeStamp DESC";
 
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
 
-        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate, ToDate = toDate });
-        return dbRecords.Select(MapDbRecordToSystemLogDto);
+            var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate, ToDate = toDate });
+            return dbRecords.Select(MapDbRecordToSystemLogDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetLogsInDateRangeAsync from {FromDate} to {ToDate}.", fromDate, toDate);
+            throw;
+        }
     }
 
     /// <summary>
@@ -196,11 +230,19 @@ public class ApplicationLogService(
             GROUP BY Level
             ORDER BY Count DESC";
 
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
 
-        var results = await connection.QueryAsync<(string Level, int Count)>(query, new { FromDate = fromDate, ToDate = toDate });
-        return results.ToDictionary(x => x.Level, x => x.Count);
+            var results = await connection.QueryAsync<(string Level, int Count)>(query, new { FromDate = fromDate, ToDate = toDate });
+            return results.ToDictionary(x => x.Level, x => x.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetLogStatisticsByLevelAsync from {FromDate} to {ToDate}.", fromDate, toDate);
+            throw;
+        }
     }
 
     /// <summary>
@@ -224,11 +266,19 @@ public class ApplicationLogService(
                 AND TimeStamp >= @FromDate
             ORDER BY TimeStamp DESC";
 
-        using var connection = CreateConnection();
-        await connection.OpenAsync(cancellationToken);
+        try
+        {
+            using var connection = CreateConnection();
+            await connection.OpenAsync(cancellationToken);
 
-        var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate });
-        return dbRecords.Select(MapDbRecordToSystemLogDto);
+            var dbRecords = await connection.QueryAsync<DbLogRecord>(query, new { FromDate = fromDate });
+            return dbRecords.Select(MapDbRecordToSystemLogDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetRecentErrorLogsAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -315,26 +365,34 @@ public class ApplicationLogService(
     {
         ArgumentNullException.ThrowIfNull(exportRequest);
 
-        // Validate format
-        if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportRequest.Format.ToUpper()))
+        try
         {
-            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, TXT");
+            // Validate format
+            if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportRequest.Format.ToUpper()))
+            {
+                throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, TXT");
+            }
+
+            // In a real implementation, this would queue the export job for background processing
+            await Task.Delay(100, cancellationToken); // Simulate processing
+
+            var exportResult = new ExportResultDto
+            {
+                Id = Guid.NewGuid(),
+                Type = exportRequest.Type,
+                Format = exportRequest.Format,
+                Status = "Processing",
+                RequestedAt = DateTime.UtcNow,
+                RequestedBy = "Current User" // Should get from current user context
+            };
+
+            return exportResult;
         }
-
-        // In a real implementation, this would queue the export job for background processing
-        await Task.Delay(100, cancellationToken); // Simulate processing
-
-        var exportResult = new ExportResultDto
+        catch (Exception ex)
         {
-            Id = Guid.NewGuid(),
-            Type = exportRequest.Type,
-            Format = exportRequest.Format,
-            Status = "Processing",
-            RequestedAt = DateTime.UtcNow,
-            RequestedBy = "Current User" // Should get from current user context
-        };
-
-        return exportResult;
+            _logger.LogError(ex, "Error in ExportSystemLogsAsync for type {Type}, format {Format}.", exportRequest.Type, exportRequest.Format);
+            throw;
+        }
     }
 
     /// <summary>
@@ -342,21 +400,29 @@ public class ApplicationLogService(
     /// </summary>
     public async Task<LogMonitoringConfigDto> GetMonitoringConfigAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Delay(50, cancellationToken); // Simulate async operation
-
-        // In a real implementation, this would be retrieved from configuration storage
-        var config = new LogMonitoringConfigDto
+        try
         {
-            EnableRealTimeUpdates = true,
-            UpdateIntervalSeconds = 5,
-            MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
-            MonitoredSources = [],
-            MaxLiveEntries = 100,
-            AlertOnCritical = true,
-            AlertOnErrors = false
-        };
+            await Task.Delay(50, cancellationToken); // Simulate async operation
 
-        return config;
+            // In a real implementation, this would be retrieved from configuration storage
+            var config = new LogMonitoringConfigDto
+            {
+                EnableRealTimeUpdates = true,
+                UpdateIntervalSeconds = 5,
+                MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
+                MonitoredSources = [],
+                MaxLiveEntries = 100,
+                AlertOnCritical = true,
+                AlertOnErrors = false
+            };
+
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetMonitoringConfigAsync.");
+            throw;
+        }
     }
 
     /// <summary>
@@ -368,11 +434,19 @@ public class ApplicationLogService(
     {
         ArgumentNullException.ThrowIfNull(config);
 
-        await Task.Delay(50, cancellationToken); // Simulate async operation
+        try
+        {
+            await Task.Delay(50, cancellationToken); // Simulate async operation
 
-        // In a real implementation, this would save to configuration storage
-        // For now, just return the provided configuration
-        return config;
+            // In a real implementation, this would save to configuration storage
+            // For now, just return the provided configuration
+            return config;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in UpdateMonitoringConfigAsync.");
+            throw;
+        }
     }
 
 }

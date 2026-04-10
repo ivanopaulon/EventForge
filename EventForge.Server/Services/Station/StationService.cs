@@ -27,6 +27,7 @@ public class StationService(
             }
 
             var query = context.Stations
+                .AsNoTracking()
                 .Where(s => !s.IsDeleted && s.TenantId == tenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -41,6 +42,7 @@ public class StationService(
             foreach (var station in stations)
             {
                 var printerCount = await context.Printers
+                    .AsNoTracking()
                     .CountAsync(p => p.StationId == station.Id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
                 stationDtos.Add(MapToStationDto(station, printerCount));
@@ -73,6 +75,7 @@ public class StationService(
             }
 
             var station = await context.Stations
+                .AsNoTracking()
                 .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -83,6 +86,7 @@ public class StationService(
             }
 
             var printerCount = await context.Printers
+                .AsNoTracking()
                 .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
             return MapToStationDto(station, printerCount);
@@ -293,6 +297,7 @@ public class StationService(
             }
 
             var query = context.Printers
+                .AsNoTracking()
                 .Include(p => p.Station)
                 .Where(p => !p.IsDeleted && p.TenantId == tenantId.Value);
 
@@ -332,6 +337,7 @@ public class StationService(
             }
 
             var printer = await context.Printers
+                .AsNoTracking()
                 .Include(p => p.Station)
                 .Where(p => p.Id == id && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -363,6 +369,7 @@ public class StationService(
             }
 
             var printers = await context.Printers
+                .AsNoTracking()
                 .Include(p => p.Station)
                 .Where(p => p.StationId == stationId && !p.IsDeleted && p.TenantId == tenantId.Value)
                 .OrderBy(p => p.Name)
@@ -569,14 +576,23 @@ public class StationService(
 
     public async Task<bool> StationExistsAsync(Guid stationId, CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId;
-        if (!tenantId.HasValue)
+        try
         {
-            return false;
-        }
+            var tenantId = tenantContext.CurrentTenantId;
+            if (!tenantId.HasValue)
+            {
+                return false;
+            }
 
-        return await context.Stations
-            .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
+            return await context.Stations
+                .AsNoTracking()
+                .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in StationExistsAsync for {StationId}.", stationId);
+            throw;
+        }
     }
 
     private static StationDto MapToStationDto(EventForge.Server.Data.Entities.StationMonitor.Station station, int printerCount)

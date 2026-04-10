@@ -19,6 +19,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entities = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -39,6 +40,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entity = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
@@ -57,6 +59,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entities = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .Where(dr => dr.TemplateId == templateId && dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -77,6 +80,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entities = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsEnabled && dr.IsActive && dr.Status == RecurrenceStatus.Active)
                 .OrderBy(dr => dr.NextExecutionDate)
@@ -97,6 +101,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entities = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .Where(dr => dr.IsEnabled &&
                            dr.IsActive &&
@@ -121,6 +126,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entities = await context.DocumentRecurrences
+                .AsNoTracking()
                 .Include(dr => dr.Template)
                 .Where(dr => dr.Status == status && dr.IsActive)
                 .OrderBy(dr => dr.Name)
@@ -341,6 +347,7 @@ public class DocumentRecurrenceService(
         try
         {
             var entity = await context.DocumentRecurrences
+                .AsNoTracking()
                 .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
             return entity is null ? null : CalculateNextExecutionDate(entity);

@@ -7,6 +7,7 @@
 @using EventForge.DTOs.Audit
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
+@inject ILogger<AuditHistoryDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.History"
           Title="@GetDialogTitle()"
@@ -306,9 +307,17 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (EntityId.HasValue && MudDialog != null)
+        try
         {
-            await LoadAuditHistory();
+            if (EntityId.HasValue && MudDialog != null)
+            {
+                await LoadAuditHistory();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnParametersSetAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

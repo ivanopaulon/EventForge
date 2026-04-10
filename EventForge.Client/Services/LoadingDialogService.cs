@@ -13,22 +13,22 @@ public interface ILoadingDialogService
     /// <summary>
     /// Shows the loading dialog with specified options
     /// </summary>
-    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false);
+    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the current operation text
     /// </summary>
-    Task UpdateOperationAsync(string operation);
+    Task UpdateOperationAsync(string operation, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the progress percentage (0-100)
     /// </summary>
-    Task UpdateProgressAsync(double progress);
+    Task UpdateProgressAsync(double progress, CancellationToken ct = default);
 
     /// <summary>
     /// Hides the loading dialog
     /// </summary>
-    Task HideAsync();
+    Task HideAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets the current state of the loading dialog
@@ -45,7 +45,7 @@ public class LoadingDialogService : ILoadingDialogService
 
     public event Action<LoadingDialogState>? StateChanged;
 
-    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false)
+    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default)
     {
         _currentState = new LoadingDialogState
         {
@@ -60,7 +60,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task UpdateOperationAsync(string operation)
+    public async Task UpdateOperationAsync(string operation, CancellationToken ct = default)
     {
         if (_currentState.IsVisible)
         {
@@ -70,7 +70,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task UpdateProgressAsync(double progress)
+    public async Task UpdateProgressAsync(double progress, CancellationToken ct = default)
     {
         if (_currentState.IsVisible && _currentState.ShowProgress)
         {
@@ -80,7 +80,7 @@ public class LoadingDialogService : ILoadingDialogService
         await Task.CompletedTask;
     }
 
-    public async Task HideAsync()
+    public async Task HideAsync(CancellationToken ct = default)
     {
         if (_currentState.IsVisible)
         {

@@ -313,7 +313,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFacilityAsync();
+        try
+        {
+            await LoadFacilityAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing WarehouseDetailDialog.");
+        }
     }
 
     private async Task LoadFacilityAsync()
@@ -456,18 +463,26 @@
 
     private async Task Cancel()
     {
-        if (HasUnsavedChanges())
+        try
         {
-            var result = await DialogService.ShowMessageBoxAsync(
-                TranslationService.GetTranslation("common.confirm", "Conferma"),
-                TranslationService.GetTranslation("warehouse.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
-                yesText: TranslationService.GetTranslation("common.save", "Salva"),
-                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
-                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-            if (result == null) return;
-            if (result == true) { await SaveFacilityAsync(); return; }
+            if (HasUnsavedChanges())
+            {
+                var result = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("warehouse.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                    yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                    noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                    cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+                if (result == null) return;
+                if (result == true) { await SaveFacilityAsync(); return; }
+            }
+            MudDialog.Close();
         }
-        MudDialog.Close();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Cancel.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     #region Storage Location Management
@@ -476,23 +491,31 @@
     {
         if (!EntityId.HasValue) return;
 
-        var parameters = new DialogParameters
+        try
         {
-            { "WarehouseId", EntityId.Value }
-        };
+            var parameters = new DialogParameters
+            {
+                { "WarehouseId", EntityId.Value }
+            };
 
-        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
 
-        var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
-            TranslationService.GetTranslation("warehouse.createLocation", "Crea Ubicazione"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
+                TranslationService.GetTranslation("warehouse.createLocation", "Crea Ubicazione"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadStorageLocationsAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadStorageLocationsAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.createSuccessful", "Creato con successo"));
+            Logger.LogError(ex, "Error in OpenCreateLocationDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -500,24 +523,32 @@
     {
         if (!EntityId.HasValue) return;
 
-        var parameters = new DialogParameters
+        try
         {
-            { "WarehouseId", EntityId.Value },
-            { "Location", location }
-        };
+            var parameters = new DialogParameters
+            {
+                { "WarehouseId", EntityId.Value },
+                { "Location", location }
+            };
 
-        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
 
-        var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
-            TranslationService.GetTranslation("warehouse.editLocation", "Modifica Ubicazione"),
-            parameters,
-            options);
+            var dialog = await DialogService.ShowAsync<StorageLocationDialog>(
+                TranslationService.GetTranslation("warehouse.editLocation", "Modifica Ubicazione"),
+                parameters,
+                options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadStorageLocationsAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadStorageLocationsAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.updateSuccessful", "Aggiornato con successo"));
+            Logger.LogError(ex, "Error in OpenEditLocationDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

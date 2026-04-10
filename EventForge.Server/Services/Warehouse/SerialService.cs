@@ -33,6 +33,7 @@ public class SerialService(
             }
 
             var query = context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -106,6 +107,7 @@ public class SerialService(
             }
 
             var serial = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -133,6 +135,7 @@ public class SerialService(
             }
 
             var serial = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -160,6 +163,7 @@ public class SerialService(
             }
 
             var serials = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -189,6 +193,7 @@ public class SerialService(
             }
 
             var serials = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -218,6 +223,7 @@ public class SerialService(
             }
 
             var serials = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -248,6 +254,7 @@ public class SerialService(
             }
 
             var serials = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -280,6 +287,7 @@ public class SerialService(
             var thresholdDate = DateTime.UtcNow.AddDays(daysAhead);
 
             var serials = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -313,6 +321,7 @@ public class SerialService(
 
             // Check if serial number is unique
             var existingSerial = await context.Serials
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.SerialNumber == createDto.SerialNumber && s.TenantId == currentTenantId.Value, cancellationToken);
 
             if (existingSerial is not null)
@@ -330,6 +339,7 @@ public class SerialService(
 
             // Reload with includes for DTO mapping
             var serialForDto = await context.Serials
+                .AsNoTracking()
                 .Include(s => s.Product)
                 .Include(s => s.Lot)
                 .Include(s => s.CurrentLocation)
@@ -373,6 +383,7 @@ public class SerialService(
             if (!string.IsNullOrEmpty(updateDto.SerialNumber) && updateDto.SerialNumber != serial.SerialNumber)
             {
                 var existingSerial = await context.Serials
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(s => s.SerialNumber == updateDto.SerialNumber &&
                                             s.TenantId == currentTenantId.Value &&
                                             s.Id != id, cancellationToken);
@@ -602,6 +613,7 @@ public class SerialService(
             }
 
             var query = context.Serials
+                .AsNoTracking()
                 .Where(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value);
 
             if (excludeId.HasValue)
@@ -673,6 +685,7 @@ public class SerialService(
             }
 
             var movements = await context.StockMovements
+                .AsNoTracking()
                 .Include(sm => sm.Product)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)

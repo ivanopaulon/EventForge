@@ -44,7 +44,6 @@ public partial class EventForgeDbContext
                 .WithMany()
                 .HasForeignKey(rp => rp.ProductId);
 
-
             // SaleSession parent-child self-referencing relationship for split/merge
             _ = modelBuilder.Entity<SaleSession>()
                 .HasOne(s => s.ParentSession)

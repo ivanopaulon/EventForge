@@ -6,6 +6,8 @@
 @inject IBrandService BrandService
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
+@inject ILogger<BrandManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("brand.management", "Gestione Marchi")</PageTitle>
 <EntityManagementPage TEntity="BrandDto"
@@ -155,14 +157,23 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(BrandDetailDialog.EntityId)] = id
-        };
-        var options = EFDialogDefaults.Options;
-        var dialog = await DialogService.ShowAsync<BrandDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+            var parameters = new DialogParameters
+            {
+                [nameof(BrandDetailDialog.EntityId)] = id
+            };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<BrandDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+    
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening BrandDetailDialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

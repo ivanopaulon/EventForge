@@ -12,7 +12,7 @@ public class LotService(
 {
     private const string BaseUrl = "api/v1/warehouse/lots";
 
-    public async Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null)
+    public async Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken ct = default)
     {
         try
         {
@@ -32,7 +32,8 @@ public class LotService(
                 queryParams.Add($"expiringSoon={expiringSoon.Value}");
 
             var query = string.Join("&", queryParams);
-            return await httpClientService.GetAsync<PagedResult<LotDto>>($"{BaseUrl}?{query}");
+            return await httpClientService.GetAsync<PagedResult<LotDto>>($"{BaseUrl}?{query}", ct);
+
         }
         catch (Exception ex)
         {
@@ -41,11 +42,12 @@ public class LotService(
         }
     }
 
-    public async Task<LotDto?> GetLotByIdAsync(Guid id)
+    public async Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -54,11 +56,12 @@ public class LotService(
         }
     }
 
-    public async Task<LotDto?> GetLotByCodeAsync(string code)
+    public async Task<LotDto?> GetLotByCodeAsync(string code, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/code/{Uri.EscapeDataString(code)}");
+            return await httpClientService.GetAsync<LotDto>($"{BaseUrl}/code/{Uri.EscapeDataString(code)}", ct);
+
         }
         catch (Exception ex)
         {
@@ -67,11 +70,12 @@ public class LotService(
         }
     }
 
-    public async Task<IEnumerable<LotDto>?> GetExpiringLotsAsync(int daysAhead = 30)
+    public async Task<IEnumerable<LotDto>?> GetExpiringLotsAsync(int daysAhead = 30, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LotDto>>($"{BaseUrl}/expiring?daysAhead={daysAhead}");
+            return await httpClientService.GetAsync<IEnumerable<LotDto>>($"{BaseUrl}/expiring?daysAhead={daysAhead}", ct);
+
         }
         catch (Exception ex)
         {
@@ -80,11 +84,12 @@ public class LotService(
         }
     }
 
-    public async Task<LotDto?> CreateLotAsync(CreateLotDto createDto)
+    public async Task<LotDto?> CreateLotAsync(CreateLotDto createDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateLotDto, LotDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateLotDto, LotDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -93,11 +98,12 @@ public class LotService(
         }
     }
 
-    public async Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto)
+    public async Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateLotDto, LotDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateLotDto, LotDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -106,7 +112,7 @@ public class LotService(
         }
     }
 
-    public async Task<bool> DeleteLotAsync(Guid id)
+    public async Task<bool> DeleteLotAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -120,7 +126,7 @@ public class LotService(
         }
     }
 
-    public async Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string? notes = null)
+    public async Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string? notes = null, CancellationToken ct = default)
     {
         try
         {
@@ -138,7 +144,7 @@ public class LotService(
         }
     }
 
-    public async Task<bool> BlockLotAsync(Guid id, string reason)
+    public async Task<bool> BlockLotAsync(Guid id, string reason, CancellationToken ct = default)
     {
         try
         {
@@ -152,7 +158,7 @@ public class LotService(
         }
     }
 
-    public async Task<bool> UnblockLotAsync(Guid id)
+    public async Task<bool> UnblockLotAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

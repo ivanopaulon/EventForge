@@ -11,11 +11,12 @@ public class DocumentTypeService(
 {
     private const string BaseUrl = "api/v1/documents/types";
 
-    public async Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync()
+    public async Task<IEnumerable<DocumentTypeDto>?> GetAllDocumentTypesAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl);
+            return await httpClientService.GetAsync<IEnumerable<DocumentTypeDto>>(BaseUrl, ct);
+
         }
         catch (Exception ex)
         {
@@ -24,11 +25,12 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id)
+    public async Task<DocumentTypeDto?> GetDocumentTypeByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<DocumentTypeDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -37,11 +39,12 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto)
+    public async Task<DocumentTypeDto?> CreateDocumentTypeAsync(CreateDocumentTypeDto createDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto);
+            return await httpClientService.PostAsync<CreateDocumentTypeDto, DocumentTypeDto>(BaseUrl, createDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -50,11 +53,12 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto)
+    public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid id, UpdateDocumentTypeDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto);
+            return await httpClientService.PutAsync<UpdateDocumentTypeDto, DocumentTypeDto>($"{BaseUrl}/{id}", updateDto, ct);
+
         }
         catch (Exception ex)
         {
@@ -63,7 +67,7 @@ public class DocumentTypeService(
         }
     }
 
-    public async Task<bool> DeleteDocumentTypeAsync(Guid id)
+    public async Task<bool> DeleteDocumentTypeAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

@@ -11,7 +11,7 @@ public class CsvImportService(
     ILogger<CsvImportService> logger) : ICsvImportService
 {
     /// <inheritdoc />
-    public async Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options)
+    public async Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options, CancellationToken ct = default)
     {
         var result = new CsvImportResult
         {
@@ -261,7 +261,7 @@ public interface ICsvImportService
     /// <summary>
     /// Imports document rows from a CSV stream
     /// </summary>
-    Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options);
+    Task<CsvImportResult> ImportFromCsvAsync(Stream csvStream, CsvImportOptions options, CancellationToken ct = default);
 }
 
 /// <summary>

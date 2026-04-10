@@ -63,6 +63,7 @@ public class PaymentTermService(
             }
 
             var paymentTerm = await context.PaymentTerms
+                .AsNoTracking()
                 .Where(pt => pt.Id == id && pt.TenantId == currentTenantId.Value && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

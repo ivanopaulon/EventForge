@@ -5,6 +5,7 @@
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IDialogService DialogService
 @inject ILogger<FiscalPrinterStatusIndicator> Logger
+@inject IAppNotificationService AppNotification
 @implements IAsyncDisposable
 
 @* 
@@ -129,17 +130,25 @@
 
     private async Task ShowDetailDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["PrinterId"] = PrinterId,
-            ["PrinterName"] = PrinterName,
-            ["Status"] = _status
-        };
+            var parameters = new DialogParameters
+            {
+                ["PrinterId"] = PrinterId,
+                ["PrinterName"] = PrinterName,
+                ["Status"] = _status
+            };
 
-        await DialogService.ShowAsync<FiscalPrinterStatusDialog>(
-            $"Stato stampante: {PrinterName}",
-            parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            await DialogService.ShowAsync<FiscalPrinterStatusDialog>(
+                $"Stato stampante: {PrinterName}",
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ShowDetailDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     // -------------------------------------------------------------------------

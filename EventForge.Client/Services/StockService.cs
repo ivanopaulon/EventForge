@@ -47,11 +47,11 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> GetStockByIdAsync(Guid id)
+    public async Task<StockDto?> GetStockByIdAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StockDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -60,12 +60,13 @@ public class StockService(
         }
     }
 
-    public async Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId)
+    public async Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId, CancellationToken ct = default)
     {
         try
         {
             // Usa il nuovo endpoint dedicato creato nel server
-            var stocks = await httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}");
+            var stocks = await httpClientService.GetAsync<IEnumerable<StockDto>>($"{BaseUrl}/product/{productId}", ct);
+
             return stocks ?? Enumerable.Empty<StockDto>();
         }
         catch (Exception ex)
@@ -127,11 +128,11 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto)
+    public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto);
+            return await httpClientService.PostAsync<AdjustStockDto, StockDto>($"{BaseUrl}/adjust", dto, ct);
         }
         catch (Exception ex)
         {
@@ -140,11 +141,11 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto)
+    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateStockDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto);
+            return await httpClientService.PostAsync<CreateStockDto, StockDto>($"{BaseUrl}", dto, ct);
         }
         catch (Exception ex)
         {
@@ -153,11 +154,11 @@ public class StockService(
         }
     }
 
-    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto)
+    public async Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto);
+            return await httpClientService.PostAsync<CreateOrUpdateStockDto, StockDto>($"{BaseUrl}/create-or-update", dto, ct);
         }
         catch (Exception ex)
         {

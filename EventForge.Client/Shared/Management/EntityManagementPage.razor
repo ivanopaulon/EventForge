@@ -316,11 +316,19 @@
 
     private async Task HandleQuickFilter(QuickFilter<TEntity>? filter)
     {
-        _activeQuickFilter = filter;
-        if (OnQuickFilterChanged != null)
-            await OnQuickFilterChanged(filter);
-        else
-            RefreshFilteredEntities();
+        try
+        {
+            _activeQuickFilter = filter;
+            if (OnQuickFilterChanged != null)
+                await OnQuickFilterChanged(filter);
+            else
+                RefreshFilteredEntities();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(HandleQuickFilter));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnSelectedItemsChanged(HashSet<TEntity> items)
@@ -436,13 +444,21 @@
 
     private async Task CreateEntity()
     {
-        if (OnCreateOverride != null)
+        try
         {
-            await OnCreateOverride.Invoke();
+            if (OnCreateOverride != null)
+            {
+                await OnCreateOverride.Invoke();
+            }
+            else
+            {
+                NavigationManager.NavigateTo($"{Config.BaseRoute}/new");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            NavigationManager.NavigateTo($"{Config.BaseRoute}/new");
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(CreateEntity));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
@@ -454,10 +470,18 @@
 
     private async Task EditEntity(Guid id)
     {
-        if (OnEditOverride != null)
-            await OnEditOverride(id);
-        else
-            NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+        try
+        {
+            if (OnEditOverride != null)
+                await OnEditOverride(id);
+            else
+                NavigationManager.NavigateTo($"{Config.BaseRoute}/{id}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(EditEntity));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private async Task DeleteEntity(TEntity entity)
@@ -668,17 +692,25 @@
 
     private async Task ViewAuditLog(TEntity entity)
     {
-        var parameters = new DialogParameters<AuditHistoryDialog>
+        try
         {
-            { x => x.EntityType, Config.EntityTypeName },
-            { x => x.EntityId, Config.GetId(entity) },
-            { x => x.EntityName, Config.GetDisplayName(entity) }
-        };
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, Config.EntityTypeName },
+                { x => x.EntityId, Config.GetId(entity) },
+                { x => x.EntityName, Config.GetDisplayName(entity) }
+            };
 
-        await DialogService.ShowAsync<AuditHistoryDialog>(
-            TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
-            parameters,
-            _auditDialogOptions);
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ViewAuditLog));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void OnSearchChanged(string term)
@@ -697,14 +729,22 @@
 
     private async Task ClearFilters()
     {
-        _searchTerm = string.Empty;
-        _activeQuickFilter = null;
-        if (OnClearFilters != null)
-            await OnClearFilters();
-        else
+        try
         {
-            RefreshFilteredEntities();
-            StateHasChanged();
+            _searchTerm = string.Empty;
+            _activeQuickFilter = null;
+            if (OnClearFilters != null)
+                await OnClearFilters();
+            else
+            {
+                RefreshFilteredEntities();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(ClearFilters));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

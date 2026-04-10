@@ -7,6 +7,8 @@
 @inject IEntityManagementService EntityManagementService
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject ILogger<ClassificationNodeManagement> Logger
+@inject IAppNotificationService AppNotification
 
 <PageTitle>@TranslationService.GetTranslation("classificationNode.management", "Gestione Nodi di Classificazione")</PageTitle>
 <EntityManagementPage @ref="_entityPage"
@@ -188,27 +190,43 @@
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(ClassificationNodeDetailDialog.EntityId)] = id,
-            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)null
-        };
-        var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+            var parameters = new DialogParameters
+            {
+                [nameof(ClassificationNodeDetailDialog.EntityId)] = id,
+                [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)null
+            };
+            var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification node detail dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 
     private async Task OpenAddChildDialogAsync(Guid parentId)
     {
-        var parameters = new DialogParameters
+        try
         {
-            [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
-            [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)parentId
-        };
-        var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+            var parameters = new DialogParameters
+            {
+                [nameof(ClassificationNodeDetailDialog.EntityId)] = (Guid?)null,
+                [nameof(ClassificationNodeDetailDialog.ParentId)] = (Guid?)parentId
+            };
+            var dialog = await DialogService.ShowAsync<ClassificationNodeDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification node add child dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
     }
 }

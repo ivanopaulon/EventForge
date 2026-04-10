@@ -276,19 +276,35 @@
 
     private async Task LoadProductsAsync()
     {
-        if (_efTable != null)
+        try
         {
-            await _efTable.ReloadServerDataAsync();
+            if (_efTable != null)
+            {
+                await _efTable.ReloadServerDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel caricamento dei prodotti della controparte commerciale.");
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento dei prodotti.");
         }
     }
 
     private async Task ResetFiltersAsync()
     {
-        _dateRange = null;
-        _selectedType = null;
-        _topN = 20;
-        _sortBy = "valuepurchased";
-        await LoadProductsAsync();
+        try
+        {
+            _dateRange = null;
+            _selectedType = null;
+            _topN = 20;
+            _sortBy = "valuepurchased";
+            await LoadProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel ripristino dei filtri prodotti.");
+            AppNotification.ShowWarning("Si è verificato un errore nel ripristino dei filtri.");
+        }
     }
 
     private void OnProductRowClick(BusinessPartyProductAnalysisDto? product)

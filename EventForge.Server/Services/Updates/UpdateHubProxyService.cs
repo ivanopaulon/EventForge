@@ -53,29 +53,53 @@ public sealed class UpdateHubProxyService : IUpdateHubProxyService
 
     public async Task<IReadOnlyList<PackageSummaryDto>> GetPackagesAsync(CancellationToken ct = default)
     {
-        EnsureConfigured();
-        var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", _hubJsonOptions, ct) ?? [];
-        return [.. list.OrderByDescending(p => p.UploadedAt)];
+        try
+        {
+            EnsureConfigured();
+            var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", _hubJsonOptions, ct) ?? [];
+            return [.. list.OrderByDescending(p => p.UploadedAt)];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetPackagesAsync.");
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<InstallationSummaryDto>> GetInstallationsAsync(CancellationToken ct = default)
     {
-        EnsureConfigured();
-        return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", _hubJsonOptions, ct) ?? [];
+        try
+        {
+            EnsureConfigured();
+            return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", _hubJsonOptions, ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetInstallationsAsync.");
+            throw;
+        }
     }
 
     public async Task SendUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
     {
-        EnsureConfigured();
-        using var content = new StringContent(
-            JsonSerializer.Serialize(new { PackageId = packageId }),
-            Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync($"api/v1/installations/{installationId}/update", content, ct);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var err = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogError("SendUpdate failed {Status}: {Body}", response.StatusCode, err);
-            response.EnsureSuccessStatusCode();
+            EnsureConfigured();
+            using var content = new StringContent(
+                JsonSerializer.Serialize(new { PackageId = packageId }),
+                Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync($"api/v1/installations/{installationId}/update", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("SendUpdate failed {Status}: {Body}", response.StatusCode, err);
+                response.EnsureSuccessStatusCode();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in SendUpdateAsync for installation {InstallationId} and package {PackageId}.", installationId, packageId);
+            throw;
         }
     }
 

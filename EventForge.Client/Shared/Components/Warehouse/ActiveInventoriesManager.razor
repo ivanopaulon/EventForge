@@ -3,6 +3,7 @@
 @inject ITranslationService TranslationService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
+@inject ILogger<ActiveInventoriesManager> Logger
 
 <MudCard Class="mb-4">
     <MudCardHeader>
@@ -117,38 +118,46 @@
 
     private async Task MergeSelectedInventories()
     {
-        // Validation: same warehouse
-        var warehouses = _selectedInventories.Select(i => i.WarehouseId).Distinct().ToList();
-        if (warehouses.Count > 1)
+        try
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.differentWarehousesError",
-                    "Tutti gli inventari devono appartenere allo stesso magazzino"));
-            return;
+            // Validation: same warehouse
+            var warehouses = _selectedInventories.Select(i => i.WarehouseId).Distinct().ToList();
+            if (warehouses.Count > 1)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("warehouse.differentWarehousesError",
+                        "Tutti gli inventari devono appartenere allo stesso magazzino"));
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { nameof(MergeInventoriesDialog.SelectedInventories), _selectedInventories.ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
+                TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false })
+            {
+                _selectedInventories.Clear();
+                await OnInventoriesChanged.InvokeAsync();
+            }
         }
-
-        var parameters = new DialogParameters
+        catch (Exception ex)
         {
-            { nameof(MergeInventoriesDialog.SelectedInventories), _selectedInventories.ToList() }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
-            TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
-            parameters,
-            options
-        );
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-        {
-            _selectedInventories.Clear();
-            await OnInventoriesChanged.InvokeAsync();
+            Logger.LogError(ex, "Errore durante l'accorpamento degli inventari selezionati");
+            AppNotification.ShowError(TranslationService.GetTranslation("warehouse.mergeError", "Errore durante l'accorpamento degli inventari."));
         }
     }
 }

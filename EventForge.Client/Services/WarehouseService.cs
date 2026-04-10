@@ -12,11 +12,11 @@ public class WarehouseService(
 {
     private const string BaseUrl = "api/v1/warehouse/facilities";
 
-    public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100)
+    public async Task<PagedResult<StorageFacilityDto>?> GetStorageFacilitiesAsync(int page = 1, int pageSize = 100, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}");
+            return await httpClientService.GetAsync<PagedResult<StorageFacilityDto>>($"{BaseUrl}?page={page}&pageSize={pageSize}", ct);
         }
         catch (Exception ex)
         {
@@ -25,11 +25,11 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> GetStorageFacilityAsync(Guid id)
+    public async Task<StorageFacilityDto?> GetStorageFacilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<StorageFacilityDto>($"{BaseUrl}/{id}", ct);
         }
         catch (Exception ex)
         {
@@ -38,11 +38,11 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> CreateStorageFacilityAsync(CreateStorageFacilityDto dto)
+    public async Task<StorageFacilityDto?> CreateStorageFacilityAsync(CreateStorageFacilityDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto);
+            return await httpClientService.PostAsync<CreateStorageFacilityDto, StorageFacilityDto>(BaseUrl, dto, ct);
         }
         catch (Exception ex)
         {
@@ -51,11 +51,11 @@ public class WarehouseService(
         }
     }
 
-    public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto dto)
+    public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto dto, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto);
+            return await httpClientService.PutAsync<UpdateStorageFacilityDto, StorageFacilityDto>($"{BaseUrl}/{id}", dto, ct);
         }
         catch (Exception ex)
         {
@@ -64,11 +64,11 @@ public class WarehouseService(
         }
     }
 
-    public async Task<bool> DeleteStorageFacilityAsync(Guid id)
+    public async Task<bool> DeleteStorageFacilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)

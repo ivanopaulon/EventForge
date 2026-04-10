@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Common;
 
-
 /// <summary>
 /// Represents a physical or virtual printer used in the POS system.
 /// </summary>

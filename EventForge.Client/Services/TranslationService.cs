@@ -27,7 +27,7 @@ public interface ITranslationService
     /// Sets the current language and persists it.
     /// </summary>
     /// <param name="language">Language code (it, en, es, fr)</param>
-    Task SetLanguageAsync(string language);
+    Task SetLanguageAsync(string language, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a translation by key, with optional fallback.
@@ -64,7 +64,7 @@ public interface ITranslationService
     /// <summary>
     /// Loads translations from API (for SuperAdmin management).
     /// </summary>
-    Task LoadTranslationsFromApiAsync();
+    Task LoadTranslationsFromApiAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Checks if a translation key exists.
@@ -115,7 +115,7 @@ public class TranslationService(
     /// <summary>
     /// Initializes the translation service and loads the user's preferred language.
     /// </summary>
-    public async Task InitializeAsync()
+    public async Task InitializeAsync(CancellationToken ct = default)
     {
         try
         {
@@ -179,7 +179,7 @@ public class TranslationService(
     /// - Caching mechanisms can be added without affecting HttpClient configuration
     /// </summary>
     /// <param name="language">Language code (it, en, es, fr)</param>
-    public async Task SetLanguageAsync(string language)
+    public async Task SetLanguageAsync(string language, CancellationToken ct = default)
     {
         if (!_availableLanguages.ContainsKey(language))
         {
@@ -226,7 +226,7 @@ public class TranslationService(
             if (string.IsNullOrWhiteSpace(key))
             {
                 var result = !string.IsNullOrWhiteSpace(fallback) ? fallback : "[EMPTY_KEY]";
-                Console.WriteLine($"[TranslationService] Empty or null key provided. Using: {result}");
+            logger.LogWarning("Empty or null translation key provided. Using: {Result}", result);
                 return result;
             }
 
@@ -264,9 +264,8 @@ public class TranslationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting translation for key: {Key}", key);
             var errorFallback = !string.IsNullOrWhiteSpace(fallback) ? fallback : $"[{key}]";
-            Console.WriteLine($"[TranslationService] ERROR getting translation for key '{key}': {ex.Message}. Using: {errorFallback}");
+            logger.LogError(ex, "Error getting translation for key: {Key}. Using fallback: {Fallback}", key, errorFallback);
             return errorFallback;
         }
     }
@@ -298,10 +297,7 @@ public class TranslationService(
             _ => $"[TranslationService] Translation key '{key}' not found for language '{currentLanguage}'. File: {jsonFile}"
         };
 
-        // Console output for development debugging
-        Console.WriteLine(message);
-
-        // Structured logging for production monitoring
+        // Structured logging for production monitoring (replaces Console output)
         logger.LogWarning("Missing translation key detected. Key: {TranslationKey}, Language: {Language}, " +
                           "File: {TranslationFile}, Reason: {Reason}, Suggestion: {Suggestion}",
             key,
@@ -374,7 +370,7 @@ public class TranslationService(
     /// - The ApiClient is pre-configured with BaseAddress in Program.cs
     /// - Dynamic language switching is supported without creating new HttpClient instances
     /// </summary>
-    public async Task LoadTranslationsFromApiAsync()
+    public async Task LoadTranslationsFromApiAsync(CancellationToken ct = default)
     {
         try
         {

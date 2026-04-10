@@ -8,27 +8,27 @@ namespace EventForge.Client.Services
 {
     public interface IAuthService
     {
-        Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest);
-        Task LogoutAsync();
-        Task<bool> IsAuthenticatedAsync();
-        Task<string?> GetAccessTokenAsync();
-        Task<UserDto?> GetCurrentUserAsync();
-        Task<bool> IsInRoleAsync(string role);
+        Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest, CancellationToken ct = default);
+        Task LogoutAsync(CancellationToken ct = default);
+        Task<bool> IsAuthenticatedAsync(CancellationToken ct = default);
+        Task<string?> GetAccessTokenAsync(CancellationToken ct = default);
+        Task<UserDto?> GetCurrentUserAsync(CancellationToken ct = default);
+        Task<bool> IsInRoleAsync(string role, CancellationToken ct = default);
         Task<bool> IsInAnyRoleAsync(params string[] roles);
         Task<bool> HasAllRolesAsync(params string[] roles);
-        Task<string[]> GetUserRolesAsync();
-        Task<bool> IsSuperAdminAsync();
-        Task<bool> IsAdminOrSuperAdminAsync();
+        Task<string[]> GetUserRolesAsync(CancellationToken ct = default);
+        Task<bool> IsSuperAdminAsync(CancellationToken ct = default);
+        Task<bool> IsAdminOrSuperAdminAsync(CancellationToken ct = default);
         event Action? OnAuthenticationStateChanged;
 
         // Nuovo: recupera i tenant disponibili per il login (leggero, cached lato client)
-        Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync();
+        Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default);
 
         // Refresh the JWT token to extend the session
-        Task<bool> RefreshTokenAsync();
+        Task<bool> RefreshTokenAsync(CancellationToken ct = default);
 
         // Get token expiry time
-        Task<TimeSpan?> GetTokenTimeToExpiryAsync();
+        Task<TimeSpan?> GetTokenTimeToExpiryAsync(CancellationToken ct = default);
     }
 
     public class AuthService : IAuthService
@@ -54,7 +54,7 @@ namespace EventForge.Client.Services
             _logger = logger;
         }
 
-        public async Task<bool> IsAuthenticatedAsync()
+        public async Task<bool> IsAuthenticatedAsync(CancellationToken ct = default)
         {
             if (_accessToken == null)
             {
@@ -68,7 +68,7 @@ namespace EventForge.Client.Services
             return !IsTokenExpired(_accessToken);
         }
 
-        public async Task<string?> GetAccessTokenAsync()
+        public async Task<string?> GetAccessTokenAsync(CancellationToken ct = default)
         {
             if (_accessToken == null)
             {
@@ -82,7 +82,7 @@ namespace EventForge.Client.Services
             return _accessToken;
         }
 
-        public async Task<UserDto?> GetCurrentUserAsync()
+        public async Task<UserDto?> GetCurrentUserAsync(CancellationToken ct = default)
         {
             if (_currentUser == null)
             {
@@ -91,7 +91,7 @@ namespace EventForge.Client.Services
             return _currentUser;
         }
 
-        public async Task<bool> IsInRoleAsync(string role)
+        public async Task<bool> IsInRoleAsync(string role, CancellationToken ct = default)
         {
             var user = await GetCurrentUserAsync();
             return user?.Roles?.Contains(role, StringComparer.OrdinalIgnoreCase) == true;
@@ -115,23 +115,23 @@ namespace EventForge.Client.Services
             return roles.All(role => user.Roles.Contains(role, StringComparer.OrdinalIgnoreCase));
         }
 
-        public async Task<string[]> GetUserRolesAsync()
+        public async Task<string[]> GetUserRolesAsync(CancellationToken ct = default)
         {
             var user = await GetCurrentUserAsync();
             return user?.Roles?.ToArray() ?? Array.Empty<string>();
         }
 
-        public async Task<bool> IsSuperAdminAsync()
+        public async Task<bool> IsSuperAdminAsync(CancellationToken ct = default)
         {
             return await IsInRoleAsync("SuperAdmin");
         }
 
-        public async Task<bool> IsAdminOrSuperAdminAsync()
+        public async Task<bool> IsAdminOrSuperAdminAsync(CancellationToken ct = default)
         {
             return await IsInAnyRoleAsync("Admin", "SuperAdmin");
         }
 
-        public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)
+        public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest, CancellationToken ct = default)
         {
             try
             {
@@ -176,7 +176,7 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task LogoutAsync()
+        public async Task LogoutAsync(CancellationToken ct = default)
         {
             try
             {
@@ -209,7 +209,7 @@ namespace EventForge.Client.Services
         /// Endpoint server previsto: GET /api/v1/auth/tenants
         /// </summary>
         // Modifica: implementazione pi� robusta di GetAvailableTenantsAsync con timeout, retry e logging
-        public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync()
+        public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default)
         {
             try
             {
@@ -349,7 +349,7 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task<bool> RefreshTokenAsync()
+        public async Task<bool> RefreshTokenAsync(CancellationToken ct = default)
         {
             const int maxRetries = 2;
 
@@ -468,7 +468,7 @@ namespace EventForge.Client.Services
         /// <summary>
         /// Gets the time remaining until token expiration
         /// </summary>
-        public async Task<TimeSpan?> GetTokenTimeToExpiryAsync()
+        public async Task<TimeSpan?> GetTokenTimeToExpiryAsync(CancellationToken ct = default)
         {
             try
             {

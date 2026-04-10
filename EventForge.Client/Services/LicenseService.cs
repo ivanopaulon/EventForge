@@ -12,11 +12,12 @@ public class LicenseService(
     private const string BaseUrl = "api/v1/license";
 
     // License Management
-    public async Task<IEnumerable<LicenseDto>> GetLicensesAsync()
+    public async Task<IEnumerable<LicenseDto>> GetLicensesAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl) ?? Enumerable.Empty<LicenseDto>();
+            return await httpClientService.GetAsync<IEnumerable<LicenseDto>>(BaseUrl, ct) ?? Enumerable.Empty<LicenseDto>();
+
         }
         catch (Exception ex)
         {
@@ -25,11 +26,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto?> GetLicenseAsync(Guid id)
+    public async Task<LicenseDto?> GetLicenseAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<LicenseDto>($"{BaseUrl}/{id}");
+            return await httpClientService.GetAsync<LicenseDto>($"{BaseUrl}/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -38,11 +40,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> CreateLicenseAsync(CreateLicenseDto createDto)
+    public async Task<LicenseDto> CreateLicenseAsync(CreateLicenseDto createDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateLicenseDto, LicenseDto>(BaseUrl, createDto);
+            var result = await httpClientService.PostAsync<CreateLicenseDto, LicenseDto>(BaseUrl, createDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to create license");
         }
         catch (Exception ex)
@@ -52,11 +55,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> UpdateLicenseAsync(Guid id, LicenseDto updateDto)
+    public async Task<LicenseDto> UpdateLicenseAsync(Guid id, LicenseDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PutAsync<LicenseDto, LicenseDto>($"{BaseUrl}/{id}", updateDto);
+            var result = await httpClientService.PutAsync<LicenseDto, LicenseDto>($"{BaseUrl}/{id}", updateDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update license");
         }
         catch (Exception ex)
@@ -66,7 +70,7 @@ public class LicenseService(
         }
     }
 
-    public async Task DeleteLicenseAsync(Guid id)
+    public async Task DeleteLicenseAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -80,11 +84,12 @@ public class LicenseService(
     }
 
     // Tenant License Management
-    public async Task<IEnumerable<TenantLicenseDto>> GetTenantLicensesAsync()
+    public async Task<IEnumerable<TenantLicenseDto>> GetTenantLicensesAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses") ?? Enumerable.Empty<TenantLicenseDto>();
+            return await httpClientService.GetAsync<IEnumerable<TenantLicenseDto>>($"{BaseUrl}/tenant-licenses", ct) ?? Enumerable.Empty<TenantLicenseDto>();
+
         }
         catch (Exception ex)
         {
@@ -93,11 +98,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<TenantLicenseDto?> GetTenantLicenseAsync(Guid tenantId)
+    public async Task<TenantLicenseDto?> GetTenantLicenseAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}");
+            return await httpClientService.GetAsync<TenantLicenseDto>($"{BaseUrl}/tenant/{tenantId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -106,11 +112,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<TenantLicenseDto> AssignLicenseAsync(AssignLicenseDto assignDto)
+    public async Task<TenantLicenseDto> AssignLicenseAsync(AssignLicenseDto assignDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PostAsync<AssignLicenseDto, TenantLicenseDto>($"{BaseUrl}/assign", assignDto);
+            var result = await httpClientService.PostAsync<AssignLicenseDto, TenantLicenseDto>($"{BaseUrl}/assign", assignDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to assign license");
         }
         catch (Exception ex)
@@ -120,7 +127,7 @@ public class LicenseService(
         }
     }
 
-    public async Task RemoveTenantLicenseAsync(Guid tenantId)
+    public async Task RemoveTenantLicenseAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
@@ -134,11 +141,12 @@ public class LicenseService(
     }
 
     // License Features
-    public async Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId)
+    public async Task<IEnumerable<LicenseFeatureDto>> GetLicenseFeaturesAsync(Guid licenseId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features") ?? Enumerable.Empty<LicenseFeatureDto>();
+            return await httpClientService.GetAsync<IEnumerable<LicenseFeatureDto>>($"{BaseUrl}/{licenseId}/features", ct) ?? Enumerable.Empty<LicenseFeatureDto>();
+
         }
         catch (Exception ex)
         {
@@ -147,11 +155,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync()
+    public async Task<IEnumerable<AvailableFeatureDto>> GetAvailableFeaturesAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features") ?? Enumerable.Empty<AvailableFeatureDto>();
+            return await httpClientService.GetAsync<IEnumerable<AvailableFeatureDto>>($"{BaseUrl}/available-features", ct) ?? Enumerable.Empty<AvailableFeatureDto>();
+
         }
         catch (Exception ex)
         {
@@ -160,11 +169,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto)
+    public async Task<LicenseDto> UpdateLicenseFeaturesAsync(Guid licenseId, UpdateLicenseFeaturesDto updateDto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateLicenseFeaturesDto, LicenseDto>($"{BaseUrl}/{licenseId}/features", updateDto);
+            var result = await httpClientService.PutAsync<UpdateLicenseFeaturesDto, LicenseDto>($"{BaseUrl}/{licenseId}/features", updateDto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update license features");
         }
         catch (Exception ex)
@@ -175,11 +185,12 @@ public class LicenseService(
     }
 
     // API Usage and Statistics
-    public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId)
+    public async Task<ApiUsageDto?> GetApiUsageAsync(Guid tenantId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}");
+            return await httpClientService.GetAsync<ApiUsageDto>($"{BaseUrl}/usage/{tenantId}", ct);
+
         }
         catch (Exception ex)
         {
@@ -189,11 +200,11 @@ public class LicenseService(
     }
 
     // Feature Template Management (SuperAdmin)
-    public async Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync()
+    public async Task<IEnumerable<FeatureTemplateDto>> GetFeatureTemplatesAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates")
+            return await httpClientService.GetAsync<IEnumerable<FeatureTemplateDto>>($"{BaseUrl}/feature-templates", ct)
                 ?? Enumerable.Empty<FeatureTemplateDto>();
         }
         catch (Exception ex)
@@ -203,11 +214,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id)
+    public async Task<FeatureTemplateDto?> GetFeatureTemplateAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}");
+            return await httpClientService.GetAsync<FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", ct);
+
         }
         catch (Exception ex)
         {
@@ -216,11 +228,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto)
+    public async Task<FeatureTemplateDto> CreateFeatureTemplateAsync(CreateFeatureTemplateDto dto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PostAsync<CreateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates", dto);
+            var result = await httpClientService.PostAsync<CreateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates", dto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to create feature template");
         }
         catch (Exception ex)
@@ -230,11 +243,12 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto)
+    public async Task<FeatureTemplateDto> UpdateFeatureTemplateAsync(Guid id, UpdateFeatureTemplateDto dto, CancellationToken ct = default)
     {
         try
         {
-            var result = await httpClientService.PutAsync<UpdateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", dto);
+            var result = await httpClientService.PutAsync<UpdateFeatureTemplateDto, FeatureTemplateDto>($"{BaseUrl}/feature-templates/{id}", dto, ct);
+
             return result ?? throw new InvalidOperationException("Failed to update feature template");
         }
         catch (Exception ex)
@@ -244,7 +258,7 @@ public class LicenseService(
         }
     }
 
-    public async Task DeleteFeatureTemplateAsync(Guid id)
+    public async Task DeleteFeatureTemplateAsync(Guid id, CancellationToken ct = default)
     {
         try
         {
@@ -257,7 +271,7 @@ public class LicenseService(
         }
     }
 
-    public async Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id)
+    public async Task<FeatureTemplateDto> ToggleFeatureTemplateAvailabilityAsync(Guid id, CancellationToken ct = default)
     {
         try
         {

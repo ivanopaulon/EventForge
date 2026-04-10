@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Documents;
 
-
 /// <summary>
 /// Represents a line item in the document.
 /// </summary>

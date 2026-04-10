@@ -14,38 +14,38 @@ public interface IDocumentDialogCacheService
     /// Gets all units of measure from cache or loads them if cache is expired.
     /// </summary>
     /// <returns>List of all units of measure</returns>
-    Task<List<UMDto>> GetUnitsOfMeasureAsync();
+    Task<List<UMDto>> GetUnitsOfMeasureAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets all active VAT rates from cache or loads them if cache is expired.
     /// </summary>
     /// <returns>List of active VAT rates</returns>
-    Task<List<VatRateDto>> GetVatRatesAsync();
+    Task<List<VatRateDto>> GetVatRatesAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Ottiene i listini vendita attivi (cached)
     /// </summary>
     /// <returns>Lista dei listini vendita attivi</returns>
-    Task<List<PriceListDto>> GetActiveSalesPriceListsAsync();
+    Task<List<PriceListDto>> GetActiveSalesPriceListsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Ottiene i listini acquisto attivi (cached)
     /// </summary>
     /// <returns>Lista dei listini acquisto attivi</returns>
-    Task<List<PriceListDto>> GetActivePurchasePriceListsAsync();
+    Task<List<PriceListDto>> GetActivePurchasePriceListsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Ottiene tutti i listini attivi (vendita + acquisto) cached
     /// </summary>
     /// <returns>Lista combinata di tutti i listini attivi</returns>
-    Task<List<PriceListDto>> GetAllActivePriceListsAsync();
+    Task<List<PriceListDto>> GetAllActivePriceListsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Ottiene il nome di un listino specifico dal cache (O(1) lookup)
     /// </summary>
     /// <param name="priceListId">ID del listino</param>
     /// <returns>Nome del listino o null se non trovato</returns>
-    Task<string?> GetPriceListNameAsync(Guid priceListId);
+    Task<string?> GetPriceListNameAsync(Guid priceListId, CancellationToken ct = default);
 
     /// <summary>
     /// Invalidates the cache, forcing fresh data to be loaded on next request.

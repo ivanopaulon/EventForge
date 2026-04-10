@@ -50,12 +50,10 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         };
     }
 
-    protected override async Task<StorageFacilityDto?> LoadEntityFromServiceAsync(Guid entityId)
-    {
-        return await _warehouseService.GetStorageFacilityAsync(entityId);
-    }
+    protected override Task<StorageFacilityDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
+        => _warehouseService.GetStorageFacilityAsync(entityId, ct);
 
-    protected override async Task LoadRelatedEntitiesAsync(Guid entityId)
+    protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
         if (IsNewEntity)
         {
@@ -65,7 +63,7 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
 
         try
         {
-            var locationsResult = await _storageLocationService.GetStorageLocationsByWarehouseAsync(entityId, 1, 100);
+            var locationsResult = await _storageLocationService.GetStorageLocationsByWarehouseAsync(entityId, 1, 100, ct);
             StorageLocations = locationsResult?.Items ?? new List<StorageLocationDto>();
             Logger.LogInformation("Loaded {Count} storage locations for warehouse {WarehouseId}",
                 StorageLocations.Count(), entityId);
@@ -112,15 +110,11 @@ public class WarehouseDetailViewModel : BaseEntityDetailViewModel<StorageFacilit
         };
     }
 
-    protected override Task<StorageFacilityDto?> CreateEntityAsync(CreateStorageFacilityDto createDto)
-    {
-        return _warehouseService.CreateStorageFacilityAsync(createDto);
-    }
+    protected override Task<StorageFacilityDto?> CreateEntityAsync(CreateStorageFacilityDto createDto, CancellationToken ct = default)
+        => _warehouseService.CreateStorageFacilityAsync(createDto, ct);
 
-    protected override Task<StorageFacilityDto?> UpdateEntityAsync(Guid entityId, UpdateStorageFacilityDto updateDto)
-    {
-        return _warehouseService.UpdateStorageFacilityAsync(entityId, updateDto);
-    }
+    protected override Task<StorageFacilityDto?> UpdateEntityAsync(Guid entityId, UpdateStorageFacilityDto updateDto, CancellationToken ct = default)
+        => _warehouseService.UpdateStorageFacilityAsync(entityId, updateDto, ct);
 
     protected override Guid GetEntityId(StorageFacilityDto entity)
     {

@@ -69,6 +69,7 @@ public class DocumentHeaderService(
         try
         {
             var query = context.DocumentHeaders
+                .AsNoTracking()
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.PriceList)
                 .Where(dh => dh.Id == id && !dh.IsDeleted);
@@ -102,6 +103,7 @@ public class DocumentHeaderService(
         try
         {
             var documentHeaders = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(dh => dh.BusinessPartyId == businessPartyId && !dh.IsDeleted)
                 .OrderByDescending(dh => dh.Date)
                 .Include(dh => dh.DocumentType)
@@ -299,6 +301,7 @@ public class DocumentHeaderService(
                     }
 
                     var storageLocation = await context.StorageLocations
+                        .AsNoTracking()
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
@@ -462,6 +465,7 @@ public class DocumentHeaderService(
 
             // Reload document with dependencies for stock movement processing
             var documentForStockMovement = await context.DocumentHeaders
+                .AsNoTracking()
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
@@ -532,6 +536,7 @@ public class DocumentHeaderService(
 
             // Reload document with dependencies for stock movement processing
             var documentForStockMovement = await context.DocumentHeaders
+                .AsNoTracking()
                 .Include(dh => dh.DocumentType)
                 .Include(dh => dh.Rows)
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
@@ -564,6 +569,7 @@ public class DocumentHeaderService(
         try
         {
             return await context.DocumentHeaders
+                .AsNoTracking()
                 .AnyAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -575,7 +581,7 @@ public class DocumentHeaderService(
 
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
-        var query = context.DocumentHeaders.Where(dh => !dh.IsDeleted);
+        var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
 
         if (parameters.DocumentTypeId.HasValue)
             query = query.Where(dh => dh.DocumentTypeId == parameters.DocumentTypeId.Value);
@@ -985,6 +991,7 @@ public class DocumentHeaderService(
                     if (warehouseLocationId.HasValue)
                     {
                         var storageLocation = await context.StorageLocations
+                            .AsNoTracking()
                             .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1140,6 +1147,7 @@ public class DocumentHeaderService(
                         if (warehouseLocationId.HasValue)
                         {
                             var storageLocation = await context.StorageLocations
+                                .AsNoTracking()
                                 .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1278,6 +1286,7 @@ public class DocumentHeaderService(
                     if (warehouseLocationId.HasValue)
                     {
                         var storageLocation = await context.StorageLocations
+                            .AsNoTracking()
                             .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                             .FirstOrDefaultAsync(cancellationToken);
 
@@ -1398,6 +1407,7 @@ public class DocumentHeaderService(
 
                     // Get the first storage location in the warehouse
                     var storageLocation = await context.StorageLocations
+                        .AsNoTracking()
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
@@ -1443,6 +1453,7 @@ public class DocumentHeaderService(
 
                     // Get the storage location with available stock
                     var storageLocation = await context.StorageLocations
+                        .AsNoTracking()
                         .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
                         .FirstOrDefaultAsync(cancellationToken);
 
@@ -1904,6 +1915,7 @@ public class DocumentHeaderService(
             }
 
             var lockInfo = await context.DocumentHeaders
+                .AsNoTracking()
                 .Where(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted)
                 .Select(d => new DocumentLockInfo
                 {
@@ -1939,6 +1951,7 @@ public class DocumentHeaderService(
         }
 
         var query = context.DocumentHeaders
+            .AsNoTracking()
             .Include(d => d.DocumentType)
             .Include(d => d.BusinessParty)
             .Where(d => !d.IsDeleted && d.TenantId == currentTenantId.Value)

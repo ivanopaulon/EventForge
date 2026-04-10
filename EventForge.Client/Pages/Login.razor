@@ -8,6 +8,7 @@
 @inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
+@inject ILogger<Login> Logger
 
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - PRYM</PageTitle>
 
@@ -184,7 +185,7 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error checking authentication: {ex.Message}");
+            Logger.LogError(ex, "Error checking authentication state");
         }
     }
 

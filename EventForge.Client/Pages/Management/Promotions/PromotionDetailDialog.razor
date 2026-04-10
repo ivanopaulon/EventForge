@@ -630,16 +630,24 @@
 
     private async Task LoadPromotionAsync()
     {
-        _promotion = await PromotionService.GetByIdAsync(Id);
-
-        if (_promotion == null)
+        try
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("promotion.notFound", "Promozione non trovata."));
-            MudDialog.Close();
-            return;
-        }
+            _promotion = await PromotionService.GetByIdAsync(Id);
 
-        PopulateUpdateModel();
+            if (_promotion == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("promotion.notFound", "Promozione non trovata."));
+                MudDialog.Close();
+                return;
+            }
+
+            PopulateUpdateModel();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in LoadPromotionAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
     }
 
     private void PopulateUpdateModel()

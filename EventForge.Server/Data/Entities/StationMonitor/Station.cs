@@ -4,7 +4,6 @@ using EventForge.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.StationMonitor;
 
-
 /// <summary>
 /// Represents a station (e.g., bar, kitchen, cash register, etc.).
 /// </summary>

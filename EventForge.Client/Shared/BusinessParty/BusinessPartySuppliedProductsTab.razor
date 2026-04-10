@@ -242,151 +242,191 @@
 
     private async Task OpenBulkEditDialog()
     {
-        if (_selectedProducts.Count == 0)
+        try
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"));
-            return;
+            if (_selectedProducts.Count == 0)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"));
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId },
+                { "SelectedProductIds", _selectedProducts.ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<BulkEditSupplierProductsDialog>(
+                TranslationService.GetTranslation("productSupplier.bulkEditTitle", "Modifica Multipla"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                _selectedProducts.Clear();
+                _selectAll = false;
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"));
+            }
         }
-
-        var parameters = new DialogParameters
+        catch (Exception ex)
         {
-            { "SupplierId", BusinessPartyId },
-            { "SelectedProductIds", _selectedProducts.ToList() }
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<BulkEditSupplierProductsDialog>(
-            TranslationService.GetTranslation("productSupplier.bulkEditTitle", "Modifica Multipla"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && _efTable != null)
-        {
-            _selectedProducts.Clear();
-            _selectAll = false;
-            await _efTable!.ReloadServerDataAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"));
+            Logger.LogError(ex, "Errore durante la modifica multipla dei prodotti fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica multipla.");
         }
     }
 
     private async Task OpenManageProductsDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "SupplierId", BusinessPartyId },
-            { "SupplierName", string.Empty }
-        };
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId },
+                { "SupplierName", string.Empty }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+                FullWidth = true,
+                FullScreen = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
+                TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkUpdateSuccess", "Catalogo aggiornato con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.ExtraExtraLarge,
-            FullWidth = true,
-            FullScreen = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
-            TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && _efTable != null)
-        {
-            await _efTable!.ReloadServerDataAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkUpdateSuccess", "Catalogo aggiornato con successo"));
+            Logger.LogError(ex, "Errore durante la gestione del catalogo prodotti fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la gestione del catalogo.");
         }
     }
 
     private async Task OpenAssignProductDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "SupplierId", BusinessPartyId }
-        };
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<AssignProductToSupplierDialog>(
+                TranslationService.GetTranslation("productSupplier.assignTitle", "Assegna Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"));
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<AssignProductToSupplierDialog>(
-            TranslationService.GetTranslation("productSupplier.assignTitle", "Assegna Prodotto"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && _efTable != null)
-        {
-            await _efTable!.ReloadServerDataAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"));
+            Logger.LogError(ex, "Errore durante l'assegnazione del prodotto al fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'assegnazione del prodotto.");
         }
     }
 
     private async Task EditProductSupplier(ProductSupplierDto productSupplier)
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "ProductSupplierId", productSupplier.Id }
-        };
+            var parameters = new DialogParameters
+            {
+                { "ProductSupplierId", productSupplier.Id }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+                TranslationService.GetTranslation("productSupplier.editTitle", "Modifica Associazione"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
-            TranslationService.GetTranslation("productSupplier.editTitle", "Modifica Associazione"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && _efTable != null)
-        {
-            await _efTable!.ReloadServerDataAsync();
+            Logger.LogError(ex, "Errore durante la modifica dell'associazione prodotto-fornitore {Id}.", productSupplier.Id);
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica dell'associazione.");
         }
     }
 
     private async Task OpenImportCsvDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "SupplierId", BusinessPartyId }
-        };
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ImportCsvDialog>(
+                TranslationService.GetTranslation("csvImport.title", "Import CSV - Listino Fornitore"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"));
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<ImportCsvDialog>(
-            TranslationService.GetTranslation("csvImport.title", "Import CSV - Listino Fornitore"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false } && _efTable != null)
-        {
-            await _efTable!.ReloadServerDataAsync();
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"));
+            Logger.LogError(ex, "Errore durante l'importazione CSV del listino fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'importazione CSV.");
         }
     }
 

@@ -5,6 +5,7 @@
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
 @inject ILogger<InventoryEditStep> Logger
+@inject IAppNotificationService AppNotification
 
 <MudStack Spacing="3">
     <!-- Product Quick Info with inline editing -->
@@ -236,39 +237,47 @@
     {
         if (firstRender)
         {
-            // Small delay to ensure DOM is ready
-            await Task.Delay(50);
-            
-            if (State.IsEditMode)
+            try
             {
-                // In edit mode, focus on quantity field
-                if (_quantityField != null)
+                // Small delay to ensure DOM is ready
+                await Task.Delay(50);
+                
+                if (State.IsEditMode)
                 {
-                    await _quantityField.FocusAsync();
-                    await _quantityField.SelectAsync(); // Select the text for easy editing
-                }
-            }
-            else
-            {
-                // Insert mode: Auto-select location if only one exists
-                if (Locations?.Count == 1)
-                {
-                    State.DraftLocationId = Locations[0].Id;
-                    await NotifyDraftChanged();
-                    StateHasChanged();
-                    
-                    // Focus on quantity field since location is auto-selected
-                    await Task.Delay(50); // Ensure state update is rendered
+                    // In edit mode, focus on quantity field
                     if (_quantityField != null)
                     {
                         await _quantityField.FocusAsync();
+                        await _quantityField.SelectAsync(); // Select the text for easy editing
                     }
                 }
-                else if (_locationSelect != null)
+                else
                 {
-                    // Focus on location select if multiple locations
-                    await _locationSelect.FocusAsync();
+                    // Insert mode: Auto-select location if only one exists
+                    if (Locations?.Count == 1)
+                    {
+                        State.DraftLocationId = Locations[0].Id;
+                        await NotifyDraftChanged();
+                        StateHasChanged();
+                        
+                        // Focus on quantity field since location is auto-selected
+                        await Task.Delay(50); // Ensure state update is rendered
+                        if (_quantityField != null)
+                        {
+                            await _quantityField.FocusAsync();
+                        }
+                    }
+                    else if (_locationSelect != null)
+                    {
+                        // Focus on location select if multiple locations
+                        await _locationSelect.FocusAsync();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
             }
         }
     }
@@ -394,11 +403,19 @@
         // Refresh product data after update
         if (State.Product?.Id != null)
         {
-            var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
-            if (refreshedProduct != null)
+            try
             {
-                State.Product = refreshedProduct;
-                StateHasChanged();
+                var refreshedProduct = await ProductService.GetProductByIdAsync(State.Product.Id);
+                if (refreshedProduct != null)
+                {
+                    State.Product = refreshedProduct;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in OnProductUpdatedAsync.");
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
             }
         }
     }

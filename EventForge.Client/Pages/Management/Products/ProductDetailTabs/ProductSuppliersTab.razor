@@ -110,83 +110,107 @@
 
     private async Task OpenSupplierSuggestionsDialog()
     {
-        var parameters = new DialogParameters
+        try
         {
-            { "ProductId", Product.Id },
-            { "OnSupplierChanged", EventCallback.Factory.Create(this, LoadSuppliersAsync) }
-        };
+            var parameters = new DialogParameters
+            {
+                { "ProductId", Product.Id },
+                { "OnSupplierChanged", EventCallback.Factory.Create(this, LoadSuppliersAsync) }
+            };
 
-        var options = new DialogOptions
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<SupplierSuggestionDialog>(
+                TranslationService.GetTranslation("supplier.suggestions", "Suggerimenti Fornitori"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadSuppliersAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true
-        };
-
-        var dialog = await DialogService.ShowAsync<SupplierSuggestionDialog>(
-            TranslationService.GetTranslation("supplier.suggestions", "Suggerimenti Fornitori"),
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-        {
-            await LoadSuppliersAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenSupplierSuggestionsDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenCreateDialog()
     {
-        var parameters = new DialogParameters
+        try
+        {
+            var parameters = new DialogParameters
  {
  { "ProductId", Product.Id }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
-        TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+            TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadSuppliersAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadSuppliersAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenCreateDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     private async Task OpenEditDialog(ProductSupplierDto supplier)
     {
-        var parameters = new DialogParameters
+        try
+        {
+            var parameters = new DialogParameters
  {
  { "ProductSupplier", supplier }
  };
 
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true,
-            CloseButton = true
-        };
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
 
-        var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
-        TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore"),
-        parameters,
-        options);
+            var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+            TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore"),
+            parameters,
+            options);
 
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadSuppliersAsync();
+                await NotifyPersisted();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadSuppliersAsync();
-            await NotifyPersisted();
+            Logger.LogError(ex, "Error in OpenEditDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 

@@ -82,7 +82,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentsAsync();
+        try
+        {
+            await LoadDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ProductDocumentsDialog.");
+        }
     }
 
     private async Task LoadDocumentsAsync()
