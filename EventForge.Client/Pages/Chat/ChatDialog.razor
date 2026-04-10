@@ -39,11 +39,11 @@
                     </div>
                     <div class="d-flex align-center gap-1">
                         <AuthorizeViewRoles Roles="Admin,SuperAdmin">
-                            <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
-                                <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
+                            <MudTooltip Text="@TranslationService.GetTranslation("chat.settings", "Impostazioni Chat")" Placement="Placement.Bottom">
+                                <MudIconButton Icon="@Icons.Material.Filled.Settings"
                                                Size="Size.Small"
-                                               Color="Color.Success"
-                                               OnClick="@OpenWhatsAppConfigAsync" />
+                                               Color="Color.Inherit"
+                                               OnClick="@OpenChatSettingsAsync" />
                             </MudTooltip>
                         </AuthorizeViewRoles>
                         <MudTooltip Text="@TranslationService.GetTranslation("chat.hideSidebar", "Nascondi")" Placement="Placement.Bottom">
@@ -792,17 +792,18 @@
         try { await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container"); } catch { }
     }
 
-    private async Task OpenWhatsAppConfigAsync()
+    private async Task OpenChatSettingsAsync()
     {
         try
         {
-            await DialogService.ShowAsync<WhatsAppConfigDialog>("Configurazione WhatsApp",
+            await DialogService.ShowAsync<ChatSettingsDialog>(
+                TranslationService.GetTranslation("chat.settings.title", "Impostazioni Chat"),
                 new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true });
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error opening WhatsApp config");
-            AppNotification.ShowError("Impossibile aprire la configurazione WhatsApp.");
+            Logger.LogError(ex, "Error opening chat settings");
+            AppNotification.ShowError("Impossibile aprire le impostazioni chat.");
         }
     }
 
