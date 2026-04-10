@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Security.Claims;
 
 namespace EventForge.Server.Filters;
 
@@ -39,8 +40,15 @@ public class FluentValidationFilter : IAsyncActionFilter
                     if (!validationResult.IsValid)
                     {
                         var httpContext = context.HttpContext;
-                        var correlationId = httpContext.Items.TryGetValue("CorrelationId", out var cid) ? cid?.ToString() : null;
+                        var correlationId = httpContext.Items.TryGetValue("CorrelationId", out var cid) ? cid?.ToString() : "N/A";
                         var actionName = context.ActionDescriptor.DisplayName;
+                        var queryString = httpContext.Request.QueryString.ToString();
+
+                        var userName = httpContext.User?.Identity?.IsAuthenticated == true
+                            ? httpContext.User.FindFirst(ClaimTypes.Name)?.Value
+                            : null;
+                        var userId   = httpContext.User?.FindFirst("user_id")?.Value;
+                        var tenantId = httpContext.User?.FindFirst("tenant_id")?.Value;
 
                         var errorsByField = validationResult.Errors
                             .GroupBy(e => e.PropertyName)
@@ -50,13 +58,18 @@ public class FluentValidationFilter : IAsyncActionFilter
                             );
 
                         _logger.LogWarning(
-                            "FluentValidation failed for {Method} {Path} (Action: {ActionName}, DtoType: {DtoType}, CorrelationId: {CorrelationId}). " +
+                            "FluentValidation failed for {Method} {Path}{QueryString} (Action: {ActionName}, DtoType: {DtoType}) " +
+                            "User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
                             "Errors: {@ValidationErrors}",
                             httpContext.Request.Method,
                             httpContext.Request.Path,
+                            queryString,
                             actionName,
                             argumentType.Name,
-                            correlationId ?? "N/A",
+                            userName ?? "Anonymous",
+                            userId ?? "N/A",
+                            tenantId ?? "N/A",
+                            correlationId,
                             errorsByField);
 
                         // Throws ValidationException which will be handled by GlobalExceptionHandlerMiddleware

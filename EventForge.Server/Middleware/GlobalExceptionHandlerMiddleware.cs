@@ -51,6 +51,12 @@ public class GlobalExceptionHandlerMiddleware
         var queryString = context.Request.QueryString.ToString();
         var exceptionType = exception.GetType().Name;
 
+        var userName = context.User?.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+            : null;
+        var userId   = context.User?.FindFirst("user_id")?.Value;
+        var tenantId = context.User?.FindFirst("tenant_id")?.Value;
+
         switch (exception)
         {
             case ValidationException validationEx:
@@ -63,9 +69,10 @@ public class GlobalExceptionHandlerMiddleware
                     );
 
                 _logger.LogWarning(
-                    "Validation failed for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. " +
+                    "Validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
                     "Errors: {@ValidationErrors}",
-                    method, path, queryString, exceptionType, correlationId,
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
                     errorsByField);
                 break;
             }
@@ -73,73 +80,84 @@ public class GlobalExceptionHandlerMiddleware
             case BusinessValidationException businessEx:
             {
                 _logger.LogWarning(
-                    "Business validation failed for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. " +
+                    "Business validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
                     "ErrorCode: {ErrorCode}, Message: {Message}, Errors: {@ValidationErrors}",
-                    method, path, queryString, exceptionType, correlationId,
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
                     businessEx.ErrorCode, businessEx.Message, businessEx.ValidationErrors);
                 break;
             }
 
             case NotFoundException notFoundEx:
                 _logger.LogWarning(
-                    "Entity not found for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. " +
+                    "Entity not found for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
                     "Entity: {EntityName}, Id: {EntityId}, Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId,
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
                     notFoundEx.EntityName, notFoundEx.EntityId, notFoundEx.Message);
                 break;
 
             case ConflictException conflictEx:
                 _logger.LogWarning(
-                    "Conflict for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, conflictEx.Message);
+                    "Conflict for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, conflictEx.Message);
                 break;
 
             case ForbiddenException forbiddenEx:
                 _logger.LogWarning(
-                    "Access forbidden for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, forbiddenEx.Message);
+                    "Access forbidden for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, forbiddenEx.Message);
                 break;
 
             case ArgumentNullException nullEx:
                 _logger.LogWarning(
-                    "Argument null for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. ParamName: {ParamName}",
-                    method, path, queryString, exceptionType, correlationId, nullEx.ParamName);
+                    "Argument null for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. ParamName: {ParamName}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, nullEx.ParamName);
                 break;
 
             case ArgumentException argEx:
                 _logger.LogWarning(
-                    "Invalid argument for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, argEx.Message);
+                    "Invalid argument for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, argEx.Message);
                 break;
 
             case InvalidOperationException invalidEx:
                 _logger.LogWarning(
-                    "Invalid operation for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, invalidEx.Message);
+                    "Invalid operation for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, invalidEx.Message);
                 break;
 
             case UnauthorizedAccessException unauthorizedEx:
                 _logger.LogWarning(
-                    "Unauthorized access for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, unauthorizedEx.Message);
+                    "Unauthorized access for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, unauthorizedEx.Message);
                 break;
 
             case KeyNotFoundException keyNotFoundEx:
                 _logger.LogWarning(
-                    "Key not found for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, keyNotFoundEx.Message);
+                    "Key not found for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, keyNotFoundEx.Message);
                 break;
 
             case TimeoutException timeoutEx:
                 _logger.LogWarning(
-                    "Request timeout for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, timeoutEx.Message);
+                    "Request timeout for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, timeoutEx.Message);
                 break;
 
             default:
                 _logger.LogError(exception,
-                    "Unhandled exception for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
-                    method, path, queryString, exceptionType, correlationId, exception.Message);
+                    "Unhandled exception for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, exception.Message);
                 break;
         }
     }
