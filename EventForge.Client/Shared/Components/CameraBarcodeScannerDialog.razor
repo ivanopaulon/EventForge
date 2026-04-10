@@ -4,53 +4,31 @@
  * Uses BarcodeDetector API (native, Android Chrome/Edge) with @zxing/browser CDN
  * fallback for iOS Safari and other browsers. No paid libraries.
  *
- * Usage:
- *   <CameraBarcodeScannerDialog @ref="_cameraDialog" OnBarcodeDetected="HandleCameraResult" />
- *   await _cameraDialog.OpenAsync();
+ * Usage (via IDialogService):
+ *   var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+ *   {
+ *       { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, HandleBarcode) }
+ *   };
+ *   await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
  *@
 
 @using Microsoft.JSInterop
+@using EventForge.Client.Shared.Components.Dialogs
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject ILogger<CameraBarcodeScannerDialog> Logger
 
-<MudDialog @bind-IsVisible="_isVisible"
-           Options="_dialogOptions"
-           ClassContent="camera-scanner-dialog-content">
-    <TitleContent>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="px-1">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" />
-                <MudText Typo="Typo.h6">@Title</MudText>
-            </MudStack>
-            <MudStack Row="true" Spacing="0">
-                @if (_hasTorch)
-                {
-                    <MudTooltip Text="@(_torchOn ? "Spegni torcia" : "Accendi torcia")">
-                        <MudIconButton Icon="@(_torchOn ? Icons.Material.Filled.FlashOn : Icons.Material.Outlined.FlashOff)"
-                                       Color="@(_torchOn ? Color.Warning : Color.Default)"
-                                       OnClick="ToggleTorchAsync" />
-                    </MudTooltip>
-                }
-                @if (_cameras.Count > 1)
-                {
-                    <MudTooltip Text="Cambia fotocamera">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Cameraswitch"
-                                       Color="Color.Default"
-                                       OnClick="SwitchCameraAsync" />
-                    </MudTooltip>
-                }
-                <MudIconButton Icon="@Icons.Material.Outlined.Close"
-                               Color="Color.Default"
-                               OnClick="CloseAsync" />
-            </MudStack>
-        </MudStack>
-    </TitleContent>
-    <DialogContent>
+<EFDialog Icon="@Icons.Material.Outlined.QrCodeScanner"
+          Title="@Title"
+          IsProcessing="@_initializing"
+          MinWidth="min(520px, 98vw)"
+          Height="calc(100dvh - 48px)"
+          OnClose="HandleClose">
+    <ChildContent>
         <div class="camera-scanner-container">
             @if (_errorMessage != null)
             {
-                <MudAlert Severity="Severity.Error" Class="ma-4">
+                <MudAlert Severity="Severity.Error" Class="ma-2">
                     <MudText Typo="Typo.body2">@_errorMessage</MudText>
                     <MudText Typo="Typo.caption" Class="mt-1">
                         Verifica che il browser abbia il permesso di accedere alla fotocamera.
@@ -92,6 +70,26 @@
                         @HelperText
                     </MudText>
                 </div>
+
+                <!-- Floating camera controls (torch / camera switch) -->
+                <div class="camera-scanner-controls">
+                    @if (_cameras.Count > 1)
+                    {
+                        <MudTooltip Text="Cambia fotocamera">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Cameraswitch"
+                                           Class="camera-scanner-ctrl-btn"
+                                           OnClick="SwitchCameraAsync" />
+                        </MudTooltip>
+                    }
+                    @if (_hasTorch)
+                    {
+                        <MudTooltip Text="@(_torchOn ? "Spegni torcia" : "Accendi torcia")">
+                            <MudIconButton Icon="@(_torchOn ? Icons.Material.Filled.FlashOn : Icons.Material.Outlined.FlashOff)"
+                                           Class="@("camera-scanner-ctrl-btn" + (_torchOn ? " camera-scanner-ctrl-btn--active" : ""))"
+                                           OnClick="ToggleTorchAsync" />
+                        </MudTooltip>
+                    }
+                </div>
             }
 
             @if (_lastDetectedCode != null)
@@ -103,10 +101,13 @@
                 </div>
             }
         </div>
-    </DialogContent>
-</MudDialog>
+    </ChildContent>
+</EFDialog>
 
 @code {
+    // ── Cascading parameter (provided by IDialogService) ──────────────────────
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
     // ── Parameters ────────────────────────────────────────────────────────────
 
     [Parameter] public string Title { get; set; } = "Scansiona Codice a Barre";
@@ -130,7 +131,6 @@
     private readonly string _videoElementId = "camera-scanner-video-" + Guid.NewGuid().ToString("N")[..8];
     private readonly string _canvasElementId = "camera-scanner-canvas-" + Guid.NewGuid().ToString("N")[..8];
 
-    private bool _isVisible = false;
     private bool _initializing = false;
     private bool _scanning = false;
     private bool _torchOn = false;
@@ -140,41 +140,29 @@
 
     private List<CameraDevice> _cameras = new();
     private int _currentCameraIndex = 0;
-    private bool _useBackCamera = true;
 
     private DotNetObjectReference<CameraBarcodeScannerDialog>? _dotNetRef;
 
-    private readonly DialogOptions _dialogOptions = new()
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        FullScreen = true,
-        CloseButton = false,
-        CloseOnEscapeKey = true,
-        NoHeader = false,
-        MaxWidth = MaxWidth.False
-    };
-
-    // ── Public API ────────────────────────────────────────────────────────────
-
-    public async Task OpenAsync(bool preferBackCamera = true)
-    {
-        _useBackCamera = preferBackCamera;
-        _errorMessage = null;
-        _lastDetectedCode = null;
-        _initializing = true;
-        _scanning = false;
-        _isVisible = true;
-        StateHasChanged();
-
-        // Wait one render cycle so the video element is in the DOM
-        await Task.Delay(150);
-        await StartScannerAsync();
+        if (firstRender)
+        {
+            _initializing = true;
+            StateHasChanged();
+            // Small delay so the video element is fully in the DOM
+            await Task.Delay(150);
+            await StartScannerAsync();
+        }
     }
 
-    public async Task CloseAsync()
+    // ── EFDialog close handler ────────────────────────────────────────────────
+
+    private async Task HandleClose()
     {
         await StopScannerAsync();
-        _isVisible = false;
-        StateHasChanged();
+        MudDialog?.Cancel();
     }
 
     // ── JS-invokable callback ─────────────────────────────────────────────────
@@ -195,7 +183,7 @@
                 if (!ContinuousMode)
                 {
                     await Task.Delay(400); // brief pause so the user sees the detected code
-                    await CloseAsync();
+                    await HandleClose();
                 }
                 else
                 {
@@ -237,7 +225,7 @@
                 _videoElementId,
                 _canvasElementId,
                 _dotNetRef,
-                _useBackCamera,
+                true,   // prefer back camera
                 deviceId);
 
             if (!result.Success)
@@ -310,8 +298,6 @@
             _torchOn = !_torchOn; // revert
         }
     }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public async ValueTask DisposeAsync()
     {

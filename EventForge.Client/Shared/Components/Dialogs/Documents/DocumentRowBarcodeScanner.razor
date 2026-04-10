@@ -1,5 +1,7 @@
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 
 <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
     <MudStack Spacing="2">
@@ -30,9 +32,6 @@
     </MudStack>
 </MudPaper>
 
-<CameraBarcodeScannerDialog @ref="_cameraDialog"
-                             OnBarcodeDetected="@OnCameraBarcode" />
-
 @code {
     [Parameter] public bool IsEnabled { get; set; } = true;
     [Parameter] public bool AutoFocus { get; set; } = true;
@@ -43,12 +42,14 @@
 
     private MudTextField<string>? _barcodeField;
     private string _internalValue = string.Empty;
-    private CameraBarcodeScannerDialog? _cameraDialog;
 
     private async Task OpenCameraScannerAsync()
     {
-        if (_cameraDialog != null)
-            await _cameraDialog.OpenAsync();
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, OnCameraBarcode) }
+        };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
     private async Task OnCameraBarcode(string barcode)

@@ -1,7 +1,9 @@
 @using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IProductService ProductService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 @inject ILogger<BarcodeScanner> Logger
 
 <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -45,14 +47,9 @@
     </MudGrid>
 </MudPaper>
 
-<CameraBarcodeScannerDialog @ref="_cameraDialog"
-                             Title="@Title"
-                             OnBarcodeDetected="@OnCameraBarcode" />
-
 @code {
     private string _barcode = string.Empty;
     private MudTextField<string>? _barcodeInput;
-    private CameraBarcodeScannerDialog? _cameraDialog;
 
     [Parameter]
     public string Title { get; set; } = "Scansiona Codice a Barre";
@@ -83,8 +80,12 @@
 
     private async Task OpenCameraScannerAsync()
     {
-        if (_cameraDialog != null)
-            await _cameraDialog.OpenAsync();
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { x => x.Title, Title },
+            { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, OnCameraBarcode) }
+        };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
     private async Task OnCameraBarcode(string barcode)
