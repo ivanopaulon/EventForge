@@ -12,18 +12,20 @@
 @inject ILogger<ChatDialog> Logger
 @implements IDisposable
 
-@* Open with: new DialogOptions { FullScreen = true, BackdropClick = false, CloseButton = false } *@
+@* Open with: new DialogOptions { BackdropClick = false, CloseButton = false } *@
 <EFDialog Icon="@Icons.Material.Filled.Chat"
           Title="@TranslationService.GetTranslation("chat.title", "Chat")"
           IsProcessing="@_isLoadingChats"
+          MinWidth="min(1200px, 96vw)"
+          Height="calc(100dvh - 48px)"
           OnClose="@HandleClose">
     <ChildContent>
         <div class="chat-dlg-layout">
 
             @* ═══════════════ LEFT SIDEBAR ═══════════════ *@
-            <div class="chat-dlg-sidebar">
+            <div class="chat-dlg-sidebar @(_sidebarVisible ? "" : "chat-dlg-sidebar--hidden")">
 
-                @* Sidebar header: title / unread / WhatsApp config *@
+                @* Sidebar header: title / unread / WhatsApp config / collapse button *@
                 <div class="chat-dlg-sidebar-header">
                     <div class="d-flex align-center gap-2">
                         <MudText Typo="Typo.subtitle1" Class="chat-dlg-sidebar-title">
@@ -34,14 +36,22 @@
                             <MudBadge Content="@_totalUnread.ToString()" Color="Color.Error" />
                         }
                     </div>
-                    <AuthorizeViewRoles Roles="Admin,SuperAdmin">
-                        <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
-                            <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
+                    <div class="d-flex align-center gap-1">
+                        <AuthorizeViewRoles Roles="Admin,SuperAdmin">
+                            <MudTooltip Text="Configurazione WhatsApp" Placement="Placement.Bottom">
+                                <MudIconButton Icon="@Icons.Custom.Brands.WhatsApp"
+                                               Size="Size.Small"
+                                               Color="Color.Success"
+                                               OnClick="@OpenWhatsAppConfigAsync" />
+                            </MudTooltip>
+                        </AuthorizeViewRoles>
+                        <MudTooltip Text="@TranslationService.GetTranslation("chat.hideSidebar", "Nascondi")" Placement="Placement.Bottom">
+                            <MudIconButton Icon="@Icons.Material.Filled.MenuOpen"
                                            Size="Size.Small"
-                                           Color="Color.Success"
-                                           OnClick="@OpenWhatsAppConfigAsync" />
+                                           Color="Color.Inherit"
+                                           OnClick="@(() => _sidebarVisible = false)" />
                         </MudTooltip>
-                    </AuthorizeViewRoles>
+                    </div>
                 </div>
 
                 @* Search *@
@@ -176,16 +186,14 @@
                     }
                 </div>
 
-                @* New-chat FAB (bottom of sidebar) *@
-                <div class="chat-dlg-new-chat-bar">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               FullWidth="true"
-                               StartIcon="@Icons.Material.Filled.Edit"
-                               OnClick="@OpenStartConversationDialogAsync">
-                        @TranslationService.GetTranslation("chat.newChat", "Nuova Chat")
-                    </MudButton>
-                </div>
+                @* New-chat FAB (bottom-right of sidebar) *@
+                <MudTooltip Text="@TranslationService.GetTranslation("chat.newChat", "Nuova Chat")" Placement="Placement.Left">
+                    <MudFab Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.Edit"
+                            Size="Size.Medium"
+                            Class="chat-dlg-new-fab"
+                            OnClick="@OpenStartConversationDialogAsync" />
+                </MudTooltip>
             </div>
 
             @* ═══════════════ RIGHT MAIN AREA ═══════════════ *@
@@ -196,6 +204,17 @@
 
                     @* Chat header *@
                     <div class="chat-dlg-chat-header">
+                        @* Show sidebar button when sidebar is hidden *@
+                        @if (!_sidebarVisible)
+                        {
+                            <MudTooltip Text="@TranslationService.GetTranslation("chat.showConversations", "Mostra conversazioni")" Placement="Placement.Bottom">
+                                <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                                               Color="Color.Inherit"
+                                               Size="Size.Small"
+                                               Style="margin-right:4px;flex-shrink:0;"
+                                               OnClick="@(() => _sidebarVisible = true)" />
+                            </MudTooltip>
+                        }
                         @* Avatar *@
                         <div style="position:relative;flex-shrink:0;margin-right:12px;">
                             @if (selIsWa)
@@ -420,6 +439,16 @@
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             @TranslationService.GetTranslation("chat.welcomeMessage", "oppure avviane una nuova con il pulsante +")
                         </MudText>
+                        @if (!_sidebarVisible)
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Menu"
+                                       Color="Color.Primary"
+                                       Class="mt-2"
+                                       OnClick="@(() => _sidebarVisible = true)">
+                                @TranslationService.GetTranslation("chat.showConversations", "Mostra conversazioni")
+                            </MudButton>
+                        }
                     </div>
                 }
             </div>
@@ -445,6 +474,7 @@
     private ChatResponseDto? _selectedChat;
     private Guid           _currentUserId = Guid.Empty;
     private bool           _showChatInfo;
+    private bool           _sidebarVisible = true;
 
     // ── Data ─────────────────────────────────────────────────────────────────
     private List<ChatResponseDto>  _chatList            = [];
@@ -596,9 +626,10 @@
             };
             var options = new DialogOptions
             {
-                FullScreen      = true,
-                BackdropClick   = false,
-                CloseButton     = false,
+                MaxWidth         = MaxWidth.Medium,
+                FullWidth        = true,
+                BackdropClick    = false,
+                CloseButton      = false,
                 CloseOnEscapeKey = true
             };
             var dialog = await DialogService.ShowAsync<StartConversationDialog>(

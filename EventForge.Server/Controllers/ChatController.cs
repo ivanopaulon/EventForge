@@ -51,6 +51,16 @@ public class ChatController(
         // Validate tenant access
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
 
+        // Derive identity fields from the authenticated server-side context;
+        // both must be present — reject early if the HTTP context is incomplete.
+        if (tenantContext.CurrentTenantId is not { } tenantId)
+            return CreateValidationProblemDetails("Unable to resolve tenant from current context");
+        if (tenantContext.CurrentUserId is not { } currentUserId)
+            return CreateValidationProblemDetails("Unable to resolve user from current context");
+
+        createChatDto.TenantId  = tenantId;
+        createChatDto.CreatedBy = currentUserId;
+
         try
         {
             logger.LogInformation(
