@@ -24,7 +24,8 @@ else if (Products.Count() > 200)
                               CartQuantity="@GetCartQty(product.Id)"
                               IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
                               IsBestSeller="@IsBestSellerProduct(product.Id)"
-                              OnAddToCart="@OnAddToCart" />
+                              OnAddToCart="@OnAddToCart"
+                              OnLongPress="@OnLongPress" />
         </Virtualize>
     </div>
 }
@@ -37,7 +38,8 @@ else
                               CartQuantity="@GetCartQty(product.Id)"
                               IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
                               IsBestSeller="@IsBestSellerProduct(product.Id)"
-                              OnAddToCart="@OnAddToCart" />
+                              OnAddToCart="@OnAddToCart"
+                              OnLongPress="@OnLongPress" />
         }
     </div>
 }
@@ -48,6 +50,7 @@ else
     [Parameter] public HashSet<Guid> LastPurchaseIds { get; set; } = new();
     [Parameter] public HashSet<Guid> BestSellerIds { get; set; } = new();
     [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
+    [Parameter] public EventCallback<ProductDto> OnLongPress { get; set; }
     [Parameter] public bool IsLoading { get; set; }
 
     private int GetCartQty(Guid id) => CartQuantities.TryGetValue(id, out var q) ? q : 0;

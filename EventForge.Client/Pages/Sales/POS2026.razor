@@ -129,7 +129,7 @@
                 <span>
                     @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
                     { @($"T.{ViewModel.CurrentSession.TableNumber}") }
-                    else if (ViewModel.CurrentSession?.SaleType == "TAKEAWAY")
+                    else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
                     { @("Asporto") }
                     else
                     { @("Tavolo") }
@@ -230,8 +230,8 @@
                         <MudIcon Icon="@Icons.Material.Outlined.StoreMallDirectory" Size="Size.Small" />
                         Banco
                     </button>
-                    <button class="pos26-fn-type-btn @(ViewModel.CurrentSession?.SaleType == "TAKEAWAY" ? "pos26-fn-type-btn--active" : "")"
-                            @onclick='() => SetSaleTypeAsync("TAKEAWAY")'>
+                    <button class="pos26-fn-type-btn @(ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway ? "pos26-fn-type-btn--active" : "")"
+                            @onclick='() => SetSaleTypeAsync(SaleTypes.Takeaway)'>
                         <MudIcon Icon="@Icons.Material.Outlined.ShoppingBag" Size="Size.Small" />
                         Asporto
                     </button>
@@ -297,6 +297,7 @@
                               LastPurchaseIds="@_lastPurchaseIds"
                               BestSellerIds="@_bestSellerIds"
                               OnAddToCart="@OnAddProductToCartAsync"
+                              OnLongPress="@OpenProductDetailAsync"
                               IsLoading="@_isLoadingProducts" />
         </div>
 

@@ -56,13 +56,18 @@
     [Parameter] public bool IsLastPurchase { get; set; }
     [Parameter] public bool IsBestSeller { get; set; }
     [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
+    /// <summary>
+    /// Triggered when the user long-presses (≥500 ms) the card.
+    /// Parent can use this to open a product detail/variant dialog.
+    /// </summary>
+    [Parameter] public EventCallback<ProductDto> OnLongPress { get; set; }
 
     // Long-press detection (>500ms)
     private System.Timers.Timer? _longPressTimer;
     private bool _longPressTriggered;
 
+    // IsPromo always returns false until ProductDto exposes a promotional-price property.
     private bool IsPromo => false;
-    // TODO: mappare su una proprietà di promozione reale di ProductDto quando disponibile
 
     private async Task HandleTap()
     {
@@ -80,8 +85,10 @@
         _longPressTimer.Elapsed += async (_, _) =>
         {
             _longPressTriggered = true;
-            // TODO: aprire dettaglio/varianti prodotto se implementato
-            await InvokeAsync(StateHasChanged);
+            if (OnLongPress.HasDelegate)
+                await InvokeAsync(() => OnLongPress.InvokeAsync(Product));
+            else
+                await InvokeAsync(StateHasChanged);
         };
         _longPressTimer.Start();
     }

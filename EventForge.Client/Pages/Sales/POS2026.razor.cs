@@ -135,6 +135,9 @@ public partial class POS2026 : IAsyncDisposable
                 _dotNetRef = DotNetObjectReference.Create(this);
                 await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
 
+                // Resolve fiscal printer from the POS terminal already selected by the ViewModel
+                LoadFiscalPrinterIdFromPos(ViewModel.SelectedPosId);
+
                 await ConnectFiscalHubAsync();
                 await LoadFiscalDrawerAsync();
             }
@@ -546,6 +549,28 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Opens the product detail/edit dialog when the user long-presses a card.
+    /// Uses the existing <c>ProductDetailDialog</c> with read-only entity view.
+    /// </summary>
+    private async Task OpenProductDetailAsync(ProductDto product)
+    {
+        try
+        {
+            var parameters = new DialogParameters<EventForge.Client.Pages.Management.Products.ProductDetailDialog>
+            {
+                { p => p.EntityId, product.Id }
+            };
+            await DialogService.ShowAsync<EventForge.Client.Pages.Management.Products.ProductDetailDialog>(
+                product.Name, parameters, EFDialogDefaults.Options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore apertura dettaglio prodotto POS2026: {ProductId}", product.Id);
+            AppNotification.ShowWarning("Impossibile aprire il dettaglio prodotto.");
+        }
+    }
+
     private void RebuildCartQuantities()
     {
         _cartQuantities = ViewModel.CurrentSession?.Items?
@@ -907,8 +932,7 @@ public partial class POS2026 : IAsyncDisposable
             if (session != null)
             {
                 await ViewModel.ReloadSessionAsync();
-                var label = saleType == SaleTypes.Retail ? "Banco" : "Asporto";
-                AppNotification.ShowSuccess($"Tipo vendita: {label}.");
+                var label = saleType == SaleTypes.Retail ? "Banco" : "Asporto";                AppNotification.ShowSuccess($"Tipo vendita: {label}.");
             }
         }
         catch (Exception ex)
@@ -980,12 +1004,25 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             ViewModel.SelectedPosId = value;
-            await LoadFiscalDrawerAsync();
+            LoadFiscalPrinterIdFromPos(value);
+            await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore cambio POS POS2026.");
         }
+    }
+
+    /// <summary>
+    /// Populates <see cref="_fiscalPrinterId"/> from the selected POS terminal's
+    /// <c>DefaultFiscalPrinterId</c> property (no additional HTTP call required).
+    /// </summary>
+    private void LoadFiscalPrinterIdFromPos(Guid? posId)
+    {
+        _fiscalPrinterId = posId.HasValue
+            ? ViewModel.AvailablePos.FirstOrDefault(p => p.Id == posId.Value)?.DefaultFiscalPrinterId
+            : null;
+        Logger.LogDebug("POS2026: fiscal printer ID set to {PrinterId}", _fiscalPrinterId);
     }
 
     // =========================================================================
