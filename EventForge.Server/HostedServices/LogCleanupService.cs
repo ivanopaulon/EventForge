@@ -1,4 +1,6 @@
 using Dapper;
+using EventForge.Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NCrontab;
@@ -16,12 +18,17 @@ namespace EventForge.Server.HostedServices;
 ///   Logging.RetentionDays   — rows older than N days are eligible for deletion (default 30)
 ///   Logging.CleanupCron     — cron expression for schedule (default "0 2 * * *" = 02:00 UTC)
 ///   Logging.BackupEnabled   — "true"/"false" — whether to write a JSON backup before delete (default true)
+///
+/// SignalR events (sent to "superadmin" group via AppHub):
+///   LogCleanupStarted    — fired right before deletion begins, carries RetentionDays and NextRun UTC
+///   LogCleanupCompleted  — fired after deletion, carries per-table counts, total, elapsed seconds and BackupFile
 /// </summary>
 public class LogCleanupService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<LogCleanupService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IHubContext<AppHub> _hubContext;
 
     // Defaults used when no SystemConfiguration row exists
     private const string DefaultCron        = "0 2 * * *";
@@ -31,11 +38,13 @@ public class LogCleanupService : BackgroundService
     public LogCleanupService(
         IServiceProvider serviceProvider,
         ILogger<LogCleanupService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHubContext<AppHub> hubContext)
     {
         _serviceProvider  = serviceProvider;
         _logger           = logger;
         _configuration    = configuration;
+        _hubContext        = hubContext;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -92,6 +101,15 @@ public class LogCleanupService : BackgroundService
                 "LogCleanupService: retention={RetentionDays}d, cutoff={Cutoff:u}, backup={BackupEnabled}",
                 retentionDays, cutoffDate, backupEnabled);
 
+            // ── Notify SuperAdmin clients that cleanup is about to start ─────
+            await BroadcastToSuperAdminAsync(AppHub.LogCleanupStarted, new
+            {
+                RetentionDays = retentionDays,
+                CutoffDate    = cutoffDate,
+                BackupEnabled = backupEnabled,
+                StartedAt     = startedAt
+            }, cancellationToken);
+
             // ── Optional backup before deletion ─────────────────────────────
             string? backupFilePath = null;
             if (backupEnabled)
@@ -130,15 +148,33 @@ public class LogCleanupService : BackgroundService
             var totalDeleted = deletedLoginAudits + deletedAuditTrails
                 + deletedOperationLogs + deletedPerformanceLogs + deletedSerilogLogs;
 
+            var elapsedSeconds = (DateTime.UtcNow - startedAt).TotalSeconds;
+
             _logger.LogInformation(
                 "LogCleanupService: cleanup completed in {Elapsed:0.0}s — {Total} rows deleted " +
                 "(LoginAudits={LA}, AuditTrails={AT}, OperationLogs={OL}, PerformanceLogs={PL}, SerilogLogs={SL}) " +
                 "older than {RetentionDays} days. BackupFile={BackupFile}",
-                (DateTime.UtcNow - startedAt).TotalSeconds,
+                elapsedSeconds,
                 totalDeleted,
                 deletedLoginAudits, deletedAuditTrails, deletedOperationLogs, deletedPerformanceLogs, deletedSerilogLogs,
                 retentionDays,
                 backupFilePath ?? "none");
+
+            // ── Notify SuperAdmin clients that cleanup completed ──────────────
+            await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
+            {
+                Success           = true,
+                TotalDeleted      = totalDeleted,
+                LoginAudits       = deletedLoginAudits,
+                AuditTrails       = deletedAuditTrails,
+                OperationLogs     = deletedOperationLogs,
+                PerformanceLogs   = deletedPerformanceLogs,
+                SerilogLogs       = deletedSerilogLogs,
+                RetentionDays     = retentionDays,
+                BackupFile        = backupFilePath ?? "none",
+                ElapsedSeconds    = elapsedSeconds,
+                CompletedAt       = DateTime.UtcNow
+            }, cancellationToken);
 
             // ── Audit record for the cleanup itself ──────────────────────────
             using (var scope = _serviceProvider.CreateScope())
@@ -172,6 +208,19 @@ public class LogCleanupService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "LogCleanupService: error during log cleanup.");
+
+            // Notify SuperAdmin clients that cleanup failed
+            try
+            {
+                await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
+                {
+                    Success      = false,
+                    TotalDeleted = 0,
+                    Error        = ex.Message,
+                    CompletedAt  = DateTime.UtcNow
+                }, CancellationToken.None);
+            }
+            catch { /* best-effort — do not mask original exception */ }
 
             // Record failed cleanup in operation log
             try
@@ -357,6 +406,27 @@ public class LogCleanupService : BackgroundService
         catch
         {
             return defaultValue;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SignalR broadcast helper
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Broadcasts a named event to all SuperAdmin clients (the "superadmin" group in AppHub).
+    /// Errors are swallowed — SignalR notifications are best-effort.
+    /// </summary>
+    private async Task BroadcastToSuperAdminAsync(string eventName, object payload, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _hubContext.Clients.Group("superadmin")
+                .SendAsync(eventName, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "LogCleanupService: failed to broadcast {EventName} via SignalR.", eventName);
         }
     }
 }

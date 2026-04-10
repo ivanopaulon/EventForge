@@ -82,6 +82,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<ClientUpdateDeployedPayload>? ClientUpdateDeployed;
     public event Action<UpdateProgressPayload>? UpdateProgressReceived;
     public event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
+    public event Action<LogCleanupStartedPayload>? LogCleanupStarted;
+    public event Action<LogCleanupCompletedPayload>? LogCleanupCompleted;
     #endregion
 
     #region Events - Fiscal Printer
@@ -497,6 +499,42 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 UpdatesAvailableReceived?.Invoke(new UpdatesAvailablePayload(count));
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse UpdatesAvailable payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("LogCleanupStarted", data =>
+        {
+            try
+            {
+                var payload = new LogCleanupStartedPayload(
+                    data.TryGetProperty("retentionDays", out var rd) && rd.ValueKind == System.Text.Json.JsonValueKind.Number ? rd.GetInt32() : 30,
+                    data.TryGetProperty("cutoffDate", out var cd) ? cd.GetDateTime() : DateTime.UtcNow,
+                    data.TryGetProperty("backupEnabled", out var be) && be.ValueKind == System.Text.Json.JsonValueKind.True,
+                    data.TryGetProperty("startedAt", out var sa) ? sa.GetDateTime() : DateTime.UtcNow);
+                LogCleanupStarted?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupStarted payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("LogCleanupCompleted", data =>
+        {
+            try
+            {
+                var payload = new LogCleanupCompletedPayload(
+                    Success:        data.TryGetProperty("success", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.True,
+                    TotalDeleted:   data.TryGetProperty("totalDeleted", out var td) && td.ValueKind == System.Text.Json.JsonValueKind.Number ? td.GetInt32() : 0,
+                    LoginAudits:    data.TryGetProperty("loginAudits", out var la) && la.ValueKind == System.Text.Json.JsonValueKind.Number ? la.GetInt32() : 0,
+                    AuditTrails:    data.TryGetProperty("auditTrails", out var at) && at.ValueKind == System.Text.Json.JsonValueKind.Number ? at.GetInt32() : 0,
+                    OperationLogs:  data.TryGetProperty("operationLogs", out var ol) && ol.ValueKind == System.Text.Json.JsonValueKind.Number ? ol.GetInt32() : 0,
+                    PerformanceLogs:data.TryGetProperty("performanceLogs", out var pl) && pl.ValueKind == System.Text.Json.JsonValueKind.Number ? pl.GetInt32() : 0,
+                    SerilogLogs:    data.TryGetProperty("serilogLogs", out var sl) && sl.ValueKind == System.Text.Json.JsonValueKind.Number ? sl.GetInt32() : 0,
+                    RetentionDays:  data.TryGetProperty("retentionDays", out var rd) && rd.ValueKind == System.Text.Json.JsonValueKind.Number ? rd.GetInt32() : 0,
+                    BackupFile:     data.TryGetProperty("backupFile", out var bf) ? bf.GetString() ?? "none" : "none",
+                    ElapsedSeconds: data.TryGetProperty("elapsedSeconds", out var es) && es.ValueKind == System.Text.Json.JsonValueKind.Number ? es.GetDouble() : 0,
+                    CompletedAt:    data.TryGetProperty("completedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow,
+                    Error:          data.TryGetProperty("error", out var err) ? err.GetString() : null);
+                LogCleanupCompleted?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupCompleted payload"); }
         });
     }
 

@@ -324,6 +324,10 @@ public class AppHub(
     public const string UpdateProgress = "UpdateProgress";
     public const string UpdatesAvailable = "UpdatesAvailable";
 
+    // Log-cleanup lifecycle events (SuperAdmin only — sent to "superadmin" group)
+    public const string LogCleanupStarted = "LogCleanupStarted";
+    public const string LogCleanupCompleted = "LogCleanupCompleted";
+
     // Notification events
     public const string NotificationReceived = "NotificationReceived";
     public const string TenantNotificationReceived = "TenantNotificationReceived";
