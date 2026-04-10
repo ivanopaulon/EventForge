@@ -116,11 +116,13 @@ public class SupplierPriceAlertService(
 
             // Get product and supplier info
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == productId)
                 .Select(p => new { p.Name, p.Code })
                 .FirstOrDefaultAsync(cancellationToken);
 
             var supplier = await context.BusinessParties
+                .AsNoTracking()
                 .Where(s => s.Id == supplierId)
                 .Select(s => s.Name)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -132,6 +134,7 @@ public class SupplierPriceAlertService(
 
             // Get user configurations for this tenant
             var configs = await context.AlertConfigurations
+                .AsNoTracking()
                 .Where(c => c.TenantId == tenantId)
                 .ToListAsync(cancellationToken);
 
@@ -226,12 +229,14 @@ public class SupplierPriceAlertService(
 
             // Get product info
             var product = await context.Products
+                .AsNoTracking()
                 .Where(p => p.Id == productId)
                 .Select(p => new { p.Name, p.Code })
                 .FirstOrDefaultAsync(cancellationToken);
 
             // Get supplier info
             var suppliers = await context.BusinessParties
+                .AsNoTracking()
                 .Where(s => s.Id == currentSupplierId || s.Id == betterSupplierId)
                 .Select(s => new { s.Id, s.Name })
                 .ToDictionaryAsync(s => s.Id, s => s.Name, cancellationToken);
@@ -243,11 +248,13 @@ public class SupplierPriceAlertService(
 
             // Get prices and currency to calculate potential savings
             var currentSupplierData = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.ProductId == productId && ps.SupplierId == currentSupplierId)
                 .Select(ps => new { ps.UnitCost, ps.Currency })
                 .FirstOrDefaultAsync(cancellationToken);
 
             var betterSupplierData = await context.ProductSuppliers
+                .AsNoTracking()
                 .Where(ps => ps.ProductId == productId && ps.SupplierId == betterSupplierId)
                 .Select(ps => new { ps.UnitCost, ps.Currency })
                 .FirstOrDefaultAsync(cancellationToken);
@@ -259,6 +266,7 @@ public class SupplierPriceAlertService(
 
             // Check user configurations
             var configs = await context.AlertConfigurations
+                .AsNoTracking()
                 .Where(c => c.TenantId == tenantId && c.AlertOnBetterSupplier)
                 .ToListAsync(cancellationToken);
 

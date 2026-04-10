@@ -57,7 +57,7 @@ public class DailySequentialCodeGenerator(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error generating sequence number for date {Date}", date);
-            try { await dbTransaction.RollbackAsync(cancellationToken); } catch { }
+            try { await dbTransaction.RollbackAsync(cancellationToken); } catch { /* best-effort rollback */ }
             throw;
         }
     }

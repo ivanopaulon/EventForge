@@ -845,6 +845,7 @@ public class StockService(
                 // LEFT JOIN: Show all products + stock (if present)
                 // We use a different approach: query products and optionally include their stock data
                 query = from p in context.Products
+                            .AsNoTracking()
                             .Where(p => p.TenantId == currentTenantId.Value && p.IsActive)
                         from s in context.Stocks
                             .Include(s => s.StorageLocation)
@@ -878,6 +879,7 @@ public class StockService(
             {
                 // EXISTING QUERY: Only products with stock
                 var stockQuery = context.Stocks
+                    .AsNoTracking()
                     .Include(s => s.Product)
                     .Include(s => s.StorageLocation)
                         .ThenInclude(sl => sl!.Warehouse)

@@ -90,6 +90,7 @@ public class PriceListService(
         try
         {
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)
@@ -110,6 +111,7 @@ public class PriceListService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -128,6 +130,7 @@ public class PriceListService(
         try
         {
             var priceList = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Id == id && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -318,6 +321,7 @@ public class PriceListService(
         try
         {
             var entries = await context.PriceListEntries
+                .AsNoTracking()
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
                 .OrderBy(ple => ple.ProductId)
@@ -337,6 +341,7 @@ public class PriceListService(
         try
         {
             var entry = await context.PriceListEntries
+                .AsNoTracking()
                 .Include(ple => ple.UnitOfMeasure)
                 .Where(ple => ple.Id == id && !ple.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -834,6 +839,7 @@ public class PriceListService(
         try
         {
             var priceLists = await context.PriceLists
+                .AsNoTracking()
                 .Where(pl => pl.Type == type && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .OrderBy(pl => pl.Priority)

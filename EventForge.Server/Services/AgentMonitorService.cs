@@ -83,7 +83,7 @@ public sealed class AgentMonitorService(
             }
         }
         catch (OperationCanceledException) { return; }
-        catch { reached = false; }
+        catch (Exception ex) { logger.LogDebug(ex, "Agent health check failed; marking as unreachable."); reached = false; }
 
         // Update shared state atomically
         lock (_lock)
