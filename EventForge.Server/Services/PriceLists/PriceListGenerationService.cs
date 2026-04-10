@@ -195,7 +195,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateFromProductPricesAsync.");
             throw;
         }
     }
@@ -313,7 +312,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateFromProductPricesAsync.");
             throw;
         }
     }
@@ -448,7 +446,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewGenerateFromPurchasesAsync for supplier {SupplierId}.", dto.SupplierId);
             throw;
         }
     }
@@ -622,7 +619,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateFromPurchasesAsync for supplier {SupplierId}.", dto.SupplierId);
             throw;
         }
     }
@@ -748,7 +744,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewUpdateFromPurchasesAsync for price list {PriceListId}.", dto.PriceListId);
             throw;
         }
     }
@@ -954,7 +949,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateFromPurchasesAsync for price list {PriceListId}.", dto.PriceListId);
             throw;
         }
     }
@@ -1297,7 +1291,6 @@ public class PriceListGenerationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error duplicating price list {PriceListId}", sourcePriceListId);
             throw;
         }
     }

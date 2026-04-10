@@ -82,7 +82,6 @@ public class StubAntivirusScanService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ScanFileAsync for file {FileName}.", fileName);
             throw;
         }
     }

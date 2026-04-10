@@ -52,7 +52,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving references.");
             throw;
         }
     }
@@ -79,7 +78,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving references for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -97,7 +95,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving reference with ID {ReferenceId}.", id);
             throw;
         }
     }
@@ -133,7 +130,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating reference for user {User}.", currentUser);
             throw;
         }
     }
@@ -185,7 +181,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating reference {ReferenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -236,7 +231,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting reference {ReferenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -252,7 +246,6 @@ public class ReferenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if reference {ReferenceId} exists.", referenceId);
             throw;
         }
     }

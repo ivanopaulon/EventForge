@@ -48,7 +48,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving units of measure.");
             throw;
         }
     }
@@ -71,7 +70,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -112,7 +110,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating unit of measure.");
             throw;
         }
     }
@@ -166,7 +163,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -216,7 +212,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting unit of measure {UMId}.", id);
             throw;
         }
     }
@@ -230,7 +225,6 @@ public class UMService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if unit of measure {UMId} exists.", umId);
             throw;
         }
     }

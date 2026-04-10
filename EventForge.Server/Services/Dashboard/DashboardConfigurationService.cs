@@ -66,7 +66,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving dashboard configurations for entity type {EntityType}.", entityType);
             throw;
         }
     }
@@ -121,7 +120,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving dashboard configuration {ConfigurationId}.", id);
             throw;
         }
     }
@@ -177,7 +175,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving default dashboard configuration for entity type {EntityType}.", entityType);
             throw;
         }
     }
@@ -244,7 +241,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating dashboard configuration.");
             throw;
         }
     }
@@ -319,7 +315,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating dashboard configuration {ConfigurationId}.", id);
             throw;
         }
     }
@@ -358,7 +353,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting dashboard configuration {ConfigurationId}.", id);
             throw;
         }
     }
@@ -398,7 +392,6 @@ public class DashboardConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error setting dashboard configuration {ConfigurationId} as default.", id);
             throw;
         }
     }

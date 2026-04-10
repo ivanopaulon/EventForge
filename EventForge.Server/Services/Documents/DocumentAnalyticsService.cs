@@ -64,7 +64,6 @@ public class DocumentAnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating/updating analytics for document {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -85,7 +84,6 @@ public class DocumentAnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting analytics for document {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -134,8 +132,6 @@ public class DocumentAnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting analytics summary from {From} to {To} grouped by {GroupBy}",
-                from, to, groupBy);
             throw;
         }
     }
@@ -179,8 +175,6 @@ public class DocumentAnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error handling workflow event {EventType} for document {DocumentHeaderId}",
-                eventType, documentHeaderId);
             throw;
         }
     }
@@ -223,7 +217,6 @@ public class DocumentAnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating KPI summary from {From} to {To}", from, to);
             throw;
         }
     }

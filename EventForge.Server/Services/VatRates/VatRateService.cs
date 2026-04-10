@@ -48,7 +48,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving VAT rates.");
             throw;
         }
     }
@@ -67,7 +66,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -111,7 +109,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating VAT rate.");
             throw;
         }
     }
@@ -165,7 +162,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -212,7 +208,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting VAT rate {VatRateId}.", id);
             throw;
         }
     }
@@ -227,7 +222,6 @@ public class VatRateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if VAT rate {VatRateId} exists.", vatRateId);
             throw;
         }
     }

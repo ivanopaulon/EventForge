@@ -46,7 +46,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero degli eventi.");
             throw;
         }
     }
@@ -88,7 +87,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero degli eventi.");
             throw;
         }
     }
@@ -137,7 +135,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero degli eventi per intervallo date.");
             throw;
         }
     }
@@ -183,7 +180,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero degli eventi futuri.");
             throw;
         }
     }
@@ -215,7 +211,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -248,7 +243,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero del dettaglio evento {EventId}.", id);
             throw;
         }
     }
@@ -316,7 +310,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la creazione dell'evento.");
             throw;
         }
     }
@@ -405,7 +398,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiornamento dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -517,7 +509,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la cancellazione dell'evento {EventId}.", id);
             throw;
         }
     }
@@ -532,7 +523,6 @@ public class EventService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il controllo esistenza evento {EventId}.", eventId);
             throw;
         }
     }

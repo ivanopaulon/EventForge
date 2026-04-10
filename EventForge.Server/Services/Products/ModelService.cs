@@ -57,7 +57,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving models.");
             throw;
         }
     }
@@ -106,7 +105,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving models for brand {BrandId}.", brandId);
             throw;
         }
     }
@@ -131,7 +129,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving model {ModelId}.", id);
             throw;
         }
     }
@@ -188,7 +185,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating model.");
             throw;
         }
     }
@@ -264,7 +260,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating model {ModelId}.", id);
             throw;
         }
     }
@@ -320,7 +315,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting model {ModelId}.", id);
             throw;
         }
     }
@@ -342,7 +336,6 @@ public class ModelService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if model {ModelId} exists.", modelId);
             throw;
         }
     }

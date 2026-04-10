@@ -73,7 +73,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage locations.");
             throw;
         }
     }
@@ -117,7 +116,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage location {Id}.", id);
             throw;
         }
     }
@@ -165,7 +163,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
             throw;
         }
     }
@@ -221,7 +218,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available storage locations.");
             throw;
         }
     }
@@ -297,7 +293,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating storage location.");
             throw;
         }
     }
@@ -407,7 +402,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating storage location {Id}.", id);
             throw;
         }
     }
@@ -464,7 +458,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting storage location {Id}.", id);
             throw;
         }
     }
@@ -512,7 +505,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating occupancy for storage location {Id}.", id);
             throw;
         }
     }
@@ -574,7 +566,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage locations for warehouse {WarehouseId}.", warehouseId);
             throw;
         }
     }
@@ -636,7 +627,6 @@ public class StorageLocationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage locations for zone {Zone}.", zone);
             throw;
         }
     }

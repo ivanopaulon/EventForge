@@ -73,7 +73,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateZReportPdfAsync for {ClosureId}.", closureId);
             throw;
         }
     }

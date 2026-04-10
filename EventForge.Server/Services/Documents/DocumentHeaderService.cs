@@ -56,7 +56,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving paginated document headers.");
             throw;
         }
     }
@@ -91,7 +90,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document header {Id}.", id);
             throw;
         }
     }
@@ -114,7 +112,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document headers for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -177,7 +174,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document header.");
             throw;
         }
     }
@@ -247,7 +243,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document header {Id}.", id);
             throw;
         }
     }
@@ -371,7 +366,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document header {Id}.", id);
             throw;
         }
     }
@@ -412,7 +406,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating document totals for {Id}.", id);
             throw;
         }
     }
@@ -486,7 +479,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error approving document {Id}.", id);
             throw;
         }
     }
@@ -557,7 +549,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error closing document {Id}.", id);
             throw;
         }
     }
@@ -574,7 +565,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if document header {Id} exists.", id);
             throw;
         }
     }
@@ -676,7 +666,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating inventory document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -723,7 +712,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating receipt document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -768,7 +756,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating system business party for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1048,7 +1035,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
             throw;
         }
     }
@@ -1231,7 +1217,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1342,7 +1327,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1503,7 +1487,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
             throw;
         }
     }
@@ -1580,7 +1563,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }

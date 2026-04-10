@@ -144,7 +144,6 @@ public class TenantContext(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il cambio tenant.");
             throw;
         }
     }
@@ -204,7 +203,6 @@ public class TenantContext(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'inizio dell'impersonificazione.");
             throw;
         }
     }
@@ -256,7 +254,6 @@ public class TenantContext(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la fine dell'impersonificazione.");
             throw;
         }
     }
@@ -307,7 +304,6 @@ public class TenantContext(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei tenant gestibili.");
             throw;
         }
     }
@@ -365,7 +361,6 @@ public class TenantContext(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la verifica di accesso al tenant {TenantId}.", tenantId);
             throw;
         }
     }

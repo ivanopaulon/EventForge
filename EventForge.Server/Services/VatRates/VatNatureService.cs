@@ -62,7 +62,6 @@ public class VatNatureService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving VAT natures.");
             throw;
         }
     }
@@ -80,7 +79,6 @@ public class VatNatureService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving VAT nature {VatNatureId}.", id);
             throw;
         }
     }
@@ -123,7 +121,6 @@ public class VatNatureService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating VAT nature.");
             throw;
         }
     }
@@ -179,7 +176,6 @@ public class VatNatureService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating VAT nature {VatNatureId}.", id);
             throw;
         }
     }
@@ -232,7 +228,6 @@ public class VatNatureService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting VAT nature {VatNatureId}.", id);
             throw;
         }
     }

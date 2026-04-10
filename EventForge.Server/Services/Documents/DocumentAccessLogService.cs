@@ -53,9 +53,6 @@ public class DocumentAccessLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex,
-                "Error logging document access for document {DocumentId} by user {UserId}",
-                documentId, userId);
             throw;
         }
     }
@@ -91,7 +88,6 @@ public class DocumentAccessLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentAccessLogsAsync for document {DocumentId}.", documentId);
             throw;
         }
     }
@@ -127,7 +123,6 @@ public class DocumentAccessLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetUserAccessLogsAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -193,7 +188,6 @@ public class DocumentAccessLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAccessLogsAsync for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -230,7 +224,6 @@ public class DocumentAccessLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteOldLogsAsync for retentionDays {RetentionDays}.", retentionDays);
             throw;
         }
     }

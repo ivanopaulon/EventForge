@@ -314,7 +314,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -518,7 +517,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SearchChatsAsync.");
             throw;
         }
     }
@@ -563,7 +561,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateChatAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -610,7 +607,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteChatAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -849,7 +845,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages.");
             throw;
         }
     }
@@ -892,7 +887,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages.");
             throw;
         }
     }
@@ -937,7 +931,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages for conversation {ConversationId}.", conversationId);
             throw;
         }
     }
@@ -987,7 +980,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving unread messages.");
             throw;
         }
     }
@@ -1056,7 +1048,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1152,7 +1143,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error editing message {MessageId}.", editDto.MessageId);
             throw;
         }
     }
@@ -1262,7 +1252,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1309,7 +1298,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating status for message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1352,7 +1340,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error marking message {MessageId} as read.", messageId);
             throw;
         }
     }
@@ -1379,7 +1366,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving read receipts for message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1429,7 +1415,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk marking messages as read for user {UserId}.", userId);
             throw;
         }
     }
@@ -1540,7 +1525,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving download info for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1607,7 +1591,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ProcessMediaAsync for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1650,7 +1633,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteFileAsync for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1729,7 +1711,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AddMembersAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1802,7 +1783,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveMembersAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1875,7 +1855,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateMemberRolesAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1911,7 +1890,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1950,7 +1928,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available users for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2062,7 +2039,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating chat rate limit policy for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2102,7 +2078,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving chat statistics for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2155,7 +2130,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error moderating chat {ChatId}.", moderationAction.ChatId);
             throw;
         }
     }
@@ -2187,7 +2161,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetChatAuditTrailAsync.");
             throw;
         }
     }
@@ -2224,7 +2197,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetChatSystemHealthAsync.");
             throw;
         }
     }
@@ -2281,7 +2253,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in LocalizeChatMessageAsync for message {MessageId}.", message.Id);
             throw;
         }
     }
@@ -2336,7 +2307,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating chat localization preferences for user {UserId}.", userId);
             throw;
         }
     }
@@ -2557,7 +2527,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ToggleMessageReactionAsync for message {MessageId}.", reactionDto.MessageId);
             throw;
         }
     }

@@ -50,7 +50,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei team.");
             throw;
         }
     }
@@ -71,7 +70,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei team per l'evento {EventId}.", eventId);
             throw;
         }
     }
@@ -97,7 +95,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero del team {TeamId}.", id);
             throw;
         }
     }
@@ -123,7 +120,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei dettagli del team {TeamId}.", id);
             throw;
         }
     }
@@ -165,7 +161,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la creazione del team.");
             throw;
         }
     }
@@ -221,7 +216,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiornamento del team {TeamId}.", id);
             throw;
         }
     }
@@ -297,7 +291,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la cancellazione del team {TeamId}.", id);
             throw;
         }
     }
@@ -320,7 +313,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members for team {TeamId}.", teamId);
             throw;
         }
     }
@@ -345,7 +337,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving team member {MemberId}.", id);
             throw;
         }
     }
@@ -387,7 +378,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiunta di un membro al team.");
             throw;
         }
     }
@@ -444,7 +434,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiornamento del membro {MemberId}.", id);
             throw;
         }
     }
@@ -495,7 +484,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la rimozione del membro {MemberId}.", id);
             throw;
         }
     }
@@ -510,7 +498,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking existence of team {TeamId}.", teamId);
             throw;
         }
     }
@@ -534,7 +521,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members with birthday.");
             throw;
         }
     }
@@ -549,7 +535,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking existence of event {EventId}.", eventId);
             throw;
         }
     }
@@ -571,7 +556,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving documents for owner {OwnerId} of type {OwnerType}", ownerId, ownerType);
             throw;
         }
     }
@@ -589,7 +573,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document reference {DocumentId}", id);
             throw;
         }
     }
@@ -630,7 +613,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document reference");
             throw;
         }
     }
@@ -676,7 +658,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document reference {DocumentId}", id);
             throw;
         }
     }
@@ -714,7 +695,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document reference {DocumentId}", id);
             throw;
         }
     }
@@ -736,7 +716,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving membership cards for team member {TeamMemberId}", teamMemberId);
             throw;
         }
     }
@@ -756,7 +735,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving membership card {CardId}", id);
             throw;
         }
     }
@@ -797,7 +775,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating membership card");
             throw;
         }
     }
@@ -844,7 +821,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating membership card {CardId}", id);
             throw;
         }
     }
@@ -882,7 +858,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting membership card {CardId}", id);
             throw;
         }
     }
@@ -904,7 +879,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving insurance policies for team member {TeamMemberId}", teamMemberId);
             throw;
         }
     }
@@ -924,7 +898,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -967,7 +940,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating insurance policy");
             throw;
         }
     }
@@ -1016,7 +988,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -1054,7 +1025,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting insurance policy {PolicyId}", id);
             throw;
         }
     }
@@ -1079,7 +1049,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating jersey number {JerseyNumber} for team {TeamId}", jerseyNumber, teamId);
             throw;
         }
     }
@@ -1104,7 +1073,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members with expiring documents");
             throw;
         }
     }
@@ -1193,7 +1161,6 @@ public class TeamService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating team member eligibility for member {TeamMemberId}", teamMemberId);
             throw;
         }
     }

@@ -58,7 +58,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving stations");
             throw;
         }
     }
@@ -93,7 +92,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving station with ID {StationId}", id);
             throw;
         }
     }
@@ -137,7 +135,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating station");
             throw;
         }
     }
@@ -212,7 +209,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating station with ID {StationId}", id);
             throw;
         }
     }
@@ -277,7 +273,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting station with ID {StationId}", id);
             throw;
         }
     }
@@ -321,7 +316,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printers");
             throw;
         }
     }
@@ -353,7 +347,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -380,7 +373,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printers for station {StationId}", stationId);
             throw;
         }
     }
@@ -446,7 +438,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating printer");
             throw;
         }
     }
@@ -527,7 +518,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -580,7 +570,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -605,7 +594,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in StationExistsAsync for {StationId}.", stationId);
             throw;
         }
     }

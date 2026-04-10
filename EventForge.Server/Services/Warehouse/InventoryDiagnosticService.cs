@@ -161,7 +161,6 @@ public class InventoryDiagnosticService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DiagnoseDocumentAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -377,7 +376,6 @@ public class InventoryDiagnosticService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RepairRowAsync for row {RowId} in document {DocumentId}.", rowId, documentId);
             throw;
         }
     }
@@ -411,7 +409,6 @@ public class InventoryDiagnosticService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveProblematicRowsAsync for document {DocumentId}.", documentId);
             throw;
         }
     }

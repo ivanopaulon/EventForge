@@ -29,7 +29,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document recurrences.");
             throw;
         }
     }
@@ -48,7 +47,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -69,7 +67,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document recurrences for template {TemplateId}.", templateId);
             throw;
         }
     }
@@ -90,7 +87,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active document recurrence schedules.");
             throw;
         }
     }
@@ -115,7 +111,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document recurrences due for execution up to {UpToDate}.", upToDate);
             throw;
         }
     }
@@ -136,7 +131,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document recurrences with status {Status}.", status);
             throw;
         }
     }
@@ -173,7 +167,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document recurrence for user {User}.", currentUser);
             throw;
         }
     }
@@ -218,7 +211,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document recurrence {RecurrenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -254,7 +246,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document recurrence {RecurrenceId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -289,7 +280,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating enabled status for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -336,7 +326,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating execution tracking for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }
@@ -354,7 +343,6 @@ public class DocumentRecurrenceService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating next execution date for document recurrence {RecurrenceId}.", id);
             throw;
         }
     }

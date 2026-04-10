@@ -108,7 +108,6 @@ public class MonitoringService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error assembling monitoring dashboard for tenant {TenantId}.", tenantId);
             throw;
         }
     }

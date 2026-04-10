@@ -30,7 +30,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei terminali di pagamento.");
             throw;
         }
     }
@@ -47,7 +46,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -83,7 +81,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nella creazione del terminale di pagamento.");
             throw;
         }
     }
@@ -116,7 +113,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'aggiornamento del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -141,7 +137,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'eliminazione del terminale di pagamento {Id}.", id);
             throw;
         }
     }
@@ -200,7 +195,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel test di connessione al terminale {TerminalId}.", terminalId);
             throw;
         }
     }
@@ -214,7 +208,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel test TCP diretto {Host}:{Port}.", host, port);
             throw;
         }
     }
@@ -229,7 +222,6 @@ public class PaymentTerminalService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel test TCP via agente {AgentBaseUrl} {Host}:{Port}.", agentBaseUrl, host, port);
             throw;
         }
     }

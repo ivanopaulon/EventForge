@@ -89,7 +89,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AssignBusinessPartyAsync for price list {PriceListId} and business party {BusinessPartyId}.", priceListId, dto.BusinessPartyId);
             throw;
         }
     }
@@ -146,7 +145,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveBusinessPartyAsync for price list {PriceListId} and business party {BusinessPartyId}.", priceListId, businessPartyId);
             throw;
         }
     }
@@ -168,7 +166,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetBusinessPartiesForPriceListAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -201,7 +198,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPriceListsByBusinessPartyAsync for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }

@@ -168,7 +168,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating global branding configuration");
             throw;
         }
     }
@@ -217,7 +216,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -251,7 +249,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -300,7 +297,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading logo for TenantId: {TenantId}", tenantId);
             throw;
         }
     }

@@ -64,7 +64,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business parties");
             throw;
         }
     }
@@ -122,7 +121,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -151,7 +149,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business parties by type {BusinessPartyType}", partyType);
             throw;
         }
     }
@@ -209,7 +206,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error searching business parties with term {SearchTerm}", searchTerm);
             throw;
         }
     }
@@ -255,7 +251,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating business party");
             throw;
         }
     }
@@ -355,7 +350,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -414,7 +408,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting business party with ID {BusinessPartyId}", id);
             throw;
         }
     }
@@ -462,7 +455,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business party accounting records");
             throw;
         }
     }
@@ -491,7 +483,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -520,7 +511,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving business party accounting for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -573,7 +563,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating business party accounting");
             throw;
         }
     }
@@ -642,7 +631,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -695,7 +683,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting business party accounting with ID {BusinessPartyAccountingId}", id);
             throw;
         }
     }
@@ -775,7 +762,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking existence of business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -806,7 +792,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading business parties with birthday.");
             throw;
         }
     }
@@ -978,7 +963,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving documents for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -1131,7 +1115,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
             throw;
         }
     }
@@ -1271,7 +1254,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving full detail for BusinessParty {Id}", id);
             throw;
         }
     }
@@ -1489,7 +1471,6 @@ public class BusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetBusinessPartiesForExportAsync.");
             throw;
         }
     }

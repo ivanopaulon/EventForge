@@ -1398,7 +1398,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error localizing notification {NotificationId}.", notification.Id);
             throw;
         }
     }
@@ -1581,7 +1580,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cleaning up notification data.");
             throw;
         }
     }
@@ -1694,7 +1692,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating rate limit policy for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1734,7 +1731,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving notification statistics for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1779,7 +1775,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending system notification by admin {AdminUserId}.", adminUserId);
             throw;
         }
     }
@@ -1811,7 +1806,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving notification audit trail.");
             throw;
         }
     }
@@ -1847,7 +1841,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking notification system health.");
             throw;
         }
     }

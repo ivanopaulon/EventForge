@@ -247,7 +247,6 @@ public class PriceListBulkOperationsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error exporting price list entries for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -525,7 +524,6 @@ public class PriceListBulkOperationsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error previewing bulk price update for price list {PriceListId}", priceListId);
             throw;
         }
     }
@@ -622,7 +620,6 @@ public class PriceListBulkOperationsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error performing bulk price update for price list {PriceListId}", priceListId);
             throw;
         }
     }

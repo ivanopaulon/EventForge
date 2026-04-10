@@ -79,7 +79,6 @@ public class DocumentStatusService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error changing status for document {DocumentId}", documentId);
             throw;
         }
     }
@@ -111,7 +110,6 @@ public class DocumentStatusService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving status history for document {DocumentId}", documentId);
             throw;
         }
     }
@@ -137,7 +135,6 @@ public class DocumentStatusService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available transitions for document {DocumentId}", documentId);
             throw;
         }
     }
@@ -166,7 +163,6 @@ public class DocumentStatusService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating transition for document {DocumentId}", documentId);
             throw;
         }
     }

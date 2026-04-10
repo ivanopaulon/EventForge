@@ -77,7 +77,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving products.");
             throw;
         }
     }
@@ -116,7 +115,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product {ProductId}.", id);
             throw;
         }
     }
@@ -155,7 +153,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product detail {ProductId}.", id);
             throw;
         }
     }
@@ -252,7 +249,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating product for user {User}.", currentUser);
             throw;
         }
     }
@@ -412,7 +408,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating product with codes and units for user {User}.", currentUser);
             throw;
         }
     }
@@ -531,7 +526,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating product {ProductId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -636,7 +630,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting product {ProductId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -658,7 +651,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product codes for product {ProductId}.", productId);
             throw;
         }
     }
@@ -676,7 +668,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product code {ProductCodeId}.", id);
             throw;
         }
     }
@@ -702,7 +693,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product by code {CodeValue}.", codeValue);
             throw;
         }
     }
@@ -739,7 +729,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product with code by code {CodeValue}.", codeValue);
             throw;
         }
     }
@@ -790,8 +779,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating product code for product {ProductId} by user {User}.",
-                createProductCodeDto.ProductId, currentUser);
             throw;
         }
     }
@@ -847,7 +834,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating product code {ProductCodeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -901,7 +887,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting product code {ProductCodeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -923,7 +908,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product units for product {ProductId}.", productId);
             throw;
         }
     }
@@ -941,7 +925,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product unit {ProductUnitId}.", id);
             throw;
         }
     }
@@ -992,8 +975,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating product unit for product {ProductId} by user {User}.",
-                createProductUnitDto.ProductId, currentUser);
             throw;
         }
     }
@@ -1050,7 +1031,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating product unit {ProductUnitId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1105,7 +1085,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting product unit {ProductUnitId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1126,7 +1105,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving bundle items for bundle {BundleProductId}.", bundleProductId);
             throw;
         }
     }
@@ -1144,7 +1122,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving bundle item {BundleItemId}.", id);
             throw;
         }
     }
@@ -1190,8 +1167,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating bundle item for bundle {BundleProductId} by user {User}.",
-                createProductBundleItemDto.BundleProductId, currentUser);
             throw;
         }
     }
@@ -1249,7 +1224,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating bundle item {BundleItemId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1302,7 +1276,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting bundle item {BundleItemId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -1337,7 +1310,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating image for product {ProductId} by user {User}.", productId, currentUser);
             throw;
         }
     }
@@ -1437,7 +1409,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading image for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1467,7 +1438,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving image document for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1514,7 +1484,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting image for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1674,7 +1643,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
             throw;
         }
     }
@@ -1729,7 +1697,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving suppliers for product {ProductId}.", productId);
             throw;
         }
     }
@@ -1755,7 +1722,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving product supplier {Id}.", id);
             throw;
         }
     }
@@ -1859,7 +1825,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding supplier to product.");
             throw;
         }
     }
@@ -2003,7 +1968,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating product supplier {Id}.", id);
             throw;
         }
     }
@@ -2048,7 +2012,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error removing product supplier {Id}.", id);
             throw;
         }
     }
@@ -2124,7 +2087,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetProductsWithSupplierAssociationAsync for supplier {SupplierId}.", supplierId);
             throw;
         }
     }
@@ -2192,7 +2154,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in BulkUpdateProductSupplierAssociationsAsync for supplier {SupplierId}.", supplierId);
             throw;
         }
     }
@@ -2305,7 +2266,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting products by supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -2412,7 +2372,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving recent product transactions for product {ProductId}", productId);
             throw;
         }
     }
@@ -2512,7 +2471,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error performing unified product search for query {Query}", query);
             throw;
         }
     }
@@ -2575,7 +2533,6 @@ public class ProductService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetProductsForExportAsync.");
             throw;
         }
     }

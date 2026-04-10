@@ -38,7 +38,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving attachments for document header {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -68,7 +67,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving attachments for document row {DocumentRowId}", documentRowId);
             throw;
         }
     }
@@ -88,7 +86,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving attachment {AttachmentId}", id);
             throw;
         }
     }
@@ -147,7 +144,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating attachment for user {User}", currentUser);
             throw;
         }
     }
@@ -199,7 +195,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -265,7 +260,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating version of attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -305,7 +299,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -349,7 +342,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving versions for attachment {AttachmentId}", id);
             throw;
         }
     }
@@ -393,7 +385,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error signing attachment {AttachmentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -420,7 +411,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving attachments by category {Category}", category);
             throw;
         }
     }
@@ -438,7 +428,6 @@ public class DocumentAttachmentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if attachment {AttachmentId} exists", id);
             throw;
         }
     }

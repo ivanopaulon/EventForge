@@ -97,7 +97,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -112,7 +111,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CancelCurrentReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -127,7 +125,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintRefundReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -142,7 +139,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintPartialRefundAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -157,7 +153,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DailyClosureAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -172,7 +167,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetStatusAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -187,7 +181,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in OpenDrawerAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -202,7 +195,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in TestConnectionAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -217,7 +209,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDailyClosurePreCheckAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -232,7 +223,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ExecuteDailyClosureAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -250,7 +240,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetClosureHistoryAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -275,7 +264,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ReprintZReportAsync for closure {ClosureId}.", closureId);
             throw;
         }
     }
@@ -299,7 +287,6 @@ public sealed class FiscalPrinterServiceRouter(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateZReportPdfAsync for closure {ClosureId}.", closureId);
             throw;
         }
     }

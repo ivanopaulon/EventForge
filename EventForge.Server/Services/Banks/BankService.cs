@@ -49,7 +49,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving banks.");
             throw;
         }
     }
@@ -67,7 +66,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving bank {BankId}.", id);
             throw;
         }
     }
@@ -106,7 +104,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating bank.");
             throw;
         }
     }
@@ -161,7 +158,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating bank {BankId}.", id);
             throw;
         }
     }
@@ -208,7 +204,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting bank {BankId}.", id);
             throw;
         }
     }
@@ -223,7 +218,6 @@ public class BankService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if bank {BankId} exists.", bankId);
             throw;
         }
     }

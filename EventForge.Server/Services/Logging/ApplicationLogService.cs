@@ -49,7 +49,6 @@ public class ApplicationLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetApplicationLogsAsync.");
             throw;
         }
     }
@@ -95,7 +94,6 @@ public class ApplicationLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetLogsByLevelAsync for level {Level}.", level);
             throw;
         }
     }
@@ -144,7 +142,6 @@ public class ApplicationLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetLogsByDateRangeAsync from {StartDate} to {EndDate}.", startDate, endDate);
             throw;
         }
     }

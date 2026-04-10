@@ -59,7 +59,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving Business Party Groups.");
             throw;
         }
     }
@@ -84,7 +83,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving Business Party Group {GroupId}.", id);
             throw;
         }
     }
@@ -146,7 +144,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating Business Party Group.");
             throw;
         }
     }
@@ -242,7 +239,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating Business Party Group {GroupId}.", id);
             throw;
         }
     }
@@ -309,7 +305,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting Business Party Group {GroupId}.", id);
             throw;
         }
     }
@@ -357,7 +352,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members for Business Party Group {GroupId}.", groupId);
             throw;
         }
     }
@@ -443,7 +437,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding member to Business Party Group {GroupId}.", groupId);
             throw;
         }
     }
@@ -547,7 +540,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in bulk add members operation.");
             throw;
         }
     }
@@ -607,7 +599,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error removing member from Business Party Group {GroupId}.", groupId);
             throw;
         }
     }
@@ -674,7 +665,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating membership {MembershipId}.", membershipId);
             throw;
         }
     }
@@ -708,7 +698,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving groups for Business Party {BPId}.", businessPartyId);
             throw;
         }
     }
@@ -749,7 +738,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active group IDs for Business Party {BPId}.", businessPartyId);
             throw;
         }
     }
@@ -777,7 +765,6 @@ public class BusinessPartyGroupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if Business Party {BPId} is in Group {GroupId}.", businessPartyId, groupId);
             throw;
         }
     }

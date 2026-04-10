@@ -51,7 +51,6 @@ public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error generating barcode for data: {Data}", request.Data);
             throw;
         }
     }

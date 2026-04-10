@@ -50,7 +50,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in CreateSessionAsync for customer {CustomerId}.", createDto.CustomerId);
                 throw;
             }
         }
@@ -67,7 +66,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in GetSessionAsync for session {SessionId}.", sessionId);
                 throw;
             }
         }
@@ -110,7 +108,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in AddItemAsync for session {SessionId}.", sessionId);
                 throw;
             }
         }
@@ -136,7 +133,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in RemoveItemAsync for session {SessionId}, item {ItemId}.", sessionId, itemId);
                 throw;
             }
         }
@@ -172,7 +168,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in UpdateItemQuantityAsync for session {SessionId}, item {ItemId}.", sessionId, itemId);
                 throw;
             }
         }
@@ -195,7 +190,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in ApplyCouponsAsync for session {SessionId}.", sessionId);
                 throw;
             }
         }
@@ -218,7 +212,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in ClearAsync for session {SessionId}.", sessionId);
                 throw;
             }
         }
@@ -235,7 +228,6 @@ namespace EventForge.Server.Services.RetailCart
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in GetTotalsAsync for session {SessionId}.", sessionId);
                 throw;
             }
         }

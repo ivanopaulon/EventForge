@@ -169,7 +169,6 @@ public class StockReconciliationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating stock reconciliation");
             throw;
         }
     }

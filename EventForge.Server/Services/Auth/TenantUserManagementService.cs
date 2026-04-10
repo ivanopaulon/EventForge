@@ -80,7 +80,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAllUsersAsync.");
             throw;
         }
     }
@@ -113,7 +112,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetUserByIdAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -149,7 +147,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SearchUsersAsync with query {Query}.", query);
             throw;
         }
     }
@@ -264,7 +261,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateUserAsync for username {Username}.", dto.Username);
             throw;
         }
     }
@@ -390,7 +386,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateUserAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -446,7 +441,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteUserAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -494,7 +488,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateUserStatusAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -562,7 +555,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateUserRolesAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -613,7 +605,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ResetPasswordAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -653,7 +644,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ForcePasswordChangeAsync for user {UserId}.", userId);
             throw;
         }
     }
@@ -690,7 +680,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetUserStatisticsAsync.");
             throw;
         }
     }
@@ -777,7 +766,6 @@ public class TenantUserManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PerformQuickActionAsync for user {UserId} action {Action}.", userId, action);
             throw;
         }
     }

@@ -30,7 +30,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving all document counters.");
             throw;
         }
     }
@@ -50,7 +49,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document counters for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -68,7 +66,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document counter {Id}.", id);
             throw;
         }
     }
@@ -95,8 +92,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document counter for type {DocumentTypeId}, series {Series}, year {Year}.",
-                documentTypeId, series, year);
             throw;
         }
     }
@@ -143,7 +138,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document counter.");
             throw;
         }
     }
@@ -185,7 +179,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document counter {Id}.", id);
             throw;
         }
     }
@@ -227,7 +220,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document counter {Id}.", id);
             throw;
         }
     }
@@ -279,8 +271,6 @@ public class DocumentCounterService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error generating document number for type {DocumentTypeId}, series '{Series}'.",
-                documentTypeId, series);
             throw;
         }
     }

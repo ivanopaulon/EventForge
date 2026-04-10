@@ -288,7 +288,6 @@ public class LicenseSeeder(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error synchronizing SuperAdmin license features");
             throw;
         }
     }

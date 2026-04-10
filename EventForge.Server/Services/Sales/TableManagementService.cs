@@ -50,7 +50,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving tables.");
             throw;
         }
     }
@@ -84,7 +83,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving tables by zone {Zone}.", zone);
             throw;
         }
     }
@@ -120,7 +118,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available tables.");
             throw;
         }
     }
@@ -142,7 +139,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving all tables.");
             throw;
         }
     }
@@ -162,7 +158,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving table {TableId}.", tableId);
             throw;
         }
     }
@@ -184,7 +179,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available tables.");
             throw;
         }
     }
@@ -229,7 +223,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating table {TableNumber}.", dto.TableNumber);
             throw;
         }
     }
@@ -281,7 +274,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating table {TableId}.", tableId);
             throw;
         }
     }
@@ -319,7 +311,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating status for table {TableId}.", tableId);
             throw;
         }
     }
@@ -351,7 +342,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting table {TableId}.", tableId);
             throw;
         }
     }
@@ -378,7 +368,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving reservations for date {Date}.", date);
             throw;
         }
     }
@@ -399,7 +388,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving reservation {ReservationId}.", reservationId);
             throw;
         }
     }
@@ -453,7 +441,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating reservation for table {TableId}.", dto.TableId);
             throw;
         }
     }
@@ -499,7 +486,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating reservation {ReservationId}.", reservationId);
             throw;
         }
     }
@@ -533,7 +519,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error confirming reservation {ReservationId}.", reservationId);
             throw;
         }
     }
@@ -567,7 +552,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error marking reservation {ReservationId} as arrived.", reservationId);
             throw;
         }
     }
@@ -599,7 +583,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cancelling reservation {ReservationId}.", reservationId);
             throw;
         }
     }
@@ -632,7 +615,6 @@ public class TableManagementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error marking reservation {ReservationId} as no-show.", reservationId);
             throw;
         }
     }

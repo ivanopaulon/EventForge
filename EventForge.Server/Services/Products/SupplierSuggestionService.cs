@@ -115,7 +115,6 @@ public class SupplierSuggestionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetSupplierSuggestionsAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -206,7 +205,6 @@ public class SupplierSuggestionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CalculateSuggestionsAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -298,7 +296,6 @@ public class SupplierSuggestionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetSupplierReliabilityAsync for supplier {SupplierId}.", supplierId);
             throw;
         }
     }
@@ -366,7 +363,6 @@ public class SupplierSuggestionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateRecommendationExplanationAsync for supplier {SupplierId}.", suggestion.SupplierId);
             throw;
         }
     }

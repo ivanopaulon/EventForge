@@ -47,7 +47,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment terms.");
             throw;
         }
     }
@@ -71,7 +70,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment term {PaymentTermId}.", id);
             throw;
         }
     }
@@ -112,7 +110,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating payment term for user {User}.", currentUser);
             throw;
         }
     }
@@ -176,7 +173,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating payment term {PaymentTermId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -236,7 +232,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting payment term {PaymentTermId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -250,7 +245,6 @@ public class PaymentTermService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if payment term {PaymentTermId} exists.", paymentTermId);
             throw;
         }
     }

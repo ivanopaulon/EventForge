@@ -98,7 +98,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock alerts with filters");
             throw;
         }
     }
@@ -125,7 +124,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock alert by ID: {AlertId}", id);
             throw;
         }
     }
@@ -152,7 +150,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetActiveAlertsByProductIdAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -179,7 +176,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetActiveAlertsByLocationIdAsync for location {LocationId}.", locationId);
             throw;
         }
     }
@@ -215,7 +211,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateAlertAsync for user {User}.", currentUser);
             throw;
         }
     }
@@ -246,7 +241,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AcknowledgeAlertAsync for alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -274,7 +268,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ResolveAlertAsync for alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -300,7 +293,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DismissAlertAsync for alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -364,7 +356,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CheckLowStockAlertsAsync.");
             throw;
         }
     }
@@ -428,7 +419,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CheckOverstockAlertsAsync.");
             throw;
         }
     }
@@ -504,7 +494,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CheckExpiryAlertsAsync for {DaysAhead} days ahead.", daysAhead);
             throw;
         }
     }
@@ -527,7 +516,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RunAlertChecksAsync.");
             throw;
         }
     }
@@ -559,7 +547,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAlertStatisticsAsync.");
             throw;
         }
     }
@@ -587,7 +574,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SendAlertNotificationsAsync for alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -614,7 +600,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAlertsForNotificationAsync.");
             throw;
         }
     }
@@ -636,7 +621,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in BulkAcknowledgeAlertsAsync for user {User}.", acknowledgedBy);
             throw;
         }
     }
@@ -665,7 +649,6 @@ public class StockAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CleanupOldAlertsAsync for {OlderThanDays} days.", olderThanDays);
             throw;
         }
     }

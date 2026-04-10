@@ -73,7 +73,6 @@ public class LocalFileStorageService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error saving file {FileName} for tenant {TenantId}", fileName, tenantId);
             throw;
         }
     }
@@ -124,7 +123,6 @@ public class LocalFileStorageService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }
@@ -163,7 +161,6 @@ public class LocalFileStorageService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting file {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }
@@ -209,7 +206,6 @@ public class LocalFileStorageService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting file metadata {StoragePath} for tenant {TenantId}", storagePath, tenantId);
             throw;
         }
     }

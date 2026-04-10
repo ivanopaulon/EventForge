@@ -49,7 +49,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error exporting data to Excel for type {Type}.", typeof(T).Name);
             throw;
         }
     }
@@ -97,7 +96,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error exporting data to CSV for type {Type}.", typeof(T).Name);
             throw;
         }
     }

@@ -19,7 +19,6 @@ public class CacheInvalidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in InvalidateStaticEntitiesAsync.");
             throw;
         }
     }
@@ -33,7 +32,6 @@ public class CacheInvalidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in InvalidateSemiStaticEntitiesAsync.");
             throw;
         }
     }
@@ -47,7 +45,6 @@ public class CacheInvalidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in InvalidateRealTimeEntitiesAsync.");
             throw;
         }
     }
@@ -61,7 +58,6 @@ public class CacheInvalidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in InvalidateByTagAsync for tag {Tag}.", tag);
             throw;
         }
     }

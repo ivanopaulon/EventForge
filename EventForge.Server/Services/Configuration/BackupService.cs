@@ -52,7 +52,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'avvio del backup.");
             throw;
         }
     }
@@ -76,7 +75,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dello stato del backup {BackupId}.", backupId);
             throw;
         }
     }
@@ -110,7 +108,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero della lista dei backup.");
             throw;
         }
     }
@@ -144,7 +141,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'annullamento del backup {BackupId}.", backupId);
             throw;
         }
     }
@@ -174,7 +170,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel download del backup {BackupId}.", backupId);
             throw;
         }
     }
@@ -210,7 +205,6 @@ public class BackupService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'eliminazione del backup {BackupId}.", backupId);
             throw;
         }
     }
