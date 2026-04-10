@@ -146,7 +146,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTenantsAsync();
+        try
+        {
+            await LoadTenantsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing LoginSystemDialog.");
+        }
     }
 
     private async Task LoadTenantsAsync()

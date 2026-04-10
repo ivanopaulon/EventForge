@@ -87,15 +87,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isEditMode = BundleItem != null;
-        if (_isEditMode)
+        try
         {
-            _quantity = BundleItem!.Quantity;
+            _isEditMode = BundleItem != null;
+            if (_isEditMode)
+            {
+                _quantity = BundleItem!.Quantity;
+            }
+            await LoadAvailableProductsAsync();
+            if (_isEditMode)
+            {
+                _selectedProduct = _availableProducts.FirstOrDefault(p => p.Id == BundleItem!.ComponentProductId);
+            }
         }
-        await LoadAvailableProductsAsync();
-        if (_isEditMode)
+        catch (Exception ex)
         {
-            _selectedProduct = _availableProducts.FirstOrDefault(p => p.Id == BundleItem!.ComponentProductId);
+            Logger.LogError(ex, "Error initializing EditBundleItemDialog.");
         }
     }
 

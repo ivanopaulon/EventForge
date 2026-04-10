@@ -194,7 +194,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadConfigurationsAsync();
+        try
+        {
+            await LoadConfigurationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing DashboardConfigurationDialog.");
+        }
     }
 
     private async Task LoadConfigurationsAsync()

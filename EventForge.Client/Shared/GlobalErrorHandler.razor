@@ -10,11 +10,18 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // Set up global .NET error handler
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-        
-        // Set up JavaScript error handler
-        await SetupJavaScriptErrorHandlerAsync();
+        try
+        {
+            // Set up global .NET error handler
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+            
+            // Set up JavaScript error handler
+            await SetupJavaScriptErrorHandlerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing GlobalErrorHandler.");
+        }
     }
 
     private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

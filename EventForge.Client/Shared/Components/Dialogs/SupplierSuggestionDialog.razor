@@ -186,7 +186,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSuggestionsAsync();
+        try
+        {
+            await LoadSuggestionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing SupplierSuggestionDialog.");
+        }
     }
 
     private async Task LoadSuggestionsAsync()

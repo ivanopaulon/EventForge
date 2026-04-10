@@ -248,8 +248,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _printerName = PrinterName;
-        await LoadPreCheckDataAsync();
+        try
+        {
+            _printerName = PrinterName;
+            await LoadPreCheckDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing DailyClosureDialog.");
+        }
     }
 
     // ─────────────────────────────────────────────────────────

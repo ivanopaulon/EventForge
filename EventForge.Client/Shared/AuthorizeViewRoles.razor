@@ -23,8 +23,15 @@ else if (_showUnauthorized && UnauthorizedContent != null)
 
     protected override async Task OnInitializedAsync()
     {
-        AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
-        await CheckAuthorizationAsync();
+        try
+        {
+            AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+            await CheckAuthorizationAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing AuthorizeViewRoles.");
+        }
     }
 
     private async Task CheckAuthorizationAsync()

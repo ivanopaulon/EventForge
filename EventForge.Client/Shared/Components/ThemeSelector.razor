@@ -19,8 +19,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ThemeService.OnThemeChanged += OnThemeChanged;
-        await base.OnInitializedAsync();
+        try
+        {
+            ThemeService.OnThemeChanged += OnThemeChanged;
+            await base.OnInitializedAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ThemeSelector.");
+        }
     }
 
     private void OnThemeChanged()

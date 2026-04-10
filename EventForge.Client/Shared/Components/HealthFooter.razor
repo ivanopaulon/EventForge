@@ -53,18 +53,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Initial health data load
-        await RefreshHealthData();
-        
-        // Set up periodic refresh
-        _refreshTimer = new Timer(async _ => 
+        try
         {
-            await InvokeAsync(async () =>
+            // Initial health data load
+            await RefreshHealthData();
+            
+            // Set up periodic refresh
+            _refreshTimer = new Timer(async _ => 
             {
-                await RefreshHealthData();
-                StateHasChanged();
-            });
-        }, null, RefreshInterval, RefreshInterval);
+                await InvokeAsync(async () =>
+                {
+                    await RefreshHealthData();
+                    StateHasChanged();
+                });
+            }, null, RefreshInterval, RefreshInterval);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing HealthFooter.");
+        }
     }
 
     private async Task RefreshHealthData()

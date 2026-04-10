@@ -221,8 +221,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadReferenceData();
-        UpdateDisplayValues();
+        try
+        {
+            await LoadReferenceData();
+            UpdateDisplayValues();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ProductQuickInfo.");
+        }
     }
 
     protected override void OnParametersSet()
