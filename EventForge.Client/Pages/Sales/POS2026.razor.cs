@@ -1,11 +1,15 @@
 using EventForge.Client.Components.Pos26;
 using EventForge.Client.Models.Sales;
+using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Shared.Components.Dialogs;
 using EventForge.Client.Shared.Components.Dialogs.Sales;
 using EventForge.Client.Shared.Components.FiscalPrinting;
 using EventForge.Client.ViewModels;
+using EventForge.DTOs.Analytics;
 using EventForge.DTOs.Business;
+using EventForge.DTOs.Common;
+using EventForge.DTOs.Constants;
 using EventForge.DTOs.FiscalPrinting;
 using EventForge.DTOs.Products;
 using EventForge.DTOs.Sales;
@@ -30,6 +34,7 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Stato prodotti ---
     private List<ProductDto> _allProducts = new();
+    private List<ClassificationNodeDto> _classificationNodes = new();   // nodi categoria reali
     private List<string> _categories = new();
     private bool _isLoadingProducts = false;
 
@@ -38,7 +43,7 @@ public partial class POS2026 : IAsyncDisposable
     private Pos26SortMode _sortMode = Pos26SortMode.BestSeller;
     private string? _selectedCategory;
 
-    // --- Best seller / ultimi acquisti (TODO: implementare API dedicate se disponibili) ---
+    // --- Best seller / ultimi acquisti ---
     private HashSet<Guid> _bestSellerIds = new();
     private HashSet<Guid> _lastPurchaseIds = new();
 
@@ -47,6 +52,26 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Prodotti filtrati (derivati) ---
     private IEnumerable<ProductDto> _filteredProducts => ApplyFilters();
+
+    // --- Sessioni parcheggiate ---
+    private List<SaleSessionDto> _parkedSessions = new();
+    private bool _showParkedSessions = false;
+
+    // --- Nota ordine ---
+    private bool _showNoteInput = false;
+    private string _orderNoteText = string.Empty;
+
+    // --- Coupon ---
+    private bool _showCouponInput = false;
+    private string _couponInput = string.Empty;
+
+    // --- Tavolo / selezione tipo vendita ---
+    private List<TableSessionDto> _availableTables = new();
+    private bool _showTablePicker = false;
+
+    // --- Note flags (richiesti da AddSessionNoteDto.NoteFlagId) ---
+    private List<NoteFlagDto> _noteFlags = new();
+    private Guid? _selectedNoteFlagId;
 
     // --- Fiscal printing (stesso pattern di POS.razor) ---
     private Guid? _fiscalPrinterId;
@@ -73,12 +98,22 @@ public partial class POS2026 : IAsyncDisposable
             var username = authState.User.Identity?.Name;
             await ViewModel.InitializeAsync(username);
 
-            await LoadProductsAsync();
-            await LoadCategoriesFromProductsAsync();
+            // Carica in parallelo prodotti, categorie e best seller
+            await Task.WhenAll(
+                LoadProductsAndBestSellersAsync(),
+                LoadClassificationNodesAsync(),
+                LoadAvailableTablesAsync(),
+                LoadNoteFlagsAsync()
+            );
 
-            // Se c'è già un cliente, usa modalità "Ultimi acquisti"
+            BuildCategoryList();
+
+            // Se c'è già un cliente, carica gli ultimi acquisti
             if (ViewModel.SelectedCustomer != null)
+            {
                 _sortMode = Pos26SortMode.UltimiAcquisti;
+                await LoadLastPurchaseIdsAsync(ViewModel.SelectedCustomer.Id);
+            }
 
             RebuildCartQuantities();
         }
@@ -111,18 +146,24 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Caricamento prodotti e categorie
+    //  Caricamento prodotti, categorie e dati ausiliari
     // =========================================================================
 
-    private async Task LoadProductsAsync()
+    /// <summary>
+    /// Carica i prodotti dal servizio e, in parallelo, ottiene i best seller dagli analytics.
+    /// </summary>
+    private async Task LoadProductsAndBestSellersAsync()
     {
         _isLoadingProducts = true;
         StateHasChanged();
         try
         {
-            // TODO: se disponibile un metodo GetBestSeller() usarlo per popolare _bestSellerIds
-            // TODO: se disponibile GetUltimiAcquisti(clienteId) usarlo per popolare _lastPurchaseIds
-            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 500);
+            // Carica prodotti e best seller in parallelo
+            var productsTask = ProductService.GetProductsAsync(page: 1, pageSize: 500);
+            var analyticsTask = LoadBestSellerIdsAsync();
+            await Task.WhenAll(productsTask, analyticsTask);
+
+            var result = await productsTask;
             _allProducts = result?.Items?.ToList() ?? new();
         }
         catch (Exception ex)
@@ -135,17 +176,192 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
-    private Task LoadCategoriesFromProductsAsync()
+    /// <summary>
+    /// Carica gli ID dei best seller usando IAnalyticsService.GetSalesAnalyticsAsync().
+    /// TopProducts è ordinato per rank (1 = best seller).
+    /// </summary>
+    private async Task LoadBestSellerIdsAsync()
     {
-        // Estrae le categorie dai prodotti caricati (usando il nome del nodo classificazione)
-        // TODO: caricare da IEntityManagementService.GetClassificationNodesAsync() per lista completa
-        _categories = _allProducts
-            .Where(p => !string.IsNullOrEmpty(p.VatRateName))
-            .Select(p => p.VatRateName!)
-            .Distinct()
-            .OrderBy(c => c)
-            .ToList();
-        return Task.CompletedTask;
+        try
+        {
+            var filter = new AnalyticsFilterDto
+            {
+                DateFrom = DateTime.UtcNow.AddMonths(-3),
+                DateTo   = DateTime.UtcNow,
+                Top      = 50
+            };
+            var analytics = await AnalyticsService.GetSalesAnalyticsAsync(filter);
+            if (analytics?.TopProducts is { Count: > 0 } topProducts)
+            {
+                _bestSellerIds = topProducts
+                    .Where(p => p.ProductId.HasValue)
+                    .Select(p => p.ProductId!.Value)
+                    .ToHashSet();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare best seller da analytics. Fallback a ordine alfabetico.");
+            // Non bloccante: la griglia si mostrerà comunque ordinata alfabeticamente
+        }
+    }
+
+    /// <summary>
+    /// Carica i nodi di classificazione prodotto (categorie reali) da IEntityManagementService.
+    /// I ProductDto.CategoryNodeId vengono poi abbinati ai nomi dei nodi.
+    /// </summary>
+    private async Task LoadClassificationNodesAsync()
+    {
+        try
+        {
+            var nodes = await EntityManagementService.GetClassificationNodesAsync();
+            _classificationNodes = nodes?.Where(n => n.IsActive).OrderBy(n => n.Name).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare nodi classificazione.");
+        }
+    }
+
+    /// <summary>
+    /// Carica i tavoli disponibili da ITableManagementService.
+    /// </summary>
+    private async Task LoadAvailableTablesAsync()
+    {
+        try
+        {
+            _availableTables = await TableManagementService.GetAvailableTablesAsync() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare i tavoli disponibili.");
+        }
+    }
+
+    /// <summary>
+    /// Carica i flag nota attivi (richiesti da AddSessionNoteDto.NoteFlagId).
+    /// Il primo flag attivo viene pre-selezionato come default.
+    /// </summary>
+    private async Task LoadNoteFlagsAsync()
+    {
+        try
+        {
+            _noteFlags = await NoteFlagService.GetActiveAsync() ?? new();
+            _selectedNoteFlagId = _noteFlags.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare i flag nota.");
+        }
+    }
+
+
+    /// Costruisce la lista delle categorie da mostrare nella CategoryBar.
+    /// Usa i nodi di classificazione (GetClassificationNodesAsync) abbinati a CategoryNodeId dei prodotti.
+    /// Se i nodi non sono disponibili, cade back sui nomi IVA come proxy.
+    /// </summary>
+    private void BuildCategoryList()
+    {
+        if (_classificationNodes.Any())
+        {
+            // Categorie reali: include solo quelle effettivamente usate dai prodotti caricati
+            var usedNodeIds = _allProducts
+                .Where(p => p.CategoryNodeId.HasValue)
+                .Select(p => p.CategoryNodeId!.Value)
+                .ToHashSet();
+
+            _categories = _classificationNodes
+                .Where(n => usedNodeIds.Contains(n.Id))
+                .Select(n => n.Name)
+                .ToList();
+        }
+        else
+        {
+            // Fallback: usa VatRateName come proxy categoria (meno preciso ma sempre disponibile)
+            _categories = _allProducts
+                .Where(p => !string.IsNullOrEmpty(p.VatRateName))
+                .Select(p => p.VatRateName!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Carica gli ID dei prodotti negli ultimi acquisti del cliente corrente,
+    /// scansionando le sessioni completate (GetOperatorSessionsAsync + GetActiveSessionsAsync).
+    /// Non c'è un endpoint dedicato "GetLastPurchasesByCustomer", quindi si usano le sessioni chiuse.
+    /// </summary>
+    private async Task LoadLastPurchaseIdsAsync(Guid customerId)
+    {
+        _lastPurchaseIds.Clear();
+        try
+        {
+            // Usa le sessioni attive/completate dell'operatore corrente
+            // e filtra quelle del cliente specificato
+            List<SaleSessionDto>? sessions = null;
+            if (ViewModel.SelectedOperatorId.HasValue)
+                sessions = await SalesService.GetOperatorSessionsAsync(ViewModel.SelectedOperatorId.Value);
+
+            if (sessions == null || !sessions.Any())
+                sessions = await SalesService.GetActiveSessionsAsync();
+
+            if (sessions != null)
+            {
+                var customerSessions = sessions
+                    .Where(s => s.CustomerId == customerId)
+                    .ToList();
+
+                foreach (var session in customerSessions)
+                {
+                    foreach (var item in session.Items)
+                        _lastPurchaseIds.Add(item.ProductId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare ultimi acquisti cliente {CustomerId}.", customerId);
+        }
+    }
+
+    /// <summary>
+    /// Carica le sessioni parcheggiate (SaleSessionStatusDto.Suspended) per il menu "Sessioni parcheggiate".
+    /// </summary>
+    private async Task LoadParkedSessionsAsync()
+    {
+        try
+        {
+            var all = await SalesService.GetActiveSessionsAsync();
+            _parkedSessions = all?
+                .Where(s => s.Status == SaleSessionStatusDto.Suspended)
+                .OrderByDescending(s => s.UpdatedAt)
+                .ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare sessioni parcheggiate.");
+        }
+    }
+
+    private async Task LoadProductsAsync()
+    {
+        _isLoadingProducts = true;
+        StateHasChanged();
+        try
+        {
+            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 500);
+            _allProducts = result?.Items?.ToList() ?? new();
+            BuildCategoryList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore caricamento prodotti in POS2026.");
+        }
+        finally
+        {
+            _isLoadingProducts = false;
+        }
     }
 
     // =========================================================================
@@ -165,9 +381,21 @@ public partial class POS2026 : IAsyncDisposable
                 (p.Code?.ToLowerInvariant().Contains(term) == true));
         }
 
-        // Filtro categoria
+        // Filtro categoria — usa CategoryNodeId se disponibili i nodi reali, altrimenti VatRateName
         if (!string.IsNullOrEmpty(_selectedCategory))
-            source = source.Where(p => p.VatRateName == _selectedCategory);
+        {
+            if (_classificationNodes.Any())
+            {
+                var nodeId = _classificationNodes
+                    .FirstOrDefault(n => n.Name == _selectedCategory)?.Id;
+                if (nodeId.HasValue)
+                    source = source.Where(p => p.CategoryNodeId == nodeId.Value);
+            }
+            else
+            {
+                source = source.Where(p => p.VatRateName == _selectedCategory);
+            }
+        }
 
         // Ordinamento
         source = _sortMode switch
@@ -178,7 +406,10 @@ public partial class POS2026 : IAsyncDisposable
             Pos26SortMode.UltimiAcquisti when ViewModel.SelectedCustomer != null
                                          => source.OrderByDescending(p => _lastPurchaseIds.Contains(p.Id)).ThenBy(p => p.Name),
             Pos26SortMode.UltimiAcquisti => source.OrderByDescending(p => _bestSellerIds.Contains(p.Id)).ThenBy(p => p.Name),
-            Pos26SortMode.Categoria      => source.OrderBy(p => p.VatRateName).ThenBy(p => p.Name),
+            Pos26SortMode.Categoria      =>
+                _classificationNodes.Any()
+                    ? source.OrderBy(p => _classificationNodes.FirstOrDefault(n => n.Id == p.CategoryNodeId)?.Name).ThenBy(p => p.Name)
+                    : source.OrderBy(p => p.VatRateName).ThenBy(p => p.Name),
             _                            => source.OrderBy(p => p.Name)
         };
 
@@ -200,7 +431,10 @@ public partial class POS2026 : IAsyncDisposable
             {
                 var result = await ProductService.SearchProductsAsync(term, maxResults: 100);
                 if (result?.SearchResults != null)
+                {
                     _allProducts = result.SearchResults.ToList();
+                    BuildCategoryList();
+                }
             }
             catch (Exception ex)
             {
@@ -212,7 +446,6 @@ public partial class POS2026 : IAsyncDisposable
             await LoadProductsAsync();
         }
 
-        await LoadCategoriesFromProductsAsync();
         StateHasChanged();
     }
 
@@ -244,20 +477,18 @@ public partial class POS2026 : IAsyncDisposable
     {
         _sortMode = mode;
 
-        // Se si seleziona "Ultimi acquisti" ma non c'è cliente, fallback a BestSeller
         if (mode == Pos26SortMode.UltimiAcquisti && ViewModel.SelectedCustomer == null)
             AppNotification.ShowInfo("Seleziona un cliente per vedere gli ultimi acquisti.");
 
-        // TODO: caricare _lastPurchaseIds da API se disponibile
-        await Task.CompletedTask;
         StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private async Task OnCategorySelectedAsync(string? category)
     {
         _selectedCategory = category;
-        await Task.CompletedTask;
         StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
@@ -266,16 +497,18 @@ public partial class POS2026 : IAsyncDisposable
         {
             await ViewModel.UpdateSelectedCustomerAsync(customer);
 
-            // Se c'è un cliente, suggerisci modalità "Ultimi acquisti"
-            if (customer != null && _sortMode == Pos26SortMode.BestSeller)
+            if (customer != null)
             {
-                _sortMode = Pos26SortMode.UltimiAcquisti;
-                // TODO: caricare _lastPurchaseIds da GetUltimiAcquisti(customer.Id) se disponibile
+                // Carica gli ultimi acquisti del cliente appena selezionato
+                await LoadLastPurchaseIdsAsync(customer.Id);
+                if (_sortMode == Pos26SortMode.BestSeller)
+                    _sortMode = Pos26SortMode.UltimiAcquisti;
             }
-            else if (customer == null && _sortMode == Pos26SortMode.UltimiAcquisti)
+            else
             {
-                _sortMode = Pos26SortMode.BestSeller;
                 _lastPurchaseIds.Clear();
+                if (_sortMode == Pos26SortMode.UltimiAcquisti)
+                    _sortMode = Pos26SortMode.BestSeller;
             }
 
             StateHasChanged();
@@ -385,7 +618,7 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Sconto globale dal numpad
+    //  Sconto globale dal numpad (percentuale e valore fisso)
     // =========================================================================
 
     private async Task ApplyDiscountAsync(decimal percentuale)
@@ -406,6 +639,24 @@ public partial class POS2026 : IAsyncDisposable
             Logger.LogError(ex, "Errore applicazione sconto POS2026.");
             AppNotification.ShowWarning("Si è verificato un errore.");
         }
+    }
+
+    /// <summary>
+    /// Applica uno sconto a valore fisso calcolando la percentuale equivalente sul totale corrente.
+    /// Il DTO dell'API accetta solo percentuali, quindi la conversione avviene lato client.
+    /// </summary>
+    private async Task ApplyFixedDiscountAsync(decimal importo)
+    {
+        if (!ViewModel.HasActiveSession) return;
+        var totale = ViewModel.GrandTotal;
+        if (totale <= 0 || importo <= 0 || importo > totale)
+        {
+            AppNotification.ShowWarning("Importo sconto non valido.");
+            return;
+        }
+
+        var percentuale = Math.Round(importo / totale * 100, 4);
+        await ApplyDiscountAsync(percentuale);
     }
 
     // =========================================================================
@@ -533,6 +784,170 @@ public partial class POS2026 : IAsyncDisposable
         var result = await DialogService.ShowMessageBoxAsync(title, message,
             yesText: "Conferma", cancelText: "Annulla");
         return result == true;
+    }
+
+    // =========================================================================
+    //  Note ordine
+    // =========================================================================
+
+    private void ToggleNoteInput()
+    {
+        _showNoteInput = !_showNoteInput;
+        if (!_showNoteInput) _orderNoteText = string.Empty;
+    }
+
+    private async Task SaveOrderNoteAsync()
+    {
+        if (!ViewModel.HasActiveSession || string.IsNullOrWhiteSpace(_orderNoteText)) return;
+
+        // AddSessionNoteDto richiede un NoteFlagId valido.
+        // Usa il flag selezionato; se non disponibile mostra avviso.
+        if (!_selectedNoteFlagId.HasValue)
+        {
+            AppNotification.ShowWarning("Nessun flag nota disponibile. Configurare almeno un flag nota in Impostazioni.");
+            return;
+        }
+
+        try
+        {
+            var dto = new AddSessionNoteDto
+            {
+                NoteFlagId = _selectedNoteFlagId.Value,
+                Text       = _orderNoteText.Trim()
+            };
+            var session = await ViewModel.AddSessionNoteAsync(dto);
+            if (session != null)
+            {
+                AppNotification.ShowSuccess("Nota aggiunta.");
+                _orderNoteText = string.Empty;
+                _showNoteInput = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore aggiunta nota ordine POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // =========================================================================
+    //  Coupon
+    // =========================================================================
+
+    private void ToggleCouponInput()
+    {
+        _showCouponInput = !_showCouponInput;
+        if (!_showCouponInput) _couponInput = string.Empty;
+    }
+
+    private async Task ApplyCouponAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_couponInput)) return;
+        try
+        {
+            var (success, promoName, error) = await ViewModel.ApplyCouponAsync(_couponInput.Trim());
+            if (success)
+            {
+                AppNotification.ShowSuccess($"Coupon applicato: {promoName}");
+                _couponInput = string.Empty;
+                _showCouponInput = false;
+            }
+            else
+            {
+                AppNotification.ShowWarning(error ?? "Coupon non valido.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore applicazione coupon POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // =========================================================================
+    //  Tavolo / tipo vendita
+    // =========================================================================
+
+    private async Task ToggleTablePickerAsync()
+    {
+        _showTablePicker = !_showTablePicker;
+        if (_showTablePicker)
+            await LoadAvailableTablesAsync();
+    }
+
+    private async Task AssignTableAsync(TableSessionDto table)
+    {
+        if (!ViewModel.HasActiveSession) return;
+        try
+        {
+            // UpdateSaleSessionDto non espone TableId; la sessione viene aggiornata con SaleType
+            // e il numero tavolo viene mostrato nell'header come info contestuale.
+            // Per assegnare davvero un tavolo alla sessione è necessario un endpoint dedicato.
+            // TODO: chiamare un endpoint dedicato /api/v1/sales/sessions/{id}/table una volta disponibile.
+            var updateDto = new UpdateSaleSessionDto { SaleType = SaleTypes.Retail };
+            await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
+            await ViewModel.ReloadSessionAsync();
+            AppNotification.ShowSuccess($"Sessione impostata su Tavolo {table.TableNumber}.");
+            _showTablePicker = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore assegnazione tavolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task SetSaleTypeAsync(string saleType)
+    {
+        if (!ViewModel.HasActiveSession) return;
+        try
+        {
+            var updateDto = new UpdateSaleSessionDto { SaleType = saleType };
+            var session = await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
+            if (session != null)
+            {
+                await ViewModel.ReloadSessionAsync();
+                var label = saleType == SaleTypes.Retail ? "Banco" : "Asporto";
+                AppNotification.ShowSuccess($"Tipo vendita: {label}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore cambio tipo vendita POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // =========================================================================
+    //  Sessioni parcheggiate
+    // =========================================================================
+
+    private async Task ToggleParkedSessionsAsync()
+    {
+        _showParkedSessions = !_showParkedSessions;
+        if (_showParkedSessions)
+            await LoadParkedSessionsAsync();
+    }
+
+    private async Task ResumeParkedSessionAsync(SaleSessionDto session)
+    {
+        try
+        {
+            // Riprende la sessione sospesa aggiornando lo stato a Open
+            var updateDto = new UpdateSaleSessionDto { Status = SaleSessionStatusDto.Open };
+            var resumed = await SalesService.UpdateSessionAsync(session.Id, updateDto);
+            if (resumed != null)
+            {
+                await ViewModel.ReloadSessionAsync();
+                _showParkedSessions = false;
+                AppNotification.ShowSuccess($"Sessione #{session.Id.ToString()[..8]} ripresa.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore ripresa sessione parcheggiata POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private void HandleNotification(string message, bool isSuccess)

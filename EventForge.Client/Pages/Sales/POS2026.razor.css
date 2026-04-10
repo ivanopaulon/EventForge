@@ -993,3 +993,245 @@
     opacity: .4;
     cursor: not-allowed;
 }
+
+/* =========================================================================
+   TOOLBAR FUNZIONI (Note, Coupon, Tavolo, Sospese)
+   ========================================================================= */
+
+.pos26-fn-toolbar {
+    display: flex;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--mud-palette-background-grey, #f5f5f5);
+    border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    flex-wrap: wrap;
+}
+
+.pos26-fn-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background: var(--mud-palette-surface, #fff);
+    color: var(--mud-palette-text-primary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+    position: relative;
+}
+
+.pos26-fn-btn:hover {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+}
+
+.pos26-fn-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+}
+
+.pos26-fn-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--pos-accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 9px;
+    padding: 1px 4px;
+    font-weight: 700;
+}
+
+/* Pannello funzioni (nota, coupon, tavolo, sospese) */
+.pos26-fn-panel {
+    margin: 0 8px 6px;
+    padding: 8px;
+    background: var(--mud-palette-background-grey, #f9f9f9);
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 10px;
+}
+
+.pos26-fn-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.pos26-fn-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.pos26-fn-input {
+    flex: 1;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 12px;
+    outline: none;
+    transition: border 150ms;
+}
+
+.pos26-fn-input:focus {
+    border-color: var(--pos-accent);
+}
+
+.pos26-fn-btn-add {
+    background: var(--pos-green);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms;
+    min-height: 30px;
+}
+
+.pos26-fn-btn-add:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+.pos26-fn-btn-close {
+    background: transparent;
+    border: none;
+    color: var(--mud-palette-text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 6px;
+}
+
+.pos26-fn-btn-close--inline {
+    margin-left: auto;
+}
+
+.pos26-fn-btn-close:hover {
+    background: var(--mud-palette-lines-default);
+}
+
+.pos26-fn-note-item {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    margin-bottom: 4px;
+    gap: 4px;
+}
+
+/* Tipo vendita (banco / asporto) */
+.pos26-fn-table-types {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.pos26-fn-type-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+.pos26-fn-type-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+    font-weight: 600;
+}
+
+/* Griglia tavoli */
+.pos26-fn-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 6px;
+}
+
+.pos26-fn-table-btn {
+    padding: 6px 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 7px;
+    background: var(--mud-palette-surface);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: background 150ms, border 150ms;
+    min-height: 38px;
+}
+
+.pos26-fn-table-btn--active {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+    color: var(--pos-accent);
+}
+
+.pos26-fn-table-btn:hover {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+}
+
+/* Riga sessione parcheggiata */
+.pos26-fn-parked-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.pos26-fn-parked-row:last-child {
+    border-bottom: none;
+}
+
+.pos26-fn-parked-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.pos26-fn-parked-id {
+    font-size: 10px;
+    color: var(--mud-palette-text-disabled);
+    font-family: monospace;
+}
+
+.pos26-fn-parked-customer {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pos26-fn-parked-total {
+    font-size: 12px;
+    color: var(--pos-green);
+    font-weight: 600;
+}
+
+.pos26-fn-parked-items {
+    font-size: 10px;
+    color: var(--mud-palette-text-secondary);
+}
+
+.pos26-fn-empty {
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    text-align: center;
+    padding: 6px 0;
+}

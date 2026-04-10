@@ -1,4 +1,4 @@
-@* Pos26Numpad — tastierino numerico scuro con sconto e tasto PAGA *@
+@* Pos26Numpad — tastierino numerico scuro con sconto (% e €) e tasto PAGA *@
 
 <div class="pos26-numpad">
     @* Display *@
@@ -14,7 +14,7 @@
             <button class="pos26-numpad-key @key.Css"
                     style="@key.Style"
                     @onclick="() => HandleKey(key.Value)"
-                    title="@key.Label"
+                    title="@key.Title"
                     disabled="@key.Disabled">
                 @if (!string.IsNullOrEmpty(key.Icon))
                 {
@@ -34,42 +34,55 @@
     [Parameter] public EventCallback<decimal> ValueChanged { get; set; }
     [Parameter] public EventCallback OnPay { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
+    /// <summary>Invocato per sconto percentuale (0-100).</summary>
     [Parameter] public EventCallback<decimal> OnApplyDiscount { get; set; }
+    /// <summary>Invocato per sconto a valore fisso in €.</summary>
+    [Parameter] public EventCallback<decimal> OnApplyFixedDiscount { get; set; }
     [Parameter] public bool CanPay { get; set; }
 
-    // TODO: aggiungere altri tasti funzione (Note, Tavolo, Coperto) se implementati nel progetto originale
+    private enum NumpadMode { Normal, DiscountPercent, DiscountFixed }
 
     private string _input = string.Empty;
-    private bool _discountMode = false;
+    private NumpadMode _mode = NumpadMode.Normal;
 
-    private string _modeLabel => _discountMode ? "Sconto %" : "Qtà / Importo";
+    private string _modeLabel => _mode switch
+    {
+        NumpadMode.DiscountPercent => "Sconto %",
+        NumpadMode.DiscountFixed   => "Sconto €",
+        _                          => "Qtà / Importo"
+    };
 
-    private record KeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "", bool Disabled = false);
+    private record KeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "", bool Disabled = false, string Title = "");
 
     private List<KeyDef> _keys => BuildKeys();
 
     private List<KeyDef> BuildKeys()
     {
-        var keys = new List<KeyDef>
+        return new List<KeyDef>
         {
             new("7", "7"), new("8", "8"), new("9", "9"),
             new("4", "4"), new("5", "5"), new("6", "6"),
             new("1", "1"), new("2", "2"), new("3", "3"),
             new(",", ","), new("0", "0"),
             new("back", "", Icons.Material.Outlined.Backspace, "pos26-numpad-key--back",
-                "background:var(--pos-red-key); color:#fff;"),
-            // Tasto sconto %
+                "background:var(--pos-red-key); color:#fff;", Title: "Cancella"),
+            // Tasto sconto % — cicla tra normale → % → applica
             new("%sc", "%sc", "", "pos26-numpad-key--discount",
-                "background:var(--pos-accent); color:#fff;"),
+                $"background:{(_mode == NumpadMode.DiscountPercent ? "var(--pos-accent)" : "var(--pos-dark-border)")}; color:#fff;",
+                Title: "Sconto percentuale"),
+            // Tasto sconto € fisso — cicla tra normale → € → applica
+            new("€sc", "€sc", "", "pos26-numpad-key--discount",
+                $"background:{(_mode == NumpadMode.DiscountFixed ? "var(--pos-accent)" : "var(--pos-dark-border)")}; color:#fff;",
+                Title: "Sconto a valore fisso"),
             // PAGA
             new("PAGA", "PAGA", "", "pos26-numpad-key--pay",
                 $"background:var(--pos-green); color:#fff; opacity:{(CanPay ? "1" : ".4")};",
-                !CanPay),
+                !CanPay, Title: "Apri dialog pagamento (F2)"),
             // Annulla
             new("ANNULLA", "Annulla", "", "pos26-numpad-key--cancel",
-                "background:var(--pos-dark-border); color:var(--pos-dark-text);")
+                "background:var(--pos-dark-border); color:var(--pos-dark-text);",
+                Title: "Annulla sessione (ESC)")
         };
-        return keys;
     }
 
     private async Task HandleKey(string key)
@@ -80,38 +93,57 @@
                 if (_input.Length > 0)
                     _input = _input[..^1];
                 break;
+
             case "%sc":
-                if (!_discountMode)
+                if (_mode != NumpadMode.DiscountPercent)
                 {
-                    _discountMode = true;
+                    _mode = NumpadMode.DiscountPercent;
                     _input = string.Empty;
                 }
                 else
                 {
-                    // Applica sconto
                     if (decimal.TryParse(_input.Replace(',', '.'),
                             System.Globalization.NumberStyles.Any,
                             System.Globalization.CultureInfo.InvariantCulture, out var pct))
-                    {
                         await OnApplyDiscount.InvokeAsync(pct);
-                    }
-                    _discountMode = false;
+                    _mode = NumpadMode.Normal;
                     _input = string.Empty;
                 }
                 break;
+
+            case "€sc":
+                if (_mode != NumpadMode.DiscountFixed)
+                {
+                    _mode = NumpadMode.DiscountFixed;
+                    _input = string.Empty;
+                }
+                else
+                {
+                    if (decimal.TryParse(_input.Replace(',', '.'),
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out var fixedAmt))
+                        await OnApplyFixedDiscount.InvokeAsync(fixedAmt);
+                    _mode = NumpadMode.Normal;
+                    _input = string.Empty;
+                }
+                break;
+
             case "PAGA":
                 if (CanPay)
                     await OnPay.InvokeAsync();
                 break;
+
             case "ANNULLA":
                 _input = string.Empty;
-                _discountMode = false;
+                _mode = NumpadMode.Normal;
                 await OnCancel.InvokeAsync();
                 break;
+
             case ",":
                 if (!_input.Contains(',') && !_input.Contains('.'))
                     _input += ",";
                 break;
+
             default:
                 if (_input.Length < 10)
                     _input += key;
@@ -121,12 +153,8 @@
         if (decimal.TryParse(_input.Replace(',', '.'),
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var val))
-        {
             await ValueChanged.InvokeAsync(val);
-        }
         else if (_input.Length == 0)
-        {
             await ValueChanged.InvokeAsync(0m);
-        }
     }
 }
