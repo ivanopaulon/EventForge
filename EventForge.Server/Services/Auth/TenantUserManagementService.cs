@@ -58,7 +58,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Retrieving all users for tenant {TenantId}", tenantId);
 
             var users = await context.Users.AsNoTracking()
                 .Include(u => u.UserRoles)
@@ -75,7 +74,6 @@ public class TenantUserManagementService(
                 u.Tenant?.Name
             )).ToList();
 
-            logger.LogInformation("Retrieved {Count} users for tenant {TenantId}", result.Count, tenantId);
             return result;
         }
         catch (Exception ex)
@@ -123,7 +121,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Searching users in tenant {TenantId} with query: {Query}", tenantId, query);
 
             var lowerQuery = query.ToLower();
             var users = await context.Users.AsNoTracking()
@@ -161,7 +158,6 @@ public class TenantUserManagementService(
             // Override TenantId to current tenant (tenant admins can only create users in their own tenant)
             dto.TenantId = tenantId;
 
-            logger.LogInformation("Creating new user {Username} in tenant {TenantId}", dto.Username, tenantId);
 
             // Check if username already exists
             if (await context.Users.AsNoTracking().AnyAsync(u => u.Username == dto.Username, cancellationToken))
@@ -234,8 +230,8 @@ public class TenantUserManagementService(
                 cancellationToken
             );
 
-            logger.LogInformation("User {Username} created successfully with ID {UserId}. Initial password must be securely transmitted to the user.",
-                dto.Username, user.Id);
+            logger.LogInformation("User {UserId} created.",
+                user.Id);
 
             var tenant = await context.Tenants.FindAsync(new object[] { tenantId }, cancellationToken);
             var userManagementDto = UserMapper.ToManagementDto(user, dto.Roles, tenant?.Name);
@@ -272,7 +268,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Updating user {UserId} in tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Include(u => u.UserRoles)
@@ -379,8 +374,7 @@ public class TenantUserManagementService(
 
             await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("User {UserId} updated successfully. Changes: {Changes}",
-                userId, string.Join("; ", changes));
+            logger.LogInformation("User {UserId} updated.", userId);
 
             return UserMapper.ToManagementDto(user, dto.Roles, user.Tenant?.Name);
         }
@@ -397,7 +391,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Deleting user {UserId} from tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Include(u => u.UserRoles)
@@ -437,7 +430,7 @@ public class TenantUserManagementService(
                 cancellationToken
             );
 
-            logger.LogInformation("User {UserId} deleted (deactivated) successfully", userId);
+            logger.LogInformation("User {UserId} deleted.", userId);
         }
         catch (Exception ex)
         {
@@ -452,7 +445,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Updating status for user {UserId} in tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Include(u => u.UserRoles)
@@ -499,7 +491,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Updating roles for user {UserId} in tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Include(u => u.UserRoles)
@@ -549,7 +540,7 @@ public class TenantUserManagementService(
                 cancellationToken
             );
 
-            logger.LogInformation("User {UserId} roles updated successfully", userId);
+            logger.LogInformation("User {UserId} roles updated.", userId);
 
             return UserMapper.ToManagementDto(user, roles, user.Tenant?.Name);
         }
@@ -566,7 +557,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Resetting password for user {UserId} in tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Where(u => u.Id == userId && u.TenantId == tenantId)
@@ -601,7 +591,7 @@ public class TenantUserManagementService(
                 cancellationToken
             );
 
-            logger.LogInformation("Password reset successfully for user {UserId}", userId);
+            logger.LogInformation("Password reset for user {UserId}.", userId);
         }
         catch (Exception ex)
         {
@@ -616,7 +606,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Forcing password change for user {UserId} in tenant {TenantId}", userId, tenantId);
 
             var user = await context.Users
                 .Where(u => u.Id == userId && u.TenantId == tenantId)
@@ -655,7 +644,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Retrieving user statistics for tenant {TenantId}", tenantId);
 
             var totalUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId, cancellationToken);
             var activeUsers = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId && u.IsActive, cancellationToken);
@@ -691,8 +679,6 @@ public class TenantUserManagementService(
             var tenantId = GetCurrentTenantId();
             await ValidateTenantAccessAsync(tenantId);
 
-            logger.LogInformation("Performing quick action {Action} for user {UserId} in tenant {TenantId}",
-                action, userId, tenantId);
 
             var user = await context.Users
                 .Include(u => u.UserRoles)
@@ -756,7 +742,7 @@ public class TenantUserManagementService(
             user.ModifiedAt = DateTime.UtcNow;
             await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Quick action {Action} performed successfully for user {UserId}", action, userId);
+            logger.LogInformation("Quick action {Action} completed for user {UserId}.", action, userId);
 
             return UserMapper.ToManagementDto(
                 user,

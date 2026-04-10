@@ -914,9 +914,6 @@ public class BusinessPartiesController(
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Export operation started by {User} for BusinessParties (format: {Format})",
-            User.Identity?.Name ?? "Unknown", format);
 
         // Use high page size for export (configured in appsettings.json)
         var pagination = new PaginationParameters

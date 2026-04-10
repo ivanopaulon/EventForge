@@ -290,8 +290,6 @@ public class PriceCalculationService(
                 .ThenBy(h => h.Priority)
                 .ToList();
 
-            logger.LogInformation("Retrieved {Count} price history entries for product {ProductId} in event {EventId}",
-                result.Count, productId, eventId);
 
             return result;
         }

@@ -341,7 +341,6 @@ public class LicenseController(
     {
         try
         {
-            logger.LogInformation("Retrieving all tenant licenses with user counts");
 
             // Pre-aggregate user counts for ALL tenants in ONE query to avoid N+1 problem
             var userCountsByTenant = await context.Users
@@ -405,7 +404,6 @@ public class LicenseController(
                 }).ToList()
             }).ToList();
 
-            logger.LogInformation("Successfully retrieved {Count} tenant licenses", tenantLicenseDtos.Count);
             return Ok(tenantLicenseDtos);
         }
         catch (Exception ex)

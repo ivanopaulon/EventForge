@@ -315,7 +315,6 @@ public class StorageFacilityService(
 
             var totalCount = await query.CountAsync(ct);
 
-            logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
 
             // Use batch processing for large datasets
             if (totalCount > 10000)
@@ -382,8 +381,6 @@ public class StorageFacilityService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

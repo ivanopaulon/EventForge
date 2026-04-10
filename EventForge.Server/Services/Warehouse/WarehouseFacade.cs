@@ -253,7 +253,6 @@ public class WarehouseFacade(
             }
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            logger.LogInformation("Starting optimized enrichment for {RowCount} inventory rows", rowsList.Count);
 
             // BATCH 1: Fetch ALL products in a single query
             var productIds = rowsList

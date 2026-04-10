@@ -1166,7 +1166,6 @@ public class BusinessPartyService(
     {
         try
         {
-            logger.LogInformation("Fetching full detail for BusinessParty {Id} (includeInactive: {IncludeInactive})", id, includeInactive);
 
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
@@ -1437,7 +1436,6 @@ public class BusinessPartyService(
 
             var totalCount = await query.CountAsync(ct);
 
-            logger.LogInformation("Export requested for {Count} business parties", totalCount);
 
             // Use batch processing for large datasets
             if (totalCount > 10000)
@@ -1514,8 +1512,6 @@ public class BusinessPartyService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

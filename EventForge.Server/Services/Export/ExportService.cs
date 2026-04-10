@@ -18,8 +18,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
     {
         try
         {
-            logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
-                typeof(T).Name, sheetName);
 
             using var package = new ExcelPackage();
             var worksheet = package.Workbook.Worksheets.Add(sheetName);
@@ -59,7 +57,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
     {
         try
         {
-            logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
 
             using var memoryStream = new MemoryStream();
             using var writer = new StreamWriter(memoryStream, Encoding.UTF8);

@@ -894,7 +894,6 @@ public class StockMovementService(
 
         var totalCount = await query.CountAsync(ct);
 
-        logger.LogInformation("Export requested for {Count} inventory movements", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
@@ -939,8 +938,6 @@ public class StockMovementService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

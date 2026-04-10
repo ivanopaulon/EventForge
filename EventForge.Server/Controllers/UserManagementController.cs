@@ -36,7 +36,6 @@ public class UserManagementController(
     {
         try
         {
-            logger.LogInformation("Retrieving all users with tenant filter: {TenantId}", tenantId);
 
             var query = context.Users
                 .AsNoTracking()
@@ -72,7 +71,6 @@ public class UserManagementController(
                 })
                 .ToListAsync();
 
-            logger.LogInformation("Retrieved {Count} users", result.Count);
 
             return Ok(result);
         }

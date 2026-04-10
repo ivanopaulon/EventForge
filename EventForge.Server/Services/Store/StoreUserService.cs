@@ -198,8 +198,8 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
-                storeUser.Name, storeUser.Id, currentUser);
+            logger.LogInformation("Store user {StoreUserId} created by {User}.",
+                storeUser.Id, currentUser);
 
             // Reload with includes
             var createdStoreUser = await context.StoreUsers
@@ -464,8 +464,8 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
-                storeUserGroup.Name, storeUserGroup.Id, currentUser);
+            logger.LogInformation("Store user group {StoreUserGroupId} created by {User}.",
+                storeUserGroup.Id, currentUser);
 
             return MapToStoreUserGroupDto(storeUserGroup, 0, 0);
         }
@@ -765,8 +765,8 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
-                storeUserPrivilege.Name, storeUserPrivilege.Id, currentUser);
+            logger.LogInformation("Store user privilege {StoreUserPrivilegeId} created by {User}.",
+                storeUserPrivilege.Id, currentUser);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, 0);
         }

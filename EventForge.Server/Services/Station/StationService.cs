@@ -128,8 +128,8 @@ public class StationService(
 
             _ = await auditLogService.TrackEntityChangesAsync(station, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Station {StationName} created with ID {StationId} by {User}",
-                station.Name, station.Id, currentUser);
+            logger.LogInformation("Station {StationId} created by {User}.",
+                station.Id, currentUser);
 
             return MapToStationDto(station, 0);
         }
@@ -426,8 +426,8 @@ public class StationService(
 
             _ = await auditLogService.TrackEntityChangesAsync(printer, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Printer {PrinterName} created with ID {PrinterId} by {User}",
-                printer.Name, printer.Id, currentUser);
+            logger.LogInformation("Printer {PrinterId} created by {User}.",
+                printer.Id, currentUser);
 
             // Reload with includes
             var createdPrinter = await context.Printers

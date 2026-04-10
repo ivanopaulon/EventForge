@@ -35,9 +35,6 @@ public class InventoryBulkSeedService(
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            logger.LogInformation(
-                "Starting inventory seed for tenant {TenantId} - Mode: {Mode}, CreateDocument: {CreateDocument}, BatchSize: {BatchSize}",
-                currentTenantId.Value, request.Mode, request.CreateDocument, request.BatchSize);
 
             // Validate request
             ValidateRequest(request);
@@ -58,14 +55,12 @@ public class InventoryBulkSeedService(
                 return result;
             }
 
-            logger.LogInformation("Found {Count} active products for seeding", products.Count);
 
             // Get or select location
             Guid locationId;
             if (request.LocationId.HasValue)
             {
                 locationId = request.LocationId.Value;
-                logger.LogInformation("Using specified location: {LocationId}", locationId);
             }
             else
             {
@@ -82,7 +77,6 @@ public class InventoryBulkSeedService(
                 }
 
                 locationId = firstLocation.Id;
-                logger.LogInformation("Using default location: {LocationId} ({Code})", locationId, firstLocation.Code);
             }
 
             // Create inventory document if requested
@@ -107,8 +101,6 @@ public class InventoryBulkSeedService(
             for (int i = 0; i < products.Count; i += batchSize)
             {
                 var batch = products.Skip(i).Take(batchSize).ToList();
-                logger.LogInformation("Processing batch {BatchNumber} of {TotalBatches} ({Count} products)",
-                    (i / batchSize) + 1, (products.Count + batchSize - 1) / batchSize, batch.Count);
 
                 foreach (var product in batch)
                 {
@@ -140,8 +132,6 @@ public class InventoryBulkSeedService(
 
                 // Save changes for this batch
                 await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("Saved batch {BatchNumber} - Total rows created: {RowsCreated}",
-                    (i / batchSize) + 1, rowsCreated);
             }
 
             result.RowsCreated = rowsCreated;

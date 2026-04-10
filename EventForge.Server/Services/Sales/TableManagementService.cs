@@ -25,7 +25,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting tables with pagination for tenant {TenantId}", tenantId);
 
             var query = context.Set<TableSession>()
                 .AsNoTracking()
@@ -59,7 +58,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting tables by zone {Zone} with pagination for tenant {TenantId}", zone, tenantId);
 
             var query = context.Set<TableSession>()
                 .AsNoTracking()
@@ -92,7 +90,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting available tables with pagination for tenant {TenantId}", tenantId);
 
             var query = context.Set<TableSession>()
                 .AsNoTracking()
@@ -127,7 +124,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting all tables for tenant {TenantId}", tenantId);
 
             var tables = await context.Set<TableSession>()
                 .AsNoTracking()
@@ -148,7 +144,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting table {TableId} for tenant {TenantId}", tableId, tenantId);
 
             var table = await context.Set<TableSession>()
                 .AsNoTracking()
@@ -167,7 +162,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting available tables for tenant {TenantId}", tenantId);
 
             var tables = await context.Set<TableSession>()
                 .AsNoTracking()
@@ -188,7 +182,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Creating table {TableNumber} for tenant {TenantId}", dto.TableNumber, tenantId);
 
             var exists = await context.Set<TableSession>()
                 .AsNoTracking()
@@ -232,7 +225,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Updating table {TableId} for tenant {TenantId}", tableId, tenantId);
 
             var table = await context.Set<TableSession>()
                 .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
@@ -283,7 +275,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Updating status for table {TableId} to {Status}", tableId, dto.Status);
 
             var table = await context.Set<TableSession>()
                 .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
@@ -320,7 +311,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Deleting table {TableId} for tenant {TenantId}", tableId, tenantId);
 
             var table = await context.Set<TableSession>()
                 .FirstOrDefaultAsync(t => t.Id == tableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
@@ -354,7 +344,6 @@ public class TableManagementService(
             var startDate = date.Date;
             var endDate = startDate.AddDays(1);
 
-            logger.LogInformation("Getting reservations for date {Date} and tenant {TenantId}", date.Date, tenantId);
 
             var reservations = await context.Set<TableReservation>()
                 .AsNoTracking()
@@ -377,7 +366,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Getting reservation {ReservationId} for tenant {TenantId}", reservationId, tenantId);
 
             var reservation = await context.Set<TableReservation>()
                 .AsNoTracking()
@@ -397,7 +385,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
 
             var table = await context.Set<TableSession>()
                 .AsNoTracking()
@@ -450,7 +437,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Updating reservation {ReservationId}", reservationId);
 
             var reservation = await context.Set<TableReservation>()
                 .Include(r => r.Table)
@@ -495,7 +481,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Confirming reservation {ReservationId}", reservationId);
 
             var reservation = await context.Set<TableReservation>()
                 .Include(r => r.Table)
@@ -528,7 +513,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Marking reservation {ReservationId} as arrived", reservationId);
 
             var reservation = await context.Set<TableReservation>()
                 .Include(r => r.Table)
@@ -561,7 +545,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Cancelling reservation {ReservationId}", reservationId);
 
             var reservation = await context.Set<TableReservation>()
                 .FirstOrDefaultAsync(r => r.Id == reservationId && r.TenantId == tenantId && !r.IsDeleted, cancellationToken);
@@ -592,7 +575,6 @@ public class TableManagementService(
         try
         {
             var tenantId = GetTenantId();
-            logger.LogInformation("Marking reservation {ReservationId} as no-show", reservationId);
 
             var reservation = await context.Set<TableReservation>()
                 .Include(r => r.Table)

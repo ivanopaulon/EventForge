@@ -41,7 +41,6 @@ public class ViesVatLookupService(
 
         try
         {
-            logger.LogInformation("Looking up VAT number {CountryCode}{VatNumber} via VIES", countryCode, vatNumberOnly);
 
             // Prepare request
             var request = new ViesRequest

@@ -32,7 +32,6 @@ public class StockReconciliationService(
                 throw new ArgumentException("FromDate cannot be after ToDate.");
             }
 
-            logger.LogInformation("Starting stock reconciliation calculation for tenant {TenantId}", currentTenantId);
 
             var result = new StockReconciliationResultDto();
 
@@ -62,7 +61,6 @@ public class StockReconciliationService(
 
             var stocks = await stocksQuery.ToListAsync(cancellationToken);
 
-            logger.LogInformation("Found {Count} stock records to reconcile", stocks.Count);
 
             if (stocks.Count == 0)
             {
@@ -369,8 +367,6 @@ public class StockReconciliationService(
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            logger.LogInformation("Applying stock reconciliation for {Count} items by user {User}",
-                request.ItemsToApply.Count, currentUser);
 
             var result = new StockReconciliationApplyResultDto { Success = true };
 

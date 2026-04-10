@@ -2500,7 +2500,6 @@ public class ProductService(
 
             var totalCount = await query.CountAsync(ct);
 
-            logger.LogInformation("Export requested for {Count} products", totalCount);
 
             // Use batch processing for large datasets
             if (totalCount > 10000)
@@ -2575,8 +2574,6 @@ public class ProductService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;
