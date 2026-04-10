@@ -17,6 +17,7 @@ public class AnalyticsService(
 {
 
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly MemoryCacheEntryOptions CacheEntryOptions = new() { AbsoluteExpirationRelativeToNow = CacheTtl, Size = 1 };
 
     /// <inheritdoc/>
     public async Task<PromotionAnalyticsDashboardDto> GetPromotionAnalyticsAsync(
@@ -116,7 +117,7 @@ public class AnalyticsService(
                 TotalDiscountThisMonth = thisMonthRows.Sum(r => r.DiscountValue)
             };
 
-            cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
         catch (Exception ex)
@@ -237,7 +238,7 @@ public class AnalyticsService(
                 AutomaticPricingPercentage = automaticPct
             };
 
-            cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
         catch (Exception ex)
@@ -398,7 +399,7 @@ public class AnalyticsService(
                 DateTo = dateTo
             };
 
-            cache.Set(cacheKey, result, CacheTtl);
+            cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
         catch (Exception ex)

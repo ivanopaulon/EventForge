@@ -717,57 +717,42 @@ public class BusinessPartyService(
 
         var bpIds = businessParties.Select(bp => bp.Id).ToList();
 
-        var addressCountsTask = context.Addresses
-            .AsNoTracking()
-            .Where(a => a.OwnerType == "BusinessParty" && bpIds.Contains(a.OwnerId) && !a.IsDeleted && a.TenantId == tenantId)
-            .GroupBy(a => a.OwnerId)
-            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
-            .ToListAsync(cancellationToken);
-
-        var contactCountsTask = context.Contacts
-            .AsNoTracking()
-            .Where(c => c.OwnerType == "BusinessParty" && bpIds.Contains(c.OwnerId) && !c.IsDeleted && c.TenantId == tenantId)
-            .GroupBy(c => c.OwnerId)
-            .Select(g => new { OwnerId = g.Key, Count = g.Count() })
-            .ToListAsync(cancellationToken);
-
-        var referenceCountsTask = context.References
+        // 4 sequential DB queries (EF Core DbContext does not support concurrent operations).
+        // Address count and primary address are both derived in-memory from the same result set.
+        // Contact count and contacts map are both derived in-memory from the same result set.
+        var referenceCountsList = await context.References
             .AsNoTracking()
             .Where(r => r.OwnerType == "BusinessParty" && bpIds.Contains(r.OwnerId) && !r.IsDeleted && r.TenantId == tenantId)
             .GroupBy(r => r.OwnerId)
             .Select(g => new { OwnerId = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
 
-        var accountingIdsTask = context.BusinessPartyAccountings
+        var accountingIdsList = await context.BusinessPartyAccountings
             .AsNoTracking()
             .Where(bpa => bpIds.Contains(bpa.BusinessPartyId) && !bpa.IsDeleted && bpa.TenantId == tenantId)
             .Select(bpa => bpa.BusinessPartyId)
             .ToListAsync(cancellationToken);
 
-        var primaryAddressesTask = context.Addresses
+        var allAddresses = await context.Addresses
             .AsNoTracking()
             .Where(a => a.OwnerType == "BusinessParty" && bpIds.Contains(a.OwnerId) && !a.IsDeleted && a.TenantId == tenantId)
             .OrderBy(a => a.OwnerId).ThenBy(a => a.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var contactsTask = context.Contacts
+        var contactsList = await context.Contacts
             .AsNoTracking()
             .Where(c => c.OwnerType == "BusinessParty" && bpIds.Contains(c.OwnerId) && !c.IsDeleted && c.TenantId == tenantId)
             .OrderByDescending(c => c.IsPrimary).ThenBy(c => c.ContactType)
             .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(addressCountsTask, contactCountsTask, referenceCountsTask, accountingIdsTask, primaryAddressesTask, contactsTask);
-
-        var addressCountMap = addressCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
-        var contactCountMap = contactCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
-        var referenceCountMap = referenceCountsTask.Result.ToDictionary(x => x.OwnerId, x => x.Count);
-        var accountingSet = new HashSet<Guid>(accountingIdsTask.Result);
-        var primaryAddressMap = primaryAddressesTask.Result
-            .GroupBy(a => a.OwnerId)
-            .ToDictionary(g => g.Key, g => g.First());
-        var contactsMap = contactsTask.Result
-            .GroupBy(c => c.OwnerId)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        var addressGroups = allAddresses.GroupBy(a => a.OwnerId).ToDictionary(g => g.Key, g => g.ToList());
+        var contactGroups = contactsList.GroupBy(c => c.OwnerId).ToDictionary(g => g.Key, g => g.ToList());
+        var addressCountMap = addressGroups.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        var contactCountMap = contactGroups.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        var referenceCountMap = referenceCountsList.ToDictionary(x => x.OwnerId, x => x.Count);
+        var accountingSet = new HashSet<Guid>(accountingIdsList);
+        var primaryAddressMap = addressGroups.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.First());
+        var contactsMap = contactGroups;
 
         return businessParties.Select(bp => MapToBusinessPartyDto(
             bp,
@@ -1275,7 +1260,7 @@ public class BusinessPartyService(
                     .ThenBy(pl => pl.Priority)
                     .ToList(),
 
-                Statistics = await CalculateStatisticsAsync(id, currentTenantId.Value, cancellationToken)
+                Statistics = await CalculateStatisticsAsync(id, currentTenantId.Value, filteredContacts.Count, filteredAddresses.Count, priceListsQuery.Count, cancellationToken)
             };
 
             logger.LogInformation(
@@ -1292,60 +1277,44 @@ public class BusinessPartyService(
     }
 
     /// <summary>
-    /// Calcola statistiche aggregate per BusinessParty (query parallele ottimizzate)
+    /// Calcola statistiche aggregate per BusinessParty.
+    /// I contatori di contatti, indirizzi e listini vengono passati direttamente dal chiamante
+    /// (già caricati in memoria), evitando query ridondanti. Una sola query DB recupera
+    /// i dati sui documenti e calcola count, ultima data e revenue YTD in-memory.
     /// </summary>
     private async Task<BusinessPartyStatisticsDto> CalculateStatisticsAsync(
         Guid businessPartyId,
         Guid tenantId,
+        int totalContacts,
+        int totalAddresses,
+        int totalPriceLists,
         CancellationToken cancellationToken)
     {
         var currentYear = DateTime.UtcNow.Year;
 
-        // ⚡ Query parallele per performance ottimali
-        var contactsTask = context.Contacts
-            .AsNoTracking()
-            .CountAsync(c => c.OwnerId == businessPartyId && c.OwnerType == "BusinessParty" && !c.IsDeleted && c.TenantId == tenantId, cancellationToken);
-
-        var addressesTask = context.Addresses
-            .AsNoTracking()
-            .CountAsync(a => a.OwnerId == businessPartyId && a.OwnerType == "BusinessParty" && !a.IsDeleted && a.TenantId == tenantId, cancellationToken);
-
-        var priceListsTask = context.PriceListBusinessParties
-            .AsNoTracking()
-            .CountAsync(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted && !plbp.PriceList.IsDeleted && plbp.TenantId == tenantId, cancellationToken);
-
-        var documentsTask = context.DocumentHeaders
-            .AsNoTracking()
-            .CountAsync(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId, cancellationToken);
-
-        var lastOrderTask = context.DocumentHeaders
+        // Single query: only the scalar fields needed for document-level statistics.
+        var docStats = await context.DocumentHeaders
             .AsNoTracking()
             .Where(d => d.BusinessPartyId == businessPartyId && !d.IsDeleted && d.TenantId == tenantId)
-            .OrderByDescending(d => d.Date)
-            .Select(d => (DateTime?)d.Date)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var revenueTask = context.DocumentHeaders
-            .AsNoTracking()
-            .Where(d => d.BusinessPartyId == businessPartyId
-                     && !d.IsDeleted
-                     && d.TenantId == tenantId
-                     && d.Date.Year == currentYear
-                     && d.DocumentType != null
-                     && !d.DocumentType.IsStockIncrease) // Solo vendite (non acquisti)
-            .SumAsync(d => (decimal?)d.TotalGrossAmount, cancellationToken);
-
-        await Task.WhenAll(contactsTask, addressesTask, priceListsTask, documentsTask, lastOrderTask, revenueTask);
+            .Select(d => new
+            {
+                d.Date,
+                d.TotalGrossAmount,
+                IsRevenueLine = d.DocumentType != null && !d.DocumentType.IsStockIncrease
+            })
+            .ToListAsync(cancellationToken);
 
         return new BusinessPartyStatisticsDto
         {
-            TotalContacts = contactsTask.Result,
-            TotalAddresses = addressesTask.Result,
-            TotalPriceLists = priceListsTask.Result,
-            ActiveFidelityCards = 0, // TODO: implementare quando backend fidelity sarà pronto
-            TotalDocuments = documentsTask.Result,
-            LastOrderDate = lastOrderTask.Result,
-            TotalRevenueYTD = revenueTask.Result ?? 0m
+            TotalContacts = totalContacts,
+            TotalAddresses = totalAddresses,
+            TotalPriceLists = totalPriceLists,
+            ActiveFidelityCards = 0,
+            TotalDocuments = docStats.Count,
+            LastOrderDate = docStats.Count > 0 ? docStats.Max(d => (DateTime?)d.Date) : null,
+            TotalRevenueYTD = docStats
+                .Where(d => d.IsRevenueLine && d.Date.Year == currentYear)
+                .Sum(d => d.TotalGrossAmount)
         };
     }
 

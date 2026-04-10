@@ -98,8 +98,8 @@ namespace EventForge.Client.Services
         {
             try
             {
-                return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}", ct)
-                    ?? [];
+                var result = await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>($"api/v1/businessparties/by-type/{partyType}", ct);
+                return result?.Items ?? [];
             }
             catch (Exception ex)
             {
