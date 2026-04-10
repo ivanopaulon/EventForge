@@ -11,7 +11,8 @@
           Title="Gestisci Membri Gruppo"
           IsProcessing="false"
           OnClose="Cancel"
-          MinWidth="min(750px, 95vw)">
+          MinWidth="min(750px, 95vw)"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         <MudStack Spacing="3">
             <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
