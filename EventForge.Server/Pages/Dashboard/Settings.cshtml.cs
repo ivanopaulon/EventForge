@@ -129,6 +129,13 @@ public class SettingsModel : PageModel
     [BindProperty] public int AgentPollIntervalSeconds { get; set; } = 30;
     [BindProperty] public int AgentAutoRestartAfterMinutes { get; set; } = 5;
 
+    // ── WhatsApp ──────────────────────────────────────────────────────
+    [BindProperty] public bool WhatsAppEnabled { get; set; } = false;
+    [BindProperty] public string WhatsAppPhoneNumberId { get; set; } = string.Empty;
+    [BindProperty] public string WhatsAppAccessToken { get; set; } = string.Empty;
+    [BindProperty] public string WhatsAppVerifyToken { get; set; } = string.Empty;
+    [BindProperty] public string WhatsAppApiVersion { get; set; } = "v19.0";
+
     // ── HttpClient (server self-reference) ────────────────────────────
     [BindProperty] public string HttpClientBaseAddress { get; set; } = string.Empty;
     [BindProperty] public int HttpClientPort { get; set; } = 7241;
@@ -593,6 +600,32 @@ public class SettingsModel : PageModel
         return RedirectToPage(new { tab = "integrazioni" });
     }
 
+    // ── WhatsApp ──────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateWhatsAppAsync()
+    {
+        try
+        {
+            var ct = HttpContext.RequestAborted;
+            await _configService.SetValueAsync("WhatsApp_Enabled", WhatsAppEnabled.ToString().ToLower(), null, ct);
+            await _configService.SetValueAsync("WhatsApp_PhoneNumberId", WhatsAppPhoneNumberId, null, ct);
+            await _configService.SetValueAsync("WhatsApp_VerifyToken", WhatsAppVerifyToken, null, ct);
+            await _configService.SetValueAsync("WhatsApp_ApiVersion", WhatsAppApiVersion, null, ct);
+
+            // AccessToken only if filled in (avoid overwriting with blank)
+            if (!string.IsNullOrWhiteSpace(WhatsAppAccessToken))
+                await _configService.SetValueAsync("WhatsApp_AccessToken", WhatsAppAccessToken, null, ct);
+
+            _logger.LogInformation("WhatsApp settings updated by {User}", User.Identity?.Name);
+            TempData["SuccessMessage"] = "Impostazioni WhatsApp salvate. Riavvio necessario per applicare le modifiche.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving WhatsApp settings");
+            TempData["ErrorMessage"] = $"Errore: {ex.Message}";
+        }
+        return RedirectToPage(new { tab = "integrazioni" });
+    }
+
     // ── HttpClient ────────────────────────────────────────────────────
     public async Task<IActionResult> OnPostUpdateHttpClientAsync()
     {
@@ -797,6 +830,13 @@ public class SettingsModel : PageModel
             // Password not loaded for security
             AgentPollIntervalSeconds = int.TryParse(await _configService.GetValueAsync("Agent_PollIntervalSeconds", "30", ct), out var aPoll) ? aPoll : 30;
             AgentAutoRestartAfterMinutes = int.TryParse(await _configService.GetValueAsync("Agent_AutoRestartAfterMinutes", "5", ct), out var aRestart) ? aRestart : 5;
+
+            // ── WhatsApp ──
+            WhatsAppEnabled = (await _configService.GetValueAsync("WhatsApp_Enabled", _configuration["WhatsApp:Enabled"] ?? "false", ct)).Equals("true", StringComparison.OrdinalIgnoreCase);
+            WhatsAppPhoneNumberId = await _configService.GetValueAsync("WhatsApp_PhoneNumberId", _configuration["WhatsApp:PhoneNumberId"] ?? "", ct);
+            WhatsAppVerifyToken = await _configService.GetValueAsync("WhatsApp_VerifyToken", _configuration["WhatsApp:VerifyToken"] ?? "", ct);
+            WhatsAppApiVersion = await _configService.GetValueAsync("WhatsApp_ApiVersion", _configuration["WhatsApp:ApiVersion"] ?? "v19.0", ct);
+            // AccessToken not loaded for security
 
             // ── HttpClient ──
             HttpClientBaseAddress = await _configService.GetValueAsync("HttpClient_BaseAddress", _configuration["HttpClient:BaseAddress"] ?? "https://localhost", ct);

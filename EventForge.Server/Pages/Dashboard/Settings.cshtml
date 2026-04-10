@@ -894,6 +894,57 @@
                 </form>
             </div>
         </div>
+
+        <!-- WhatsApp Business -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent fw-semibold">
+                <i class="bi bi-whatsapp me-2 text-success"></i>WhatsApp Business
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateWhatsApp">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch mb-2">
+                                <input type="checkbox" asp-for="WhatsAppEnabled" class="form-check-input" />
+                                <label class="form-check-label" asp-for="WhatsAppEnabled">Integrazione abilitata</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number ID</label>
+                            <input type="text" asp-for="WhatsAppPhoneNumberId" class="form-control"
+                                   placeholder="ID numerico dalla dashboard Meta" />
+                            <small class="text-muted">ID del numero di telefono Business nella dashboard Meta</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Access Token
+                                <small class="text-muted">(lasciare vuoto per non modificare)</small>
+                            </label>
+                            <input type="password" asp-for="WhatsAppAccessToken" class="form-control"
+                                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Verify Token</label>
+                            <input type="text" asp-for="WhatsAppVerifyToken" class="form-control"
+                                   placeholder="Token di verifica webhook" />
+                            <small class="text-muted">Token di verifica configurato nel portale Meta</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">API Version</label>
+                            <input type="text" asp-for="WhatsAppApiVersion" class="form-control"
+                                   placeholder="v19.0" />
+                            <small class="text-muted">Versione Meta Graph API (es. v19.0)</small>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salva WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- ── Avanzate Tab ──────────────────────────────────────────── -->
