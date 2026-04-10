@@ -218,6 +218,7 @@ public class BankService(
         try
         {
             return await context.Banks
+                .AsNoTracking()
                 .AnyAsync(b => b.Id == bankId && !b.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

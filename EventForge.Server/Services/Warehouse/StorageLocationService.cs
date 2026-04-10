@@ -85,6 +85,7 @@ public class StorageLocationService(
             logger.LogDebug("Getting storage location by ID: {Id}", id);
 
             var location = await context.StorageLocations
+                .AsNoTracking()
                 .Include(sl => sl.Warehouse)
                 .Where(sl => sl.Id == id)
                 .Select(sl => new StorageLocationDto
@@ -238,6 +239,7 @@ public class StorageLocationService(
             }
 
             var warehouseExists = await context.StorageFacilities
+                .AsNoTracking()
                 .AnyAsync(sf => sf.Id == createDto.WarehouseId && sf.TenantId == currentTenantId.Value, cancellationToken);
 
             if (!warehouseExists)
@@ -247,6 +249,7 @@ public class StorageLocationService(
             }
 
             var codeExists = await context.StorageLocations
+                .AsNoTracking()
                 .AnyAsync(sl => sl.Code == createDto.Code && sl.WarehouseId == createDto.WarehouseId && sl.TenantId == currentTenantId.Value, cancellationToken);
 
             if (codeExists)
@@ -319,6 +322,7 @@ public class StorageLocationService(
             if (updateDto.WarehouseId.HasValue && updateDto.WarehouseId != location.WarehouseId)
             {
                 var warehouseExists = await context.StorageFacilities
+                    .AsNoTracking()
                     .AnyAsync(sf => sf.Id == updateDto.WarehouseId.Value, cancellationToken);
 
                 if (!warehouseExists)
@@ -332,6 +336,7 @@ public class StorageLocationService(
             {
                 var warehouseIdToCheck = updateDto.WarehouseId ?? location.WarehouseId;
                 var codeExists = await context.StorageLocations
+                    .AsNoTracking()
                     .AnyAsync(sl => sl.Code == updateDto.Code && sl.WarehouseId == warehouseIdToCheck && sl.Id != id, cancellationToken);
 
                 if (codeExists)

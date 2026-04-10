@@ -197,6 +197,7 @@ public class TableManagementService(
             logger.LogInformation("Creating table {TableNumber} for tenant {TenantId}", dto.TableNumber, tenantId);
 
             var exists = await context.Set<TableSession>()
+                .AsNoTracking()
                 .AnyAsync(t => t.TenantId == tenantId && t.TableNumber == dto.TableNumber && !t.IsDeleted, cancellationToken);
 
             if (exists)
@@ -252,6 +253,7 @@ public class TableManagementService(
             if (!string.IsNullOrWhiteSpace(dto.TableNumber) && dto.TableNumber != table.TableNumber)
             {
                 var exists = await context.Set<TableSession>()
+                    .AsNoTracking()
                     .AnyAsync(t => t.TenantId == tenantId && t.TableNumber == dto.TableNumber && t.Id != tableId && !t.IsDeleted, cancellationToken);
 
                 if (exists)
@@ -410,6 +412,7 @@ public class TableManagementService(
             logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
 
             var table = await context.Set<TableSession>()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == dto.TableId && t.TenantId == tenantId && !t.IsDeleted, cancellationToken);
 
             if (table is null)

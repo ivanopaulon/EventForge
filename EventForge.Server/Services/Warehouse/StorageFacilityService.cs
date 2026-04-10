@@ -264,6 +264,7 @@ public class StorageFacilityService(
         try
         {
             return await context.StorageFacilities
+                .AsNoTracking()
                 .AnyAsync(sf => sf.Id == facilityId && !sf.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

@@ -326,6 +326,7 @@ public class StockAlertService(
             {
                 // Check if alert already exists
                 var existingAlert = await context.StockAlerts
+                    .AsNoTracking()
                     .AnyAsync(sa => sa.StockId == stock.Id
                                  && sa.AlertType == StockAlertType.LowStock
                                  && sa.Status == AlertStatus.Active,
@@ -389,6 +390,7 @@ public class StockAlertService(
             {
                 // Check if alert already exists
                 var existingAlert = await context.StockAlerts
+                    .AsNoTracking()
                     .AnyAsync(sa => sa.StockId == stock.Id
                                  && sa.AlertType == StockAlertType.HighStock
                                  && sa.Status == AlertStatus.Active,
@@ -462,6 +464,7 @@ public class StockAlertService(
                 {
                     // Check if alert already exists
                     var existingAlert = await context.StockAlerts
+                        .AsNoTracking()
                         .AnyAsync(sa => sa.StockId == stock.Id
                                      && sa.AlertType == StockAlertType.Expiry
                                      && sa.Status == AlertStatus.Active,
