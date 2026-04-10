@@ -222,6 +222,7 @@ public class VatRateService(
         try
         {
             return await context.VatRates
+                .AsNoTracking()
                 .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

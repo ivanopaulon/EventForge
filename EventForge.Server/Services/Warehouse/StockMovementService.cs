@@ -35,6 +35,7 @@ public class StockMovementService(
             }
 
             var query = context.StockMovements
+                .AsNoTracking()
                 .Include(sm => sm.Product)
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.Serial)
@@ -114,6 +115,7 @@ public class StockMovementService(
             }
 
             var movement = await context.StockMovements
+                .AsNoTracking()
                 .Include(sm => sm.Product)
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.Serial)
@@ -579,6 +581,7 @@ public class StockMovementService(
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var query = context.StockMovements
+            .AsNoTracking()
             .Where(sm => sm.TenantId == currentTenantId
                       && sm.MovementDate >= fromDate
                       && sm.MovementDate <= toDate);
@@ -690,6 +693,7 @@ public class StockMovementService(
         var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
         var movements = await context.StockMovements
+            .AsNoTracking()
             .Include(sm => sm.Product)
             .Include(sm => sm.Lot)
             .Include(sm => sm.FromLocation)

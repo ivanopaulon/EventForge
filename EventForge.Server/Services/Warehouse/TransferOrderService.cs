@@ -134,6 +134,7 @@ public class TransferOrderService(
             }
 
             var sourceWarehouse = await context.StorageFacilities
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == createDto.SourceWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
 
             if (sourceWarehouse is null)
@@ -142,6 +143,7 @@ public class TransferOrderService(
             }
 
             var destinationWarehouse = await context.StorageFacilities
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == createDto.DestinationWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
 
             if (destinationWarehouse is null)
@@ -171,6 +173,7 @@ public class TransferOrderService(
             {
                 // Validate product exists
                 var product = await context.Products
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
                 if (product is null)
@@ -180,6 +183,7 @@ public class TransferOrderService(
 
                 // Validate source location exists and belongs to source warehouse
                 var sourceLocation = await context.StorageLocations
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(l => l.Id == rowDto.SourceLocationId && l.WarehouseId == createDto.SourceWarehouseId && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
                 if (sourceLocation is null)

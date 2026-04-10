@@ -1170,9 +1170,9 @@
         {
             await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container");
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore JS errors
+            Logger.LogDebug(ex, "Could not scroll chat to bottom.");
         }
     }
 

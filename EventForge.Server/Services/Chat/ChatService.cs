@@ -983,6 +983,7 @@ public class ChatService(
 
             // 1. Query ChatMessages by messageId with related entities
             var message = await context.ChatMessages
+                .AsNoTracking()
                 .Include(m => m.ChatThread)
                 .Include(m => m.Attachments)
                 .Include(m => m.ReadReceipts)

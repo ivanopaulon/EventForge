@@ -34,6 +34,7 @@ public class VatNatureService(
                 async (ct) =>
                 {
                     return await context.VatNatures
+                        .AsNoTracking()
                         .WhereActiveTenant(currentTenantId.Value)
                         .OrderBy(v => v.Code)
                         .Select(v => MapToVatNatureDto(v))
