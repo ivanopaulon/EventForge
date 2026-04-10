@@ -53,31 +53,15 @@ public sealed class UpdateHubProxyService : IUpdateHubProxyService
 
     public async Task<IReadOnlyList<PackageSummaryDto>> GetPackagesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            EnsureConfigured();
-            var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", _hubJsonOptions, ct) ?? [];
-            return [.. list.OrderByDescending(p => p.UploadedAt)];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in GetPackagesAsync.");
-            throw;
-        }
+        EnsureConfigured();
+        var list = await _http.GetFromJsonAsync<List<PackageSummaryDto>>("api/v1/packages", _hubJsonOptions, ct) ?? [];
+        return [.. list.OrderByDescending(p => p.UploadedAt)];
     }
 
     public async Task<IReadOnlyList<InstallationSummaryDto>> GetInstallationsAsync(CancellationToken ct = default)
     {
-        try
-        {
-            EnsureConfigured();
-            return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", _hubJsonOptions, ct) ?? [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in GetInstallationsAsync.");
-            throw;
-        }
+        EnsureConfigured();
+        return await _http.GetFromJsonAsync<List<InstallationSummaryDto>>("api/v1/installations", _hubJsonOptions, ct) ?? [];
     }
 
     public async Task SendUpdateAsync(Guid installationId, Guid packageId, CancellationToken ct = default)
@@ -92,13 +76,19 @@ public sealed class UpdateHubProxyService : IUpdateHubProxyService
             if (!response.IsSuccessStatusCode)
             {
                 var err = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogError("SendUpdate failed {Status}: {Body}", response.StatusCode, err);
+                _logger.LogError(
+                    "SendUpdate failed for installation {InstallationId} package {PackageId}: HTTP {Status} — {Body}",
+                    installationId, packageId, response.StatusCode, err);
                 response.EnsureSuccessStatusCode();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SendUpdateAsync for installation {InstallationId} and package {PackageId}.", installationId, packageId);
+            // For HttpRequestException from EnsureSuccessStatusCode, status/body are already logged above.
+            // For all other exceptions (network, timeout, etc.), log with installation context.
+            if (ex is not HttpRequestException)
+                _logger.LogError(ex, "Error in SendUpdateAsync for installation {InstallationId} and package {PackageId}: {ErrorMessage}",
+                    installationId, packageId, ex.Message);
             throw;
         }
     }

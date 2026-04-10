@@ -72,7 +72,9 @@ public sealed class UpdatesAvailableRefreshService(
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogWarning(ex, "UpdatesAvailableRefreshService: failed to fetch package count.");
+            logger.LogWarning(ex,
+                "UpdatesAvailableRefreshService: failed to fetch package count. {ExceptionType}: {ErrorMessage}",
+                ex.GetType().Name, ex.Message);
         }
     }
 }
