@@ -115,7 +115,7 @@ public class AgentHub(
 
         // Resolve package metadata before modifying DB so the info is available even after history
         // completion (CompleteUpdateHistoryAsync returns only the package id, not full details).
-        var pkgInfo = await installationService.GetHistoryPackageInfoAsync(msg.UpdateHistoryId);
+        var pkgInfo = await installationService.GetHistoryPackageInfoAsync(msg.UpdateHistoryId, Context.ConnectionAborted);
 
         if (msg.IsCompleted)
         {
@@ -238,7 +238,7 @@ public class AgentHub(
                 Content = JsonContent.Create(payload)
             };
             request.Headers.Add("X-Maintenance-Secret", hubOptions.MaintenanceCallbackSecret);
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, Context.ConnectionAborted);
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning("Server callback returned {StatusCode} for Phase={Phase} HistoryId={HistoryId}",
