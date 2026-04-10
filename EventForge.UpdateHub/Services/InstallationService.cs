@@ -94,6 +94,16 @@ public class InstallationService(UpdateHubDbContext db, IConnectionTracker conne
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<HistoryPackageInfo?> GetHistoryPackageInfoAsync(Guid historyId, CancellationToken ct = default)
+    {
+        var history = await db.UpdateHistories
+            .AsNoTracking()
+            .Include(h => h.Package)
+            .FirstOrDefaultAsync(h => h.Id == historyId, ct);
+        if (history is null) return null;
+        return new HistoryPackageInfo(history.PackageId, history.Package?.Version, history.Package?.Component);
+    }
+
     public async Task<bool> RevokeAsync(Guid id, string? reason, CancellationToken ct = default)
     {
         var installation = await db.Installations.FindAsync([id], ct);

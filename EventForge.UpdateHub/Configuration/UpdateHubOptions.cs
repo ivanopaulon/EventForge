@@ -41,6 +41,21 @@ public class UpdateHubOptions
     /// </summary>
     public string? BaseUrl { get; set; }
 
+    // ── Server callback ───────────────────────────────────────────────────
+    /// <summary>
+    /// Base URL of the EventForge.Server to which the Hub posts update-progress notifications
+    /// so that connected Blazor clients receive real-time phase updates (e.g. "https://app.example.com").
+    /// Leave empty/null to disable server callbacks from AgentHub.
+    /// </summary>
+    public string? ServerCallbackUrl { get; set; }
+
+    /// <summary>
+    /// Shared secret sent as the <c>X-Maintenance-Secret</c> request header when calling
+    /// <see cref="ServerCallbackUrl"/>. Must match <c>UpdateHub:MaintenanceSecret</c> on
+    /// EventForge.Server. Leave empty to disable callbacks (the Server rejects empty secrets).
+    /// </summary>
+    public string MaintenanceCallbackSecret { get; set; } = string.Empty;
+
     // ── Agent monitoring ──────────────────────────────────────────────────
     /// <summary>
     /// Seconds after the last heartbeat before an installation is considered offline.

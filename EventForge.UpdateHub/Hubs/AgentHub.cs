@@ -2,6 +2,7 @@ using EventForge.UpdateHub.Configuration;
 using EventForge.UpdateHub.Models;
 using EventForge.UpdateHub.Services;
 using Microsoft.AspNetCore.SignalR;
+using System.Net.Http.Json;
 
 namespace EventForge.UpdateHub.Hubs;
 
@@ -14,6 +15,7 @@ public class AgentHub(
     IConnectionTracker connectionTracker,
     IInstallationService installationService,
     IPackageService packageService,
+    IHttpClientFactory httpClientFactory,
     UpdateHubOptions hubOptions) : Hub
 {
     public override async Task OnConnectedAsync()
@@ -111,6 +113,10 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
+        // Resolve package metadata before modifying DB so the info is available even after history
+        // completion (CompleteUpdateHistoryAsync returns only the package id, not full details).
+        var pkgInfo = await installationService.GetHistoryPackageInfoAsync(msg.UpdateHistoryId, Context.ConnectionAborted);
+
         if (msg.IsCompleted)
         {
             var historyStatus = msg.IsSuccess ? UpdateHistoryStatus.Succeeded : UpdateHistoryStatus.Failed;
@@ -132,6 +138,9 @@ public class AgentHub(
 
         logger.LogInformation("Update progress Installation={InstallationId} Phase={Phase} Completed={IsCompleted} Success={IsSuccess}",
             installationId, msg.Phase, msg.IsCompleted, msg.IsSuccess);
+
+        // Propagate the phase to connected Blazor clients via EventForge.Server (best-effort).
+        await NotifyServerCallbackAsync(msg, pkgInfo);
     }
 
     /// <summary>
@@ -193,5 +202,53 @@ public class AgentHub(
         if (Context.GetHttpContext()?.Items["InstallationId"] is Guid id)
             return id;
         return null;
+    }
+
+    /// <summary>
+    /// Best-effort HTTP POST to EventForge.Server's maintenance endpoint so that connected
+    /// Blazor clients receive real-time update-progress events from the AgentHub channel.
+    /// All errors are swallowed and logged as warnings — a callback failure must never
+    /// abort the primary DB update logic.
+    /// </summary>
+    private async Task NotifyServerCallbackAsync(UpdateProgressMessage msg, HistoryPackageInfo? pkgInfo)
+    {
+        if (string.IsNullOrWhiteSpace(hubOptions.ServerCallbackUrl) ||
+            string.IsNullOrWhiteSpace(hubOptions.MaintenanceCallbackSecret))
+            return;
+
+        var currentPhase = msg.IsCompleted
+            ? (msg.IsSuccess ? "Completed" : (msg.Phase == "Rollback" ? "Rollback" : "Failed"))
+            : msg.Phase;
+
+        var payload = new
+        {
+            phase       = "progress",
+            currentPhase,
+            component   = pkgInfo?.Component?.ToString(),
+            version     = pkgInfo?.Version,
+            detail      = msg.IsCompleted && !msg.IsSuccess ? msg.ErrorMessage : null
+        };
+
+        try
+        {
+            using var client = httpClientFactory.CreateClient();
+            var url = hubOptions.ServerCallbackUrl.TrimEnd('/') + "/api/v1/system/maintenance";
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Add("X-Maintenance-Secret", hubOptions.MaintenanceCallbackSecret);
+            var response = await client.SendAsync(request, Context.ConnectionAborted);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Server callback returned {StatusCode} for Phase={Phase} HistoryId={HistoryId}",
+                    (int)response.StatusCode, msg.Phase, msg.UpdateHistoryId);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to notify Server of update progress Phase={Phase} HistoryId={HistoryId}",
+                msg.Phase, msg.UpdateHistoryId);
+        }
     }
 }
