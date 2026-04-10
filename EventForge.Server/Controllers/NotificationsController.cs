@@ -1,6 +1,7 @@
 using EventForge.DTOs.Notifications;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Notifications;
+using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -23,6 +24,7 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class NotificationsController(
     INotificationService notificationService,
+    ITenantContext tenantContext,
     ILogger<NotificationsController> logger) : BaseApiController
 {
 
@@ -218,9 +220,8 @@ public class NotificationsController(
     {
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
             var notification = await notificationService.GetNotificationByIdAsync(id, userId, tenantId, cancellationToken);
 
@@ -262,8 +263,7 @@ public class NotificationsController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await notificationService.AcknowledgeNotificationAsync(id, userId, reason, cancellationToken);
             return Ok(result);
@@ -300,8 +300,7 @@ public class NotificationsController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await notificationService.SilenceNotificationAsync(
                 id, userId, silenceDto.Reason, silenceDto.ExpiresAt, cancellationToken);
@@ -339,8 +338,7 @@ public class NotificationsController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await notificationService.ArchiveNotificationAsync(id, userId, reason, cancellationToken);
             return Ok(result);
@@ -386,8 +384,7 @@ public class NotificationsController(
 
         try
         {
-            // TODO: Extract user ID from claims
-            bulkAction.UserId = Guid.Empty; // GetCurrentUserId();
+            bulkAction.UserId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await notificationService.ProcessBulkActionAsync(bulkAction, cancellationToken);
             return Ok(result);

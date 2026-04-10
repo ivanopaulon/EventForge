@@ -206,8 +206,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
             return Ok(result);
@@ -248,8 +247,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteChatAsync(
                 id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
@@ -445,9 +443,8 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
             var message = await chatService.GetMessageByIdAsync(messageId, userId, tenantId, cancellationToken);
 
@@ -487,8 +484,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var editMessageDto = new EditMessageDto
             {
@@ -539,8 +535,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteMessageAsync(
                 messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
@@ -580,8 +575,7 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.MarkMessageAsReadAsync(messageId, userId, null, cancellationToken);
             return Ok(result);
@@ -627,8 +621,7 @@ public class ChatController(
 
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
             return Ok(result);
@@ -677,8 +670,7 @@ public class ChatController(
 
         try
         {
-            // TODO: Extract user ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var uploadDto = new FileUploadDto
             {
@@ -734,9 +726,8 @@ public class ChatController(
     {
         try
         {
-            // TODO: Extract user ID and tenant ID from claims
-            var userId = Guid.Empty; // GetCurrentUserId();
-            var tenantId = default(Guid?); // GetCurrentTenantId();
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
 
             var downloadInfo = await chatService.GetFileDownloadInfoAsync(attachmentId, userId, tenantId, cancellationToken);
 
