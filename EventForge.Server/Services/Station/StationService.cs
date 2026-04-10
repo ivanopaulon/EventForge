@@ -201,6 +201,7 @@ public class StationService(
             logger.LogInformation("Station {StationId} updated by {User}", id, currentUser);
 
             var printerCount = await context.Printers
+                .AsNoTracking()
                 .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
 
             return MapToStationDto(station, printerCount);
