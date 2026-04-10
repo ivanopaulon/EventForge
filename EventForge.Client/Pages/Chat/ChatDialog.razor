@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services.WhatsApp
 @using EventForge.Client.Models.Messaging
+@using Microsoft.AspNetCore.Components.Forms
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
@@ -420,7 +421,7 @@
                         <EnhancedMessageComposer CurrentChat="@_selectedChat"
                                                  ReplyToMessage="@_replyToMessage"
                                                  OnSendMessage="@SendMessageAsync"
-                                                 OnAttachFile="@SelectFileAsync"
+                                                 OnAttachFile="@HandleAttachFilesAsync"
                                                  OnCancelReply="@CancelReply"
                                                  OnRemoveAttachment="@RemoveAttachment"
                                                  PendingAttachments="@_pendingAttachments"
@@ -684,11 +685,32 @@
         }
     }
 
-    private Task SelectFileAsync()
+    private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
     {
-        AppNotification.ShowInfo(TranslationService.GetTranslation(
-            "chat.fileAttachmentPlaceholder", "Allegato file — in arrivo"));
-        return Task.CompletedTask;
+        if (_selectedChat == null || files.Count == 0) return;
+        _isSendingMessage = true;
+        StateHasChanged();
+        try
+        {
+            foreach (var file in files)
+            {
+                var attachment = await ChatService.UploadFileAsync(_selectedChat.Id, file);
+                if (attachment != null)
+                    _pendingAttachments.Add(attachment);
+                else
+                    AppNotification.ShowWarning($"Impossibile caricare il file '{file.Name}'.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading file(s) to chat {ChatId}", _selectedChat.Id);
+            AppNotification.ShowError($"Errore nel caricamento del file: {ex.Message}");
+        }
+        finally
+        {
+            _isSendingMessage = false;
+            StateHasChanged();
+        }
     }
 
     private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
