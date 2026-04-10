@@ -3,6 +3,7 @@
 @inject IAuthService AuthService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject ILogger<NewChatDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Filled.PersonAdd"
           Title="@TranslationService.GetTranslation("chat.newChat", "Nuova Chat")"
@@ -160,6 +161,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading available users for new chat dialog");
             AppNotification.ShowError($"Errore nel caricamento degli utenti: {ex.Message}");
         }
         finally
@@ -223,6 +225,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error creating chat");
             AppNotification.ShowError($"Errore nella creazione della chat: {ex.Message}");
         }
         finally

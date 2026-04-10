@@ -628,16 +628,7 @@
         {
             _isTyping = false;
             try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
-            catch (Exception) { }
-        }
-
-        try
-        {
-            await RealtimeService.LeaveChatAsync(_selectedChat.Id);
-        }
-        catch (Exception)
-        {
-            // LeaveChatAsync may be unavailable in some configurations
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not update typing status on leave"); }
         }
 
         CancelAllTypingTimers();
