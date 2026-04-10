@@ -114,6 +114,7 @@ public class DocumentCounterService(
 
             // Check if counter already exists
             var existingCounter = await context.DocumentCounters
+                .AsNoTracking()
                 .FirstOrDefaultAsync(dc =>
                     dc.DocumentTypeId == createDto.DocumentTypeId &&
                     dc.Series == createDto.Series &&
