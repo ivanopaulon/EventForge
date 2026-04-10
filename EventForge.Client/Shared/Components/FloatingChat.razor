@@ -647,7 +647,7 @@
         {
             _isTyping = false;
             try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status before sending"); }
         }
 
         // Optimistic UI: show the message immediately before server confirmation
@@ -703,7 +703,7 @@
             {
                 _isTyping = true;
                 try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, true); }
-                catch (Exception) { }
+                catch (Exception ex) { Logger.LogDebug(ex, "Could not update typing status to true"); }
             }
 
             // Reset the auto-stop typing timer
@@ -723,7 +723,7 @@
                         {
                             _isTyping = false;
                             try { await ChatService.UpdateTypingStatusAsync(chatId, false); }
-                            catch (Exception) { }
+                            catch (Exception ex) { Logger.LogDebug(ex, "Could not auto-clear typing status"); }
                         });
                     }
                 }
@@ -736,7 +736,7 @@
             CancelMyTypingTimer();
             _isTyping = false;
             try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status on input cleared"); }
         }
     }
 
@@ -753,7 +753,7 @@
             if (_jsModule != null)
                 await _jsModule.InvokeVoidAsync("scrollToBottom", "fc-scroll");
         }
-        catch (Exception) { }
+        catch (Exception ex) { Logger.LogDebug(ex, "Could not scroll chat to bottom"); }
     }
 
     // ─── Real-time event handlers ─────────────────────────────────────────────
@@ -950,13 +950,13 @@
         if (_selectedChat != null)
         {
             try { await RealtimeService.LeaveChatAsync(_selectedChat.Id); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not leave chat {ChatId} on dispose", _selectedChat.Id); }
         }
 
         if (_jsModule != null)
         {
             try { await _jsModule.DisposeAsync(); }
-            catch (Exception) { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not dispose FloatingChat JS module"); }
         }
     }
 }
