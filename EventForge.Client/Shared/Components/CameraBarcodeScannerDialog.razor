@@ -68,14 +68,14 @@
             }
 
             <!-- Video feed (always present in DOM so JS can reference it) -->
-            <video id="@_videoId"
+            <video id="@_videoElementId"
                    class="@(_errorMessage != null || _initializing ? "camera-scanner-video-hidden" : "camera-scanner-video")"
                    autoplay
                    playsinline
                    muted />
 
             <!-- Hidden canvas used by ZXing fallback for frame capture -->
-            <canvas id="@_canvasId" class="camera-scanner-canvas-hidden" />
+            <canvas id="@_canvasElementId" class="camera-scanner-canvas-hidden" />
 
             @if (!_initializing && _errorMessage == null)
             {
@@ -127,8 +127,8 @@
     // ── Private state ─────────────────────────────────────────────────────────
 
     // Unique element IDs so multiple instances on the same page don't collide
-    private readonly string _videoId = "camera-scanner-video-" + Guid.NewGuid().ToString("N")[..8];
-    private readonly string _canvasId = "camera-scanner-canvas-" + Guid.NewGuid().ToString("N")[..8];
+    private readonly string _videoElementId = "camera-scanner-video-" + Guid.NewGuid().ToString("N")[..8];
+    private readonly string _canvasElementId = "camera-scanner-canvas-" + Guid.NewGuid().ToString("N")[..8];
 
     private bool _isVisible = false;
     private bool _initializing = false;
@@ -234,8 +234,8 @@
 
             var result = await JS.InvokeAsync<InitResult>(
                 "initCameraScanner",
-                _videoId,
-                _canvasId,
+                _videoElementId,
+                _canvasElementId,
                 _dotNetRef,
                 _useBackCamera,
                 deviceId);
