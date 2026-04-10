@@ -70,11 +70,13 @@
     private System.Timers.Timer? _debounceTimer;
     private bool _showCustomerSelector = false;
 
+    private const int DebounceDelayMs = 300;
+
     private void OnInputChanged(ChangeEventArgs e)
     {
         var value = e.Value?.ToString() ?? string.Empty;
         _debounceTimer?.Dispose();
-        _debounceTimer = new System.Timers.Timer(300);
+        _debounceTimer = new System.Timers.Timer(DebounceDelayMs);
         _debounceTimer.AutoReset = false;
         _debounceTimer.Elapsed += async (_, _) =>
         {

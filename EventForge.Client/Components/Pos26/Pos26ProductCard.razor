@@ -70,11 +70,13 @@
         await OnAddToCart.InvokeAsync(Product);
     }
 
+    private const int LongPressThresholdMs = 500;
+
     private void OnPointerDown(PointerEventArgs _)
     {
         _longPressTriggered = false;
         _longPressTimer?.Dispose();
-        _longPressTimer = new System.Timers.Timer(500) { AutoReset = false };
+        _longPressTimer = new System.Timers.Timer(LongPressThresholdMs) { AutoReset = false };
         _longPressTimer.Elapsed += async (_, _) =>
         {
             _longPressTriggered = true;

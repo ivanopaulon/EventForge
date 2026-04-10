@@ -262,8 +262,9 @@
             return;
         }
 
-        // Per metodi senza cambio non permettere eccedenza
-        if (!_selectedMethod.AllowsChange && _importoDigitato > _residuo + 0.001m)
+        // Per metodi senza cambio non permettere eccedenza (tolleranza per arrotondamento floating point)
+        const decimal DecimalComparisonTolerance = 0.001m;
+        if (!_selectedMethod.AllowsChange && _importoDigitato > _residuo + DecimalComparisonTolerance)
         {
             AppNotification.ShowWarning($"Per {_selectedMethod.Name} l'importo massimo è €{_residuo:F2}.");
             return;

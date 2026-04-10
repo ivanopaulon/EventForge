@@ -110,8 +110,8 @@
                       TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
                       GrandTotal="@ViewModel.GrandTotal"
                       OnClearCart="@ClearCartAsync"
-                      OnIncrease="@IncreaseQuantityAsync"
-                      OnDecrease="@DecreaseQuantityAsync"
+                      OnIncrease="@IncreaseQuantity"
+                      OnDecrease="@DecreaseQuantity"
                       OnEditItemNotes="@EditItemNotesAsync" />
 
         <Pos26Numpad CanPay="@ViewModel.CanPay"

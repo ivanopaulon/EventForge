@@ -321,7 +321,7 @@ public partial class POS2026 : IAsyncDisposable
             ?? new();
     }
 
-    private void IncreaseQuantityAsync(SaleItemDto item)
+    private void IncreaseQuantity(SaleItemDto item)
     {
         if (ViewModel.IsUpdatingItems) return;
         item.Quantity++;
@@ -329,7 +329,7 @@ public partial class POS2026 : IAsyncDisposable
         RebuildCartQuantities();
     }
 
-    private void DecreaseQuantityAsync(SaleItemDto item)
+    private void DecreaseQuantity(SaleItemDto item)
     {
         if (ViewModel.IsUpdatingItems) return;
         if (item.Quantity > 1)
