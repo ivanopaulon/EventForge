@@ -34,9 +34,15 @@ public interface IStationService
     /// <summary>Gets a printer by ID.</summary>
     Task<PrinterDto?> GetPrinterByIdAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Gets printers with pagination and optional search.</summary>
+    Task<PagedResult<PrinterDto>> GetPagedPrintersAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default);
+
     /// <summary>Creates a new printer.</summary>
     Task<PrinterDto?> CreatePrinterAsync(CreatePrinterDto createDto, CancellationToken ct = default);
 
     /// <summary>Updates an existing printer.</summary>
     Task<PrinterDto?> UpdatePrinterAsync(Guid id, UpdatePrinterDto updateDto, CancellationToken ct = default);
+
+    /// <summary>Deletes a printer.</summary>
+    Task<bool> DeletePrinterAsync(Guid id, CancellationToken ct = default);
 }

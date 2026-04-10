@@ -55,6 +55,30 @@ public class ChatService(
             await ValidateTenantAccessAsync(createChatDto.TenantId, cancellationToken);
             await ValidateChatRateLimitAsync(createChatDto.TenantId, createChatDto.CreatedBy, ChatOperationType.CreateChat, cancellationToken);
 
+            // For DirectMessage: return the existing chat if one already exists between these two users
+            if (createChatDto.Type == ChatType.DirectMessage && createChatDto.ParticipantIds.Count > 0)
+            {
+                var otherUserId = createChatDto.ParticipantIds.FirstOrDefault(id => id != createChatDto.CreatedBy);
+                if (otherUserId != Guid.Empty)
+                {
+                    var existing = await context.ChatThreads
+                        .AsNoTracking()
+                        .Where(ct => ct.TenantId == createChatDto.TenantId
+                                  && ct.Type == ChatType.DirectMessage
+                                  && ct.IsActive
+                                  && ct.Members.Any(m => m.UserId == createChatDto.CreatedBy && m.IsActive)
+                                  && ct.Members.Any(m => m.UserId == otherUserId && m.IsActive))
+                        .OrderByDescending(ct => ct.UpdatedAt)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (existing != null)
+                    {
+                        var existingDto = await GetChatByIdAsync(existing.Id, createChatDto.CreatedBy, createChatDto.TenantId, cancellationToken);
+                        if (existingDto != null) return existingDto;
+                    }
+                }
+            }
+
             // Generate chat ID and prepare entity
             var chatId = Guid.NewGuid();
             var now = DateTime.UtcNow;

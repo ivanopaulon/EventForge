@@ -144,13 +144,6 @@
                 </MudTd>
             }
         }
-        <MudTd Class="text-center">
-            <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                               Size="Size.Small"
-                               OnClick="@(() => OpenDetailDialogAsync(ctx.Item.Id))" />
-            </MudTooltip>
-        </MudTd>
     </RowTemplate>
 </EntityManagementPage>
 
