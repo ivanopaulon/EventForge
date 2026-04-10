@@ -16,6 +16,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject ITranslationService TranslationService
 @inject ILogger<CameraBarcodeScannerDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.QrCodeScanner"
@@ -31,7 +32,7 @@
                 <MudAlert Severity="Severity.Error" Class="ma-2">
                     <MudText Typo="Typo.body2">@_errorMessage</MudText>
                     <MudText Typo="Typo.caption" Class="mt-1">
-                        Verifica che il browser abbia il permesso di accedere alla fotocamera.
+                        @TranslationService.GetTranslation("camera.permissionHint", "Verifica che il browser abbia il permesso di accedere alla fotocamera.")
                     </MudText>
                 </MudAlert>
             }
@@ -40,7 +41,7 @@
                 <div class="camera-scanner-loading">
                     <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
                     <MudText Typo="Typo.body2" Class="mt-3" Style="color: white;">
-                        Avvio fotocamera...
+                        @TranslationService.GetTranslation("camera.starting", "Avvio fotocamera...")
                     </MudText>
                 </div>
             }
@@ -75,7 +76,7 @@
                 <div class="camera-scanner-controls">
                     @if (_cameras.Count > 1)
                     {
-                        <MudTooltip Text="Cambia fotocamera">
+                        <MudTooltip Text="@TranslationService.GetTranslation("camera.switchCamera", "Cambia fotocamera")">
                             <MudIconButton Icon="@Icons.Material.Outlined.Cameraswitch"
                                            Class="camera-scanner-ctrl-btn"
                                            OnClick="SwitchCameraAsync" />
@@ -83,7 +84,7 @@
                     }
                     @if (_hasTorch)
                     {
-                        <MudTooltip Text="@(_torchOn ? "Spegni torcia" : "Accendi torcia")">
+                        <MudTooltip Text="@(_torchOn ? TranslationService.GetTranslation("camera.torchOff", "Spegni torcia") : TranslationService.GetTranslation("camera.torchOn", "Accendi torcia"))">
                             <MudIconButton Icon="@(_torchOn ? Icons.Material.Filled.FlashOn : Icons.Material.Outlined.FlashOff)"
                                            Class="@("camera-scanner-ctrl-btn" + (_torchOn ? " camera-scanner-ctrl-btn--active" : ""))"
                                            OnClick="ToggleTorchAsync" />
@@ -113,11 +114,6 @@
     [Parameter] public string Title { get; set; } = "Scansiona Codice a Barre";
 
     [Parameter] public string HelperText { get; set; } = "Inquadra il codice a barre nel riquadro";
-
-    /// <summary>
-    /// Fired every time a barcode is detected. If ContinuousMode is false (default)
-    /// the dialog closes automatically after the first detection.
-    /// </summary>
     [Parameter] public EventCallback<string> OnBarcodeDetected { get; set; }
 
     /// <summary>
@@ -230,7 +226,7 @@
 
             if (!result.Success)
             {
-                _errorMessage = result.Error ?? "Impossibile avviare la fotocamera";
+                _errorMessage = result.Error ?? TranslationService.GetTranslation("camera.startFailed", "Impossibile avviare la fotocamera");
                 Logger.LogWarning("Camera scanner failed: {Error}", result.Error);
             }
             else
@@ -252,7 +248,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "StartScannerAsync error");
-            _errorMessage = "Errore durante l'avvio della fotocamera: " + ex.Message;
+            _errorMessage = TranslationService.GetTranslation("camera.startError", "Errore durante l'avvio della fotocamera: {0}", ex.Message);
         }
         finally
         {

@@ -35,7 +35,7 @@
                            Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
                     @SearchButtonText
                 </MudButton>
-                <MudTooltip Text="Scansiona con la fotocamera">
+                <MudTooltip Text="@TranslationService.GetTranslation("camera.scanWithCamera", "Scansiona con la fotocamera")">
                     <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
                                    Color="Color.Secondary"
                                    Variant="Variant.Outlined"
