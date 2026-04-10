@@ -141,7 +141,7 @@ public class AuthenticationService(
             }
 
             // Find user by username within the tenant -- load only UserRoles->Role and Tenant to
-            // keep the query lightweight. Permissions are loaded separately on the success path.
+            // keep the query lightweight. Permissions are loaded separately on the successful path.
             var user = await dbContext.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
