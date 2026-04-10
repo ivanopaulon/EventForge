@@ -534,6 +534,7 @@ public class PriceListService(
         try
         {
             return await context.PriceLists
+                .AsNoTracking()
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -548,6 +549,7 @@ public class PriceListService(
         try
         {
             return await context.Events
+                .AsNoTracking()
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -562,6 +564,7 @@ public class PriceListService(
         try
         {
             return await context.Products
+                .AsNoTracking()
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)

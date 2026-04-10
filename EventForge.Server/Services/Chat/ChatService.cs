@@ -1159,6 +1159,7 @@ public class ChatService(
             // 2. Validate user is sender OR chat owner/admin
             var isSender = message.SenderId == userId;
             var isOwnerOrAdmin = await context.ChatMembers
+                .AsNoTracking()
                 .AnyAsync(cm =>
                     cm.ChatThreadId == message.ChatThreadId &&
                     cm.UserId == userId &&
@@ -1873,6 +1874,7 @@ public class ChatService(
             if (requestingUserId != Guid.Empty)
             {
                 var isMember = await context.ChatMembers
+                    .AsNoTracking()
                     .AnyAsync(cm => cm.ChatThreadId == chatId
                                  && cm.UserId == requestingUserId
                                  && !cm.IsDeleted, cancellationToken);
