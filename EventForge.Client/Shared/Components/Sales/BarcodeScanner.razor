@@ -24,21 +24,35 @@
                           data-barcode-input="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                       Color="Color.Primary"
-                       Variant="Variant.Filled"
-                       FullWidth="true"
-                       OnClick="@SearchBarcodeAsync"
-                       Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
-                @SearchButtonText
-            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true"
+                           OnClick="@SearchBarcodeAsync"
+                           Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
+                    @SearchButtonText
+                </MudButton>
+                <MudTooltip Text="Scansiona con la fotocamera">
+                    <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
+                                   Color="Color.Secondary"
+                                   Variant="Variant.Outlined"
+                                   Disabled="@IsDisabled"
+                                   OnClick="@OpenCameraScannerAsync" />
+                </MudTooltip>
+            </MudStack>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
+<CameraBarcodeScannerDialog @ref="_cameraDialog"
+                             Title="@Title"
+                             OnBarcodeDetected="@OnCameraBarcode" />
+
 @code {
     private string _barcode = string.Empty;
     private MudTextField<string>? _barcodeInput;
+    private CameraBarcodeScannerDialog? _cameraDialog;
 
     [Parameter]
     public string Title { get; set; } = "Scansiona Codice a Barre";
@@ -66,6 +80,19 @@
 
     [Parameter]
     public EventCallback<Exception> OnError { get; set; }
+
+    private async Task OpenCameraScannerAsync()
+    {
+        if (_cameraDialog != null)
+            await _cameraDialog.OpenAsync();
+    }
+
+    private async Task OnCameraBarcode(string barcode)
+    {
+        _barcode = barcode;
+        StateHasChanged();
+        await SearchBarcodeAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
