@@ -310,8 +310,9 @@ namespace EventForge.Client.Services
                     _accessToken = null;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogDebug(ex, "Could not load token from localStorage");
                 _accessToken = null;
             }
         }
@@ -326,8 +327,9 @@ namespace EventForge.Client.Services
                     _currentUser = System.Text.Json.JsonSerializer.Deserialize<UserDto>(userJson);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogDebug(ex, "Could not load user from localStorage");
                 _currentUser = null;
             }
         }

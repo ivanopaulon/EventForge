@@ -80,7 +80,11 @@
         {
             _errorMessage = null;
             _healthData = await HealthService.GetDetailedHealthAsync();
-            _agentStatusData = await HealthService.GetAgentStatusAsync();
+
+            if (await AuthService.IsAuthenticatedAsync())
+            {
+                _agentStatusData = await HealthService.GetAgentStatusAsync();
+            }
 
             if (_healthData == null)
             {

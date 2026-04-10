@@ -1,0 +1,309 @@
+@* CameraBarcodeScannerDialog.razor
+ *
+ * Full-screen camera dialog for barcode scanning.
+ * Uses BarcodeDetector API (native, Android Chrome/Edge) with @zxing/browser CDN
+ * fallback for iOS Safari and other browsers. No paid libraries.
+ *
+ * Usage (via IDialogService):
+ *   var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+ *   {
+ *       { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, HandleBarcode) }
+ *   };
+ *   await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+ *@
+
+@using Microsoft.JSInterop
+@using EventForge.Client.Shared.Components.Dialogs
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject ITranslationService TranslationService
+@inject ILogger<CameraBarcodeScannerDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.QrCodeScanner"
+          Title="@Title"
+          IsProcessing="@_initializing"
+          MinWidth="min(520px, 98vw)"
+          Height="calc(100dvh - 48px)"
+          OnClose="HandleClose">
+    <ChildContent>
+        <div class="camera-scanner-container">
+            @if (_errorMessage != null)
+            {
+                <MudAlert Severity="Severity.Error" Class="ma-2">
+                    <MudText Typo="Typo.body2">@_errorMessage</MudText>
+                    <MudText Typo="Typo.caption" Class="mt-1">
+                        @TranslationService.GetTranslation("camera.permissionHint", "Verifica che il browser abbia il permesso di accedere alla fotocamera.")
+                    </MudText>
+                </MudAlert>
+            }
+            else if (_initializing)
+            {
+                <div class="camera-scanner-loading">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                    <MudText Typo="Typo.body2" Class="mt-3" Style="color: white;">
+                        @TranslationService.GetTranslation("camera.starting", "Avvio fotocamera...")
+                    </MudText>
+                </div>
+            }
+
+            <!-- Video feed (always present in DOM so JS can reference it) -->
+            <video id="@_videoElementId"
+                   class="@(_errorMessage != null || _initializing ? "camera-scanner-video-hidden" : "camera-scanner-video")"
+                   autoplay
+                   playsinline
+                   muted />
+
+            <!-- Hidden canvas used by ZXing fallback for frame capture -->
+            <canvas id="@_canvasElementId" class="camera-scanner-canvas-hidden" />
+
+            @if (!_initializing && _errorMessage == null)
+            {
+                <!-- Viewfinder overlay -->
+                <div class="camera-scanner-overlay">
+                    <div class="camera-scanner-viewfinder">
+                        <div class="camera-scanner-corner tl"></div>
+                        <div class="camera-scanner-corner tr"></div>
+                        <div class="camera-scanner-corner bl"></div>
+                        <div class="camera-scanner-corner br"></div>
+                        <div class="camera-scanner-line @(_scanning ? "scanning" : "")"></div>
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8); margin-top: 12px; text-align: center;">
+                        @HelperText
+                    </MudText>
+                </div>
+
+                <!-- Floating camera controls (torch / camera switch) -->
+                <div class="camera-scanner-controls">
+                    @if (_cameras.Count > 1)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("camera.switchCamera", "Cambia fotocamera")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Cameraswitch"
+                                           Class="camera-scanner-ctrl-btn"
+                                           OnClick="SwitchCameraAsync" />
+                        </MudTooltip>
+                    }
+                    @if (_hasTorch)
+                    {
+                        <MudTooltip Text="@(_torchOn ? TranslationService.GetTranslation("camera.torchOff", "Spegni torcia") : TranslationService.GetTranslation("camera.torchOn", "Accendi torcia"))">
+                            <MudIconButton Icon="@(_torchOn ? Icons.Material.Filled.FlashOn : Icons.Material.Outlined.FlashOff)"
+                                           Class="@("camera-scanner-ctrl-btn" + (_torchOn ? " camera-scanner-ctrl-btn--active" : ""))"
+                                           OnClick="ToggleTorchAsync" />
+                        </MudTooltip>
+                    }
+                </div>
+            }
+
+            @if (_lastDetectedCode != null)
+            {
+                <div class="camera-scanner-result">
+                    <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
+                        @_lastDetectedCode
+                    </MudChip>
+                </div>
+            }
+        </div>
+    </ChildContent>
+</EFDialog>
+
+@code {
+    // ── Cascading parameter (provided by IDialogService) ──────────────────────
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    // ── Parameters ────────────────────────────────────────────────────────────
+
+    [Parameter] public string Title { get; set; } = "Scansiona Codice a Barre";
+
+    [Parameter] public string HelperText { get; set; } = "Inquadra il codice a barre nel riquadro";
+    [Parameter] public EventCallback<string> OnBarcodeDetected { get; set; }
+
+    /// <summary>
+    /// When true the dialog stays open and keeps scanning after each detection.
+    /// </summary>
+    [Parameter] public bool ContinuousMode { get; set; } = false;
+
+    // ── Private state ─────────────────────────────────────────────────────────
+
+    // Unique element IDs so multiple instances on the same page don't collide
+    private readonly string _videoElementId = "camera-scanner-video-" + Guid.NewGuid().ToString("N")[..8];
+    private readonly string _canvasElementId = "camera-scanner-canvas-" + Guid.NewGuid().ToString("N")[..8];
+
+    private bool _initializing = false;
+    private bool _scanning = false;
+    private bool _torchOn = false;
+    private bool _hasTorch = false;
+    private string? _errorMessage = null;
+    private string? _lastDetectedCode = null;
+
+    private List<CameraDevice> _cameras = new();
+    private int _currentCameraIndex = 0;
+
+    private DotNetObjectReference<CameraBarcodeScannerDialog>? _dotNetRef;
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _initializing = true;
+            StateHasChanged();
+            // Small delay so the video element is fully in the DOM
+            await Task.Delay(150);
+            await StartScannerAsync();
+        }
+    }
+
+    // ── EFDialog close handler ────────────────────────────────────────────────
+
+    private async Task HandleClose()
+    {
+        await StopScannerAsync();
+        MudDialog?.Cancel();
+    }
+
+    // ── JS-invokable callback ─────────────────────────────────────────────────
+
+    [JSInvokable]
+    public async Task OnBarcodeDetectedFromJs(string barcode)
+    {
+        await InvokeAsync(async () =>
+        {
+            try
+            {
+                _lastDetectedCode = barcode;
+                _scanning = false;
+                StateHasChanged();
+
+                await OnBarcodeDetected.InvokeAsync(barcode);
+
+                if (!ContinuousMode)
+                {
+                    await Task.Delay(400); // brief pause so the user sees the detected code
+                    await HandleClose();
+                }
+                else
+                {
+                    _lastDetectedCode = null;
+                    _scanning = true;
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error handling detected barcode {Barcode}", barcode);
+            }
+        });
+    }
+
+    // ── Internal scanner lifecycle ────────────────────────────────────────────
+
+    private async Task StartScannerAsync()
+    {
+        try
+        {
+            _dotNetRef ??= DotNetObjectReference.Create(this);
+
+            // Enumerate cameras (needed for switch-camera feature)
+            try
+            {
+                var deviceList = await JS.InvokeAsync<List<CameraDevice>>("getCameraDevices");
+                _cameras = deviceList ?? new List<CameraDevice>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Could not enumerate cameras");
+            }
+
+            string? deviceId = _cameras.Count > 0 ? _cameras[_currentCameraIndex].DeviceId : null;
+
+            var result = await JS.InvokeAsync<InitResult>(
+                "initCameraScanner",
+                _videoElementId,
+                _canvasElementId,
+                _dotNetRef,
+                true,   // prefer back camera
+                deviceId);
+
+            if (!result.Success)
+            {
+                _errorMessage = result.Error ?? TranslationService.GetTranslation("camera.startFailed", "Impossibile avviare la fotocamera");
+                Logger.LogWarning("Camera scanner failed: {Error}", result.Error);
+            }
+            else
+            {
+                _scanning = true;
+
+                // Check torch support
+                try
+                {
+                    _hasTorch = await JS.InvokeAsync<bool>("toggleTorch", false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogDebug(ex, "Torch check failed");
+                    _hasTorch = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "StartScannerAsync error");
+            _errorMessage = TranslationService.GetTranslation("camera.startError", "Errore durante l'avvio della fotocamera: {0}", ex.Message);
+        }
+        finally
+        {
+            _initializing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StopScannerAsync()
+    {
+        _scanning = false;
+        try
+        {
+            await JS.InvokeVoidAsync("stopCameraScanner");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "stopCameraScanner JS error");
+        }
+    }
+
+    private async Task SwitchCameraAsync()
+    {
+        if (_cameras.Count < 2) return;
+        _currentCameraIndex = (_currentCameraIndex + 1) % _cameras.Count;
+        _initializing = true;
+        _errorMessage = null;
+        StateHasChanged();
+        await Task.Delay(100);
+        await StartScannerAsync();
+    }
+
+    private async Task ToggleTorchAsync()
+    {
+        try
+        {
+            _torchOn = !_torchOn;
+            await JS.InvokeAsync<bool>("toggleTorch", _torchOn);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "ToggleTorchAsync error");
+            _torchOn = !_torchOn; // revert
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopScannerAsync();
+        _dotNetRef?.Dispose();
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────────────────────
+
+    private record CameraDevice(string DeviceId, string Label);
+
+    private record InitResult(bool Success, bool UsingNativeDetector, string? Error);
+}

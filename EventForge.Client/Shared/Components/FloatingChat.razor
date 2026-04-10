@@ -599,6 +599,7 @@
             }
             catch (Exception ex)
             {
+                Logger.LogDebug(ex, "JoinChatAsync could not join chat room {ChatId}", chat.Id);
                 // JoinChatAsync may be unavailable in some configurations
                 Logger.LogWarning(ex, "Could not join SignalR chat room {ChatId}", chat.Id);
             }
@@ -635,7 +636,17 @@
         {
             _isTyping = false;
             try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
-            catch (Exception ex) { Logger.LogDebug(ex, "Could not update typing status on leave"); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status on leave"); }
+        }
+
+        try
+        {
+            await RealtimeService.LeaveChatAsync(_selectedChat.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "LeaveChatAsync could not leave chat room {ChatId}", _selectedChat.Id);
+            // LeaveChatAsync may be unavailable in some configurations
         }
 
         CancelAllTypingTimers();
@@ -654,7 +665,7 @@
         {
             _isTyping = false;
             try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, false); }
-            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status before sending"); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status before sending message"); }
         }
 
         // Optimistic UI: show the message immediately before server confirmation
@@ -710,7 +721,7 @@
             {
                 _isTyping = true;
                 try { await ChatService.UpdateTypingStatusAsync(_selectedChat.Id, true); }
-                catch (Exception ex) { Logger.LogDebug(ex, "Could not update typing status to true"); }
+                catch (Exception ex) { Logger.LogDebug(ex, "Could not set typing status to true"); }
             }
 
             // Reset the auto-stop typing timer
@@ -730,7 +741,7 @@
                         {
                             _isTyping = false;
                             try { await ChatService.UpdateTypingStatusAsync(chatId, false); }
-                            catch (Exception ex) { Logger.LogDebug(ex, "Could not auto-clear typing status"); }
+                            catch (Exception ex) { Logger.LogDebug(ex, "Could not clear typing status from auto-stop timer"); }
                         });
                     }
                 }
@@ -957,7 +968,7 @@
         if (_selectedChat != null)
         {
             try { await RealtimeService.LeaveChatAsync(_selectedChat.Id); }
-            catch (Exception ex) { Logger.LogDebug(ex, "Could not leave chat {ChatId} on dispose", _selectedChat.Id); }
+            catch (Exception ex) { Logger.LogDebug(ex, "Could not leave chat room on dispose"); }
         }
 
         if (_jsModule != null)

@@ -1,7 +1,9 @@
 @using EventForge.DTOs.Products
+@using EventForge.Client.Shared.Components.Dialogs
 @inject IProductService ProductService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 @inject ILogger<BarcodeScanner> Logger
 
 <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -24,14 +26,23 @@
                           data-barcode-input="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                       Color="Color.Primary"
-                       Variant="Variant.Filled"
-                       FullWidth="true"
-                       OnClick="@SearchBarcodeAsync"
-                       Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
-                @SearchButtonText
-            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           FullWidth="true"
+                           OnClick="@SearchBarcodeAsync"
+                           Disabled="@(string.IsNullOrWhiteSpace(_barcode) || IsDisabled)">
+                    @SearchButtonText
+                </MudButton>
+                <MudTooltip Text="@TranslationService.GetTranslation("camera.scanWithCamera", "Scansiona con la fotocamera")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
+                                   Color="Color.Secondary"
+                                   Variant="Variant.Outlined"
+                                   Disabled="@IsDisabled"
+                                   OnClick="@OpenCameraScannerAsync" />
+                </MudTooltip>
+            </MudStack>
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -66,6 +77,23 @@
 
     [Parameter]
     public EventCallback<Exception> OnError { get; set; }
+
+    private async Task OpenCameraScannerAsync()
+    {
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { x => x.Title, Title },
+            { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, OnCameraBarcode) }
+        };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+    }
+
+    private async Task OnCameraBarcode(string barcode)
+    {
+        _barcode = barcode;
+        StateHasChanged();
+        await SearchBarcodeAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

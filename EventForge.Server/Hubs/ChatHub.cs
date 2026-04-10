@@ -1,5 +1,6 @@
 using EventForge.DTOs.Chat;
 using EventForge.Server.Services.Chat;
+using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
@@ -17,15 +18,18 @@ public class ChatHub : Hub
     private readonly ILogger<ChatHub> _logger;
     private readonly IChatService _chatService;
     private readonly IOnlineUserTracker _onlineUserTracker;
+    private readonly IWhatsAppConversazioneService _whatsAppConversazioneService;
 
     public ChatHub(
         ILogger<ChatHub> logger,
         IChatService chatService,
-        IOnlineUserTracker onlineUserTracker)
+        IOnlineUserTracker onlineUserTracker,
+        IWhatsAppConversazioneService whatsAppConversazioneService)
     {
         _logger = logger;
         _chatService = chatService;
         _onlineUserTracker = onlineUserTracker;
+        _whatsAppConversazioneService = whatsAppConversazioneService;
     }
 
     #region Connection Management
@@ -595,6 +599,54 @@ public class ChatHub : Hub
     private bool IsInRole(string role)
     {
         return Context.User?.IsInRole(role) == true;
+    }
+
+    #endregion
+
+    #region WhatsApp
+
+    /// <summary>Notifies all connected clients in the tenant about a new WhatsApp message.</summary>
+    public async Task NotificaNuovoMessaggioWhatsApp(ChatMessageDto messaggio)
+    {
+        var tenantId = GetCurrentTenantId();
+        if (!tenantId.HasValue) return;
+        await Clients.OthersInGroup($"tenant_{tenantId.Value}").SendAsync("NuovoMessaggioWhatsApp", messaggio);
+    }
+
+    /// <summary>Notifies all connected clients in the tenant about a conversation update.</summary>
+    public async Task NotificaConversazioneAggiornata(ChatResponseDto conversazione)
+    {
+        var tenantId = GetCurrentTenantId();
+        if (!tenantId.HasValue) return;
+        await Clients.OthersInGroup($"tenant_{tenantId.Value}").SendAsync("ConversazioneAggiornata", conversazione);
+    }
+
+    /// <summary>Notifies all connected clients about an unrecognized number that sent a message.</summary>
+    public async Task NotificaNumeroNonRiconosciuto(ChatResponseDto conversazione)
+    {
+        var tenantId = GetCurrentTenantId();
+        if (!tenantId.HasValue) return;
+        await Clients.OthersInGroup($"tenant_{tenantId.Value}").SendAsync("NumeroNonRiconosciuto", conversazione);
+    }
+
+    /// <summary>Client-invoked: sends a WhatsApp reply from the currently authenticated operator.</summary>
+    public async Task InviaRispostaWhatsApp(Guid conversazioneId, string testo)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var tenantId = GetCurrentTenantId();
+            if (!userId.HasValue || !tenantId.HasValue)
+            {
+                _logger.LogWarning("InviaRispostaWhatsApp called without valid user/tenant context");
+                return;
+            }
+            await _whatsAppConversazioneService.InviaRispostaOperatoreAsync(conversazioneId, testo, userId.Value, tenantId.Value);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in InviaRispostaWhatsApp for conversation {ConvId}", conversazioneId);
+        }
     }
 
     #endregion

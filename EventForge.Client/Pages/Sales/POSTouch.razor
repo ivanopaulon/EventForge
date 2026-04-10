@@ -34,58 +34,31 @@
 <PageLoadingOverlay Visible="ViewModel.IsLoading"
                     Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
-@if (_fiscalPrinterStatus?.IsDailyClosureRequired == true)
-{
-    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudText Style="flex:1">
-                ⚠️ Il registratore di cassa richiede la chiusura giornaliera. Le nuove stampe potrebbero essere bloccate.
-            </MudText>
-            <MudButton Size="Size.Small"
-                       Variant="Variant.Filled"
-                       Color="Color.Warning"
-                       OnClick="@OpenDailyClosureDialogAsync">
-                Esegui Chiusura Ora
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-}
+<POSHeader AvailableOperators="@ViewModel.AvailableOperators"
+           SelectedOperatorId="@ViewModel.SelectedOperatorId"
+           SelectedOperatorIdChanged="@((v) => ViewModel.SelectedOperatorId = v)"
+           AvailablePos="@ViewModel.AvailablePos"
+           SelectedPosId="@ViewModel.SelectedPosId"
+           SelectedPosIdChanged="@((v) => ViewModel.SelectedPosId = v)"
+           SelectedCustomer="@ViewModel.SelectedCustomer"
+           SelectedCustomerChanged="@OnSelectedCustomerChangedAsync"
+           SessionNumber="@ViewModel.CurrentSession?.Id"
+           IsSessionActive="@ViewModel.HasActiveSession"
+           IsUpdatingItems="@ViewModel.IsUpdatingItems"
+           FiscalDrawerSummary="@_fiscalDrawerSummary"
+           OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
+           OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
+           OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
+           HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+           IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
+           OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
+           OnDailyClosureClick="@OpenDailyClosureDialogAsync"
+           OnParkClick="@ParkSessionAsync"
+           OnCancelClick="@AskCancelOrChangeAsync" />
 
-@if (_fiscalDrawerSummary is not null && !_fiscalDrawerSummary.HasOpenSession)
-{
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Size="Size.Small" />
-            <MudText Style="flex:1">Cassetto <strong>@_fiscalDrawerSummary.Name</strong>: sessione non aperta.</MudText>
-            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info" OnClick="@OpenDrawerSessionAsync">
-                Apri Sessione
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-}
-@if (_fiscalDrawerSummary is not null && _fiscalDrawerSummary.HasOpenSession)
-{
-    <MudPaper Elevation="0" Class="pa-2 mb-2 d-flex align-center gap-3 flex-wrap"
-              Style="background: linear-gradient(90deg, #e8f5e9, #f1f8e9); border-radius:6px; border-left:4px solid var(--mud-palette-success);">
-        <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Success" Size="Size.Small" />
-        <MudText Typo="Typo.body2"><strong>@_fiscalDrawerSummary.Name</strong></MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Saldo: <strong>@($"€ {_fiscalDrawerSummary.CurrentBalance:N2}")</strong></MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Vendite: <strong>@($"€ {_fiscalDrawerSummary.SessionTotalSales:N2}")</strong></MudText>
-        <MudSpacer />
-        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowUpward"
-                   Color="Color.Success" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))">
-            Versamento
-        </MudButton>
-        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowDownward"
-                   Color="Color.Warning" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))">
-            Prelievo
-        </MudButton>
-    </MudPaper>
-}
-
-<!-- ======================================================
+@* ======================================================
      STEP 1 — Operator not yet selected → show full-screen grid
-     ====================================================== -->
+     ====================================================== *@
 @if (!ViewModel.SelectedOperatorId.HasValue)
 {
     <MudContainer MaxWidth="MaxWidth.Large" Class="mt-6">
@@ -94,10 +67,9 @@
                               OnOperatorSelected="@OnOperatorCardSelectedAsync" />
     </MudContainer>
 }
-
-<!-- ======================================================
+@* ======================================================
      STEP 2 — Operator selected but POS not yet selected
-     ====================================================== -->
+     ====================================================== *@
 else if (!ViewModel.SelectedPosId.HasValue)
 {
     <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
@@ -159,84 +131,11 @@ else if (!ViewModel.SelectedPosId.HasValue)
     </MudContainer>
 }
 
-<!-- ======================================================
+@* ======================================================
      STEP 3 — Session active → main POS touch UI
-     ====================================================== -->
+     ====================================================== *@
 else
 {
-    <!-- Compact top bar: operator + cassa (small) + customer + session actions -->
-    <MudPaper Elevation="3" Class="pa-2 mb-2" Style="border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.NoWrap">
-
-            <!-- Operator chip (small) -->
-            <MudChip T="string"
-                     Icon="@Icons.Material.Filled.Person"
-                     Color="Color.Primary"
-                     Size="Size.Small"
-                     Variant="Variant.Filled"
-                     Style="font-size: 0.75rem;">
-                @(ViewModel.AvailableOperators.FirstOrDefault(o => o.Id == ViewModel.SelectedOperatorId)?.Name ?? "—")
-            </MudChip>
-
-            <!-- POS / Cassa chip (small) -->
-            <MudChip T="string"
-                     Icon="@Icons.Material.Filled.PointOfSale"
-                     Color="Color.Default"
-                     Size="Size.Small"
-                     Variant="Variant.Outlined"
-                     Style="font-size: 0.75rem;">
-                @(ViewModel.AvailablePos.FirstOrDefault(p => p.Id == ViewModel.SelectedPosId)?.Name ?? "—")
-            </MudChip>
-
-            @if (ViewModel.IsUpdatingItems)
-            {
-                <MudProgressCircular Color="Color.Warning" Size="Size.Small" Indeterminate="true" />
-            }
-
-            <MudSpacer />
-
-            <!-- Customer selector (compact) -->
-            <div style="max-width: 200px; min-width: 120px;">
-                <UnifiedBusinessPartySelector
-                    SelectedBusinessParty="ViewModel.SelectedCustomer"
-                    SelectedBusinessPartyChanged="@OnSelectedCustomerChangedAsync"
-                    Title="@null"
-                    Placeholder="@TranslationService.GetTranslation("sales.searchCustomer", "Cliente...")"
-                    FilterByType="BusinessPartyType.Customer"
-                    EditMode="EntityEditMode.QuickDialog"
-                    CreateMode="EntityCreateMode.QuickDialog"
-                    AllowQuickCreate="true"
-                    AllowQuickEdit="true"
-                    Disabled="@(!ViewModel.HasActiveSession)"
-                    Dense="true" />
-            </div>
-
-            <!-- Park -->
-            <MudTooltip Text="@TranslationService.GetTranslation("sales.parkTooltip", "Sospendi sessione (F3)")">
-                <MudButton StartIcon="@Icons.Material.Outlined.Pause"
-                           Color="Color.Warning"
-                           Variant="Variant.Outlined"
-                           Size="Size.Large"
-                           OnClick="@ParkSessionAsync"
-                           Disabled="@(!ViewModel.HasActiveSession)">
-                    @TranslationService.GetTranslation("sales.park", "Sospendi")
-                </MudButton>
-            </MudTooltip>
-
-            <!-- Cancel / Change operator -->
-            <MudTooltip Text="@TranslationService.GetTranslation("sales.changeOperator", "Cambia operatore / annulla")">
-                <MudButton StartIcon="@Icons.Material.Outlined.SwitchAccount"
-                           Color="Color.Default"
-                           Variant="Variant.Outlined"
-                           Size="Size.Large"
-                           OnClick="@AskCancelOrChangeAsync">
-                    @TranslationService.GetTranslation("sales.change", "Cambia")
-                </MudButton>
-            </MudTooltip>
-
-        </MudStack>
-    </MudPaper>
-
     <!-- Main two-column layout -->
     <MudGrid Spacing="3" Class="px-2 pb-4">
 
@@ -1337,6 +1236,24 @@ else
         {
             _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
             StateHasChanged();
+        }
+    }
+
+    private async Task OpenPhysicalDrawerAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(_fiscalPrinterId.Value);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowWarning($"Impossibile aprire il cassetto: {result?.ErrorMessage ?? "stampante non disponibile."}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POSTouch: error opening physical drawer for printer {PrinterId}", _fiscalPrinterId.Value);
+            AppNotification.ShowError("Errore durante l'apertura del cassetto.");
         }
     }
 

@@ -32,56 +32,6 @@
 <PageLoadingOverlay Visible="ViewModel.IsLoading" 
                     Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
 
-@if (_fiscalPrinterStatus?.IsDailyClosureRequired == true)
-{
-    <MudAlert Severity="Severity.Warning"
-              Dense="true"
-              Class="mb-2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudText Style="flex:1">
-                ⚠️ Il registratore di cassa richiede la chiusura giornaliera. Le nuove stampe potrebbero essere bloccate.
-            </MudText>
-            <MudButton Size="Size.Small"
-                       Variant="Variant.Filled"
-                       Color="Color.Warning"
-                       OnClick="@OpenDailyClosureDialogAsync">
-                Esegui Chiusura Ora
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-}
-
-@if (_fiscalDrawerSummary is not null && !_fiscalDrawerSummary.HasOpenSession)
-{
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Size="Size.Small" />
-            <MudText Style="flex:1">Cassetto <strong>@_fiscalDrawerSummary.Name</strong>: sessione non aperta.</MudText>
-            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Info" OnClick="@OpenDrawerSessionAsync">
-                Apri Sessione
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-}
-@if (_fiscalDrawerSummary is not null && _fiscalDrawerSummary.HasOpenSession)
-{
-    <MudPaper Elevation="0" Class="pa-2 mb-2 d-flex align-center gap-3 flex-wrap"
-              Style="background: linear-gradient(90deg, #e8f5e9, #f1f8e9); border-radius:6px; border-left:4px solid var(--mud-palette-success);">
-        <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Success" Size="Size.Small" />
-        <MudText Typo="Typo.body2"><strong>@_fiscalDrawerSummary.Name</strong></MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Saldo: <strong>@($"€ {_fiscalDrawerSummary.CurrentBalance:N2}")</strong></MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">Vendite: <strong>@($"€ {_fiscalDrawerSummary.SessionTotalSales:N2}")</strong></MudText>
-        <MudSpacer />
-        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowUpward"
-                   Color="Color.Success" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))">
-            Versamento
-        </MudButton>
-        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ArrowDownward"
-                   Color="Color.Warning" OnClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))">
-            Prelievo
-        </MudButton>
-    </MudPaper>
-}
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
     <!-- Page Title -->
@@ -104,6 +54,14 @@
                IsUpdatingItems="@ViewModel.IsUpdatingItems"
                LoadingTooltipText="@GetLoadingTooltipText()"
                LoadingSpinnerColor="@GetLoadingSpinnerColor()"
+               FiscalDrawerSummary="@_fiscalDrawerSummary"
+               OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
+               OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
+               OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
+               HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+               IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
+               OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
+               OnDailyClosureClick="@OpenDailyClosureDialogAsync"
                OnParkClick="@ParkSessionAsync"
                OnCancelClick="@CancelSessionAsync" />
 
@@ -1463,6 +1421,24 @@
         {
             Logger.LogError(ex, "Error in OpenDailyClosureDialogAsync.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OpenPhysicalDrawerAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(_fiscalPrinterId.Value);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowWarning($"Impossibile aprire il cassetto: {result?.ErrorMessage ?? "stampante non disponibile."}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS: error opening physical drawer for printer {PrinterId}", _fiscalPrinterId.Value);
+            AppNotification.ShowError("Errore durante l'apertura del cassetto.");
         }
     }
 

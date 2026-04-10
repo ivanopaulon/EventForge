@@ -99,14 +99,14 @@ public partial class EventForgeDbContext
             .HasOne(s => s.OpenedByOperator)
             .WithMany()
             .HasForeignKey(s => s.OpenedByOperatorId)
-            .OnDelete(DeleteBehavior.SetNull)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
         _ = modelBuilder.Entity<FiscalDrawerSession>()
             .HasOne(s => s.ClosedByOperator)
             .WithMany()
             .HasForeignKey(s => s.ClosedByOperatorId)
-            .OnDelete(DeleteBehavior.SetNull)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
 
         _ = modelBuilder.Entity<FiscalDrawerTransaction>()

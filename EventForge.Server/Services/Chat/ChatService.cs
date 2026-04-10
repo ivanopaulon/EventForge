@@ -268,7 +268,7 @@ public class ChatService(
                 {
                     Id = x.Id,
                     ChatId = x.ChatThreadId,
-                    SenderId = x.SenderId,
+                    SenderId = x.SenderId ?? Guid.Empty,
                     SenderName = x.SenderFullName.Length > 0 ? x.SenderFullName : x.Username,
                     Content = x.Content,
                     SentAt = x.SentAt
@@ -445,7 +445,7 @@ public class ChatService(
                     {
                         Id = first.Id,
                         ChatId = first.ChatThreadId,
-                        SenderId = first.SenderId,
+                        SenderId = first.SenderId ?? Guid.Empty,
                         SenderName = first.SenderName,
                         Content = first.Content,
                         SentAt = first.SentAt
@@ -2453,7 +2453,7 @@ public class ChatService(
         {
             Id = message.Id,
             ChatId = message.ChatThreadId,
-            SenderId = message.SenderId,
+            SenderId = message.SenderId ?? Guid.Empty,
             SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
             Content = message.Content,
             ReplyToMessageId = message.ReplyToMessageId,
@@ -2461,7 +2461,7 @@ public class ChatService(
             {
                 Id = message.ReplyToMessage.Id,
                 ChatId = message.ReplyToMessage.ChatThreadId,
-                SenderId = message.ReplyToMessage.SenderId,
+                SenderId = message.ReplyToMessage.SenderId ?? Guid.Empty,
                 Content = message.ReplyToMessage.Content,
                 SentAt = message.ReplyToMessage.SentAt
             } : null,

@@ -7,7 +7,7 @@
            Position="DialogPosition.Center"
            Style="background:transparent !important; box-shadow:none !important; padding:0 !important; overflow:visible !important;">
     <DialogContent>
-        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight; width:@MinWidth;">
+        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight; width:@MinWidth; @HeightStyle">
 
             @* Barra progress 3px in cima *@
             <div class="efd-progress">
@@ -66,6 +66,13 @@
     [Parameter] public string MinWidth { get; set; } = "min(600px, 95vw)";
     [Parameter] public string MaxHeight { get; set; } = "calc(100vh - 48px)";
     [Parameter] public string MinHeight { get; set; } = EFDialogDefaults.MinHeightSimple;
+    /// <summary>When set, gives the dialog card a fixed height (e.g. "calc(100dvh - 48px)").
+    /// Also overrides max-height so the card actually reaches that size.</summary>
+    [Parameter] public string Height { get; set; } = string.Empty;
+
+    private string HeightStyle => string.IsNullOrEmpty(Height)
+        ? string.Empty
+        : $"height:{Height}; max-height:{Height};";
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? DialogActions { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }

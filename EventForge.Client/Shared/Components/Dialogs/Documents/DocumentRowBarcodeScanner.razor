@@ -1,7 +1,9 @@
 @using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentRowBarcodeScanner> Logger
 @inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
 
 <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
     <MudStack Spacing="2">
@@ -9,17 +11,26 @@
             <MudIcon Icon="@Icons.Material.Outlined.QrCodeScanner" Class="mr-2" Size="Size.Small" />
             @TranslationService.GetTranslation("warehouse.scanBarcode", "Scansiona Codice a Barre")
         </MudText>
-        <MudTextField @bind-Value="@_internalValue"
-                      @ref="_barcodeField"
-                      id="barcode-input"
-                      Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
-                      Variant="Variant.Outlined"
-                      @onkeydown="@HandleKeyDown"
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Outlined.QrCode"
-                      Disabled="@(!IsEnabled)"
-                      Placeholder="@Placeholder"
-                      HelperText="@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")" />
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudTextField @bind-Value="@_internalValue"
+                          @ref="_barcodeField"
+                          id="barcode-input"
+                          Label="@TranslationService.GetTranslation("warehouse.barcodeInput", "Codice a Barre")"
+                          Variant="Variant.Outlined"
+                          @onkeydown="@HandleKeyDown"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.QrCode"
+                          Disabled="@(!IsEnabled)"
+                          Placeholder="@Placeholder"
+                          HelperText="@TranslationService.GetTranslation("warehouse.scanOrTypeBarcode", "Scansiona o digita il codice a barre e premi Invio")" />
+            <MudTooltip Text="@TranslationService.GetTranslation("camera.scanWithCamera", "Scansiona con la fotocamera")">
+                <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
+                               Color="Color.Secondary"
+                               Variant="Variant.Outlined"
+                               Disabled="@(!IsEnabled)"
+                               OnClick="@OpenCameraScannerAsync" />
+            </MudTooltip>
+        </MudStack>
     </MudStack>
 </MudPaper>
 
@@ -33,6 +44,27 @@
 
     private MudTextField<string>? _barcodeField;
     private string _internalValue = string.Empty;
+
+    private async Task OpenCameraScannerAsync()
+    {
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, OnCameraBarcode) }
+        };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+    }
+
+    private async Task OnCameraBarcode(string barcode)
+    {
+        if (OnScanStart.HasDelegate)
+            await OnScanStart.InvokeAsync();
+
+        if (OnBarcodeScanned.HasDelegate)
+            await OnBarcodeScanned.InvokeAsync(barcode);
+
+        if (OnScanEnd.HasDelegate)
+            await OnScanEnd.InvokeAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
