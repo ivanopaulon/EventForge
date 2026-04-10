@@ -439,7 +439,7 @@ public class ConfigurationService(
             var bytes = Convert.FromBase64String(encryptedValue);
             return System.Text.Encoding.UTF8.GetString(bytes);
         }
-        catch
+        catch (FormatException)
         {
             return encryptedValue; // Return as-is if decryption fails
         }

@@ -220,6 +220,7 @@ public class SaleSessionService(
 
             // Load product (we need VAT and price info)
             var product = await context.Products
+                .AsNoTracking()
                 .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
 
@@ -1317,6 +1318,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
         // Fetch product details including Brand, VatRate, ImageDocument for all items at once
         var products = await context.Products
+            .AsNoTracking()
             .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
             .Include(p => p.Brand)
             .Include(p => p.VatRate)
@@ -1325,6 +1327,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
         // Get child session count
         var childSessionCount = await context.SaleSessions
+            .AsNoTracking()
             .CountAsync(s => s.ParentSessionId == session.Id && !s.IsDeleted, cancellationToken);
 
         return MapToDtoWithProducts(session, products, childSessionCount);

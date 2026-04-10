@@ -282,6 +282,7 @@ public class PromotionService(
         try
         {
             return await context.Promotions
+                .AsNoTracking()
                 .AnyAsync(p => p.Id == promotionId && !p.IsDeleted, cancellationToken);
         }
         catch (Exception ex)
@@ -1194,6 +1195,7 @@ public class PromotionService(
             var checkDateTime = orderDateTime ?? DateTime.UtcNow;
 
             var query = context.PromotionRules
+                .AsNoTracking()
                 .Include(pr => pr.Promotion)
                 .Where(pr => !pr.IsDeleted &&
                            !pr.Promotion!.IsDeleted &&
@@ -1235,6 +1237,7 @@ public class PromotionService(
             var normalizedCode = couponCode.Trim().ToUpperInvariant();
 
             var promotion = await context.Promotions
+                .AsNoTracking()
                 .Where(p => !p.IsDeleted && p.IsActive &&
                             p.CouponCode != null &&
                             p.CouponCode.ToUpper() == normalizedCode &&
@@ -1368,6 +1371,7 @@ public class PromotionService(
         try
         {
             var rules = await context.PromotionRules
+                .AsNoTracking()
                 .Include(r => r.Products.Where(p => !p.IsDeleted))
                     .ThenInclude(p => p.Product)
                 .Where(r => r.PromotionId == promotionId && !r.IsDeleted)
@@ -1395,6 +1399,7 @@ public class PromotionService(
                 throw new InvalidOperationException("Tenant context is required.");
 
             var promotion = await context.Promotions
+                .AsNoTracking()
                 .Where(p => p.Id == promotionId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1620,6 +1625,7 @@ public class PromotionService(
         try
         {
             var products = await context.PromotionRuleProducts
+                .AsNoTracking()
                 .Include(rp => rp.Product)
                 .Where(rp => rp.PromotionRuleId == ruleId && !rp.IsDeleted &&
                              context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
@@ -1656,6 +1662,7 @@ public class PromotionService(
                 throw new InvalidOperationException("Tenant context is required.");
 
             var rule = await context.PromotionRules
+                .AsNoTracking()
                 .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
             if (rule is null)
@@ -1663,6 +1670,7 @@ public class PromotionService(
 
             // Avoid duplicates
             var existing = await context.PromotionRuleProducts
+                .AsNoTracking()
                 .FirstOrDefaultAsync(rp => rp.PromotionRuleId == ruleId && rp.ProductId == createDto.ProductId && !rp.IsDeleted, cancellationToken);
             if (existing is not null)
                 return new PromotionRuleProductDto
@@ -1689,6 +1697,7 @@ public class PromotionService(
             InvalidatePromotionCache();
 
             var product = await context.Set<Data.Entities.Products.Product>()
+                .AsNoTracking()
                 .Where(p => p.Id == createDto.ProductId)
                 .FirstOrDefaultAsync(cancellationToken);
 
