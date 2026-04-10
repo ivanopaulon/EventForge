@@ -478,7 +478,11 @@ public class ChatService : IChatService
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             var result = JsonSerializer.Deserialize<FileUploadResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (result is null || !result.Success) return null;
+            if (result is null || !result.Success)
+            {
+                _logger.LogWarning("File upload failed: {ErrorMessage}", result?.ErrorMessage ?? "unknown error");
+                return null;
+            }
 
             return new MessageAttachmentDto
             {
