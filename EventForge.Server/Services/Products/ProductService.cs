@@ -2501,6 +2501,7 @@ public class ProductService(
             }
 
             var searchResults = await textQuery
+                .OrderBy(p => p.Name)
                 .Take(maxResults)
                 .ToListAsync(cancellationToken);
 

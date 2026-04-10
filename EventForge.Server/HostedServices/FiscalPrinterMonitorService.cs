@@ -142,8 +142,9 @@ public class FiscalPrinterMonitorService : BackgroundService
 
             _statusCache.UpdateStatus(printerId, status);
 
-            // Reset per-printer error counter when the poll succeeds.
-            _errorState.TryRemove(printerId, out _);
+            // Reset per-printer error counter only when the printer is back online.
+            if (status.IsOnline)
+                _errorState.TryRemove(printerId, out _);
 
             // ── Notify all SignalR clients subscribed to this printer ──────────
             var groupName = FiscalPrinterHub.PrinterGroupName(printerId);
@@ -155,9 +156,21 @@ public class FiscalPrinterMonitorService : BackgroundService
             // ── Log and emit specialised events ────────────────────────────────
             if (!status.IsOnline)
             {
-                _logger.LogWarning(
-                    "Fiscal printer {Name} ({Id}) is OFFLINE. Error: {Error}",
-                    printerName, printerId, status.LastError);
+                var now = DateTime.UtcNow;
+                var (count, lastLogged) = _errorState.GetOrAdd(printerId, _ => (0, DateTime.MinValue));
+                count++;
+                var isSuppressed = count > ErrorThresholdForDemotion && (now - lastLogged) < ErrorLogCooldown;
+                if (!isSuppressed)
+                {
+                    _errorState[printerId] = (count, now);
+                    _logger.LogWarning(
+                        "Fiscal printer {Name} ({Id}) is OFFLINE. Error: {Error}",
+                        printerName, printerId, status.LastError);
+                }
+                else
+                {
+                    _errorState[printerId] = (count, lastLogged);
+                }
             }
             else if (status.IsFiscalMemoryFull)
             {

@@ -66,9 +66,19 @@ public partial class CustomFiscalPrinterService
                     : "Unexpected response to status request"
             };
         }
-        catch (Exception ex) when (ex is FiscalPrinterCommunicationException
-                                       or InvalidOperationException
-                                       or OperationCanceledException)
+        catch (InvalidOperationException ex)
+        {
+            // Configuration error (e.g. missing UsbDeviceId) — log at Debug to avoid
+            // flooding logs on every poll cycle; the monitor surfaces it via status.LastError.
+            logger.LogDebug(ex, "GetStatusAsync failed for printer {PrinterId} (configuration error)", printerId);
+            return new FiscalPrinterStatus
+            {
+                IsOnline = false,
+                LastCheck = DateTime.UtcNow,
+                LastError = ex.Message
+            };
+        }
+        catch (Exception ex) when (ex is FiscalPrinterCommunicationException or OperationCanceledException)
         {
             logger.LogWarning(ex, "GetStatusAsync failed for printer {PrinterId}", printerId);
             return new FiscalPrinterStatus

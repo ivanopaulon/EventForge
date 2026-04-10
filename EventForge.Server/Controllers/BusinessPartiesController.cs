@@ -415,7 +415,7 @@ public class BusinessPartiesController(
     [ProducesResponseType(typeof(BusinessPartyAccountingDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccounting(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<BusinessPartyAccountingDto>> GetBusinessPartyAccountingById(Guid id, CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
@@ -497,7 +497,7 @@ public class BusinessPartiesController(
             var currentUser = GetCurrentUser();
             var businessPartyAccounting = await businessPartyService.CreateBusinessPartyAccountingAsync(createBusinessPartyAccountingDto, currentUser, cancellationToken);
 
-            return CreatedAtAction(nameof(GetBusinessPartyAccounting), new { id = businessPartyAccounting.Id }, businessPartyAccounting);
+            return CreatedAtAction(nameof(GetBusinessPartyAccountingById), new { id = businessPartyAccounting.Id }, businessPartyAccounting);
         }
         catch (Exception ex)
         {
