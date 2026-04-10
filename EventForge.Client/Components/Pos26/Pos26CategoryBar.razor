@@ -1,0 +1,29 @@
+@* Pos26CategoryBar — filtro categorie a pillole scrollabili *@
+
+<div class="pos26-categorybar-wrap">
+    <div class="pos26-categorybar">
+        <button class="pos26-category-pill @(SelectedCategory == null ? "pos26-category-pill--active" : "")"
+                @onclick="() => OnPillClick(null)">
+            Tutti
+        </button>
+        @foreach (var cat in Categories ?? [])
+        {
+            var isActive = SelectedCategory == cat;
+            <button class="pos26-category-pill @(isActive ? "pos26-category-pill--active" : "")"
+                    @onclick="() => OnPillClick(cat)">
+                @cat
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<string>? Categories { get; set; }
+    [Parameter] public string? SelectedCategory { get; set; }
+    [Parameter] public EventCallback<string?> OnCategorySelected { get; set; }
+
+    private async Task OnPillClick(string? cat)
+    {
+        await OnCategorySelected.InvokeAsync(cat);
+    }
+}

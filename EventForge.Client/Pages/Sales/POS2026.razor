@@ -1,0 +1,137 @@
+@page "/sales/pos2026"
+@using EventForge.Client.ViewModels
+@using EventForge.Client.Models.Sales
+@using EventForge.Client.Components.Pos26
+@using EventForge.Client.Shared.Components.Sales
+@using EventForge.Client.Shared.Components.Dialogs
+@using EventForge.Client.Shared.Components.Dialogs.Sales
+@using EventForge.Client.Shared.Components.FiscalPrinting
+@using EventForge.Client.Services.Sales
+@using EventForge.Client.Services.Store
+@using EventForge.DTOs.Sales
+@using EventForge.DTOs.Products
+@using EventForge.DTOs.Store
+@using EventForge.DTOs.Business
+@using EventForge.DTOs.FiscalPrinting
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@attribute [Authorize]
+@inject POSViewModel ViewModel
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@inject ISalesService SalesService
+@inject IFiscalPrintingService FiscalPrintingService
+@inject IFiscalDrawerService FiscalDrawerService
+@inject IProductService ProductService
+@inject IPaymentMethodService PaymentMethodService
+@inject ILogger<POS2026> Logger
+
+<PageTitle>POS 2026</PageTitle>
+<PageLoadingOverlay Visible="ViewModel.IsLoading || _isLoadingProducts"
+                    Message="Caricamento…" />
+
+<div class="pos2026-wrap">
+
+    @* ===== COLONNA SINISTRA ===== *@
+    <div class="pos2026-left">
+
+        @* Header operatore/cassa — riusa POSHeader esistente *@
+        <POSHeader AvailableOperators="@ViewModel.AvailableOperators"
+                   SelectedOperatorId="@ViewModel.SelectedOperatorId"
+                   SelectedOperatorIdChanged="@OnOperatorIdChangedAsync"
+                   AvailablePos="@ViewModel.AvailablePos"
+                   SelectedPosId="@ViewModel.SelectedPosId"
+                   SelectedPosIdChanged="@OnPosIdChangedAsync"
+                   SelectedCustomer="@ViewModel.SelectedCustomer"
+                   SelectedCustomerChanged="@OnSelectedCustomerChangedAsync"
+                   SessionNumber="@ViewModel.CurrentSession?.Id"
+                   IsSessionActive="@ViewModel.HasActiveSession"
+                   IsUpdatingItems="@ViewModel.IsUpdatingItems"
+                   LoadingTooltipText="Salvataggio in corso…"
+                   LoadingSpinnerColor="@Color.Primary"
+                   FiscalDrawerSummary="@_fiscalDrawerSummary"
+                   OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
+                   OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
+                   OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
+                   HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+                   IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
+                   OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
+                   OnDailyClosureClick="@OpenDailyClosureDialogAsync"
+                   OnParkClick="@ParkSessionAsync"
+                   OnCancelClick="@CancelSessionAsync" />
+
+        @* Barra ricerca + chip cliente *@
+        <Pos26SearchBar @ref="_searchBar"
+                        SearchTerm="@_searchTerm"
+                        SearchTermChanged="@OnSearchTermChanged"
+                        Customer="@ViewModel.SelectedCustomer"
+                        CustomerChanged="@OnSelectedCustomerChangedAsync"
+                        OnBarcodeDetected="@HandleBarcodeAsync" />
+
+        @* Barra ordinamenti *@
+        <Pos26SortBar SortMode="@_sortMode"
+                      OnSortChanged="@OnSortModeChangedAsync"
+                      HasCustomer="@(ViewModel.SelectedCustomer != null)" />
+
+        @* Filtro categorie *@
+        <Pos26CategoryBar Categories="@_categories"
+                          SelectedCategory="@_selectedCategory"
+                          OnCategorySelected="@OnCategorySelectedAsync" />
+
+        @* Banner contestuale *@
+        <Pos26ContextBanner SortMode="@_sortMode"
+                            Customer="@ViewModel.SelectedCustomer" />
+
+        @* Griglia articoli *@
+        <div class="pos2026-product-area">
+            <Pos26ProductGrid Products="@_filteredProducts"
+                              CartQuantities="@_cartQuantities"
+                              LastPurchaseIds="@_lastPurchaseIds"
+                              BestSellerIds="@_bestSellerIds"
+                              OnAddToCart="@OnAddProductToCartAsync"
+                              IsLoading="@_isLoadingProducts" />
+        </div>
+
+    </div>
+
+    @* ===== COLONNA DESTRA ===== *@
+    <div class="pos2026-right">
+
+        <Pos26Receipt Session="@ViewModel.CurrentSession"
+                      Customer="@ViewModel.SelectedCustomer"
+                      Items="@ViewModel.CurrentSession?.Items"
+                      Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
+                      TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"
+                      TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
+                      GrandTotal="@ViewModel.GrandTotal"
+                      OnClearCart="@ClearCartAsync"
+                      OnIncrease="@IncreaseQuantityAsync"
+                      OnDecrease="@DecreaseQuantityAsync"
+                      OnEditItemNotes="@EditItemNotesAsync" />
+
+        <Pos26Numpad CanPay="@ViewModel.CanPay"
+                     OnPay="@OpenPaymentDialogAsync"
+                     OnCancel="@CancelSessionAsync"
+                     OnApplyDiscount="@ApplyDiscountAsync" />
+
+    </div>
+
+</div>
+
+@* Shortcut tastiera (stesso pattern POS.razor) *@
+@if (ViewModel.HasActiveSession)
+{
+    <div class="pos2026-shortcuts-bar" aria-label="Scorciatoie tastiera">
+        <span><strong>F2</strong> Paga</span>
+        <span><strong>F3</strong> Parcheggia</span>
+        <span><strong>F4</strong> Rimuovi ultimo</span>
+        <span><strong>F8</strong> Scanner</span>
+        <span><strong>F12</strong> Chiudi</span>
+        <span><strong>ESC</strong> Annulla</span>
+    </div>
+}

@@ -1,0 +1,139 @@
+@* Pos26SearchBar — barra ricerca con chip cliente *@
+@using EventForge.DTOs.Business
+@using EventForge.Client.Shared.Components.Business
+
+<div class="pos26-searchbar-wrap">
+    <div class="pos26-searchbar-input-wrap">
+        <span class="pos26-searchbar-icon">
+            <MudIcon Icon="@Icons.Material.Outlined.Search" Size="Size.Small" />
+        </span>
+        <input @ref="_inputRef"
+               type="text"
+               class="pos26-searchbar-input"
+               placeholder="@Placeholder"
+               value="@SearchTerm"
+               @oninput="OnInputChanged"
+               @onkeydown="OnKeyDown" />
+        @if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            <button class="pos26-searchbar-clear" @onclick="ClearSearch" title="Cancella ricerca">
+                <MudIcon Icon="@Icons.Material.Outlined.Close" Size="Size.Small" />
+            </button>
+        }
+    </div>
+
+    <button class="pos26-customer-chip @(Customer != null ? "pos26-customer-chip--active" : "")"
+            @onclick="OpenCustomerSelector"
+            title="@(Customer != null ? $"Cliente: {Customer.Name}" : "Nessun cliente selezionato")">
+        @if (Customer != null)
+        {
+            <span class="pos26-customer-initials">@GetInitials(Customer.Name)</span>
+            <span class="pos26-customer-name">@GetShortName(Customer.Name)</span>
+            <span class="pos26-customer-remove"
+                  @onclick:stopPropagation="true"
+                  @onclick="ClearCustomer">
+                <MudIcon Icon="@Icons.Material.Outlined.Close" Size="Size.Small" />
+            </span>
+        }
+        else
+        {
+            <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" />
+            <span>Nessun cliente</span>
+        }
+    </button>
+</div>
+
+@if (_showCustomerSelector)
+{
+    <div class="pos26-customer-selector-overlay" @onclick="CloseCustomerSelector">
+        <div class="pos26-customer-selector-panel" @onclick:stopPropagation="true">
+            <UnifiedBusinessPartySelector
+                SelectedBusinessParty="@Customer"
+                SelectedBusinessPartyChanged="@OnCustomerSelected"
+                Label="Cerca cliente"
+                PartyTypeFilter="BusinessPartyType.Customer"
+                Clearable="true" />
+            <button class="pos26-btn-text" @onclick="CloseCustomerSelector">Chiudi</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string SearchTerm { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> SearchTermChanged { get; set; }
+    [Parameter] public BusinessPartyDto? Customer { get; set; }
+    [Parameter] public EventCallback<BusinessPartyDto?> CustomerChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Cerca articolo o scansiona codice…";
+    [Parameter] public EventCallback<string> OnBarcodeDetected { get; set; }
+
+    private ElementReference _inputRef;
+    private System.Timers.Timer? _debounceTimer;
+    private bool _showCustomerSelector = false;
+
+    private void OnInputChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? string.Empty;
+        _debounceTimer?.Dispose();
+        _debounceTimer = new System.Timers.Timer(300);
+        _debounceTimer.AutoReset = false;
+        _debounceTimer.Elapsed += async (_, _) =>
+        {
+            _debounceTimer?.Dispose();
+            await InvokeAsync(async () =>
+            {
+                await SearchTermChanged.InvokeAsync(value);
+                StateHasChanged();
+            });
+        };
+        _debounceTimer.Start();
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        // Rilevamento barcode: Enter dopo sequenza di tasti rapida
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(SearchTerm))
+        {
+            _debounceTimer?.Dispose();
+            await OnBarcodeDetected.InvokeAsync(SearchTerm);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _debounceTimer?.Dispose();
+        await SearchTermChanged.InvokeAsync(string.Empty);
+    }
+
+    private void OpenCustomerSelector() => _showCustomerSelector = true;
+    private void CloseCustomerSelector() => _showCustomerSelector = false;
+
+    private async Task OnCustomerSelected(BusinessPartyDto? customer)
+    {
+        _showCustomerSelector = false;
+        await CustomerChanged.InvokeAsync(customer);
+    }
+
+    private async Task ClearCustomer()
+    {
+        await CustomerChanged.InvokeAsync(null);
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+            : name[..Math.Min(2, name.Length)].ToUpperInvariant();
+    }
+
+    private static string GetShortName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "";
+        return name.Length > 14 ? name[..12] + "…" : name;
+    }
+
+    public void FocusInput() => _inputRef.FocusAsync();
+
+    public void Dispose() => _debounceTimer?.Dispose();
+}

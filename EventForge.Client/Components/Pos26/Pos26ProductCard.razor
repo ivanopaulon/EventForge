@@ -1,0 +1,103 @@
+@* Pos26ProductCard — singola card articolo nella griglia POS 2026 *@
+@using EventForge.DTOs.Products
+
+<div class="pos26-product-card @(CartQuantity > 0 ? "pos26-product-card--in-cart" : "")"
+     @onclick="HandleTap"
+     @onpointerdown="OnPointerDown"
+     @onpointerup="OnPointerUp"
+     @onpointerleave="OnPointerLeave"
+     title="@Product.Name — €@(Product.DefaultPrice?.ToString("F2") ?? "–")">
+
+    @* Badge quantità *@
+    @if (CartQuantity > 0)
+    {
+        <span class="pos26-qty-badge">@CartQuantity</span>
+    }
+
+    @* Badge articolo *@
+    @if (IsLastPurchase)
+    {
+        <span class="pos26-badge pos26-badge--green">Tuo</span>
+    }
+    else if (IsBestSeller)
+    {
+        <span class="pos26-badge pos26-badge--amber">Top</span>
+    }
+
+    @if (IsPromo)
+    {
+        <span class="pos26-badge pos26-badge--red pos26-badge--promo">Promo</span>
+    }
+
+    @* Immagine / emoji *@
+    <div class="pos26-product-img">
+        @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
+        {
+            <img src="@Product.ThumbnailUrl" alt="@Product.Name" loading="lazy" />
+        }
+        else
+        {
+            <MudIcon Icon="@Icons.Material.Outlined.Inventory2"
+                     Size="Size.Medium"
+                     Style="color:var(--pos-dark-muted);" />
+        }
+    </div>
+
+    @* Info *@
+    <div class="pos26-product-info">
+        <span class="pos26-product-name">@TruncateName(Product.Name)</span>
+        <span class="pos26-product-price">@FormatPrice(Product.DefaultPrice)</span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ProductDto Product { get; set; } = null!;
+    [Parameter] public int CartQuantity { get; set; }
+    [Parameter] public bool IsLastPurchase { get; set; }
+    [Parameter] public bool IsBestSeller { get; set; }
+    [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
+
+    // Long-press detection (>500ms)
+    private System.Timers.Timer? _longPressTimer;
+    private bool _longPressTriggered;
+
+    private bool IsPromo => false;
+    // TODO: mappare su una proprietà di promozione reale di ProductDto quando disponibile
+
+    private async Task HandleTap()
+    {
+        if (_longPressTriggered) return;
+        await OnAddToCart.InvokeAsync(Product);
+    }
+
+    private void OnPointerDown(PointerEventArgs _)
+    {
+        _longPressTriggered = false;
+        _longPressTimer?.Dispose();
+        _longPressTimer = new System.Timers.Timer(500) { AutoReset = false };
+        _longPressTimer.Elapsed += async (_, _) =>
+        {
+            _longPressTriggered = true;
+            // TODO: aprire dettaglio/varianti prodotto se implementato
+            await InvokeAsync(StateHasChanged);
+        };
+        _longPressTimer.Start();
+    }
+
+    private void OnPointerUp(PointerEventArgs _)
+    {
+        _longPressTimer?.Dispose();
+    }
+
+    private void OnPointerLeave(PointerEventArgs _)
+    {
+        _longPressTimer?.Dispose();
+        _longPressTriggered = false;
+    }
+
+    private static string TruncateName(string name) =>
+        name.Length > 22 ? name[..20] + "…" : name;
+
+    private static string FormatPrice(decimal? price) =>
+        price.HasValue ? $"€{price.Value:F2}" : "–";
+}

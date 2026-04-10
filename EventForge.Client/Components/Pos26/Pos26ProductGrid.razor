@@ -1,0 +1,56 @@
+@* Pos26ProductGrid — griglia articoli responsive con Virtualize se >200 *@
+@using EventForge.DTOs.Products
+@using EventForge.Client.Models.Sales
+
+@if (IsLoading)
+{
+    <div class="pos26-grid-loading">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+        <span>Caricamento articoli…</span>
+    </div>
+}
+else if (!Products.Any())
+{
+    <div class="pos26-grid-empty">
+        <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Style="opacity:.3;" />
+        <span>Nessun articolo trovato</span>
+    </div>
+}
+else if (Products.Count() > 200)
+{
+    <div class="pos26-product-grid">
+        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="10">
+            <Pos26ProductCard Product="@product"
+                              CartQuantity="@GetCartQty(product.Id)"
+                              IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
+                              IsBestSeller="@IsBestSellerProduct(product.Id)"
+                              OnAddToCart="@OnAddToCart" />
+        </Virtualize>
+    </div>
+}
+else
+{
+    <div class="pos26-product-grid">
+        @foreach (var product in Products)
+        {
+            <Pos26ProductCard Product="@product"
+                              CartQuantity="@GetCartQty(product.Id)"
+                              IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
+                              IsBestSeller="@IsBestSellerProduct(product.Id)"
+                              OnAddToCart="@OnAddToCart" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public IEnumerable<ProductDto> Products { get; set; } = [];
+    [Parameter] public Dictionary<Guid, int> CartQuantities { get; set; } = new();
+    [Parameter] public HashSet<Guid> LastPurchaseIds { get; set; } = new();
+    [Parameter] public HashSet<Guid> BestSellerIds { get; set; } = new();
+    [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+
+    private int GetCartQty(Guid id) => CartQuantities.TryGetValue(id, out var q) ? q : 0;
+    private bool IsLastPurchaseProduct(Guid id) => LastPurchaseIds.Contains(id);
+    private bool IsBestSellerProduct(Guid id) => BestSellerIds.Contains(id);
+}
