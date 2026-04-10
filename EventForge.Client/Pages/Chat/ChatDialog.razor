@@ -23,7 +23,7 @@
         <div class="chat-dlg-layout">
 
             @* ═══════════════ LEFT SIDEBAR ═══════════════ *@
-            <div class="@($"chat-dlg-sidebar{(_sidebarVisible ? "" : " chat-dlg-sidebar--hidden")}")">
+            <div class="chat-dlg-sidebar @(_sidebarVisible ? "" : "chat-dlg-sidebar--hidden")">
 
                 @* Sidebar header: title / unread / WhatsApp config / collapse button *@
                 <div class="chat-dlg-sidebar-header">
