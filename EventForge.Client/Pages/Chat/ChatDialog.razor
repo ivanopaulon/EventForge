@@ -480,6 +480,7 @@
     // ── Data ─────────────────────────────────────────────────────────────────
     private List<ChatResponseDto>  _chatList            = [];
     private List<ChatMessageDto>   _messages            = [];
+    private readonly HashSet<Guid> _messageIds          = [];
     private List<ChatMemberDto>    _chatMembers         = [];
     private ChatMessageDto?        _replyToMessage;
     private List<MessageAttachmentDto> _pendingAttachments = [];
@@ -590,11 +591,13 @@
         _showChatInfo    = false;
         _isLoadingMessages = true;
         _typingUsers.Clear();
+        _messageIds.Clear();
         StateHasChanged();
 
         try
         {
             _messages = await ChatService.GetMessagesAsync(chat.Id, 1, 50);
+            _messageIds.UnionWith(_messages.Select(m => m.Id));
             await ChatService.MarkMessagesAsReadAsync(chat.Id);
             chat.UnreadCount = 0;
             _totalUnread     = _chatList.Sum(c => c.UnreadCount);
@@ -673,6 +676,7 @@
             messageDto.ChatId   = _selectedChat.Id;
             var sent = await ChatService.SendMessageAsync(messageDto);
             _messages.Add(sent);
+            _messageIds.Add(sent.Id);
             _selectedChat.LastMessage = sent;
             _selectedChat.UpdatedAt   = sent.SentAt;
             _replyToMessage           = null;
@@ -767,6 +771,7 @@
         {
             await ChatService.DeleteMessageAsync(msg.Id);
             _messages.Remove(msg);
+            _messageIds.Remove(msg.Id);
             StateHasChanged();
             AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageDeleted", "Messaggio eliminato"));
         }
@@ -809,7 +814,7 @@
 
     private void OnMessageReceived(ChatMessageDto msg)
     {
-        if (_selectedChatId == msg.ChatId) { _messages.Add(msg); }
+        if (_selectedChatId == msg.ChatId && _messageIds.Add(msg.Id)) { _messages.Add(msg); }
         var chat = _chatList.FirstOrDefault(c => c.Id == msg.ChatId);
         if (chat is not null) { chat.LastMessage = msg; if (_selectedChatId != msg.ChatId) { chat.UnreadCount++; _totalUnread++; } }
         InvokeAsync(StateHasChanged);
@@ -821,7 +826,7 @@
         if (m is not null) { m.Content = e.Content; m.IsEdited = true; InvokeAsync(StateHasChanged); }
     }
 
-    private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); InvokeAsync(StateHasChanged); }
+    private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); _messageIds.Remove(id); InvokeAsync(StateHasChanged); }
 
     private void OnMessageRead(Guid chatId, Guid msgId)
     {
