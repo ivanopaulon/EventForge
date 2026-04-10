@@ -36,7 +36,8 @@ public class StationsController(IStationService stationService, ITenantContext t
         CancellationToken cancellationToken = default)
     {
         // Validate pagination parameters — allow up to 10 000 so that "load all" clients
-        // using int.MaxValue are capped (via PaginationModelBinder) rather than rejected.
+        // using int.MaxValue are capped rather than rejected.
+        pageSize = Math.Min(pageSize, 10_000);
         var validationResult = ValidatePaginationParameters(page, pageSize, 10_000);
         if (validationResult is not null)
             return validationResult;
@@ -240,7 +241,8 @@ public class StationsController(IStationService stationService, ITenantContext t
         CancellationToken cancellationToken = default)
     {
         // Validate pagination parameters — allow up to 10 000 so that "load all" clients
-        // using int.MaxValue are capped (via PaginationModelBinder) rather than rejected.
+        // using int.MaxValue are capped rather than rejected.
+        pageSize = Math.Min(pageSize, 10_000);
         var validationResult = ValidatePaginationParameters(page, pageSize, 10_000);
         if (validationResult is not null)
             return validationResult;

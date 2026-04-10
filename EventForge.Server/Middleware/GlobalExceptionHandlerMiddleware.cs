@@ -34,7 +34,12 @@ public class GlobalExceptionHandlerMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception caught by GlobalExceptionHandler");
+            _logger.LogError(ex,
+                "Unhandled exception caught by GlobalExceptionHandler for {Method} {Path}: [{ExceptionType}] {Message}",
+                context.Request.Method,
+                context.Request.Path,
+                ex.GetType().Name,
+                ex.Message);
             await HandleExceptionAsync(context, ex);
         }
     }

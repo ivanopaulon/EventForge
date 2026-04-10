@@ -118,12 +118,14 @@ public class AuthenticationService(
             {
                 // TenantCode � un GUID: cerca per Id
                 tenant = await dbContext.Tenants
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.Id == tenantId && t.IsActive, cancellationToken);
             }
             else
             {
                 // TenantCode non � un GUID: prova a cercare per Code
                 tenant = await dbContext.Tenants
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(t => t.Code == tenantCode && t.IsActive, cancellationToken);
             }
 
@@ -138,12 +140,11 @@ public class AuthenticationService(
                 return null;
             }
 
-            // Find user by username within the tenant
+            // Find user by username within the tenant -- load only UserRoles->Role and Tenant to
+            // keep the query lightweight. Permissions are loaded separately on the success path.
             var user = await dbContext.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
-                        .ThenInclude(r => r.RolePermissions)
-                            .ThenInclude(rp => rp.Permission)
                 .Include(u => u.Tenant)
                 .FirstOrDefaultAsync(u => u.Username == request.Username && u.TenantId == tenant.Id && u.IsActive, cancellationToken);
 
@@ -210,12 +211,22 @@ public class AuthenticationService(
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
-            var permissions = user.UserRoles
+            // Load permissions via a separate, read-only query (avoids the 4-level Include on the
+            // main user query, which is expensive for all auth attempts including failed ones).
+            var roleIds = user.UserRoles
                 .Where(ur => ur.IsCurrentlyValid)
-                .SelectMany(ur => ur.Role.RolePermissions)
-                .Select(rp => $"{rp.Permission.Category}.{rp.Permission.Resource}.{rp.Permission.Action}")
-                .Distinct()
+                .Select(ur => ur.RoleId)
                 .ToList();
+
+            var permissions = await dbContext.RolePermissions
+                .AsNoTracking()
+                .Where(rp => roleIds.Contains(rp.RoleId))
+                .Join(dbContext.Permissions,
+                    rp => rp.PermissionId,
+                    p => p.Id,
+                    (rp, p) => $"{p.Category}.{p.Resource}.{p.Action}")
+                .Distinct()
+                .ToListAsync(cancellationToken);
 
             // Generate JWT token
             var token = jwtTokenService.GenerateToken(user, user.Tenant, roles, permissions);

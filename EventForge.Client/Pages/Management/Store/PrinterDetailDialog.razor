@@ -238,6 +238,9 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
+                                              Required="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent)"
+                                              RequiredError="USB Device ID è obbligatorio per connessioni UsbViaAgent."
+                                              HelperText="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent ? "Obbligatorio per USB via Agent" : null)"
                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
                         }

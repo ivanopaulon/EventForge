@@ -69,10 +69,7 @@ public class ChatController(
 
             var result = await chatService.CreateChatAsync(createChatDto, cancellationToken);
 
-            return CreatedAtAction(
-                nameof(GetChatByIdAsync),
-                new { id = result.Id },
-                result);
+            return Created($"api/v1/chat/{result.Id}", result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
@@ -299,10 +296,7 @@ public class ChatController(
 
             var result = await chatService.SendMessageAsync(messageDto, cancellationToken);
 
-            return CreatedAtAction(
-                nameof(GetMessageByIdAsync),
-                new { messageId = result.Id },
-                result);
+            return Created($"api/v1/chat/messages/{result.Id}", result);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Rate limit"))
         {
@@ -682,10 +676,7 @@ public class ChatController(
 
             if (result.Success)
             {
-                return CreatedAtAction(
-                    nameof(GetFileDownloadInfoAsync),
-                    new { attachmentId = result.AttachmentId },
-                    result);
+                return Created($"api/v1/chat/files/{result.AttachmentId}/download", result);
             }
             else
             {

@@ -396,6 +396,13 @@ public class StationService(
                 throw new InvalidOperationException("Tenant context is required.");
             }
 
+            if (createPrinterDto.ConnectionType == PrinterConnectionType.UsbViaAgent
+                && string.IsNullOrWhiteSpace(createPrinterDto.UsbDeviceId))
+            {
+                throw new ArgumentException(
+                    "UsbDeviceId is required when ConnectionType is UsbViaAgent.", nameof(createPrinterDto));
+            }
+
             var printer = new Printer
             {
                 TenantId = tenantId.Value,
@@ -453,6 +460,13 @@ public class StationService(
             {
                 logger.LogWarning("Cannot update printer without a tenant context.");
                 throw new InvalidOperationException("Tenant context is required.");
+            }
+
+            if (updatePrinterDto.ConnectionType == PrinterConnectionType.UsbViaAgent
+                && string.IsNullOrWhiteSpace(updatePrinterDto.UsbDeviceId))
+            {
+                throw new ArgumentException(
+                    "UsbDeviceId is required when ConnectionType is UsbViaAgent.", nameof(updatePrinterDto));
             }
 
             var originalPrinter = await context.Printers

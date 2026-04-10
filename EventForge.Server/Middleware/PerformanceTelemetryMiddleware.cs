@@ -10,6 +10,7 @@ public class PerformanceTelemetryMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<PerformanceTelemetryMiddleware> _logger;
     private readonly int _slowRequestThresholdMs;
+    private readonly int _verySlowRequestThresholdMs;
     private readonly int _startupGracePeriodMs;
     private static readonly long _startupTickCount = Environment.TickCount64;
 
@@ -21,6 +22,7 @@ public class PerformanceTelemetryMiddleware
         _next = next;
         _logger = logger;
         _slowRequestThresholdMs = configuration.GetValue<int>("Performance:SlowRequestThresholdMs", 200);
+        _verySlowRequestThresholdMs = configuration.GetValue<int>("Performance:VerySlowRequestThresholdMs", 2000);
         _startupGracePeriodMs = configuration.GetValue<int>("Performance:StartupGracePeriodMs", 60000);
     }
 
@@ -65,9 +67,9 @@ public class PerformanceTelemetryMiddleware
             var isInGracePeriod = (Environment.TickCount64 - _startupTickCount) < _startupGracePeriodMs;
 
             // Log slow requests (can happen after response is sent)
-            if (!isInGracePeriod && elapsed > _slowRequestThresholdMs * 2)
+            if (!isInGracePeriod && elapsed > _verySlowRequestThresholdMs)
             {
-                // Very slow requests (>400ms by default)
+                // Very slow requests (>2000ms by default)
                 _logger.LogError(
                     "Very Slow Request: {Method} {Path} took {Elapsed}ms - Status: {StatusCode}",
                     method,
