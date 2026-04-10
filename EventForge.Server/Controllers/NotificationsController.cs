@@ -64,10 +64,9 @@ public class NotificationsController(
         {
             return CreateConflictProblem(ex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while sending the notification"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while sending the notification", ex);
         }
     }
 
@@ -107,10 +106,9 @@ public class NotificationsController(
             var result = await notificationService.SendBulkNotificationsAsync(notifications, batchSize, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while processing bulk notifications"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while processing bulk notifications", ex);
         }
     }
 
@@ -232,10 +230,9 @@ public class NotificationsController(
 
             return Ok(notification);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving the notification"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the notification", ex);
         }
     }
 
@@ -273,10 +270,9 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while acknowledging the notification"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while acknowledging the notification", ex);
         }
     }
 
@@ -311,10 +307,9 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while silencing the notification"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while silencing the notification", ex);
         }
     }
 
@@ -348,10 +343,9 @@ public class NotificationsController(
             return CreateNotFoundProblem(ex.Message
             );
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while archiving the notification"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while archiving the notification", ex);
         }
     }
 
@@ -389,10 +383,9 @@ public class NotificationsController(
             var result = await notificationService.ProcessBulkActionAsync(bulkAction, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while processing the bulk action"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while processing the bulk action", ex);
         }
     }
 
@@ -427,10 +420,9 @@ public class NotificationsController(
             var result = await notificationService.GetNotificationStatisticsAsync(tenantId, dateRange, cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving statistics"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving statistics", ex);
         }
     }
 
@@ -484,10 +476,9 @@ public class NotificationsController(
 
             return Accepted(result.StatusUrl, result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while starting the export operation"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while starting the export operation", ex);
         }
     }
 
@@ -531,10 +522,9 @@ public class NotificationsController(
 
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving export status"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving export status", ex);
         }
     }
 
@@ -592,10 +582,9 @@ public class NotificationsController(
             var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
             return File(bytes, "application/json", $"notifications-export-{exportId}.json");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while downloading the export file"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while downloading the export file", ex);
         }
     }
 
@@ -621,10 +610,9 @@ public class NotificationsController(
             var result = await notificationService.GetSystemHealthAsync(cancellationToken);
             return Ok(result);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return CreateValidationProblemDetails("An error occurred while retrieving system health"
-                );
+            return CreateInternalServerErrorProblem("An error occurred while retrieving system health", ex);
         }
     }
 

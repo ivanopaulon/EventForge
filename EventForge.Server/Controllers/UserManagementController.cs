@@ -1,4 +1,5 @@
 using EventForge.Server.Hubs;
+using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -16,6 +17,7 @@ public class UserManagementController(
     EventForgeDbContext context,
     ITenantContext tenantContext,
     IAuditLogService auditLogService,
+    IPasswordService passwordService,
     IHubContext<AppHub> hubContext,
     ILogger<UserManagementController> logger) : BaseApiController
 {
@@ -352,8 +354,10 @@ public class UserManagementController(
             // Generate a new temporary password
             var newPassword = GenerateTemporaryPassword();
 
-            // TODO: Hash the password using your password service
-            // user.PasswordHash = _passwordService.HashPassword(newPassword);
+            // Hash the new password
+            var (hash, salt) = passwordService.HashPassword(newPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             user.MustChangePassword = true;
             user.ModifiedAt = DateTime.UtcNow;
@@ -1097,8 +1101,9 @@ public class UserManagementController(
                 CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            // Hash the temporary password (implementation depends on your password service)
-            // user.PasswordHash = _passwordService.HashPassword(tempPassword);
+            var (hash, salt) = passwordService.HashPassword(tempPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             _ = context.Users.Add(user);
 
@@ -1201,8 +1206,9 @@ public class UserManagementController(
                 CreatedBy = tenantContext.CurrentUserId?.ToString() ?? "System"
             };
 
-            // Hash the temporary password (implementation depends on your password service)
-            // user.PasswordHash = _passwordService.HashPassword(tempPassword);
+            var (hash, salt) = passwordService.HashPassword(tempPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
 
             _ = context.Users.Add(user);
 
