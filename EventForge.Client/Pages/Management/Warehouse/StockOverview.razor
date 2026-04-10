@@ -26,8 +26,8 @@
 
 @if (!_isLoading)
 {
-    <div class="stock-overview-page-root">
-        <div class="eftable-wrapper">
+    <div class="stock-overview-page-root" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
+        <div class="eftable-wrapper" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
             @* Filter active indicator *@
             @if (_filters.HasActiveFilters)
             {

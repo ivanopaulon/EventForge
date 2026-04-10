@@ -483,6 +483,8 @@ kbd {
 .management-page-root {
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: hidden;
     gap: 1rem;
     padding: 1rem;
 }
@@ -508,10 +510,13 @@ kbd {
 .transfer-order-page-root,
 .document-page-root,
 .stock-overview-page-root,
+.stock-reconciliation-page-root,
 .group-page-root {
     /* Inherit from base class */
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: hidden;
     gap: 1rem;
     padding: 1rem;
 }

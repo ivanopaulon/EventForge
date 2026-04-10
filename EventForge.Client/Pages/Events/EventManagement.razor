@@ -24,8 +24,8 @@
 @inject ILogger<EventManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("nav.events", "Gestione Calendario")</PageTitle>
-<div class="management-page-root">
-    <MudStack Spacing="3">
+<div class="management-page-root" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
+    <div style="display:flex; flex-direction:column; height:100%; overflow:hidden; gap:0.75rem;">
 
         <MudPaper Elevation="1" Class="pa-3">
             <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
@@ -93,7 +93,7 @@
         </MudPaper>
 
         <!-- Scheduler -->
-        <MudPaper Elevation="2" Class="pa-0" Style="overflow:hidden;position:relative;">
+        <MudPaper Elevation="2" Class="pa-0" Style="flex:1; overflow:hidden; position:relative; min-height:400px;">
             @if (_isLoading)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary"
@@ -102,7 +102,7 @@
             <SfSchedule TValue="SchedulerItem"
                         @ref="_schedulerRef"
                         Width="100%"
-                        Height="640px"
+                        Height="100%"
                         @bind-SelectedDate="_currentDate"
                         @bind-CurrentView="_currentView"
                         EnableAutoRowHeight="true"
@@ -198,7 +198,7 @@
             </MudGrid>
         }
 
-    </MudStack>
+    </div>
 </div>
 
 @code {
