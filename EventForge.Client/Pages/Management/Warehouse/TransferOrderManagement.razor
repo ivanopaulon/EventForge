@@ -251,7 +251,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadWarehousesAsync();
+        try
+        {
+            await LoadWarehousesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing TransferOrderManagement.");
+        }
     }
 
     private async Task LoadWarehousesAsync()

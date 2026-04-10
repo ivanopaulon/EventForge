@@ -289,7 +289,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPaymentMethodAsync();
+        try
+        {
+            await LoadPaymentMethodAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PaymentMethodDetailDialog.");
+        }
     }
 
     private async Task LoadPaymentMethodAsync()

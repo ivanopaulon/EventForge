@@ -197,7 +197,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUnitAsync();
+        try
+        {
+            await LoadUnitAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing UnitOfMeasureDetailDialog.");
+        }
     }
 
     private async Task LoadUnitAsync()

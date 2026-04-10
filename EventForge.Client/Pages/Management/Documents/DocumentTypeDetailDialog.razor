@@ -252,7 +252,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(LoadDocumentTypeAsync(), LoadWarehousesAsync());
+        try
+        {
+            await Task.WhenAll(LoadDocumentTypeAsync(), LoadWarehousesAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing DocumentTypeDetailDialog.");
+        }
     }
 
     private async Task LoadDocumentTypeAsync()

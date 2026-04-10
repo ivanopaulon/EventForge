@@ -313,7 +313,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadFacilityAsync();
+        try
+        {
+            await LoadFacilityAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing WarehouseDetailDialog.");
+        }
     }
 
     private async Task LoadFacilityAsync()

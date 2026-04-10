@@ -164,8 +164,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing StationDetailDialog.");
+        }
     }
 
     private void HandleEntityChanged()

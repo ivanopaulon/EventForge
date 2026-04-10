@@ -168,7 +168,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadTransferOrderAsync();
+        try
+        {
+            await LoadTransferOrderAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing TransferOrderDetailDialog.");
+        }
     }
 
     private async Task LoadTransferOrderAsync()

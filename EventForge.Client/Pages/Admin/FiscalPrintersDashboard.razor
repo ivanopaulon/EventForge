@@ -218,7 +218,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshAsync();
+        try
+        {
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing FiscalPrintersDashboard.");
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

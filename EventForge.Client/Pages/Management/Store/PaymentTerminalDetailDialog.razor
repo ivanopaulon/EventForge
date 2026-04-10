@@ -295,12 +295,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(TerminalId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(TerminalId ?? Guid.Empty);
 
-        // Sync agent ID text field
-        if (ViewModel.Entity?.AgentId.HasValue == true)
-            _agentIdText = ViewModel.Entity.AgentId.Value.ToString();
+            // Sync agent ID text field
+            if (ViewModel.Entity?.AgentId.HasValue == true)
+                _agentIdText = ViewModel.Entity.AgentId.Value.ToString();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PaymentTerminalDetailDialog.");
+        }
     }
 
     private void HandleEntityChanged() => ViewModel.NotifyEntityChanged();

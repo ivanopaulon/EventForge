@@ -294,7 +294,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing BusinessPartyGroupDetailDialog.");
+        }
     }
 
     private async Task LoadDataAsync()

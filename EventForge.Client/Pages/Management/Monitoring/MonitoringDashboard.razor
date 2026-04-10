@@ -298,9 +298,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _isLoading = true;
-        await LoadDataAsync();
-        _isLoading = false;
+        try
+        {
+            _isLoading = true;
+            await LoadDataAsync();
+            _isLoading = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing MonitoringDashboard.");
+        }
     }
 
     private async Task LoadDataAsync()

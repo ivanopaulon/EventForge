@@ -82,7 +82,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadContactsAsync();
+        try
+        {
+            await LoadContactsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ContactsTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()

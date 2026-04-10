@@ -79,7 +79,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAddressesAsync();
+        try
+        {
+            await LoadAddressesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing AddressesTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()

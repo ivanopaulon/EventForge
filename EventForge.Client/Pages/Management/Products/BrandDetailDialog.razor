@@ -258,7 +258,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadBrandAsync();
+        try
+        {
+            await LoadBrandAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing BrandDetailDialog.");
+        }
     }
 
     private async Task LoadBrandAsync()

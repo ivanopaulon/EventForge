@@ -90,7 +90,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAccountingDataAsync();
+        try
+        {
+            await LoadAccountingDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing AccountingTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()

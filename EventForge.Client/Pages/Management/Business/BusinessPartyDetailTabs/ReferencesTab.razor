@@ -75,7 +75,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadReferencesAsync();
+        try
+        {
+            await LoadReferencesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing ReferencesTab.");
+        }
     }
 
     protected override async Task OnParametersSetAsync()

@@ -649,11 +649,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ViewModel.StateChanged += OnViewModelStateChanged;
-        await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
 
-        // Load printers and groups in parallel
-        await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync(), LoadTerminalsAsync());
+            // Load printers and groups in parallel
+            await Task.WhenAll(LoadPrintersAsync(), LoadGroupsAsync(), LoadTerminalsAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PosDetailDialog.");
+        }
     }
 
     private async Task LoadPrintersAsync()

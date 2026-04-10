@@ -216,7 +216,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDocumentTypesAsync();
+        try
+        {
+            await LoadDocumentTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing DocumentCounterManagement.");
+        }
     }
 
     private async Task LoadDocumentTypesAsync()
