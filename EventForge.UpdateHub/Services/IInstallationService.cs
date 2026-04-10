@@ -65,12 +65,21 @@ public interface IInstallationService
     Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
         IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
     /// <summary>
-    /// Returns all <see cref="UpdateHistory"/> records that are currently pending installation
+    /// Returns package metadata associated with the given history record, or
+    /// <see langword="null"/> if the record (or its package) cannot be found.
+    /// Used by <see cref="AgentHub"/> to enrich server-callback payloads.
+    /// </summary>
+    Task<HistoryPackageInfo?> GetHistoryPackageInfoAsync(Guid historyId, CancellationToken ct = default);
+
+    /// <summary>Returns all <see cref="UpdateHistory"/> records that are currently pending installation
     /// (Status = InProgress, Phase = AwaitingMaintenanceWindow), across all installations,
     /// ordered by start time ascending (oldest = head of queue first).
     /// </summary>
     Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default);
 }
+
+/// <summary>Lightweight package metadata resolved from an <see cref="UpdateHistory"/> record.</summary>
+public record HistoryPackageInfo(Guid PackageId, string? Version, PackageComponent? Component);
 
 /// <summary>Summary of a single update history record, used in the Installations UI.</summary>
 public record UpdateHistorySummary(

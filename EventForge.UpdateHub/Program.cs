@@ -68,6 +68,7 @@ builder.Services.AddDbContext<UpdateHubDbContext>(options =>
         ?? "Data Source=updatehub.db"));
 
 builder.Services.AddSignalR();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IInstallationService, InstallationService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IPackageBuildService, PackageBuildService>();
