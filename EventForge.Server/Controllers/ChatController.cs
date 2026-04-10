@@ -288,6 +288,9 @@ public class ChatController(
         [FromBody] SendMessageDto messageDto,
         CancellationToken cancellationToken = default)
     {
+        if (tenantContext.CurrentUserId is { } currentUserId)
+            messageDto.SenderId = currentUserId;
+
         try
         {
             logger.LogInformation(

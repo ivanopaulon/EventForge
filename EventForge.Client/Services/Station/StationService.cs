@@ -148,4 +148,35 @@ public class StationService(
             throw;
         }
     }
+
+    public async Task<PagedResult<PrinterDto>> GetPagedPrintersAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var query = $"page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                query += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            var result = await httpClientService.GetAsync<PagedResult<PrinterDto>>($"{PrintersBase}?{query}", ct);
+            return result ?? new PagedResult<PrinterDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting paged printers");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeletePrinterAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.DeleteAsync($"{PrintersBase}/{id}", ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting printer {Id}", id);
+            return false;
+        }
+    }
 }

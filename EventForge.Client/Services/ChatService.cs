@@ -1,5 +1,8 @@
+using System.Net.Http.Headers;
+using System.Text.Json;
 using EventForge.DTOs.Chat;
 using EventForge.DTOs.Common;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace EventForge.Client.Services;
 
@@ -24,6 +27,7 @@ public interface IChatService
     Task<bool> RemoveMemberFromChatAsync(Guid chatId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> UpdateTypingStatusAsync(Guid chatId, bool isTyping, CancellationToken cancellationToken = default);
     Task<ChatStatsDto> GetChatStatsAsync(CancellationToken cancellationToken = default);
+    Task<MessageAttachmentDto?> UploadFileAsync(Guid chatId, IBrowserFile file, CancellationToken cancellationToken = default);
 
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
@@ -41,17 +45,23 @@ public class ChatService : IChatService
 {
     private const string BaseUrl = "api/v1/chat";
     private readonly IHttpClientService _httpClientService;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAuthService _authService;
     private readonly IRealtimeService _realtimeService;
     private readonly IPerformanceOptimizationService _performanceService;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
         IHttpClientService httpClientService,
+        IHttpClientFactory httpClientFactory,
+        IAuthService authService,
         IRealtimeService realtimeService,
         IPerformanceOptimizationService performanceService,
         ILogger<ChatService> logger)
     {
         _httpClientService = httpClientService;
+        _httpClientFactory = httpClientFactory;
+        _authService = authService;
         _realtimeService = realtimeService;
         _performanceService = performanceService;
         _logger = logger;
@@ -203,7 +213,7 @@ public class ChatService : IChatService
     {
         try
         {
-            var result = await _httpClientService.PostAsync<SendMessageDto, ChatMessageDto>($"api/v1/chat/{messageDto.ChatId}/messages", messageDto, cancellationToken);
+            var result = await _httpClientService.PostAsync<SendMessageDto, ChatMessageDto>($"api/v1/chat/messages", messageDto, cancellationToken);
 
             // Invalidate cache for this chat's messages
             _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(messageDto.ChatId));
@@ -439,5 +449,61 @@ public class ChatService : IChatService
             _logger.LogError(ex, "Error toggling reaction on message {MessageId}", reactionDto.MessageId);
             return false;
         }
+    }
+
+    public async Task<MessageAttachmentDto?> UploadFileAsync(Guid chatId, IBrowserFile file, CancellationToken cancellationToken = default)
+    {
+        const long maxFileSize = 50 * 1024 * 1024; // 50 MB
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+            content.Add(new StringContent(chatId.ToString()), "chatId");
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "api/v1/chat/upload") { Content = content };
+            var token = await _authService.GetAccessTokenAsync();
+            if (!string.IsNullOrWhiteSpace(token))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("File upload failed with status {StatusCode}", response.StatusCode);
+                return null;
+            }
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var result = JsonSerializer.Deserialize<FileUploadResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (result is null || !result.Success) return null;
+
+            return new MessageAttachmentDto
+            {
+                Id          = result.AttachmentId,
+                FileName    = result.FileName,
+                FileUrl     = result.FileUrl ?? string.Empty,
+                FileSize    = result.FileSize,
+                ContentType = file.ContentType
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading file to chat {ChatId}", chatId);
+            throw;
+        }
+    }
+
+    // Minimal DTO to deserialize the server's FileUploadResultDto
+    private sealed class FileUploadResult
+    {
+        public Guid AttachmentId { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string? FileUrl { get; set; }
+        public long FileSize { get; set; }
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

@@ -183,7 +183,7 @@
 
 <!-- Hidden file input -->
 <InputFile @ref="fileInput" 
-           @onchange="@(async (e) => await OnFileSelected(e))" 
+           OnChange="@HandleFileInputChanged"
            multiple 
            accept="*/*" 
            style="display: none;" 
@@ -229,7 +229,7 @@
     [Parameter] public ChatResponseDto? CurrentChat { get; set; }
     [Parameter] public ChatMessageDto? ReplyToMessage { get; set; }
     [Parameter] public EventCallback<SendMessageDto> OnSendMessage { get; set; }
-    [Parameter] public EventCallback OnAttachFile { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<IBrowserFile>> OnAttachFile { get; set; }
     [Parameter] public EventCallback OnCancelReply { get; set; }
     [Parameter] public List<MessageAttachmentDto>? PendingAttachments { get; set; }
     [Parameter] public EventCallback<MessageAttachmentDto> OnRemoveAttachment { get; set; }
@@ -564,23 +564,19 @@
         // This would send a typing event to other chat participants
     }
 
-    private async Task OnFileSelected(ChangeEventArgs e)
+    private async Task HandleFileInputChanged(InputFileChangeEventArgs e)
     {
         try
         {
-            // File selection will be handled by parent component
-            await OnAttachFile.InvokeAsync();
+            var files = e.GetMultipleFiles(10);
+            if (files.Count > 0)
+                await OnAttachFile.InvokeAsync(files);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error in OnFileSelected.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            Logger.LogError(ex, "Error handling file input change.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la selezione del file.");
         }
-    }
-
-    private async Task OnFileInputChanged(InputFileChangeEventArgs e)
-    {
-        await OnFileSelected(new ChangeEventArgs());
     }
 
     private async Task SelectFile()
