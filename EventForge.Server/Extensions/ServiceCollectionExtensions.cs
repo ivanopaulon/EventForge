@@ -60,6 +60,11 @@ public static class ServiceCollectionExtensions
         var isConsoleLoggingEnabled = builder.Configuration.GetValue<bool>("Serilog:EnableConsole", false);
         var consoleStatus = isConsoleLoggingEnabled ? "enabled" : "disabled";
 
+        // Minimum level is configurable via Serilog:MinimumLevel:Default (default: Information).
+        var minLevelStr = builder.Configuration["Serilog:MinimumLevel:Default"] ?? "Information";
+        if (!Enum.TryParse<LogEventLevel>(minLevelStr, ignoreCase: true, out var minimumLevel))
+            minimumLevel = LogEventLevel.Information;
+
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
 
@@ -87,7 +92,7 @@ public static class ServiceCollectionExtensions
         };
 
         var loggerConfiguration = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(minimumLevel)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Error)
@@ -114,7 +119,7 @@ public static class ServiceCollectionExtensions
         if (isConsoleLoggingEnabled)
         {
             loggerConfiguration.WriteTo.Console(
-                restrictedToMinimumLevel: LogEventLevel.Information,
+                restrictedToMinimumLevel: minimumLevel,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
         }
 
@@ -130,6 +135,15 @@ public static class ServiceCollectionExtensions
                     connection.Open();
                 }
 
+                // Migrate existing Logs table schema to match current column definitions.
+                // AutoCreateSqlTable only creates tables — it never alters them. If the table
+                // already exists from a previous version (e.g. UserId was UniqueIdentifier,
+                // TenantId / MachineName / EnvironmentName did not exist), SqlBulkCopy will
+                // fail because its ColumnMappings reference columns absent from the target table
+                // or encounter a type mismatch. This silently drops every batch, which is
+                // exactly the bug introduced by PR #1240.
+                MigrateLogTableSchema(logDbConnectionString);
+
                 // Connection successful - add SQL Server sink
                 _ = loggerConfiguration.WriteTo.MSSqlServer(
                     connectionString: logDbConnectionString,
@@ -142,7 +156,7 @@ public static class ServiceCollectionExtensions
                     columnOptions: columnOptions);
 
                 Log.Logger = loggerConfiguration.CreateLogger();
-                Log.Information("Serilog configurato per SQL Server con enrichment e file logging. Console logging: {ConsoleStatus}.", consoleStatus);
+                Log.Information("Serilog configurato per SQL Server con enrichment e file logging. Console logging: {ConsoleStatus}. MinimumLevel: {MinimumLevel}.", consoleStatus, minimumLevel);
             }
             catch (Exception ex)
             {
@@ -159,6 +173,78 @@ public static class ServiceCollectionExtensions
         }
 
         _ = builder.Host.UseSerilog();
+    }
+
+    /// <summary>
+    /// Ensures the existing Logs table schema matches the current column definitions.
+    /// Adds missing columns and fixes type mismatches introduced by PR #1240:
+    ///  - UserId changed from UniqueIdentifier to NVarChar(50)
+    ///  - TenantId, MachineName, EnvironmentName columns added
+    /// On a fresh database the table does not exist yet, so this is a no-op
+    /// (AutoCreateSqlTable will create it with the correct schema).
+    /// </summary>
+    private static void MigrateLogTableSchema(string connectionString)
+    {
+        const string tableName = "Logs";
+
+        try
+        {
+            using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+            connection.Open();
+
+            // Check if table exists
+            using var checkCmd = connection.CreateCommand();
+            checkCmd.CommandText = "SELECT OBJECT_ID(@Table, 'U')";
+            checkCmd.Parameters.AddWithValue("@Table", tableName);
+            var result = checkCmd.ExecuteScalar();
+            if (result is null || result is DBNull)
+                return; // Table does not exist yet — AutoCreateSqlTable will handle it
+
+            // Fix UserId column type: UniqueIdentifier -> NVarChar(50)
+            // RequestContextEnricherMiddleware pushes UserId as a string (JWT claim value),
+            // and LogIngestionBackgroundService also passes Guid.ToString(). The old
+            // UniqueIdentifier type causes SqlBulkCopy type-mismatch failures.
+            using var alterUserIdCmd = connection.CreateCommand();
+            alterUserIdCmd.CommandText = @"
+                IF EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = @Table AND COLUMN_NAME = 'UserId'
+                      AND DATA_TYPE = 'uniqueidentifier'
+                )
+                ALTER TABLE [Logs] ALTER COLUMN [UserId] NVARCHAR(50) NULL;";
+            alterUserIdCmd.Parameters.AddWithValue("@Table", tableName);
+            alterUserIdCmd.ExecuteNonQuery();
+
+            // Add columns introduced in PR #1240 that may be missing on existing databases.
+            // Each IF NOT EXISTS guard prevents errors on databases already up-to-date.
+            var newColumns = new (string Name, string TypeDef)[]
+            {
+                ("TenantId",        "NVARCHAR(50)  NULL"),
+                ("MachineName",     "NVARCHAR(256) NULL"),
+                ("EnvironmentName", "NVARCHAR(50)  NULL"),
+            };
+
+            foreach (var (columnName, typeDef) in newColumns)
+            {
+                using var addCmd = connection.CreateCommand();
+                addCmd.CommandText = $@"
+                    IF NOT EXISTS (
+                        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = @Table AND COLUMN_NAME = @Column
+                    )
+                    ALTER TABLE [{tableName}] ADD [{columnName}] {typeDef};";
+                addCmd.Parameters.AddWithValue("@Table", tableName);
+                addCmd.Parameters.AddWithValue("@Column", columnName);
+                addCmd.ExecuteNonQuery();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Schema migration is best-effort. If it fails, log a warning and let the sink
+            // attempt to work with whatever schema is in place. On a fresh DB the table
+            // will be created correctly by AutoCreateSqlTable anyway.
+            Log.Warning(ex, "Migrazione schema tabella Logs non riuscita. Il sink SQL potrebbe non funzionare correttamente su database esistenti.");
+        }
     }
 
     /// <summary>
