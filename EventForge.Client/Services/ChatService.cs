@@ -121,49 +121,53 @@ public class ChatService : IChatService
 
     public async Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
+
+        // Return the cached value if already populated (cache is invalidated on ChatCreated /
+        // AddedToChat / RemovedFromChat so staleness is bounded by those events).
+        if (_performanceService.IsCached(cacheKey))
+        {
+            return await _performanceService.GetCachedDataAsync(
+                cacheKey, () => Task.FromResult<List<ChatResponseDto>>([]), TimeSpan.FromMinutes(5)) ?? [];
+        }
+
         try
         {
-            // Use caching for improved performance
-            var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
-
-            return await _performanceService.GetCachedDataAsync(cacheKey, async () =>
+            var queryParams = new List<string>
             {
-                var queryParams = new List<string>
+                $"pageNumber={page}",
+                $"pageSize={pageSize}"
+            };
+
+            // Map UI filter names to ChatType enum values expected by the server
+            if (!string.IsNullOrEmpty(filter))
+            {
+                var chatTypeValue = filter.ToLowerInvariant() switch
                 {
-                    $"pageNumber={page}",
-                    $"pageSize={pageSize}"
+                    "direct" => "DirectMessage",
+                    "group" => "Group",
+                    "channel" => "Channel",
+                    _ => null
                 };
+                if (chatTypeValue != null)
+                    queryParams.Add($"types={chatTypeValue}");
+            }
 
-                // Map UI filter names to ChatType enum values expected by the server
-                if (!string.IsNullOrEmpty(filter))
-                {
-                    var chatTypeValue = filter.ToLowerInvariant() switch
-                    {
-                        "direct" => "DirectMessage",
-                        "group" => "Group",
-                        "channel" => "Channel",
-                        _ => null
-                    };
-                    if (chatTypeValue != null)
-                        queryParams.Add($"types={chatTypeValue}");
-                }
+            var query = string.Join("&", queryParams);
+            var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
+            var items = pagedResult?.Items?.ToList() ?? [];
 
-                var query = string.Join("&", queryParams);
-                var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
-                var items = pagedResult?.Items?.ToList() ?? [];
+            // Cache only non-empty results: an empty response may be the result of a pre-auth
+            // request. Caching it would hide the user's chats for up to 5 minutes.
+            if (items.Count > 0)
+                _performanceService.PreloadData(cacheKey, () => Task.FromResult(items), TimeSpan.FromMinutes(5));
 
-                // Do not cache an empty list: if auth has not settled yet the API may return
-                // null/empty, and a stale empty cache would hide chats for the next 5 minutes.
-                if (items.Count == 0)
-                    throw new InvalidOperationException("empty-result-skip-cache");
-
-                return items;
-            }, TimeSpan.FromMinutes(5)) ?? [];
+            return items;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting chats");
-            return new List<ChatResponseDto>();
+            return [];
         }
     }
 
