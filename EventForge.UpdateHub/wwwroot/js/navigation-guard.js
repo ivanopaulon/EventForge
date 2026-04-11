@@ -42,7 +42,7 @@
     var link = e.target.closest('a[href]');
     if (!link) return;
     var href = link.getAttribute('href') || '';
-    if (!href || href === '#' || href.startsWith('javascript:') || link.target === '_blank') return;
+    if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('data:') || href.startsWith('vbscript:') || link.target === '_blank') return;
     e.preventDefault();
     e.stopPropagation();
   }, true);
