@@ -7,6 +7,7 @@ using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -48,6 +49,7 @@ public class NotificationServiceTests : IDisposable
             _context,
             _auditLogServiceMock.Object,
             _loggerMock.Object,
+            new MemoryCache(new MemoryCacheOptions()),
             _hubContextMock.Object
         );
 

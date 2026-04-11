@@ -63,11 +63,11 @@ public class TenantSwitchController(
                 FullName = user.FullName,
                 Email = user.Email,
                 Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
-                CurrentTenantId = user.TenantId,
+                CurrentTenantId = tenantContext.CurrentTenantId ?? user.TenantId,
                 CurrentTenantName = currentTenant?.Name,
-                OriginalTenantId = user.TenantId, // In a real implementation, this would track the original tenant
+                OriginalTenantId = user.TenantId,
                 OriginalTenantName = currentTenant?.Name,
-                IsImpersonating = false, // Would be determined by session state
+                IsImpersonating = tenantContext.IsImpersonating,
                 ImpersonatedUserId = null,
                 ImpersonatedUsername = null,
                 IsSuperAdmin = user.UserRoles.Any(ur => ur.Role.Name == "SuperAdmin"),
@@ -207,36 +207,15 @@ public class TenantSwitchController(
                 return CreateNotFoundProblem("Current user not found");
             }
 
-            var originalTenantId = currentUser.TenantId;
+            var originalTenantId = tenantContext.CurrentTenantId ?? currentUser.TenantId;
 
-            // Create tenant switch audit trail
-            if (switchDto.CreateAuditEntry)
-            {
-                var auditTrail = new AuditTrail
-                {
-                    PerformedByUserId = currentUserId.Value,
-                    OperationType = AuthAuditOperationType.TenantSwitch,
-                    SourceTenantId = originalTenantId,
-                    TargetTenantId = switchDto.TenantId,
-                    SessionId = HttpContext.Session.Id,
-                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = HttpContext.Request.Headers["User-Agent"].ToString(),
-                    Details = $"SuperAdmin switched from tenant '{originalTenantId}' to '{targetTenant.Name}'. Reason: {switchDto.Reason}",
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = currentUser.Username
-                };
+            // Update session state and create audit trail via TenantContext
+            await tenantContext.SetTenantContextAsync(
+                switchDto.TenantId,
+                $"SuperAdmin switched to tenant '{targetTenant.Name}'. Reason: {switchDto.Reason}");
 
-                _ = context.AuditTrails.Add(auditTrail);
-            }
-
-            // In a real implementation, you would update session state or token claims here
-            // For now, we'll just log the switch
             logger.LogInformation("SuperAdmin {Username} switched to tenant {TenantName}",
                 currentUser.Username, targetTenant.Name);
-
-            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await hubContext.Clients.Group("SuperAdminUpdates")
@@ -309,34 +288,13 @@ public class TenantSwitchController(
                 return CreateNotFoundProblem("Current user not found");
             }
 
-            // Create impersonation audit trail
-            if (impersonationDto.CreateAuditEntry)
-            {
-                var auditTrail = new AuditTrail
-                {
-                    PerformedByUserId = currentUserId.Value,
-                    OperationType = AuthAuditOperationType.ImpersonationStart,
-                    SourceTenantId = currentUser.TenantId,
-                    TargetTenantId = impersonationDto.TargetTenantId ?? targetUser.TenantId,
-                    TargetUserId = targetUser.Id,
-                    SessionId = HttpContext.Session.Id,
-                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = HttpContext.Request.Headers["User-Agent"].ToString(),
-                    Details = $"SuperAdmin '{currentUser.Username}' started impersonating user '{targetUser.Username}'. Reason: {impersonationDto.Reason}",
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = currentUser.Username
-                };
+            // Update session state and create audit trail via TenantContext
+            await tenantContext.StartImpersonationAsync(
+                targetUser.Id,
+                $"SuperAdmin '{currentUser.Username}' started impersonating user '{targetUser.Username}'. Reason: {impersonationDto.Reason}");
 
-                _ = context.AuditTrails.Add(auditTrail);
-            }
-
-            // In a real implementation, you would update session state or token claims here
             logger.LogInformation("SuperAdmin {SuperAdminUsername} started impersonating user {TargetUsername}",
                 currentUser.Username, targetUser.Username);
-
-            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await hubContext.Clients.Group("SuperAdminUpdates")
@@ -402,27 +360,11 @@ public class TenantSwitchController(
                 return CreateNotFoundProblem("Current user not found");
             }
 
-            // Create impersonation end audit trail
-            var auditTrail = new AuditTrail
-            {
-                PerformedByUserId = currentUserId.Value,
-                OperationType = AuthAuditOperationType.ImpersonationEnd,
-                SourceTenantId = currentUser.TenantId,
-                SessionId = HttpContext.Session.Id,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = HttpContext.Request.Headers["User-Agent"].ToString(),
-                Details = $"SuperAdmin '{currentUser.Username}' ended impersonation. Reason: {endDto.Reason}",
-                WasSuccessful = true,
-                PerformedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser.Username
-            };
-
-            _ = context.AuditTrails.Add(auditTrail);
+            // End impersonation: update session state and create audit trail via TenantContext
+            await tenantContext.EndImpersonationAsync(
+                $"SuperAdmin '{currentUser.Username}' ended impersonation. Reason: {endDto.Reason}");
 
             logger.LogInformation("SuperAdmin {Username} ended impersonation", currentUser.Username);
-
-            _ = await context.SaveChangesAsync();
 
             // Notify other SuperAdmin sessions
             await hubContext.Clients.Group("SuperAdminUpdates")

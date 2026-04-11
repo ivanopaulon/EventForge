@@ -1,6 +1,7 @@
 using EventForge.DTOs.Chat;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Chat;
@@ -35,6 +36,7 @@ public class ChatService(
     ILogger<ChatService> logger,
     IHubContext<ChatHub> hubContext,
     IWebHostEnvironment environment,
+    IMemoryCache memoryCache,
     IOnlineUserTracker onlineUserTracker) : IChatService
 {
 
@@ -2127,10 +2129,7 @@ public class ChatService(
 
         try
         {
-            // Simple rate limiting implementation
-            // In a production environment, this should use Redis or distributed cache
-
-            // Define rate limits by operation type
+            // Define per-hour limits by chat operation type
             var rateLimits = new Dictionary<ChatOperationType, int>
             {
                 { ChatOperationType.SendMessage, 1000 },
@@ -2141,15 +2140,28 @@ public class ChatService(
             };
 
             var limit = rateLimits.GetValueOrDefault(operationType, 100);
-            var remainingQuota = limit - 1; // Simplified - in reality, track actual usage
 
-            // Check if limit would be exceeded (simplified logic)
-            var isAllowed = remainingQuota > 0;
+            // Build a scoped cache key: tenant + user + operation, reset every hour
+            var windowKey = $"ratelimit:chat:{tenantId?.ToString() ?? "global"}:{userId?.ToString() ?? "anon"}:{operationType}:{DateTime.UtcNow:yyyyMMddHH}";
+
+            var currentCount = memoryCache.GetOrCreate(windowKey, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return 0;
+            });
+
+            var isAllowed = currentCount < limit;
+            if (isAllowed)
+            {
+                memoryCache.Set(windowKey, currentCount + 1, TimeSpan.FromHours(1));
+            }
+
+            var remainingQuota = Math.Max(0, limit - (currentCount + (isAllowed ? 1 : 0)));
 
             return new ChatRateLimitStatusDto
             {
                 IsAllowed = isAllowed,
-                RemainingQuota = Math.Max(0, remainingQuota),
+                RemainingQuota = remainingQuota,
                 ResetTime = TimeSpan.FromHours(1),
                 OperationType = operationType,
                 LimitDetails = new Dictionary<string, object>
@@ -2158,6 +2170,7 @@ public class ChatService(
                     ["UserId"] = userId?.ToString() ?? "N/A",
                     ["Operation"] = operationType.ToString(),
                     ["Limit"] = limit,
+                    ["CurrentUsage"] = currentCount + (isAllowed ? 1 : 0),
                     ["CheckedAt"] = DateTime.UtcNow
                 }
             };

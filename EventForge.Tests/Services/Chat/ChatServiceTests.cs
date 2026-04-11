@@ -9,6 +9,7 @@ using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -77,7 +78,7 @@ public class ChatServiceTests : IDisposable
                 ChangedAt = DateTime.UtcNow
             });
 
-        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockEnvironment.Object, _mockOnlineUserTracker.Object);
+        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockEnvironment.Object, new MemoryCache(new MemoryCacheOptions()), _mockOnlineUserTracker.Object);
 
         // Seed test data
         SeedTestData();
