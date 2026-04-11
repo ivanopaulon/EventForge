@@ -1,11 +1,11 @@
-using EventForge.DTOs.Logging;
+﻿using EventForge.DTOs.Logging;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace EventForge.UpdateAgent.Services;
+namespace Prym.Agent.Services;
 
 /// <summary>
 /// Serilog sink that batches log events and forwards them to the EventForge Server
@@ -92,7 +92,14 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
     {
         if (string.IsNullOrWhiteSpace(_ingestUrl)) return;
 
-        if (!await _flushSemaphore.WaitAsync(0, ct)) return; // already flushing
+        bool acquired;
+        try
+        {
+            acquired = await _flushSemaphore.WaitAsync(0, ct);
+        }
+        catch (ObjectDisposedException) { return; }
+
+        if (!acquired) return; // already flushing
         try
         {
             while (true)

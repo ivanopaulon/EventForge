@@ -1,5 +1,5 @@
-using EventForge.UpdateAgent.Middleware;
-using EventForge.UpdateAgent.Workers;
+﻿using Prym.Agent.Middleware;
+using Prym.Agent.Workers;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -61,7 +61,7 @@ try
     // ── Windows Service support ───────────────────────────────────────────
     builder.Host.UseWindowsService(options =>
     {
-        options.ServiceName = "EventForge Update Agent";
+        options.ServiceName = "Prym Agent";
     });
 
     // ── Serilog ───────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ try
         return Results.Ok(new { Unblocked = true, req.SkipAndRemove });
     });
 
-    Log.Information("EventForge Update Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
+    Log.Information("Prym Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
 
     // ── Startup validation (folders + config checks) ──────────────────────
     using (var scope = app.Services.CreateScope())
