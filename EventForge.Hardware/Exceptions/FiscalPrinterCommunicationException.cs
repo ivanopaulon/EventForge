@@ -1,4 +1,4 @@
-namespace EventForge.Hardware.Exceptions;
+namespace Prym.Hardware.Exceptions;
 
 /// <summary>
 /// Thrown when a low-level communication error occurs while sending commands to or

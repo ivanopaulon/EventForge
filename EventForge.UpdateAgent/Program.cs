@@ -87,10 +87,9 @@ try
                 : opts.Components.Server.NotificationBaseUrl;
 
             if (!string.IsNullOrWhiteSpace(serverBase))
-            {
-                var httpFactory = services.GetRequiredService<IHttpClientFactory>();
-                loggerConfig.WriteTo.Sink(new AgentServerSink(opts, httpFactory));
-            }
+                {
+                    loggerConfig.WriteTo.Sink(new AgentServerSink(opts));
+                }
         }
     });
 

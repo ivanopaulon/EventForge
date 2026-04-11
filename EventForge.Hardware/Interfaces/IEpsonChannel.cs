@@ -1,6 +1,6 @@
-using EventForge.Hardware.Exceptions;
+using Prym.Hardware.Exceptions;
 
-namespace EventForge.Hardware.Interfaces;
+namespace Prym.Hardware.Interfaces;
 
 /// <summary>
 /// Abstraction for an Epson POS Printer WebAPI (ePOS-Print XML) communication channel.

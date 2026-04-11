@@ -1,4 +1,4 @@
-using EventForge.Hardware.PrinterProxy;
+using Prym.Hardware.PrinterProxy;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
@@ -205,5 +205,5 @@ public sealed class AgentEpsonProxyCommunication : IEpsonChannel
     private static string Truncate(string text, int maxLength)
         => text.Length > maxLength ? text[..maxLength] + "..." : text;
 
-    // ── DTOs live in EventForge.Hardware.PrinterProxy (PrinterProxyHttpForwardRequest / PrinterProxyHttpForwardResponse)
+    // ── DTOs live in Prym.Hardware.PrinterProxy (PrinterProxyHttpForwardRequest / PrinterProxyHttpForwardResponse)
 }

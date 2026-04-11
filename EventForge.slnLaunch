@@ -13,30 +13,19 @@
         "DebugTarget": "https"
       },
       {
-        "Path": "EventForge.UpdateHub\\EventForge.UpdateHub.csproj",
-        "Action": "Start",
-        "DebugTarget": "EventForge.UpdateHub"
+        "Path": "Prym.ManagementHub\\Prym.ManagementHub.csproj",
+        "Action": "StartWithoutDebugging",
+        "DebugTarget": "IIS Express"
       },
       {
-        "Path": "EventForge.UpdateAgent\\EventForge.UpdateAgent.csproj",
-        "Action": "Start",
-        "DebugTarget": "EventForge.UpdateAgent"
+        "Path": "Prym.Agent\\Prym.Agent.csproj",
+        "Action": "StartWithoutDebugging",
+        "DebugTarget": "IIS Express"
       }
     ]
   },
   {
     "Name": "Hub + Agent",
-    "Projects": [
-      {
-        "Path": "EventForge.UpdateHub\\EventForge.UpdateHub.csproj",
-        "Action": "Start",
-        "DebugTarget": "EventForge.UpdateHub"
-      },
-      {
-        "Path": "EventForge.UpdateAgent\\EventForge.UpdateAgent.csproj",
-        "Action": "Start",
-        "DebugTarget": "EventForge.UpdateAgent"
-      }
-    ]
+    "Projects": []
   }
 ]

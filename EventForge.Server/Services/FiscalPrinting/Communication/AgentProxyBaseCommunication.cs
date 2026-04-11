@@ -1,4 +1,4 @@
-using EventForge.Hardware.PrinterProxy;
+using Prym.Hardware.PrinterProxy;
 using Polly;
 using Polly.Retry;
 using System.Net.Http.Json;

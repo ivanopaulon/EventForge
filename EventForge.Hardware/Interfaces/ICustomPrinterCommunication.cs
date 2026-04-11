@@ -1,6 +1,6 @@
-using EventForge.Hardware.Exceptions;
+using Prym.Hardware.Exceptions;
 
-namespace EventForge.Hardware.Interfaces;
+namespace Prym.Hardware.Interfaces;
 
 /// <summary>
 /// Abstraction for the low-level communication channel with a Custom fiscal printer.

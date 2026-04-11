@@ -20,6 +20,16 @@
       "applicationUrl": "https://localhost:7241;http://localhost:5240",
       "nativeDebugging": true
     },
+    "Debug": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Debug"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7241;http://localhost:5240",
+      "nativeDebugging": true
+    },
     "Legacy": {
       "commandName": "Project",
       "launchBrowser": true,

@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>EventForge.Hardware</RootNamespace>
-    <AssemblyName>EventForge.Hardware</AssemblyName>
+    <RootNamespace>Prym.Hardware</RootNamespace>
+    <AssemblyName>Prym.Hardware</AssemblyName>
   </PropertyGroup>
 </Project>

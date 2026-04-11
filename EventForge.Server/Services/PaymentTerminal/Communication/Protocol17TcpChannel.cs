@@ -1,4 +1,4 @@
-using EventForge.Hardware.Interfaces;
+using Prym.Hardware.Interfaces;
 using System.Net.Sockets;
 
 namespace EventForge.Server.Services.PaymentTerminal.Communication;

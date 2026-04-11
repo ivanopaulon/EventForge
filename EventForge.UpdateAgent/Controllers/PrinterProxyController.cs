@@ -1,5 +1,5 @@
-using EventForge.Hardware.Exceptions;
-using EventForge.Hardware.PrinterProxy;
+using Prym.Hardware.Exceptions;
+using Prym.Hardware.PrinterProxy;
 using EventForge.UpdateAgent.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Runtime.InteropServices;

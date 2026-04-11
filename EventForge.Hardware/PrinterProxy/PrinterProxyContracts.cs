@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace EventForge.Hardware.PrinterProxy;
+namespace Prym.Hardware.PrinterProxy;
 
 // ── USB proxy (UsbViaAgent) ──────────────────────────────────────────────────
 

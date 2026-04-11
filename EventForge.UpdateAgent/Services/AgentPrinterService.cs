@@ -1,4 +1,4 @@
-using EventForge.Hardware.Exceptions;
+using Prym.Hardware.Exceptions;
 using System.Net.Sockets;
 
 namespace EventForge.UpdateAgent.Services;

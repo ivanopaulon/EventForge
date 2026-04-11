@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.0.11018.127
@@ -11,9 +11,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Client", "EventF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Tests", "EventForge.Tests\EventForge.Tests.csproj", "{F8DD045F-F3EC-44A1-91E9-F25348E2F894}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.UpdateHub", "EventForge.UpdateHub\EventForge.UpdateHub.csproj", "{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.ManagementHub", "Prym.ManagementHub\Prym.ManagementHub.csproj", "{A1B2C3D4-E5F6-7A8B-9C0D-1E2F3A4B5C6E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.UpdateAgent", "EventForge.UpdateAgent\EventForge.UpdateAgent.csproj", "{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Agent", "Prym.Agent\Prym.Agent.csproj", "{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Hardware", "EventForge.Hardware\EventForge.Hardware.csproj", "{F6490D37-FEF6-4E49-8F61-7AE3777D79F7}"
 EndProject

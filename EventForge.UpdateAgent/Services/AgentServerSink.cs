@@ -40,10 +40,14 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
     // causing infinite recursion.  SelfLog writes to the standard Serilog diagnostics
     // channel (enabled via Serilog.Debugging.SelfLog.Enable(...) in the host if desired).
 
-    public AgentServerSink(AgentOptions options, IHttpClientFactory httpClientFactory)
+    public AgentServerSink(AgentOptions options)
     {
         _options = options;
-        _http    = httpClientFactory.CreateClient("AgentServerSink");
+        // Create a dedicated HttpClient rather than using IHttpClientFactory.
+        // The factory resolves ILoggerFactory internally, which causes a circular
+        // dependency when this sink is instantiated inside the UseSerilog callback
+        // (Serilog is not yet configured at that point).
+        _http = new HttpClient();
 
         // Resolve the ingest URL: explicit override > Server NotificationBaseUrl > empty (disabled)
         var baseUrl = !string.IsNullOrWhiteSpace(options.Logging.ServerIngestUrl)
@@ -166,6 +170,7 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
         await _timer.DisposeAsync();
         await FlushAsync(CancellationToken.None);
         _flushSemaphore.Dispose();
+        _http.Dispose();
     }
 
     public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();

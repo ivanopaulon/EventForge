@@ -1,0 +1,115 @@
+@page
+@model LogsModel
+@{
+    ViewData["Title"] = "Log";
+    ViewData["PageSection"] = "Agent";
+    ViewData["InstallationId"] = Model.InstallationId;
+    ViewData["InstallationName"] = Model.InstallationName;
+}
+
+<!-- Page header -->
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-journals"></i></div>
+        <div>
+            <h1>Log</h1>
+            <p class="ef-page-subtitle">Ultimi @Model.Lines.Count messaggi — @(Model.LogFileName ?? "nessun file trovato")</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex gap-2">
+            @foreach (var lv in new[] { "", "INF", "WRN", "ERR", "FTL" })
+            {
+                var label = lv switch { "" => "Tutti", "INF" => "Info", "WRN" => "Warn", "ERR" => "Error", "FTL" => "Fatal", _ => lv };
+                var active = Model.LevelFilter == lv ? "btn-primary" : "btn-outline-secondary";
+                <a href="?level=@lv" class="btn btn-sm @active">@label</a>
+            }
+        </div>
+        <a href="/logs" class="btn btn-outline-secondary btn-sm ms-2">
+            <i class="bi bi-arrow-clockwise"></i>
+        </a>
+    </div>
+</div>
+
+@if (Model.LogFileName is null)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <span>Nessun file di log trovato nella directory <code>@Model.LogDirectory</code>.</span>
+    </div>
+}
+else
+{
+    <div class="ef-card">
+        <div class="ef-card-header">
+            <i class="bi bi-terminal"></i>
+            <code style="font-size:.8rem">@Model.LogFileName</code>
+            <span class="ef-badge ef-badge-neutral ms-auto">@Model.Lines.Count righe</span>
+        </div>
+        <div class="ef-card-body p-0">
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th style="width:160px">Timestamp</th>
+                            <th style="width:70px">Livello</th>
+                            <th>Messaggio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.Lines)
+                        {
+                            var rowCls = entry.Level switch {
+                                "ERR" or "FTL" => "row-danger",
+                                "WRN"          => "row-warning",
+                                _              => ""
+                            };
+                            var badgeCls = entry.Level switch {
+                                "ERR" or "FTL" => "ef-badge-danger",
+                                "WRN"          => "ef-badge-warning",
+                                "INF"          => "ef-badge-success",
+                                _              => "ef-badge-neutral"
+                            };
+                            <tr class="@rowCls">
+                                <td class="text-muted" style="white-space:nowrap;font-size:.75rem">@entry.Timestamp</td>
+                                <td><span class="ef-badge @badgeCls">@entry.Level</span></td>
+                                <td style="word-break:break-word;max-width:0">
+                                    @entry.Message
+                                    @if (!string.IsNullOrEmpty(entry.Exception))
+                                    {
+                                        <details class="mt-1">
+                                            <summary class="text-danger" style="font-size:.75rem;cursor:pointer">
+                                                <i class="bi bi-bug me-1"></i>Eccezione
+                                            </summary>
+                                            <pre style="font-size:.72rem;white-space:pre-wrap;color:var(--ef-danger);margin-top:.4rem">@entry.Exception</pre>
+                                        </details>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (Model.Lines.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                                    Nessuna riga corrisponde al filtro selezionato.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+// Auto-refresh ogni 10 secondi se non è stato applicato un filtro
+(function () {
+    if (!window.location.search || window.location.search === '?level=') {
+        setTimeout(() => location.reload(), 10000);
+    }
+})();
+</script>
+}
