@@ -10,7 +10,7 @@ namespace EventForge.Client.Services;
 /// Service for handling chat operations and real-time messaging.
 /// Integrates with REST API endpoints and SignalR for real-time functionality.
 /// </summary>
-public interface IChatService
+public interface IChatService : IDisposable
 {
     Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default);
     Task<ChatResponseDto?> GetChatByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -39,6 +39,10 @@ public interface IChatService
     event Action<Guid, Guid>? UserJoinedChat;
     event Action<Guid, Guid>? UserLeftChat;
     event Action<Guid, bool>? UserOnlineStatusChanged;
+    /// <summary>Fired when the current user is added to a chat by another member.</summary>
+    event Action<ChatResponseDto>? AddedToChat;
+    /// <summary>Fired when the current user is removed from a chat.</summary>
+    event Action<Guid>? RemovedFromChat;
 }
 
 public class ChatService : IChatService
@@ -50,6 +54,7 @@ public class ChatService : IChatService
     private readonly IRealtimeService _realtimeService;
     private readonly IPerformanceOptimizationService _performanceService;
     private readonly ILogger<ChatService> _logger;
+    private bool _disposed;
 
     public ChatService(
         IHttpClientService httpClientService,
@@ -76,6 +81,26 @@ public class ChatService : IChatService
         _realtimeService.UserJoinedChat += OnUserJoinedChat;
         _realtimeService.UserLeftChat += OnUserLeftChat;
         _realtimeService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
+        _realtimeService.AddedToChat += OnAddedToChat;
+        _realtimeService.RemovedFromChat += OnRemovedFromChat;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _realtimeService.ChatCreated -= OnChatCreated;
+        _realtimeService.MessageReceived -= OnMessageReceived;
+        _realtimeService.MessageEdited -= OnMessageEdited;
+        _realtimeService.MessageDeleted -= OnMessageDeleted;
+        _realtimeService.MessageRead -= OnMessageRead;
+        _realtimeService.TypingIndicator -= OnTypingIndicator;
+        _realtimeService.UserJoinedChat -= OnUserJoinedChat;
+        _realtimeService.UserLeftChat -= OnUserLeftChat;
+        _realtimeService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
+        _realtimeService.AddedToChat -= OnAddedToChat;
+        _realtimeService.RemovedFromChat -= OnRemovedFromChat;
     }
 
     #region Events
@@ -88,6 +113,8 @@ public class ChatService : IChatService
     public event Action<Guid, Guid>? UserJoinedChat;
     public event Action<Guid, Guid>? UserLeftChat;
     public event Action<Guid, bool>? UserOnlineStatusChanged;
+    public event Action<ChatResponseDto>? AddedToChat;
+    public event Action<Guid>? RemovedFromChat;
     #endregion
 
     #region API Operations
@@ -123,8 +150,15 @@ public class ChatService : IChatService
 
                 var query = string.Join("&", queryParams);
                 var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
-                return pagedResult?.Items?.ToList() ?? new List<ChatResponseDto>();
-            }, TimeSpan.FromMinutes(5)) ?? new List<ChatResponseDto>();
+                var items = pagedResult?.Items?.ToList() ?? [];
+
+                // Do not cache an empty list: if auth has not settled yet the API may return
+                // null/empty, and a stale empty cache would hide chats for the next 5 minutes.
+                if (items.Count == 0)
+                    throw new InvalidOperationException("empty-result-skip-cache");
+
+                return items;
+            }, TimeSpan.FromMinutes(5)) ?? [];
         }
         catch (Exception ex)
         {
@@ -435,6 +469,46 @@ public class ChatService : IChatService
     private void OnUserOnlineStatusChanged(Guid userId, bool isOnline)
     {
         UserOnlineStatusChanged?.Invoke(userId, isOnline);
+    }
+
+    private void OnAddedToChat(object addedToChatData)
+    {
+        // Invalidate chat list so the next GetChatsAsync call picks up the new chat.
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+
+        // Try to deserialize the payload as a ChatResponseDto for a richer event.
+        if (addedToChatData is System.Text.Json.JsonElement element)
+        {
+            try
+            {
+                var chat = System.Text.Json.JsonSerializer.Deserialize<ChatResponseDto>(element.GetRawText(),
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (chat is not null) { AddedToChat?.Invoke(chat); return; }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize AddedToChat payload as ChatResponseDto");
+            }
+        }
+
+        _logger.LogInformation("AddedToChat event received; chat list cache invalidated");
+    }
+
+    private void OnRemovedFromChat(object removedFromChatData)
+    {
+        // Invalidate chat list so the removed chat disappears on next load.
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+
+        if (removedFromChatData is System.Text.Json.JsonElement element &&
+            element.TryGetProperty("chatId", out var chatIdEl) &&
+            chatIdEl.TryGetGuid(out var chatId))
+        {
+            _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
+            RemovedFromChat?.Invoke(chatId);
+            return;
+        }
+
+        _logger.LogInformation("RemovedFromChat event received; chat list cache invalidated");
     }
 
     #endregion

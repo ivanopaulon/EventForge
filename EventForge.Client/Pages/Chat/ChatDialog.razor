@@ -1,6 +1,7 @@
 @using EventForge.DTOs.Chat
 @using EventForge.Client.Services.WhatsApp
 @using EventForge.Client.Models.Messaging
+@using EventForge.Client.Shared.Helpers
 @using Microsoft.AspNetCore.Components.Forms
 @inject IAuthService AuthService
 @inject IChatService ChatService
@@ -333,9 +334,7 @@
                                             }
                                             <div class="@($"msg-bubble {(isMe ? "msg-bubble--me" : "msg-bubble--other")}")"
                                                  style="@GetBubbleStyle(isMe, selIsWa)">
-                                                <MudText Typo="Typo.body2" Style="white-space:pre-wrap;word-break:break-word;">
-                                                    @msg.Content
-                                                </MudText>
+                                                <div style="white-space:pre-wrap;word-break:break-word;font-size:0.875rem;">@ChatMarkdownRenderer.Render(msg.Content)</div>
                                                 <div class="d-flex justify-end align-center gap-1 mt-1">
                                                     <MudText Typo="Typo.caption"
                                                              Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
@@ -518,6 +517,8 @@
             ChatService.UserJoinedChat           += OnUserJoinedChat;
             ChatService.UserLeftChat             += OnUserLeftChat;
             ChatService.UserOnlineStatusChanged  += OnUserOnlineStatusChanged;
+            ChatService.AddedToChat              += OnAddedToChat;
+            ChatService.RemovedFromChat          += OnRemovedFromChat;
 
             await LoadChatsAsync();
         }
@@ -539,6 +540,8 @@
         ChatService.UserJoinedChat           -= OnUserJoinedChat;
         ChatService.UserLeftChat             -= OnUserLeftChat;
         ChatService.UserOnlineStatusChanged  -= OnUserOnlineStatusChanged;
+        ChatService.AddedToChat              -= OnAddedToChat;
+        ChatService.RemovedFromChat          -= OnRemovedFromChat;
         CancelAllTypingTimers();
     }
 
@@ -879,6 +882,32 @@
     {
         var m = _chatMembers.FirstOrDefault(x => x.UserId == userId);
         if (m is not null) { m.IsOnline = online; InvokeAsync(StateHasChanged); }
+    }
+
+    private void OnAddedToChat(ChatResponseDto chat)
+    {
+        Logger.LogInformation("Added to chat {ChatId}", chat.Id);
+        if (!_chatList.Any(c => c.Id == chat.Id))
+        {
+            _chatList.Insert(0, chat);
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnRemovedFromChat(Guid chatId)
+    {
+        Logger.LogInformation("Removed from chat {ChatId}", chatId);
+        _chatList.RemoveAll(c => c.Id == chatId);
+        _totalUnread = _chatList.Sum(c => c.UnreadCount);
+        if (_selectedChatId == chatId)
+        {
+            _selectedChatId = null;
+            _selectedChat = null;
+            _messages.Clear();
+            _messageIds.Clear();
+        }
+        InvokeAsync(StateHasChanged);
     }
 
     // ────────────────────────────────────────────────────────────────────────
