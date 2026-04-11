@@ -349,7 +349,7 @@
                 foreach (var row in _printerRows)
                 {
                     try { await _hubConnection.SendAsync("SubscribeToPrinter", row.Printer.Id); }
-                    catch { /* non-fatal */ }
+                    catch (Exception ex) { Logger.LogWarning(ex, "FiscalPrintersDashboard: failed to re-subscribe to printer {PrinterId} after reconnect", row.Printer.Id); }
                 }
             };
 

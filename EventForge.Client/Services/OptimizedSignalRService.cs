@@ -417,19 +417,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             NotificationArchived?.Invoke(notificationId);
         });
 
-        _ = connection.On<System.Text.Json.JsonElement>("NotificationStatusUpdated", data =>
+        _ = connection.On<object>("NotificationStatusUpdated", data =>
         {
             try { NotificationStatusUpdated?.Invoke(data); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NotificationStatusUpdated"); }
         });
 
-        _ = connection.On<System.Text.Json.JsonElement>("TenantNotificationReceived", data =>
+        _ = connection.On<object>("TenantNotificationReceived", data =>
         {
             try { TenantNotificationReceived?.Invoke(data); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to process TenantNotificationReceived"); }
         });
 
-        _ = connection.On<System.Text.Json.JsonElement>("ReceiveBulkNotifications", data =>
+        _ = connection.On<object>("ReceiveBulkNotifications", data =>
         {
             try { ReceiveBulkNotifications?.Invoke(data); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ReceiveBulkNotifications"); }
