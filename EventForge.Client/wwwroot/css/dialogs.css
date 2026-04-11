@@ -17,10 +17,18 @@
     }
 }
 
-/* La card MudDialog: trasparente — EFDialog gestisce il rendering visivo */
+/* La card MudDialog: applica solo il border-radius globalmente */
 .mud-dialog {
     border-radius: 12px !important;
     overflow: hidden;
+}
+
+/* Sfondo trasparente SOLO per dialog EFDialog/EFSystemDialog:
+   questi gestiscono autonomamente il proprio rendering visivo tramite efd-card / efsd-card.
+   I dialog nativi di MudBlazor (es. MudMessageBox) devono mantenere il proprio sfondo
+   per restare visibili. */
+.mud-dialog.efd-dialog-root,
+.mud-dialog.efsd-dialog-root {
     background: transparent !important;
 }
 

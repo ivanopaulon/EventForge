@@ -1,0 +1,166 @@
+@using EventForge.DTOs.SuperAdmin
+@using EventForge.Client.Services
+@inject ITranslationService TranslationService
+@inject ILogger<LogDetailDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Article"
+          Title="@TranslationService.GetTranslation("health.logDetails", "Log Details")"
+          MinWidth="min(720px, 95vw)"
+          MinHeight="@EFDialogDefaults.MinHeightSimple"
+          OnClose="Close">
+    <ChildContent>
+        <MudStack Spacing="2" Class="pa-2">
+
+            @* ── Common fields ── *@
+            <MudGrid Spacing="1">
+                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Timestamp:</strong></MudText></MudItem>
+                <MudItem xs="9"><MudText Typo="Typo.body2">@_timestamp</MudText></MudItem>
+
+                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Level:</strong></MudText></MudItem>
+                <MudItem xs="9">
+                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_level)" Text="@_level" />
+                </MudItem>
+
+                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
+                <MudItem xs="9">
+                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap; word-break: break-word;">@_message</MudText>
+                </MudItem>
+
+                @if (!string.IsNullOrEmpty(_source))
+                {
+                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Source:</strong></MudText></MudItem>
+                    <MudItem xs="9"><MudText Typo="Typo.body2">@_source</MudText></MudItem>
+                }
+
+                @if (!string.IsNullOrEmpty(_category))
+                {
+                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Category:</strong></MudText></MudItem>
+                    <MudItem xs="9"><MudText Typo="Typo.body2">@_category</MudText></MudItem>
+                }
+            </MudGrid>
+
+            @* ── Admin-only fields (SystemLogDto) ── *@
+            @if (AdminLog != null)
+            {
+                <MudGrid Spacing="1">
+                    @if (!string.IsNullOrEmpty(AdminLog.Username))
+                    {
+                        <MudItem xs="3"><MudText Typo="Typo.body2"><strong>User:</strong></MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2">@AdminLog.Username</MudText></MudItem>
+                    }
+
+                    @if (!string.IsNullOrEmpty(AdminLog.TenantName))
+                    {
+                        <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Tenant:</strong></MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2">@AdminLog.TenantName</MudText></MudItem>
+                    }
+
+                    @if (!string.IsNullOrEmpty(AdminLog.IpAddress))
+                    {
+                        <MudItem xs="3"><MudText Typo="Typo.body2"><strong>IP:</strong></MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2">@AdminLog.IpAddress</MudText></MudItem>
+                    }
+
+                    @if (!string.IsNullOrEmpty(AdminLog.TraceId))
+                    {
+                        <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Trace ID:</strong></MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2" Style="font-family: monospace; font-size: 0.8rem;">@AdminLog.TraceId</MudText></MudItem>
+                    }
+                </MudGrid>
+
+                @if (!string.IsNullOrEmpty(AdminLog.Exception))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-2">
+                        <strong>Exception:</strong>
+                        <pre style="white-space: pre-wrap; font-size: 0.75rem; margin-top: 4px;">@AdminLog.Exception</pre>
+                    </MudAlert>
+                }
+
+                @if (AdminLog.Properties?.Any() == true)
+                {
+                    <MudPaper Elevation="0" Class="mt-2 pa-2" Style="background: rgba(255,255,255,0.05); border-radius: 4px;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
+                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(AdminLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                    </MudPaper>
+                }
+            }
+
+            @* ── Sanitized-only fields (SanitizedSystemLogDto) ── *@
+            @if (SanitizedLog != null)
+            {
+                @if (SanitizedLog.HasException)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-2">
+                        @TranslationService.GetTranslation("health.exceptionOccurred", "An exception was recorded for this entry (details not available).")
+                    </MudAlert>
+                }
+
+                @if (SanitizedLog.PublicProperties?.Any() == true)
+                {
+                    <MudPaper Elevation="0" Class="mt-2 pa-2" Style="background: rgba(255,255,255,0.05); border-radius: 4px;">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
+                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(SanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                    </MudPaper>
+                }
+            }
+
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.Close"
+                   OnClick="Close">
+            @TranslationService.GetTranslation("button.close", "Close")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Full log entry shown to admin users.</summary>
+    [Parameter] public SystemLogDto? AdminLog { get; set; }
+
+    /// <summary>Sanitized log entry shown to non-admin users.</summary>
+    [Parameter] public SanitizedSystemLogDto? SanitizedLog { get; set; }
+
+    // Shared display values derived from whichever DTO is provided.
+    private string _timestamp = string.Empty;
+    private string _level = string.Empty;
+    private string _message = string.Empty;
+    private string? _source;
+    private string? _category;
+
+    protected override void OnParametersSet()
+    {
+        if (AdminLog is not null)
+        {
+            _timestamp = AdminLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            _level     = AdminLog.Level;
+            _message   = AdminLog.Message;
+            _source    = AdminLog.Source;
+            _category  = AdminLog.Category;
+        }
+        else if (SanitizedLog is not null)
+        {
+            _timestamp = SanitizedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            _level     = SanitizedLog.Level;
+            _message   = SanitizedLog.Message;
+            _source    = SanitizedLog.Source;
+            _category  = SanitizedLog.Category;
+        }
+    }
+
+    private void Close() => MudDialog?.Close();
+
+    private static Color GetLogLevelColor(string? level) => level?.ToLowerInvariant() switch
+    {
+        "debug"       => Color.Info,
+        "information" => Color.Primary,
+        "warning"     => Color.Warning,
+        "error"       => Color.Error,
+        "critical"    => Color.Error,
+        _             => Color.Default
+    };
+}

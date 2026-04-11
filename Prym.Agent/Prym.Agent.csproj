@@ -19,6 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
-    <ProjectReference Include="..\EventForge.Hardware\EventForge.Hardware.csproj" />
+    <ProjectReference Include="..\Prym.Hardware\Prym.Hardware.csproj" />
   </ItemGroup>
 </Project>

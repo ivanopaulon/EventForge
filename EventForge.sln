@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.ManagementHub", "Prym.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Agent", "Prym.Agent\Prym.Agent.csproj", "{B2C3D4E5-F6A7-8B9C-0D1E-2F3A4B5C6D7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventForge.Hardware", "EventForge.Hardware\EventForge.Hardware.csproj", "{F6490D37-FEF6-4E49-8F61-7AE3777D79F7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Hardware", "Prym.Hardware\Prym.Hardware.csproj", "{F6490D37-FEF6-4E49-8F61-7AE3777D79F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
