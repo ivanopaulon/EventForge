@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using EventForge.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
@@ -472,13 +473,146 @@ public class StockReconciliationService(
         }
     }
 
-    public Task<byte[]> ExportReconciliationReportAsync(
+    public async Task<byte[]> ExportReconciliationReportAsync(
         StockReconciliationRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Implement Excel export using EPPlus or ClosedXML with Summary, Details, and Movements sheets
-        logger.LogWarning("Excel export not yet implemented - returning empty array");
-        return Task.FromResult(Array.Empty<byte>());
+        var result = await CalculateReconciledStockAsync(request, cancellationToken);
+
+        using var workbook = new XLWorkbook();
+
+        // ── Sheet 1: Summary ──────────────────────────────────────────────────
+        var summarySheet = workbook.Worksheets.Add("Summary");
+        summarySheet.Cell(1, 1).Value = "Stock Reconciliation Report";
+        summarySheet.Cell(1, 1).Style.Font.Bold = true;
+        summarySheet.Cell(1, 1).Style.Font.FontSize = 14;
+
+        var generatedAt = DateTime.UtcNow;
+        summarySheet.Cell(2, 1).Value = "Generated At (UTC)";
+        summarySheet.Cell(2, 2).Value = generatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+        if (request.FromDate.HasValue)
+        {
+            summarySheet.Cell(3, 1).Value = "From Date";
+            summarySheet.Cell(3, 2).Value = request.FromDate.Value.ToString("yyyy-MM-dd");
+        }
+        if (request.ToDate.HasValue)
+        {
+            summarySheet.Cell(4, 1).Value = "To Date";
+            summarySheet.Cell(4, 2).Value = request.ToDate.Value.ToString("yyyy-MM-dd");
+        }
+
+        int summaryRow = 6;
+        summarySheet.Cell(summaryRow, 1).Value = "Metric";
+        summarySheet.Cell(summaryRow, 2).Value = "Value";
+        summarySheet.Cell(summaryRow, 1).Style.Font.Bold = true;
+        summarySheet.Cell(summaryRow, 2).Style.Font.Bold = true;
+
+        var summaryData = new[]
+        {
+            ("Total Products Analyzed", (object)result.Summary.TotalProducts),
+            ("Correct (No Discrepancy)", result.Summary.CorrectCount),
+            ("Minor Discrepancies (< Threshold)", result.Summary.MinorDiscrepancyCount),
+            ("Major Discrepancies (>= Threshold)", result.Summary.MajorDiscrepancyCount),
+            ("Missing Stock", result.Summary.MissingCount),
+            ("Total Absolute Difference", result.Summary.TotalDifferenceValue)
+        };
+
+        foreach (var (label, value) in summaryData)
+        {
+            summaryRow++;
+            summarySheet.Cell(summaryRow, 1).Value = label;
+            summarySheet.Cell(summaryRow, 2).Value = value?.ToString() ?? string.Empty;
+        }
+
+        summarySheet.Column(1).AdjustToContents();
+        summarySheet.Column(2).AdjustToContents();
+
+        // ── Sheet 2: Details ──────────────────────────────────────────────────
+        var detailsSheet = workbook.Worksheets.Add("Details");
+        var detailsHeaders = new[]
+        {
+            "Product Code", "Product Name", "Warehouse", "Location",
+            "Current Qty", "Calculated Qty", "Difference", "Diff %",
+            "Severity", "Total Docs", "Total Inventories", "Total Manual"
+        };
+        for (int col = 0; col < detailsHeaders.Length; col++)
+        {
+            detailsSheet.Cell(1, col + 1).Value = detailsHeaders[col];
+            detailsSheet.Cell(1, col + 1).Style.Font.Bold = true;
+        }
+        detailsSheet.Row(1).Style.Fill.BackgroundColor = XLColor.LightBlue;
+
+        int detailRow = 2;
+        foreach (var item in result.Items)
+        {
+            detailsSheet.Cell(detailRow, 1).Value = item.ProductCode;
+            detailsSheet.Cell(detailRow, 2).Value = item.ProductName;
+            detailsSheet.Cell(detailRow, 3).Value = item.WarehouseName;
+            detailsSheet.Cell(detailRow, 4).Value = item.LocationCode;
+            detailsSheet.Cell(detailRow, 5).Value = item.CurrentQuantity;
+            detailsSheet.Cell(detailRow, 6).Value = item.CalculatedQuantity;
+            detailsSheet.Cell(detailRow, 7).Value = item.Difference;
+            detailsSheet.Cell(detailRow, 8).Value = item.DifferencePercentage;
+            detailsSheet.Cell(detailRow, 9).Value = item.Severity.ToString();
+            detailsSheet.Cell(detailRow, 10).Value = item.TotalDocuments;
+            detailsSheet.Cell(detailRow, 11).Value = item.TotalInventories;
+            detailsSheet.Cell(detailRow, 12).Value = item.TotalManualMovements;
+
+            // Highlight rows with major discrepancies
+            if (item.Severity == ReconciliationSeverity.Major || item.Severity == ReconciliationSeverity.Missing)
+            {
+                detailsSheet.Row(detailRow).Style.Fill.BackgroundColor = XLColor.LightSalmon;
+            }
+            else if (item.Severity == ReconciliationSeverity.Minor)
+            {
+                detailsSheet.Row(detailRow).Style.Fill.BackgroundColor = XLColor.LightYellow;
+            }
+
+            detailRow++;
+        }
+
+        detailsSheet.Columns().AdjustToContents();
+
+        // ── Sheet 3: Movements ────────────────────────────────────────────────
+        var movementsSheet = workbook.Worksheets.Add("Movements");
+        var movementsHeaders = new[]
+        {
+            "Product Code", "Product Name", "Movement Type", "Reference", "Quantity", "Date", "Is Replacement"
+        };
+        for (int col = 0; col < movementsHeaders.Length; col++)
+        {
+            movementsSheet.Cell(1, col + 1).Value = movementsHeaders[col];
+            movementsSheet.Cell(1, col + 1).Style.Font.Bold = true;
+        }
+        movementsSheet.Row(1).Style.Fill.BackgroundColor = XLColor.LightBlue;
+
+        int movRow = 2;
+        foreach (var item in result.Items)
+        {
+            foreach (var mv in item.SourceMovements)
+            {
+                movementsSheet.Cell(movRow, 1).Value = item.ProductCode;
+                movementsSheet.Cell(movRow, 2).Value = item.ProductName;
+                movementsSheet.Cell(movRow, 3).Value = mv.Type;
+                movementsSheet.Cell(movRow, 4).Value = mv.Reference;
+                movementsSheet.Cell(movRow, 5).Value = mv.Quantity;
+                movementsSheet.Cell(movRow, 6).Value = mv.Date.ToString("yyyy-MM-dd HH:mm:ss");
+                movementsSheet.Cell(movRow, 7).Value = mv.IsReplacement ? "Yes" : "No";
+                movRow++;
+            }
+        }
+
+        movementsSheet.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+
+        logger.LogInformation(
+            "Stock reconciliation Excel report generated: {ProductCount} products, {MovementCount} movements",
+            result.Items.Count, result.Items.Sum(i => i.SourceMovements.Count));
+
+        return ms.ToArray();
     }
 
     public async Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(
