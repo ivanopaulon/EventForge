@@ -34,6 +34,7 @@ public class ChatService(
     IAuditLogService auditLogService,
     ILogger<ChatService> logger,
     IHubContext<ChatHub> hubContext,
+    IWebHostEnvironment environment,
     IOnlineUserTracker onlineUserTracker) : IChatService
 {
 
@@ -753,13 +754,17 @@ public class ChatService(
                 "User {UserId} sent message {MessageId} in chat {ChatId} with {AttachmentCount} attachments in {ElapsedMs}ms",
                 messageDto.SenderId, messageId, messageDto.ChatId, messageDto.Attachments?.Count ?? 0, stopwatch.ElapsedMilliseconds);
 
+            // Resolve sender display name for the realtime DTO
+            var sendNames = await FetchUserNamesAsync(new[] { messageDto.SenderId }, cancellationToken);
+            var senderDisplayName = sendNames.GetValueOrDefault(messageDto.SenderId, messageDto.SenderId.ToString("N")[..8]);
+
             // Build response DTO for real-time delivery
             var responseDto = new ChatMessageDto
             {
                 Id = messageId,
                 ChatId = messageDto.ChatId,
                 SenderId = messageDto.SenderId,
-                SenderName = "System", // TODO: Resolve sender name from user service
+                SenderName = senderDisplayName,
                 Content = messageDto.Content,
                 ReplyToMessageId = messageDto.ReplyToMessageId,
                 Attachments = attachmentDtos,
@@ -862,7 +867,11 @@ public class ChatService(
 
             // 7. Execute query and map to DTOs
             var messages = await query.ToListAsync(cancellationToken);
-            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+            var senderIds = messages.Select(m => m.SenderId ?? Guid.Empty)
+                .Concat(messages.SelectMany(m => m.ReadReceipts.Select(r => r.UserId)))
+                .ToList();
+            var userNames = await FetchUserNamesAsync(senderIds, cancellationToken);
+            var messageDtos = messages.Select(m => MapToChatMessageDto(m, userNames)).ToList();
 
             // 8. Return PagedResult
             return new PagedResult<ChatMessageDto>
@@ -904,7 +913,11 @@ public class ChatService(
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+            var names = await FetchUserNamesAsync(
+                messages.Select(m => m.SenderId ?? Guid.Empty)
+                    .Concat(messages.SelectMany(m => m.ReadReceipts.Select(r => r.UserId))),
+                cancellationToken);
+            var messageDtos = messages.Select(m => MapToChatMessageDto(m, names)).ToList();
 
             return new PagedResult<ChatMessageDto>
             {
@@ -945,7 +958,11 @@ public class ChatService(
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+            var names = await FetchUserNamesAsync(
+                messages.Select(m => m.SenderId ?? Guid.Empty)
+                    .Concat(messages.SelectMany(m => m.ReadReceipts.Select(r => r.UserId))),
+                cancellationToken);
+            var messageDtos = messages.Select(m => MapToChatMessageDto(m, names)).ToList();
 
             return new PagedResult<ChatMessageDto>
             {
@@ -993,7 +1010,11 @@ public class ChatService(
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var messageDtos = messages.Select(MapToChatMessageDto).ToList();
+            var names = await FetchUserNamesAsync(
+                messages.Select(m => m.SenderId ?? Guid.Empty)
+                    .Concat(messages.SelectMany(m => m.ReadReceipts.Select(r => r.UserId))),
+                cancellationToken);
+            var messageDtos = messages.Select(m => MapToChatMessageDto(m, names)).ToList();
 
             return new PagedResult<ChatMessageDto>
             {
@@ -1066,7 +1087,10 @@ public class ChatService(
             }
 
             // 5. Map to ChatMessageDto
-            return MapToChatMessageDto(message);
+            var singleNames = await FetchUserNamesAsync(
+                new[] { message.SenderId ?? Guid.Empty }.Concat(message.ReadReceipts.Select(r => r.UserId)),
+                cancellationToken);
+            return MapToChatMessageDto(message, singleNames);
         }
         catch (Exception ex)
         {
@@ -1154,7 +1178,10 @@ public class ChatService(
                 editDto.UserId, editDto.MessageId, editDto.EditReason ?? "No reason provided");
 
             // 9. Map to DTO using helper method
-            var mappedDto = MapToChatMessageDto(message);
+            var editNames = await FetchUserNamesAsync(
+                new[] { message.SenderId ?? Guid.Empty }.Concat(message.ReadReceipts.Select(r => r.UserId)),
+                cancellationToken);
+            var mappedDto = MapToChatMessageDto(message, editNames);
 
             // 10. Send SignalR notification to chat members
             await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
@@ -1502,8 +1529,8 @@ public class ChatService(
     #region File & Media Management
 
     /// <summary>
-    /// Uploads and processes file attachments with validation.
-    /// STUB IMPLEMENTATION - Returns mock upload result.
+    /// Uploads and processes file attachments — saves to local filesystem and persists a MessageAttachment record.
+    /// Upload directory: {ContentRoot}/Uploads/chat/{chatId}/{attachmentId}_{fileName}
     /// </summary>
     public async Task<FileUploadResultDto> UploadFileAsync(
         FileUploadDto uploadDto,
@@ -1516,15 +1543,45 @@ public class ChatService(
             // Validate rate limits for file uploads
             await ValidateChatRateLimitAsync(null, uploadDto.UploadedBy, ChatOperationType.UploadFile, cancellationToken);
 
-            // Generate attachment ID
             var attachmentId = Guid.NewGuid();
+            var mediaType = DetermineMediaType(uploadDto.ContentType);
 
-            // TODO: Implement actual file upload logic:
-            // - Save file to storage (local, cloud, etc.)
-            // - Virus scanning and validation
-            // - Thumbnail generation for images/videos
-            // - File optimization and compression
-            // - Metadata extraction
+            // Build storage path: {ContentRoot}/Uploads/chat/{chatId}/{attachmentId}_{safeFileName}
+            var safeFileName = Path.GetFileName(uploadDto.FileName);
+            var chatDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", uploadDto.ChatId.ToString());
+            Directory.CreateDirectory(chatDir);
+            var storedFileName = $"{attachmentId}_{safeFileName}";
+            var storedFilePath = Path.Combine(chatDir, storedFileName);
+
+            // Write stream to disk
+            await using (var fileStream = new FileStream(storedFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+            {
+                await uploadDto.FileStream.CopyToAsync(fileStream, cancellationToken);
+            }
+
+            var fileUrl = $"/api/v1/chat/files/{attachmentId}/download";
+            var thumbnailUrl = mediaType == MediaType.Image ? $"/api/v1/chat/files/{attachmentId}/thumbnail" : null;
+
+            // Persist MessageAttachment entity
+            var attachment = new Data.Entities.Chat.MessageAttachment
+            {
+                Id = attachmentId,
+                MessageId = uploadDto.ChatId, // Placeholder until message is created; updated by caller if needed
+                FileName = storedFileName,
+                OriginalFileName = safeFileName,
+                FileSize = uploadDto.FileSize,
+                ContentType = uploadDto.ContentType,
+                MediaType = mediaType,
+                FileUrl = fileUrl,
+                ThumbnailUrl = thumbnailUrl,
+                UploadedAt = DateTime.UtcNow,
+                UploadedBy = uploadDto.UploadedBy,
+                TenantId = Guid.Empty, // Set by caller if tenant-scoped
+                MediaMetadataJson = uploadDto.Metadata is not null
+                    ? System.Text.Json.JsonSerializer.Serialize(uploadDto.Metadata) : null
+            };
+            context.MessageAttachments.Add(attachment);
+            await context.SaveChangesAsync(cancellationToken);
 
             _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "MessageAttachment",
@@ -1532,36 +1589,30 @@ public class ChatService(
                 propertyName: "Upload",
                 operationType: "Insert",
                 oldValue: null,
-                newValue: $"File: {uploadDto.FileName}, Size: {uploadDto.FileSize}, Type: {uploadDto.ContentType}",
+                newValue: $"File: {safeFileName}, Size: {uploadDto.FileSize}, Type: {uploadDto.ContentType}",
                 changedBy: uploadDto.UploadedBy.ToString(),
-                entityDisplayName: $"File Upload: {uploadDto.FileName}",
+                entityDisplayName: $"File Upload: {safeFileName}",
                 cancellationToken: cancellationToken);
-
-            // Simulate file processing delay
-            await Task.Delay(100, cancellationToken);
 
             logger.LogInformation(
                 "User {UserId} uploaded file {FileName} ({FileSize} bytes) to chat {ChatId} in {ElapsedMs}ms",
-                uploadDto.UploadedBy, uploadDto.FileName, uploadDto.FileSize, uploadDto.ChatId, stopwatch.ElapsedMilliseconds);
-
-            // Determine media type from content type
-            var mediaType = DetermineMediaType(uploadDto.ContentType);
+                uploadDto.UploadedBy, safeFileName, uploadDto.FileSize, uploadDto.ChatId, stopwatch.ElapsedMilliseconds);
 
             return new FileUploadResultDto
             {
                 AttachmentId = attachmentId,
-                FileName = uploadDto.FileName,
-                FileUrl = $"/api/files/{attachmentId}/download", // TODO: Generate actual URL
-                ThumbnailUrl = mediaType == MediaType.Image ? $"/api/files/{attachmentId}/thumbnail" : null,
+                FileName = safeFileName,
+                FileUrl = fileUrl,
+                ThumbnailUrl = thumbnailUrl,
                 MediaType = mediaType,
                 FileSize = uploadDto.FileSize,
-                Success = true
+                Success = true,
+                UploadedAt = attachment.UploadedAt
             };
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to upload file {FileName} for user {UserId}", uploadDto.FileName, uploadDto.UploadedBy);
-
             return new FileUploadResultDto
             {
                 FileName = uploadDto.FileName,
@@ -1572,8 +1623,7 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Gets secure file download information with access validation.
-    /// STUB IMPLEMENTATION - Returns mock download info.
+    /// Gets secure file download information — validates access via MessageAttachment DB record.
     /// </summary>
     public async Task<FileDownloadInfoDto?> GetFileDownloadInfoAsync(
         Guid attachmentId,
@@ -1583,19 +1633,20 @@ public class ChatService(
     {
         try
         {
+            var attachment = await context.MessageAttachments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
 
-            // TODO: Implement access validation and secure URL generation
-            await Task.Delay(5, cancellationToken); // Simulate async operation
+            if (attachment is null) return null;
 
-            // Return mock download info (in real implementation, validate access first)
             return new FileDownloadInfoDto
             {
-                AttachmentId = attachmentId,
-                FileName = "sample-file.pdf",
-                DownloadUrl = $"/api/files/{attachmentId}/secure-download?token=mock-token",
-                ExpiresAt = DateTime.UtcNow.AddHours(1),
-                FileSize = 1024 * 1024, // 1MB
-                ContentType = "application/pdf"
+                AttachmentId = attachment.Id,
+                FileName = attachment.OriginalFileName ?? attachment.FileName,
+                DownloadUrl = $"/api/v1/chat/files/{attachment.Id}/download",
+                ExpiresAt = DateTime.UtcNow.AddHours(24),
+                FileSize = attachment.FileSize,
+                ContentType = attachment.ContentType
             };
         }
         catch (Exception ex)
@@ -1605,8 +1656,8 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Processes media files for optimization and thumbnail generation.
-    /// STUB IMPLEMENTATION - Returns mock processing result.
+    /// Processes media files — returns available URL variants based on what was stored.
+    /// Full media transcoding (thumbnails, WebP) requires an external media service.
     /// </summary>
     public async Task<MediaProcessingResultDto> ProcessMediaAsync(
         Guid attachmentId,
@@ -1615,51 +1666,43 @@ public class ChatService(
     {
         try
         {
+            var attachment = await context.MessageAttachments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
 
-        // TODO: Implement actual media processing
-        await Task.Delay(500, cancellationToken); // Simulate processing time
+            if (attachment is null)
+                return new MediaProcessingResultDto { AttachmentId = attachmentId, Success = false, ErrorMessage = "Attachment not found." };
 
-        var variants = new List<MediaVariantDto>();
+            var variants = new List<MediaVariantDto>();
 
-        if (processingOptions.GenerateThumbnails)
-        {
-            variants.Add(new MediaVariantDto
+            if (processingOptions.GenerateThumbnails && attachment.ThumbnailUrl is not null)
             {
-                VariantType = "thumbnail",
-                Url = $"/api/files/{attachmentId}/thumbnail",
-                Format = "jpeg",
-                FileSize = 1024 * 10, // 10KB
-                Properties = new Dictionary<string, object>
+                variants.Add(new MediaVariantDto
                 {
-                    ["width"] = 150,
-                    ["height"] = 150
-                }
-            });
-        }
+                    VariantType = "thumbnail",
+                    Url = attachment.ThumbnailUrl,
+                    Format = "jpeg",
+                    FileSize = 0
+                });
+            }
 
-        if (processingOptions.OptimizeForWeb)
-        {
-            variants.Add(new MediaVariantDto
+            if (processingOptions.OptimizeForWeb && attachment.FileUrl is not null)
             {
-                VariantType = "optimized",
-                Url = $"/api/files/{attachmentId}/optimized",
-                Format = "webp",
-                FileSize = 1024 * 500, // 500KB
-                Properties = new Dictionary<string, object>
+                variants.Add(new MediaVariantDto
                 {
-                    ["width"] = 1920,
-                    ["height"] = 1080,
-                    ["quality"] = 85
-                }
-            });
-        }
+                    VariantType = "original",
+                    Url = attachment.FileUrl,
+                    Format = Path.GetExtension(attachment.FileName).TrimStart('.'),
+                    FileSize = attachment.FileSize
+                });
+            }
 
-        return new MediaProcessingResultDto
-        {
-            AttachmentId = attachmentId,
-            Success = true,
-            GeneratedVariants = variants
-        };
+            return new MediaProcessingResultDto
+            {
+                AttachmentId = attachmentId,
+                Success = true,
+                GeneratedVariants = variants
+            };
         }
         catch (Exception ex)
         {
@@ -1668,8 +1711,7 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Deletes file attachments with cleanup.
-    /// STUB IMPLEMENTATION - Logs deletion and returns success result.
+    /// Deletes a file attachment — soft-deletes the DB record and removes the file from disk.
     /// </summary>
     public async Task<FileOperationResultDto> DeleteFileAsync(
         Guid attachmentId,
@@ -1679,29 +1721,39 @@ public class ChatService(
     {
         try
         {
-        _ = await auditLogService.LogEntityChangeAsync(
-            entityName: "MessageAttachment",
-            entityId: attachmentId,
-            propertyName: "Delete",
-            operationType: "Delete",
-            oldValue: "Active",
-            newValue: "Deleted",
-            changedBy: userId.ToString(),
-            entityDisplayName: $"File Deletion: {attachmentId}",
-            cancellationToken: cancellationToken);
+            var attachment = await context.MessageAttachments
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
 
-        logger.LogInformation(
-            "User {UserId} deleted file attachment {AttachmentId} with reason: {Reason}",
-            userId, attachmentId, reason ?? "No reason provided");
+            if (attachment is not null)
+            {
+                // Soft-delete DB record
+                attachment.IsDeleted = true;
+                attachment.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
 
-        // TODO: Implement actual file deletion from storage
-        await Task.Delay(50, cancellationToken);
+                // Best-effort physical delete
+                var chatDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", attachment.MessageId.ToString());
+                var filePath = Path.Combine(chatDir, attachment.FileName);
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            }
 
-        return new FileOperationResultDto
-        {
-            AttachmentId = attachmentId,
-            Success = true
-        };
+            _ = await auditLogService.LogEntityChangeAsync(
+                entityName: "MessageAttachment",
+                entityId: attachmentId,
+                propertyName: "Delete",
+                operationType: "Delete",
+                oldValue: "Active",
+                newValue: "Deleted",
+                changedBy: userId.ToString(),
+                entityDisplayName: $"File Deletion: {attachmentId}",
+                cancellationToken: cancellationToken);
+
+            logger.LogInformation(
+                "User {UserId} deleted file attachment {AttachmentId}. Reason: {Reason}",
+                userId, attachmentId, reason ?? "No reason provided");
+
+            return new FileOperationResultDto { AttachmentId = attachmentId, Success = true };
         }
         catch (Exception ex)
         {
@@ -2057,8 +2109,6 @@ public class ChatService(
 
             // Check if limit would be exceeded (simplified logic)
             var isAllowed = remainingQuota > 0;
-
-            await Task.Delay(2, cancellationToken); // Simulate async operation
 
             return new ChatRateLimitStatusDto
             {
@@ -2544,16 +2594,17 @@ public class ChatService(
 
     /// <summary>
     /// Validates tenant access for multi-tenant operations.
-    /// TODO: Implement actual tenant validation logic.
     /// </summary>
     private async Task ValidateTenantAccessAsync(Guid? tenantId, CancellationToken cancellationToken)
     {
-        if (tenantId.HasValue)
-        {
-            logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
-            // TODO: Validate tenant exists and is active
-        }
-        await Task.Delay(1, cancellationToken);
+        if (!tenantId.HasValue) return;
+
+        var exists = await context.Tenants
+            .AsNoTracking()
+            .AnyAsync(t => t.Id == tenantId.Value && !t.IsDeleted, cancellationToken);
+
+        if (!exists)
+            throw new InvalidOperationException($"Tenant {tenantId.Value} not found or is inactive.");
     }
 
     /// <summary>
@@ -2592,9 +2643,34 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Maps ChatMessage entity to ChatMessageDto.
+    /// Batch-fetches display names (FirstName LastName or Username) from the Users table.
     /// </summary>
-    private static ChatMessageDto MapToChatMessageDto(Data.Entities.Chat.ChatMessage message)
+    private async Task<IReadOnlyDictionary<Guid, string>> FetchUserNamesAsync(
+        IEnumerable<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = userIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.Username })
+            .ToListAsync(cancellationToken);
+
+        return users.ToDictionary(
+            u => u.Id,
+            u => !string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName)
+                ? $"{u.FirstName} {u.LastName}".Trim()
+                : u.Username);
+    }
+
+    /// <summary>
+    /// Maps ChatMessage entity to ChatMessageDto using a pre-fetched name map.
+    /// </summary>
+    private static ChatMessageDto MapToChatMessageDto(
+        Data.Entities.Chat.ChatMessage message,
+        IReadOnlyDictionary<Guid, string>? userNames = null)
     {
         Dictionary<string, object> metadata;
         try
@@ -2617,7 +2693,9 @@ public class ChatService(
             Id = message.Id,
             ChatId = message.ChatThreadId,
             SenderId = message.SenderId ?? Guid.Empty,
-            SenderName = $"User_{message.SenderId:N}", // TODO: Resolve from user service
+            SenderName = message.SenderId.HasValue
+                ? (userNames?.GetValueOrDefault(message.SenderId.Value) ?? message.SenderId.Value.ToString("N")[..8])
+                : "System",
             Content = message.Content,
             ReplyToMessageId = message.ReplyToMessageId,
             ReplyToMessage = message.ReplyToMessage is not null ? new ChatMessageDto
@@ -2644,7 +2722,7 @@ public class ChatService(
             ReadReceipts = message.ReadReceipts.Select(r => new MessageReadReceiptDto
             {
                 UserId = r.UserId,
-                Username = $"User_{r.UserId:N}", // TODO: Resolve from user service
+                Username = userNames?.GetValueOrDefault(r.UserId) ?? r.UserId.ToString("N")[..8],
                 ReadAt = r.ReadAt
             }).ToList(),
             Status = message.Status,

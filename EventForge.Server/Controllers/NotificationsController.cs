@@ -4,7 +4,10 @@ using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System.ComponentModel.DataAnnotations;
+using System.Text;
+using System.Text.Json;
 
 namespace EventForge.Server.Controllers;
 
@@ -25,6 +28,7 @@ namespace EventForge.Server.Controllers;
 public class NotificationsController(
     INotificationService notificationService,
     ITenantContext tenantContext,
+    IMemoryCache memoryCache,
     ILogger<NotificationsController> logger) : BaseApiController
 {
 
@@ -430,26 +434,16 @@ public class NotificationsController(
 
     #region Data Export & History
 
+    private record ExportCacheEntry(byte[] Bytes, string Format, int RecordCount, DateTime CreatedAt);
+    private static string ExportCacheKey(Guid exportId) => $"notification_export_{exportId}";
+
     /// <summary>
-    /// Exports notification history in various formats (JSON, CSV, Excel).
-    /// Supports advanced filtering, tenant isolation, and compliance requirements.
-    /// 
-    /// STUB IMPLEMENTATION - Returns export preparation status.
-    /// TODO: Implement actual export functionality with:
-    /// - Multiple export formats (JSON, CSV, Excel, PDF)
-    /// - Streaming for large datasets
-    /// - Background processing for big exports
-    /// - Progress tracking and status updates
-    /// - Secure download URLs with expiration
-    /// - Audit logging of export operations
+    /// Exports notification history in JSON or CSV format.
+    /// Queries the DB synchronously (up to MaxRecords), caches the result for 24h, and returns a completed status.
     /// </summary>
-    /// <param name="exportRequest">Export parameters and filtering criteria</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Export operation status and download information</returns>
-    /// <response code="202">Export operation started, check status for completion</response>
-    /// <response code="400">Invalid export parameters</response>
     [HttpPost("export")]
-    [ProducesResponseType(typeof(NotificationExportResultDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(NotificationExportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<NotificationExportResultDto>> ExportNotificationHistoryAsync(
         [FromBody] NotificationExportRequestDto exportRequest,
         CancellationToken cancellationToken = default)
@@ -460,132 +454,168 @@ public class NotificationsController(
                 "Starting notification export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
                 exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
 
-            // STUB: Simulate export preparation - actual export logic not yet implemented
-            await Task.Delay(100, cancellationToken);
-
-            var exportId = Guid.NewGuid();
-            var result = new NotificationExportResultDto
+            var maxRecords = Math.Min(exportRequest.MaxRecords ?? 10_000, 100_000);
+            var search = new NotificationSearchDto
             {
-                ExportId = exportId,
-                Status = "Preparing",
-                Format = exportRequest.Format,
-                EstimatedCompletionTime = DateTime.UtcNow.AddMinutes(5),
-                StatusUrl = Url.Action(nameof(GetExportStatusAsync), new { exportId }),
-                CreatedAt = DateTime.UtcNow
+                TenantId = exportRequest.TenantId,
+                UserId = exportRequest.UserId,
+                FromDate = exportRequest.FromDate,
+                ToDate = exportRequest.ToDate,
+                Types = exportRequest.Types,
+                Priorities = exportRequest.Priorities,
+                Statuses = exportRequest.Statuses,
+                SearchTerm = exportRequest.SearchTerm,
+                PageNumber = 1,
+                PageSize = maxRecords
             };
 
-            return Accepted(result.StatusUrl, result);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while starting the export operation", ex);
-        }
-    }
+            var paged = await notificationService.GetNotificationsAsync(search, cancellationToken);
+            var notifications = paged.Items.ToList();
 
-    /// <summary>
-    /// Gets the status of an export operation.
-    /// Provides progress updates, completion status, and download links.
-    /// 
-    /// STUB IMPLEMENTATION - Returns mock export status.
-    /// </summary>
-    /// <param name="exportId">Export operation identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Export operation status and download information</returns>
-    /// <response code="200">Export status retrieved successfully</response>
-    /// <response code="404">Export operation not found</response>
-    [HttpGet("export/{exportId:guid}/status")]
-    [ProducesResponseType(typeof(NotificationExportResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<NotificationExportResultDto>> GetExportStatusAsync(
-        [FromRoute] Guid exportId,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            logger.LogDebug("Retrieving export status for {ExportId}", exportId);
+            var exportId = Guid.NewGuid();
+            byte[] bytes;
+            string contentType;
+            string fileExt;
 
-            // STUB: Mock export status - actual export status retrieval not yet implemented
-            await Task.Delay(10, cancellationToken);
+            var format = exportRequest.Format.ToUpperInvariant();
+            if (format == "CSV")
+            {
+                bytes = BuildCsvExport(notifications);
+                contentType = "text/csv";
+                fileExt = "csv";
+            }
+            else
+            {
+                bytes = BuildJsonExport(exportId, notifications);
+                contentType = "application/json";
+                fileExt = "json";
+                format = "JSON";
+            }
 
-            // Mock response - in real implementation, check database for export status
+            memoryCache.Set(
+                ExportCacheKey(exportId),
+                new ExportCacheEntry(bytes, format, notifications.Count, DateTime.UtcNow),
+                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+
+            var downloadUrl = Url.Action(nameof(DownloadExportAsync), new { exportId });
             var result = new NotificationExportResultDto
             {
                 ExportId = exportId,
                 Status = "Completed",
-                Format = "JSON",
-                RecordCount = 1234,
-                FileSizeBytes = 1024 * 1024, // 1MB
-                DownloadUrl = Url.Action(nameof(DownloadExportAsync), new { exportId }),
+                Format = format,
+                ProgressPercentage = 100,
+                RecordCount = notifications.Count,
+                FileSizeBytes = bytes.Length,
+                StatusUrl = Url.Action(nameof(GetExportStatusAsync), new { exportId }),
+                DownloadUrl = downloadUrl,
                 ExpiresAt = DateTime.UtcNow.AddHours(24),
-                CompletedAt = DateTime.UtcNow.AddMinutes(-2)
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
             };
+
+            logger.LogInformation(
+                "Notification export {ExportId} completed: {RecordCount} records, {Format}, {Bytes} bytes",
+                exportId, notifications.Count, format, bytes.Length);
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("An error occurred while retrieving export status", ex);
+            return CreateInternalServerErrorProblem("An error occurred while generating the export", ex);
         }
     }
 
     /// <summary>
-    /// Downloads an exported notification history file.
-    /// Provides secure, time-limited access to exported data.
-    /// 
-    /// STUB IMPLEMENTATION - Returns mock file content.
+    /// Gets the status of a previously generated export (cached for 24h).
     /// </summary>
-    /// <param name="exportId">Export operation identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Exported file content</returns>
-    /// <response code="200">File downloaded successfully</response>
-    /// <response code="404">Export not found or expired</response>
+    [HttpGet("export/{exportId:guid}/status")]
+    [ProducesResponseType(typeof(NotificationExportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public ActionResult<NotificationExportResultDto> GetExportStatusAsync([FromRoute] Guid exportId)
+    {
+        if (!memoryCache.TryGetValue(ExportCacheKey(exportId), out ExportCacheEntry? entry) || entry is null)
+            return CreateNotFoundProblem("Export not found or has expired.");
+
+        var result = new NotificationExportResultDto
+        {
+            ExportId = exportId,
+            Status = "Completed",
+            Format = entry.Format,
+            ProgressPercentage = 100,
+            RecordCount = entry.RecordCount,
+            FileSizeBytes = entry.Bytes.Length,
+            DownloadUrl = Url.Action(nameof(DownloadExportAsync), new { exportId }),
+            ExpiresAt = entry.CreatedAt.AddHours(24),
+            CompletedAt = entry.CreatedAt,
+            CreatedAt = entry.CreatedAt
+        };
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Downloads a previously generated export file (cached for 24h).
+    /// </summary>
     [HttpGet("export/{exportId:guid}/download")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DownloadExportAsync(
-        [FromRoute] Guid exportId,
-        CancellationToken cancellationToken = default)
+    public ActionResult DownloadExportAsync([FromRoute] Guid exportId)
     {
-        try
+        if (!memoryCache.TryGetValue(ExportCacheKey(exportId), out ExportCacheEntry? entry) || entry is null)
+            return CreateNotFoundProblem("Export not found or has expired.");
+
+        var (contentType, fileExt) = entry.Format == "CSV"
+            ? ("text/csv", "csv")
+            : ("application/json", "json");
+
+        logger.LogInformation("Serving export file for {ExportId} ({Format}, {Bytes} bytes)", exportId, entry.Format, entry.Bytes.Length);
+        return File(entry.Bytes, contentType, $"notifications-export-{exportId}.{fileExt}");
+    }
+
+    private static byte[] BuildJsonExport(Guid exportId, IReadOnlyList<NotificationResponseDto> notifications)
+    {
+        var payload = new
         {
-            logger.LogInformation("Downloading export file for {ExportId}", exportId);
+            exportId,
+            generatedAt = DateTime.UtcNow,
+            format = "JSON",
+            recordCount = notifications.Count,
+            notifications
+        };
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+        return Encoding.UTF8.GetBytes(json);
+    }
 
-            // TODO: Implement actual file download logic
-            await Task.Delay(10, cancellationToken);
+    private static byte[] BuildCsvExport(IReadOnlyList<NotificationResponseDto> notifications)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,TenantId,SenderId,SenderName,Type,Priority,Status,Title,Message,CreatedAt,ExpiresAt,ReadAt,AcknowledgedAt");
 
-            // Mock response - return sample JSON content
-            var sampleData = new
-            {
-                exportId,
-                generatedAt = DateTime.UtcNow,
-                format = "JSON",
-                notifications = new[]
-                {
-                    new
-                    {
-                        id = Guid.NewGuid(),
-                        type = "System",
-                        priority = "Normal",
-                        title = "Sample Notification",
-                        message = "This is a sample exported notification",
-                        createdAt = DateTime.UtcNow.AddDays(-1),
-                        status = "Read"
-                    }
-                }
-            };
-
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(sampleData, new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
-            return File(bytes, "application/json", $"notifications-export-{exportId}.json");
-        }
-        catch (Exception ex)
+        foreach (var n in notifications)
         {
-            return CreateInternalServerErrorProblem("An error occurred while downloading the export file", ex);
+            sb.AppendLine(string.Join(",",
+                CsvEscape(n.Id.ToString()),
+                CsvEscape(n.TenantId?.ToString()),
+                CsvEscape(n.SenderId?.ToString()),
+                CsvEscape(n.SenderName),
+                CsvEscape(n.Type.ToString()),
+                CsvEscape(n.Priority.ToString()),
+                CsvEscape(n.Status.ToString()),
+                CsvEscape(n.Payload?.Title),
+                CsvEscape(n.Payload?.Message),
+                CsvEscape(n.CreatedAt.ToString("O")),
+                CsvEscape(n.ExpiresAt?.ToString("O")),
+                CsvEscape(n.ReadAt?.ToString("O")),
+                CsvEscape(n.AcknowledgedAt?.ToString("O"))));
         }
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string CsvEscape(string? value)
+    {
+        if (value is null) return string.Empty;
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 
     #endregion

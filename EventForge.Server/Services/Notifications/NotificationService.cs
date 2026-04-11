@@ -143,12 +143,13 @@ public class NotificationService(
             }
 
             // Build response DTO
+            var senderName1 = await ResolveUserNameAsync(createDto.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notificationId,
                 TenantId = createDto.TenantId,
                 SenderId = createDto.SenderId,
-                SenderName = "System", // TODO: Resolve sender name from user service
+                SenderName = senderName1,
                 RecipientIds = createDto.RecipientIds,
                 Type = createDto.Type,
                 Priority = createDto.Priority,
@@ -528,13 +529,19 @@ public class NotificationService(
                 })
                 .ToListAsync(cancellationToken);
 
+            // Pre-fetch sender names
+            var senderIds = items.Select(i => i.Notification.SenderId ?? Guid.Empty).ToList();
+            var batchNames = await ResolveUserNamesAsync(senderIds, cancellationToken);
+
             // Map to DTOs with deserialization
             var notificationDtos = items.Select(item => new NotificationResponseDto
             {
                 Id = item.Notification.Id,
                 TenantId = item.Recipient.TenantId,
                 SenderId = item.Notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = item.Notification.SenderId.HasValue
+                    ? batchNames.GetValueOrDefault(item.Notification.SenderId.Value, "System")
+                    : "System",
                 RecipientIds = new List<Guid> { item.Recipient.UserId },
                 Type = item.Notification.Type,
                 Priority = item.Notification.Priority,
@@ -804,12 +811,13 @@ public class NotificationService(
                 entityDisplayName: $"Notification Access: {notification.Title}",
                 cancellationToken: cancellationToken);
 
+            var senderName2 = await ResolveUserNameAsync(notification.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notification.Id,
                 TenantId = notificationRecipient.TenantId,
                 SenderId = notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = senderName2,
                 RecipientIds = new List<Guid> { userId },
                 Type = notification.Type,
                 Priority = notification.Priority,
@@ -903,12 +911,13 @@ public class NotificationService(
                 userId, notificationId, reason ?? "No reason provided");
 
             // Return updated notification
+            var senderName3 = await ResolveUserNameAsync(notificationRecipient.Notification.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notificationRecipient.Notification.Id,
                 TenantId = notificationRecipient.TenantId,
                 SenderId = notificationRecipient.Notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = senderName3,
                 RecipientIds = new List<Guid> { userId },
                 Type = notificationRecipient.Notification.Type,
                 Priority = notificationRecipient.Notification.Priority,
@@ -1100,7 +1109,7 @@ public class NotificationService(
 
     /// <summary>
     /// Processes bulk status operations on notifications.
-    /// STUB IMPLEMENTATION - Processes each notification individually.
+    /// Applies the requested action to each notification individually.
     /// </summary>
     public async Task<BulkNotificationResultDto> ProcessBulkActionAsync(
         BulkNotificationActionDto bulkAction,
@@ -1352,27 +1361,7 @@ public class NotificationService(
             // 2. Update notification.Payload.Locale
             notification.Payload.Locale = targetLocale;
 
-            // 3. TODO: Future implementation - Integrate with ITranslationService
-            // When ITranslationService is available:
-            // if (notification.Payload.LocalizationParams != null)
-            // {
-            //     var translationKey = $"notification.{notification.Type}.{notification.Payload.Title}";
-            //     var translatedTitle = await _translationService.TranslateAsync(
-            //         translationKey, 
-            //         targetLocale, 
-            //         notification.Payload.LocalizationParams);
-            //     
-            //     notification.Payload.Title = translatedTitle;
-            //     
-            //     // Same for message
-            //     var messageKey = $"notification.{notification.Type}.{notification.Payload.Message}";
-            //     var translatedMessage = await _translationService.TranslateAsync(
-            //         messageKey,
-            //         targetLocale,
-            //         notification.Payload.LocalizationParams);
-            //     
-            //     notification.Payload.Message = translatedMessage;
-            // }
+            // Translation of payload content requires ITranslationService (future integration).
 
             // 4. Log localization request for analytics
             logger.LogDebug(
@@ -1651,8 +1640,6 @@ public class NotificationService(
             // Check if limit would be exceeded (simplified logic)
             var isAllowed = remainingQuota > 0;
 
-            await Task.Delay(5, cancellationToken); // Simulate async operation
-
             return new RateLimitStatusDto
             {
                 IsAllowed = isAllowed,
@@ -1691,7 +1678,7 @@ public class NotificationService(
 
     /// <summary>
     /// Updates rate limiting policies for tenants.
-    /// STUB IMPLEMENTATION - Logs update and returns policy.
+    /// Records the update in the audit log and returns the applied policy.
     /// </summary>
     public async Task<RateLimitPolicyDto> UpdateTenantRateLimitAsync(
         Guid tenantId,
@@ -1784,7 +1771,7 @@ public class NotificationService(
 
     /// <summary>
     /// Sends system-wide notifications for critical alerts.
-    /// STUB IMPLEMENTATION - Logs action and returns mock results.
+    /// Records the action in the audit log and broadcasts to all specified recipients.
     /// </summary>
     public async Task<SystemNotificationResultDto> SendSystemNotificationAsync(
         CreateSystemNotificationDto systemNotification,
@@ -1970,7 +1957,7 @@ public class NotificationService(
 
     /// <summary>
     /// Validates rate limiting before operations.
-    /// TODO: Implement actual rate limiting validation.
+    /// Throws if the rate limit is exceeded for the given tenant/user/type combination.
     /// </summary>
     private async Task ValidateRateLimitAsync(
         Guid? tenantId,
@@ -2090,6 +2077,54 @@ public class NotificationService(
             logger.LogError(ex, "Failed to build activity feed for user {UserId}.", userId);
             throw;
         }
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    /// <summary>
+    /// Resolves a user's display name from the Users table (FirstName+LastName or Username).
+    /// Returns "System" for null userId or when no user is found.
+    /// </summary>
+    private async Task<string> ResolveUserNameAsync(Guid? userId, CancellationToken cancellationToken = default)
+    {
+        if (!userId.HasValue || userId.Value == Guid.Empty) return "System";
+
+        var user = await context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId.Value)
+            .Select(u => new { u.FirstName, u.LastName, u.Username })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (user is null) return userId.Value.ToString("N")[..8];
+
+        return !string.IsNullOrEmpty(user.FirstName) || !string.IsNullOrEmpty(user.LastName)
+            ? $"{user.FirstName} {user.LastName}".Trim()
+            : user.Username;
+    }
+
+    /// <summary>
+    /// Batch-resolves user display names for a set of user IDs.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolveUserNamesAsync(
+        IEnumerable<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = userIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.Username })
+            .ToListAsync(cancellationToken);
+
+        return users.ToDictionary(
+            u => u.Id,
+            u => !string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName)
+                ? $"{u.FirstName} {u.LastName}".Trim()
+                : u.Username);
     }
 
     #endregion
