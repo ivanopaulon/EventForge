@@ -213,8 +213,22 @@
                                 <label class="form-check-label" for="logBackupEnabled">
                                     Backup JSON prima della pulizia
                                 </label>
-                                <div class="form-text">Se abilitato, crea un backup JSON dei record eliminati in Backups/LogBackup_*</div>
+                                <div class="form-text">Se abilitato, esporta le sole tabelle coinvolte (LoginAudits, AuditTrails, SystemOperationLogs, PerformanceLogs, Logs) in file JSON prima di eliminare i record.</div>
                             </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="LogBackupAbortOnFailure" id="logBackupAbortOnFailure" />
+                                <label class="form-check-label" for="logBackupAbortOnFailure">
+                                    Interrompi pulizia se backup fallisce
+                                </label>
+                                <div class="form-text">Se abilitato e il backup non riesce, la pulizia viene annullata senza eliminare nessun record (consigliato).</div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Directory backup</label>
+                            <input type="text" asp-for="LogBackupDirectory" class="form-control" placeholder="Lascia vuoto per usare {ContentRoot}/Backups" />
+                            <div class="form-text">Percorso assoluto o relativo in cui salvare i file di backup. Vuoto = cartella Backups nella directory del server.</div>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">

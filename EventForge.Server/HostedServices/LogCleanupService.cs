@@ -15,13 +15,22 @@ namespace EventForge.Server.HostedServices;
 /// without restarting the application.
 ///
 /// Config keys (all in SystemConfigurations table):
-///   Logging.RetentionDays   — rows older than N days are eligible for deletion (default 30)
-///   Logging.CleanupCron     — cron expression for schedule (default "0 2 * * *" = 02:00 UTC)
-///   Logging.BackupEnabled   — "true"/"false" — whether to write a JSON backup before delete (default true)
+///   Logging.RetentionDays        — rows older than N days are eligible for deletion (default 30)
+///   Logging.CleanupCron          — cron expression for schedule (default "0 2 * * *" = 02:00 UTC)
+///   Logging.BackupEnabled        — "true"/"false" — whether to write a JSON backup before delete (default true)
+///   Logging.BackupAbortOnFailure — "true"/"false" — abort cleanup when backup fails (default true)
+///   Logging.BackupDirectory      — absolute or relative path for backup files; empty = {ContentRoot}/Backups
+///
+/// Backup behaviour:
+///   When BackupEnabled=true, only the rows that would be deleted are exported to per-table JSON files.
+///   The EF-managed tables (LoginAudits, AuditTrails, SystemOperationLogs, PerformanceLogs) are read from
+///   the main EventForge database. The Serilog Logs table is read from the LogDb connection string.
+///   If BackupAbortOnFailure=true and the backup fails for any reason, no rows are deleted.
 ///
 /// SignalR events (sent to "superadmin" group via AppHub):
-///   LogCleanupStarted    — fired right before deletion begins, carries RetentionDays and NextRun UTC
-///   LogCleanupCompleted  — fired after deletion, carries per-table counts, total, elapsed seconds and BackupFile
+///   LogCleanupStarted       — fired right before the run begins, carries RetentionDays and NextRun UTC
+///   LogCleanupPhaseChanged  — "Backup" and "Deleting" phase notifications
+///   LogCleanupCompleted     — fired after deletion (or abort), carries per-table counts, elapsed and BackupFile
 /// </summary>
 public class LogCleanupService : BackgroundService
 {
@@ -31,9 +40,10 @@ public class LogCleanupService : BackgroundService
     private readonly IHubContext<AppHub> _hubContext;
 
     // Defaults used when no SystemConfiguration row exists
-    private const string DefaultCron        = "0 2 * * *";
-    private const int    DefaultRetention   = 30;
-    private const bool   DefaultBackup      = true;
+    private const string DefaultCron             = "0 2 * * *";
+    private const int    DefaultRetention        = 30;
+    private const bool   DefaultBackup           = true;
+    private const bool   DefaultAbortOnFailure   = true;
 
     public LogCleanupService(
         IServiceProvider serviceProvider,
@@ -90,24 +100,28 @@ public class LogCleanupService : BackgroundService
 
         try
         {
-            var retentionDaysStr = await ReadConfigAsync("Logging.RetentionDays", DefaultRetention.ToString(), cancellationToken);
-            var retentionDays    = int.TryParse(retentionDaysStr, out var d) ? d : DefaultRetention;
-            var backupEnabledStr = await ReadConfigAsync("Logging.BackupEnabled", DefaultBackup.ToString(), cancellationToken);
-            var backupEnabled    = !string.Equals(backupEnabledStr, "false", StringComparison.OrdinalIgnoreCase);
+            var retentionDaysStr   = await ReadConfigAsync("Logging.RetentionDays",        DefaultRetention.ToString(),      cancellationToken);
+            var retentionDays      = int.TryParse(retentionDaysStr, out var d) ? d : DefaultRetention;
+            var backupEnabledStr   = await ReadConfigAsync("Logging.BackupEnabled",         DefaultBackup.ToString(),         cancellationToken);
+            var backupEnabled      = !string.Equals(backupEnabledStr, "false", StringComparison.OrdinalIgnoreCase);
+            var abortOnFailureStr  = await ReadConfigAsync("Logging.BackupAbortOnFailure",  DefaultAbortOnFailure.ToString(), cancellationToken);
+            var abortOnFailure     = !string.Equals(abortOnFailureStr, "false", StringComparison.OrdinalIgnoreCase);
+            var backupDirectory    = await ReadConfigAsync("Logging.BackupDirectory",       string.Empty,                     cancellationToken);
 
             var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
 
             _logger.LogInformation(
-                "LogCleanupService: retention={RetentionDays}d, cutoff={Cutoff:u}, backup={BackupEnabled}",
-                retentionDays, cutoffDate, backupEnabled);
+                "LogCleanupService: retention={RetentionDays}d, cutoff={Cutoff:u}, backup={BackupEnabled}, abortOnFailure={AbortOnFailure}",
+                retentionDays, cutoffDate, backupEnabled, abortOnFailure);
 
             // ── Notify SuperAdmin clients that cleanup is about to start ─────
             await BroadcastToSuperAdminAsync(AppHub.LogCleanupStarted, new
             {
-                RetentionDays = retentionDays,
-                CutoffDate    = cutoffDate,
-                BackupEnabled = backupEnabled,
-                StartedAt     = startedAt
+                RetentionDays    = retentionDays,
+                CutoffDate       = cutoffDate,
+                BackupEnabled    = backupEnabled,
+                AbortOnFailure   = abortOnFailure,
+                StartedAt        = startedAt
             }, cancellationToken);
 
             // ── Optional backup before deletion ─────────────────────────────
@@ -116,13 +130,55 @@ public class LogCleanupService : BackgroundService
             {
                 await BroadcastToSuperAdminAsync(AppHub.LogCleanupPhaseChanged, new
                 {
-                    Phase          = "Backup",
-                    Detail         = "Creazione backup in corso…",
+                    Phase           = "Backup",
+                    Detail          = "Creazione backup in corso…",
                     BackupSucceeded = (bool?)null,
-                    ChangedAt      = DateTime.UtcNow
+                    ChangedAt       = DateTime.UtcNow
                 }, cancellationToken);
 
-                backupFilePath = await CreateLogBackupAsync(cutoffDate, cancellationToken);
+                backupFilePath = await CreateLogBackupAsync(cutoffDate, backupDirectory, cancellationToken);
+
+                // ── Abort if backup failed and the policy requires it ────────
+                if (backupFilePath is null && abortOnFailure)
+                {
+                    const string abortReason = "Backup fallito — pulizia annullata per sicurezza (Logging.BackupAbortOnFailure=true).";
+                    _logger.LogError("LogCleanupService: {Reason}", abortReason);
+
+                    await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
+                    {
+                        Success      = false,
+                        TotalDeleted = 0,
+                        Error        = abortReason,
+                        CompletedAt  = DateTime.UtcNow
+                    }, cancellationToken);
+
+                    // Record the aborted run in operation log
+                    try
+                    {
+                        using var scope   = _serviceProvider.CreateScope();
+                        var dbContext     = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
+                        dbContext.SystemOperationLogs.Add(new SystemOperationLog
+                        {
+                            OperationType = "Maintenance",
+                            Operation     = "LogCleanup",
+                            Category      = "Maintenance",
+                            Severity      = "Error",
+                            Status        = "Aborted",
+                            Action        = "Delete",
+                            Details       = abortReason,
+                            CreatedAt     = DateTime.UtcNow,
+                            ExecutedAt    = DateTime.UtcNow,
+                            ExecutedBy    = "System"
+                        });
+                        await dbContext.SaveChangesAsync(CancellationToken.None);
+                    }
+                    catch (Exception inner)
+                    {
+                        _logger.LogError(inner, "LogCleanupService: failed to record aborted cleanup in operation log.");
+                    }
+
+                    return;
+                }
             }
 
             // ── Notify phase transition to deletion ──────────────────────────
@@ -306,11 +362,15 @@ public class LogCleanupService : BackgroundService
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Exports all log rows that are about to be deleted into a compressed JSON file
-    /// stored under {ContentRoot}/Backups/LogBackup_{timestamp}/.
-    /// Returns the path of the created backup file, or null on failure.
+    /// Exports all log rows that are about to be deleted into per-table JSON files stored under
+    /// <paramref name="configuredDirectory"/> (or {ContentRoot}/Backups when that is empty).
+    /// Only the tables involved in cleanup are exported: LoginAudits, AuditTrails,
+    /// SystemOperationLogs and PerformanceLogs (via EF / main DB) and the Serilog Logs table
+    /// (via the LogDb connection string, which may be a separate database).
+    /// Returns the path of the created backup directory, or null on failure.
+    /// When null is returned the caller must decide whether to abort or continue based on policy.
     /// </summary>
-    private async Task<string?> CreateLogBackupAsync(DateTime cutoffDate, CancellationToken cancellationToken)
+    private async Task<string?> CreateLogBackupAsync(DateTime cutoffDate, string configuredDirectory, CancellationToken cancellationToken)
     {
         try
         {
@@ -319,12 +379,15 @@ public class LogCleanupService : BackgroundService
             var env         = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
             var timestamp  = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-            var backupDir  = Path.Combine(env.ContentRootPath, "Backups", $"LogBackup_{timestamp}");
+            var baseDir    = !string.IsNullOrWhiteSpace(configuredDirectory)
+                ? configuredDirectory
+                : Path.Combine(env.ContentRootPath, "Backups");
+            var backupDir  = Path.Combine(baseDir, $"LogBackup_{timestamp}");
             Directory.CreateDirectory(backupDir);
 
             var options = new JsonSerializerOptions { WriteIndented = false };
 
-            // LoginAudits
+            // LoginAudits (main EventForge DB via EF)
             var loginAudits = await dbContext.LoginAudits
                 .AsNoTracking()
                 .Where(l => l.CreatedAt < cutoffDate)
@@ -332,7 +395,7 @@ public class LogCleanupService : BackgroundService
 
             await WriteJsonFileAsync(Path.Combine(backupDir, "LoginAudits.json"), loginAudits, options, cancellationToken);
 
-            // AuditTrails
+            // AuditTrails (main EventForge DB via EF)
             var auditTrails = await dbContext.AuditTrails
                 .AsNoTracking()
                 .Where(l => l.CreatedAt < cutoffDate)
@@ -340,7 +403,7 @@ public class LogCleanupService : BackgroundService
 
             await WriteJsonFileAsync(Path.Combine(backupDir, "AuditTrails.json"), auditTrails, options, cancellationToken);
 
-            // SystemOperationLogs (excluding Critical)
+            // SystemOperationLogs (main EventForge DB via EF, excluding Critical rows)
             var operationLogs = await dbContext.SystemOperationLogs
                 .AsNoTracking()
                 .Where(l => l.CreatedAt < cutoffDate && l.Severity != "Critical")
@@ -348,7 +411,7 @@ public class LogCleanupService : BackgroundService
 
             await WriteJsonFileAsync(Path.Combine(backupDir, "SystemOperationLogs.json"), operationLogs, options, cancellationToken);
 
-            // PerformanceLogs
+            // PerformanceLogs (main EventForge DB via EF)
             var performanceLogs = await dbContext.PerformanceLogs
                 .AsNoTracking()
                 .Where(l => l.CreatedAt < cutoffDate)
@@ -356,7 +419,7 @@ public class LogCleanupService : BackgroundService
 
             await WriteJsonFileAsync(Path.Combine(backupDir, "PerformanceLogs.json"), performanceLogs, options, cancellationToken);
 
-            // Serilog Logs table
+            // Serilog Logs table (separate LogDb — may be a different database/server)
             await BackupSerilogLogsAsync(cutoffDate, backupDir, options, cancellationToken);
 
             _logger.LogInformation("LogCleanupService: backup created at {BackupDir}", backupDir);
@@ -364,7 +427,7 @@ public class LogCleanupService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "LogCleanupService: failed to create log backup — cleanup will still proceed.");
+            _logger.LogError(ex, "LogCleanupService: failed to create log backup.");
             return null;
         }
     }
