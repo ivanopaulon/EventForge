@@ -71,16 +71,7 @@
                 cursor: pointer !important;
     }
 
-/* Fix drawer clip: align drawer to the real AppBar height (48px) */
-.mud-drawer-clipped-left,
-.mud-drawer-clipped-right {
-    top: 48px !important;
-}
-
-/* Fix: MudBlazor CSS variable for AppBar height */
-:root {
-    --mud-appbar-height: 48px;
-}
+/* Drawer clip and AppBar height overrides are in _mudblazor-overrides.css */
 
 .ef-dialog {
     background-color: whitesmoke !important;

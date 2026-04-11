@@ -197,11 +197,7 @@
 
     private void UpdateTheme()
     {
-        _currentTheme = new MudTheme()
-        {
-            PaletteLight = GetLightPalette(ThemeService.CurrentTheme),
-            PaletteDark = GetDarkPalette(ThemeService.CurrentTheme)
-        };
+        _currentTheme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
     }
 
     private string GetPageTitle()
@@ -222,106 +218,6 @@
             var path when path.StartsWith("/superadmin/") => TranslationService.GetTranslation("navigation.superadmin", "Super Admin"),
             var path when path.StartsWith("/admin/") => TranslationService.GetTranslation("navigation.admin", "Administration"),
             _ => TranslationService.GetTranslation("navigation.eventforge", "PRYM")
-        };
-    }
-
-    private PaletteLight GetLightPalette(string themeKey)
-    {
-        // Light theme variants
-        return themeKey switch
-        {
-            "carbon-neon-light" => new PaletteLight()
-            {
-                Primary = "#0099CC",        // Bright Cyan
-                Secondary = "#00D9FF",      // Electric Blue
-                Tertiary = "#7B68EE",       // Medium Slate Blue
-                AppbarBackground = "#FFFFFF",
-                AppbarText = "#1A1A1A",
-                Background = "#F5F5F5",     // Light Gray
-                Surface = "#FFFFFF",
-                DrawerBackground = "#FFFFFF",
-                DrawerText = "#1A1A1A",
-                TextPrimary = "#1A1A1A",    // Near Black
-                TextSecondary = "#6B6B6B",  // Medium Gray
-                Info = "#0099CC",
-                Success = "#00C853",
-                Warning = "#FFB300",
-                Error = "#FF3D00"
-            },
-            _ => GetDefaultLightPalette()
-        };
-    }
-
-    private PaletteLight GetDefaultLightPalette()
-    {
-        return new PaletteLight()
-        {
-            Primary = "#1F2F46",        // Navy Blue
-            Secondary = "#247BFF",      // Electric Blue
-            Tertiary = "#FF6B2C",       // Orange Fire
-            AppbarBackground = "#1F2F46",
-            AppbarText = "#ffffff",
-            Background = "#F5F6FA",     // Light Gray
-            Surface = "#ffffff",
-            DrawerBackground = "#1F2F46",
-            DrawerText = "#d7d7d7",
-            TextPrimary = "#2D2D2D",    // Charcoal
-            TextSecondary = "#666666",
-            Info = "#247BFF",
-            Success = "#4caf50",
-            Warning = "#ff9800",
-            Error = "#f44336"
-        };
-    }
-
-    private PaletteDark GetDarkPalette(string themeKey)
-    {
-        // Dark theme variants
-        return themeKey switch
-        {
-            "carbon-neon-dark" => new PaletteDark()
-            {
-                Primary = "#00F5FF",           // Neon cyan
-                Secondary = "#FF006E",         // Vivid magenta
-                Background = "#121212",        // Pure MD dark
-                Surface = "#262626",
-                DrawerBackground = "#1A1A1A",
-                DrawerText = "#F5F5F5",
-                AppbarBackground = "#000000",
-                AppbarText = "#FFFFFF",
-                TextPrimary = "#FFFFFF",
-                TextSecondary = "#B3B3B3",
-                ActionDefault = "#00E5FF",
-                Divider = "rgba(255,255,255,0.1)",
-                Info = "#00E5FF",
-                Success = "#10B981",
-                Warning = "#F59E0B",
-                Error = "#EF4444"
-            },
-            _ => GetDefaultDarkPalette()
-        };
-    }
-
-    private PaletteDark GetDefaultDarkPalette()
-    {
-        return new PaletteDark()
-        {
-            Black = "#1a1a2e",
-            Background = "#1a1a2e",
-            Surface = "#2d2d30",
-            TextPrimary = "#e0e0e0",
-            TextSecondary = "#b0b0b0",
-            AppbarBackground = "#1a1a2e",
-            AppbarText = "#e0e0e0",
-            DrawerBackground = "#1a1a2e",
-            DrawerText = "#b0b0b0",
-            Primary = "#4fc3f7",
-            Secondary = "#ffb74d",
-            Tertiary = "#4fc3f7",
-            Info = "#4fc3f7",
-            Success = "#66bb6a",
-            Warning = "#ffb74d",
-            Error = "#f06292"
         };
     }
 
