@@ -48,6 +48,7 @@ public interface IChatService : IDisposable
 public class ChatService : IChatService
 {
     private const string BaseUrl = "api/v1/chat";
+    private static readonly TimeSpan ChatListCacheTtl = TimeSpan.FromMinutes(5);
     private readonly IHttpClientService _httpClientService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthService _authService;
@@ -123,13 +124,12 @@ public class ChatService : IChatService
     {
         var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
 
-        // Return the cached value if already populated (cache is invalidated on ChatCreated /
-        // AddedToChat / RemovedFromChat so staleness is bounded by those events).
+        // Fast path: if the cache is already populated serve it immediately without a factory call.
+        // The cache is invalidated on ChatCreated / AddedToChat / RemovedFromChat events,
+        // so staleness is bounded by those events rather than the TTL alone.
         if (_performanceService.IsCached(cacheKey))
-        {
-            return await _performanceService.GetCachedDataAsync(
-                cacheKey, () => Task.FromResult<List<ChatResponseDto>>([]), TimeSpan.FromMinutes(5)) ?? [];
-        }
+            return await _performanceService.GetCachedDataAsync<List<ChatResponseDto>>(
+                cacheKey, () => Task.FromResult<List<ChatResponseDto>>([]), ChatListCacheTtl) ?? [];
 
         try
         {
@@ -158,9 +158,9 @@ public class ChatService : IChatService
             var items = pagedResult?.Items?.ToList() ?? [];
 
             // Cache only non-empty results: an empty response may be the result of a pre-auth
-            // request. Caching it would hide the user's chats for up to 5 minutes.
+            // request. Caching it would hide the user's chats for the full TTL.
             if (items.Count > 0)
-                _performanceService.PreloadData(cacheKey, () => Task.FromResult(items), TimeSpan.FromMinutes(5));
+                _performanceService.PreloadData(cacheKey, () => Task.FromResult(items), ChatListCacheTtl);
 
             return items;
         }

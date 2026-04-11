@@ -597,7 +597,8 @@
             var oversized = files.Where(f => f.Size > maxFileSizeBytes).ToList();
             foreach (var f in oversized)
                 AppNotification.ShowWarning(
-                    $"Il file '{f.Name}' supera il limite massimo di 50 MB e non può essere allegato.");
+                    TranslationService.GetTranslation("chat.fileTooLarge", $"Il file '{f.Name}' supera il limite massimo di 50 MB e non può essere allegato.")
+                        .Replace("{name}", f.Name));
 
             var valid = files.Where(f => f.Size <= maxFileSizeBytes).ToList();
             if (valid.Count > 0)
