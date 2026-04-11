@@ -22,6 +22,7 @@ public class LogManagementServiceTests
     private readonly Mock<ILogger<LogManagementService>> _mockLogger;
     private readonly Mock<IMemoryCache> _mockCache;
     private readonly LogManagementService _service;
+    private readonly EventForgeDbContext _dbContext;
 
     public LogManagementServiceTests()
     {
@@ -30,6 +31,11 @@ public class LogManagementServiceTests
         _mockLogSanitizationService = new Mock<ILogSanitizationService>();
         _mockLogger = new Mock<ILogger<LogManagementService>>();
         _mockCache = new Mock<IMemoryCache>();
+
+        var dbOptions = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _dbContext = new EventForgeDbContext(dbOptions);
 
         // Create a simple configuration with the required connection string
         var configBuilder = new ConfigurationBuilder();
@@ -43,7 +49,7 @@ public class LogManagementServiceTests
             _mockApplicationLogService.Object,
             _mockAuditLogService.Object,
             _mockLogSanitizationService.Object,
-            null!,
+            _dbContext,
             _mockLogger.Object,
             _mockCache.Object,
             configuration);
