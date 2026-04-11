@@ -388,9 +388,6 @@ public class DocumentHeadersController(
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Export operation started by {User} for Documents (format: {Format})",
-            User.Identity?.Name ?? "Unknown", format);
 
         var pagination = new PaginationParameters
         {

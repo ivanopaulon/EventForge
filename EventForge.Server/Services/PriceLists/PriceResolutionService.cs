@@ -144,7 +144,6 @@ namespace EventForge.Server.Services.PriceLists
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in ResolvePriceAsync for product {ProductId}.", productId);
                 throw;
             }
         }
@@ -209,7 +208,6 @@ namespace EventForge.Server.Services.PriceLists
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in ResolvePricesBatchAsync.");
                 throw;
             }
         }

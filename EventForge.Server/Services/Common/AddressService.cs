@@ -47,7 +47,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving addresses.");
             throw;
         }
     }
@@ -72,7 +71,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving addresses for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -90,7 +88,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving address {AddressId}.", id);
             throw;
         }
     }
@@ -137,7 +134,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating address.");
             throw;
         }
     }
@@ -192,7 +188,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating address {AddressId}.", id);
             throw;
         }
     }
@@ -242,7 +237,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting address {AddressId}.", id);
             throw;
         }
     }
@@ -257,7 +251,6 @@ public class AddressService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if address {AddressId} exists.", addressId);
             throw;
         }
     }

@@ -28,7 +28,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAllPoliciesAsync.");
             throw;
         }
     }
@@ -48,7 +47,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPolicyByIdAsync for policy {PolicyId}.", id);
             throw;
         }
     }
@@ -68,7 +66,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPolicyByDocumentTypeAsync for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -121,7 +118,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreatePolicyAsync for document type {DocumentTypeId} by {User}.", dto.DocumentTypeId, currentUser);
             throw;
         }
     }
@@ -175,7 +171,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdatePolicyAsync for policy {PolicyId} by {User}.", id, currentUser);
             throw;
         }
     }
@@ -206,7 +201,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeletePolicyAsync for policy {PolicyId} by {User}.", id, currentUser);
             throw;
         }
     }
@@ -321,7 +315,6 @@ public class DocumentRetentionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetEligibleForDeletionAsync for policy {PolicyId}.", policyId);
             throw;
         }
     }

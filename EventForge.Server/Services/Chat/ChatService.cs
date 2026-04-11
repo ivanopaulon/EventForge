@@ -242,9 +242,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving chat {ChatId} for user {UserId} in tenant {TenantId}",
-                chatId, userId, tenantId);
 
             var thread = await context.ChatThreads
                 .AsNoTracking()
@@ -314,7 +311,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -518,7 +514,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SearchChatsAsync.");
             throw;
         }
     }
@@ -563,7 +558,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateChatAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -610,7 +604,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteChatAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -769,9 +762,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving messages for chat {ChatId} from {FromDate} to {ToDate} - Page {Page}",
-                searchDto.ChatId, searchDto.FromDate, searchDto.ToDate, searchDto.PageNumber);
 
             // 1. Build query from ChatMessages DbSet
             var query = context.ChatMessages
@@ -849,7 +839,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages.");
             throw;
         }
     }
@@ -863,7 +852,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation("Retrieving all messages - Page {Page}", pagination.Page);
 
             var query = context.ChatMessages
                 .AsNoTracking()
@@ -892,7 +880,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages.");
             throw;
         }
     }
@@ -907,9 +894,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving messages for conversation {ConversationId} - Page {Page}",
-                conversationId, pagination.Page);
 
             var query = context.ChatMessages
                 .AsNoTracking()
@@ -937,7 +921,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving messages for conversation {ConversationId}.", conversationId);
             throw;
         }
     }
@@ -952,7 +935,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation("Retrieving unread messages - Page {Page}", pagination.Page);
 
             // NOTE: This is a simplified implementation.
             // In a full implementation, you would need to:
@@ -987,7 +969,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving unread messages.");
             throw;
         }
     }
@@ -1003,9 +984,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving message {MessageId} for user {UserId} in tenant {TenantId}",
-                messageId, userId, tenantId);
 
             // 1. Query ChatMessages by messageId with related entities
             var message = await context.ChatMessages
@@ -1056,7 +1034,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1152,7 +1129,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error editing message {MessageId}.", editDto.MessageId);
             throw;
         }
     }
@@ -1262,7 +1238,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1309,7 +1284,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating status for message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1352,7 +1326,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error marking message {MessageId} as read.", messageId);
             throw;
         }
     }
@@ -1379,7 +1352,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving read receipts for message {MessageId}.", messageId);
             throw;
         }
     }
@@ -1429,7 +1401,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk marking messages as read for user {UserId}.", userId);
             throw;
         }
     }
@@ -1520,9 +1491,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "User {UserId} requesting download info for attachment {AttachmentId} in tenant {TenantId}",
-                userId, attachmentId, tenantId);
 
             // TODO: Implement access validation and secure URL generation
             await Task.Delay(5, cancellationToken); // Simulate async operation
@@ -1540,7 +1508,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving download info for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1556,9 +1523,6 @@ public class ChatService(
     {
         try
         {
-        logger.LogInformation(
-            "Processing media {AttachmentId} with options: Thumbnails={GenerateThumbnails}, Optimize={OptimizeForWeb}",
-            attachmentId, processingOptions.GenerateThumbnails, processingOptions.OptimizeForWeb);
 
         // TODO: Implement actual media processing
         await Task.Delay(500, cancellationToken); // Simulate processing time
@@ -1607,7 +1571,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ProcessMediaAsync for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1650,7 +1613,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteFileAsync for attachment {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -1677,8 +1639,8 @@ public class ChatService(
         var successCount = 0;
 
         logger.LogInformation(
-            "User {AddedBy} adding {Count} members to chat {ChatId} with role {Role}",
-            addedBy, userIds.Count, chatId, defaultRole);
+            "User {AddedBy} added {Count} member(s) to chat {ChatId}.",
+            addedBy, userIds.Count, chatId);
 
         foreach (var userId in userIds)
         {
@@ -1729,7 +1691,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AddMembersAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1751,8 +1712,8 @@ public class ChatService(
         var successCount = 0;
 
         logger.LogInformation(
-            "User {RemovedBy} removing {Count} members from chat {ChatId} with reason: {Reason}",
-            removedBy, userIds.Count, chatId, reason ?? "No reason provided");
+            "User {RemovedBy} removed {Count} member(s) from chat {ChatId}.",
+            removedBy, userIds.Count, chatId);
 
         foreach (var userId in userIds)
         {
@@ -1802,7 +1763,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveMembersAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1823,7 +1783,7 @@ public class ChatService(
         var successCount = 0;
 
         logger.LogInformation(
-            "User {UpdatedBy} updating roles for {Count} members in chat {ChatId}",
+            "User {UpdatedBy} updated roles for {Count} member(s) in chat {ChatId}.",
             updatedBy, roleUpdates.Count, chatId);
 
         foreach (var (userId, newRole) in roleUpdates)
@@ -1875,7 +1835,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateMemberRolesAsync for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1890,9 +1849,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "User {UserId} requesting members for chat {ChatId}",
-                requestingUserId, chatId);
 
             // Verify the requesting user is a member (unless it is a server-side call)
             if (requestingUserId != Guid.Empty)
@@ -1911,7 +1867,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving members for chat {ChatId}.", chatId);
             throw;
         }
     }
@@ -1925,7 +1880,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation("Getting available chat users for tenant {TenantId}", tenantId);
 
             var users = await context.Users
                 .AsNoTracking()
@@ -1950,7 +1904,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available users for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2062,7 +2015,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating chat rate limit policy for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2078,11 +2030,6 @@ public class ChatService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving chat statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-                tenantId?.ToString() ?? "ALL",
-                dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
-                dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
 
             // TODO: Implement database aggregation queries
             await Task.Delay(30, cancellationToken);
@@ -2102,7 +2049,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving chat statistics for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -2155,7 +2101,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error moderating chat {ChatId}.", moderationAction.ChatId);
             throw;
         }
     }
@@ -2170,9 +2115,6 @@ public class ChatService(
     {
         try
         {
-        logger.LogInformation(
-            "Retrieving chat audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
-            auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
 
         // TODO: Query audit log entries from database
         await Task.Delay(25, cancellationToken);
@@ -2187,7 +2129,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetChatAuditTrailAsync.");
             throw;
         }
     }
@@ -2224,7 +2165,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetChatSystemHealthAsync.");
             throw;
         }
     }
@@ -2244,9 +2184,6 @@ public class ChatService(
     {
         try
         {
-        logger.LogInformation(
-            "Localizing message {MessageId} to locale {Locale} for user {UserId}",
-            message.Id, targetLocale, userId);
 
         // 1. Check if message.Locale == targetLocale (already localized)
         if (message.Locale == targetLocale)
@@ -2281,7 +2218,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in LocalizeChatMessageAsync for message {MessageId}.", message.Id);
             throw;
         }
     }
@@ -2336,7 +2272,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating chat localization preferences for user {UserId}.", userId);
             throw;
         }
     }
@@ -2537,7 +2472,7 @@ public class ChatService(
         try
         {
         logger.LogInformation(
-            "Toggling reaction {Emoji} on message {MessageId} by user {UserId}",
+            "Reaction {Emoji} toggled on message {MessageId} by user {UserId}.",
             reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
 
         // TODO: Implement actual reaction logic
@@ -2557,7 +2492,6 @@ public class ChatService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ToggleMessageReactionAsync for message {MessageId}.", reactionDto.MessageId);
             throw;
         }
     }

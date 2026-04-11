@@ -80,7 +80,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price lists with filters.");
             throw;
         }
     }
@@ -101,7 +100,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price lists for event {EventId}.", eventId);
             throw;
         }
     }
@@ -120,7 +118,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price list {PriceListId}.", id);
             throw;
         }
     }
@@ -139,7 +136,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price list detail {PriceListId}.", id);
             throw;
         }
     }
@@ -182,7 +178,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating price list for user {User}.", currentUser);
             throw;
         }
     }
@@ -246,7 +241,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating price list {PriceListId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -311,7 +305,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting price list {PriceListId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -331,7 +324,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price list entries for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -350,7 +342,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price list entry {EntryId}.", id);
             throw;
         }
     }
@@ -401,8 +392,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating price list entry for price list {PriceListId} by user {User}.",
-                createPriceListEntryDto.PriceListId, currentUser);
             throw;
         }
     }
@@ -468,7 +457,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating price list entry {EntryId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -524,7 +512,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting price list entry {EntryId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -539,7 +526,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if price list {PriceListId} exists.", priceListId);
             throw;
         }
     }
@@ -554,7 +540,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if event {EventId} exists.", eventId);
             throw;
         }
     }
@@ -569,7 +554,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if product {ProductId} exists.", productId);
             throw;
         }
     }
@@ -685,7 +669,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAppliedPriceAsync for product {ProductId} event {EventId}.", productId, eventId);
             throw;
         }
     }
@@ -698,7 +681,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAppliedPriceWithUnitConversionAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -711,7 +693,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPriceHistoryAsync for product {ProductId} event {EventId}.", productId, eventId);
             throw;
         }
     }
@@ -728,7 +709,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPurchasePriceComparisonAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -746,7 +726,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetProductPriceAsync.");
             throw;
         }
     }
@@ -763,7 +742,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in BulkImportPriceListEntriesAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -776,7 +754,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ExportPriceListEntriesAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -789,7 +766,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidatePriceListPrecedenceAsync for event {EventId}.", eventId);
             throw;
         }
     }
@@ -806,7 +782,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AssignBusinessPartyAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -819,7 +794,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveBusinessPartyAsync for price list {PriceListId} business party {BusinessPartyId}.", priceListId, businessPartyId);
             throw;
         }
     }
@@ -832,7 +806,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetBusinessPartiesForPriceListAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -853,7 +826,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price lists by type {Type}.", type);
             throw;
         }
     }
@@ -866,7 +838,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPriceListsByBusinessPartyAsync for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -894,7 +865,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DuplicatePriceListAsync for source price list {SourcePriceListId}.", sourcePriceListId);
             throw;
         }
     }
@@ -915,7 +885,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewBulkUpdateAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -935,7 +904,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in BulkUpdatePricesAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -957,7 +925,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewGenerateFromPurchasesAsync.");
             throw;
         }
     }
@@ -976,7 +943,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateFromPurchasesAsync for user {User}.", currentUser);
             throw;
         }
     }
@@ -994,7 +960,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewUpdateFromPurchasesAsync.");
             throw;
         }
     }
@@ -1013,7 +978,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateFromPurchasesAsync for user {User}.", currentUser);
             throw;
         }
     }
@@ -1036,7 +1000,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GenerateFromProductPricesAsync for user {User}.", currentUser);
             throw;
         }
     }
@@ -1054,7 +1017,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewGenerateFromProductPricesAsync.");
             throw;
         }
     }
@@ -1073,7 +1035,6 @@ public class PriceListService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ApplyPriceListToProductsAsync for user {User}.", currentUser);
             throw;
         }
     }

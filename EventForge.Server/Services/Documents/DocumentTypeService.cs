@@ -53,7 +53,6 @@ public class DocumentTypeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document types.");
             throw;
         }
     }
@@ -79,7 +78,6 @@ public class DocumentTypeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document type {DocumentTypeId}.", id);
             throw;
         }
     }
@@ -124,7 +122,6 @@ public class DocumentTypeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document type for user {User}.", currentUser);
             throw;
         }
     }
@@ -181,7 +178,6 @@ public class DocumentTypeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document type {DocumentTypeId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -236,7 +232,6 @@ public class DocumentTypeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document type {DocumentTypeId} for user {User}.", id, currentUser);
             throw;
         }
     }

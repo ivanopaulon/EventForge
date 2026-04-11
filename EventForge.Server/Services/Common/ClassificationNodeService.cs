@@ -67,7 +67,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving classification nodes.");
             throw;
         }
     }
@@ -104,7 +103,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving classification node with ID {Id}.", id);
             throw;
         }
     }
@@ -143,7 +141,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving root classification nodes.");
             throw;
         }
     }
@@ -182,7 +179,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving children for classification node {ParentId}.", parentId);
             throw;
         }
     }
@@ -264,7 +260,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating classification node.");
             throw;
         }
     }
@@ -373,7 +368,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating classification node {Id}.", id);
             throw;
         }
     }
@@ -437,7 +431,6 @@ public class ClassificationNodeService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting classification node {Id}.", id);
             throw;
         }
     }

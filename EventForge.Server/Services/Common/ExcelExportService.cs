@@ -98,7 +98,6 @@ public class ExcelExportService(ILogger<ExcelExportService> logger) : IExcelExpo
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ExportToExcelAsync.");
             throw;
         }
     }

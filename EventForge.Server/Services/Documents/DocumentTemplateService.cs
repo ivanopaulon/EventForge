@@ -29,7 +29,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document templates.");
             throw;
         }
     }
@@ -48,7 +47,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document template {TemplateId}.", id);
             throw;
         }
     }
@@ -69,7 +67,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document templates for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -90,7 +87,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving public document templates.");
             throw;
         }
     }
@@ -113,7 +109,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document templates for owner {Owner}.", owner);
             throw;
         }
     }
@@ -136,7 +131,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document templates for category {Category}.", category);
             throw;
         }
     }
@@ -170,7 +164,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document template for user {User}.", currentUser);
             throw;
         }
     }
@@ -209,7 +202,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document template {TemplateId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -245,7 +237,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document template {TemplateId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -279,7 +270,6 @@ public class DocumentTemplateService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating usage for document template {TemplateId}.", id);
             throw;
         }
     }

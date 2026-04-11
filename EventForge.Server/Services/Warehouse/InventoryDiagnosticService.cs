@@ -15,7 +15,6 @@ public class InventoryDiagnosticService(
     {
         try
         {
-            logger.LogInformation("Starting diagnostic for inventory document {DocumentId}", documentId);
 
         var report = new InventoryDiagnosticReportDto
         {
@@ -161,7 +160,6 @@ public class InventoryDiagnosticService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DiagnoseDocumentAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -172,7 +170,6 @@ public class InventoryDiagnosticService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Starting auto-repair for inventory document {DocumentId}", documentId);
 
         var result = new InventoryRepairResultDto
         {
@@ -327,7 +324,6 @@ public class InventoryDiagnosticService(
     {
         try
         {
-            logger.LogInformation("Repairing row {RowId} in document {DocumentId}", rowId, documentId);
 
             var row = await context.DocumentRows
                 .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && !r.IsDeleted)
@@ -370,14 +366,13 @@ public class InventoryDiagnosticService(
                 row.ModifiedBy = currentUser;
                 row.ModifiedAt = DateTime.UtcNow;
                 await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("Row {RowId} repaired successfully", rowId);
+                logger.LogInformation("Row {RowId} repaired.", rowId);
             }
 
             return modified;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RepairRowAsync for row {RowId} in document {DocumentId}.", rowId, documentId);
             throw;
         }
     }
@@ -390,7 +385,6 @@ public class InventoryDiagnosticService(
     {
         try
         {
-            logger.LogInformation("Removing {Count} problematic rows from document {DocumentId}", rowIds.Count, documentId);
 
             var rows = await context.DocumentRows
                 .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && !r.IsDeleted)
@@ -405,13 +399,12 @@ public class InventoryDiagnosticService(
 
             await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Removed {Count} rows from document {DocumentId}", rows.Count, documentId);
+            logger.LogInformation("{Count} rows removed from document {DocumentId}.", rows.Count, documentId);
 
             return rows.Count;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveProblematicRowsAsync for document {DocumentId}.", documentId);
             throw;
         }
     }

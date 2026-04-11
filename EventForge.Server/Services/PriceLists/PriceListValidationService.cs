@@ -72,7 +72,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidatePriceListDateRangeAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -132,7 +131,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateNoPriceListOverlapAsync for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -174,7 +172,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidatePriceListStatusAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -248,7 +245,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateNoDuplicateProductAsync for product {ProductId} in price list {PriceListId}.", productId, priceListId);
             throw;
         }
     }
@@ -289,7 +285,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateNoDuplicateBusinessPartyAsync for business party {BusinessPartyId} in price list {PriceListId}.", businessPartyId, priceListId);
             throw;
         }
     }
@@ -418,7 +413,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateProductIsActiveAsync for product {ProductId}.", productId);
             throw;
         }
     }
@@ -469,7 +463,6 @@ public class PriceListValidationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateBusinessPartyCompatibilityAsync for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }

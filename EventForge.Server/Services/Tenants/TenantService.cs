@@ -346,7 +346,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -368,7 +367,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero di tutti i tenant.");
             throw;
         }
     }
@@ -461,7 +459,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiornamento del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -527,7 +524,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il cambio stato del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -614,7 +610,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiunta di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
             throw;
         }
     }
@@ -677,7 +672,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la rimozione di un admin tenant {TenantId} - {UserId}.", tenantId, userId);
             throw;
         }
     }
@@ -716,7 +710,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero degli admin tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -787,7 +780,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la forzatura del cambio password per utente {UserId}.", userId);
             throw;
         }
     }
@@ -862,7 +854,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dell'audit trail.");
             throw;
         }
     }
@@ -912,7 +903,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero delle statistiche tenant.");
             throw;
         }
     }
@@ -1026,7 +1016,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la ricerca dei tenant.");
             throw;
         }
     }
@@ -1082,7 +1071,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei dettagli del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1119,7 +1107,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei limiti del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1165,7 +1152,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante l'aggiornamento dei limiti del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1283,7 +1269,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante la cancellazione soft del tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1338,7 +1323,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei tenant.");
             throw;
         }
     }
@@ -1392,7 +1376,6 @@ public class TenantService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore durante il recupero dei tenant attivi.");
             throw;
         }
     }

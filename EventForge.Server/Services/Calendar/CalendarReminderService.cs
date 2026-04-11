@@ -43,7 +43,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving paginated calendar reminders.");
             throw;
         }
     }
@@ -68,7 +67,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving calendar reminders by date range {StartDate} - {EndDate}.", startDate, endDate);
             throw;
         }
     }
@@ -94,7 +92,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active calendar reminders.");
             throw;
         }
     }
@@ -122,7 +119,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -171,7 +167,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating calendar reminder.");
             throw;
         }
     }
@@ -240,7 +235,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -298,7 +292,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error completing calendar reminder {ReminderId}.", id);
             throw;
         }
     }
@@ -352,7 +345,6 @@ public class CalendarReminderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting calendar reminder {ReminderId}.", id);
             throw;
         }
     }

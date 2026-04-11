@@ -5,7 +5,8 @@ namespace EventForge.Server.Filters;
 
 /// <summary>
 /// Automatic validation filter that uses FluentValidation to validate models.
-/// If validation fails, throws a ValidationException that will be handled by GlobalExceptionHandlerMiddleware.
+/// If validation fails, logs full context and throws a ValidationException
+/// that will be handled by GlobalExceptionHandlerMiddleware.
 /// </summary>
 public class FluentValidationFilter : IAsyncActionFilter
 {
@@ -35,7 +36,10 @@ public class FluentValidationFilter : IAsyncActionFilter
 
                     if (!validationResult.IsValid)
                     {
-                        // Throws ValidationException which will be handled by GlobalExceptionHandlerMiddleware
+                        // Throw ValidationException immediately.
+                        // GlobalExceptionHandlerMiddleware handles logging once with full request context
+                        // (including CorrelationId, UserId, TenantId populated via RequestContextEnricherMiddleware).
+                        // Logging here would produce a duplicate entry for every validation failure.
                         throw new ValidationException(validationResult.Errors);
                     }
                 }

@@ -63,20 +63,27 @@ public static class ServiceCollectionExtensions
         // Configure column options for enriched properties
         var columnOptions = new ColumnOptions();
 
-        // Add custom columns for client log enrichment
+        // Add custom columns for client log enrichment and server-side request context.
+        // Server-side values (CorrelationId, UserId, UserName, TenantId, RemoteIpAddress,
+        // RequestPath) are populated automatically by RequestContextEnricherMiddleware via
+        // Serilog's LogContext. Client-side values are pushed via BeginScope in
+        // LogIngestionBackgroundService. MachineName/EnvironmentName come from enrichers below.
         columnOptions.AdditionalColumns = new System.Collections.ObjectModel.Collection<SqlColumn>
         {
-            new SqlColumn { ColumnName = "Source", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-            new SqlColumn { ColumnName = "Page", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-            new SqlColumn { ColumnName = "UserAgent", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-            new SqlColumn { ColumnName = "ClientTimestamp", DataType = System.Data.SqlDbType.DateTimeOffset, AllowNull = true },
-            new SqlColumn { ColumnName = "CorrelationId", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-            new SqlColumn { ColumnName = "Category", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
-            new SqlColumn { ColumnName = "UserId", DataType = System.Data.SqlDbType.UniqueIdentifier, AllowNull = true },
-            new SqlColumn { ColumnName = "UserName", DataType = System.Data.SqlDbType.NVarChar, DataLength = 100, AllowNull = true },
-            new SqlColumn { ColumnName = "RemoteIpAddress", DataType = System.Data.SqlDbType.NVarChar, DataLength = 50, AllowNull = true },
-            new SqlColumn { ColumnName = "RequestPath", DataType = System.Data.SqlDbType.NVarChar, DataLength = 500, AllowNull = true },
-            new SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar, DataLength = -1, AllowNull = true }
+            new SqlColumn { ColumnName = "Source",           DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
+            new SqlColumn { ColumnName = "Page",             DataType = System.Data.SqlDbType.NVarChar,        DataLength = 500,  AllowNull = true },
+            new SqlColumn { ColumnName = "UserAgent",        DataType = System.Data.SqlDbType.NVarChar,        DataLength = 500,  AllowNull = true },
+            new SqlColumn { ColumnName = "ClientTimestamp",  DataType = System.Data.SqlDbType.DateTimeOffset,                     AllowNull = true },
+            new SqlColumn { ColumnName = "CorrelationId",    DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
+            new SqlColumn { ColumnName = "Category",         DataType = System.Data.SqlDbType.NVarChar,        DataLength = 100,  AllowNull = true },
+            new SqlColumn { ColumnName = "UserId",           DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
+            new SqlColumn { ColumnName = "UserName",         DataType = System.Data.SqlDbType.NVarChar,        DataLength = 100,  AllowNull = true },
+            new SqlColumn { ColumnName = "TenantId",         DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
+            new SqlColumn { ColumnName = "RemoteIpAddress",  DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
+            new SqlColumn { ColumnName = "RequestPath",      DataType = System.Data.SqlDbType.NVarChar,        DataLength = 500,  AllowNull = true },
+            new SqlColumn { ColumnName = "ClientProperties", DataType = System.Data.SqlDbType.NVarChar,        DataLength = -1,   AllowNull = true },
+            new SqlColumn { ColumnName = "MachineName",      DataType = System.Data.SqlDbType.NVarChar,        DataLength = 256,  AllowNull = true },
+            new SqlColumn { ColumnName = "EnvironmentName",  DataType = System.Data.SqlDbType.NVarChar,        DataLength = 50,   AllowNull = true },
         };
 
         var loggerConfiguration = new LoggerConfiguration()
@@ -92,7 +99,9 @@ public static class ServiceCollectionExtensions
             // initialisation messages, etc.). Warnings and errors (e.g. slow-query warnings,
             // migration errors, connection failures) are still emitted.
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-            .Enrich.FromLogContext()  // Enable capturing scope properties
+            .Enrich.FromLogContext()          // captures scope properties (RequestContextEnricherMiddleware etc.)
+            .Enrich.WithMachineName()          // populates MachineName column
+            .Enrich.WithEnvironmentName()      // populates EnvironmentName → Environment column
             .WriteTo.File(
                 path: filePath,
                 rollingInterval: RollingInterval.Day,

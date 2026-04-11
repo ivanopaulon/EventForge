@@ -100,7 +100,6 @@ public class PortConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to write port configuration");
             throw;
         }
     }

@@ -280,6 +280,18 @@ public interface IRealtimeService
     /// <summary>Fired when the Server broadcasts the count of packages ready to deploy (SuperAdmin only).</summary>
     event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
 
+    /// <summary>Fired when LogCleanupService is about to start deleting log entries (SuperAdmin only).</summary>
+    event Action<LogCleanupStartedPayload>? LogCleanupStarted;
+
+    /// <summary>
+    /// Fired when LogCleanupService transitions to a new phase (SuperAdmin only).
+    /// Phase values: "Backup" → "Deleting".
+    /// </summary>
+    event Action<LogCleanupPhaseChangedPayload>? LogCleanupPhaseChanged;
+
+    /// <summary>Fired when LogCleanupService finishes (or fails) its cleanup run (SuperAdmin only).</summary>
+    event Action<LogCleanupCompletedPayload>? LogCleanupCompleted;
+
     #endregion
 
     #region Document Collaboration Events

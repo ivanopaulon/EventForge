@@ -18,8 +18,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
     {
         try
         {
-            logger.LogInformation("Starting Excel export for {Type}, SheetName: {SheetName}",
-                typeof(T).Name, sheetName);
 
             using var package = new ExcelPackage();
             var worksheet = package.Workbook.Worksheets.Add(sheetName);
@@ -49,7 +47,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error exporting data to Excel for type {Type}.", typeof(T).Name);
             throw;
         }
     }
@@ -60,7 +57,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
     {
         try
         {
-            logger.LogInformation("Starting CSV export for {Type}", typeof(T).Name);
 
             using var memoryStream = new MemoryStream();
             using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
@@ -97,7 +93,6 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error exporting data to CSV for type {Type}.", typeof(T).Name);
             throw;
         }
     }

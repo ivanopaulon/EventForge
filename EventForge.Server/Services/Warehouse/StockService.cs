@@ -81,8 +81,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock with filters - ProductId: {ProductId}, LocationId: {LocationId}, LotId: {LotId}",
-                productId, locationId, lotId);
             throw;
         }
     }
@@ -109,7 +107,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock by ID: {StockId}", id);
             throw;
         }
     }
@@ -138,7 +135,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock by product ID: {ProductId}", productId);
             throw;
         }
     }
@@ -167,7 +163,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock by location ID: {LocationId}", locationId);
             throw;
         }
     }
@@ -195,7 +190,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting available quantity for product: {ProductId}, lot: {LotId}", productId, lotId);
             throw;
         }
     }
@@ -226,8 +220,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting available quantity at location - Product: {ProductId}, Location: {LocationId}, Lot: {LotId}",
-                productId, locationId, lotId);
             throw;
         }
     }
@@ -377,8 +369,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating/updating stock for product: {ProductId} at location: {LocationId}",
-                createDto.ProductId, createDto.StorageLocationId);
             throw;
         }
     }
@@ -536,8 +526,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating/updating stock - StockId: {StockId}, ProductId: {ProductId}, LocationId: {LocationId}",
-                dto.StockId, dto.ProductId, dto.StorageLocationId);
             throw;
         }
     }
@@ -605,7 +593,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating stock levels for ID: {StockId}", id);
             throw;
         }
     }
@@ -643,8 +630,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error reserving stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
-                productId, locationId, quantity);
             throw;
         }
     }
@@ -682,8 +667,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error releasing reserved stock - Product: {ProductId}, Location: {LocationId}, Quantity: {Quantity}",
-                productId, locationId, quantity);
             throw;
         }
     }
@@ -714,7 +697,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting low stock entries");
             throw;
         }
     }
@@ -745,7 +727,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting overstock entries");
             throw;
         }
     }
@@ -772,7 +753,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating last inventory date for stock: {StockId}", stockId);
             throw;
         }
     }
@@ -816,7 +796,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting stock: {StockId}", id);
             throw;
         }
     }
@@ -1029,7 +1008,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock overview");
             throw;
         }
     }
@@ -1110,7 +1088,6 @@ public class StockService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adjusting stock: {StockId}", dto.StockId);
             throw;
         }
     }

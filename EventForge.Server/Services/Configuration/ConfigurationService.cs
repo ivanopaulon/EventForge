@@ -32,7 +32,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAllConfigurationsAsync.");
             throw;
         }
     }
@@ -56,7 +55,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetConfigurationsByCategoryAsync for category {Category}.", category);
             throw;
         }
     }
@@ -78,7 +76,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetConfigurationAsync for key {Key}.", key);
             throw;
         }
     }
@@ -135,7 +132,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateConfigurationAsync for key {Key}.", createDto.Key);
             throw;
         }
     }
@@ -190,7 +186,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateConfigurationAsync for key {Key}.", key);
             throw;
         }
     }
@@ -235,7 +230,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteConfigurationAsync for key {Key}.", key);
             throw;
         }
     }
@@ -262,7 +256,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetValueAsync for key {Key}.", key);
             throw;
         }
     }
@@ -304,7 +297,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SetValueAsync for key {Key}.", key);
             throw;
         }
     }
@@ -392,7 +384,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ReloadConfigurationAsync.");
             throw;
         }
     }
@@ -417,7 +408,6 @@ public class ConfigurationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCategoriesAsync.");
             throw;
         }
     }

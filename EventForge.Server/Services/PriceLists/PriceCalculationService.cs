@@ -133,7 +133,6 @@ public class PriceCalculationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating applied price for product {ProductId}", productId);
             throw;
         }
     }
@@ -221,8 +220,6 @@ public class PriceCalculationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating applied price with unit conversion for product {ProductId} in event {EventId} to unit {TargetUnitId}",
-                productId, eventId, targetUnitId);
             throw;
         }
     }
@@ -293,15 +290,11 @@ public class PriceCalculationService(
                 .ThenBy(h => h.Priority)
                 .ToList();
 
-            logger.LogInformation("Retrieved {Count} price history entries for product {ProductId} in event {EventId}",
-                result.Count, productId, eventId);
 
             return result;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price history for product {ProductId} in event {EventId}",
-                productId, eventId);
             throw;
         }
     }
@@ -341,7 +334,6 @@ public class PriceCalculationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating product price for ProductId {ProductId}", request.ProductId);
             throw;
         }
     }
@@ -429,7 +421,6 @@ public class PriceCalculationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error comparing purchase prices for product {ProductId}", productId);
             throw;
         }
     }

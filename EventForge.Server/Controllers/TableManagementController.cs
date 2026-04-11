@@ -28,7 +28,6 @@ public class TableManagementController(
     [Obsolete("Use GetTables with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAllTables(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Getting all tables");
 
         try
         {
@@ -57,7 +56,6 @@ public class TableManagementController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Getting tables with pagination");
 
         try
         {
@@ -79,7 +77,6 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableSessionDto>> GetTable(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Getting table {TableId}", id);
 
         try
         {
@@ -106,7 +103,6 @@ public class TableManagementController(
     [Obsolete("Use GetAvailableTablesPaginated with pagination instead")]
     public async Task<ActionResult<List<TableSessionDto>>> GetAvailableTables(CancellationToken cancellationToken)
     {
-        logger.LogInformation("Getting available tables");
 
         try
         {
@@ -134,7 +130,6 @@ public class TableManagementController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Getting available tables with pagination");
 
         try
         {
@@ -161,7 +156,6 @@ public class TableManagementController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Getting tables by zone {Zone} with pagination", zone);
 
         try
         {
@@ -183,7 +177,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> CreateTable([FromBody] CreateTableSessionDto dto, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Creating table {TableNumber}", dto.TableNumber);
+        logger.LogInformation("Table {TableNumber} created.", dto.TableNumber);
 
         if (!ModelState.IsValid)
         {
@@ -216,7 +210,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> UpdateTable(Guid id, [FromBody] UpdateTableSessionDto dto, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Updating table {TableId}", id);
+        logger.LogInformation("Table {TableId} updated.", id);
 
         if (!ModelState.IsValid)
         {
@@ -254,7 +248,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableSessionDto>> UpdateTableStatus(Guid id, [FromBody] UpdateTableStatusDto dto, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Updating status for table {TableId} to {Status}", id, dto.Status);
+        logger.LogInformation("Table {TableId} status updated to {Status}.", id, dto.Status);
 
         if (!ModelState.IsValid)
         {
@@ -291,7 +285,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTable(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Deleting table {TableId}", id);
+        logger.LogInformation("Table {TableId} deleted.", id);
 
         try
         {
@@ -319,7 +313,6 @@ public class TableManagementController(
     [ProducesResponseType(typeof(List<TableReservationDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<TableReservationDto>>> GetReservations([FromQuery] DateTime date, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Getting reservations for date {Date}", date.Date);
 
         try
         {
@@ -341,7 +334,6 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> GetReservation(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Getting reservation {ReservationId}", id);
 
         try
         {
@@ -368,7 +360,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableReservationDto>> CreateReservation([FromBody] CreateTableReservationDto dto, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Creating reservation for table {TableId}", dto.TableId);
+        logger.LogInformation("Reservation created for table {TableId}.", dto.TableId);
 
         if (!ModelState.IsValid)
         {
@@ -401,7 +393,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TableReservationDto>> UpdateReservation(Guid id, [FromBody] UpdateTableReservationDto dto, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Updating reservation {ReservationId}", id);
+        logger.LogInformation("Reservation {ReservationId} updated.", id);
 
         if (!ModelState.IsValid)
         {
@@ -438,7 +430,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> ConfirmReservation(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Confirming reservation {ReservationId}", id);
+        logger.LogInformation("Reservation {ReservationId} confirmed.", id);
 
         try
         {
@@ -465,7 +457,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> MarkArrived(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Marking reservation {ReservationId} as arrived", id);
+        logger.LogInformation("Reservation {ReservationId} marked as arrived.", id);
 
         try
         {
@@ -492,7 +484,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelReservation(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Cancelling reservation {ReservationId}", id);
+        logger.LogInformation("Reservation {ReservationId} cancelled.", id);
 
         try
         {
@@ -519,7 +511,7 @@ public class TableManagementController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TableReservationDto>> MarkNoShow(Guid id, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Marking reservation {ReservationId} as no-show", id);
+        logger.LogInformation("Reservation {ReservationId} marked as no-show.", id);
 
         try
         {

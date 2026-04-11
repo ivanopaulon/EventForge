@@ -167,7 +167,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ScanNetworkAsync for {SubnetPrefix}:{Port}.", subnetPrefix, port);
             throw;
         }
     }

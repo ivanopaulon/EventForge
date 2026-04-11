@@ -60,6 +60,39 @@ public record UpdateProgressPayload(
 /// <summary>Count of ReadyToDeploy packages pushed periodically to SuperAdmin clients.</summary>
 public record UpdatesAvailablePayload(int Count);
 
+/// <summary>Fired by LogCleanupService right before deletion begins.</summary>
+public record LogCleanupStartedPayload(
+    int RetentionDays,
+    DateTime CutoffDate,
+    bool BackupEnabled,
+    DateTime StartedAt);
+
+/// <summary>
+/// Fired when the cleanup transitions to a new phase.
+/// Phase values: "Backup" (creating pre-deletion backup), "Deleting" (executing deletes).
+/// BackupSucceeded is null when Phase="Backup" (not yet known) or when backup was not enabled.
+/// </summary>
+public record LogCleanupPhaseChangedPayload(
+    string Phase,
+    string? Detail,
+    bool? BackupSucceeded,
+    DateTime ChangedAt);
+
+/// <summary>Fired by LogCleanupService after deletion completes (Success=true) or on failure (Success=false).</summary>
+public record LogCleanupCompletedPayload(
+    bool Success,
+    int TotalDeleted,
+    int LoginAudits,
+    int AuditTrails,
+    int OperationLogs,
+    int PerformanceLogs,
+    int SerilogLogs,
+    int RetentionDays,
+    string BackupFile,
+    double ElapsedSeconds,
+    DateTime CompletedAt,
+    string? Error = null);
+
 /// <summary>Agent status as returned by GET /api/v1/system/agent-status.</summary>
 public record AgentStatusClientDto(
     bool Reachable,

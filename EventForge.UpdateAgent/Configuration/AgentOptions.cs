@@ -233,6 +233,23 @@ public class LoggingAgentOptions
     /// Null/empty = {AppBaseDirectory}/logs (default).
     /// </summary>
     public string? DirectoryPath { get; set; }
+
+    /// <summary>
+    /// When <see langword="true"/>, the agent forwards log batches to the EventForge Server
+    /// at <see cref="ServerIngestUrl"/> using the <c>X-Maintenance-Secret</c> header.
+    /// If the Server is unreachable the log is still available in the local rolling file —
+    /// no data is lost. Defaults to <see langword="true"/>.
+    /// </summary>
+    public bool ServerIngestEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Base URL of the EventForge Server to which agent logs are forwarded
+    /// (e.g. "https://localhost:7242").  The endpoint
+    /// <c>/api/v1/agent-logs/batch</c> is appended automatically.
+    /// When null or empty the value is derived from
+    /// <see cref="ServerComponentOptions.NotificationBaseUrl"/> at runtime.
+    /// </summary>
+    public string? ServerIngestUrl { get; set; }
 }
 
 // ── Maintenance windows ───────────────────────────────────────────────────

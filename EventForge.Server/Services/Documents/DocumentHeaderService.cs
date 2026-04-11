@@ -56,7 +56,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving paginated document headers.");
             throw;
         }
     }
@@ -91,7 +90,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document header {Id}.", id);
             throw;
         }
     }
@@ -114,7 +112,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document headers for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -177,7 +174,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document header.");
             throw;
         }
     }
@@ -247,7 +243,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document header {Id}.", id);
             throw;
         }
     }
@@ -371,7 +366,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document header {Id}.", id);
             throw;
         }
     }
@@ -406,13 +400,11 @@ public class DocumentHeaderService(
 
             _ = await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Calculated totals for document header {DocumentHeaderId}.", id);
 
             return documentHeader.ToDto();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating document totals for {Id}.", id);
             throw;
         }
     }
@@ -486,7 +478,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error approving document {Id}.", id);
             throw;
         }
     }
@@ -557,7 +548,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error closing document {Id}.", id);
             throw;
         }
     }
@@ -574,7 +564,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if document header {Id} exists.", id);
             throw;
         }
     }
@@ -676,7 +665,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating inventory document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -723,7 +711,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating receipt document type for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -768,7 +755,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating system business party for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -850,13 +836,6 @@ public class DocumentHeaderService(
 
                 if (existingRow is not null)
                 {
-                    logger.LogInformation(
-                        "Merging identical row: ProductId={ProductId}, Price={Price}, VatRate={VatRate}, ExistingQty={ExistingQty}, AddQty={AddQty}",
-                        createDto.ProductId.Value,
-                        createDto.UnitPrice,
-                        createDto.VatRate,
-                        existingRow.BaseQuantity,
-                        baseQuantity);
 
                     // Merge: sum base quantities and recalculate display quantity if units differ
                     if (baseQuantity.HasValue && existingRow.BaseQuantity.HasValue)
@@ -918,11 +897,6 @@ public class DocumentHeaderService(
                 }
                 else
                 {
-                    logger.LogInformation(
-                        "No identical row found for merge. Creating new row for ProductId={ProductId}, Price={Price}, VatRate={VatRate}",
-                        createDto.ProductId.Value,
-                        createDto.UnitPrice,
-                        createDto.VatRate);
                 }
             }
 
@@ -1048,7 +1022,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding document row to document {DocumentHeaderId}.", createDto.DocumentHeaderId);
             throw;
         }
     }
@@ -1231,7 +1204,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1342,7 +1314,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document row {RowId}.", rowId);
             throw;
         }
     }
@@ -1365,15 +1336,12 @@ public class DocumentHeaderService(
 
             if (documentHeader.Rows is null || !documentHeader.Rows.Any())
             {
-                logger.LogInformation("Document {DocumentHeaderId} has no rows. No stock movements to process.", documentHeader.Id);
                 return;
             }
 
             // Ensure document date is in UTC for stock movements
             var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
-            logger.LogInformation("Processing stock movements for document {DocumentHeaderId} with type {DocumentTypeName}.",
-                documentHeader.Id, documentHeader.DocumentType.Name);
 
             foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
             {
@@ -1383,9 +1351,6 @@ public class DocumentHeaderService(
 
                 if (rowMovementExists)
                 {
-                    logger.LogInformation(
-                        "Stock movement already exists for row {RowId} in document {DocumentHeaderId}. Skipping this row.",
-                        row.Id, documentHeader.Id);
                     continue;
                 }
 
@@ -1435,8 +1400,6 @@ public class DocumentHeaderService(
                         movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
-                    logger.LogInformation("Created inbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
-                        row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
                 // For stock decrease documents (sales, deliveries)
                 else
@@ -1494,8 +1457,6 @@ public class DocumentHeaderService(
                         movementDate: documentDateUtc,
                         cancellationToken: cancellationToken);
 
-                    logger.LogInformation("Created outbound stock movement for product {ProductId}, quantity {Quantity} in document {DocumentHeaderId}.",
-                        row.ProductId!.Value, row.Quantity, documentHeader.Id);
                 }
             }
 
@@ -1503,7 +1464,6 @@ public class DocumentHeaderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
             throw;
         }
     }
@@ -1575,12 +1535,10 @@ public class DocumentHeaderService(
             }
             else
             {
-                logger.LogInformation("No stock movements found for document {DocumentHeaderId} to sync dates.", documentHeaderId);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error synchronizing stock movement dates for document {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -1624,8 +1582,6 @@ public class DocumentHeaderService(
             }
             await context.SaveChangesAsync(ct);
 
-            logger.LogInformation("ProductSupplier ensured for Product {ProductId} and Supplier {SupplierId}.",
-                productId, supplierId);
         }
         catch (Exception ex)
         {
@@ -1961,7 +1917,6 @@ public class DocumentHeaderService(
 
         var totalCount = await query.CountAsync(ct);
 
-        logger.LogInformation("Export requested for {Count} documents", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
@@ -2027,8 +1982,6 @@ public class DocumentHeaderService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

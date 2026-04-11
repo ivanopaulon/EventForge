@@ -38,7 +38,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving comments for document header {DocumentHeaderId}", documentHeaderId);
             throw;
         }
     }
@@ -68,7 +67,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving comments for document row {DocumentRowId}", documentRowId);
             throw;
         }
     }
@@ -93,7 +91,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving comment {CommentId}", id);
             throw;
         }
     }
@@ -153,7 +150,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating comment for user {User}", currentUser);
             throw;
         }
     }
@@ -213,7 +209,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -253,7 +248,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -303,7 +297,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error resolving comment {CommentId} for user {User}", id, currentUser);
             throw;
         }
     }
@@ -334,7 +327,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ReopenCommentAsync for comment {CommentId}.", id);
             throw;
         }
     }
@@ -388,7 +380,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAssignedCommentsAsync for user {Username}.", username);
             throw;
         }
     }
@@ -437,7 +428,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentsByPriorityAsync for priority {Priority}.", priority);
             throw;
         }
     }
@@ -486,7 +476,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentsByStatusAsync for status {Status}.", status);
             throw;
         }
     }
@@ -535,7 +524,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentsByTypeAsync for type {CommentType}.", commentType);
             throw;
         }
     }
@@ -565,7 +553,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentCommentStatsAsync for document {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -587,7 +574,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentRepliesAsync for parent comment {ParentCommentId}.", parentCommentId);
             throw;
         }
     }
@@ -615,7 +601,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AssignCommentAsync for comment {CommentId}.", id);
             throw;
         }
     }
@@ -653,7 +638,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SearchCommentsAsync for text {SearchText}.", searchText);
             throw;
         }
     }
@@ -671,7 +655,6 @@ public class DocumentCommentService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if comment {CommentId} exists", id);
             throw;
         }
     }

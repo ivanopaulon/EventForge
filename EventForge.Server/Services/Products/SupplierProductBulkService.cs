@@ -195,7 +195,6 @@ public class SupplierProductBulkService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewBulkUpdateAsync for supplier {SupplierId}.", supplierId);
             throw;
         }
     }

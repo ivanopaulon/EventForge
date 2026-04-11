@@ -48,7 +48,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving contacts.");
             throw;
         }
     }
@@ -74,7 +73,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving contacts for owner {OwnerId}.", ownerId);
             throw;
         }
     }
@@ -92,7 +90,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving contact {ContactId}.", id);
             throw;
         }
     }
@@ -135,7 +132,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating contact.");
             throw;
         }
     }
@@ -185,7 +181,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating contact {ContactId}.", id);
             throw;
         }
     }
@@ -234,7 +229,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting contact {ContactId}.", id);
             throw;
         }
     }
@@ -249,7 +243,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if contact {ContactId} exists.", contactId);
             throw;
         }
     }
@@ -269,7 +262,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving contacts for owner {OwnerId} of type {OwnerType} with purpose {Purpose}.", ownerId, ownerType, purpose);
             throw;
         }
     }
@@ -288,7 +280,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving primary contact for owner {OwnerId} of type {OwnerType} with contact type {ContactType}.", ownerId, ownerType, contactType);
             throw;
         }
     }
@@ -312,7 +303,6 @@ public class ContactService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating emergency contact requirements for owner {OwnerId}.", ownerId);
             throw;
         }
     }

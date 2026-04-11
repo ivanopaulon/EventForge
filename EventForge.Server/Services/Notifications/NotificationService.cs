@@ -200,8 +200,6 @@ public class NotificationService(
             throw new ArgumentException("Batch size must be greater than 0", nameof(batchSize));
         }
 
-        logger.LogInformation("Starting bulk notification processing for {Count} notifications with batch size {BatchSize}",
-            notifications.Count, batchSize);
 
         // 2. Check rate limiting for bulk operations
         try
@@ -223,8 +221,6 @@ public class NotificationService(
             .Select(g => g.Select(x => x.notification).ToList())
             .ToList();
 
-        logger.LogInformation("Split {TotalCount} notifications into {BatchCount} batches",
-            notifications.Count, batches.Count);
 
         // 4. Process batches with optimized database operations
         foreach (var batch in batches)
@@ -443,9 +439,6 @@ public class NotificationService(
         NotificationSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation(
-            "Retrieving notifications for user {UserId} in tenant {TenantId} - Page {Page}",
-            searchDto.UserId, searchDto.TenantId, searchDto.PageNumber);
 
         try
         {
@@ -652,7 +645,6 @@ public class NotificationService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving unread notifications - Page {Page}", pagination.Page);
 
         try
         {
@@ -713,7 +705,6 @@ public class NotificationService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving notifications of type {Type} - Page {Page}", type, pagination.Page);
 
         try
         {
@@ -1186,7 +1177,6 @@ public class NotificationService(
         Guid? tenantId,
         CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Retrieving notification preferences for user {UserId} in tenant {TenantId}", userId, tenantId);
 
         try
         {
@@ -1398,7 +1388,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error localizing notification {NotificationId}.", notification.Id);
             throw;
         }
     }
@@ -1447,7 +1436,6 @@ public class NotificationService(
                 .Select(n => new { n.Id, n.ExpiresAt })
                 .ToListAsync(cancellationToken);
 
-            logger.LogInformation("Found {Count} expired notifications to process", expiredNotificationIds.Count);
 
             // 3. Process in batches to avoid memory issues
             var remainingIds = expiredNotificationIds.Select(n => n.Id).ToList();
@@ -1581,7 +1569,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cleaning up notification data.");
             throw;
         }
     }
@@ -1694,7 +1681,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating rate limit policy for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1734,7 +1720,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving notification statistics for tenant {TenantId}.", tenantId);
             throw;
         }
     }
@@ -1779,7 +1764,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending system notification by admin {AdminUserId}.", adminUserId);
             throw;
         }
     }
@@ -1811,7 +1795,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving notification audit trail.");
             throw;
         }
     }
@@ -1847,7 +1830,6 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking notification system health.");
             throw;
         }
     }

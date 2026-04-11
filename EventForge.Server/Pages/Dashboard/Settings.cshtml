@@ -200,7 +200,35 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Retention log (giorni)</label>
-                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="365" />
+                            <input type="number" asp-for="LogRetentionDays" class="form-control" min="1" max="3650" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Schedulazione pulizia (cron UTC)</label>
+                            <input type="text" asp-for="LogCleanupCronExpression" class="form-control" placeholder="0 2 * * *" />
+                            <div class="form-text">Formato: minuto ora giorno mese giorno-settimana (es. "0 2 * * *" = ogni giorno alle 02:00 UTC)</div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="LogBackupEnabled" id="logBackupEnabled" />
+                                <label class="form-check-label" for="logBackupEnabled">
+                                    Backup JSON prima della pulizia
+                                </label>
+                                <div class="form-text">Se abilitato, esporta le sole tabelle coinvolte (LoginAudits, AuditTrails, SystemOperationLogs, PerformanceLogs, Logs) in file JSON prima di eliminare i record.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="LogBackupAbortOnFailure" id="logBackupAbortOnFailure" />
+                                <label class="form-check-label" for="logBackupAbortOnFailure">
+                                    Interrompi pulizia se backup fallisce
+                                </label>
+                                <div class="form-text">Se abilitato e il backup non riesce, la pulizia viene annullata senza eliminare nessun record (consigliato).</div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Directory backup</label>
+                            <input type="text" asp-for="LogBackupDirectory" class="form-control" placeholder="Lascia vuoto per usare {ContentRoot}/Backups" />
+                            <div class="form-text">Percorso assoluto o relativo in cui salvare i file di backup. Vuoto = cartella Backups nella directory del server.</div>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary">

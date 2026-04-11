@@ -71,7 +71,6 @@ public class SaleSessionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating sale session.");
             throw;
         }
     }
@@ -102,7 +101,6 @@ public class SaleSessionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -156,7 +154,6 @@ public class SaleSessionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -193,7 +190,6 @@ public class SaleSessionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -268,9 +264,6 @@ public class SaleSessionService(
                 ModifiedAt = DateTime.UtcNow
             };
 
-            logger.LogInformation(
-                "Preparing to add SaleItem - Id: {ItemId}, ProductId: {ProductId}, Quantity: {Quantity}, UnitPrice: {UnitPrice}, TenantId: {TenantId}",
-                item.Id, item.ProductId, item.Quantity, item.UnitPrice, item.TenantId);
 
             // Use explicit transaction: INSERT item via EF (tracked only for the item), then update session totals via raw SQL.
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
@@ -312,7 +305,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 // Commit SQL transaction (item insert + totals update)
                 await transaction.CommitAsync(cancellationToken);
 
-                logger.LogInformation("Updated totals for Session {SessionId} after adding Item {ItemId}", sessionId, item.Id);
+                logger.LogInformation("Session {SessionId} totals updated after adding item {ItemId}.", sessionId, item.Id);
 
                 // Audit log: record that an item was added to the session
                 _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
@@ -344,7 +337,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding item to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -422,7 +414,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating item {ItemId} in sale session {SessionId}.", itemId, sessionId);
             throw;
         }
     }
@@ -488,7 +479,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error removing item {ItemId} from sale session {SessionId}.", itemId, sessionId);
             throw;
         }
     }
@@ -553,7 +543,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding payment to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -602,7 +591,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error removing payment {PaymentId} from sale session {SessionId}.", paymentId, sessionId);
             throw;
         }
     }
@@ -659,7 +647,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding note to sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -742,7 +729,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error applying global discount to session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -770,13 +756,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             await RecalculateTotalsAsync(session, cancellationToken);
 
-            logger.LogInformation("Recalculated totals for sale session {SessionId}", sessionId);
+            logger.LogInformation("Sale session {SessionId} totals recalculated.", sessionId);
 
             return await MapToDtoAsync(session, cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating totals for sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -876,7 +861,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error closing sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -957,7 +941,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving POS sessions.");
             throw;
         }
     }
@@ -1037,7 +1020,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
             throw;
         }
     }
@@ -1123,7 +1105,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sale sessions by date range.");
             throw;
         }
     }
@@ -1206,7 +1187,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving open POS sessions.");
             throw;
         }
     }
@@ -1242,7 +1222,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active sale sessions.");
             throw;
         }
     }
@@ -1276,7 +1255,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sale sessions for operator {OperatorId}.", operatorId);
             throw;
         }
     }
@@ -1540,7 +1518,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error voiding sale session {SessionId}.", sessionId);
             throw;
         }
     }
@@ -1586,18 +1563,15 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 return null;
             }
 
-            logger.LogInformation("Starting receipt document generation for session {SessionId}", session.Id);
 
             // Get or create RECEIPT document type
             DocumentTypeDto receiptDocumentType;
             try
             {
                 receiptDocumentType = await documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
-                logger.LogInformation("RECEIPT document type obtained: {DocumentTypeId}", receiptDocumentType.Id);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to get or create RECEIPT document type for session {SessionId}", session.Id);
                 throw;
             }
 
@@ -1608,11 +1582,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 try
                 {
                     businessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
-                    logger.LogInformation("Using System Internal business party: {BusinessPartyId}", businessPartyId);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to get or create System Internal business party for session {SessionId}", session.Id);
                     throw;
                 }
             }
@@ -1629,7 +1601,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 return null;
             }
 
-            logger.LogInformation("Creating document with {ItemCount} items for session {SessionId}", activeItems.Count, session.Id);
 
             // Create document header
             var createDocumentDto = new EventForge.DTOs.Documents.CreateDocumentHeaderDto
@@ -1666,7 +1637,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to create document header for session {SessionId}", session.Id);
                 throw;
             }
 
@@ -1676,7 +1646,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             {
                 try
                 {
-                    logger.LogInformation("Creating stock movement for product {ProductId}, quantity {Quantity}", item.ProductId, item.Quantity);
 
                     var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
                     {
@@ -1718,7 +1687,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error generating receipt document for session {SessionId}", session.Id);
             throw;
         }
     }
@@ -1892,7 +1860,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error splitting sale session {SessionId}", splitDto.SessionId);
             throw;
         }
     }
@@ -2002,7 +1969,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error merging sale sessions");
             throw;
         }
     }
@@ -2035,7 +2001,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving child sessions for parent {ParentSessionId}", parentSessionId);
             throw;
         }
     }

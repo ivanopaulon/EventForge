@@ -89,7 +89,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AssignBusinessPartyAsync for price list {PriceListId} and business party {BusinessPartyId}.", priceListId, dto.BusinessPartyId);
             throw;
         }
     }
@@ -146,7 +145,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RemoveBusinessPartyAsync for price list {PriceListId} and business party {BusinessPartyId}.", priceListId, businessPartyId);
             throw;
         }
     }
@@ -155,7 +153,6 @@ public class PriceListBusinessPartyService(
     {
         try
         {
-            logger.LogInformation("Getting BusinessParties for PriceList {PriceListId}", priceListId);
 
             var assignments = await context.PriceListBusinessParties.AsNoTracking()
                 .Include(plbp => plbp.BusinessParty)
@@ -168,7 +165,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetBusinessPartiesForPriceListAsync for price list {PriceListId}.", priceListId);
             throw;
         }
     }
@@ -177,7 +173,6 @@ public class PriceListBusinessPartyService(
     {
         try
         {
-            logger.LogInformation("Getting PriceLists for BusinessParty {BusinessPartyId} with type filter: {Type}", businessPartyId, type?.ToString() ?? "None");
 
             var query = context.PriceListBusinessParties.AsNoTracking()
                 .Include(plbp => plbp.PriceList)
@@ -201,7 +196,6 @@ public class PriceListBusinessPartyService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPriceListsByBusinessPartyAsync for business party {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }

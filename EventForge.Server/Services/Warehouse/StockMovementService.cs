@@ -99,7 +99,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements with filters");
             throw;
         }
     }
@@ -127,7 +126,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movement by ID: {MovementId}", id);
             throw;
         }
     }
@@ -152,7 +150,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements for product ID: {ProductId}", productId);
             throw;
         }
     }
@@ -177,7 +174,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements for lot ID: {LotId}", lotId);
             throw;
         }
     }
@@ -202,7 +198,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements for serial ID: {SerialId}", serialId);
             throw;
         }
     }
@@ -227,7 +222,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements for location ID: {LocationId}", locationId);
             throw;
         }
     }
@@ -252,7 +246,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting stock movements for document ID: {DocumentId}", documentId);
             throw;
         }
     }
@@ -309,7 +302,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating stock movement for product {ProductId}.", createDto.ProductId);
             throw;
         }
     }
@@ -375,7 +367,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating batch stock movements for user {User}.", currentUser);
             throw;
         }
     }
@@ -416,7 +407,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing inbound movement for product {ProductId}.", productId);
             throw;
         }
     }
@@ -455,7 +445,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing outbound movement for product {ProductId}.", productId);
             throw;
         }
     }
@@ -490,7 +479,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing transfer movement for product {ProductId}.", productId);
             throw;
         }
     }
@@ -525,7 +513,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing adjustment movement for product {ProductId}.", productId);
             throw;
         }
     }
@@ -564,7 +551,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error reversing stock movement {MovementId}.", movementId);
             throw;
         }
     }
@@ -617,7 +603,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting movement summary.");
             throw;
         }
     }
@@ -681,7 +666,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating movement for product {ProductId}.", movementDto.ProductId);
             throw;
         }
     }
@@ -706,7 +690,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting pending movements.");
             throw;
         }
     }
@@ -748,7 +731,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error executing planned movement {MovementPlanId}.", movementPlanId);
             throw;
         }
     }
@@ -912,7 +894,6 @@ public class StockMovementService(
 
         var totalCount = await query.CountAsync(ct);
 
-        logger.LogInformation("Export requested for {Count} inventory movements", totalCount);
 
         // Use batch processing for large datasets
         if (totalCount > 10000)
@@ -930,7 +911,6 @@ public class StockMovementService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting inventory for export.");
             throw;
         }
     }
@@ -958,8 +938,6 @@ public class StockMovementService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

@@ -88,7 +88,6 @@ public class LogIngestionService(ILogger<LogIngestionService> logger) : ILogInge
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in EnqueueBatchAsync.");
             throw;
         }
     }

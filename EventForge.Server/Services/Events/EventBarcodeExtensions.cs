@@ -50,7 +50,6 @@ public class EventBarcodeExtensions(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to generate QR code for event {EventId}", eventDto.Id);
             throw;
         }
     }
@@ -83,7 +82,6 @@ public class EventBarcodeExtensions(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to generate ticket barcode for event {EventId}, ticket {TicketId}", eventId, ticketId);
             throw;
         }
     }
@@ -114,7 +112,6 @@ public class EventBarcodeExtensions(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to generate tracking barcode for event {EventId}", eventId);
             throw;
         }
     }

@@ -23,7 +23,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DailyClosureAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -231,7 +230,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ExecuteDailyClosureAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -285,7 +283,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetClosureHistoryAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -319,7 +316,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ReprintZReportAsync for closure {ClosureId}.", closureId);
             throw;
         }
     }

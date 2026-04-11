@@ -43,7 +43,6 @@ public class BrandingService(
                 return cached;
             }
 
-            logger.LogInformation("Loading branding configuration for TenantId: {TenantId}", tenantId);
 
             var branding = new BrandingConfigurationDto
             {
@@ -136,7 +135,6 @@ public class BrandingService(
     {
         try
         {
-            logger.LogInformation("Updating global branding configuration by user: {Username}", username);
 
             // Update configuration values
             if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
@@ -168,7 +166,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating global branding configuration");
             throw;
         }
     }
@@ -177,7 +174,6 @@ public class BrandingService(
     {
         try
         {
-            logger.LogInformation("Updating tenant branding for TenantId: {TenantId} by user: {Username}", tenantId, username);
 
             var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
@@ -217,7 +213,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -226,7 +221,6 @@ public class BrandingService(
     {
         try
         {
-            logger.LogInformation("Deleting tenant branding override for TenantId: {TenantId}", tenantId);
 
             var tenant = await context.Tenants
                 .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
@@ -251,7 +245,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting tenant branding for TenantId: {TenantId}", tenantId);
             throw;
         }
     }
@@ -300,7 +293,6 @@ public class BrandingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading logo for TenantId: {TenantId}", tenantId);
             throw;
         }
     }

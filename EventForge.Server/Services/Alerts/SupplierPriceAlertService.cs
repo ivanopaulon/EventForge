@@ -90,7 +90,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating alert for product {ProductId}.", request.ProductId);
             throw;
         }
     }
@@ -211,7 +210,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error generating price change alerts for product {ProductId}.", productId);
             throw;
         }
     }
@@ -314,7 +312,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error generating better supplier alerts for product {ProductId}.", productId);
             throw;
         }
     }
@@ -336,7 +333,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -444,7 +440,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving alerts for tenant.");
             throw;
         }
     }
@@ -489,7 +484,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving alert statistics.");
             throw;
         }
     }
@@ -521,7 +515,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error acknowledging alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -554,7 +547,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error resolving alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -584,7 +576,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error dismissing alert {AlertId}.", alertId);
             throw;
         }
     }
@@ -612,7 +603,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error dismissing multiple alerts.");
             throw;
         }
     }
@@ -630,7 +620,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving unread alert count.");
             throw;
         }
     }
@@ -665,7 +654,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving user alert configuration.");
             throw;
         }
     }
@@ -703,7 +691,6 @@ public class SupplierPriceAlertService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating user alert configuration.");
             throw;
         }
     }

@@ -57,7 +57,6 @@ public class UserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving users.");
             throw;
         }
     }
@@ -110,7 +109,6 @@ public class UserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving users by role {Role}.", role);
             throw;
         }
     }
@@ -162,7 +160,6 @@ public class UserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active users.");
             throw;
         }
     }

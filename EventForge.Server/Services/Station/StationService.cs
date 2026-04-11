@@ -58,7 +58,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving stations");
             throw;
         }
     }
@@ -93,7 +92,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving station with ID {StationId}", id);
             throw;
         }
     }
@@ -130,14 +128,13 @@ public class StationService(
 
             _ = await auditLogService.TrackEntityChangesAsync(station, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Station {StationName} created with ID {StationId} by {User}",
-                station.Name, station.Id, currentUser);
+            logger.LogInformation("Station {StationId} created by {User}.",
+                station.Id, currentUser);
 
             return MapToStationDto(station, 0);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating station");
             throw;
         }
     }
@@ -212,7 +209,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating station with ID {StationId}", id);
             throw;
         }
     }
@@ -277,7 +273,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting station with ID {StationId}", id);
             throw;
         }
     }
@@ -321,7 +316,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printers");
             throw;
         }
     }
@@ -353,7 +347,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -380,7 +373,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving printers for station {StationId}", stationId);
             throw;
         }
     }
@@ -434,8 +426,8 @@ public class StationService(
 
             _ = await auditLogService.TrackEntityChangesAsync(printer, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Printer {PrinterName} created with ID {PrinterId} by {User}",
-                printer.Name, printer.Id, currentUser);
+            logger.LogInformation("Printer {PrinterId} created by {User}.",
+                printer.Id, currentUser);
 
             // Reload with includes
             var createdPrinter = await context.Printers
@@ -446,7 +438,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating printer");
             throw;
         }
     }
@@ -527,7 +518,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -580,7 +570,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting printer with ID {PrinterId}", id);
             throw;
         }
     }
@@ -605,7 +594,6 @@ public class StationService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in StationExistsAsync for {StationId}.", stationId);
             throw;
         }
     }

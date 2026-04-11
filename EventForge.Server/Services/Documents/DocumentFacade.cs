@@ -33,7 +33,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAttachmentsAsync for {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -50,7 +49,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateAttachmentAsync.");
             throw;
         }
     }
@@ -67,7 +65,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentRowAttachmentsAsync for {DocumentRowId}.", documentRowId);
             throw;
         }
     }
@@ -83,7 +80,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAttachmentByIdAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -101,7 +97,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateAttachmentAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -119,7 +114,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateAttachmentVersionAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -135,7 +129,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAttachmentVersionsAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -153,7 +146,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in SignAttachmentAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -169,7 +161,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAttachmentsByCategoryAsync for {Category}.", category);
             throw;
         }
     }
@@ -186,7 +177,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteAttachmentAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -202,7 +192,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AttachmentExistsAsync for {AttachmentId}.", attachmentId);
             throw;
         }
     }
@@ -220,7 +209,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentsAsync for {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -237,7 +225,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateCommentAsync.");
             throw;
         }
     }
@@ -254,7 +241,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentRowCommentsAsync for {DocumentRowId}.", documentRowId);
             throw;
         }
     }
@@ -271,7 +257,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetCommentByIdAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -289,7 +274,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateCommentAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -307,7 +291,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ResolveCommentAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -324,7 +307,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ReopenCommentAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -341,7 +323,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentCommentStatsAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -358,7 +339,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAssignedCommentsAsync for {UserId}.", userId);
             throw;
         }
     }
@@ -375,7 +355,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteCommentAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -391,7 +370,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CommentExistsAsync for {CommentId}.", commentId);
             throw;
         }
     }
@@ -407,7 +385,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPublicTemplatesAsync.");
             throw;
         }
     }
@@ -423,7 +400,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetTemplateByIdAsync for {TemplateId}.", templateId);
             throw;
         }
     }
@@ -438,7 +414,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAllTemplatesAsync.");
             throw;
         }
     }
@@ -454,7 +429,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetTemplatesByDocumentTypeAsync for {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -470,7 +444,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetTemplatesByCategoryAsync for {Category}.", category);
             throw;
         }
     }
@@ -487,7 +460,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateTemplateAsync.");
             throw;
         }
     }
@@ -505,7 +477,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateTemplateAsync for {TemplateId}.", templateId);
             throw;
         }
     }
@@ -522,7 +493,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteTemplateAsync for {TemplateId}.", templateId);
             throw;
         }
     }
@@ -539,7 +509,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateTemplateUsageAsync for {TemplateId}.", templateId);
             throw;
         }
     }
@@ -561,7 +530,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetWorkflowsAsync for {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -577,7 +545,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetWorkflowByIdAsync for {WorkflowId}.", workflowId);
             throw;
         }
     }
@@ -594,7 +561,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateWorkflowAsync.");
             throw;
         }
     }
@@ -612,7 +578,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateWorkflowAsync for {WorkflowId}.", workflowId);
             throw;
         }
     }
@@ -629,7 +594,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteWorkflowAsync for {WorkflowId}.", workflowId);
             throw;
         }
     }
@@ -646,7 +610,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAnalyticsAsync for {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -663,7 +626,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in RefreshAnalyticsAsync for {DocumentHeaderId}.", documentHeaderId);
             throw;
         }
     }
@@ -681,7 +643,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAnalyticsSummaryAsync.");
             throw;
         }
     }
@@ -698,7 +659,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CalculateKpiSummaryAsync.");
             throw;
         }
     }
@@ -717,7 +677,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in HandleWorkflowEventAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -734,7 +693,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetPagedDocumentHeadersAsync.");
             throw;
         }
     }
@@ -751,7 +709,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentHeaderByIdAsync for {Id}.", id);
             throw;
         }
     }
@@ -767,7 +724,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentHeadersByBusinessPartyAsync for {BusinessPartyId}.", businessPartyId);
             throw;
         }
     }
@@ -784,7 +740,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateDocumentHeaderAsync.");
             throw;
         }
     }
@@ -802,7 +757,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateDocumentHeaderAsync for {Id}.", id);
             throw;
         }
     }
@@ -819,7 +773,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteDocumentHeaderAsync for {Id}.", id);
             throw;
         }
     }
@@ -835,7 +788,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CalculateDocumentTotalsAsync for {Id}.", id);
             throw;
         }
     }
@@ -852,7 +804,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ApproveDocumentAsync for {Id}.", id);
             throw;
         }
     }
@@ -869,7 +820,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CloseDocumentAsync for {Id}.", id);
             throw;
         }
     }
@@ -885,7 +835,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DocumentHeaderExistsAsync for {Id}.", id);
             throw;
         }
     }
@@ -902,7 +851,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in AddDocumentRowAsync.");
             throw;
         }
     }
@@ -920,7 +868,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateDocumentRowAsync for {RowId}.", rowId);
             throw;
         }
     }
@@ -937,7 +884,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteDocumentRowAsync for {RowId}.", rowId);
             throw;
         }
     }
@@ -952,7 +898,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAllDocumentTypesAsync.");
             throw;
         }
     }
@@ -966,7 +911,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentTypeByIdAsync for {Id}.", id);
             throw;
         }
     }
@@ -980,7 +924,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CreateDocumentTypeAsync.");
             throw;
         }
     }
@@ -994,7 +937,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateDocumentTypeAsync for {Id}.", id);
             throw;
         }
     }
@@ -1008,7 +950,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteDocumentTypeAsync for {Id}.", id);
             throw;
         }
     }
@@ -1027,7 +968,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ChangeStatusAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -1043,7 +983,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetStatusHistoryAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -1059,7 +998,6 @@ public class DocumentFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetAvailableTransitionsAsync for {DocumentId}.", documentId);
             throw;
         }
     }

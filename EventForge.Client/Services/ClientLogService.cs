@@ -305,13 +305,16 @@ namespace EventForge.Client.Services
                 var userAgent = await _jsRuntime.InvokeAsync<string>("eventforge_getUserAgent");
                 clientLog.UserAgent = userAgent;
 
-                // Get user ID if authenticated
+                // Get user ID and tenant ID if authenticated
                 try
                 {
                     var user = await _authService.GetCurrentUserAsync();
                     if (user != null)
                     {
                         clientLog.UserId = user.Id;
+                        clientLog.TenantId = user.TenantId;
+                        clientLog.UserName = !string.IsNullOrEmpty(user.Username) ? user.Username
+                            : $"{user.FirstName} {user.LastName}".Trim();
                     }
                 }
                 catch

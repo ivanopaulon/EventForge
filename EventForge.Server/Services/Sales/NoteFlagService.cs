@@ -47,7 +47,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving note flags.");
             throw;
         }
     }
@@ -73,7 +72,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving note flags.");
             throw;
         }
     }
@@ -99,7 +97,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active note flags.");
             throw;
         }
     }
@@ -122,7 +119,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving note flag {NoteFlagId}.", id);
             throw;
         }
     }
@@ -174,7 +170,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating note flag.");
             throw;
         }
     }
@@ -228,7 +223,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating note flag {NoteFlagId}.", id);
             throw;
         }
     }
@@ -277,7 +271,6 @@ public class NoteFlagService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting note flag {NoteFlagId}.", id);
             throw;
         }
     }

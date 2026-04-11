@@ -91,7 +91,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing inbound WhatsApp message from {Number}", numero);
             throw;
         }
     }
@@ -131,7 +130,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting or creating WhatsApp conversation for {Number}", numero);
             throw;
         }
     }
@@ -190,7 +188,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error assigning BusinessParty {Id} to number {Number}", businessPartyId, numero);
             throw;
         }
     }
@@ -219,7 +216,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating BusinessParty and assigning to WhatsApp number");
             throw;
         }
     }
@@ -257,7 +253,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error blocking WhatsApp number {Number}", numero);
             throw;
         }
     }
@@ -304,7 +299,6 @@ public class WhatsAppConversazioneService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error sending operator reply on conversation {ThreadId}", chatThreadId);
             throw;
         }
     }

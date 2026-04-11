@@ -122,7 +122,6 @@ public class AnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving promotion analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -243,7 +242,6 @@ public class AnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving pricing analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -404,7 +402,6 @@ public class AnalyticsService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sales analytics for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }

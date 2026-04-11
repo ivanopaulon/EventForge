@@ -26,7 +26,17 @@ public class ProblemDetailsMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred");
+            var correlationId = context.Items.TryGetValue("CorrelationId", out var cid) ? cid?.ToString() : "N/A";
+
+            _logger.LogError(ex,
+                "Unhandled exception for {Method} {Path}{QueryString} [{ExceptionType}] CorrelationId: {CorrelationId}. Message: {Message}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Request.QueryString,
+                ex.GetType().Name,
+                correlationId,
+                ex.Message);
+
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -59,6 +69,7 @@ public class ProblemDetailsMiddleware
         // Add correlation ID as an extension
         problemDetails.Extensions["correlationId"] = correlationId;
         problemDetails.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        problemDetails.Extensions["method"] = context.Request.Method;
 
         switch (exception)
         {

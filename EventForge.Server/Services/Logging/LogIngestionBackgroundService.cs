@@ -199,64 +199,98 @@ public class LogIngestionBackgroundService : BackgroundService
                 properties["UserId"] = clientLog.UserId.Value;
             }
 
+            if (!string.IsNullOrEmpty(clientLog.UserName))
+            {
+                properties["UserName"] = clientLog.UserName;
+            }
+
+            if (clientLog.TenantId.HasValue)
+            {
+                properties["TenantId"] = clientLog.TenantId.Value;
+            }
+
             if (!string.IsNullOrEmpty(clientLog.Properties))
             {
                 properties["ClientProperties"] = clientLog.Properties;
             }
 
-            // Log based on level with structured properties
+            // Log based on level with structured properties.
+            // Key fields are included both in the scope (for structured sinks) AND in the
+            // message template (for text output).
             using (categoryLogger.BeginScope(properties))
             {
+                var page = clientLog.Page ?? "Unknown";
+                var userId = clientLog.UserId?.ToString() ?? "Anonymous";
+                var userName = clientLog.UserName ?? "Anonymous";
+                var tenantId = clientLog.TenantId?.ToString() ?? "N/A";
+                var correlationId = clientLog.CorrelationId ?? "N/A";
+                var userAgent = clientLog.UserAgent ?? "Unknown";
+
                 switch (clientLog.Level.ToUpperInvariant())
                 {
                     case "DEBUG":
-                        categoryLogger.LogDebug("{Message}", clientLog.Message);
+                        categoryLogger.LogDebug(
+                            "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                            clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         break;
 
                     case "INFORMATION":
                     case "INFO":
-                        categoryLogger.LogInformation("{Message}", clientLog.Message);
+                        categoryLogger.LogInformation(
+                            "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                            clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         break;
 
                     case "WARNING":
                     case "WARN":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogWarning("{Message} | Exception: {Exception}",
-                                clientLog.Message, clientLog.Exception);
+                            categoryLogger.LogWarning(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent}) | Exception: {ExceptionDetail}",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent, clientLog.Exception);
                         }
                         else
                         {
-                            categoryLogger.LogWarning("{Message}", clientLog.Message);
+                            categoryLogger.LogWarning(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         }
                         break;
 
                     case "ERROR":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogError("{Message} | Exception: {Exception}",
-                                clientLog.Message, clientLog.Exception);
+                            categoryLogger.LogError(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent}) | Exception: {ExceptionDetail}",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent, clientLog.Exception);
                         }
                         else
                         {
-                            categoryLogger.LogError("{Message}", clientLog.Message);
+                            categoryLogger.LogError(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         }
                         break;
 
                     case "CRITICAL":
                         if (!string.IsNullOrEmpty(clientLog.Exception))
                         {
-                            categoryLogger.LogCritical("{Message} | Exception: {Exception}",
-                                clientLog.Message, clientLog.Exception);
+                            categoryLogger.LogCritical(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent}) | Exception: {ExceptionDetail}",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent, clientLog.Exception);
                         }
                         else
                         {
-                            categoryLogger.LogCritical("{Message}", clientLog.Message);
+                            categoryLogger.LogCritical(
+                                "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                                clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         }
                         break;
 
                     default:
-                        categoryLogger.LogInformation("{Message}", clientLog.Message);
+                        categoryLogger.LogInformation(
+                            "[Client] {Message} (Page: {Page}, User: {UserName}/{UserId}, Tenant: {TenantId}, CorrelationId: {CorrelationId}, UA: {UserAgent})",
+                            clientLog.Message, page, userName, userId, tenantId, correlationId, userAgent);
                         break;
                 }
             }

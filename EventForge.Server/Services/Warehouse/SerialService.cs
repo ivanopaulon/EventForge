@@ -90,8 +90,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials with filters - ProductId: {ProductId}, LotId: {LotId}, LocationId: {LocationId}, Status: {Status}",
-                productId, lotId, locationId, status);
             throw;
         }
     }
@@ -119,7 +117,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serial by ID: {SerialId}", id);
             throw;
         }
     }
@@ -147,7 +144,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serial by number: {SerialNumber}", serialNumber);
             throw;
         }
     }
@@ -177,7 +173,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials by product ID: {ProductId}", productId);
             throw;
         }
     }
@@ -207,7 +202,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials by lot ID: {LotId}", lotId);
             throw;
         }
     }
@@ -238,7 +232,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials by location ID: {LocationId}", locationId);
             throw;
         }
     }
@@ -269,7 +262,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials by owner ID: {OwnerId}", ownerId);
             throw;
         }
     }
@@ -304,7 +296,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serials with expiring warranty within {DaysAhead} days", daysAhead);
             throw;
         }
     }
@@ -351,7 +342,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating serial: {SerialNumber}", createDto.SerialNumber);
             throw;
         }
     }
@@ -415,7 +405,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating serial: {SerialId}", id);
             throw;
         }
     }
@@ -478,7 +467,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating serial status - ID: {SerialId}, Status: {Status}", id, status);
             throw;
         }
     }
@@ -519,7 +507,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error moving serial - ID: {SerialId}, NewLocation: {LocationId}", id, newLocationId);
             throw;
         }
     }
@@ -556,7 +543,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error selling serial - ID: {SerialId}, Customer: {CustomerId}", id, customerId);
             throw;
         }
     }
@@ -597,7 +583,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error returning serial - ID: {SerialId}, Reason: {Reason}", id, reason);
             throw;
         }
     }
@@ -625,7 +610,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking serial number uniqueness: {SerialNumber}", serialNumber);
             throw;
         }
     }
@@ -669,7 +653,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting serial: {SerialId}", id);
             throw;
         }
     }
@@ -698,7 +681,6 @@ public class SerialService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting serial history: {SerialId}", serialId);
             throw;
         }
     }

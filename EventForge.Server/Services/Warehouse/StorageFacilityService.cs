@@ -65,7 +65,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage facilities.");
             throw;
         }
     }
@@ -84,7 +83,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -136,7 +134,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating storage facility.");
             throw;
         }
     }
@@ -199,7 +196,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -254,7 +250,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting storage facility {FacilityId}.", id);
             throw;
         }
     }
@@ -269,7 +264,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if storage facility {FacilityId} exists.", facilityId);
             throw;
         }
     }
@@ -321,7 +315,6 @@ public class StorageFacilityService(
 
             var totalCount = await query.CountAsync(ct);
 
-            logger.LogInformation("Export requested for {Count} storage facilities", totalCount);
 
             // Use batch processing for large datasets
             if (totalCount > 10000)
@@ -350,7 +343,6 @@ public class StorageFacilityService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving warehouses for export.");
             throw;
         }
     }
@@ -389,8 +381,6 @@ public class StorageFacilityService(
 
             skip += batchSize;
 
-            logger.LogInformation("Batch export progress: {Processed}/{Total}",
-                Math.Min(skip, results.Count), results.Count);
         }
 
         return results;

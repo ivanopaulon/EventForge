@@ -53,7 +53,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving promotions.");
             throw;
         }
     }
@@ -77,7 +76,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -98,7 +96,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active promotions.");
             throw;
         }
     }
@@ -148,7 +145,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating promotion.");
             throw;
         }
     }
@@ -221,7 +217,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -272,7 +267,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting promotion {PromotionId}.", id);
             throw;
         }
     }
@@ -287,7 +281,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if promotion {PromotionId} exists.", promotionId);
             throw;
         }
     }
@@ -1217,7 +1210,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving applicable promotion rules.");
             throw;
         }
     }
@@ -1264,7 +1256,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error validating coupon code '{CouponCode}'.", couponCode);
             throw;
         }
     }
@@ -1336,7 +1327,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error incrementing usage for promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1382,7 +1372,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving rules for promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1460,7 +1449,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding rule to promotion {PromotionId}.", promotionId);
             throw;
         }
     }
@@ -1540,7 +1528,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
             throw;
         }
     }
@@ -1574,7 +1561,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting rule {RuleId} for promotion {PromotionId}.", ruleId, promotionId);
             throw;
         }
     }
@@ -1647,7 +1633,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving products for rule {RuleId}.", ruleId);
             throw;
         }
     }
@@ -1714,7 +1699,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error adding product {ProductId} to rule {RuleId}.", createDto?.ProductId, ruleId);
             throw;
         }
     }
@@ -1740,7 +1724,6 @@ public class PromotionService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error removing product {ProductId} from rule {RuleId}.", productId, ruleId);
             throw;
         }
     }

@@ -57,9 +57,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex,
-                "Error creating audit log for {OperationType} on {EntityName} [{EntityId}] property {PropertyName}",
-                operationType, entityName, entityId, propertyName);
             throw;
         }
     }
@@ -81,7 +78,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log per l'entità {EntityId}.", entityId);
             throw;
         }
     }
@@ -105,7 +101,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log per il tipo di entità {EntityName}.", entityName);
             throw;
         }
     }
@@ -128,7 +123,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log nell'intervallo di date.");
             throw;
         }
     }
@@ -152,7 +146,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log per l'utente {Username}.", username);
             throw;
         }
     }
@@ -186,7 +179,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log con filtro.");
             throw;
         }
     }
@@ -275,7 +267,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel tracciamento delle modifiche dell'entità.");
             throw;
         }
     }
@@ -351,7 +342,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log paginati.");
             throw;
         }
     }
@@ -371,7 +361,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero del log {Id}.", id);
             throw;
         }
     }
@@ -520,7 +509,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nella ricerca del percorso di audit.");
             throw;
         }
     }
@@ -554,7 +542,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero delle statistiche di audit.");
             throw;
         }
     }
@@ -598,7 +585,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nell'esportazione avanzata dei dati di audit.");
             throw;
         }
     }
@@ -635,7 +621,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dello stato dell'esportazione {ExportId}.", exportId);
             throw;
         }
     }
@@ -682,7 +667,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log di audit paginati.");
             throw;
         }
     }
@@ -732,7 +716,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log per il tipo di entità {EntityType}.", entityType);
             throw;
         }
     }
@@ -785,7 +768,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log per l'utente {UserId}.", userId);
             throw;
         }
     }
@@ -838,7 +820,6 @@ public class AuditLogService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Errore nel recupero dei log nell'intervallo di date.");
             throw;
         }
     }

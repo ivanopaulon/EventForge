@@ -74,7 +74,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lots for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -99,7 +98,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -124,7 +122,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lot by code {Code} for tenant {TenantId}", code, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -151,7 +148,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lots for product {ProductId} and tenant {TenantId}", productId, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -184,7 +180,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving expiring lots for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -242,7 +237,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating lot with code {Code} for tenant {TenantId}", createDto.Code, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -308,7 +302,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -374,7 +367,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting lot {LotId} for tenant {TenantId}", id, tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -431,7 +423,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating quality status for lot {LotId}", id);
             throw;
         }
     }
@@ -476,7 +467,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error blocking lot {LotId}", id);
             throw;
         }
     }
@@ -521,7 +511,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error unblocking lot {LotId}", id);
             throw;
         }
     }
@@ -545,7 +534,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error getting available quantity for lot {LotId}", lotId);
             throw;
         }
     }
@@ -574,7 +562,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking lot code uniqueness for {Code}", code);
             throw;
         }
     }
@@ -621,7 +608,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lots for product {ProductId}", productId);
             throw;
         }
     }
@@ -670,7 +656,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving lots for warehouse {WarehouseId}", warehouseId);
             throw;
         }
     }
@@ -720,7 +705,6 @@ public class LotService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving expired lots");
             throw;
         }
     }

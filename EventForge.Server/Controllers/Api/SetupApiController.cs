@@ -170,7 +170,6 @@ public class SetupApiController(
                 });
             }
 
-            logger.LogInformation("Starting setup wizard completion...");
 
             var result = await setupWizard.CompleteSetupAsync(config, cancellationToken);
 

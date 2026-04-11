@@ -3358,9 +3358,6 @@ public class ProductManagementController(
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Export operation started by {User} for Products (format: {Format})",
-            User.Identity?.Name ?? "Unknown", format);
 
         var pagination = new PaginationParameters
         {

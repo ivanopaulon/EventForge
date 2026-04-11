@@ -66,7 +66,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving fiscal drawers page {Page}", page);
             throw;
         }
     }
@@ -87,7 +86,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving fiscal drawer {FiscalDrawerId}", id);
             throw;
         }
     }
@@ -108,7 +106,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving fiscal drawer for POS {PosId}", posId);
             throw;
         }
     }
@@ -129,7 +126,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving fiscal drawer for operator {OperatorId}", operatorId);
             throw;
         }
     }
@@ -167,7 +163,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating fiscal drawer");
             throw;
         }
     }
@@ -220,7 +215,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating fiscal drawer {FiscalDrawerId}", id);
             throw;
         }
     }
@@ -247,7 +241,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting fiscal drawer {FiscalDrawerId}", id);
             throw;
         }
     }
@@ -276,7 +269,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving current session for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -310,7 +302,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sessions for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -392,7 +383,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error opening session for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -452,7 +442,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error closing session for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -490,7 +479,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving transactions for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -566,7 +554,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating transaction for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -631,7 +618,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error recording sale transaction for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -698,7 +684,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving cash denominations for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -746,7 +731,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error initializing denominations for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -770,7 +754,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating denomination quantity for denomination {DenominationId}", denominationId);
             throw;
         }
     }
@@ -844,7 +827,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating change for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -889,7 +871,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving summary for fiscal drawer {FiscalDrawerId}", fiscalDrawerId);
             throw;
         }
     }
@@ -1006,7 +987,6 @@ public class FiscalDrawerService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving sales dashboard");
             throw;
         }
     }

@@ -58,7 +58,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson DailyClosureAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -293,7 +292,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson GetClosureHistoryAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -342,7 +340,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson ReprintZReportAsync for closure {ClosureId}.", closureId);
             throw;
         }
     }

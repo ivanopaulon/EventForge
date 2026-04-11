@@ -1614,9 +1614,6 @@ public class WarehouseManagementController(
                 // Row exists - merge by adding quantities together
                 var newQuantity = existingRow.Quantity + rowDto.Quantity;
 
-                logger.LogInformation(
-                    "Merging inventory row for product {ProductId} at location {LocationId}: existing quantity {ExistingQty} + new quantity {NewQty} = {TotalQty}",
-                    rowDto.ProductId, rowDto.LocationId, existingRow.Quantity, rowDto.Quantity, newQuantity);
 
                 // Update the existing row via facade
                 documentRow = await warehouseFacade.UpdateOrMergeInventoryRowAsync(
@@ -1996,9 +1993,6 @@ public class WarehouseManagementController(
             var processedRows = 0;
             var skippedRows = 0;
 
-            logger.LogInformation(
-                "Starting finalization of inventory document {DocumentId} ({DocumentNumber}). Total rows: {TotalRows}",
-                documentId, documentHeader.Number, totalRows);
 
             // Validation: verify that all ProductId and LocationId exist before processing
             var productIds = documentHeader.Rows.Where(r => r.ProductId.HasValue).Select(r => r.ProductId!.Value).Distinct().ToList();
@@ -2020,8 +2014,6 @@ public class WarehouseManagementController(
             // Process each row and apply stock adjustments
             if (documentHeader.Rows is not null && documentHeader.Rows.Any())
             {
-                logger.LogInformation("Processing {Count} inventory rows for document {DocumentId}",
-                    documentHeader.Rows.Count, documentId);
 
                 foreach (var row in documentHeader.Rows)
                 {
@@ -2074,9 +2066,6 @@ public class WarehouseManagementController(
                                 movementDate: documentHeader.Date,
                                 cancellationToken: cancellationToken);
 
-                            logger.LogInformation(
-                                "Applied inventory adjustment for product {ProductId} at location {LocationId}: {Adjustment} (from {Current} to {New})",
-                                productId, locationId, adjustmentQuantity, currentQuantity, newQuantity);
 
                             processedRows++;
 
@@ -2107,9 +2096,6 @@ public class WarehouseManagementController(
                         }
                         else
                         {
-                            logger.LogInformation(
-                                "No adjustment needed for product {ProductId} at location {LocationId}: quantity unchanged at {Quantity}",
-                                productId, locationId, currentQuantity);
                             processedRows++;
                         }
                     }
@@ -2234,7 +2220,6 @@ public class WarehouseManagementController(
         try
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            logger.LogInformation("Starting validation for inventory document {DocumentId}", documentId);
 
             var result = new InventoryValidationResultDto
             {
@@ -2539,7 +2524,6 @@ public class WarehouseManagementController(
             if (documentsResult?.Items is not null && documentsResult.Items.Any())
             {
                 var itemsList = documentsResult.Items.ToList();
-                logger.LogInformation("Finalizing {Count} open inventory documents", itemsList.Count);
 
                 foreach (var doc in itemsList)
                 {
@@ -2681,7 +2665,6 @@ public class WarehouseManagementController(
 
         try
         {
-            logger.LogInformation("Fetching page {Page} of inventory document {DocumentId} rows", pagination.Page, documentId);
 
             // 1. Verify document exists
             var documentHeader = await warehouseFacade.GetDocumentHeaderByIdAsync(documentId, includeRows: false, cancellationToken);
@@ -2708,9 +2691,6 @@ public class WarehouseManagementController(
                 PageSize = pagination.PageSize
             };
 
-            logger.LogInformation(
-                "Returned page {Page} with {Count} rows for document {DocumentId} (total: {TotalRows})",
-                pagination.Page, enrichedRows.Count, documentId, totalRows);
 
             SetPaginationHeaders(result, pagination);
 
@@ -2760,7 +2740,6 @@ public class WarehouseManagementController(
             if (documentsResult?.Items is not null && documentsResult.Items.Any())
             {
                 var itemsList = documentsResult.Items.ToList();
-                logger.LogInformation("Cancelling {Count} open inventory documents", itemsList.Count);
 
                 // Cancel all documents in batch via facade
                 var documentIds = itemsList.Select(d => d.Id).ToList();
@@ -2926,7 +2905,6 @@ public class WarehouseManagementController(
                 return CreateValidationProblemDetails();
             }
 
-            logger.LogInformation("Previewing merge for {Count} inventory documents.", documentIds.Count);
 
             var preview = await warehouseFacade.PreviewMergeInventoryDocumentsAsync(documentIds, cancellationToken);
 
@@ -2982,10 +2960,6 @@ public class WarehouseManagementController(
                 return CreateValidationProblemDetails();
             }
 
-            logger.LogInformation(
-                "Merging {Count} inventory documents. Target: {TargetId}.",
-                mergeDto.SourceDocumentIds.Count,
-                mergeDto.TargetDocumentId?.ToString() ?? "(first in list)");
 
             var result = await warehouseFacade.MergeInventoryDocumentsAsync(mergeDto, GetCurrentUser(), cancellationToken);
 
@@ -3024,7 +2998,6 @@ public class WarehouseManagementController(
     {
         try
         {
-            logger.LogInformation("Calculating stock reconciliation preview");
 
             if (!ModelState.IsValid)
             {
@@ -3060,7 +3033,6 @@ public class WarehouseManagementController(
     {
         try
         {
-            logger.LogInformation("Applying stock reconciliation for {Count} items", request.ItemsToApply.Count);
 
             if (!ModelState.IsValid)
             {
@@ -3100,7 +3072,6 @@ public class WarehouseManagementController(
     {
         try
         {
-            logger.LogInformation("Exporting stock reconciliation report");
 
             var fileBytes = await warehouseFacade.ExportReconciliationReportAsync(request, cancellationToken);
 
@@ -3208,9 +3179,6 @@ public class WarehouseManagementController(
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Export operation started by {User} for Warehouses (format: {Format})",
-            User.Identity?.Name ?? "Unknown", format);
 
         var pagination = new PaginationParameters
         {
@@ -3263,9 +3231,6 @@ public class WarehouseManagementController(
         [FromQuery] string format = "excel",
         CancellationToken ct = default)
     {
-        logger.LogInformation(
-            "Export operation started by {User} for Inventory (format: {Format})",
-            User.Identity?.Name ?? "Unknown", format);
 
         var pagination = new PaginationParameters
         {

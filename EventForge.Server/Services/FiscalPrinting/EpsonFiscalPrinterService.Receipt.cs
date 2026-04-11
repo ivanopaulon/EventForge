@@ -30,7 +30,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson PrintReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -50,7 +49,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson CancelCurrentReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -76,7 +74,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson PrintRefundReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -103,7 +100,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson PrintPartialRefundAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -123,7 +119,6 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in Epson OpenDrawerAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }

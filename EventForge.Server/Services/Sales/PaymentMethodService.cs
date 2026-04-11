@@ -67,7 +67,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment methods for tenant {TenantId}", tenantContext.CurrentTenantId);
             throw;
         }
     }
@@ -105,7 +104,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active payment methods.");
             throw;
         }
     }
@@ -129,7 +127,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -155,7 +152,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving payment method by code {Code}.", code);
             throw;
         }
     }
@@ -220,7 +216,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating payment method.");
             throw;
         }
     }
@@ -294,7 +289,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -359,7 +353,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting payment method {PaymentMethodId}.", id);
             throw;
         }
     }
@@ -389,7 +382,6 @@ public class PaymentMethodService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if payment method code exists.");
             throw;
         }
     }

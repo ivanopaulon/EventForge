@@ -79,7 +79,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving transfer orders.");
             throw;
         }
     }
@@ -112,7 +111,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -217,7 +215,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating transfer order.");
             throw;
         }
     }
@@ -338,7 +335,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error shipping transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -496,7 +492,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error receiving transfer order {TransferOrderId}.", id);
             throw;
         }
     }
@@ -565,7 +560,6 @@ public class TransferOrderService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error cancelling transfer order {TransferOrderId}.", id);
             throw;
         }
     }

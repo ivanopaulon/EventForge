@@ -58,6 +58,10 @@
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/auditlog", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-clock-history"></i>Audit Log
                 </a>
+                <a href="/dashboard/logbackups"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/logbackups", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-archive-fill"></i>Backup Log
+                </a>
                 <a href="/dashboard/maintenance"
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/maintenance", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-tools"></i>Manutenzione

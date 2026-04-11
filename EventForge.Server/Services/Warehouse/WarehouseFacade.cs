@@ -253,7 +253,6 @@ public class WarehouseFacade(
             }
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            logger.LogInformation("Starting optimized enrichment for {RowCount} inventory rows", rowsList.Count);
 
             // BATCH 1: Fetch ALL products in a single query
             var productIds = rowsList
@@ -387,7 +386,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in EnrichInventoryDocumentRowsAsync.");
             throw;
         }
     }
@@ -423,7 +421,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetOpenInventoryDocumentHeadersAsync for {TenantId}.", tenantId);
             throw;
         }
     }
@@ -443,7 +440,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetUnitOfMeasureSymbolAsync for {UnitOfMeasureId}.", unitOfMeasureId);
             throw;
         }
     }
@@ -463,7 +459,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetVatRateDetailsAsync for {VatRateId}.", vatRateId);
             throw;
         }
     }
@@ -508,7 +503,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateOrMergeInventoryRowAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -535,7 +529,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateDocumentHeaderFieldsAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -581,7 +574,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateInventoryRowAsync for {RowId}.", rowId);
             throw;
         }
     }
@@ -605,7 +597,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in DeleteInventoryRowAsync for {RowId}.", rowId);
             throw;
         }
     }
@@ -624,7 +615,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateProductsExistAsync.");
             throw;
         }
     }
@@ -643,7 +633,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in ValidateLocationsExistAsync.");
             throw;
         }
     }
@@ -667,7 +656,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CancelInventoryDocumentAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -707,7 +695,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetDocumentRowsPagedAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -736,7 +723,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CancelInventoryDocumentsBatchAsync.");
             throw;
         }
     }
@@ -774,7 +760,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in LoadDocumentsForMergeAsync.");
             throw;
         }
     }
@@ -806,7 +791,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in UpdateDocumentStatusesBatchAsync.");
             throw;
         }
     }
@@ -873,7 +857,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PreviewMergeInventoryDocumentsAsync.");
             throw;
         }
     }
@@ -1050,7 +1033,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CountDocumentRowsAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -1068,7 +1050,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetRowsWithNullDataAsync for {DocumentId}.", documentId);
             throw;
         }
     }
@@ -1095,7 +1076,6 @@ public class WarehouseFacade(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in GetUniqueProductAndLocationIdsAsync for {DocumentId}.", documentId);
             throw;
         }
     }

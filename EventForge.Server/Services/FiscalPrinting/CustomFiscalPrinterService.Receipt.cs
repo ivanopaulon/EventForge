@@ -29,7 +29,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -49,7 +48,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in CancelCurrentReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -74,7 +72,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintRefundReceiptAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -100,7 +97,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in PrintPartialRefundAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }
@@ -120,7 +116,6 @@ public partial class CustomFiscalPrinterService
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error in OpenDrawerAsync for printer {PrinterId}.", printerId);
             throw;
         }
     }

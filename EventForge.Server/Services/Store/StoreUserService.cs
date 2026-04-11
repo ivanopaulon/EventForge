@@ -52,7 +52,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store users");
             throw;
         }
     }
@@ -84,7 +83,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -116,7 +114,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user with username {Username}", username);
             throw;
         }
     }
@@ -142,7 +139,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store users for group {GroupId}", groupId);
             throw;
         }
     }
@@ -202,8 +198,8 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user {StoreUserName} created with ID {StoreUserId} by {User}",
-                storeUser.Name, storeUser.Id, currentUser);
+            logger.LogInformation("Store user {StoreUserId} created by {User}.",
+                storeUser.Id, currentUser);
 
             // Reload with includes
             var createdStoreUser = await context.StoreUsers
@@ -216,7 +212,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating store user");
             throw;
         }
     }
@@ -288,7 +283,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -346,7 +340,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting store user with ID {StoreUserId}", id);
             throw;
         }
     }
@@ -400,7 +393,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user groups");
             throw;
         }
     }
@@ -438,7 +430,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -473,14 +464,13 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUserGroup, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user group {StoreUserGroupName} created with ID {StoreUserGroupId} by {User}",
-                storeUserGroup.Name, storeUserGroup.Id, currentUser);
+            logger.LogInformation("Store user group {StoreUserGroupId} created by {User}.",
+                storeUserGroup.Id, currentUser);
 
             return MapToStoreUserGroupDto(storeUserGroup, 0, 0);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating store user group");
             throw;
         }
     }
@@ -555,7 +545,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -620,7 +609,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting store user group with ID {StoreUserGroupId}", id);
             throw;
         }
     }
@@ -671,7 +659,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user privileges");
             throw;
         }
     }
@@ -705,7 +692,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -741,7 +727,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store user privileges for group {GroupId}", groupId);
             throw;
         }
     }
@@ -780,14 +765,13 @@ public class StoreUserService(
 
             _ = await auditLogService.TrackEntityChangesAsync(storeUserPrivilege, "Insert", currentUser, null, cancellationToken);
 
-            logger.LogInformation("Store user privilege {StoreUserPrivilegeName} created with ID {StoreUserPrivilegeId} by {User}",
-                storeUserPrivilege.Name, storeUserPrivilege.Id, currentUser);
+            logger.LogInformation("Store user privilege {StoreUserPrivilegeId} created by {User}.",
+                storeUserPrivilege.Id, currentUser);
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, 0);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating store user privilege");
             throw;
         }
     }
@@ -851,7 +835,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -904,7 +887,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting store user privilege with ID {StoreUserPrivilegeId}", id);
             throw;
         }
     }
@@ -929,7 +911,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking existence of store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -951,7 +932,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading store users with birthday.");
             throw;
         }
     }
@@ -972,7 +952,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking existence of store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1103,7 +1082,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store POS terminals for tenant {TenantId} (page: {Page}, pageSize: {PageSize})", tenantContext.CurrentTenantId, page, pageSize);
             throw;
         }
     }
@@ -1130,7 +1108,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving store POS {Id}.", id);
             throw;
         }
     }
@@ -1176,7 +1153,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating store POS.");
             throw;
         }
     }
@@ -1222,7 +1198,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating store POS {Id}.", id);
             throw;
         }
     }
@@ -1258,7 +1233,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting store POS {Id}.", id);
             throw;
         }
     }
@@ -1367,7 +1341,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading photo for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1397,7 +1370,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving photo document for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1445,7 +1417,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting photo for store user {StoreUserId}.", storeUserId);
             throw;
         }
     }
@@ -1548,7 +1519,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading logo for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1578,7 +1548,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving logo document for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1626,7 +1595,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting logo for store user group {GroupId}.", groupId);
             throw;
         }
     }
@@ -1724,7 +1692,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error uploading image for store POS {StorePosId}.", storePosId);
             throw;
         }
     }
@@ -1754,7 +1721,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving image document for store POS {StorePosId}.", storePosId);
             throw;
         }
     }
@@ -1802,7 +1768,6 @@ public class StoreUserService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting image for store POS {StorePosId}.", storePosId);
             throw;
         }
     }

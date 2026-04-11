@@ -500,6 +500,9 @@ app.UseStaticFiles();
 
 // Authentication & Authorization
 app.UseAuthentication();
+// Push per-request context (CorrelationId, UserId, UserName, TenantId, RemoteIpAddress, RequestPath)
+// into Serilog LogContext so dedicated SQL columns are populated on every log entry.
+app.UseRequestContextEnricher();
 app.UseCors();
 #pragma warning disable ASP0001
 app.UseAuthorization();

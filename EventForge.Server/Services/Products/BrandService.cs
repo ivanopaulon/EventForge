@@ -54,7 +54,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving brands.");
             throw;
         }
     }
@@ -78,7 +77,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving brand {BrandId}.", id);
             throw;
         }
     }
@@ -119,7 +117,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating brand.");
             throw;
         }
     }
@@ -179,7 +176,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating brand {BrandId}.", id);
             throw;
         }
     }
@@ -235,7 +231,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting brand {BrandId}.", id);
             throw;
         }
     }
@@ -257,7 +252,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking if brand {BrandId} exists.", brandId);
             throw;
         }
     }
@@ -318,7 +312,6 @@ public class BrandService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active brands.");
             throw;
         }
     }

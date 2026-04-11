@@ -31,7 +31,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document workflows.");
             throw;
         }
     }
@@ -52,7 +51,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document workflow {WorkflowId}.", id);
             throw;
         }
     }
@@ -75,7 +73,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document workflows for document type {DocumentTypeId}.", documentTypeId);
             throw;
         }
     }
@@ -98,7 +95,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving active document workflows.");
             throw;
         }
     }
@@ -123,7 +119,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving document workflows for category {Category}.", category);
             throw;
         }
     }
@@ -157,7 +152,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating document workflow for user {User}.", currentUser);
             throw;
         }
     }
@@ -198,7 +192,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating document workflow {WorkflowId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -234,7 +227,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting document workflow {WorkflowId} for user {User}.", id, currentUser);
             throw;
         }
     }
@@ -269,7 +261,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating status for document workflow {WorkflowId}.", id);
             throw;
         }
     }
@@ -287,7 +278,6 @@ public class DocumentWorkflowService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving latest version for document workflow {WorkflowId}.", workflowId);
             throw;
         }
     }

@@ -87,7 +87,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error logging price change for ProductSupplier {ProductSupplierId}", request.ProductSupplierId);
             throw;
         }
     }
@@ -148,7 +147,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error bulk logging price changes");
             throw;
         }
     }
@@ -208,7 +206,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             throw;
         }
     }
@@ -267,7 +264,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price history for Supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -326,7 +322,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price history for Product {ProductId}", productId);
             throw;
         }
     }
@@ -359,7 +354,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating price history statistics for Supplier {SupplierId}", supplierId);
             throw;
         }
     }
@@ -399,7 +393,6 @@ public class SupplierProductPriceHistoryService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving price trend data for Supplier {SupplierId} and Product {ProductId}", supplierId, productId);
             throw;
         }
     }

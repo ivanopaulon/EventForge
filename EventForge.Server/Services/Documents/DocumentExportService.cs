@@ -95,9 +95,6 @@ public class DocumentExportService(
             var documents = await query.ToListAsync(cancellationToken);
             var documentDtos = documents.Select(MapToDto).ToList();
 
-            logger.LogInformation(
-                "Retrieved {Count} documents for export {ExportId}",
-                documents.Count, exportId);
 
             // Perform export based on format
             byte[]? fileData = null;
