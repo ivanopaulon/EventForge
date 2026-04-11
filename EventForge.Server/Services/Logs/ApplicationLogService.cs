@@ -321,6 +321,8 @@ public class ApplicationLogService(
         if (queryParameters.ToDate.HasValue)
             conditions.Add("TimeStamp <= @ToDate");
 
+        AppendSourceCondition(conditions, queryParameters.Source);
+
         if (conditions.Any())
             query += " AND " + string.Join(" AND ", conditions);
 
@@ -350,10 +352,38 @@ public class ApplicationLogService(
         if (queryParameters.ToDate.HasValue)
             conditions.Add("TimeStamp <= @ToDate");
 
+        AppendSourceCondition(conditions, queryParameters.Source);
+
         if (conditions.Any())
             query += " AND " + string.Join(" AND ", conditions);
 
         return query;
+    }
+
+    /// <summary>
+    /// Appends a WHERE condition to <paramref name="conditions"/> that filters log rows by
+    /// their originating component, identified by the well-known message prefix written by
+    /// each log forwarding pipeline:
+    /// <list type="bullet">
+    ///   <item><description><c>Client</c> → Message starts with <c>[Client]</c></description></item>
+    ///   <item><description><c>Agent</c>  → Message starts with <c>[Agent:</c></description></item>
+    ///   <item><description><c>Server</c> → all other rows (no recognised prefix)</description></item>
+    /// </list>
+    /// </summary>
+    private static void AppendSourceCondition(List<string> conditions, string? source)
+    {
+        switch (source?.ToLowerInvariant())
+        {
+            case "client":
+                conditions.Add("Message LIKE '[Client] %'");
+                break;
+            case "agent":
+                conditions.Add("Message LIKE '[Agent:%'");
+                break;
+            case "server":
+                conditions.Add("Message NOT LIKE '[Client] %' AND Message NOT LIKE '[Agent:%'");
+                break;
+        }
     }
 
     /// <summary>

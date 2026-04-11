@@ -65,7 +65,34 @@ try
     });
 
     // ── Serilog ───────────────────────────────────────────────────────────
-    builder.Host.UseSerilog();
+    // Use the delegate overload so the Server ingest sink can receive the
+    // IHttpClientFactory from DI once all services have been registered.
+    builder.Host.UseSerilog((_, services, loggerConfig) =>
+    {
+        loggerConfig
+            .ReadFrom.Configuration(builder.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.File(
+                Path.Combine(logDir, "agent-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: earlyAgent.Logging.RetentionDays);
+
+        // Conditionally forward logs to EventForge.Server
+        var opts = services.GetRequiredService<AgentOptions>();
+        if (opts.Logging.ServerIngestEnabled)
+        {
+            var serverBase = !string.IsNullOrWhiteSpace(opts.Logging.ServerIngestUrl)
+                ? opts.Logging.ServerIngestUrl
+                : opts.Components.Server.NotificationBaseUrl;
+
+            if (!string.IsNullOrWhiteSpace(serverBase))
+            {
+                var httpFactory = services.GetRequiredService<IHttpClientFactory>();
+                loggerConfig.WriteTo.Sink(new AgentServerSink(opts, httpFactory));
+            }
+        }
+    });
 
     // ── Options ───────────────────────────────────────────────────────────
     builder.Services.Configure<AgentOptions>(

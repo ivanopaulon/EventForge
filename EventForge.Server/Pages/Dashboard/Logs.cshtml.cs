@@ -22,6 +22,7 @@ public class LogsModel(ILogManagementService logManagementService, ILogger<LogsM
     [BindProperty(SupportsGet = true)] public int CurrentPage { get; set; } = 1;
     [BindProperty(SupportsGet = true)] public string? SearchTerm { get; set; }
     [BindProperty(SupportsGet = true)] public string? LevelFilter { get; set; }
+    [BindProperty(SupportsGet = true)] public string? SourceFilter { get; set; }
     [BindProperty(SupportsGet = true)] public bool ErrorsOnly { get; set; }
 
     public string? ErrorMessage { get; set; }
@@ -43,6 +44,9 @@ public class LogsModel(ILogManagementService logManagementService, ILogger<LogsM
 
             if (!string.IsNullOrWhiteSpace(LevelFilter))
                 queryParams.Level = LevelFilter;
+
+            if (!string.IsNullOrWhiteSpace(SourceFilter))
+                queryParams.Source = SourceFilter;
 
             if (ErrorsOnly)
                 queryParams.HasException = true;
@@ -66,6 +70,7 @@ public class LogsModel(ILogManagementService logManagementService, ILogger<LogsM
         var parts = new List<string>();
         if (!string.IsNullOrEmpty(SearchTerm)) parts.Add($"SearchTerm={Uri.EscapeDataString(SearchTerm)}");
         if (!string.IsNullOrEmpty(LevelFilter)) parts.Add($"LevelFilter={LevelFilter}");
+        if (!string.IsNullOrEmpty(SourceFilter)) parts.Add($"SourceFilter={SourceFilter}");
         if (ErrorsOnly) parts.Add("ErrorsOnly=true");
         return parts.Any() ? "&" + string.Join("&", parts) : "";
     }

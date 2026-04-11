@@ -24,7 +24,7 @@
 <div class="ef-card mb-4">
     <div class="ef-card-body">
         <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label class="form-label">Ricerca nel messaggio</label>
                 <input type="text" asp-for="SearchTerm" class="form-control"
                        placeholder="Testo del messaggio..." />
@@ -39,6 +39,15 @@
                     <option value="Warning">Warning</option>
                     <option value="Error">Error</option>
                     <option value="Fatal">Fatal</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sorgente</label>
+                <select asp-for="SourceFilter" class="form-select">
+                    <option value="">Tutte</option>
+                    <option value="Server">Server</option>
+                    <option value="Client">Client</option>
+                    <option value="Agent">Agent</option>
                 </select>
             </div>
             <div class="col-md-2 pt-3">
@@ -107,7 +116,32 @@
                                         <span class="ef-badge @levelCls">@log.Level</span>
                                     }
                                 </td>
-                                <td style="font-size:.75rem;color:var(--ef-text-muted);word-break:break-all">@(log.Source ?? log.Category)</td>
+                                <td style="font-size:.75rem;color:var(--ef-text-muted);word-break:break-all">
+                                    @{
+                                        var src = log.Source ?? log.Category ?? "";
+                                        string srcBadge, srcDisplay;
+                                        if (src.StartsWith("[Agent:", StringComparison.Ordinal) || (log.Message?.StartsWith("[Agent:", StringComparison.Ordinal) ?? false))
+                                        {
+                                            srcBadge   = "ef-badge-warning";
+                                            srcDisplay = "Agent";
+                                        }
+                                        else if (src.Contains("[Client]") || (log.Message?.StartsWith("[Client]", StringComparison.Ordinal) ?? false))
+                                        {
+                                            srcBadge   = "ef-badge-info";
+                                            srcDisplay = "Client";
+                                        }
+                                        else
+                                        {
+                                            srcBadge   = "ef-badge-neutral";
+                                            srcDisplay = "Server";
+                                        }
+                                    }
+                                    <span class="ef-badge @srcBadge" style="font-size:.68rem">@srcDisplay</span>
+                                    @if (!string.IsNullOrEmpty(src))
+                                    {
+                                        <div class="mt-1" style="font-size:.72rem;word-break:break-all">@src</div>
+                                    }
+                                </td>
                                 <td>
                                     <div style="font-size:.8rem;font-weight:550">@log.Message</div>
                                     @if (hasException)
