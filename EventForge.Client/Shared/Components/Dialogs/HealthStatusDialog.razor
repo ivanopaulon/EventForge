@@ -654,111 +654,6 @@
                         }
                     </MudPaper>
 
-                    <!-- Admin Log Details Panel -->
-                    @if (_selectedLog != null)
-                    {
-                        <MudPaper Elevation="2" Class="mt-4 pa-4">
-                            <div class="d-flex justify-space-between align-center mb-3">
-                                <MudText Typo="Typo.h6">
-                                    @TranslationService.GetTranslation("health.logDetails", "Dettagli Log")
-                                </MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                               Size="Size.Small"
-                                               OnClick="@(() => _selectedLog = null)" />
-                            </div>
-                            <MudGrid Spacing="1">
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Timestamp:</strong></MudText></MudItem>
-                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</MudText></MudItem>
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Level:</strong></MudText></MudItem>
-                                <MudItem xs="9">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedLog.Level)" Text="@_selectedLog.Level" />
-                                </MudItem>
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
-                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Message</MudText></MudItem>
-                                @if (!string.IsNullOrEmpty(_selectedLog.Source))
-                                {
-                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Source:</strong></MudText></MudItem>
-                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Source</MudText></MudItem>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedLog.Category))
-                                {
-                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Category:</strong></MudText></MudItem>
-                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Category</MudText></MudItem>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedLog.Username))
-                                {
-                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>User:</strong></MudText></MudItem>
-                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedLog.Username</MudText></MudItem>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedLog.Exception))
-                                {
-                                    <MudItem xs="12">
-                                        <MudAlert Severity="Severity.Error" Class="mt-2">
-                                            <strong>Exception:</strong>
-                                            <pre style="white-space: pre-wrap; font-size: 0.75rem;">@_selectedLog.Exception</pre>
-                                        </MudAlert>
-                                    </MudItem>
-                                }
-                                @if (_selectedLog.Properties != null && _selectedLog.Properties.Any())
-                                {
-                                    <MudItem xs="12">
-                                        <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
-                                        <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        </MudPaper>
-                    }
-
-                    <!-- Sanitized Log Details Panel -->
-                    @if (_selectedSanitizedLog != null)
-                    {
-                        <MudPaper Elevation="2" Class="mt-4 pa-4">
-                            <div class="d-flex justify-space-between align-center mb-3">
-                                <MudText Typo="Typo.h6">
-                                    @TranslationService.GetTranslation("health.logDetails", "Log Details")
-                                </MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                               Size="Size.Small"
-                                               OnClick="@(() => _selectedSanitizedLog = null)" />
-                            </div>
-                            <MudGrid Spacing="1">
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Timestamp:</strong></MudText></MudItem>
-                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</MudText></MudItem>
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Level:</strong></MudText></MudItem>
-                                <MudItem xs="9">
-                                    <MudChip T="string" Size="Size.Small" Color="@GetLogLevelColor(_selectedSanitizedLog.Level)" Text="@_selectedSanitizedLog.Level" />
-                                </MudItem>
-                                <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
-                                <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Message</MudText></MudItem>
-                                @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Source))
-                                {
-                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Source:</strong></MudText></MudItem>
-                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Source</MudText></MudItem>
-                                }
-                                @if (!string.IsNullOrEmpty(_selectedSanitizedLog.Category))
-                                {
-                                    <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Category:</strong></MudText></MudItem>
-                                    <MudItem xs="9"><MudText Typo="Typo.body2">@_selectedSanitizedLog.Category</MudText></MudItem>
-                                }
-                                @if (_selectedSanitizedLog.HasException)
-                                {
-                                    <MudItem xs="12">
-                                        <MudAlert Severity="Severity.Warning" Class="mt-2">
-                                            <strong>@TranslationService.GetTranslation("health.exceptionOccurred", "An exception occurred (details hidden for security)").</strong>
-                                        </MudAlert>
-                                    </MudItem>
-                                }
-                                @if (_selectedSanitizedLog.PublicProperties != null && _selectedSanitizedLog.PublicProperties.Any())
-                                {
-                                    <MudItem xs="12">
-                                        <MudText Typo="Typo.subtitle2" Class="mt-2"><strong>Properties:</strong></MudText>
-                                        <pre style="white-space: pre-wrap; font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px;">@System.Text.Json.JsonSerializer.Serialize(_selectedSanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
-                                    </MudItem>
-                                }
-                            </MudGrid>
-                        </MudPaper>
-                    }
                 </div>
             </MudTabPanel>
 
@@ -802,8 +697,6 @@
     private bool _isLoadingLogs = false;
     private PagedResult<SystemLogDto>? _logs;
     private PagedResult<SanitizedSystemLogDto>? _sanitizedLogs;
-    private SystemLogDto? _selectedLog;
-    private SanitizedSystemLogDto? _selectedSanitizedLog;
     private int _currentPage = 1;
     private int _pageSize = 20;
     private bool _isAdmin = false;
@@ -1040,8 +933,7 @@
     private async Task OnFilterChanged()
     {
         _currentPage = 1;
-        await Task.CompletedTask;
-        StateHasChanged();
+        await LoadLogsAsync();
     }
 
     private void ClearFilters()
@@ -1060,18 +952,18 @@
         await LoadLogsAsync();
     }
 
-    private void ShowLogDetails(SystemLogDto log)
+    private async Task ShowLogDetails(SystemLogDto log)
     {
-        _selectedLog = log;
-        _selectedSanitizedLog = null;
-        StateHasChanged();
+        Logger.LogDebug("Opening log detail dialog for entry {Id}", log.Id);
+        var parameters = new DialogParameters { { nameof(LogDetailDialog.AdminLog), log } };
+        await DialogService.ShowAsync<LogDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
-    private void ShowSanitizedLogDetails(SanitizedSystemLogDto log)
+    private async Task ShowSanitizedLogDetails(SanitizedSystemLogDto log)
     {
-        _selectedSanitizedLog = log;
-        _selectedLog = null;
-        StateHasChanged();
+        Logger.LogDebug("Opening sanitized log detail dialog for entry {Id}", log.Id);
+        var parameters = new DialogParameters { { nameof(LogDetailDialog.SanitizedLog), log } };
+        await DialogService.ShowAsync<LogDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
     }
 
     private async Task ExportLogs()
