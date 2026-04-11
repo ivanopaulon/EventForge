@@ -292,9 +292,17 @@
                             </MudTooltip>
                         }
                         <MudTooltip Text="Altro">
-                            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
-                                           Color="Color.Inherit"
-                                           Size="Size.Small" />
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                     Color="Color.Inherit"
+                                     Size="Size.Small"
+                                     AnchorOrigin="Origin.BottomRight"
+                                     TransformOrigin="Origin.TopRight">
+                                <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                             IconColor="Color.Error"
+                                             OnClick="@DeleteSelectedChatAsync">
+                                    @TranslationService.GetTranslation("chat.deleteChat", "Elimina chat")
+                                </MudMenuItem>
+                            </MudMenu>
                         </MudTooltip>
                     </div>
 
@@ -787,6 +795,24 @@
             AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageDeleted", "Messaggio eliminato"));
         }
         catch (Exception ex) { AppNotification.ShowError($"Errore eliminazione: {ex.Message}"); }
+    }
+
+    private async Task DeleteSelectedChatAsync()
+    {
+        if (_selectedChat is null) return;
+        var chatName = GetChatName(_selectedChat);
+        var ok = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("chat.confirmDeleteChat", "Elimina chat"),
+            TranslationService.GetTranslation("chat.confirmDeleteChatMessage", $"Sei sicuro di voler eliminare la chat \"{chatName}\"? L'operazione non può essere annullata."),
+            TranslationService.GetTranslation("common.delete", "Elimina"),
+            TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (ok != true) return;
+        try
+        {
+            await ChatService.DeleteChatAsync(_selectedChat.Id);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.chatDeleted", "Chat eliminata"));
+        }
+        catch (Exception ex) { AppNotification.ShowError($"Errore eliminazione chat: {ex.Message}"); }
     }
 
     private async Task DownloadAttachmentAsync(MessageAttachmentDto a)

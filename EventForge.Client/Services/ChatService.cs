@@ -28,6 +28,7 @@ public interface IChatService : IDisposable
     Task<bool> UpdateTypingStatusAsync(Guid chatId, bool isTyping, CancellationToken cancellationToken = default);
     Task<ChatStatsDto> GetChatStatsAsync(CancellationToken cancellationToken = default);
     Task<MessageAttachmentDto?> UploadFileAsync(Guid chatId, IBrowserFile file, CancellationToken cancellationToken = default);
+    Task<bool> DeleteChatAsync(Guid chatId, CancellationToken cancellationToken = default);
 
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
@@ -84,6 +85,7 @@ public class ChatService : IChatService
         _realtimeService.UserOnlineStatusChanged += OnUserOnlineStatusChanged;
         _realtimeService.AddedToChat += OnAddedToChat;
         _realtimeService.RemovedFromChat += OnRemovedFromChat;
+        _realtimeService.ChatDeleted += OnChatDeleted;
     }
 
     public void Dispose()
@@ -102,6 +104,7 @@ public class ChatService : IChatService
         _realtimeService.UserOnlineStatusChanged -= OnUserOnlineStatusChanged;
         _realtimeService.AddedToChat -= OnAddedToChat;
         _realtimeService.RemovedFromChat -= OnRemovedFromChat;
+        _realtimeService.ChatDeleted -= OnChatDeleted;
     }
 
     #region Events
@@ -515,6 +518,27 @@ public class ChatService : IChatService
         _logger.LogInformation("RemovedFromChat event received; chat list cache invalidated");
     }
 
+    private void OnChatDeleted(object chatDeletedData)
+    {
+        if (chatDeletedData is System.Text.Json.JsonElement element &&
+            element.TryGetProperty("ChatId", out var chatIdEl) &&
+            chatIdEl.TryGetGuid(out var chatId))
+        {
+            InvalidateChatCaches(chatId);
+            RemovedFromChat?.Invoke(chatId);
+            return;
+        }
+
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+        _logger.LogInformation("ChatDeleted event received; chat list cache invalidated");
+    }
+
+    private void InvalidateChatCaches(Guid chatId)
+    {
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+        _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
+    }
+
     #endregion
 
     public async Task<bool> ToggleMessageReactionAsync(MessageReactionActionDto reactionDto, CancellationToken cancellationToken = default)
@@ -589,5 +613,20 @@ public class ChatService : IChatService
         public long FileSize { get; set; }
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
+    }
+
+    public async Task<bool> DeleteChatAsync(Guid chatId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _httpClientService.DeleteAsync($"{BaseUrl}/{chatId}", cancellationToken);
+            InvalidateChatCaches(chatId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting chat {ChatId}", chatId);
+            throw;
+        }
     }
 }
