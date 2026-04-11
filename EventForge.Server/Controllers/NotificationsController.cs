@@ -617,4 +617,78 @@ public class NotificationsController(
     }
 
     #endregion
+
+    #region User Preferences
+
+    /// <summary>
+    /// Gets the notification preferences for the current user.
+    /// </summary>
+    [HttpGet("preferences")]
+    [ProducesResponseType(typeof(NotificationPreferencesDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationPreferencesDto>> GetPreferencesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
+            var result = await notificationService.GetUserPreferencesAsync(userId, tenantId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving notification preferences.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Saves notification preferences for the current user.
+    /// </summary>
+    [HttpPut("preferences")]
+    [ProducesResponseType(typeof(NotificationPreferencesDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationPreferencesDto>> UpdatePreferencesAsync(
+        [FromBody] NotificationPreferencesDto preferences,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            preferences.UserId = tenantContext.CurrentUserId ?? Guid.Empty;
+            preferences.TenantId = tenantContext.CurrentTenantId;
+            var result = await notificationService.UpdateUserPreferencesAsync(preferences, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while saving notification preferences.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Activity Feed
+
+    /// <summary>
+    /// Returns the activity feed for the current user (notification history + audit events).
+    /// </summary>
+    [HttpGet("activity-feed")]
+    [ProducesResponseType(typeof(PagedResult<ActivityFeedEntryDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ActivityFeedEntryDto>>> GetActivityFeedAsync(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
+            var result = await notificationService.GetActivityFeedAsync(userId, tenantId, pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the activity feed.", ex);
+        }
+    }
+
+    #endregion
 }

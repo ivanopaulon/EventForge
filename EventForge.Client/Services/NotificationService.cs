@@ -21,6 +21,13 @@ public interface INotificationService
     Task<List<NotificationTypes>> GetSubscriptionsAsync(CancellationToken cancellationToken = default);
     Task<bool> UpdateSubscriptionsAsync(List<NotificationTypes> subscriptions, CancellationToken cancellationToken = default);
 
+    // Preferences
+    Task<NotificationPreferencesDto> GetUserPreferencesAsync(CancellationToken cancellationToken = default);
+    Task<NotificationPreferencesDto> UpdateUserPreferencesAsync(NotificationPreferencesDto preferences, CancellationToken cancellationToken = default);
+
+    // Activity feed
+    Task<PagedResult<ActivityFeedEntryDto>> GetActivityFeedAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
+
     // Events for real-time updates
     event Action<NotificationResponseDto>? NotificationReceived;
     event Action<Guid>? NotificationRead;
@@ -222,6 +229,53 @@ public class NotificationService : INotificationService
             _logger.LogError(ex, "Error updating notification subscriptions ({Count} items): {ExceptionType} - {Message}",
                 subscriptions.Count, ex.GetType().Name, ex.Message);
             return false;
+        }
+    }
+
+    #endregion
+
+    #region Preferences & Activity Feed
+
+    public async Task<NotificationPreferencesDto> GetUserPreferencesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<NotificationPreferencesDto>("api/v1/notifications/preferences", cancellationToken)
+                ?? new NotificationPreferencesDto { NotificationsEnabled = true, MinPriority = NotificationPriority.Low, SoundEnabled = true, AutoArchiveAfterDays = 30 };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load notification preferences.");
+            return new NotificationPreferencesDto { NotificationsEnabled = true, MinPriority = NotificationPriority.Low, SoundEnabled = true, AutoArchiveAfterDays = 30 };
+        }
+    }
+
+    public async Task<NotificationPreferencesDto> UpdateUserPreferencesAsync(NotificationPreferencesDto preferences, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PutAsync<NotificationPreferencesDto, NotificationPreferencesDto>("api/v1/notifications/preferences", preferences, cancellationToken);
+            return result ?? preferences;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save notification preferences.");
+            throw;
+        }
+    }
+
+    public async Task<PagedResult<ActivityFeedEntryDto>> GetActivityFeedAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _httpClientService.GetAsync<PagedResult<ActivityFeedEntryDto>>(
+                $"api/v1/notifications/activity-feed?page={page}&pageSize={pageSize}", cancellationToken)
+                ?? new PagedResult<ActivityFeedEntryDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load activity feed.");
+            return new PagedResult<ActivityFeedEntryDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
         }
     }
 

@@ -319,7 +319,7 @@
     {
         try
         {
-            await LoadPreferences();
+            await LoadPreferencesAsync();
         }
         catch (Exception ex)
         {
@@ -331,24 +331,21 @@
     {
         try
         {
-            // TODO: Load from actual service
-            // _preferences = await NotificationService.GetPreferencesAsync();
-            
-            // Mock data for demonstration
-            _preferences = new NotificationPreferencesDto
-            {
-                NotificationsEnabled = true,
-                MinPriority = NotificationPriority.Low,
-                EnabledTypes = new List<NotificationTypes> 
-                { 
-                    NotificationTypes.System, 
-                    NotificationTypes.Event, 
-                    NotificationTypes.User 
-                },
-                PreferredLocale = "it-IT",
-                SoundEnabled = true,
-                AutoArchiveAfterDays = 30
-            };
+            // Preferences are loaded asynchronously via OnInitializedAsync; see LoadPreferencesAsync.
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            AppNotification.ShowError($"Errore nel caricamento: {ex.Message}");
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadPreferencesAsync()
+    {
+        try
+        {
+            _preferences = await NotificationService.GetUserPreferencesAsync();
 
             _displaySettings = new DisplaySettings
             {
@@ -372,7 +369,6 @@
         {
             AppNotification.ShowError($"Errore nel caricamento: {ex.Message}");
         }
-        return Task.CompletedTask;
     }
 
     private Task OnPreferenceChanged()
@@ -415,10 +411,7 @@
         _isSaving = true;
         try
         {
-            // TODO: Save to actual service
-            // await NotificationService.SavePreferencesAsync(_preferences);
-            
-            await Task.Delay(1000); // Simulate API call
+            await NotificationService.UpdateUserPreferencesAsync(_preferences);
             
             AppNotification.ShowSuccess(TranslationService.GetTranslation("notificationPreferences.saved", "Preferenze salvate con successo"));
         }
@@ -477,7 +470,6 @@
 
     private Task PreviewSettings()
     {
-        // TODO: Show preview modal with sample notifications
         AppNotification.ShowInfo(TranslationService.GetTranslation("notificationPreferences.previewFeatureComingSoon", "Funzione anteprima in arrivo"));
         return Task.CompletedTask;
     }

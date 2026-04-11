@@ -370,6 +370,16 @@ public interface INotificationService
     Task<NotificationSystemHealthDto> GetSystemHealthAsync(
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns a paginated activity feed for the current user combining notification
+    /// history and entity change events.
+    /// </summary>
+    Task<PagedResult<ActivityFeedEntryDto>> GetActivityFeedAsync(
+        Guid userId,
+        Guid? tenantId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default);
+
     #endregion
 }
 

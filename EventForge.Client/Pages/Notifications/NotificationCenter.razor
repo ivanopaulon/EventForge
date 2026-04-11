@@ -1070,11 +1070,10 @@
     {
         try
         {
-            // Handle custom action execution
+            // RichNotificationCard handles the API call; this hook can be used for additional UI updates.
             if (!string.IsNullOrEmpty(action.ApiEndpoint))
             {
-                // TODO: Implement API call for custom actions
-                AppNotification.ShowSuccess($"Azione '{action.Label}' eseguita");
+                Logger.LogInformation("Custom action '{Label}' executed via endpoint '{Endpoint}'.", action.Label, action.ApiEndpoint);
             }
         }
         catch (Exception ex)

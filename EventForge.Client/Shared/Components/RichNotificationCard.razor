@@ -2,6 +2,8 @@
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 @inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject IHttpClientService HttpClientService
 @inject ILogger<RichNotificationCard> Logger
 
 <MudCard Class="@($"notification-card {GetNotificationCssClass()}")" Elevation="@(Notification.Status == NotificationStatus.Read ? 1 : 3)">
@@ -368,9 +370,12 @@
     {
         if (action.RequiresConfirmation && !string.IsNullOrEmpty(action.ConfirmationMessage))
         {
-            // TODO: Show confirmation dialog
-            AppNotification.ShowInfo(action.ConfirmationMessage);
-            return;
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("notifications.confirmAction", "Conferma azione"),
+                action.ConfirmationMessage,
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (confirmed != true) return;
         }
 
         IsActionExecuting = true;
@@ -382,7 +387,7 @@
             }
             else if (!string.IsNullOrEmpty(action.ApiEndpoint))
             {
-                // TODO: Call API endpoint
+                await HttpClientService.PostAsync(action.ApiEndpoint, new { });
                 AppNotification.ShowSuccess($"Azione {action.Label} eseguita");
             }
 

@@ -293,14 +293,14 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
             action.UserId = userId.Value;
+            var result = await _notificationService.ProcessBulkActionAsync(action);
 
             _logger.LogInformation("User {UserId} performed bulk action {Action} on {Count} notifications",
                 userId.Value, action.Action, action.NotificationIds?.Count ?? 0);
 
-            await Clients.Caller.SendAsync("BulkActionCompleted", action);
-            await Clients.Group($"user_{userId.Value}").SendAsync("NotificationsBulkUpdated", action);
+            await Clients.Caller.SendAsync("BulkActionCompleted", result);
+            await Clients.Group($"user_{userId.Value}").SendAsync("NotificationsBulkUpdated", result);
         }
         catch (Exception ex)
         {
@@ -327,7 +327,11 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement user preferences service call
+            // Persist the locale preference via user notification preferences
+            var preferences = await _notificationService.GetUserPreferencesAsync(userId.Value, GetCurrentTenantId());
+            preferences.PreferredLocale = locale;
+            await _notificationService.UpdateUserPreferencesAsync(preferences);
+
             _logger.LogInformation("User {UserId} updated notification locale to {Locale}", userId.Value, locale);
 
             await Clients.Caller.SendAsync("LocaleUpdated", locale);
@@ -356,9 +360,10 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
             notification.TenantId = null; // System-wide
             notification.SenderId = GetCurrentUserId();
+
+            await _notificationService.SendNotificationAsync(notification);
 
             _logger.LogInformation("SuperAdmin {UserId} sent system notification", GetCurrentUserId());
 
@@ -395,14 +400,7 @@ public class NotificationHub : Hub
 
         try
         {
-            // TODO: Implement notification service call
-            var stats = new NotificationStatsDto
-            {
-                TenantId = tenantId ?? currentTenantId,
-                // Placeholder data - will be populated by service
-                LastCalculated = DateTime.UtcNow
-            };
-
+            var stats = await _notificationService.GetNotificationStatisticsAsync(tenantId ?? currentTenantId);
             await Clients.Caller.SendAsync("NotificationStatsReceived", stats);
         }
         catch (Exception ex)

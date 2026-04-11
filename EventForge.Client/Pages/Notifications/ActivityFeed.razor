@@ -292,8 +292,9 @@
     {
         try
         {
-            // TODO: Replace with actual service call
-            _activityEntries = await GetMockActivityData();
+            var result = await NotificationService.GetActivityFeedAsync(page: 1, pageSize: _pageSize);
+            _activityEntries = result.Items?.ToList() ?? [];
+            _hasMoreActivities = result.TotalCount > _activityEntries.Count;
             StateHasChanged();
         }
         catch (Exception ex)
@@ -308,10 +309,11 @@
         try
         {
             _currentPage++;
-            var moreActivities = await GetMockActivityData(_currentPage);
+            var result = await NotificationService.GetActivityFeedAsync(page: _currentPage, pageSize: _pageSize);
+            var moreActivities = result.Items?.ToList() ?? [];
             _activityEntries.AddRange(moreActivities);
-            
-            if (moreActivities.Count < _pageSize)
+
+            if (moreActivities.Count < _pageSize || _activityEntries.Count >= result.TotalCount)
             {
                 _hasMoreActivities = false;
             }
@@ -472,46 +474,6 @@
             return TranslationService.GetTranslation("activityFeed.daysAgo", "{0}g fa", (int)diff.TotalDays);
         else
             return timestamp.ToString("dd/MM/yyyy");
-    }
-
-    // TODO: Replace with actual service calls
-    private async Task<List<ActivityFeedEntryDto>> GetMockActivityData(int page = 1)
-    {
-        await Task.Delay(500); // Simulate API call
-
-        var mockData = new List<ActivityFeedEntryDto>();
-        var random = new Random();
-        
-        for (int i = 0; i < _pageSize; i++)
-        {
-            var activityTypes = new[] { "notification", "event", "chat", "system" };
-            var activityType = activityTypes[random.Next(activityTypes.Length)];
-            
-            mockData.Add(new ActivityFeedEntryDto
-            {
-                Id = Guid.NewGuid(),
-                ActivityType = activityType,
-                Action = "created",
-                Title = $"Attività {activityType} #{(page - 1) * _pageSize + i + 1}",
-                Description = $"Descrizione dell'attività di tipo {activityType}",
-                Url = $"/{activityType}",
-                CreatedAt = DateTime.UtcNow.AddMinutes(-random.Next(1, 10080)), // Random time in last week
-                Tags = new List<string> { activityType, "test" },
-                UserAvatar = new NotificationAvatarDto
-                {
-                    Initials = "U",
-                    BackgroundColor = "#1976d2",
-                    TextColor = "#ffffff"
-                }
-            });
-        }
-
-        if (page > 3) // Simulate end of data after 3 pages
-        {
-            return new List<ActivityFeedEntryDto>();
-        }
-
-        return mockData;
     }
 
     public void Dispose()
