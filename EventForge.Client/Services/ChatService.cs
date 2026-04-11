@@ -520,18 +520,23 @@ public class ChatService : IChatService
 
     private void OnChatDeleted(object chatDeletedData)
     {
-        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
-
         if (chatDeletedData is System.Text.Json.JsonElement element &&
             element.TryGetProperty("ChatId", out var chatIdEl) &&
             chatIdEl.TryGetGuid(out var chatId))
         {
-            _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
+            InvalidateChatCaches(chatId);
             RemovedFromChat?.Invoke(chatId);
             return;
         }
 
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
         _logger.LogInformation("ChatDeleted event received; chat list cache invalidated");
+    }
+
+    private void InvalidateChatCaches(Guid chatId)
+    {
+        _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+        _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
     }
 
     #endregion
@@ -615,8 +620,7 @@ public class ChatService : IChatService
         try
         {
             await _httpClientService.DeleteAsync($"{BaseUrl}/{chatId}", cancellationToken);
-            _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
-            _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
+            InvalidateChatCaches(chatId);
             return true;
         }
         catch (Exception ex)
