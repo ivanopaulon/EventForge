@@ -192,7 +192,7 @@ public interface IRealtimeService
     /// <summary>
     /// WhatsApp message delivery status updated.
     /// </summary>
-    event Action<object>? StatoMessaggioAggiornato;
+    event Action<object>? WhatsAppMessageStatusUpdated;
 
     /// <summary>
     /// Message edited.

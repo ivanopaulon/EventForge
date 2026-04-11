@@ -66,7 +66,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? ChatLocaleUpdated;
     public event Action<object>? AddedToChat;
     public event Action<object>? RemovedFromChat;
-    public event Action<object>? StatoMessaggioAggiornato;
+    public event Action<object>? WhatsAppMessageStatusUpdated;
     public event Action<EditMessageDto>? MessageEdited;
     public event Action<object>? MessageDeleted;
     public event Action<object>? MessageRead;
@@ -540,7 +540,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
         _ = connection.On<object>("StatoMessaggioAggiornato", data =>
         {
-            StatoMessaggioAggiornato?.Invoke(data);
+            WhatsAppMessageStatusUpdated?.Invoke(data);
         });
     }
 
