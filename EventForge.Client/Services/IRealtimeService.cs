@@ -230,9 +230,10 @@ public interface IRealtimeService
     event Action<object>? WhatsAppMessageStatusUpdated;
 
     /// <summary>
-    /// Message edited.
+    /// Message edited — the full updated <see cref="ChatMessageDto"/> is broadcast
+    /// by the server so all fields (Content, Format, IsEdited, EditedAt, …) are available.
     /// </summary>
-    event Action<EditMessageDto>? MessageEdited;
+    event Action<ChatMessageDto>? MessageEdited;
 
     /// <summary>
     /// Message deleted.

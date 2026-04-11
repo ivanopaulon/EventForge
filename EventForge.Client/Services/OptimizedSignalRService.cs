@@ -74,7 +74,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? AddedToChat;
     public event Action<object>? RemovedFromChat;
     public event Action<object>? WhatsAppMessageStatusUpdated;
-    public event Action<EditMessageDto>? MessageEdited;
+    public event Action<ChatMessageDto>? MessageEdited;
     public event Action<object>? MessageDeleted;
     public event Action<object>? MessageRead;
     public event Action<object>? MessageReactionUpdated;
@@ -503,9 +503,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             EnqueueEvent("chat_message", message);
         });
 
-        _ = connection.On<EditMessageDto>("MessageEdited", editDto =>
+        _ = connection.On<ChatMessageDto>("MessageEdited", updatedMessage =>
         {
-            MessageEdited?.Invoke(editDto);
+            MessageEdited?.Invoke(updatedMessage);
         });
 
         _ = connection.On<object>("MessageDeleted", data =>

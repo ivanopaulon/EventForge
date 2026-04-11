@@ -446,8 +446,12 @@ namespace EventForge.DTOs.Chat
         public Guid UserId { get; set; }
 
         [Required]
-        [MaxLength(4000)]
         public string Content { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Content format after editing (Plain or Html).
+        /// </summary>
+        public MessageFormat Format { get; set; } = MessageFormat.Plain;
 
         public string? EditReason { get; set; }
     }
