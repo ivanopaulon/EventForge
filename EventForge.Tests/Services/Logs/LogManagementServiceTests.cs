@@ -1,7 +1,9 @@
 using EventForge.DTOs.Common;
 using EventForge.DTOs.SuperAdmin;
+using EventForge.Server.Data;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Logs;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
