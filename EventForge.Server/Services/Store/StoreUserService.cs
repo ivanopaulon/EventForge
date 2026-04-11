@@ -1513,7 +1513,9 @@ public class StoreUserService(
 
             // Get counts for DTO
             var cashierCount = await context.StoreUsers.AsNoTracking().CountAsync(su => su.CashierGroupId == groupId && !su.IsDeleted, cancellationToken);
-            var privilegeCount = 0; // Placeholder - would need StoreUserGroupPrivilege relationship
+            var privilegeCount = await context.StoreUserPrivileges
+                .AsNoTracking()
+                .CountAsync(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value, cancellationToken);
 
             return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
         }
