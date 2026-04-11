@@ -54,7 +54,19 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? AuditLogUpdated;
     public event Action<Guid>? NotificationAcknowledged;
     public event Action<Guid>? NotificationArchived;
+    public event Action<object>? NotificationStatusUpdated;
+    public event Action<object>? TenantNotificationReceived;
+    public event Action<object>? ReceiveBulkNotifications;
     public event Action<ChatResponseDto>? ChatCreated;
+    public event Action<object>? ChatUpdated;
+    public event Action<object>? ChatMembersUpdated;
+    public event Action<object>? ChatModerated;
+    public event Action<object>? ChatDeleted;
+    public event Action<object>? ChatStatsReceived;
+    public event Action<object>? ChatLocaleUpdated;
+    public event Action<object>? AddedToChat;
+    public event Action<object>? RemovedFromChat;
+    public event Action<object>? StatoMessaggioAggiornato;
     public event Action<EditMessageDto>? MessageEdited;
     public event Action<object>? MessageDeleted;
     public event Action<object>? MessageRead;
@@ -74,6 +86,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? DocumentTypingIndicator;
     public event Action<DocumentCommentDto>? CommentCreated;
     public event Action<DocumentCommentDto>? CommentUpdated;
+    public event Action<object>? CommentDeleted;
+    public event Action<object>? CommentResolved;
+    public event Action<object>? CommentReopened;
+    public event Action<object>? TaskAssigned;
+    public event Action<object>? UserMentioned;
     #endregion
 
     #region Events - Update / Maintenance
@@ -101,6 +118,20 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? ConfigurationChanged;
     public event Action<object>? RestartRequired;
     public event Action<object>? SystemOperationReceived;
+    #endregion
+
+    #region Events - Admin / SuperAdmin
+    public event Action<object>? BackupStatusChanged;
+    public event Action<object>? UserRolesChanged;
+    public event Action<object>? PasswordReset;
+    public event Action<object>? PasswordChangeForced;
+    public event Action<object>? BulkUserActionCompleted;
+    public event Action<object>? UserUpdated;
+    public event Action<object>? UserDeleted;
+    public event Action<object>? RolePermissionsUpdated;
+    public event Action<object>? TenantSwitched;
+    public event Action<object>? ImpersonationStarted;
+    public event Action<object>? ImpersonationEnded;
     #endregion
 
     // Reference counting for fiscal printer group subscriptions (printerId → subscriber count)
@@ -296,6 +327,72 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             EnqueueEvent("user_status", data);
         });
+
+        _ = connection.On<object>("BackupStatusChanged", data =>
+        {
+            try { BackupStatusChanged?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process BackupStatusChanged"); }
+        });
+
+        _ = connection.On<object>("UserRolesChanged", data =>
+        {
+            try { UserRolesChanged?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process UserRolesChanged"); }
+        });
+
+        _ = connection.On<object>("PasswordReset", data =>
+        {
+            try { PasswordReset?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process PasswordReset"); }
+        });
+
+        _ = connection.On<object>("PasswordChangeForced", data =>
+        {
+            try { PasswordChangeForced?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process PasswordChangeForced"); }
+        });
+
+        _ = connection.On<object>("BulkUserActionCompleted", data =>
+        {
+            try { BulkUserActionCompleted?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process BulkUserActionCompleted"); }
+        });
+
+        _ = connection.On<object>("UserUpdated", data =>
+        {
+            try { UserUpdated?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process UserUpdated"); }
+        });
+
+        _ = connection.On<object>("UserDeleted", data =>
+        {
+            try { UserDeleted?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process UserDeleted"); }
+        });
+
+        _ = connection.On<object>("RolePermissionsUpdated", data =>
+        {
+            try { RolePermissionsUpdated?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process RolePermissionsUpdated"); }
+        });
+
+        _ = connection.On<object>("TenantSwitched", data =>
+        {
+            try { TenantSwitched?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process TenantSwitched"); }
+        });
+
+        _ = connection.On<object>("ImpersonationStarted", data =>
+        {
+            try { ImpersonationStarted?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ImpersonationStarted"); }
+        });
+
+        _ = connection.On<object>("ImpersonationEnded", data =>
+        {
+            try { ImpersonationEnded?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ImpersonationEnded"); }
+        });
     }
 
     private void RegisterNotificationEventHandlers(HubConnection connection)
@@ -318,6 +415,24 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         _ = connection.On<Guid>("NotificationArchived", notificationId =>
         {
             NotificationArchived?.Invoke(notificationId);
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("NotificationStatusUpdated", data =>
+        {
+            try { NotificationStatusUpdated?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NotificationStatusUpdated"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("TenantNotificationReceived", data =>
+        {
+            try { TenantNotificationReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process TenantNotificationReceived"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("ReceiveBulkNotifications", data =>
+        {
+            try { ReceiveBulkNotifications?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ReceiveBulkNotifications"); }
         });
     }
 
@@ -382,6 +497,51 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             WhatsAppNumeroNonRiconosciuto?.Invoke(conv);
         });
+
+        _ = connection.On<object>("ChatUpdated", data =>
+        {
+            ChatUpdated?.Invoke(data);
+        });
+
+        _ = connection.On<object>("ChatMembersUpdated", data =>
+        {
+            ChatMembersUpdated?.Invoke(data);
+        });
+
+        _ = connection.On<object>("ChatModerated", data =>
+        {
+            ChatModerated?.Invoke(data);
+        });
+
+        _ = connection.On<object>("ChatDeleted", data =>
+        {
+            ChatDeleted?.Invoke(data);
+        });
+
+        _ = connection.On<object>("ChatStatsReceived", data =>
+        {
+            ChatStatsReceived?.Invoke(data);
+        });
+
+        _ = connection.On<object>("ChatLocaleUpdated", data =>
+        {
+            ChatLocaleUpdated?.Invoke(data);
+        });
+
+        _ = connection.On<object>("AddedToChat", data =>
+        {
+            AddedToChat?.Invoke(data);
+        });
+
+        _ = connection.On<object>("RemovedFromChat", data =>
+        {
+            RemovedFromChat?.Invoke(data);
+        });
+
+        _ = connection.On<object>("StatoMessaggioAggiornato", data =>
+        {
+            StatoMessaggioAggiornato?.Invoke(data);
+        });
     }
 
     private void RegisterDocumentCollaborationEventHandlers(HubConnection connection)
@@ -423,6 +583,31 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             _logger.LogInformation("Comment updated: {CommentId}", comment.Id);
             CommentUpdated?.Invoke(comment);
+        });
+
+        _ = connection.On<object>("CommentDeleted", data =>
+        {
+            CommentDeleted?.Invoke(data);
+        });
+
+        _ = connection.On<object>("CommentResolved", data =>
+        {
+            CommentResolved?.Invoke(data);
+        });
+
+        _ = connection.On<object>("CommentReopened", data =>
+        {
+            CommentReopened?.Invoke(data);
+        });
+
+        _ = connection.On<object>("TaskAssigned", data =>
+        {
+            TaskAssigned?.Invoke(data);
+        });
+
+        _ = connection.On<object>("UserMentioned", data =>
+        {
+            UserMentioned?.Invoke(data);
         });
     }
 

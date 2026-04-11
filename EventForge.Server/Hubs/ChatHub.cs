@@ -278,8 +278,7 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: Chat service call not yet implemented - notify chat participants of message edit
-            await Clients.Group($"chat_{Guid.Empty}").SendAsync("MessageEdited", editDto);
+            await _chatService.EditMessageAsync(editDto, CancellationToken.None);
 
             _logger.LogInformation("User {UserId} edited message {MessageId}", userId.Value, editDto.MessageId);
         }
@@ -306,8 +305,7 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: Chat service call not yet implemented - notify chat participants of message deletion
-            await Clients.Group($"chat_{Guid.Empty}").SendAsync("MessageDeleted", new { MessageId = messageId, DeletedBy = userId.Value, Reason = reason });
+            await _chatService.DeleteMessageAsync(messageId, userId.Value, reason, softDelete: true, CancellationToken.None);
 
             _logger.LogInformation("User {UserId} deleted message {MessageId} with reason: {Reason}",
                 userId.Value, messageId, reason ?? "No reason provided");
@@ -334,15 +332,7 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: Chat service call not yet implemented
-            var readReceipt = new MessageReadReceiptDto
-            {
-                UserId = userId.Value,
-                ReadAt = DateTime.UtcNow
-            };
-
-            // Notify chat participants of read status (excluding the reader)
-            await Clients.GroupExcept($"chat_{Guid.Empty}", Context.ConnectionId).SendAsync("MessageRead", new { MessageId = messageId, ReadReceipt = readReceipt });
+            await _chatService.MarkMessageAsReadAsync(messageId, userId.Value, null, CancellationToken.None);
 
             _logger.LogInformation("User {UserId} marked message {MessageId} as read", userId.Value, messageId);
         }

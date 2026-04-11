@@ -130,9 +130,69 @@ public interface IRealtimeService
     event Action<Guid>? NotificationArchived;
 
     /// <summary>
+    /// Notification status updated (acknowledged/archived cross-session).
+    /// </summary>
+    event Action<object>? NotificationStatusUpdated;
+
+    /// <summary>
+    /// Tenant-wide notification received (broadcast to all tenant members).
+    /// </summary>
+    event Action<object>? TenantNotificationReceived;
+
+    /// <summary>
+    /// Bulk notifications received for the current user on connect.
+    /// </summary>
+    event Action<object>? ReceiveBulkNotifications;
+
+    /// <summary>
     /// Chat created.
     /// </summary>
     event Action<ChatResponseDto>? ChatCreated;
+
+    /// <summary>
+    /// Chat metadata updated (last activity, etc.).
+    /// </summary>
+    event Action<object>? ChatUpdated;
+
+    /// <summary>
+    /// Chat members added/removed.
+    /// </summary>
+    event Action<object>? ChatMembersUpdated;
+
+    /// <summary>
+    /// Chat moderation action performed (SuperAdmin).
+    /// </summary>
+    event Action<object>? ChatModerated;
+
+    /// <summary>
+    /// Chat deleted (SuperAdmin moderation).
+    /// </summary>
+    event Action<object>? ChatDeleted;
+
+    /// <summary>
+    /// Chat statistics received (Admin/SuperAdmin).
+    /// </summary>
+    event Action<object>? ChatStatsReceived;
+
+    /// <summary>
+    /// User chat locale updated.
+    /// </summary>
+    event Action<object>? ChatLocaleUpdated;
+
+    /// <summary>
+    /// Current user was added to a chat by another member.
+    /// </summary>
+    event Action<object>? AddedToChat;
+
+    /// <summary>
+    /// Current user was removed from a chat.
+    /// </summary>
+    event Action<object>? RemovedFromChat;
+
+    /// <summary>
+    /// WhatsApp message delivery status updated.
+    /// </summary>
+    event Action<object>? StatoMessaggioAggiornato;
 
     /// <summary>
     /// Message edited.
@@ -331,6 +391,31 @@ public interface IRealtimeService
     /// </summary>
     event Action<DocumentCommentDto>? CommentUpdated;
 
+    /// <summary>
+    /// Fired when a comment is deleted on a document.
+    /// </summary>
+    event Action<object>? CommentDeleted;
+
+    /// <summary>
+    /// Fired when a comment is resolved on a document.
+    /// </summary>
+    event Action<object>? CommentResolved;
+
+    /// <summary>
+    /// Fired when a previously resolved comment is reopened.
+    /// </summary>
+    event Action<object>? CommentReopened;
+
+    /// <summary>
+    /// Fired when a task is assigned to the current user on a document.
+    /// </summary>
+    event Action<object>? TaskAssigned;
+
+    /// <summary>
+    /// Fired when the current user is mentioned in a document comment.
+    /// </summary>
+    event Action<object>? UserMentioned;
+
     #endregion
 
     #region Document Collaboration Methods
@@ -419,6 +504,43 @@ public interface IRealtimeService
     /// Fired when a system operation completes (backup, migration, etc.).
     /// </summary>
     event Action<object>? SystemOperationReceived;
+
+    #endregion
+
+    #region Admin / SuperAdmin Events
+
+    /// <summary>Fired when a database backup status changes (SuperAdmin only).</summary>
+    event Action<object>? BackupStatusChanged;
+
+    /// <summary>Fired when a user's roles are updated (SuperAdmin only).</summary>
+    event Action<object>? UserRolesChanged;
+
+    /// <summary>Fired when a user password is reset by an admin (SuperAdmin only).</summary>
+    event Action<object>? PasswordReset;
+
+    /// <summary>Fired when a forced password-change flag is set on a user (SuperAdmin only).</summary>
+    event Action<object>? PasswordChangeForced;
+
+    /// <summary>Fired when a bulk user action completes (SuperAdmin only).</summary>
+    event Action<object>? BulkUserActionCompleted;
+
+    /// <summary>Fired when a user's profile is updated (SuperAdmin only).</summary>
+    event Action<object>? UserUpdated;
+
+    /// <summary>Fired when a user account is deleted (SuperAdmin only).</summary>
+    event Action<object>? UserDeleted;
+
+    /// <summary>Fired when role permissions are updated (broadcast to all clients).</summary>
+    event Action<object>? RolePermissionsUpdated;
+
+    /// <summary>Fired when a tenant switch or impersonation operation occurs (SuperAdmin only).</summary>
+    event Action<object>? TenantSwitched;
+
+    /// <summary>Fired when impersonation of a user starts (SuperAdmin only).</summary>
+    event Action<object>? ImpersonationStarted;
+
+    /// <summary>Fired when impersonation ends (SuperAdmin only).</summary>
+    event Action<object>? ImpersonationEnded;
 
     #endregion
 }

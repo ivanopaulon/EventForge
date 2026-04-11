@@ -344,6 +344,15 @@
                 }
             });
 
+            _hubConnection.Reconnected += async _ =>
+            {
+                foreach (var row in _printerRows)
+                {
+                    try { await _hubConnection.SendAsync("SubscribeToPrinter", row.Printer.Id); }
+                    catch { /* non-fatal */ }
+                }
+            };
+
             await _hubConnection.StartAsync();
 
             foreach (var row in _printerRows)
