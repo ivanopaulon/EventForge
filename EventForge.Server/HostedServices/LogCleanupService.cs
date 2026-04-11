@@ -114,8 +114,27 @@ public class LogCleanupService : BackgroundService
             string? backupFilePath = null;
             if (backupEnabled)
             {
+                await BroadcastToSuperAdminAsync(AppHub.LogCleanupPhaseChanged, new
+                {
+                    Phase          = "Backup",
+                    Detail         = "Creazione backup in corso…",
+                    BackupSucceeded = (bool?)null,
+                    ChangedAt      = DateTime.UtcNow
+                }, cancellationToken);
+
                 backupFilePath = await CreateLogBackupAsync(cutoffDate, cancellationToken);
             }
+
+            // ── Notify phase transition to deletion ──────────────────────────
+            // Always broadcast before deletes so the snackbar reflects the correct
+            // phase regardless of whether backup was enabled.
+            await BroadcastToSuperAdminAsync(AppHub.LogCleanupPhaseChanged, new
+            {
+                Phase           = "Deleting",
+                Detail          = "Eliminazione log in corso…",
+                BackupSucceeded = backupEnabled ? (bool?)(backupFilePath is not null) : null,
+                ChangedAt       = DateTime.UtcNow
+            }, cancellationToken);
 
             // ── EF-managed tables ────────────────────────────────────────────
             int deletedLoginAudits, deletedAuditTrails, deletedOperationLogs, deletedPerformanceLogs;

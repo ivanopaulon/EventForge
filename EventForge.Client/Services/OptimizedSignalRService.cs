@@ -83,6 +83,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<UpdateProgressPayload>? UpdateProgressReceived;
     public event Action<UpdatesAvailablePayload>? UpdatesAvailableReceived;
     public event Action<LogCleanupStartedPayload>? LogCleanupStarted;
+    public event Action<LogCleanupPhaseChangedPayload>? LogCleanupPhaseChanged;
     public event Action<LogCleanupCompletedPayload>? LogCleanupCompleted;
     #endregion
 
@@ -513,6 +514,26 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 LogCleanupStarted?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupStarted payload"); }
+        });
+
+        _ = connection.On<System.Text.Json.JsonElement>("LogCleanupPhaseChanged", data =>
+        {
+            try
+            {
+                bool? backupSucceeded = null;
+                if (data.TryGetProperty("backupSucceeded", out var bs))
+                {
+                    if (bs.ValueKind == System.Text.Json.JsonValueKind.True)  backupSucceeded = true;
+                    if (bs.ValueKind == System.Text.Json.JsonValueKind.False) backupSucceeded = false;
+                }
+                var payload = new LogCleanupPhaseChangedPayload(
+                    Phase:          data.TryGetProperty("phase", out var ph) ? ph.GetString() ?? string.Empty : string.Empty,
+                    Detail:         data.TryGetProperty("detail", out var det) ? det.GetString() : null,
+                    BackupSucceeded: backupSucceeded,
+                    ChangedAt:      data.TryGetProperty("changedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow);
+                LogCleanupPhaseChanged?.Invoke(payload);
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupPhaseChanged payload"); }
         });
 
         _ = connection.On<System.Text.Json.JsonElement>("LogCleanupCompleted", data =>

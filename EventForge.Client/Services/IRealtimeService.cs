@@ -283,6 +283,12 @@ public interface IRealtimeService
     /// <summary>Fired when LogCleanupService is about to start deleting log entries (SuperAdmin only).</summary>
     event Action<LogCleanupStartedPayload>? LogCleanupStarted;
 
+    /// <summary>
+    /// Fired when LogCleanupService transitions to a new phase (SuperAdmin only).
+    /// Phase values: "Backup" → "Deleting".
+    /// </summary>
+    event Action<LogCleanupPhaseChangedPayload>? LogCleanupPhaseChanged;
+
     /// <summary>Fired when LogCleanupService finishes (or fails) its cleanup run (SuperAdmin only).</summary>
     event Action<LogCleanupCompletedPayload>? LogCleanupCompleted;
 

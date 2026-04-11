@@ -67,6 +67,17 @@ public record LogCleanupStartedPayload(
     bool BackupEnabled,
     DateTime StartedAt);
 
+/// <summary>
+/// Fired when the cleanup transitions to a new phase.
+/// Phase values: "Backup" (creating pre-deletion backup), "Deleting" (executing deletes).
+/// BackupSucceeded is null when Phase="Backup" (not yet known) or when backup was not enabled.
+/// </summary>
+public record LogCleanupPhaseChangedPayload(
+    string Phase,
+    string? Detail,
+    bool? BackupSucceeded,
+    DateTime ChangedAt);
+
 /// <summary>Fired by LogCleanupService after deletion completes (Success=true) or on failure (Success=false).</summary>
 public record LogCleanupCompletedPayload(
     bool Success,
