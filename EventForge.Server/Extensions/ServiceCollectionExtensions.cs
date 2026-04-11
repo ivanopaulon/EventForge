@@ -419,6 +419,11 @@ public static class ServiceCollectionExtensions
         // Register Excel export service
         _ = services.AddScoped<IExcelExportService, ExcelExportService>();
 
+        // Register document row and summary link services
+        _ = services.AddScoped<IDocumentRowService, DocumentRowService>();
+        _ = services.AddScoped<IDocumentSummaryLinkService, DocumentSummaryLinkService>();
+        _ = services.AddScoped<IDocumentReminderService, DocumentReminderService>();
+
         // Register document facade for unified API access
         _ = services.AddScoped<IDocumentFacade, DocumentFacade>();
 
@@ -427,11 +432,6 @@ public static class ServiceCollectionExtensions
 
         // Register dashboard configuration services
         _ = services.AddScoped<IDashboardConfigurationService, DashboardConfigurationService>();
-
-        // TODO: Complete implementation for:
-        // - Document services: DocumentRow, DocumentSummaryLink (create implementations)
-        // - Document reminders, privacy, integrations services
-        // - PromotionRule, PromotionRuleProduct services (create implementations)
     }
 
     /// <summary>
