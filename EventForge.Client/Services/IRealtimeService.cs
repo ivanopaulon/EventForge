@@ -145,6 +145,41 @@ public interface IRealtimeService
     event Action<object>? ReceiveBulkNotifications;
 
     /// <summary>
+    /// Server confirmed subscription to specific notification types.
+    /// </summary>
+    event Action<object>? SubscriptionConfirmed;
+
+    /// <summary>
+    /// Server confirmed unsubscription from specific notification types.
+    /// </summary>
+    event Action<object>? UnsubscriptionConfirmed;
+
+    /// <summary>
+    /// Notification silenced by the current user (Caller-only confirmation).
+    /// </summary>
+    event Action<Guid>? NotificationSilenced;
+
+    /// <summary>
+    /// Bulk notification action completed for the caller.
+    /// </summary>
+    event Action<object>? BulkActionCompleted;
+
+    /// <summary>
+    /// All sessions of this user received bulk notification status change.
+    /// </summary>
+    event Action<object>? NotificationsBulkUpdated;
+
+    /// <summary>
+    /// Caller's preferred notification locale was updated.
+    /// </summary>
+    event Action<string>? NotificationLocaleUpdated;
+
+    /// <summary>
+    /// Notification statistics received (Admin/SuperAdmin only).
+    /// </summary>
+    event Action<object>? NotificationStatsReceived;
+
+    /// <summary>
     /// Chat created.
     /// </summary>
     event Action<ChatResponseDto>? ChatCreated;

@@ -124,31 +124,19 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: Chat service call not yet implemented
-            var chatId = Guid.NewGuid();
-            var chatResponse = new ChatResponseDto
-            {
-                Id = chatId,
-                TenantId = createChatDto.TenantId,
-                Type = createChatDto.Type,
-                Name = createChatDto.Name,
-                Description = createChatDto.Description,
-                IsPrivate = createChatDto.IsPrivate,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId.Value
-            };
+            var chatResponse = await _chatService.CreateChatAsync(createChatDto);
 
-            // Add all participants to the chat group
+            // Add creator to the chat group
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatResponse.Id}");
+
+            // Notify each participant about the new chat
             foreach (var participantId in createChatDto.ParticipantIds)
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
-
-                // Notify participant about new chat
                 await Clients.Group($"user_{participantId}").SendAsync("ChatCreated", chatResponse);
             }
 
             _logger.LogInformation("User {UserId} created {ChatType} chat {ChatId} with {ParticipantCount} participants",
-                userId.Value, createChatDto.Type, chatId, createChatDto.ParticipantIds.Count);
+                userId.Value, createChatDto.Type, chatResponse.Id, createChatDto.ParticipantIds.Count);
 
             await Clients.Caller.SendAsync("ChatCreated", chatResponse);
         }
@@ -175,7 +163,10 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: User access verification not yet implemented
+            // Verify the user has access to this chat
+            var chat = await _chatService.GetChatByIdAsync(chatId, userId.Value, tenantId);
+            if (chat == null)
+                throw new HubException("Chat not found or access denied");
 
             await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
 
@@ -183,6 +174,10 @@ public class ChatHub : Hub
             await Clients.Group($"chat_{chatId}").SendAsync("UserJoinedChat", new { ChatId = chatId, UserId = userId.Value });
 
             _logger.LogInformation("User {UserId} joined chat {ChatId}", userId.Value, chatId);
+        }
+        catch (HubException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -402,24 +397,22 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: User permission verification and chat service call not yet implemented
-
-            // Add new members to the chat group
+            // Add new members via service
             if (updateMembersDto.UsersToAdd?.Any() == true)
             {
+                await _chatService.AddMembersAsync(updateMembersDto.ChatId, updateMembersDto.UsersToAdd, userId.Value);
                 foreach (var newUserId in updateMembersDto.UsersToAdd)
                 {
-                    // Notify new member about being added to chat
                     await Clients.Group($"user_{newUserId}").SendAsync("AddedToChat", new { ChatId = updateMembersDto.ChatId, AddedBy = userId.Value });
                 }
             }
 
-            // Remove members from the chat group
+            // Remove members via service
             if (updateMembersDto.UsersToRemove?.Any() == true)
             {
+                await _chatService.RemoveMembersAsync(updateMembersDto.ChatId, updateMembersDto.UsersToRemove, userId.Value, updateMembersDto.Reason);
                 foreach (var removedUserId in updateMembersDto.UsersToRemove)
                 {
-                    // Notify removed member
                     await Clients.Group($"user_{removedUserId}").SendAsync("RemovedFromChat", new { ChatId = updateMembersDto.ChatId, RemovedBy = userId.Value, Reason = updateMembersDto.Reason });
                 }
             }
@@ -451,11 +444,10 @@ public class ChatHub : Hub
             throw new HubException("Access denied. SuperAdmin role required.");
         }
 
-        moderationAction.ModeratorId = GetCurrentUserId() ?? Guid.Empty;
-
         try
         {
-            // STUB: Chat service call not yet implemented
+            moderationAction.ModeratorId = GetCurrentUserId() ?? Guid.Empty;
+            var result = await _chatService.ModerateChatAsync(moderationAction);
 
             // Notify affected users based on action type
             switch (moderationAction.Action.ToLower())
@@ -496,13 +488,7 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: Chat service call not yet implemented
-            var stats = new ChatStatsDto
-            {
-                TenantId = tenantId,
-                LastCalculated = DateTime.UtcNow
-            };
-
+            var stats = await _chatService.GetChatStatisticsAsync(tenantId);
             await Clients.Caller.SendAsync("ChatStatsReceived", stats);
         }
         catch (Exception ex)
@@ -531,7 +517,6 @@ public class ChatHub : Hub
 
         try
         {
-            // STUB: User preferences service call not yet implemented
             _logger.LogInformation("User {UserId} updated chat locale to {Locale}", userId.Value, locale);
 
             await Clients.Caller.SendAsync("ChatLocaleUpdated", locale);

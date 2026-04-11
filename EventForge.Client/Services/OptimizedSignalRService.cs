@@ -57,6 +57,13 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? NotificationStatusUpdated;
     public event Action<object>? TenantNotificationReceived;
     public event Action<object>? ReceiveBulkNotifications;
+    public event Action<object>? SubscriptionConfirmed;
+    public event Action<object>? UnsubscriptionConfirmed;
+    public event Action<Guid>? NotificationSilenced;
+    public event Action<object>? BulkActionCompleted;
+    public event Action<object>? NotificationsBulkUpdated;
+    public event Action<string>? NotificationLocaleUpdated;
+    public event Action<object>? NotificationStatsReceived;
     public event Action<ChatResponseDto>? ChatCreated;
     public event Action<object>? ChatUpdated;
     public event Action<object>? ChatMembersUpdated;
@@ -136,6 +143,11 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     // Reference counting for fiscal printer group subscriptions (printerId → subscriber count)
     private readonly ConcurrentDictionary<Guid, int> _printerSubscriptions = new();
+
+    // State tracking for reconnect re-subscription
+    private readonly ConcurrentDictionary<string, bool> _subscribedNotificationTypes = new();
+    private readonly ConcurrentDictionary<Guid, bool> _joinedChatIds = new();
+    private readonly ConcurrentDictionary<Guid, bool> _joinedDocumentIds = new();
 
     private class BatchedEvent
     {
@@ -433,6 +445,48 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             try { ReceiveBulkNotifications?.Invoke(data); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to process ReceiveBulkNotifications"); }
+        });
+
+        _ = connection.On<object>("SubscriptionConfirmed", data =>
+        {
+            try { SubscriptionConfirmed?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process SubscriptionConfirmed"); }
+        });
+
+        _ = connection.On<object>("UnsubscriptionConfirmed", data =>
+        {
+            try { UnsubscriptionConfirmed?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process UnsubscriptionConfirmed"); }
+        });
+
+        _ = connection.On<Guid>("NotificationSilenced", notificationId =>
+        {
+            try { NotificationSilenced?.Invoke(notificationId); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NotificationSilenced"); }
+        });
+
+        _ = connection.On<object>("BulkActionCompleted", data =>
+        {
+            try { BulkActionCompleted?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process BulkActionCompleted"); }
+        });
+
+        _ = connection.On<object>("NotificationsBulkUpdated", data =>
+        {
+            try { NotificationsBulkUpdated?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NotificationsBulkUpdated"); }
+        });
+
+        _ = connection.On<string>("LocaleUpdated", locale =>
+        {
+            try { NotificationLocaleUpdated?.Invoke(locale); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process LocaleUpdated"); }
+        });
+
+        _ = connection.On<object>("NotificationStatsReceived", data =>
+        {
+            try { NotificationStatsReceived?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process NotificationStatsReceived"); }
         });
     }
 
@@ -1041,8 +1095,99 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     private async Task OnConnectionReconnectedAsync(string connectionKey)
     {
+        _logger.LogInformation("Restoring SignalR group memberships for {ConnectionKey} after reconnect", connectionKey);
+
         // Invalidate relevant cache and reload data
         await OnConnectionEstablishedAsync(connectionKey);
+
+        // Re-subscribe to any groups that were active before the disconnect
+        switch (connectionKey)
+        {
+            case "app":
+                if (_subscribedNotificationTypes.Count > 0 &&
+                    _connections.TryGetValue("app", out var appConn) &&
+                    appConn.State == HubConnectionState.Connected)
+                {
+                    try
+                    {
+                        var types = _subscribedNotificationTypes.Keys
+                            .Select(s => Enum.TryParse<NotificationTypes>(s, out var t) ? (NotificationTypes?)t : null)
+                            .Where(t => t.HasValue)
+                            .Select(t => t!.Value)
+                            .ToList();
+                        if (types.Count > 0)
+                        {
+                            await appConn.InvokeAsync("SubscribeToNotificationTypes", types);
+                            _logger.LogInformation("Restored {Count} notification type subscriptions after reconnect", types.Count);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to restore notification type subscriptions after reconnect");
+                    }
+                }
+                break;
+
+            case "chat":
+                if (_joinedChatIds.Count > 0 &&
+                    _connections.TryGetValue("chat", out var chatConn) &&
+                    chatConn.State == HubConnectionState.Connected)
+                {
+                    foreach (var chatId in _joinedChatIds.Keys.ToList())
+                    {
+                        try
+                        {
+                            await chatConn.InvokeAsync("JoinChat", chatId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to re-join chat {ChatId} after reconnect", chatId);
+                        }
+                    }
+                    _logger.LogInformation("Restored {Count} chat group subscriptions after reconnect", _joinedChatIds.Count);
+                }
+                break;
+
+            case "document-collaboration":
+                if (_joinedDocumentIds.Count > 0 &&
+                    _connections.TryGetValue("document-collaboration", out var docConn) &&
+                    docConn.State == HubConnectionState.Connected)
+                {
+                    foreach (var docId in _joinedDocumentIds.Keys.ToList())
+                    {
+                        try
+                        {
+                            await docConn.InvokeAsync("JoinDocument", docId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to re-join document {DocumentId} after reconnect", docId);
+                        }
+                    }
+                    _logger.LogInformation("Restored {Count} document group subscriptions after reconnect", _joinedDocumentIds.Count);
+                }
+                break;
+
+            case "fiscal-printer":
+                if (_printerSubscriptions.Count > 0 &&
+                    _connections.TryGetValue("fiscal-printer", out var fpConn) &&
+                    fpConn.State == HubConnectionState.Connected)
+                {
+                    foreach (var printerId in _printerSubscriptions.Keys.ToList())
+                    {
+                        try
+                        {
+                            await fpConn.InvokeAsync("SubscribeToPrinter", printerId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to re-subscribe to printer {PrinterId} after reconnect", printerId);
+                        }
+                    }
+                    _logger.LogInformation("Restored {Count} printer subscriptions after reconnect", _printerSubscriptions.Count);
+                }
+                break;
+        }
     }
 
     private async Task JoinAuditGroupAsync()
@@ -1199,6 +1344,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("JoinDocument", documentId);
+                _joinedDocumentIds[documentId] = true;
                 _logger.LogInformation("Joined document {DocumentId} collaboration room", documentId);
             }
             catch (Exception ex)
@@ -1219,6 +1365,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("LeaveDocument", documentId);
+                _joinedDocumentIds.TryRemove(documentId, out _);
                 _logger.LogInformation("Left document {DocumentId} collaboration room", documentId);
             }
             catch (Exception ex)
@@ -1288,6 +1435,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("JoinChat", chatId);
+                _joinedChatIds[chatId] = true;
                 _logger.LogInformation("Joined chat {ChatId}", chatId);
             }
             catch (Exception ex)
@@ -1309,6 +1457,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("LeaveChat", chatId);
+                _joinedChatIds.TryRemove(chatId, out _);
                 _logger.LogInformation("Left chat {ChatId}", chatId);
             }
             catch (Exception ex)
@@ -1415,6 +1564,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("SubscribeToNotificationTypes", notificationTypes);
+                foreach (var t in notificationTypes)
+                    _subscribedNotificationTypes[t.ToString()] = true;
                 _logger.LogInformation("Subscribed to notification types: {Types}", string.Join(", ", notificationTypes));
             }
             catch (Exception ex)
@@ -1436,6 +1587,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 await connection.InvokeAsync("UnsubscribeFromNotificationTypes", notificationTypes);
+                foreach (var t in notificationTypes)
+                    _subscribedNotificationTypes.TryRemove(t.ToString(), out _);
                 _logger.LogInformation("Unsubscribed from notification types: {Types}", string.Join(", ", notificationTypes));
             }
             catch (Exception ex)
@@ -1506,7 +1659,8 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     public async Task SubscribeToPrinterAsync(Guid printerId, CancellationToken ct = default)
     {
-        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        var newCount = _printerSubscriptions.AddOrUpdate(printerId, 1, (_, c) => c + 1);
+        if (newCount == 1 && _connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
         {
             try { await conn.InvokeAsync("SubscribeToPrinter", printerId); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to subscribe to printer {PrinterId}", printerId); }
@@ -1515,10 +1669,15 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     public async Task UnsubscribeFromPrinterAsync(Guid printerId, CancellationToken ct = default)
     {
-        if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+        var newCount = _printerSubscriptions.AddOrUpdate(printerId, 0, (_, c) => Math.Max(0, c - 1));
+        if (newCount == 0)
         {
-            try { await conn.InvokeAsync("UnsubscribeFromPrinter", printerId); }
-            catch (Exception ex) { _logger.LogWarning(ex, "Failed to unsubscribe from printer {PrinterId}", printerId); }
+            _printerSubscriptions.TryRemove(printerId, out _);
+            if (_connections.TryGetValue("fiscal-printer", out var conn) && conn.State == HubConnectionState.Connected)
+            {
+                try { await conn.InvokeAsync("UnsubscribeFromPrinter", printerId); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Failed to unsubscribe from printer {PrinterId}", printerId); }
+            }
         }
     }
 
