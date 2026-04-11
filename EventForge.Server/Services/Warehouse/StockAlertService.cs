@@ -567,10 +567,12 @@ public class StockAlertService(
 
             // Read SMTP settings from SystemConfigurations (same keys as ConfigurationService.TestSmtpAsync)
             var smtpServer = await configurationService.GetValueAsync("SMTP_Server", "localhost", cancellationToken);
-            var smtpPort = int.Parse(await configurationService.GetValueAsync("SMTP_Port", "587", cancellationToken));
+            var smtpPortStr = await configurationService.GetValueAsync("SMTP_Port", "587", cancellationToken);
+            var smtpPort = int.TryParse(smtpPortStr, out var parsedPort) ? parsedPort : 587;
             var smtpUsername = await configurationService.GetValueAsync("SMTP_Username", "", cancellationToken);
             var smtpPassword = await configurationService.GetValueAsync("SMTP_Password", "", cancellationToken);
-            var smtpEnableSsl = bool.Parse(await configurationService.GetValueAsync("SMTP_EnableSSL", "true", cancellationToken));
+            var smtpEnableSslStr = await configurationService.GetValueAsync("SMTP_EnableSSL", "true", cancellationToken);
+            var smtpEnableSsl = !bool.TryParse(smtpEnableSslStr, out var parsedSsl) || parsedSsl;
             var smtpFromEmail = await configurationService.GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", cancellationToken);
             var smtpFromName = await configurationService.GetValueAsync("SMTP_FromName", "EventForge", cancellationToken);
 
@@ -592,7 +594,7 @@ public class StockAlertService(
             if (!string.IsNullOrEmpty(smtpUsername))
                 client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
 
-            var message = new MailMessage
+            using var message = new MailMessage
             {
                 From = new MailAddress(smtpFromEmail, smtpFromName),
                 Subject = subject,
