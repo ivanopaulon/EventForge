@@ -245,6 +245,11 @@ public interface IRealtimeService
     event Action<object>? MessageRead;
 
     /// <summary>
+    /// Fired when a message reaction is added or removed.
+    /// </summary>
+    event Action<object>? MessageReactionUpdated;
+
+    /// <summary>
     /// User joined chat.
     /// </summary>
     event Action<object>? UserJoinedChat;

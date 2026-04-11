@@ -77,6 +77,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<EditMessageDto>? MessageEdited;
     public event Action<object>? MessageDeleted;
     public event Action<object>? MessageRead;
+    public event Action<object>? MessageReactionUpdated;
     public event Action<object>? UserJoinedChat;
     public event Action<object>? UserLeftChat;
     public event Action<Guid, bool>? UserOnlineStatusChanged;
@@ -515,6 +516,12 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         _ = connection.On<object>("MessageRead", data =>
         {
             MessageRead?.Invoke(data);
+        });
+
+        _ = connection.On<object>("MessageReactionUpdated", data =>
+        {
+            try { MessageReactionUpdated?.Invoke(data); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to process MessageReactionUpdated"); }
         });
 
         _ = connection.On<object>("UserJoinedChat", data =>

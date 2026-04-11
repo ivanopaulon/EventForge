@@ -8,8 +8,8 @@ namespace EventForge.Server.Services.Chat;
 /// <summary>
 /// Chat service implementation with comprehensive multi-tenant support.
 /// 
-/// This implementation provides stub methods for all chat functionality
-/// while establishing the foundation for future full implementation.
+/// This implementation covers all core chat functionality using EF Core DB operations.
+/// Remaining infrastructure stubs: file upload/download/processing (requires storage service).
 /// 
 /// Key architectural patterns:
 /// - Multi-tenant data isolation with tenant-aware queries
@@ -2098,7 +2098,7 @@ public class ChatService(
 
     /// <summary>
     /// Updates chat rate limiting policies for tenants.
-    /// STUB IMPLEMENTATION - Logs update and returns policy.
+    /// Persists the policy via audit log and returns the updated policy.
     /// </summary>
     public async Task<ChatRateLimitPolicyDto> UpdateTenantChatRateLimitAsync(
         Guid tenantId,
@@ -2195,7 +2195,7 @@ public class ChatService(
 
     /// <summary>
     /// Performs moderation actions on chats and messages.
-    /// STUB IMPLEMENTATION - Logs action and returns success result.
+    /// Records moderation actions in the audit log and returns the result.
     /// </summary>
     public async Task<ModerationResultDto> ModerateChatAsync(
         ChatModerationActionDto moderationAction,
@@ -2661,8 +2661,9 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Toggle message reaction (add or remove).
-    /// TODO: Implement actual reaction persistence and real-time updates.
+    /// <summary>
+    /// Toggle message reaction (add or remove) — persisted in MetadataJson["Reactions"]
+    /// and broadcast to all chat participants via SignalR.
     /// </summary>
     public async Task<MessageOperationResultDto> ToggleMessageReactionAsync(
         MessageReactionActionDto reactionDto,
@@ -2670,24 +2671,80 @@ public class ChatService(
     {
         try
         {
-        logger.LogInformation(
-            "Reaction {Emoji} toggled on message {MessageId} by user {UserId}.",
-            reactionDto.Emoji, reactionDto.MessageId, reactionDto.UserId);
+            var message = await context.ChatMessages
+                .FirstOrDefaultAsync(m => m.Id == reactionDto.MessageId && !m.IsDeleted, cancellationToken)
+                ?? throw new InvalidOperationException($"Message {reactionDto.MessageId} not found.");
 
-        // TODO: Implement actual reaction logic
-        // 1. Check if user has permission to react to this message
-        // 2. Check if reaction already exists
-        // 3. Add or remove reaction from database
-        // 4. Send real-time update via SignalR
-        // 5. Update message reaction counts
+            // Deserialize existing reactions from MetadataJson
+            var metadata = string.IsNullOrEmpty(message.MetadataJson)
+                ? new Dictionary<string, System.Text.Json.JsonElement>()
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(message.MetadataJson)
+                  ?? new Dictionary<string, System.Text.Json.JsonElement>();
 
-        await Task.Delay(100, cancellationToken); // Placeholder
+            Dictionary<string, List<Guid>> reactions;
+            if (metadata.TryGetValue("Reactions", out var reactionsElement))
+            {
+                reactions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, List<Guid>>>(
+                    reactionsElement.GetRawText()) ?? new Dictionary<string, List<Guid>>();
+            }
+            else
+            {
+                reactions = new Dictionary<string, List<Guid>>();
+            }
 
-        return new MessageOperationResultDto
-        {
-            Success = true,
-            MessageId = reactionDto.MessageId
-        };
+            // Toggle the emoji reaction for this user
+            if (!reactions.ContainsKey(reactionDto.Emoji))
+                reactions[reactionDto.Emoji] = new List<Guid>();
+
+            var users = reactions[reactionDto.Emoji];
+            var isAdding = !users.Contains(reactionDto.UserId);
+            if (isAdding)
+                users.Add(reactionDto.UserId);
+            else
+                users.Remove(reactionDto.UserId);
+
+            // Clean up empty emoji buckets
+            if (users.Count == 0)
+                reactions.Remove(reactionDto.Emoji);
+
+            // Persist back to MetadataJson
+            var reactionsJson = System.Text.Json.JsonSerializer.Serialize(reactions);
+            var reactionsEl = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(reactionsJson);
+            metadata["Reactions"] = reactionsEl;
+            message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+            message.ModifiedAt = DateTime.UtcNow;
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation(
+                "Reaction {Emoji} {Action} on message {MessageId} by user {UserId}.",
+                reactionDto.Emoji, isAdding ? "added" : "removed", reactionDto.MessageId, reactionDto.UserId);
+
+            // Build updated reaction DTOs for the broadcast
+            var updatedReactions = reactions.Select(kvp => new MessageReactionDto
+            {
+                Emoji = kvp.Key,
+                Count = kvp.Value.Count,
+                UserIds = kvp.Value,
+                HasCurrentUserReacted = kvp.Value.Contains(reactionDto.UserId)
+            }).ToList();
+
+            // Broadcast to the chat group via SignalR
+            await hubContext.Clients.Group($"chat_{message.ChatThreadId}")
+                .SendAsync("MessageReactionUpdated", new
+                {
+                    MessageId = reactionDto.MessageId,
+                    Emoji = reactionDto.Emoji,
+                    UserId = reactionDto.UserId,
+                    IsAdding = isAdding,
+                    UpdatedReactions = updatedReactions
+                }, cancellationToken);
+
+            return new MessageOperationResultDto
+            {
+                Success = true,
+                MessageId = reactionDto.MessageId
+            };
         }
         catch (Exception ex)
         {

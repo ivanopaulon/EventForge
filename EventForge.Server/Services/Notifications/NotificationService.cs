@@ -9,8 +9,7 @@ namespace EventForge.Server.Services.Notifications;
 /// <summary>
 /// Notification service implementation with comprehensive multi-tenant support.
 /// 
-/// This implementation provides stub methods for all notification functionality
-/// while establishing the foundation for future full implementation.
+/// This implementation covers all core notification functionality using EF Core DB operations.
 /// 
 /// Key architectural patterns:
 /// - Multi-tenant data isolation with tenant-aware queries
