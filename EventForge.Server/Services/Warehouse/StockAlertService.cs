@@ -1,6 +1,9 @@
 using EventForge.DTOs.Warehouse;
+using EventForge.Server.Services.Configuration;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Net.Mail;
 
 namespace EventForge.Server.Services.Warehouse;
 
@@ -10,6 +13,7 @@ namespace EventForge.Server.Services.Warehouse;
 public class StockAlertService(
     EventForgeDbContext context,
     ITenantContext tenantContext,
+    IConfigurationService configurationService,
     ILogger<StockAlertService> logger) : IStockAlertService
 {
 
@@ -561,19 +565,68 @@ public class StockAlertService(
                 return false;
             }
 
-            // TODO: Integrate with email service
-            // For now, just update the notification tracking
+            // Read SMTP settings from SystemConfigurations (same keys as ConfigurationService.TestSmtpAsync)
+            var smtpServer = await configurationService.GetValueAsync("SMTP_Server", "localhost", cancellationToken);
+            var smtpPortStr = await configurationService.GetValueAsync("SMTP_Port", "587", cancellationToken);
+            var smtpPort = int.TryParse(smtpPortStr, out var parsedPort) ? parsedPort : 587;
+            var smtpUsername = await configurationService.GetValueAsync("SMTP_Username", "", cancellationToken);
+            var smtpPassword = await configurationService.GetValueAsync("SMTP_Password", "", cancellationToken);
+            var smtpEnableSslStr = await configurationService.GetValueAsync("SMTP_EnableSSL", "true", cancellationToken);
+            var smtpEnableSsl = !bool.TryParse(smtpEnableSslStr, out var parsedSsl) || parsedSsl;
+            var smtpFromEmail = await configurationService.GetValueAsync("SMTP_FromEmail", "noreply@eventforge.com", cancellationToken);
+            var smtpFromName = await configurationService.GetValueAsync("SMTP_FromName", "EventForge", cancellationToken);
+
+            var subject = $"[Stock Alert] {alert.AlertType} - {alert.Message}";
+            var body = $"""
+                Stock Alert Notification
+
+                Alert Type  : {alert.AlertType}
+                Severity    : {alert.Severity}
+                Message     : {alert.Message}
+                Current Level: {alert.CurrentLevel}
+                Threshold   : {alert.Threshold}
+                Triggered   : {alert.TriggeredDate:yyyy-MM-dd HH:mm:ss} UTC
+                Notification: #{alert.NotificationCount + 1}
+                """;
+
+            using var client = new SmtpClient(smtpServer, smtpPort);
+            client.EnableSsl = smtpEnableSsl;
+            if (!string.IsNullOrEmpty(smtpUsername))
+                client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
+
+            using var message = new MailMessage
+            {
+                From = new MailAddress(smtpFromEmail, smtpFromName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = false
+            };
+
+            // Support comma-separated email addresses
+            foreach (var email in alert.NotificationEmails.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!string.IsNullOrWhiteSpace(email))
+                    message.To.Add(email);
+            }
+
+            if (message.To.Count == 0)
+                return false;
+
+            await client.SendMailAsync(message, cancellationToken);
+
             alert.LastNotificationDate = DateTime.UtcNow;
             alert.NotificationCount++;
-
             _ = await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Email notification sent for alert {AlertId} to {Emails}", alertId, alert.NotificationEmails);
+            logger.LogInformation(
+                "Stock alert email notification #{Count} sent for alert {AlertId} to {Emails}",
+                alert.NotificationCount, alertId, alert.NotificationEmails);
 
             return true;
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to send email notification for stock alert {AlertId}", alertId);
             throw;
         }
     }

@@ -1204,8 +1204,6 @@ public class PromotionService(
 
             var rules = await query.ToListAsync(cancellationToken);
 
-            // TODO: Implement proper DTO mapping for PromotionRule
-            // For now, return empty collection to avoid compilation errors
             return rules.Select(MapToPromotionRuleDto).ToList();
         }
         catch (Exception ex)

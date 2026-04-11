@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
+using System.Security.Cryptography;
 
 namespace EventForge.Server.Services.Configuration;
 
@@ -10,8 +11,24 @@ public class ConfigurationService(
     EventForgeDbContext context,
     ITenantContext tenantContext,
     IAuditLogService auditLogService,
+    IConfiguration configuration,
     ILogger<ConfigurationService> logger) : IConfigurationService
 {
+    // Prefix used to identify AES-256-GCM encrypted values stored in the DB.
+    // Values without this prefix are treated as legacy Base64 (read-only backward compat).
+    private const string AesPrefix = "AES256GCM:";
+
+    /// <summary>
+    /// Derives a 32-byte AES key from the configured Encryption:Key value (or falls back
+    /// to the JWT SecretKey) using SHA-256 to guarantee the correct length.
+    /// </summary>
+    private byte[] DeriveEncryptionKey()
+    {
+        var keySource = configuration["Encryption:Key"]
+                        ?? configuration["Jwt:SecretKey"]
+                        ?? "EventForge-DefaultKey-ChangeInProduction!";
+        return SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(keySource));
+    }
 
     public async Task<IEnumerable<ConfigurationDto>> GetAllConfigurationsAsync(CancellationToken ct = default)
     {
@@ -414,25 +431,63 @@ public class ConfigurationService(
 
     private string EncryptValue(string value)
     {
-        // Simple Base64 encoding for demonstration
-        // In production, use proper encryption like AES
-        var bytes = System.Text.Encoding.UTF8.GetBytes(value);
-        return Convert.ToBase64String(bytes);
+        var key = DeriveEncryptionKey();
+        var nonce = new byte[AesGcm.NonceByteSizes.MaxSize];   // 12 bytes
+        var tag   = new byte[AesGcm.TagByteSizes.MaxSize];    // 16 bytes
+        var plaintext  = System.Text.Encoding.UTF8.GetBytes(value);
+        var ciphertext = new byte[plaintext.Length];
+
+        RandomNumberGenerator.Fill(nonce);
+
+        using var aes = new AesGcm(key, AesGcm.TagByteSizes.MaxSize);
+        aes.Encrypt(nonce, plaintext, ciphertext, tag);
+
+        // Format: nonce(12) + tag(16) + ciphertext — all Base64-encoded with prefix
+        var blob = new byte[nonce.Length + tag.Length + ciphertext.Length];
+        Buffer.BlockCopy(nonce, 0, blob, 0, nonce.Length);
+        Buffer.BlockCopy(tag,   0, blob, nonce.Length, tag.Length);
+        Buffer.BlockCopy(ciphertext, 0, blob, nonce.Length + tag.Length, ciphertext.Length);
+
+        return AesPrefix + Convert.ToBase64String(blob);
     }
 
     private string DecryptValue(string encryptedValue)
     {
-        // Simple Base64 decoding for demonstration
-        // In production, use proper decryption like AES
+        // Backward compatibility: values without the AES prefix are legacy Base64
+        if (!encryptedValue.StartsWith(AesPrefix, StringComparison.Ordinal))
+        {
+            try
+            {
+                var bytes = Convert.FromBase64String(encryptedValue);
+                return System.Text.Encoding.UTF8.GetString(bytes);
+            }
+            catch (FormatException)
+            {
+                return encryptedValue;
+            }
+        }
+
         try
         {
-            var bytes = Convert.FromBase64String(encryptedValue);
-            return System.Text.Encoding.UTF8.GetString(bytes);
+            var blob  = Convert.FromBase64String(encryptedValue[AesPrefix.Length..]);
+            var nonceSize = AesGcm.NonceByteSizes.MaxSize;  // 12
+            var tagSize   = AesGcm.TagByteSizes.MaxSize;    // 16
+
+            var nonce      = blob[..nonceSize];
+            var tag        = blob[nonceSize..(nonceSize + tagSize)];
+            var ciphertext = blob[(nonceSize + tagSize)..];
+            var plaintext  = new byte[ciphertext.Length];
+
+            var key = DeriveEncryptionKey();
+            using var aes = new AesGcm(key, tagSize);
+            aes.Decrypt(nonce, ciphertext, tag, plaintext);
+
+            return System.Text.Encoding.UTF8.GetString(plaintext);
         }
-        catch (FormatException)
+        catch (Exception ex) when (ex is FormatException or CryptographicException)
         {
-            return encryptedValue; // Return as-is if decryption fails
+            logger.LogError(ex, "Failed to decrypt configuration value; returning raw value.");
+            return encryptedValue;
         }
     }
-
 }

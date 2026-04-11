@@ -6,8 +6,10 @@ using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Hubs;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Chat;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -22,6 +24,7 @@ public class ChatServiceTests : IDisposable
     private readonly Mock<IAuditLogService> _mockAuditLogService;
     private readonly Mock<ILogger<ChatService>> _mockLogger;
     private readonly Mock<IHubContext<ChatHub>> _mockHubContext;
+    private readonly Mock<IWebHostEnvironment> _mockEnvironment;
     private readonly Mock<IOnlineUserTracker> _mockOnlineUserTracker;
     private readonly ChatService _chatService;
     private readonly Guid _tenantId = Guid.NewGuid();
@@ -41,6 +44,8 @@ public class ChatServiceTests : IDisposable
         _mockAuditLogService = new Mock<IAuditLogService>();
         _mockLogger = new Mock<ILogger<ChatService>>();
         _mockHubContext = new Mock<IHubContext<ChatHub>>();
+        _mockEnvironment = new Mock<IWebHostEnvironment>();
+        _mockEnvironment.Setup(e => e.ContentRootPath).Returns(Path.GetTempPath());
         _mockOnlineUserTracker = new Mock<IOnlineUserTracker>();
         _mockOnlineUserTracker.Setup(x => x.IsOnline(It.IsAny<Guid>())).Returns(false);
 
@@ -73,7 +78,7 @@ public class ChatServiceTests : IDisposable
                 ChangedAt = DateTime.UtcNow
             });
 
-        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockOnlineUserTracker.Object);
+        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockEnvironment.Object, new MemoryCache(new MemoryCacheOptions()), _mockOnlineUserTracker.Object);
 
         // Seed test data
         SeedTestData();

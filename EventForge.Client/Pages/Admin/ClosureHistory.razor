@@ -219,6 +219,12 @@
                 });
             });
 
+            _hubConnection.Reconnected += async _ =>
+            {
+                try { await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId); }
+                catch (Exception ex) { Logger.LogWarning(ex, "ClosureHistory: failed to re-subscribe to printer {PrinterId} after reconnect", PrinterId); }
+            };
+
             await _hubConnection.StartAsync();
             await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId);
 

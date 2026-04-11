@@ -1095,6 +1095,12 @@ public partial class POS2026 : IAsyncDisposable
                 InvokeAsync(StateHasChanged);
             });
 
+            _fiscalHubConnection.Reconnected += async _ =>
+            {
+                try { await _fiscalHubConnection.SendAsync("SubscribeToPrinter", _fiscalPrinterId.Value); }
+                catch (Exception ex) { Logger.LogWarning(ex, "POS2026: failed to re-subscribe to printer {PrinterId} after reconnect", _fiscalPrinterId.Value); }
+            };
+
             await _fiscalHubConnection.StartAsync();
             await _fiscalHubConnection.SendAsync("SubscribeToPrinter", _fiscalPrinterId.Value);
             _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);

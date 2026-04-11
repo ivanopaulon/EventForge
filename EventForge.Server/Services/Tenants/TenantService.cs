@@ -1211,14 +1211,23 @@ public class TenantService(
 
     private async Task<long> CalculateStorageUsageAsync(Guid tenantId)
     {
-        // This is a placeholder implementation
-        // In a real application, you would calculate actual storage usage
-        // from file uploads, documents, etc.
-        var userCount = await context.Users.AsNoTracking().CountAsync(u => u.TenantId == tenantId);
-        var eventCount = await context.Events.AsNoTracking().CountAsync(e => e.TenantId == tenantId);
+        // Sum actual file sizes stored in the three file-bearing entities for this tenant.
+        var attachmentBytes = await context.DocumentAttachments
+            .AsNoTracking()
+            .Where(a => a.TenantId == tenantId && !a.IsDeleted)
+            .SumAsync(a => (long)a.FileSizeBytes);
 
-        // Rough estimation: 1KB per user + 10KB per event
-        return (userCount * 1024) + (eventCount * 10240);
+        var chatAttachmentBytes = await context.MessageAttachments
+            .AsNoTracking()
+            .Where(a => a.TenantId == tenantId && !a.IsDeleted)
+            .SumAsync(a => a.FileSize);
+
+        var documentReferenceBytes = await context.DocumentReferences
+            .AsNoTracking()
+            .Where(d => d.TenantId == tenantId && !d.IsDeleted)
+            .SumAsync(d => (long)d.FileSizeBytes);
+
+        return attachmentBytes + chatAttachmentBytes + documentReferenceBytes;
     }
 
     private async Task<int> CalculateEventsThisMonthAsync(Guid tenantId)

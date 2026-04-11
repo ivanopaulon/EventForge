@@ -2,6 +2,7 @@ using EventForge.DTOs.Notifications;
 using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Notifications;
@@ -9,8 +10,7 @@ namespace EventForge.Server.Services.Notifications;
 /// <summary>
 /// Notification service implementation with comprehensive multi-tenant support.
 /// 
-/// This implementation provides stub methods for all notification functionality
-/// while establishing the foundation for future full implementation.
+/// This implementation covers all core notification functionality using EF Core DB operations.
 /// 
 /// Key architectural patterns:
 /// - Multi-tenant data isolation with tenant-aware queries
@@ -30,6 +30,7 @@ public class NotificationService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
     ILogger<NotificationService> logger,
+    IMemoryCache memoryCache,
     IHubContext<AppHub> hubContext) : INotificationService
 {
 
@@ -144,12 +145,13 @@ public class NotificationService(
             }
 
             // Build response DTO
+            var senderName1 = await ResolveUserNameAsync(createDto.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notificationId,
                 TenantId = createDto.TenantId,
                 SenderId = createDto.SenderId,
-                SenderName = "System", // TODO: Resolve sender name from user service
+                SenderName = senderName1,
                 RecipientIds = createDto.RecipientIds,
                 Type = createDto.Type,
                 Priority = createDto.Priority,
@@ -529,13 +531,19 @@ public class NotificationService(
                 })
                 .ToListAsync(cancellationToken);
 
+            // Pre-fetch sender names
+            var senderIds = items.Select(i => i.Notification.SenderId ?? Guid.Empty).ToList();
+            var batchNames = await ResolveUserNamesAsync(senderIds, cancellationToken);
+
             // Map to DTOs with deserialization
             var notificationDtos = items.Select(item => new NotificationResponseDto
             {
                 Id = item.Notification.Id,
                 TenantId = item.Recipient.TenantId,
                 SenderId = item.Notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = item.Notification.SenderId.HasValue
+                    ? batchNames.GetValueOrDefault(item.Notification.SenderId.Value, "System")
+                    : "System",
                 RecipientIds = new List<Guid> { item.Recipient.UserId },
                 Type = item.Notification.Type,
                 Priority = item.Notification.Priority,
@@ -805,12 +813,13 @@ public class NotificationService(
                 entityDisplayName: $"Notification Access: {notification.Title}",
                 cancellationToken: cancellationToken);
 
+            var senderName2 = await ResolveUserNameAsync(notification.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notification.Id,
                 TenantId = notificationRecipient.TenantId,
                 SenderId = notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = senderName2,
                 RecipientIds = new List<Guid> { userId },
                 Type = notification.Type,
                 Priority = notification.Priority,
@@ -904,12 +913,13 @@ public class NotificationService(
                 userId, notificationId, reason ?? "No reason provided");
 
             // Return updated notification
+            var senderName3 = await ResolveUserNameAsync(notificationRecipient.Notification.SenderId, cancellationToken);
             return new NotificationResponseDto
             {
                 Id = notificationRecipient.Notification.Id,
                 TenantId = notificationRecipient.TenantId,
                 SenderId = notificationRecipient.Notification.SenderId,
-                SenderName = "System", // TODO: Resolve sender name
+                SenderName = senderName3,
                 RecipientIds = new List<Guid> { userId },
                 Type = notificationRecipient.Notification.Type,
                 Priority = notificationRecipient.Notification.Priority,
@@ -1101,7 +1111,7 @@ public class NotificationService(
 
     /// <summary>
     /// Processes bulk status operations on notifications.
-    /// STUB IMPLEMENTATION - Processes each notification individually.
+    /// Applies the requested action to each notification individually.
     /// </summary>
     public async Task<BulkNotificationResultDto> ProcessBulkActionAsync(
         BulkNotificationActionDto bulkAction,
@@ -1353,27 +1363,7 @@ public class NotificationService(
             // 2. Update notification.Payload.Locale
             notification.Payload.Locale = targetLocale;
 
-            // 3. TODO: Future implementation - Integrate with ITranslationService
-            // When ITranslationService is available:
-            // if (notification.Payload.LocalizationParams != null)
-            // {
-            //     var translationKey = $"notification.{notification.Type}.{notification.Payload.Title}";
-            //     var translatedTitle = await _translationService.TranslateAsync(
-            //         translationKey, 
-            //         targetLocale, 
-            //         notification.Payload.LocalizationParams);
-            //     
-            //     notification.Payload.Title = translatedTitle;
-            //     
-            //     // Same for message
-            //     var messageKey = $"notification.{notification.Type}.{notification.Payload.Message}";
-            //     var translatedMessage = await _translationService.TranslateAsync(
-            //         messageKey,
-            //         targetLocale,
-            //         notification.Payload.LocalizationParams);
-            //     
-            //     notification.Payload.Message = translatedMessage;
-            // }
+            // Translation of payload content requires ITranslationService (future integration).
 
             // 4. Log localization request for analytics
             logger.LogDebug(
@@ -1541,8 +1531,7 @@ public class NotificationService(
     }
 
     /// <summary>
-    /// Cleans up notification data based on retention policies.
-    /// STUB IMPLEMENTATION - Returns empty cleanup results.
+    /// Cleans up notification data based on retention policies — deletes expired/archived records from the database.
     /// </summary>
     public async Task<CleanupResultDto> CleanupNotificationDataAsync(
         NotificationCleanupPolicyDto cleanupPolicy,
@@ -1551,17 +1540,56 @@ public class NotificationService(
         try
         {
             var stopwatch = Stopwatch.StartNew();
+            var cutoff = DateTime.UtcNow - cleanupPolicy.RetentionPeriod;
 
             logger.LogInformation(
-                "Cleaning up notification data for tenant {TenantId} with retention period {RetentionPeriod}",
-                cleanupPolicy.TenantId?.ToString() ?? "ALL", cleanupPolicy.RetentionPeriod);
+                "Cleaning up notification data for tenant {TenantId} older than {Cutoff}",
+                cleanupPolicy.TenantId?.ToString() ?? "ALL", cutoff);
 
-            // TODO: Implement cleanup logic
-            await Task.Delay(100, cancellationToken);
+            var query = context.Notifications
+                .Where(n => n.CreatedAt < cutoff && !n.IsDeleted);
+
+            if (cleanupPolicy.TenantId.HasValue)
+                query = query.Where(n => n.TenantId == cleanupPolicy.TenantId.Value);
+
+            if (!cleanupPolicy.IncludeArchived)
+                query = query.Where(n => !n.IsArchived);
+
+            if (cleanupPolicy.TypeFilter?.Count > 0)
+                query = query.Where(n => cleanupPolicy.TypeFilter.Contains(n.Type));
+
+            var toDelete = await query.ToListAsync(cancellationToken);
+
+            if (toDelete.Count == 0)
+            {
+                return new CleanupResultDto
+                {
+                    CleanedCount = 0,
+                    AnonymizedCount = 0,
+                    FreedBytes = 0,
+                    ProcessingTime = stopwatch.Elapsed
+                };
+            }
+
+            var notificationIds = toDelete.Select(n => n.Id).ToList();
+
+            // Remove associated recipients first to respect FK constraints
+            var recipients = await context.NotificationRecipients
+                .Where(r => notificationIds.Contains(r.NotificationId))
+                .ToListAsync(cancellationToken);
+
+            context.NotificationRecipients.RemoveRange(recipients);
+            context.Notifications.RemoveRange(toDelete);
+            _ = await context.SaveChangesAsync(cancellationToken);
+
+            stopwatch.Stop();
+            logger.LogInformation(
+                "Cleaned up {Count} notifications (+{RecipCount} recipients) for tenant {TenantId} in {Elapsed}ms.",
+                toDelete.Count, recipients.Count, cleanupPolicy.TenantId?.ToString() ?? "ALL", stopwatch.ElapsedMilliseconds);
 
             return new CleanupResultDto
             {
-                CleanedCount = 0,
+                CleanedCount = toDelete.Count,
                 AnonymizedCount = 0,
                 FreedBytes = 0,
                 ProcessingTime = stopwatch.Elapsed
@@ -1569,6 +1597,7 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to clean up notification data.");
             throw;
         }
     }
@@ -1593,10 +1622,7 @@ public class NotificationService(
 
         try
         {
-            // Simple rate limiting implementation
-            // In a production environment, this should use Redis or distributed cache
-
-            // Define rate limits by type and priority
+            // Define per-hour limits by notification type
             var rateLimits = new Dictionary<NotificationTypes, int>
             {
                 { NotificationTypes.System, 1000 },
@@ -1608,17 +1634,28 @@ public class NotificationService(
             };
 
             var limit = rateLimits.GetValueOrDefault(notificationType, 100);
-            var remainingQuota = limit - 1; // Simplified - in reality, track actual usage
 
-            // Check if limit would be exceeded (simplified logic)
-            var isAllowed = remainingQuota > 0;
+            // Build a scoped cache key: tenant + user (or global) + type, reset every hour
+            var windowKey = $"ratelimit:notification:{tenantId?.ToString() ?? "global"}:{userId?.ToString() ?? "anon"}:{notificationType}:{DateTime.UtcNow:yyyyMMddHH}";
 
-            await Task.Delay(5, cancellationToken); // Simulate async operation
+            var currentCount = memoryCache.GetOrCreate(windowKey, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return 0;
+            });
+
+            var isAllowed = currentCount < limit;
+            if (isAllowed)
+            {
+                memoryCache.Set(windowKey, currentCount + 1, TimeSpan.FromHours(1));
+            }
+
+            var remainingQuota = Math.Max(0, limit - (currentCount + (isAllowed ? 1 : 0)));
 
             return new RateLimitStatusDto
             {
                 IsAllowed = isAllowed,
-                RemainingQuota = Math.Max(0, remainingQuota),
+                RemainingQuota = remainingQuota,
                 ResetTime = TimeSpan.FromHours(1),
                 RateLimitType = tenantId.HasValue ? "Tenant" : "Global",
                 LimitDetails = new Dictionary<string, object>
@@ -1627,6 +1664,7 @@ public class NotificationService(
                     ["UserId"] = userId?.ToString() ?? "N/A",
                     ["Type"] = notificationType.ToString(),
                     ["Limit"] = limit,
+                    ["CurrentUsage"] = currentCount + (isAllowed ? 1 : 0),
                     ["CheckedAt"] = DateTime.UtcNow
                 }
             };
@@ -1653,7 +1691,7 @@ public class NotificationService(
 
     /// <summary>
     /// Updates rate limiting policies for tenants.
-    /// STUB IMPLEMENTATION - Logs update and returns policy.
+    /// Records the update in the audit log and returns the applied policy.
     /// </summary>
     public async Task<RateLimitPolicyDto> UpdateTenantRateLimitAsync(
         Guid tenantId,
@@ -1687,7 +1725,7 @@ public class NotificationService(
 
     /// <summary>
     /// Gets comprehensive notification statistics.
-    /// STUB IMPLEMENTATION - Returns empty statistics.
+    /// Gets notification statistics via database aggregation queries.
     /// </summary>
     public async Task<NotificationStatsDto> GetNotificationStatisticsAsync(
         Guid? tenantId = null,
@@ -1696,30 +1734,46 @@ public class NotificationService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-                tenantId?.ToString() ?? "ALL",
-                dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
-                dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
+            var query = context.Notifications.AsNoTracking().Where(n => !n.IsDeleted);
+            if (tenantId.HasValue) query = query.Where(n => n.TenantId == tenantId.Value);
+            if (dateRange is not null)
+                query = query.Where(n => n.CreatedAt >= dateRange.StartDate && n.CreatedAt <= dateRange.EndDate);
 
-            // TODO: Implement database aggregation queries
-            await Task.Delay(50, cancellationToken);
+            var now = DateTime.UtcNow;
+
+            var totalNotifications = await query.CountAsync(cancellationToken);
+            var unreadCount = await query.CountAsync(n => n.Status == NotificationStatus.Sent || n.Status == NotificationStatus.Delivered || n.Status == NotificationStatus.Pending, cancellationToken);
+            var acknowledgedCount = await query.CountAsync(n => n.Status == NotificationStatus.Acknowledged, cancellationToken);
+            var silencedCount = await query.CountAsync(n => n.Status == NotificationStatus.Silenced, cancellationToken);
+            var archivedCount = await query.CountAsync(n => n.IsArchived, cancellationToken);
+            var expiredCount = await query.CountAsync(n => n.ExpiresAt.HasValue && n.ExpiresAt.Value < now, cancellationToken);
+
+            var countByTypeRaw = await query
+                .GroupBy(n => n.Type)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+
+            var countByPriorityRaw = await query
+                .GroupBy(n => n.Priority)
+                .Select(g => new { Priority = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
 
             return new NotificationStatsDto
             {
                 TenantId = tenantId,
-                TotalNotifications = 0,
-                UnreadCount = 0,
-                AcknowledgedCount = 0,
-                SilencedCount = 0,
-                ArchivedCount = 0,
-                ExpiredCount = 0,
-                CountByType = new Dictionary<NotificationTypes, int>(),
-                CountByPriority = new Dictionary<NotificationPriority, int>()
+                TotalNotifications = totalNotifications,
+                UnreadCount = unreadCount,
+                AcknowledgedCount = acknowledgedCount,
+                SilencedCount = silencedCount,
+                ArchivedCount = archivedCount,
+                ExpiredCount = expiredCount,
+                CountByType = countByTypeRaw.ToDictionary(x => x.Type, x => x.Count),
+                CountByPriority = countByPriorityRaw.ToDictionary(x => x.Priority, x => x.Count)
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to compute notification statistics.");
             throw;
         }
     }
@@ -1730,7 +1784,7 @@ public class NotificationService(
 
     /// <summary>
     /// Sends system-wide notifications for critical alerts.
-    /// STUB IMPLEMENTATION - Logs action and returns mock results.
+    /// Records the action in the audit log and broadcasts to all specified recipients.
     /// </summary>
     public async Task<SystemNotificationResultDto> SendSystemNotificationAsync(
         CreateSystemNotificationDto systemNotification,
@@ -1769,8 +1823,7 @@ public class NotificationService(
     }
 
     /// <summary>
-    /// Gets detailed audit trail for notification operations.
-    /// STUB IMPLEMENTATION - Returns empty paginated results.
+    /// Gets detailed audit trail for notification operations — queries EntityChangeLogs.
     /// </summary>
     public async Task<PagedResult<NotificationAuditEntryDto>> GetNotificationAuditTrailAsync(
         NotificationAuditQueryDto auditQuery,
@@ -1778,30 +1831,78 @@ public class NotificationService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving notification audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
-                auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
+            var query = context.EntityChangeLogs
+                .AsNoTracking()
+                .Where(e => e.EntityName == "Notification" || e.EntityName == "NotificationRecipient");
 
-            // TODO: Query audit log entries from database
-            await Task.Delay(20, cancellationToken);
+            if (auditQuery.TenantId.HasValue)
+                query = query.Where(e => e.TenantId == auditQuery.TenantId.Value);
+
+            if (auditQuery.UserId.HasValue)
+                query = query.Where(e => e.ChangedBy == auditQuery.UserId.Value.ToString());
+
+            if (auditQuery.FromDate.HasValue)
+                query = query.Where(e => e.ChangedAt >= auditQuery.FromDate.Value);
+
+            if (auditQuery.ToDate.HasValue)
+                query = query.Where(e => e.ChangedAt <= auditQuery.ToDate.Value);
+
+            if (!string.IsNullOrWhiteSpace(auditQuery.SearchTerm))
+                query = query.Where(e => (e.NewValue != null && e.NewValue.Contains(auditQuery.SearchTerm)) ||
+                                         (e.OldValue != null && e.OldValue.Contains(auditQuery.SearchTerm)));
+
+            if (auditQuery.Operations?.Count > 0)
+                query = query.Where(e => auditQuery.Operations.Contains(e.OperationType));
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var rawItems = await query
+                .OrderByDescending(e => e.ChangedAt)
+                .Skip((auditQuery.PageNumber - 1) * auditQuery.PageSize)
+                .Take(auditQuery.PageSize)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.EntityName,
+                    e.EntityId,
+                    e.TenantId,
+                    e.ChangedBy,
+                    e.OperationType,
+                    e.PropertyName,
+                    e.OldValue,
+                    e.NewValue,
+                    e.ChangedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = rawItems.Select(e => new NotificationAuditEntryDto
+            {
+                Id = e.Id,
+                NotificationId = e.EntityName == "Notification" ? e.EntityId : null,
+                TenantId = e.TenantId,
+                UserId = Guid.TryParse(e.ChangedBy, out var uid) ? uid : null,
+                Operation = e.OperationType,
+                Details = $"{e.PropertyName}: {e.OldValue} → {e.NewValue}",
+                Timestamp = e.ChangedAt
+            }).ToList();
 
             return new PagedResult<NotificationAuditEntryDto>
             {
-                Items = [],
+                Items = items,
                 Page = auditQuery.PageNumber,
                 PageSize = auditQuery.PageSize,
-                TotalCount = 0
+                TotalCount = totalCount
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to retrieve notification audit trail.");
             throw;
         }
     }
 
     /// <summary>
-    /// Monitors notification system health.
-    /// STUB IMPLEMENTATION - Returns healthy status.
+    /// Monitors notification system health — queries database and counts pending items.
     /// </summary>
     public async Task<NotificationSystemHealthDto> GetSystemHealthAsync(
         CancellationToken cancellationToken = default)
@@ -1810,26 +1911,38 @@ public class NotificationService(
         {
             logger.LogDebug("Checking notification system health");
 
-            // TODO: Implement health checks for database, cache, external services
-            await Task.Delay(10, cancellationToken);
+            var alerts = new List<string>();
+            var dbConnected = false;
+            var totalNotifications = 0;
+            var pendingCount = 0;
+
+            try
+            {
+                totalNotifications = await context.Notifications.AsNoTracking().CountAsync(n => !n.IsDeleted, cancellationToken);
+                pendingCount = await context.Notifications.AsNoTracking().CountAsync(n => !n.IsDeleted && n.Status == NotificationStatus.Pending, cancellationToken);
+                dbConnected = true;
+            }
+            catch (Exception dbEx)
+            {
+                alerts.Add($"Database connectivity issue: {dbEx.Message}");
+            }
 
             return new NotificationSystemHealthDto
             {
-                Status = "Healthy",
+                Status = alerts.Count == 0 ? "Healthy" : "Degraded",
                 Metrics = new Dictionary<string, object>
                 {
-                    ["DatabaseConnected"] = true,
-                    ["CacheConnected"] = true,
-                    ["ExternalProvidersConnected"] = true,
-                    ["QueueLength"] = 0,
-                    ["ProcessingRate"] = "0 notifications/sec",
+                    ["DatabaseConnected"] = dbConnected,
+                    ["TotalNotifications"] = totalNotifications,
+                    ["PendingNotifications"] = pendingCount,
                     ["LastHealthCheck"] = DateTime.UtcNow
                 },
-                Alerts = new List<string>()
+                Alerts = alerts
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to check notification system health.");
             throw;
         }
     }
@@ -1840,21 +1953,24 @@ public class NotificationService(
 
     /// <summary>
     /// Validates tenant access for multi-tenant operations.
-    /// TODO: Implement actual tenant validation logic.
+    /// Checks that the tenant exists and has not been soft-deleted.
     /// </summary>
     private async Task ValidateTenantAccessAsync(Guid? tenantId, CancellationToken cancellationToken)
     {
-        if (tenantId.HasValue)
-        {
-            logger.LogDebug("Validating tenant access for {TenantId}", tenantId.Value);
-            // TODO: Validate tenant exists and is active
-        }
-        await Task.Delay(1, cancellationToken);
+        if (!tenantId.HasValue)
+            return;
+
+        var exists = await context.Tenants
+            .AsNoTracking()
+            .AnyAsync(t => t.Id == tenantId.Value && !t.IsDeleted, cancellationToken);
+
+        if (!exists)
+            throw new InvalidOperationException($"Tenant {tenantId.Value} not found or is inactive.");
     }
 
     /// <summary>
     /// Validates rate limiting before operations.
-    /// TODO: Implement actual rate limiting validation.
+    /// Throws if the rate limit is exceeded for the given tenant/user/type combination.
     /// </summary>
     private async Task ValidateRateLimitAsync(
         Guid? tenantId,
@@ -1870,6 +1986,158 @@ public class NotificationService(
                 $"Rate limit exceeded for tenant {tenantId}, user {userId}, type {type}. " +
                 $"Quota resets in {rateLimitStatus.ResetTime}");
         }
+    }
+
+    #endregion
+
+    #region Activity Feed
+
+    /// <summary>
+    /// Returns a paginated activity feed for the user combining their notification history
+    /// and entity change audit events scoped to the tenant.
+    /// </summary>
+    public async Task<PagedResult<ActivityFeedEntryDto>> GetActivityFeedAsync(
+        Guid userId,
+        Guid? tenantId,
+        PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Notification-based entries via Recipients table
+            var notifQuery =
+                from r in context.NotificationRecipients.AsNoTracking()
+                join n in context.Notifications.AsNoTracking() on r.NotificationId equals n.Id
+                where r.UserId == userId && !n.IsDeleted
+                select new { n.Id, n.TenantId, n.Title, n.Message, n.CreatedAt, StatusStr = n.Status.ToString(), PriorityStr = n.Priority.ToString(), TypeStr = n.Type.ToString() };
+
+            if (tenantId.HasValue)
+                notifQuery = notifQuery.Where(x => x.TenantId == tenantId.Value);
+
+            var rawNotifEntries = await notifQuery
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(pagination.PageSize * pagination.Page * 2)
+                .ToListAsync(cancellationToken);
+
+            var notifEntries = rawNotifEntries.Select(x => new ActivityFeedEntryDto
+            {
+                Id = x.Id,
+                TenantId = x.TenantId,
+                UserId = userId,
+                ActivityType = "notification",
+                Action = x.StatusStr,
+                Title = x.Title,
+                Description = x.Message,
+                CreatedAt = x.CreatedAt,
+                Metadata = new Dictionary<string, object>
+                {
+                    ["priority"] = x.PriorityStr,
+                    ["type"] = x.TypeStr
+                }
+            }).ToList();
+
+            // Audit-log-based entries for the user's own actions
+            var auditQuery = context.EntityChangeLogs
+                .AsNoTracking()
+                .Where(e => e.ChangedBy == userId.ToString());
+
+            if (tenantId.HasValue)
+                auditQuery = auditQuery.Where(e => e.TenantId == tenantId.Value);
+
+            var rawAuditEntries = await auditQuery
+                .OrderByDescending(e => e.ChangedAt)
+                .Take(pagination.PageSize * pagination.Page * 2)
+                .Select(e => new { e.Id, e.TenantId, e.OperationType, e.EntityDisplayName, e.EntityName, e.PropertyName, e.OldValue, e.NewValue, e.ChangedAt, e.EntityId })
+                .ToListAsync(cancellationToken);
+
+            var auditEntries = rawAuditEntries.Select(e => new ActivityFeedEntryDto
+            {
+                Id = e.Id,
+                TenantId = e.TenantId,
+                UserId = userId,
+                ActivityType = "audit",
+                Action = e.OperationType,
+                Title = e.EntityDisplayName ?? e.EntityName,
+                Description = $"{e.PropertyName}: {e.OldValue ?? "—"} → {e.NewValue ?? "—"}",
+                CreatedAt = e.ChangedAt,
+                Metadata = new Dictionary<string, object>
+                {
+                    ["entityName"] = e.EntityName,
+                    ["entityId"] = e.EntityId.ToString()
+                }
+            }).ToList();
+
+            // Merge, sort, and paginate in memory
+            var merged = notifEntries
+                .Concat(auditEntries)
+                .OrderByDescending(e => e.CreatedAt)
+                .Skip((pagination.Page - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            var totalCount = notifEntries.Count + auditEntries.Count;
+
+            return new PagedResult<ActivityFeedEntryDto>
+            {
+                Items = merged,
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to build activity feed for user {UserId}.", userId);
+            throw;
+        }
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    /// <summary>
+    /// Resolves a user's display name from the Users table (FirstName+LastName or Username).
+    /// Returns "System" for null userId or when no user is found.
+    /// </summary>
+    private async Task<string> ResolveUserNameAsync(Guid? userId, CancellationToken cancellationToken = default)
+    {
+        if (!userId.HasValue || userId.Value == Guid.Empty) return "System";
+
+        var user = await context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId.Value)
+            .Select(u => new { u.FirstName, u.LastName, u.Username })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (user is null) return userId.Value.ToString("N")[..8];
+
+        return !string.IsNullOrEmpty(user.FirstName) || !string.IsNullOrEmpty(user.LastName)
+            ? $"{user.FirstName} {user.LastName}".Trim()
+            : user.Username;
+    }
+
+    /// <summary>
+    /// Batch-resolves user display names for a set of user IDs.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolveUserNamesAsync(
+        IEnumerable<Guid> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = userIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.Username })
+            .ToListAsync(cancellationToken);
+
+        return users.ToDictionary(
+            u => u.Id,
+            u => !string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName)
+                ? $"{u.FirstName} {u.LastName}".Trim()
+                : u.Username);
     }
 
     #endregion

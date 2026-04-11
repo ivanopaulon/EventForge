@@ -222,6 +222,105 @@ public class AppHub(
         logger.LogInformation("AppHub: SuperAdmin {UserId} sent system notification", GetCurrentUserId());
     }
 
+    /// <summary>Silences a notification for the caller and notifies all sessions of the same user.</summary>
+    public async Task SilenceNotification(Guid notificationId, string? reason = null)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) throw new HubException("User not authenticated");
+
+        try
+        {
+            await notificationService.SilenceNotificationAsync(notificationId, userId.Value, reason);
+
+            var update = new UpdateNotificationStatusDto
+            {
+                NotificationId = notificationId,
+                Status = NotificationStatus.Silenced,
+                UserId = userId.Value,
+                Reason = reason
+            };
+
+            logger.LogInformation("AppHub: user {UserId} silenced notification {NotificationId}", userId.Value, notificationId);
+
+            await Clients.Caller.SendAsync("NotificationSilenced", notificationId);
+            await Clients.Group($"user_{userId.Value}").SendAsync("NotificationStatusUpdated", update);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "AppHub: failed to silence notification {NotificationId}", notificationId);
+            throw new HubException("Failed to silence notification");
+        }
+    }
+
+    /// <summary>Performs a bulk action on multiple notifications (max 100) for the calling user.</summary>
+    public async Task BulkNotificationAction(BulkNotificationActionDto action)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) throw new HubException("User not authenticated");
+
+        if (action.NotificationIds?.Count > 100)
+            throw new HubException("Bulk operations are limited to 100 notifications at a time");
+
+        try
+        {
+            action.UserId = userId.Value;
+            var result = await notificationService.ProcessBulkActionAsync(action);
+
+            logger.LogInformation("AppHub: user {UserId} performed bulk action {Action} on {Count} notifications",
+                userId.Value, action.Action, action.NotificationIds?.Count ?? 0);
+
+            await Clients.Caller.SendAsync("BulkActionCompleted", result);
+            await Clients.Group($"user_{userId.Value}").SendAsync("NotificationsBulkUpdated", result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "AppHub: failed to perform bulk action for user {UserId}", userId.Value);
+            throw new HubException("Failed to perform bulk operation");
+        }
+    }
+
+    /// <summary>Acknowledges the caller's preferred locale for notification payloads.</summary>
+    public async Task UpdateNotificationLocale(string locale)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) throw new HubException("User not authenticated");
+
+        try
+        {
+            logger.LogInformation("AppHub: user {UserId} updated notification locale to {Locale}", userId.Value, locale);
+            await Clients.Caller.SendAsync("LocaleUpdated", locale);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "AppHub: failed to update notification locale for user {UserId}", userId.Value);
+            throw new HubException("Failed to update notification locale");
+        }
+    }
+
+    /// <summary>Returns notification statistics for the given tenant (Admin/SuperAdmin only).</summary>
+    public async Task GetNotificationStats(Guid? tenantId = null)
+    {
+        var userId = GetCurrentUserId();
+        var currentTenantId = GetCurrentTenantId();
+
+        if (!IsInRole("SuperAdmin") && !IsInRole("Admin"))
+            throw new HubException("Access denied. Admin role required.");
+
+        if (!IsInRole("SuperAdmin") && tenantId != currentTenantId)
+            throw new HubException("Access denied. Cannot view other tenant statistics.");
+
+        try
+        {
+            var stats = await notificationService.GetNotificationStatisticsAsync(tenantId ?? currentTenantId);
+            await Clients.Caller.SendAsync("NotificationStatsReceived", stats);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "AppHub: failed to get notification stats for user {UserId}", userId);
+            throw new HubException("Failed to retrieve notification statistics");
+        }
+    }
+
     #endregion
 
     #region Audit log methods (from AuditLogHub)

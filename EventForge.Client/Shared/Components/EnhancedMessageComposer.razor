@@ -4,6 +4,7 @@
 @inject ITranslationService TranslationService
 @inject IJSRuntime JSRuntime
 @inject IAppNotificationService AppNotification
+@inject IRealtimeService RealtimeService
 @inject ILogger<EnhancedMessageComposer> Logger
 
 <MudPaper Elevation="3" Class="pa-3 enhanced-message-composer" Style="@ComposerStyle">
@@ -245,6 +246,8 @@
     private int MentionStartPosition = -1;
     private List<UserMentionSuggestionDto>? MentionSuggestions = new();
     private readonly List<Guid> MentionedUserIds = new();
+    private DateTime _lastTypingIndicatorSent = DateTime.MinValue;
+    private static readonly TimeSpan TypingIndicatorThrottle = TimeSpan.FromSeconds(3);
 
     private readonly string[] CommonEmojis = new[]
     {
@@ -560,8 +563,22 @@
 
     private async Task SendTypingIndicator()
     {
-        // TODO: Implement typing indicator via SignalR
-        // This would send a typing event to other chat participants
+        if (CurrentChat == null) return;
+
+        var now = DateTime.UtcNow;
+        if (now - _lastTypingIndicatorSent < TypingIndicatorThrottle)
+            return;
+
+        _lastTypingIndicatorSent = now;
+
+        try
+        {
+            await RealtimeService.SendTypingIndicatorAsync(CurrentChat.Id, isTyping: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to send typing indicator for chat {ChatId}.", CurrentChat.Id);
+        }
     }
 
     private async Task HandleFileInputChanged(InputFileChangeEventArgs e)

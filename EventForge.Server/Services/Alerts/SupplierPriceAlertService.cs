@@ -77,7 +77,7 @@ public class SupplierPriceAlertService(
                 var alertDto = await MapToDto(alert, cancellationToken);
                 if (hubContext is not null && alertDto is not null)
                 {
-                    await hubContext.Clients.Group($"tenant-{tenantId}")
+                    await hubContext.Clients.Group($"tenant_{tenantId}")
                         .SendAsync("NewAlert", alertDto, cancellationToken);
                 }
             }

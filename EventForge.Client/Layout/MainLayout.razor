@@ -139,6 +139,7 @@
     private bool _isManagerOrAbove = false;
     private HubConnection? _fiscalHubConnection;
     private bool _fiscalHubStarted = false;
+    private List<Guid> _fiscalPrinterIds = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -391,6 +392,15 @@
                 _closureOverdueDismissed = false;
             });
 
+            _fiscalHubConnection.Reconnected += async _ =>
+            {
+                foreach (var id in _fiscalPrinterIds)
+                {
+                    try { await _fiscalHubConnection.SendAsync("SubscribeToPrinter", id); }
+                    catch (Exception ex) { Logger.LogWarning(ex, "MainLayout: failed to re-subscribe to printer {PrinterId} after reconnect", id); }
+                }
+            };
+
             await _fiscalHubConnection.StartAsync();
 
             // Subscribe to all fiscal printers so we receive their ClosureRequired events
@@ -399,6 +409,7 @@
                 var printerPage = await HttpClientService.GetAsync<PagedResult<PrinterDto>>(
                     "api/v1/stations/printers?page=1&pageSize=100");
                 var fiscalPrinters = printerPage?.Items?.Where(p => p.IsFiscalPrinter).ToList() ?? [];
+                _fiscalPrinterIds = fiscalPrinters.Select(p => p.Id).ToList();
                 foreach (var p in fiscalPrinters)
                     await _fiscalHubConnection.SendAsync("SubscribeToPrinter", p.Id);
 

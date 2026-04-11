@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 namespace EventForge.Server.Services.Audit;
 
@@ -9,8 +12,10 @@ namespace EventForge.Server.Services.Audit;
 /// </summary>
 public class AuditLogService(
     EventForgeDbContext context,
+    IMemoryCache memoryCache,
     ILogger<AuditLogService> logger) : IAuditLogService
 {
+    private static string ExportCacheKey(Guid exportId) => $"audit_export_{exportId}";
 
     /// <summary>
     /// Creates an audit log entry for an entity change.
@@ -547,7 +552,7 @@ public class AuditLogService(
     }
 
     /// <summary>
-    /// Exports audit data in the specified format.
+    /// Exports audit data in JSON or CSV format and caches the result for 24h.
     /// </summary>
     public async Task<ExportResultDto> ExportAdvancedAsync(
         ExportRequestDto exportRequest,
@@ -555,74 +560,136 @@ public class AuditLogService(
     {
         ArgumentNullException.ThrowIfNull(exportRequest);
 
-        // Validate export request
-        if (!new[] { "JSON", "CSV", "EXCEL" }.Contains(exportRequest.Format.ToUpper()))
-        {
-            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, EXCEL");
-        }
+        var format = exportRequest.Format.ToUpperInvariant();
+        if (!new[] { "JSON", "CSV" }.Contains(format))
+            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV");
 
-        if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(exportRequest.Type.ToLower()))
-        {
+        var type = exportRequest.Type.ToLowerInvariant();
+        if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(type))
             throw new ArgumentException("Invalid type. Supported types: audit, systemlogs, users, tenants");
-        }
 
         try
         {
-            await Task.Delay(100, cancellationToken); // Simulate async processing
+            var maxRecords = exportRequest.MaxRecords ?? 10_000;
+            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
-            // In a real implementation, this would queue the export job for background processing
+            if (exportRequest.FromDate.HasValue)
+                query = query.Where(l => l.ChangedAt >= exportRequest.FromDate.Value);
+            if (exportRequest.ToDate.HasValue)
+                query = query.Where(l => l.ChangedAt <= exportRequest.ToDate.Value);
+
+            var records = await query
+                .OrderByDescending(l => l.ChangedAt)
+                .Take(maxRecords)
+                .Select(l => new EntityChangeLogDto
+                {
+                    Id = l.Id,
+                    EntityName = l.EntityName,
+                    EntityDisplayName = l.EntityDisplayName,
+                    EntityId = l.EntityId,
+                    PropertyName = l.PropertyName,
+                    OperationType = l.OperationType,
+                    OldValue = l.OldValue,
+                    NewValue = l.NewValue,
+                    ChangedBy = l.ChangedBy,
+                    ChangedAt = l.ChangedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            byte[] bytes = format == "CSV" ? BuildAuditCsv(records) : BuildAuditJson(records);
+
+            var exportId = Guid.NewGuid();
+            var fileName = exportRequest.FileName ?? $"audit_export_{exportId:N}.{format.ToLowerInvariant()}";
             var exportResult = new ExportResultDto
             {
-                Id = Guid.NewGuid(),
-                Type = exportRequest.Type,
-                Format = exportRequest.Format,
-                Status = "Processing",
+                Id = exportId,
+                Type = type,
+                Format = format,
+                Status = "Completed",
+                TotalRecords = records.Count,
+                FileName = fileName,
+                DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
+                FileSizeBytes = bytes.Length,
                 RequestedAt = DateTime.UtcNow,
-                RequestedBy = "Current User" // Should get from current user context
+                CompletedAt = DateTime.UtcNow,
+                RequestedBy = "System",
+                ExpiresAt = DateTime.UtcNow.AddDays(1)
             };
+
+            memoryCache.Set(
+                ExportCacheKey(exportId),
+                (bytes, format, fileName),
+                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
 
             return exportResult;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
     }
 
     /// <summary>
-    /// Gets the status of an export operation.
+    /// Gets the status of an export operation (from cache).
     /// </summary>
-    public async Task<ExportResultDto?> GetExportStatusAsync(
+    public Task<ExportResultDto?> GetExportStatusAsync(
         Guid exportId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await Task.Delay(50, cancellationToken); // Simulate async operation
+        if (!memoryCache.TryGetValue(ExportCacheKey(exportId), out (byte[] Bytes, string Format, string FileName) entry))
+            return Task.FromResult<ExportResultDto?>(null);
 
-            // In a real implementation, this would check the status of the export job from storage
-            var exportResult = new ExportResultDto
-            {
-                Id = exportId,
-                Type = "audit",
-                Format = "JSON",
-                Status = "Completed",
-                TotalRecords = 150,
-                FileName = $"audit_export_{exportId:N}.json",
-                DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
-                FileSizeBytes = 1024 * 50, // 50KB
-                RequestedAt = DateTime.UtcNow.AddMinutes(-5),
-                CompletedAt = DateTime.UtcNow.AddMinutes(-2),
-                RequestedBy = "Current User",
-                ExpiresAt = DateTime.UtcNow.AddDays(7)
-            };
-
-            return exportResult;
-        }
-        catch (Exception ex)
+        var result = new ExportResultDto
         {
-            throw;
+            Id = exportId,
+            Type = "audit",
+            Format = entry.Format,
+            Status = "Completed",
+            FileName = entry.FileName,
+            DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
+            FileSizeBytes = entry.Bytes.Length,
+            RequestedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow,
+            RequestedBy = "System",
+            ExpiresAt = DateTime.UtcNow.AddHours(24)
+        };
+        return Task.FromResult<ExportResultDto?>(result);
+    }
+
+    private static byte[] BuildAuditJson(IReadOnlyList<EntityChangeLogDto> records)
+    {
+        var json = JsonSerializer.Serialize(
+            new { generatedAt = DateTime.UtcNow, recordCount = records.Count, records },
+            new JsonSerializerOptions { WriteIndented = true });
+        return Encoding.UTF8.GetBytes(json);
+    }
+
+    private static byte[] BuildAuditCsv(IReadOnlyList<EntityChangeLogDto> records)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,EntityName,EntityId,PropertyName,OperationType,OldValue,NewValue,ChangedBy,ChangedAt");
+        foreach (var r in records)
+        {
+            sb.AppendLine(string.Join(",",
+                AuditCsvEscape(r.Id.ToString()),
+                AuditCsvEscape(r.EntityName),
+                AuditCsvEscape(r.EntityId.ToString()),
+                AuditCsvEscape(r.PropertyName),
+                AuditCsvEscape(r.OperationType),
+                AuditCsvEscape(r.OldValue),
+                AuditCsvEscape(r.NewValue),
+                AuditCsvEscape(r.ChangedBy),
+                AuditCsvEscape(r.ChangedAt.ToString("O"))));
         }
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string AuditCsvEscape(string? v)
+    {
+        if (v is null) return string.Empty;
+        if (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
+            return $"\"{v.Replace("\"", "\"\"")}\"";
+        return v;
     }
 
     /// <summary>
