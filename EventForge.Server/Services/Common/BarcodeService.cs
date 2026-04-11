@@ -174,7 +174,7 @@ public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
     {
         try
         {
-            await Task.Delay(1, ct); // Make it async
+            await Task.Yield(); // yield to the caller so the method is genuinely async
 
             // Create SkiaSharp bitmap
             using var surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));

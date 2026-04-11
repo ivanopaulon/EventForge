@@ -1656,6 +1656,42 @@ public class ChatService(
     }
 
     /// <summary>
+    /// Returns the physical file path + metadata for streaming download.
+    /// </summary>
+    public async Task<(string PhysicalPath, string ContentType, string FileName)?> GetAttachmentForDownloadAsync(
+        Guid attachmentId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var attachment = await context.MessageAttachments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
+
+            if (attachment is null) return null;
+
+            // Storage path: {ContentRoot}/Uploads/chat/{chatId}/{storedFileName}
+            var physicalPath = Path.Combine(
+                environment.ContentRootPath,
+                "Uploads", "chat",
+                attachment.MessageId.ToString(),
+                attachment.FileName);
+
+            if (!System.IO.File.Exists(physicalPath)) return null;
+
+            return (
+                physicalPath,
+                attachment.ContentType ?? "application/octet-stream",
+                attachment.OriginalFileName ?? attachment.FileName
+            );
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Processes media files — returns available URL variants based on what was stored.
     /// Full media transcoding (thumbnails, WebP) requires an external media service.
     /// </summary>

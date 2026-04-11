@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace EventForge.Server.Services.Logs;
@@ -12,6 +13,7 @@ public class LogManagementService(
     IApplicationLogService applicationLogService,
     IAuditLogService auditLogService,
     ILogSanitizationService logSanitizationService,
+    EventForgeDbContext dbContext,
     ILogger<LogManagementService> logger,
     IMemoryCache cache,
     IConfiguration configuration) : ILogManagementService
@@ -271,13 +273,76 @@ public class LogManagementService(
     {
         try
         {
-            // This is for SuperAdmin audit operations, not entity change logs
-            // TODO: Implement proper audit trail search for SuperAdmin operations
-            await Task.CompletedTask;
+            var query = dbContext.AuditTrails
+                .AsNoTracking()
+                .Include(a => a.PerformedByUser)
+                .Include(a => a.SourceTenant)
+                .Include(a => a.TargetTenant)
+                .Include(a => a.TargetUser)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+                query = query.Where(a => (a.Details != null && a.Details.Contains(searchDto.SearchTerm)) ||
+                                         (a.IpAddress != null && a.IpAddress.Contains(searchDto.SearchTerm)));
+            if (searchDto.UserId.HasValue)
+                query = query.Where(a => a.PerformedByUserId == searchDto.UserId.Value);
+            if (searchDto.SourceTenantId.HasValue)
+                query = query.Where(a => a.SourceTenantId == searchDto.SourceTenantId.Value);
+            if (searchDto.TargetTenantId.HasValue)
+                query = query.Where(a => a.TargetTenantId == searchDto.TargetTenantId.Value);
+            if (searchDto.TargetUserId.HasValue)
+                query = query.Where(a => a.TargetUserId == searchDto.TargetUserId.Value);
+            if (searchDto.WasSuccessful.HasValue)
+                query = query.Where(a => a.WasSuccessful == searchDto.WasSuccessful.Value);
+            if (searchDto.CriticalOperation.HasValue)
+                query = query.Where(a => a.OperationType >= AuditOperationType.TenantSwitch); // all types are admin-level
+            if (searchDto.FromDate.HasValue)
+                query = query.Where(a => a.PerformedAt >= searchDto.FromDate.Value);
+            if (searchDto.ToDate.HasValue)
+                query = query.Where(a => a.PerformedAt <= searchDto.ToDate.Value);
+            if (!string.IsNullOrWhiteSpace(searchDto.SessionId))
+                query = query.Where(a => a.SessionId == searchDto.SessionId);
+            if (!string.IsNullOrWhiteSpace(searchDto.IpAddress))
+                query = query.Where(a => a.IpAddress == searchDto.IpAddress);
+            if (searchDto.OperationTypes?.Count > 0)
+            {
+                if (Enum.TryParse<AuditOperationType>(searchDto.OperationTypes[0], out var opType))
+                    query = query.Where(a => a.OperationType == opType);
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderByDescending(a => a.PerformedAt)
+                .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
+                .Take(searchDto.PageSize)
+                .Select(a => new EventForge.DTOs.SuperAdmin.AuditTrailResponseDto
+                {
+                    Id = a.Id,
+                    OperationType = a.OperationType,
+                    Details = a.Details ?? string.Empty,
+                    PerformedAt = a.PerformedAt,
+                    PerformedByUserId = a.PerformedByUserId,
+                    PerformedByUsername = a.PerformedByUser.Username ?? string.Empty,
+                    SourceTenantId = a.SourceTenantId,
+                    SourceTenantName = a.SourceTenant != null ? a.SourceTenant.Name : null,
+                    TargetTenantId = a.TargetTenantId,
+                    TargetTenantName = a.TargetTenant != null ? a.TargetTenant.Name : null,
+                    TargetUserId = a.TargetUserId,
+                    TargetUsername = a.TargetUser != null ? a.TargetUser.Username : null,
+                    WasSuccessful = a.WasSuccessful,
+                    ErrorMessage = a.ErrorMessage,
+                    IpAddress = a.IpAddress,
+                    UserAgent = a.UserAgent,
+                    CriticalOperation = true,
+                    SessionId = a.SessionId
+                })
+                .ToListAsync(cancellationToken);
+
             return new PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>
             {
-                Items = [],
-                TotalCount = 0,
+                Items = items,
+                TotalCount = totalCount,
                 Page = searchDto.PageNumber,
                 PageSize = searchDto.PageSize
             };
@@ -293,18 +358,31 @@ public class LogManagementService(
     {
         try
         {
-            // This is for SuperAdmin audit operations, not entity change logs
-            // TODO: Implement proper statistics for SuperAdmin operations
-            await Task.CompletedTask;
+            var now = DateTime.UtcNow;
+            var todayStart = now.Date;
+            var weekStart = todayStart.AddDays(-(int)now.DayOfWeek);
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            var all = await dbContext.AuditTrails
+                .AsNoTracking()
+                .Select(a => new { a.WasSuccessful, a.PerformedAt, a.OperationType })
+                .ToListAsync(cancellationToken);
+
+            var byType = all
+                .GroupBy(a => a.OperationType.ToString())
+                .ToDictionary(g => g.Key, g => g.Count());
+
             return new EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto
             {
-                TotalOperations = 0,
-                SuccessfulOperations = 0,
-                FailedOperations = 0,
-                CriticalOperations = 0,
-                OperationsToday = 0,
-                OperationsThisWeek = 0,
-                OperationsThisMonth = 0
+                TotalOperations = all.Count,
+                SuccessfulOperations = all.Count(a => a.WasSuccessful),
+                FailedOperations = all.Count(a => !a.WasSuccessful),
+                CriticalOperations = all.Count,
+                OperationsToday = all.Count(a => a.PerformedAt >= todayStart),
+                OperationsThisWeek = all.Count(a => a.PerformedAt >= weekStart),
+                OperationsThisMonth = all.Count(a => a.PerformedAt >= monthStart),
+                OperationsByType = byType,
+                LastUpdated = now
             };
         }
         catch (Exception ex)

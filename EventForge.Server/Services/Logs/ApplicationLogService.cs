@@ -1,5 +1,8 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System.Text;
 using System.Text.Json;
 
 namespace EventForge.Server.Services.Logs;
@@ -25,11 +28,15 @@ internal class DbLogRecord
 /// </summary>
 public class ApplicationLogService(
     IConfiguration configuration,
+    EventForgeDbContext dbContext,
+    IMemoryCache memoryCache,
     ILogger<ApplicationLogService> logger) : IApplicationLogService
 {
     private readonly string _logDbConnectionString = configuration.GetConnectionString("LogDb")
             ?? throw new InvalidOperationException("LogDb connection string not found.");
     private readonly ILogger<ApplicationLogService> _logger = logger;
+    private const string MonitoringConfigCacheKey = "app_log_monitoring_config";
+    private static string LogExportCacheKey(Guid id) => $"log_export_{id}";
 
     private SqlConnection CreateConnection() => new SqlConnection(_logDbConnectionString);
 
@@ -387,7 +394,7 @@ public class ApplicationLogService(
     }
 
     /// <summary>
-    /// Exports system logs with the specified parameters.
+    /// Exports system logs in JSON or CSV format and caches the result for 24h.
     /// </summary>
     public async Task<ExportResultDto> ExportSystemLogsAsync(
         ExportRequestDto exportRequest,
@@ -395,28 +402,59 @@ public class ApplicationLogService(
     {
         ArgumentNullException.ThrowIfNull(exportRequest);
 
+        var format = exportRequest.Format.ToUpperInvariant();
+        if (!new[] { "JSON", "CSV", "TXT" }.Contains(format))
+            throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, TXT");
+
         try
         {
-            // Validate format
-            if (!new[] { "JSON", "CSV", "TXT" }.Contains(exportRequest.Format.ToUpper()))
+            var maxRecords = exportRequest.MaxRecords ?? 10_000;
+
+            var whereClause = BuildExportWhereClause(exportRequest, out var parameters);
+            var sql = $@"
+                SELECT TOP (@MaxRecords) Id, Message, MessageTemplate, Level, Timestamp, Exception, Properties
+                FROM Logs
+                {whereClause}
+                ORDER BY Timestamp DESC";
+
+            parameters.Add("MaxRecords", maxRecords);
+
+            IEnumerable<DbLogRecord> dbRecords;
+            using (var connection = CreateConnection())
             {
-                throw new ArgumentException("Invalid format. Supported formats: JSON, CSV, TXT");
+                await connection.OpenAsync(cancellationToken);
+                dbRecords = await connection.QueryAsync<DbLogRecord>(sql, parameters);
             }
 
-            // In a real implementation, this would queue the export job for background processing
-            await Task.Delay(100, cancellationToken); // Simulate processing
+            var records = dbRecords.ToList();
 
-            var exportResult = new ExportResultDto
+            byte[] bytes = format == "CSV" ? BuildLogCsvExport(records) : BuildLogJsonExport(records, format);
+
+            var exportId = Guid.NewGuid();
+            var fileName = exportRequest.FileName ?? $"logs_export_{exportId:N}.{format.ToLowerInvariant()}";
+            var contentType = format == "CSV" ? "text/csv" : "application/json";
+
+            memoryCache.Set(
+                LogExportCacheKey(exportId),
+                (bytes, format, fileName, contentType),
+                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+
+            var result = new ExportResultDto
             {
-                Id = Guid.NewGuid(),
+                Id = exportId,
                 Type = exportRequest.Type,
-                Format = exportRequest.Format,
-                Status = "Processing",
+                Format = format,
+                Status = "Completed",
+                TotalRecords = records.Count,
+                FileName = fileName,
+                DownloadUrl = $"/api/v1/logs/export/{exportId}/download",
+                FileSizeBytes = bytes.Length,
                 RequestedAt = DateTime.UtcNow,
-                RequestedBy = "Current User" // Should get from current user context
+                CompletedAt = DateTime.UtcNow,
+                RequestedBy = "System",
+                ExpiresAt = DateTime.UtcNow.AddHours(24)
             };
-
-            return exportResult;
+            return result;
         }
         catch (Exception ex)
         {
@@ -425,27 +463,77 @@ public class ApplicationLogService(
         }
     }
 
+    private static string BuildExportWhereClause(ExportRequestDto req, out Dictionary<string, object> parameters)
+    {
+        parameters = new Dictionary<string, object>();
+        var conditions = new List<string>();
+        if (req.FromDate.HasValue) { conditions.Add("Timestamp >= @From"); parameters["From"] = req.FromDate.Value; }
+        if (req.ToDate.HasValue) { conditions.Add("Timestamp <= @To"); parameters["To"] = req.ToDate.Value; }
+        return conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : string.Empty;
+    }
+
+    private static byte[] BuildLogJsonExport(IReadOnlyList<DbLogRecord> records, string format)
+    {
+        var payload = new { generatedAt = DateTime.UtcNow, format, recordCount = records.Count, records };
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+        return Encoding.UTF8.GetBytes(json);
+    }
+
+    private static byte[] BuildLogCsvExport(IReadOnlyList<DbLogRecord> records)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,Level,Timestamp,Message,Exception");
+        foreach (var r in records)
+        {
+            sb.AppendLine(string.Join(",",
+                r.Id.ToString(),
+                LogCsvEscape(r.Level),
+                r.Timestamp.ToString("O"),
+                LogCsvEscape(r.Message),
+                LogCsvEscape(r.Exception)));
+        }
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string LogCsvEscape(string? v)
+    {
+        if (v is null) return string.Empty;
+        if (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
+            return $"\"{v.Replace("\"", "\"\"")}\"";
+        return v;
+    }
+
     /// <summary>
-    /// Gets the current monitoring configuration.
+    /// Gets the monitoring configuration from SystemConfigurations (key prefix "Log.Monitor.").
     /// </summary>
     public async Task<LogMonitoringConfigDto> GetMonitoringConfigAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await Task.Delay(50, cancellationToken); // Simulate async operation
+            if (memoryCache.TryGetValue(MonitoringConfigCacheKey, out LogMonitoringConfigDto? cached) && cached is not null)
+                return cached;
 
-            // In a real implementation, this would be retrieved from configuration storage
+            var keys = await dbContext.SystemConfigurations
+                .AsNoTracking()
+                .Where(c => c.Key.StartsWith("Log.Monitor."))
+                .ToDictionaryAsync(c => c.Key, c => c.Value, cancellationToken);
+
             var config = new LogMonitoringConfigDto
             {
-                EnableRealTimeUpdates = true,
-                UpdateIntervalSeconds = 5,
-                MonitoredLevels = new List<string> { "Warning", "Error", "Critical" },
-                MonitoredSources = [],
-                MaxLiveEntries = 100,
-                AlertOnCritical = true,
-                AlertOnErrors = false
+                EnableRealTimeUpdates = keys.TryGetValue("Log.Monitor.EnableRealTimeUpdates", out var v1) ? bool.TryParse(v1, out var b1) && b1 : true,
+                UpdateIntervalSeconds = keys.TryGetValue("Log.Monitor.UpdateIntervalSeconds", out var v2) && int.TryParse(v2, out var i2) ? i2 : 5,
+                MonitoredLevels = keys.TryGetValue("Log.Monitor.MonitoredLevels", out var v3) && !string.IsNullOrWhiteSpace(v3)
+                    ? [.. v3.Split(',', StringSplitOptions.RemoveEmptyEntries)]
+                    : ["Warning", "Error", "Critical"],
+                MonitoredSources = keys.TryGetValue("Log.Monitor.MonitoredSources", out var v4) && !string.IsNullOrWhiteSpace(v4)
+                    ? [.. v4.Split(',', StringSplitOptions.RemoveEmptyEntries)]
+                    : [],
+                MaxLiveEntries = keys.TryGetValue("Log.Monitor.MaxLiveEntries", out var v5) && int.TryParse(v5, out var i5) ? i5 : 100,
+                AlertOnCritical = keys.TryGetValue("Log.Monitor.AlertOnCritical", out var v6) ? bool.TryParse(v6, out var b6) && b6 : true,
+                AlertOnErrors = keys.TryGetValue("Log.Monitor.AlertOnErrors", out var v7) && bool.TryParse(v7, out var b7) && b7
             };
 
+            memoryCache.Set(MonitoringConfigCacheKey, config, absoluteExpirationRelativeToNow: TimeSpan.FromMinutes(5));
             return config;
         }
         catch (Exception ex)
@@ -456,7 +544,7 @@ public class ApplicationLogService(
     }
 
     /// <summary>
-    /// Updates the monitoring configuration.
+    /// Persists the monitoring configuration to SystemConfigurations and refreshes the cache.
     /// </summary>
     public async Task<LogMonitoringConfigDto> UpdateMonitoringConfigAsync(
         LogMonitoringConfigDto config,
@@ -466,10 +554,39 @@ public class ApplicationLogService(
 
         try
         {
-            await Task.Delay(50, cancellationToken); // Simulate async operation
+            var keyValues = new Dictionary<string, string>
+            {
+                ["Log.Monitor.EnableRealTimeUpdates"] = config.EnableRealTimeUpdates.ToString(),
+                ["Log.Monitor.UpdateIntervalSeconds"] = config.UpdateIntervalSeconds.ToString(),
+                ["Log.Monitor.MonitoredLevels"] = string.Join(",", config.MonitoredLevels),
+                ["Log.Monitor.MonitoredSources"] = string.Join(",", config.MonitoredSources),
+                ["Log.Monitor.MaxLiveEntries"] = config.MaxLiveEntries.ToString(),
+                ["Log.Monitor.AlertOnCritical"] = config.AlertOnCritical.ToString(),
+                ["Log.Monitor.AlertOnErrors"] = config.AlertOnErrors.ToString()
+            };
 
-            // In a real implementation, this would save to configuration storage
-            // For now, just return the provided configuration
+            foreach (var kv in keyValues)
+            {
+                var existing = await dbContext.SystemConfigurations
+                    .FirstOrDefaultAsync(c => c.Key == kv.Key, cancellationToken);
+
+                if (existing is null)
+                {
+                    dbContext.SystemConfigurations.Add(new Data.Entities.Configuration.SystemConfiguration
+                    {
+                        Key = kv.Key,
+                        Value = kv.Value,
+                        Category = "Logging"
+                    });
+                }
+                else
+                {
+                    existing.Value = kv.Value;
+                }
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            memoryCache.Remove(MonitoringConfigCacheKey);
             return config;
         }
         catch (Exception ex)

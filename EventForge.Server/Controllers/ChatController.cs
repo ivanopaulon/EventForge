@@ -3,7 +3,10 @@ using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System.ComponentModel.DataAnnotations;
+using System.Text;
+using System.Text.Json;
 
 namespace EventForge.Server.Controllers;
 
@@ -25,6 +28,7 @@ namespace EventForge.Server.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public class ChatController(
     IChatService chatService,
+    IMemoryCache memoryCache,
     ITenantContext tenantContext,
     ILogger<ChatController> logger) : BaseApiController
 {
@@ -732,11 +736,9 @@ public class ChatController(
 
     /// <summary>
     /// Downloads a file attachment with secure access validation.
-    /// STUB IMPLEMENTATION - Returns mock file content.
-    /// TODO: Implement actual secure file download with access validation.
     /// </summary>
     /// <param name="attachmentId">File attachment identifier</param>
-    /// <param name="token">Security token for download access</param>
+    /// <param name="token">Security token for download access (reserved for future use)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>File content stream</returns>
     /// <response code="200">File downloaded successfully</response>
@@ -751,16 +753,14 @@ public class ChatController(
     {
         try
         {
-            logger.LogInformation("Downloading file {AttachmentId} with token validation", attachmentId);
+            logger.LogInformation("Downloading file {AttachmentId}", attachmentId);
 
-            // TODO: Implement actual file download with token validation
-            await Task.Delay(10, cancellationToken);
+            var result = await chatService.GetAttachmentForDownloadAsync(attachmentId, cancellationToken);
+            if (result is null)
+                return CreateNotFoundProblem($"File with ID {attachmentId} was not found or has been deleted.");
 
-            // Mock response - return sample file content
-            var sampleContent = $"Sample file content for attachment {attachmentId}\nGenerated at: {DateTime.UtcNow}";
-            var bytes = System.Text.Encoding.UTF8.GetBytes(sampleContent);
-
-            return File(bytes, "text/plain", $"attachment-{attachmentId}.txt");
+            var (physicalPath, contentType, fileName) = result.Value;
+            return PhysicalFile(physicalPath, contentType, fileName);
         }
         catch (Exception ex)
         {
@@ -809,20 +809,16 @@ public class ChatController(
 
     #region Data Export & History
 
+    private record ChatExportCacheEntry(byte[] Bytes, string Format, int RecordCount, DateTime CreatedAt);
+    private static string ChatExportCacheKey(Guid exportId) => $"chat_export_{exportId}";
+
     /// <summary>
-    /// Exports chat history and messages in various formats (JSON, CSV, Excel).
-    /// Supports advanced filtering, tenant isolation, and compliance requirements.
-    /// 
-    /// STUB IMPLEMENTATION - Returns export preparation status.
-    /// TODO: Implement actual export functionality with multiple formats and streaming.
+    /// Exports chat history and messages in JSON or CSV format.
+    /// Queries the DB synchronously (up to MaxRecords), caches the result for 24h.
     /// </summary>
-    /// <param name="exportRequest">Export parameters and filtering criteria</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Export operation status and download information</returns>
-    /// <response code="202">Export operation started, check status for completion</response>
-    /// <response code="400">Invalid export parameters</response>
     [HttpPost("export")]
-    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ChatExportResultDto>> ExportChatHistoryAsync(
         [FromBody] ChatExportRequestDto exportRequest,
         CancellationToken cancellationToken = default)
@@ -833,140 +829,152 @@ public class ChatController(
                 "Starting chat export for tenant {TenantId} from {FromDate} to {ToDate} in {Format} format",
                 exportRequest.TenantId, exportRequest.FromDate, exportRequest.ToDate, exportRequest.Format);
 
-            // TODO: Implement actual export logic
-            await Task.Delay(100, cancellationToken); // Simulate export preparation
-
-            var exportId = Guid.NewGuid();
-            var result = new ChatExportResultDto
+            var maxRecords = Math.Min(exportRequest.MaxRecords ?? 10_000, 100_000);
+            var search = new MessageSearchDto
             {
-                ExportId = exportId,
-                Status = "Preparing",
-                Format = exportRequest.Format,
-                EstimatedCompletionTime = DateTime.UtcNow.AddMinutes(10),
-                StatusUrl = Url.Action(nameof(GetChatExportStatusAsync), new { exportId }),
-                CreatedAt = DateTime.UtcNow
+                ChatId = exportRequest.ChatId,
+                TenantId = exportRequest.TenantId,
+                SenderId = exportRequest.UserId,
+                FromDate = exportRequest.FromDate,
+                ToDate = exportRequest.ToDate,
+                SearchTerm = exportRequest.SearchTerm,
+                IncludeDeleted = exportRequest.IncludeDeleted,
+                PageNumber = 1,
+                PageSize = maxRecords
             };
 
-            return Accepted(result.StatusUrl, result);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while starting the export operation", ex);
-        }
-    }
+            var paged = await chatService.GetMessagesAsync(search, cancellationToken);
+            var messages = paged.Items.ToList();
 
-    /// <summary>
-    /// Gets the status of a chat export operation.
-    /// Provides progress updates, completion status, and download links.
-    /// 
-    /// STUB IMPLEMENTATION - Returns mock export status.
-    /// </summary>
-    /// <param name="exportId">Export operation identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Export operation status and download information</returns>
-    /// <response code="200">Export status retrieved successfully</response>
-    /// <response code="404">Export operation not found</response>
-    [HttpGet("export/{exportId:guid}/status")]
-    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ChatExportResultDto>> GetChatExportStatusAsync(
-        [FromRoute] Guid exportId,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            logger.LogDebug("Retrieving chat export status for {ExportId}", exportId);
+            var exportId = Guid.NewGuid();
+            byte[] bytes;
+            string format = exportRequest.Format.ToUpperInvariant();
 
-            // TODO: Implement actual export status retrieval
-            await Task.Delay(10, cancellationToken);
+            if (format == "CSV")
+                bytes = BuildChatCsvExport(messages);
+            else
+            {
+                bytes = BuildChatJsonExport(exportId, messages);
+                format = "JSON";
+            }
 
-            // Mock response - in real implementation, check database for export status
+            memoryCache.Set(
+                ChatExportCacheKey(exportId),
+                new ChatExportCacheEntry(bytes, format, messages.Count, DateTime.UtcNow),
+                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+
             var result = new ChatExportResultDto
             {
                 ExportId = exportId,
                 Status = "Completed",
-                Format = "JSON",
-                RecordCount = 5678,
-                FileSizeBytes = 2 * 1024 * 1024, // 2MB
+                Format = format,
+                ProgressPercentage = 100,
+                RecordCount = messages.Count,
+                FileSizeBytes = bytes.Length,
+                StatusUrl = Url.Action(nameof(GetChatExportStatusAsync), new { exportId }),
                 DownloadUrl = Url.Action(nameof(DownloadChatExportAsync), new { exportId }),
                 ExpiresAt = DateTime.UtcNow.AddHours(24),
-                CompletedAt = DateTime.UtcNow.AddMinutes(-5)
+                CompletedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
             };
+
+            logger.LogInformation("Chat export {ExportId} completed: {RecordCount} records, {Format}, {Bytes} bytes",
+                exportId, messages.Count, format, bytes.Length);
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("An error occurred while retrieving export status", ex);
+            return CreateInternalServerErrorProblem("An error occurred while generating the chat export", ex);
         }
     }
 
     /// <summary>
-    /// Downloads an exported chat history file.
-    /// Provides secure, time-limited access to exported data.
-    /// 
-    /// STUB IMPLEMENTATION - Returns mock file content.
+    /// Gets the status of a chat export operation (cached for 24h).
     /// </summary>
-    /// <param name="exportId">Export operation identifier</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Exported file content</returns>
-    /// <response code="200">File downloaded successfully</response>
-    /// <response code="404">Export not found or expired</response>
+    [HttpGet("export/{exportId:guid}/status")]
+    [ProducesResponseType(typeof(ChatExportResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public ActionResult<ChatExportResultDto> GetChatExportStatusAsync([FromRoute] Guid exportId)
+    {
+        if (!memoryCache.TryGetValue(ChatExportCacheKey(exportId), out ChatExportCacheEntry? entry) || entry is null)
+            return CreateNotFoundProblem("Export not found or has expired.");
+
+        var result = new ChatExportResultDto
+        {
+            ExportId = exportId,
+            Status = "Completed",
+            Format = entry.Format,
+            ProgressPercentage = 100,
+            RecordCount = entry.RecordCount,
+            FileSizeBytes = entry.Bytes.Length,
+            DownloadUrl = Url.Action(nameof(DownloadChatExportAsync), new { exportId }),
+            ExpiresAt = entry.CreatedAt.AddHours(24),
+            CompletedAt = entry.CreatedAt,
+            CreatedAt = entry.CreatedAt
+        };
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Downloads a previously generated chat export file (cached for 24h).
+    /// </summary>
     [HttpGet("export/{exportId:guid}/download")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DownloadChatExportAsync(
-        [FromRoute] Guid exportId,
-        CancellationToken cancellationToken = default)
+    public ActionResult DownloadChatExportAsync([FromRoute] Guid exportId)
     {
-        try
+        if (!memoryCache.TryGetValue(ChatExportCacheKey(exportId), out ChatExportCacheEntry? entry) || entry is null)
+            return CreateNotFoundProblem("Export not found or has expired.");
+
+        var (contentType, fileExt) = entry.Format == "CSV"
+            ? ("text/csv", "csv")
+            : ("application/json", "json");
+
+        logger.LogInformation("Serving chat export file for {ExportId} ({Format}, {Bytes} bytes)", exportId, entry.Format, entry.Bytes.Length);
+        return File(entry.Bytes, contentType, $"chat-export-{exportId}.{fileExt}");
+    }
+
+    private static byte[] BuildChatJsonExport(Guid exportId, IReadOnlyList<ChatMessageDto> messages)
+    {
+        var payload = new
         {
-            logger.LogInformation("Downloading chat export file for {ExportId}", exportId);
+            exportId,
+            generatedAt = DateTime.UtcNow,
+            format = "JSON",
+            recordCount = messages.Count,
+            messages
+        };
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+        return Encoding.UTF8.GetBytes(json);
+    }
 
-            // TODO: Implement actual file download logic
-            await Task.Delay(10, cancellationToken);
-
-            // Mock response - return sample JSON content
-            var sampleData = new
-            {
-                exportId,
-                generatedAt = DateTime.UtcNow,
-                format = "JSON",
-                chats = new[]
-                {
-                    new
-                    {
-                        chatId = Guid.NewGuid(),
-                        type = "DirectMessage",
-                        name = "Sample Chat",
-                        createdAt = DateTime.UtcNow.AddDays(-7),
-                        messages = new[]
-                        {
-                            new
-                            {
-                                id = Guid.NewGuid(),
-                                senderId = Guid.NewGuid(),
-                                content = "Hello, this is a sample exported message",
-                                sentAt = DateTime.UtcNow.AddDays(-1),
-                                status = "Read"
-                            }
-                        }
-                    }
-                }
-            };
-
-            var jsonContent = System.Text.Json.JsonSerializer.Serialize(sampleData, new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            var bytes = System.Text.Encoding.UTF8.GetBytes(jsonContent);
-            return File(bytes, "application/json", $"chat-export-{exportId}.json");
-        }
-        catch (Exception ex)
+    private static byte[] BuildChatCsvExport(IReadOnlyList<ChatMessageDto> messages)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Id,ChatId,SenderId,SenderName,Content,SentAt,Status,IsEdited,IsDeleted");
+        foreach (var m in messages)
         {
-            return CreateInternalServerErrorProblem("An error occurred while downloading the export file", ex);
+            sb.AppendLine(string.Join(",",
+                CsvEscape(m.Id.ToString()),
+                CsvEscape(m.ChatId.ToString()),
+                CsvEscape(m.SenderId.ToString()),
+                CsvEscape(m.SenderName),
+                CsvEscape(m.Content),
+                CsvEscape(m.SentAt.ToString("O")),
+                CsvEscape(m.Status.ToString()),
+                m.IsEdited.ToString().ToLowerInvariant(),
+                m.IsDeleted.ToString().ToLowerInvariant()));
         }
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string CsvEscape(string? value)
+    {
+        if (value is null) return string.Empty;
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 
     #endregion

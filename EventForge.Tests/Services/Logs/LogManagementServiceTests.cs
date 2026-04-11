@@ -41,6 +41,7 @@ public class LogManagementServiceTests
             _mockApplicationLogService.Object,
             _mockAuditLogService.Object,
             _mockLogSanitizationService.Object,
+            null!,
             _mockLogger.Object,
             _mockCache.Object,
             configuration);

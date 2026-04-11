@@ -334,6 +334,17 @@ public interface IChatService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the physical file path and metadata needed to stream an attachment for download.
+    /// Validates that the attachment exists and is not soft-deleted.
+    /// </summary>
+    /// <param name="attachmentId">Attachment identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Tuple of (physicalPath, contentType, fileName) or null if not found</returns>
+    Task<(string PhysicalPath, string ContentType, string FileName)?> GetAttachmentForDownloadAsync(
+        Guid attachmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Processes media files for optimization and thumbnail generation.
     /// Supports various media formats with configurable processing pipelines.
     /// 
