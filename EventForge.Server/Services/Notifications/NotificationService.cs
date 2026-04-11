@@ -1541,8 +1541,7 @@ public class NotificationService(
     }
 
     /// <summary>
-    /// Cleans up notification data based on retention policies.
-    /// STUB IMPLEMENTATION - Returns empty cleanup results.
+    /// Cleans up notification data based on retention policies — deletes expired/archived records from the database.
     /// </summary>
     public async Task<CleanupResultDto> CleanupNotificationDataAsync(
         NotificationCleanupPolicyDto cleanupPolicy,
@@ -1551,17 +1550,56 @@ public class NotificationService(
         try
         {
             var stopwatch = Stopwatch.StartNew();
+            var cutoff = DateTime.UtcNow - cleanupPolicy.RetentionPeriod;
 
             logger.LogInformation(
-                "Cleaning up notification data for tenant {TenantId} with retention period {RetentionPeriod}",
-                cleanupPolicy.TenantId?.ToString() ?? "ALL", cleanupPolicy.RetentionPeriod);
+                "Cleaning up notification data for tenant {TenantId} older than {Cutoff}",
+                cleanupPolicy.TenantId?.ToString() ?? "ALL", cutoff);
 
-            // TODO: Implement cleanup logic
-            await Task.Delay(100, cancellationToken);
+            var query = context.Notifications
+                .Where(n => n.CreatedAt < cutoff && !n.IsDeleted);
+
+            if (cleanupPolicy.TenantId.HasValue)
+                query = query.Where(n => n.TenantId == cleanupPolicy.TenantId.Value);
+
+            if (!cleanupPolicy.IncludeArchived)
+                query = query.Where(n => !n.IsArchived);
+
+            if (cleanupPolicy.TypeFilter?.Count > 0)
+                query = query.Where(n => cleanupPolicy.TypeFilter.Contains(n.Type));
+
+            var toDelete = await query.ToListAsync(cancellationToken);
+
+            if (toDelete.Count == 0)
+            {
+                return new CleanupResultDto
+                {
+                    CleanedCount = 0,
+                    AnonymizedCount = 0,
+                    FreedBytes = 0,
+                    ProcessingTime = stopwatch.Elapsed
+                };
+            }
+
+            var notificationIds = toDelete.Select(n => n.Id).ToList();
+
+            // Remove associated recipients first to respect FK constraints
+            var recipients = await context.NotificationRecipients
+                .Where(r => notificationIds.Contains(r.NotificationId))
+                .ToListAsync(cancellationToken);
+
+            context.NotificationRecipients.RemoveRange(recipients);
+            context.Notifications.RemoveRange(toDelete);
+            _ = await context.SaveChangesAsync(cancellationToken);
+
+            stopwatch.Stop();
+            logger.LogInformation(
+                "Cleaned up {Count} notifications (+{RecipCount} recipients) for tenant {TenantId} in {Elapsed}ms.",
+                toDelete.Count, recipients.Count, cleanupPolicy.TenantId?.ToString() ?? "ALL", stopwatch.ElapsedMilliseconds);
 
             return new CleanupResultDto
             {
-                CleanedCount = 0,
+                CleanedCount = toDelete.Count,
                 AnonymizedCount = 0,
                 FreedBytes = 0,
                 ProcessingTime = stopwatch.Elapsed
@@ -1569,6 +1607,7 @@ public class NotificationService(
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to clean up notification data.");
             throw;
         }
     }
@@ -1687,7 +1726,7 @@ public class NotificationService(
 
     /// <summary>
     /// Gets comprehensive notification statistics.
-    /// STUB IMPLEMENTATION - Returns empty statistics.
+    /// Gets notification statistics via database aggregation queries.
     /// </summary>
     public async Task<NotificationStatsDto> GetNotificationStatisticsAsync(
         Guid? tenantId = null,
@@ -1696,30 +1735,46 @@ public class NotificationService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving notification statistics for tenant {TenantId} from {StartDate} to {EndDate}",
-                tenantId?.ToString() ?? "ALL",
-                dateRange?.StartDate.ToString("yyyy-MM-dd") ?? "N/A",
-                dateRange?.EndDate.ToString("yyyy-MM-dd") ?? "N/A");
+            var query = context.Notifications.AsNoTracking().Where(n => !n.IsDeleted);
+            if (tenantId.HasValue) query = query.Where(n => n.TenantId == tenantId.Value);
+            if (dateRange is not null)
+                query = query.Where(n => n.CreatedAt >= dateRange.StartDate && n.CreatedAt <= dateRange.EndDate);
 
-            // TODO: Implement database aggregation queries
-            await Task.Delay(50, cancellationToken);
+            var now = DateTime.UtcNow;
+
+            var totalNotifications = await query.CountAsync(cancellationToken);
+            var unreadCount = await query.CountAsync(n => n.Status == NotificationStatus.Sent || n.Status == NotificationStatus.Delivered || n.Status == NotificationStatus.Pending, cancellationToken);
+            var acknowledgedCount = await query.CountAsync(n => n.Status == NotificationStatus.Acknowledged, cancellationToken);
+            var silencedCount = await query.CountAsync(n => n.Status == NotificationStatus.Silenced, cancellationToken);
+            var archivedCount = await query.CountAsync(n => n.IsArchived, cancellationToken);
+            var expiredCount = await query.CountAsync(n => n.ExpiresAt.HasValue && n.ExpiresAt.Value < now, cancellationToken);
+
+            var countByTypeRaw = await query
+                .GroupBy(n => n.Type)
+                .Select(g => new { Type = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+
+            var countByPriorityRaw = await query
+                .GroupBy(n => n.Priority)
+                .Select(g => new { Priority = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
 
             return new NotificationStatsDto
             {
                 TenantId = tenantId,
-                TotalNotifications = 0,
-                UnreadCount = 0,
-                AcknowledgedCount = 0,
-                SilencedCount = 0,
-                ArchivedCount = 0,
-                ExpiredCount = 0,
-                CountByType = new Dictionary<NotificationTypes, int>(),
-                CountByPriority = new Dictionary<NotificationPriority, int>()
+                TotalNotifications = totalNotifications,
+                UnreadCount = unreadCount,
+                AcknowledgedCount = acknowledgedCount,
+                SilencedCount = silencedCount,
+                ArchivedCount = archivedCount,
+                ExpiredCount = expiredCount,
+                CountByType = countByTypeRaw.ToDictionary(x => x.Type, x => x.Count),
+                CountByPriority = countByPriorityRaw.ToDictionary(x => x.Priority, x => x.Count)
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to compute notification statistics.");
             throw;
         }
     }
@@ -1769,8 +1824,7 @@ public class NotificationService(
     }
 
     /// <summary>
-    /// Gets detailed audit trail for notification operations.
-    /// STUB IMPLEMENTATION - Returns empty paginated results.
+    /// Gets detailed audit trail for notification operations — queries EntityChangeLogs.
     /// </summary>
     public async Task<PagedResult<NotificationAuditEntryDto>> GetNotificationAuditTrailAsync(
         NotificationAuditQueryDto auditQuery,
@@ -1778,30 +1832,78 @@ public class NotificationService(
     {
         try
         {
-            logger.LogInformation(
-                "Retrieving notification audit trail for tenant {TenantId} from {FromDate} to {ToDate}",
-                auditQuery.TenantId, auditQuery.FromDate, auditQuery.ToDate);
+            var query = context.EntityChangeLogs
+                .AsNoTracking()
+                .Where(e => e.EntityName == "Notification" || e.EntityName == "NotificationRecipient");
 
-            // TODO: Query audit log entries from database
-            await Task.Delay(20, cancellationToken);
+            if (auditQuery.TenantId.HasValue)
+                query = query.Where(e => e.TenantId == auditQuery.TenantId.Value);
+
+            if (auditQuery.UserId.HasValue)
+                query = query.Where(e => e.ChangedBy == auditQuery.UserId.Value.ToString());
+
+            if (auditQuery.FromDate.HasValue)
+                query = query.Where(e => e.ChangedAt >= auditQuery.FromDate.Value);
+
+            if (auditQuery.ToDate.HasValue)
+                query = query.Where(e => e.ChangedAt <= auditQuery.ToDate.Value);
+
+            if (!string.IsNullOrWhiteSpace(auditQuery.SearchTerm))
+                query = query.Where(e => (e.NewValue != null && e.NewValue.Contains(auditQuery.SearchTerm)) ||
+                                         (e.OldValue != null && e.OldValue.Contains(auditQuery.SearchTerm)));
+
+            if (auditQuery.Operations?.Count > 0)
+                query = query.Where(e => auditQuery.Operations.Contains(e.OperationType));
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var rawItems = await query
+                .OrderByDescending(e => e.ChangedAt)
+                .Skip((auditQuery.PageNumber - 1) * auditQuery.PageSize)
+                .Take(auditQuery.PageSize)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.EntityName,
+                    e.EntityId,
+                    e.TenantId,
+                    e.ChangedBy,
+                    e.OperationType,
+                    e.PropertyName,
+                    e.OldValue,
+                    e.NewValue,
+                    e.ChangedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = rawItems.Select(e => new NotificationAuditEntryDto
+            {
+                Id = e.Id,
+                NotificationId = e.EntityName == "Notification" ? e.EntityId : null,
+                TenantId = e.TenantId,
+                UserId = Guid.TryParse(e.ChangedBy, out var uid) ? uid : null,
+                Operation = e.OperationType,
+                Details = $"{e.PropertyName}: {e.OldValue} → {e.NewValue}",
+                Timestamp = e.ChangedAt
+            }).ToList();
 
             return new PagedResult<NotificationAuditEntryDto>
             {
-                Items = [],
+                Items = items,
                 Page = auditQuery.PageNumber,
                 PageSize = auditQuery.PageSize,
-                TotalCount = 0
+                TotalCount = totalCount
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to retrieve notification audit trail.");
             throw;
         }
     }
 
     /// <summary>
-    /// Monitors notification system health.
-    /// STUB IMPLEMENTATION - Returns healthy status.
+    /// Monitors notification system health — queries database and counts pending items.
     /// </summary>
     public async Task<NotificationSystemHealthDto> GetSystemHealthAsync(
         CancellationToken cancellationToken = default)
@@ -1810,26 +1912,38 @@ public class NotificationService(
         {
             logger.LogDebug("Checking notification system health");
 
-            // TODO: Implement health checks for database, cache, external services
-            await Task.Delay(10, cancellationToken);
+            var alerts = new List<string>();
+            var dbConnected = false;
+            var totalNotifications = 0;
+            var pendingCount = 0;
+
+            try
+            {
+                totalNotifications = await context.Notifications.AsNoTracking().CountAsync(n => !n.IsDeleted, cancellationToken);
+                pendingCount = await context.Notifications.AsNoTracking().CountAsync(n => !n.IsDeleted && n.Status == NotificationStatus.Pending, cancellationToken);
+                dbConnected = true;
+            }
+            catch (Exception dbEx)
+            {
+                alerts.Add($"Database connectivity issue: {dbEx.Message}");
+            }
 
             return new NotificationSystemHealthDto
             {
-                Status = "Healthy",
+                Status = alerts.Count == 0 ? "Healthy" : "Degraded",
                 Metrics = new Dictionary<string, object>
                 {
-                    ["DatabaseConnected"] = true,
-                    ["CacheConnected"] = true,
-                    ["ExternalProvidersConnected"] = true,
-                    ["QueueLength"] = 0,
-                    ["ProcessingRate"] = "0 notifications/sec",
+                    ["DatabaseConnected"] = dbConnected,
+                    ["TotalNotifications"] = totalNotifications,
+                    ["PendingNotifications"] = pendingCount,
                     ["LastHealthCheck"] = DateTime.UtcNow
                 },
-                Alerts = new List<string>()
+                Alerts = alerts
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to check notification system health.");
             throw;
         }
     }
