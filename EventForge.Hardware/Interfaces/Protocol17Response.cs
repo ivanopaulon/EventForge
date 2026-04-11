@@ -1,4 +1,4 @@
-namespace EventForge.Hardware.Interfaces;
+namespace Prym.Hardware.Interfaces;
 
 /// <summary>
 /// Result returned by a Protocol 17 (ECR17) payment terminal operation.

@@ -33,10 +33,10 @@ global using EventForge.Server.Services.Configuration;
 global using EventForge.Server.Services.Performance;
 global using EventForge.Server.Services.Tenants;
 
-// ── EventForge.Hardware shared types ──────────────────────────────────────────
+// ── Prym.Hardware shared types ──────────────────────────────────────────────
 // Type aliases so existing code in the Communication namespace continues to
 // compile without any using-statement changes.
-global using FiscalPrinterCommunicationException = EventForge.Hardware.Exceptions.FiscalPrinterCommunicationException;
-global using ICustomPrinterCommunication = EventForge.Hardware.Interfaces.ICustomPrinterCommunication;
-global using IEpsonChannel = EventForge.Hardware.Interfaces.IEpsonChannel;
+global using FiscalPrinterCommunicationException = Prym.Hardware.Exceptions.FiscalPrinterCommunicationException;
+global using ICustomPrinterCommunication = Prym.Hardware.Interfaces.ICustomPrinterCommunication;
+global using IEpsonChannel = Prym.Hardware.Interfaces.IEpsonChannel;
 

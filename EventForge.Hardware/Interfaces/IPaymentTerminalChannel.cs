@@ -1,4 +1,4 @@
-namespace EventForge.Hardware.Interfaces;
+namespace Prym.Hardware.Interfaces;
 
 /// <summary>
 /// Abstraction for Protocol 17 (ECR17) TCP communication with a POS payment terminal.

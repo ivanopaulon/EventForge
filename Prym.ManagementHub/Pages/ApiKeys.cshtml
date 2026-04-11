@@ -1,0 +1,300 @@
+@page
+@model Prym.ManagementHub.Pages.ApiKeysModel
+@{
+    ViewData["Title"] = "Chiavi API";
+    ViewData["PageSection"] = "Sicurezza";
+    var newKey      = TempData["NewKey"]?.ToString();
+    var newKeyInstId = TempData["NewKeyInstallationId"]?.ToString();
+}
+
+<div class="ef-page-header">
+    <div>
+        <h1 class="ef-page-title"><i class="bi bi-key-fill me-2"></i>Gestione Chiavi API</h1>
+        <p class="ef-page-subtitle">Visualizza, revoca, reintegra e rinnova le chiavi API delle installazioni</p>
+    </div>
+    <div class="ef-topbar-meta">
+        <span class="ef-badge ef-badge-neutral">@Model.Installations.Count installazioni</span>
+    </div>
+</div>
+
+@if (newKey is not null)
+{
+    <div class="alert alert-success border-0 mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-key-fill fs-4 text-success mt-1"></i>
+            <div class="flex-grow-1">
+                <strong>Nuova chiave API generata per installazione <code>@newKeyInstId</code></strong><br />
+                <span class="text-danger fw-semibold">Copiala subito — non sarà più visibile.</span>
+                <div class="input-group mt-2" style="max-width:600px">
+                    <input id="newKeyInput" type="text" class="form-control font-monospace fw-bold"
+                           value="@newKey" readonly />
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('newKeyInput').value);this.innerHTML='<i class=\'bi bi-check-lg\'></i> Copiata'">
+                        <i class="bi bi-clipboard"></i> Copia
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="ef-card">
+    <div class="ef-card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>Installazioni registrate</span>
+        <input type="text" id="searchInput" class="form-control form-control-sm" style="max-width:280px"
+               placeholder="🔍 Filtra per nome, codice, posizione…" oninput="filterTable()" />
+    </div>
+    <div class="ef-card-body p-0">
+        <div class="table-responsive">
+            <table class="ef-table w-100" id="apiKeyTable">
+                <thead>
+                    <tr>
+                        <th>Stato</th>
+                        <th>Nome / Macchina</th>
+                        <th>Installation Code</th>
+                        <th>Sistema</th>
+                        <th>Posizione / Tag</th>
+                        <th>Ultima connessione</th>
+                        <th>Chiave API</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model.Installations)
+                {
+                    var i = row.Installation;
+                    var rowCss = i.IsRevoked ? "table-danger opacity-75" : "";
+                    <tr class="@rowCss" data-search="@((i.Name + " " + i.InstallationCode + " " + i.Location + " " + i.MachineName + " " + i.IpAddress + " " + i.Tags).ToLower())">
+                        <td>
+                            @if (i.IsRevoked)
+                            {
+                                <span class="ef-badge ef-badge-danger"><i class="bi bi-ban me-1"></i>Revocata</span>
+                            }
+                            else if (row.IsOnline)
+                            {
+                                <span class="ef-badge ef-badge-success"><i class="bi bi-circle-fill me-1" style="font-size:.55rem"></i>Online</span>
+                            }
+                            else
+                            {
+                                <span class="ef-badge ef-badge-neutral"><i class="bi bi-circle me-1" style="font-size:.55rem"></i>Offline</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@i.Name</div>
+                            @if (!string.IsNullOrEmpty(i.MachineName))
+                            {
+                                <small class="text-muted"><i class="bi bi-pc me-1"></i>@i.MachineName</small>
+                            }
+                            @if (!string.IsNullOrEmpty(i.IpAddress))
+                            {
+                                <br /><small class="text-muted"><i class="bi bi-ethernet me-1"></i>@i.IpAddress</small>
+                            }
+                            <br /><small class="text-muted">
+                            @if (i.Components == InstallationComponents.Both)
+                            { <text>Server + Client</text> }
+                            else
+                            { @i.Components }
+                            </small>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(i.InstallationCode))
+                            {
+                                <code class="small" title="@i.InstallationCode" style="cursor:help">
+                                    @i.InstallationCode[..Math.Min(28, i.InstallationCode.Length)]…
+                                </code>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.OSVersion))
+                            {
+                                <div class="text-muted" title="@i.OSVersion">
+                                    <i class="bi bi-windows me-1"></i>@(i.OSVersion.Length > 35 ? i.OSVersion[..35] + "…" : i.OSVersion)
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.DotNetVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-braces me-1"></i>.NET @i.DotNetVersion</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.AgentVersion))
+                            {
+                                <div class="text-muted"><i class="bi bi-robot me-1"></i>Agent @i.AgentVersion</div>
+                            }
+                        </td>
+                        <td class="small">
+                            @if (!string.IsNullOrEmpty(i.Location))
+                            {
+                                <div class="text-muted"><i class="bi bi-geo-alt me-1"></i>@i.Location</div>
+                            }
+                            @if (!string.IsNullOrEmpty(i.Tags))
+                            {
+                                <div class="mt-1">
+                                @foreach (var tag in i.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                {
+                                    <span class="ef-badge ef-badge-neutral me-1">@tag</span>
+                                }
+                                </div>
+                            }
+                            @if (string.IsNullOrEmpty(i.Location) && string.IsNullOrEmpty(i.Tags))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-muted small">
+                            @if (i.LastSeen.HasValue)
+                            {
+                                <span title="@i.LastSeen.Value.ToString("u")">@i.LastSeen.Value.ToString("dd/MM HH:mm")</span>
+                            }
+                            else { <span>—</span> }
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-1">
+                                <code class="small text-muted" id="key-@i.Id">@row.MaskedKey</code>
+                                @if (!i.IsRevoked)
+                                {
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                                            title="Mostra/nascondi chiave completa"
+                                            onclick="toggleKey('@i.Id', '@i.ApiKey')">
+                                        <i class="bi bi-eye" id="eye-@i.Id"></i>
+                                    </button>
+                                }
+                            </div>
+                            @if (i.IsRevoked)
+                            {
+                                <div class="small text-danger mt-1">
+                                    <i class="bi bi-clock me-1"></i>@i.RevokedAt?.ToString("dd/MM/yyyy HH:mm")
+                                    @if (!string.IsNullOrEmpty(i.RevokedReason))
+                                    {
+                                        <br /><i class="bi bi-chat-left-text me-1"></i>@i.RevokedReason
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                @if (!i.IsRevoked)
+                                {
+                                    <!-- Revoca -->
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#revokeModal"
+                                            data-id="@i.Id" data-name="@i.Name">
+                                        <i class="bi bi-ban me-1"></i>Revoca
+                                    </button>
+                                    <!-- Ri-emissione chiave -->
+                                    <form method="post" asp-page-handler="Reissue" class="d-inline"
+                                          onsubmit="return confirm('Generare una nuova API key per @i.Name?\nLa vecchia chiave sarà invalidata immediatamente.')">
+                                        <input type="hidden" name="id" value="@i.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Rinnova
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <!-- Reintegra -->
+                                    <form method="post" asp-page-handler="Reinstate" class="d-inline">
+                                        <input type="hidden" name="id" value="@i.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check-circle me-1"></i>Reintegra
+                                        </button>
+                                    </form>
+                                    <!-- Rinnova anche se revocata -->
+                                    <form method="post" asp-page-handler="Reissue" class="d-inline"
+                                          onsubmit="return confirm('Generare una nuova API key e reintegrare @i.Name?')">
+                                        <input type="hidden" name="id" value="@i.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Rinnova
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Installations.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox me-2"></i>Nessuna installazione registrata.
+                            Configura l'Enrollment Token nelle Impostazioni o registra manualmente tramite API.
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal revoca ────────────────────────────────────────────────────── -->
+<div class="modal fade" id="revokeModal" tabindex="-1" aria-labelledby="revokeModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="Revoke">
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="revokeModalLabel">
+                        <i class="bi bi-ban me-2 text-danger"></i>Revoca Chiave API
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Stai per revocare la chiave API di <strong id="revokeInstName"></strong>.</p>
+                    <p class="text-danger small">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        L'agent perderà l'accesso al Hub immediatamente.
+                        Non potrà inviare heartbeat né ricevere aggiornamenti finché non verrà reintegrato.
+                    </p>
+                    <input type="hidden" name="id" id="revokeId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Motivo (opzionale)</label>
+                        <input type="text" name="reason" class="form-control"
+                               placeholder="es. Dispositivo dismesso, compromissione sospetta…" maxlength="500" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-ban me-1"></i>Revoca
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Populate revoke modal
+document.getElementById('revokeModal').addEventListener('show.bs.modal', function (e) {
+    const btn = e.relatedTarget;
+    document.getElementById('revokeId').value = btn.getAttribute('data-id');
+    document.getElementById('revokeInstName').textContent = btn.getAttribute('data-name');
+});
+
+// Toggle full API key visibility
+function toggleKey(id, fullKey) {
+    const el = document.getElementById('key-' + id);
+    const eye = document.getElementById('eye-' + id);
+    if (el.dataset.shown === '1') {
+        el.textContent = fullKey.substring(0,8) + '••••••••••••••••••••••••';
+        el.dataset.shown = '0';
+        eye.className = 'bi bi-eye';
+    } else {
+        el.textContent = fullKey;
+        el.dataset.shown = '1';
+        eye.className = 'bi bi-eye-slash';
+    }
+}
+
+// Live table filter
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#apiKeyTable tbody tr').forEach(tr => {
+        const val = tr.getAttribute('data-search') || '';
+        tr.style.display = (!q || val.includes(q)) ? '' : 'none';
+    });
+}
+</script>
+}

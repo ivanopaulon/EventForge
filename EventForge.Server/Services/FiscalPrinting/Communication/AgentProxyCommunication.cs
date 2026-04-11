@@ -1,4 +1,4 @@
-using EventForge.Hardware.PrinterProxy;
+using Prym.Hardware.PrinterProxy;
 using System.Net.Http.Json;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
