@@ -135,7 +135,7 @@
                            Color="Color.Primary"
                            Variant="Variant.Filled"
                            OnClick="@SendMessage"
-                           Disabled="@(string.IsNullOrWhiteSpace(MessageText) || IsSending)"
+                           Disabled="@(CanSend == false || IsSending)"
                            aria-label="@TranslationService.GetTranslation("chat.sendMessage", "Send message")" />
         </MudTooltip>
     </div>
@@ -236,6 +236,9 @@
     [Parameter] public EventCallback<MessageAttachmentDto> OnRemoveAttachment { get; set; }
     [Parameter] public string ComposerStyle { get; set; } = "";
     [Parameter] public bool IsSending { get; set; }
+
+    // True when there is something to send (text or at least one pending attachment).
+    private bool CanSend => !string.IsNullOrWhiteSpace(MessageText) || PendingAttachments?.Count > 0;
 
     private MudTextField<string>? messageInput;
     private InputFile? fileInput;
@@ -519,7 +522,9 @@
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(MessageText) || CurrentChat == null)
+            var hasText        = !string.IsNullOrWhiteSpace(MessageText);
+            var hasAttachments = PendingAttachments?.Count > 0;
+            if ((!hasText && !hasAttachments) || CurrentChat == null)
                 return;
 
             var message = new SendMessageDto
@@ -583,11 +588,20 @@
 
     private async Task HandleFileInputChanged(InputFileChangeEventArgs e)
     {
+        const long maxFileSizeBytes = 50L * 1024 * 1024; // 50 MB — must match server limit
         try
         {
             var files = e.GetMultipleFiles(10);
-            if (files.Count > 0)
-                await OnAttachFile.InvokeAsync(files);
+            if (files.Count == 0) return;
+
+            var oversized = files.Where(f => f.Size > maxFileSizeBytes).ToList();
+            foreach (var f in oversized)
+                AppNotification.ShowWarning(
+                    $"Il file '{f.Name}' supera il limite massimo di 50 MB e non può essere allegato.");
+
+            var valid = files.Where(f => f.Size <= maxFileSizeBytes).ToList();
+            if (valid.Count > 0)
+                await OnAttachFile.InvokeAsync(valid);
         }
         catch (Exception ex)
         {

@@ -426,7 +426,7 @@
                                                  OnCancelReply="@CancelReply"
                                                  OnRemoveAttachment="@RemoveAttachment"
                                                  PendingAttachments="@_pendingAttachments"
-                                                 IsSending="@_isSendingMessage" />
+                                                 IsSending="@IsComposerBusy" />
                     </div>
                 }
                 else
@@ -465,6 +465,10 @@
     private bool _isLoadingChats;
     private bool _isLoadingMessages;
     private bool _isSendingMessage;
+    private bool _isUploadingFiles;
+
+    // Combined: composer spinner shown during both upload and send.
+    private bool IsComposerBusy => _isSendingMessage || _isUploadingFiles;
 
     // ── Filter / search ──────────────────────────────────────────────────────
     private string _searchText  = string.Empty;
@@ -671,7 +675,9 @@
 
     private async Task SendMessageAsync(SendMessageDto messageDto)
     {
-        if (string.IsNullOrWhiteSpace(messageDto.Content) || _selectedChat == null) return;
+        var hasText        = !string.IsNullOrWhiteSpace(messageDto.Content);
+        var hasAttachments = messageDto.Attachments?.Count > 0;
+        if ((!hasText && !hasAttachments) || _selectedChat == null) return;
 
         _isSendingMessage = true;
         StateHasChanged();
@@ -703,7 +709,7 @@
     private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
     {
         if (_selectedChat == null || files.Count == 0) return;
-        _isSendingMessage = true;
+        _isUploadingFiles = true;
         StateHasChanged();
         try
         {
@@ -723,7 +729,7 @@
         }
         finally
         {
-            _isSendingMessage = false;
+            _isUploadingFiles = false;
             StateHasChanged();
         }
     }
