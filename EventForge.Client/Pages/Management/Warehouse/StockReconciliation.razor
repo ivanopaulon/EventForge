@@ -300,12 +300,12 @@
                         @if (_expandedRows.Contains(context) && context.SourceMovements.Any())
                         {
                             <MudTr>
-                                <td colspan="8" style="padding:0;">
+                                <td colspan="8" class="pa-0">
                                     <MudPaper Class="pa-3 ma-2 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.subtitle2" Class="mb-2">
                                             @TranslationService.GetTranslation("stockReconciliation.sourceMovements", "Source Movements")
                                         </MudText>
-                                        <MudSimpleTable Dense="true" Hover="true" Style="overflow-x: auto;">
+                                        <MudSimpleTable Dense="true" Hover="true" Class="overflow-x-auto">
                                             <thead>
                                                 <tr>
                                                     <th>@TranslationService.GetTranslation("field.type", "Type")</th>

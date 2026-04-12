@@ -82,10 +82,10 @@
                             @TranslationService.GetTranslation("bulkEdit.totalRequested", "Totale richiesti"): <strong>@_result?.TotalRequested</strong>
                         </MudText>
                         <MudText Typo="Typo.body2">
-                            @TranslationService.GetTranslation("bulkEdit.successCount", "Aggiornati con successo"): <strong style="color: green;">@_result?.SuccessCount</strong>
+                            @TranslationService.GetTranslation("bulkEdit.successCount", "Aggiornati con successo"): <strong class="text-success-color">@_result?.SuccessCount</strong>
                         </MudText>
                         <MudText Typo="Typo.body2">
-                            @TranslationService.GetTranslation("bulkEdit.failureCount", "Falliti"): <strong style="color: red;">@_result?.FailureCount</strong>
+                            @TranslationService.GetTranslation("bulkEdit.failureCount", "Falliti"): <strong class="text-error-color">@_result?.FailureCount</strong>
                         </MudText>
                     </MudStack>
                 </MudPaper>

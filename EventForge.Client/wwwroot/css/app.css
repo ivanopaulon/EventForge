@@ -1191,6 +1191,7 @@ kbd {
 .text-disabled    { color: var(--mud-palette-text-disabled); }
 .text-secondary-color { color: var(--mud-palette-text-secondary); }
 .text-success-color   { color: var(--mud-palette-success); }
+.text-error-color     { color: var(--mud-palette-error); }
 .text-warning-color   { color: var(--mud-palette-warning); }
 .text-primary-color   { color: var(--mud-palette-primary); }
 
@@ -1265,6 +1266,11 @@ kbd {
 .border-warning-l   { border-left: 4px solid var(--mud-palette-warning); }
 .border-error-l     { border-left: 4px solid var(--mud-palette-error); }
 .border-info-l      { border-left: 4px solid var(--mud-palette-info); }
+/* 3-pixel left border variants */
+.border-error-l-3   { border-left: 3px solid var(--mud-palette-error); }
+.border-info-l-3    { border-left: 3px solid var(--mud-palette-info); }
+/* 2-pixel full border in warning colour */
+.border-warning-2   { border: 2px solid var(--mud-palette-warning); }
 
 /* Border radius */
 .rounded-12 { border-radius: 12px; }
@@ -1274,9 +1280,16 @@ kbd {
 .w-full          { width: 100%; }
 .h-full          { height: 100%; }
 .overflow-y-auto { overflow-y: auto; }
+.overflow-x-auto { overflow-x: auto; }
 .h-full-min-280 { height: 100%; min-height: 280px; }
 .min-width-150  { min-width: 150px; }
 .ef-min-200     { min-width: 200px; }
+/* Position helpers */
+.pos-relative   { position: relative; }
+/* Background helpers */
+.bg-transparent         { background: transparent; }
+.bg-primary-lighten     { background: var(--mud-palette-primary-lighten); }
+.bg-error-lighten       { background: var(--mud-palette-error-lighten); }
 
 /* Flex helpers for MudStack/MudSelect */
 .flex-wrap-wrap { flex-wrap: wrap; }

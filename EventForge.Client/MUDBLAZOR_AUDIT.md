@@ -1,6 +1,6 @@
 # MudBlazor Design System Audit — EventForge.Client
 
-**Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5+6+7  
+**Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5+6+7+8  
 **MudBlazor:** 9.2.0  
 **Framework:** Blazor WASM (.NET 10)  
 **Audit date:** 2025 — updated 2026-04-12  
@@ -20,8 +20,8 @@
 | G | `.mud-*` class overrides | 122 → **122** | Medium | ⚠️ Unchanged — structural overrides that require CSS-level targeting |
 | H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 → **0 (active)** | High | ✅ Phase 6: status-dot colors → `--ef-status-*`; scanner `#4CAF50`/`#FFC107` → palette vars; `#333`/`#cccccc` → semantic vars |
 | I | `<MudThemeProvider />` with no theme binding | 1 → 0 | High | ✅ Fixed (Task 1) — bound to IThemeService |
-| J | `Style=` (capital-S) inline on MudBlazor components | 826 → **151** | Medium | ⚠️ Substantially fixed — 675+ replacements total; 108 remaining are dynamic (@expr), ~43 complex multi-value; Phase 7: 22 more converted |
-| K | `style=` (lowercase) HTML inline | 110 → **61** | Low | ✅ Phase 3g: 46 simple styles converted to CSS classes — 52 complex multi-property + 12 single-use remain; Phase 7: 3 more converted |
+| J | `Style=` (capital-S) inline on MudBlazor components | 826 → **115** | Medium | ⚠️ Substantially fixed — 675+ replacements total; Phase 7: 22 more converted; Phase 8: ~18 more converted; ~99 dynamic (@expr) + ~16 intentional unique remain |
+| K | `style=` (lowercase) HTML inline | 110 → **55** | Low | ✅ Phase 3g: 46 simple styles converted; Phase 7: 3 converted; Phase 8: 6 more (d-none, pa-0, pos-relative, mr-1, overflow-x, mb-1) — remaining are brand colors, unique dimensions, or complex values |
 
 > **Note (Phase 5):** Previous Cat F/G counts (229/282) were measured by `grep` which matched inside `/* ... */` block comments.  
 > The corrected baseline with comment-stripping is **167 active !important** and **122 active .mud-\* rules** across all CSS files.
@@ -38,6 +38,7 @@
 **Total fixed in Phase 5:** 17 palette-var `!important` removed from mud-components.css; corrected baseline counts (comment-stripping) F: 167 active, G: 122 active  
 **Total fixed in Phase 6:** 8 hardcoded colors removed from app.css/language-selector.css → `--ef-status-online/away/busy` vars added; `#4CAF50`→`var(--mud-palette-success)` ×2; `#FFC107`→`var(--mud-palette-warning)`; `#333`→`var(--neutral-dark-light)`; `#cccccc`→`var(--mud-palette-lines-default)`  
 **Total fixed in Phase 7:** 25+ multi-value static `Style=`/`style=` converted to utility CSS classes in 15 razor files; 9 new utility classes added to app.css (`.ef-flex-col-fill`, `.ef-flex-child-fill`, `.pos-rel-no-shrink`, `.mh-300-scroll`, `.mh-350-scroll`, `.log-pre-mono`, `.log-pre-mt`, `.opacity-60-ml-4`, `.bg-grey-r8`, `.dlg-body-col`, `.color-swatch-btn`, `.presence-dot`); `.gap-3` utility added; `#4caf50` presence dot → `var(--ef-status-online)` in NewChatDialog  
+**Total fixed in Phase 8:** ~24 static single-value `Style=`/`style=` converted in 14 razor files; 9 new utility classes added to app.css (`.text-error-color`, `.border-error-l-3`, `.border-info-l-3`, `.border-warning-2`, `.overflow-x-auto`, `.pos-relative`, `.bg-transparent`, `.bg-primary-lighten`, `.bg-error-lighten`); remaining 27 singles are intentionally kept (brand colors, unique dimensions, rgba/gradient values)  
 **Remaining static Style=:** ~151 (108 dynamic `@expr`, 43 complex multi-value — intentionally kept)
 
 ---

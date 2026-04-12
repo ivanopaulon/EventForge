@@ -167,7 +167,7 @@
                 @* Selettore flag (visibile solo se ci sono più flag disponibili) *@
                 @if (_noteFlags.Count > 1)
                 {
-                    <div class="pos26-fn-row" style="margin-bottom:4px;">
+                    <div class="pos26-fn-row mb-1">
                         <select class="pos26-fn-input"
                                 @bind="_selectedNoteFlagId">
                             @foreach (var flag in _noteFlags)
