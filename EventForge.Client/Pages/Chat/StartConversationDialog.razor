@@ -19,8 +19,7 @@
 
                 @* Recipients row *@
                 <div class="d-flex align-center flex-wrap gap-1 mb-2">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary"
-                             Style="flex-shrink:0;font-weight:600;margin-right:4px;">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="fw-semibold" Style="flex-shrink:0; margin-right:4px;">
                         A:
                     </MudText>
                     @foreach (var contact in _selectedContacts)
@@ -126,8 +125,7 @@
                                                 <span class="@GetPresenceDotClass(contact.Presence)"></span>
                                             </div>
                                             <div class="flex-grow-1 overflow-hidden">
-                                                <MudText Typo="Typo.body1"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">
+                                                <MudText Typo="Typo.body1" Class="text-truncate-ef fw-medium">
                                                     @contact.Name
                                                 </MudText>
                                                 @if (!string.IsNullOrWhiteSpace(contact.Role))
@@ -174,8 +172,7 @@
                                                          Style="font-size:22px;" />
                                             </MudAvatar>
                                             <div class="flex-grow-1 overflow-hidden">
-                                                <MudText Typo="Typo.body1"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">
+                                                <MudText Typo="Typo.body1" Class="text-truncate-ef fw-medium">
                                                     @contact.Name
                                                 </MudText>
                                                 @if (!string.IsNullOrWhiteSpace(contact.Phone))

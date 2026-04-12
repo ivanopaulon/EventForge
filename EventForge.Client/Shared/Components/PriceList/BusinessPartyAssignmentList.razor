@@ -132,7 +132,7 @@
         <MudTd DataLabel="@TranslationService.GetTranslation("field.validity", "Validità")">
             @if (context.SpecificValidFrom.HasValue || context.SpecificValidTo.HasValue)
             {
-                <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">
+                <MudText Typo="Typo.body2" Class="text-sm-custom">
                     @(context.SpecificValidFrom?.ToString("dd/MM/yyyy") ?? "∞") - @(context.SpecificValidTo?.ToString("dd/MM/yyyy") ?? "∞")
                 </MudText>
             }

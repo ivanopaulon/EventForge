@@ -13,13 +13,13 @@
         <!-- Overlay "Coming Soon" -->
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%; z-index: 10;">
             <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Large" Style="opacity: 0.5; color: white;" />
-            <MudText Typo="Typo.h6" Style="opacity: 0.8; color: white;">Coming Soon</MudText>
+            <MudText Typo="Typo.h6" Class="opacity-80 text-white-full">Coming Soon</MudText>
         </div>
     }
     
     <MudStack Spacing="2" Style="@(IsPlaceholder ? "opacity: 0.4;" : "")">
         <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600; color: white;">
+            <MudText Typo="Typo.subtitle1" Class="fw-semibold text-white-full">
                 @ProgramName
             </MudText>
             <MudChip T="string"
@@ -29,7 +29,7 @@
             </MudChip>
         </MudStack>
         
-        <MudText Typo="Typo.caption" Style="opacity: 0.9; color: white;">
+        <MudText Typo="Typo.caption" Class="opacity-90 text-white-full">
             Card N. @CardNumber
         </MudText>
         
@@ -37,11 +37,11 @@
         
         <MudStack Row Justify="Justify.SpaceBetween">
             <MudStack Spacing="0">
-                <MudText Typo="Typo.caption" Style="opacity: 0.8; color: white;">Punti</MudText>
+                <MudText Typo="Typo.caption" Class="opacity-80 text-white-full">Punti</MudText>
                 <MudText Typo="Typo.h6" Class="text-dark-full">@Points</MudText>
             </MudStack>
             <MudStack Spacing="0" AlignItems="AlignItems.End">
-                <MudText Typo="Typo.caption" Style="opacity: 0.8; color: white;">Scadenza</MudText>
+                <MudText Typo="Typo.caption" Class="opacity-80 text-white-full">Scadenza</MudText>
                 <MudText Typo="Typo.body2" Class="text-dark-full">@ExpiryDate</MudText>
             </MudStack>
         </MudStack>

@@ -14,7 +14,7 @@
                     @TranslationService.GetTranslation("sales.quantity", "Quantità")
                 }
             </MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; min-width: 80px; text-align: right; font-family: monospace;">
+            <MudText Typo="Typo.h5" Class="fw-bold text-mono-right" Align="Align.Right">
                 @(_input.Length > 0 ? _input : "0")
             </MudText>
         </MudStack>

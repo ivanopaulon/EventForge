@@ -64,7 +64,7 @@
                     @if (!string.IsNullOrEmpty(AdminLog.TraceId))
                     {
                         <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Trace ID:</strong></MudText></MudItem>
-                        <MudItem xs="9"><MudText Typo="Typo.body2" Style="font-family: monospace; font-size: 0.8rem;">@AdminLog.TraceId</MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2" Class="text-mono-sm">@AdminLog.TraceId</MudText></MudItem>
                     }
                 </MudGrid>
 

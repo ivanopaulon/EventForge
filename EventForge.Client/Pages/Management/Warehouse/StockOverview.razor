@@ -303,9 +303,8 @@
                             else
                             {
                                 <MudTooltip Text="@TranslationService.GetTranslation("stock.doubleClickToEdit", "Doppio click per modifica rapida")">
-                                    <MudText Typo="Typo.body2" 
-                                             Style="font-weight:600; cursor:pointer;"
-                                             @ondblclick="@(() => StartQuickEdit(item, "Quantity"))">
+                                    <MudText Typo="Typo.body2"
+                                             @ondblclick="@(() => StartQuickEdit(item, "Quantity"))" Class="fw-semibold cursor-pointer">
                                         @item.Quantity.ToString("N2")
                                     </MudText>
                                 </MudTooltip>
@@ -356,8 +355,8 @@
                                 var delta = recon.CalculatedQuantity - item.Quantity;
                                 <div class="d-flex flex-column align-end gap-0">
                                     <MudTooltip Text="@TranslationService.GetTranslationFormatted("stock.reconciledQtyTooltip", "Qtà calcolata dai movimenti: {0:N2}. Differenza: {1:+0.##;-0.##;0}", recon.CalculatedQuantity, delta)">
-                                        <MudText Typo="Typo.body2" Style="font-weight:600; cursor:pointer;"
-                                                 @onclick="@(() => OpenFullEditPopoverWithReconciledQty(item, recon.CalculatedQuantity))">
+                                        <MudText Typo="Typo.body2"
+                                                 @onclick="@(() => OpenFullEditPopoverWithReconciledQty(item, recon.CalculatedQuantity))" Class="fw-semibold cursor-pointer">
                                             @recon.CalculatedQuantity.ToString("N2")
                                         </MudText>
                                     </MudTooltip>

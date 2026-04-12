@@ -106,7 +106,7 @@ else if (!ViewModel.SelectedPosId.HasValue)
                             <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
                                      Color="Color.Primary"
                                      Style="font-size: 2.5rem;" />
-                            <MudText Typo="Typo.h6" Style="font-weight: 600; text-align: center;">
+                            <MudText Typo="Typo.h6" Class="fw-semibold" Align="Align.Center">
                                 @pos.Name
                             </MudText>
                             @if (!string.IsNullOrEmpty(pos.Location))
@@ -225,8 +225,7 @@ else
                             <!-- Hint when nothing selected -->
                             <MudText Typo="Typo.caption"
                                      Color="Color.Secondary"
-                                     Class="d-flex align-center justify-center"
-                                     Style="flex: 1; text-align: center; font-style: italic;">
+                                     Class="d-flex align-center justify-center text-italic-centered">
                                 @TranslationService.GetTranslation("sales.touchItemOrScan",
                                     "Tocca un articolo nel carrello per modificarlo, oppure scansiona un prodotto")
                             </MudText>
@@ -360,7 +359,7 @@ else
                                 <MudText Typo="Typo.h6" Class="fw-bold">
                                     @TranslationService.GetTranslation("sales.total", "TOTALE")
                                 </MudText>
-                                <MudText Typo="Typo.h4" Style="font-weight: 800; color: var(--mud-palette-primary);">
+                                <MudText Typo="Typo.h4" Class="fw-extrabold" Color="Color.Primary">
                                     @ViewModel.GrandTotal.ToString("C")
                                 </MudText>
                             </MudStack>

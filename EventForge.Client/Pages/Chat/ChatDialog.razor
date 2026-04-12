@@ -173,8 +173,7 @@
                                                     }
                                                 </div>
                                                 <MudText Typo="Typo.caption"
-                                                         Color="Color.Secondary"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">
+                                                         Color="Color.Secondary" Class="text-truncate-block">
                                                     @(chat.LastMessage?.Content ?? "")
                                                 </MudText>
                                             </div>
@@ -243,8 +242,7 @@
                         @* Name + channel chip + presence *@
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="d-flex align-center gap-2 flex-wrap">
-                                <MudText Typo="Typo.subtitle1"
-                                         Style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,0.87);">
+                                <MudText Typo="Typo.subtitle1" Class="fw-semibold text-truncate-ef text-white-87">
                                     @(selIsWa
                                         ? (_selectedChat.BusinessPartyName ?? _selectedChat.ExternalPhoneNumber ?? GetChatName(_selectedChat))
                                         : GetChatName(_selectedChat))

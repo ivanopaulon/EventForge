@@ -38,7 +38,7 @@
                 {
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Messaggio</MudText>
-                        <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.87); margin-top: 4px;">@Notification.Payload.Message</MudText>
+                        <MudText Typo="Typo.body1" Class="text-white-87 mt-4-px">@Notification.Payload.Message</MudText>
                     </div>
                 }
 
@@ -86,13 +86,13 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Ricevuta</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
                     </div>
                     @if (Notification.ReadAt.HasValue)
                     {
                         <div>
                             <MudText Typo="Typo.caption" Class="text-section-label">Letta</MudText>
-                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@Notification.ReadAt.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
+                            <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.ReadAt.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
                         </div>
                     }
                 </div>

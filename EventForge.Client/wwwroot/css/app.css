@@ -1175,3 +1175,50 @@ kbd {
 
 /* Margin utilities */
 .mt-1-px { margin-top: 4px; }
+
+/* ── Additional text utility classes (Phase 3b) ──────────────────────────── */
+/* Color aliases for MudBlazor palette vars (where Color= param doesn't apply) */
+.text-disabled    { color: var(--mud-palette-text-disabled); }
+.text-secondary-color { color: var(--mud-palette-text-secondary); }
+.text-success-color   { color: var(--mud-palette-success); }
+.text-warning-color   { color: var(--mud-palette-warning); }
+.text-primary-color   { color: var(--mud-palette-primary); }
+
+/* White text with various opacity levels */
+.text-white-80    { color: rgba(255, 255, 255, 0.8); }
+.text-white-87    { color: rgba(255, 255, 255, 0.87); }
+.text-white-90    { color: rgba(255, 255, 255, 0.9); }
+.text-white-full  { color: #ffffff; }
+
+/* Opacity variants */
+.opacity-80       { opacity: 0.8; }
+.opacity-90       { opacity: 0.9; }
+
+/* Code/monospace with specific styling */
+.text-code-muted  { font-family: monospace; color: rgba(255, 255, 255, 0.70); margin-top: 4px; }
+.text-card-mono   { font-family: monospace; color: rgba(255, 255, 255, 0.9); letter-spacing: 2px; }
+
+/* Font size helpers (for sizes below Typo.caption) */
+.text-xxs  { font-size: 0.65rem; }
+.text-xs   { font-size: 0.70rem; }
+.text-sm-custom { font-size: 0.80rem; }
+.text-lg-custom { font-size: 1.10rem; }
+
+/* Combined helpers */
+.text-truncate-block { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.text-header-dark  {
+    color: rgba(255, 255, 255, 0.87);
+    font-weight: 500;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.text-mono-right { font-family: monospace; min-width: 80px; text-align: right; }
+.text-italic-centered { flex: 1; text-align: center; font-style: italic; }
+
+/* MudText margin helper */
+.mt-4-px  { margin-top: 4px; }
+
+/* Max width 180 */
+.ef-max-180 { max-width: 180px; }

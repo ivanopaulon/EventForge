@@ -36,7 +36,7 @@ else if (RecentTransactions != null && RecentTransactions.Any())
                         <MudText Typo="Typo.body2">@context.DocumentDate.ToString("dd/MM/yyyy")</MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("documents.price", "Prezzo")">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500; color: var(--mud-palette-primary);">
+                        <MudText Typo="Typo.body2" Class="fw-medium" Color="Color.Primary">
                             @context.EffectiveUnitPrice.ToString("C2")
                         </MudText>
                     </MudTd>

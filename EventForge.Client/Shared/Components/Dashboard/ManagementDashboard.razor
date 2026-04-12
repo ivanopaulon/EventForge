@@ -38,7 +38,7 @@ New implementations should use QuickFilters instead.
                                              Size="Size.Small"
                                              Class="mr-1" />
                                 }
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.7rem;">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-xs">
                                     @metric.Title
                                 </MudText>
                                 @if (!string.IsNullOrEmpty(metric.Description))
@@ -48,12 +48,12 @@ New implementations should use QuickFilters instead.
                                     </MudTooltip>
                                 }
                             </div>
-                            <MudText Typo="Typo.h6" Color="@GetMudColor(metric.Color)" Style="font-size: 1.1rem;">
+                            <MudText Typo="Typo.h6" Color="@GetMudColor(metric.Color)" Class="text-lg-custom">
                                 @metric.FormattedValue
                             </MudText>
                             @if (!string.IsNullOrEmpty(metric.GroupLabel))
                             {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.65rem;">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-xxs">
                                     @metric.GroupLabel
                                 </MudText>
                             }

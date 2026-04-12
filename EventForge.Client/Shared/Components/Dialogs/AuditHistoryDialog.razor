@@ -193,8 +193,7 @@
                             }
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("audit.notes", "Note")">
-                            <MudText Typo="Typo.body2"
-                                     Style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <MudText Typo="Typo.body2" Class="ef-max-200 text-truncate-ef">
                                 @log.Notes
                             </MudText>
                         </MudTd>

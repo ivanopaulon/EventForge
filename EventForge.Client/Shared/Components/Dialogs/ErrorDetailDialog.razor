@@ -13,7 +13,7 @@
                 @* Main error message *@
                 <div>
                     <MudText Typo="Typo.caption" Class="text-section-label">Messaggio</MudText>
-                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.87); margin-top: 4px;">@ErrorInfo.Message</MudText>
+                    <MudText Typo="Typo.body1" Class="text-white-87 mt-4-px">@ErrorInfo.Message</MudText>
                 </div>
 
                 @* Technical details from server *@
@@ -22,7 +22,7 @@
                     <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Dettagli tecnici</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace; word-break: break-word;">@ErrorInfo.Details</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.Details</MudText>
                     </div>
                 }
 
@@ -32,7 +32,7 @@
                     <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Eccezione@(!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionType) ? $" ({ErrorInfo.ExceptionType})" : "")</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace; word-break: break-word;">@ErrorInfo.ExceptionMessage</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.ExceptionMessage</MudText>
                     </div>
                 }
 
@@ -42,7 +42,7 @@
                     <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">ID Correlazione</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@ErrorInfo.CorrelationId</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.CorrelationId</MudText>
                     </div>
                 }
 
@@ -50,7 +50,7 @@
                 <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
                 <div>
                     <MudText Typo="Typo.caption" Class="text-section-label">Timestamp</MudText>
-                    <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@ErrorInfo.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
+                    <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
                 </div>
 
             </div>

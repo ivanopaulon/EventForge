@@ -74,7 +74,7 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Barcode">
-                        <MudText Typo="Typo.body2" Style="font-family: monospace;">@context.Barcode</MudText>
+                        <MudText Typo="Typo.body2" Class="text-mono">@context.Barcode</MudText>
                     </MudTd>
                     <MudTd DataLabel="Type">
                         <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.CodeType</MudChip>
@@ -100,7 +100,7 @@
                     <MudTd DataLabel="Factor">
                         @if (context.ConversionFactor != 1m)
                         {
-                            <MudText Typo="Typo.body2" Style="font-weight: 600; color: var(--mud-palette-warning);">
+                            <MudText Typo="Typo.body2" Class="fw-semibold" Color="Color.Warning">
                                 x @context.ConversionFactor.ToString("0.###")
                             </MudText>
                         }

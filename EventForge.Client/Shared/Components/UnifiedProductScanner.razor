@@ -92,7 +92,7 @@
                         <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
                         @if (!string.IsNullOrEmpty(product.Code))
                         {
-                            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                            <MudText Typo="Typo.caption" Class="text-secondary-color">
                                 @product.Code
                             </MudText>
                         }
@@ -108,7 +108,7 @@
             
             <!-- NoItemsTemplate -->
             <NoItemsTemplate>
-                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
+                <MudText Typo="Typo.body2" Class="text-disabled">
                     @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
                 </MudText>
             </NoItemsTemplate>
