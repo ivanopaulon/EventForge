@@ -89,6 +89,7 @@ namespace EventForge.Client.Shared.Components
         [Parameter] public int MaxResults { get; set; } = 50;
         [Parameter] public bool AutoFocus { get; set; } = true;
         [Parameter] public bool Disabled { get; set; } = false;
+        [Parameter] public bool ShowBarcodeScanner { get; set; } = true;
 
         #endregion
 
@@ -590,6 +591,20 @@ namespace EventForge.Client.Shared.Components
             {
                 Logger.LogError(ex, "Error in ClearSelection for UnifiedProductScanner.");
             }
+        }
+
+        /// <summary>
+        /// Opens the camera barcode scanner dialog and delegates the detected barcode
+        /// to SearchByBarcode, which performs an exact product-code lookup.
+        /// </summary>
+        private async Task OpenCameraScannerAsync()
+        {
+            var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+            {
+                { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, SearchByBarcode) }
+            };
+            await DialogService.ShowAsync<CameraBarcodeScannerDialog>(
+                string.Empty, parameters, Dialogs.EFDialogDefaults.Options);
         }
 
         #endregion

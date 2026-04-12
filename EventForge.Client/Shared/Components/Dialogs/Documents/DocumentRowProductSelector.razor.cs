@@ -21,6 +21,7 @@ namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 public partial class DocumentRowProductSelector : ComponentBase
 {
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IProductService ProductService { get; set; } = default!;
     [Inject] private IAppNotificationService AppNotification { get; set; } = default!;
     [Inject] private ILogger<DocumentRowProductSelector> Logger { get; set; } = default!;
 
@@ -80,7 +81,7 @@ public partial class DocumentRowProductSelector : ComponentBase
     /// that opens the barcode scanner dialog.
     /// </summary>
     [Parameter]
-    public bool ShowBarcodeScanner { get; set; } = false;
+    public bool ShowBarcodeScanner { get; set; } = true;
 
     #endregion
 
@@ -127,33 +128,28 @@ public partial class DocumentRowProductSelector : ComponentBase
 
     /// <summary>
     /// Processes a barcode scanned by the camera.
-    /// If exactly one product matches the barcode, it is auto-selected.
+    /// Uses GetProductWithCodeByCodeAsync for an exact barcode/code lookup,
+    /// which is the correct approach (SearchFunc is a text search by name).
     /// </summary>
     private async Task OnBarcodeScannedAsync(string barcode)
     {
-        if (SearchFunc == null || string.IsNullOrWhiteSpace(barcode))
+        if (string.IsNullOrWhiteSpace(barcode))
             return;
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            var results = (await SearchFunc(barcode, cts.Token)).ToList();
+            var productWithCode = await ProductService.GetProductWithCodeByCodeAsync(barcode);
 
-            if (results.Count == 1)
+            if (productWithCode?.Product != null)
             {
-                SelectedProduct = results[0];
+                SelectedProduct = productWithCode.Product;
                 await SelectedProductChanged.InvokeAsync(SelectedProduct);
                 StateHasChanged();
             }
-            else if (results.Count == 0)
+            else
             {
                 AppNotification.ShowWarning(TranslationService.GetTranslation(
                     "camera.noProductFound", "Nessun prodotto trovato per il codice: {0}", barcode));
-            }
-            else
-            {
-                AppNotification.ShowInfo(TranslationService.GetTranslation(
-                    "camera.multipleProductsFound", "Trovati {0} prodotti per il codice: {1}", results.Count, barcode));
             }
         }
         catch (Exception ex)
