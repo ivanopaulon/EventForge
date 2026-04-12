@@ -343,6 +343,34 @@ public class SalesController(
     }
 
     /// <summary>
+    /// Returns distinct product IDs purchased by a customer in their most recent sessions.
+    /// Used by POS to highlight previously bought products without loading full session data.
+    /// </summary>
+    /// <param name="customerId">Customer (BusinessParty) ID</param>
+    /// <param name="maxSessions">Maximum number of recent sessions to scan (default: 30)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("sessions/customers/{customerId:guid}/purchased-product-ids")]
+    [ProducesResponseType(typeof(IEnumerable<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<Guid>>> GetCustomerPurchasedProductIds(
+        Guid customerId,
+        [FromQuery] int maxSessions = 30,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var ids = await saleSessionService.GetCustomerPurchasedProductIdsAsync(customerId, maxSessions, cancellationToken);
+            return Ok(ids);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving customer purchased product IDs.", ex);
+        }
+    }
+
+    /// <summary>
     /// Adds an item to a sale session.
     /// </summary>
     /// <param name="sessionId">Session ID</param>

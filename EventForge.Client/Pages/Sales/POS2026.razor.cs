@@ -50,8 +50,11 @@ public partial class POS2026 : IAsyncDisposable
     // --- Carrello (derivato dalla sessione) ---
     private Dictionary<Guid, int> _cartQuantities = new();
 
-    // --- Prodotti filtrati (derivati) ---
-    private IEnumerable<ProductDto> _filteredProducts => ApplyFilters();
+    // --- Prodotti filtrati (materializzati — aggiornati solo quando cambiano i parametri rilevanti) ---
+    private IReadOnlyList<ProductDto> _filteredProducts = [];
+
+    // --- Dizionario categoria O(1) per lookup nella sort ---
+    private Dictionary<Guid, string> _categoryNodeDict = new();
 
     // --- Sessioni parcheggiate ---
     private List<SaleSessionDto> _parkedSessions = new();
@@ -107,6 +110,7 @@ public partial class POS2026 : IAsyncDisposable
             );
 
             BuildCategoryList();
+            RebuildFilteredProducts();
 
             // Se c'è già un cliente, carica gli ultimi acquisti
             if (ViewModel.SelectedCustomer != null)
@@ -161,9 +165,10 @@ public partial class POS2026 : IAsyncDisposable
         StateHasChanged();
         try
         {
-            // Carica prima i prodotti così la griglia diventa visibile il prima possibile
-            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 500);
+            // Use the slim POS-catalog endpoint (no Codes/Units/BundleItems eager loading)
+            var result = await ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
             _allProducts = result?.Items?.ToList() ?? new();
+            RebuildFilteredProducts();
         }
         catch (Exception ex)
         {
@@ -175,9 +180,8 @@ public partial class POS2026 : IAsyncDisposable
             StateHasChanged();
         }
 
-        // Carica i best seller in background dopo aver sbloccato la griglia prodotti
-        await LoadBestSellerIdsAsync();
-        StateHasChanged();
+        // Best-sellers fire-and-forget — non blocca la visualizzazione della griglia
+        _ = LoadBestSellerIdsAsync().ContinueWith(_ => InvokeAsync(StateHasChanged));
     }
 
     /// <summary>
@@ -190,8 +194,8 @@ public partial class POS2026 : IAsyncDisposable
         {
             var filter = new AnalyticsFilterDto
             {
-                DateFrom = DateTime.UtcNow.AddMonths(-3),
-                DateTo   = DateTime.UtcNow,
+                DateFrom = DateTime.UtcNow.AddMonths(-3).Date,
+                DateTo   = DateTime.UtcNow.Date,
                 Top      = 50
             };
             var analytics = await AnalyticsService.GetSalesAnalyticsAsync(filter);
@@ -201,12 +205,12 @@ public partial class POS2026 : IAsyncDisposable
                     .Where(p => p.ProductId.HasValue)
                     .Select(p => p.ProductId!.Value)
                     .ToHashSet();
+                RebuildFilteredProducts();
             }
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "POS2026: impossibile caricare best seller da analytics. Fallback a ordine alfabetico.");
-            // Non bloccante: la griglia si mostrerà comunque ordinata alfabeticamente
         }
     }
 
@@ -220,6 +224,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             var nodes = await EntityManagementService.GetClassificationNodesAsync();
             _classificationNodes = nodes?.Where(n => n.IsActive).OrderBy(n => n.Name).ToList() ?? new();
+            _categoryNodeDict = _classificationNodes.ToDictionary(n => n.Id, n => n.Name);
         }
         catch (Exception ex)
         {
@@ -292,36 +297,16 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     /// <summary>
-    /// Carica gli ID dei prodotti negli ultimi acquisti del cliente corrente,
-    /// scansionando le sessioni completate (GetOperatorSessionsAsync + GetActiveSessionsAsync).
-    /// Non c'è un endpoint dedicato "GetLastPurchasesByCustomer", quindi si usano le sessioni chiuse.
+    /// Carica gli ID dei prodotti acquistati dal cliente usando l'endpoint dedicato.
     /// </summary>
     private async Task LoadLastPurchaseIdsAsync(Guid customerId)
     {
         _lastPurchaseIds.Clear();
         try
         {
-            // Usa le sessioni attive/completate dell'operatore corrente
-            // e filtra quelle del cliente specificato
-            List<SaleSessionDto>? sessions = null;
-            if (ViewModel.SelectedOperatorId.HasValue)
-                sessions = await SalesService.GetOperatorSessionsAsync(ViewModel.SelectedOperatorId.Value);
-
-            if (sessions == null || !sessions.Any())
-                sessions = await SalesService.GetActiveSessionsAsync();
-
-            if (sessions != null)
-            {
-                var customerSessions = sessions
-                    .Where(s => s.CustomerId == customerId)
-                    .ToList();
-
-                foreach (var session in customerSessions)
-                {
-                    foreach (var item in session.Items)
-                        _lastPurchaseIds.Add(item.ProductId);
-                }
-            }
+            var ids = await SalesService.GetCustomerPurchasedProductIdsAsync(customerId);
+            if (ids != null)
+                _lastPurchaseIds = ids.ToHashSet();
         }
         catch (Exception ex)
         {
@@ -354,9 +339,10 @@ public partial class POS2026 : IAsyncDisposable
         StateHasChanged();
         try
         {
-            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 500);
+            var result = await ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
             _allProducts = result?.Items?.ToList() ?? new();
             BuildCategoryList();
+            RebuildFilteredProducts();
         }
         catch (Exception ex)
         {
@@ -372,7 +358,10 @@ public partial class POS2026 : IAsyncDisposable
     //  Filtri e ordinamento
     // =========================================================================
 
-    private IEnumerable<ProductDto> ApplyFilters()
+    /// <summary>
+    /// Materializza _filteredProducts. Chiamata solo quando cambiano i parametri rilevanti.
+    /// </summary>
+    private void RebuildFilteredProducts()
     {
         var source = _allProducts.AsEnumerable();
 
@@ -388,7 +377,7 @@ public partial class POS2026 : IAsyncDisposable
         // Filtro categoria — usa CategoryNodeId se disponibili i nodi reali, altrimenti VatRateName
         if (!string.IsNullOrEmpty(_selectedCategory))
         {
-            if (_classificationNodes.Any())
+            if (_categoryNodeDict.Count > 0)
             {
                 var nodeId = _classificationNodes
                     .FirstOrDefault(n => n.Name == _selectedCategory)?.Id;
@@ -401,7 +390,7 @@ public partial class POS2026 : IAsyncDisposable
             }
         }
 
-        // Ordinamento
+        // Ordinamento — usa _categoryNodeDict per lookup O(1) nella sort per categoria
         source = _sortMode switch
         {
             Pos26SortMode.Alfabetico     => source.OrderBy(p => p.Name),
@@ -411,13 +400,13 @@ public partial class POS2026 : IAsyncDisposable
                                          => source.OrderByDescending(p => _lastPurchaseIds.Contains(p.Id)).ThenBy(p => p.Name),
             Pos26SortMode.UltimiAcquisti => source.OrderByDescending(p => _bestSellerIds.Contains(p.Id)).ThenBy(p => p.Name),
             Pos26SortMode.Categoria      =>
-                _classificationNodes.Any()
-                    ? source.OrderBy(p => _classificationNodes.FirstOrDefault(n => n.Id == p.CategoryNodeId)?.Name).ThenBy(p => p.Name)
+                _categoryNodeDict.Count > 0
+                    ? source.OrderBy(p => p.CategoryNodeId.HasValue && _categoryNodeDict.TryGetValue(p.CategoryNodeId.Value, out var cn) ? cn : string.Empty).ThenBy(p => p.Name)
                     : source.OrderBy(p => p.VatRateName).ThenBy(p => p.Name),
             _                            => source.OrderBy(p => p.Name)
         };
 
-        return source;
+        _filteredProducts = source.ToList();
     }
 
     // =========================================================================
@@ -445,11 +434,13 @@ public partial class POS2026 : IAsyncDisposable
                 Logger.LogWarning(ex, "Errore nella ricerca prodotti POS2026.");
             }
         }
-        else
+        else if (_allProducts.Count == 0)
         {
+            // Solo se il catalogo è vuoto lo ricarichiamo; altrimenti usa _allProducts già in memoria
             await LoadProductsAsync();
         }
 
+        RebuildFilteredProducts();
         StateHasChanged();
     }
 
@@ -484,6 +475,7 @@ public partial class POS2026 : IAsyncDisposable
         if (mode == Pos26SortMode.UltimiAcquisti && ViewModel.SelectedCustomer == null)
             AppNotification.ShowInfo("Seleziona un cliente per vedere gli ultimi acquisti.");
 
+        RebuildFilteredProducts();
         StateHasChanged();
         await Task.CompletedTask;
     }
@@ -491,6 +483,7 @@ public partial class POS2026 : IAsyncDisposable
     private async Task OnCategorySelectedAsync(string? category)
     {
         _selectedCategory = category;
+        RebuildFilteredProducts();
         StateHasChanged();
         await Task.CompletedTask;
     }
@@ -515,6 +508,7 @@ public partial class POS2026 : IAsyncDisposable
                     _sortMode = Pos26SortMode.BestSeller;
             }
 
+            RebuildFilteredProducts();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -694,7 +688,9 @@ public partial class POS2026 : IAsyncDisposable
         if (!ViewModel.CanPay) return;
         try
         {
-            var paymentMethods = await PaymentMethodService.GetActiveAsync() ?? new();
+            var paymentMethods = ViewModel.PaymentMethods.Count > 0
+                ? ViewModel.PaymentMethods
+                : await PaymentMethodService.GetActiveAsync() ?? new();
 
             var parameters = new DialogParameters
             {

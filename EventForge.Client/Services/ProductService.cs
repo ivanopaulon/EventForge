@@ -86,6 +86,23 @@ public class ProductService(
         }
     }
 
+    public async Task<PagedResult<ProductDto>?> GetPosCatalogAsync(int page = 1, int pageSize = 100, string? searchTerm = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/pos-catalog?page={page}&pageSize={pageSize}";
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            }
+            return await httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
     public async Task<ProductDto?> CreateProductAsync(CreateProductDto createDto, CancellationToken ct = default)
     {
         try

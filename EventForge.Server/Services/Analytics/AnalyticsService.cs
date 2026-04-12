@@ -30,16 +30,17 @@ public class AnalyticsService(
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
-            var cacheKey = $"analytics_promotions_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
+            var now = DateTime.UtcNow;
+            var top = filter.Top > 0 ? filter.Top : 10;
+            var normDateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date.ToString("yyyyMMdd");
+            var normDateTo   = (filter.DateTo   ?? now).Date.ToString("yyyyMMdd");
+            var cacheKey = $"analytics_promotions_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out PromotionAnalyticsDashboardDto? cached) && cached is not null)
             {
                 monitoringMetrics.RecordCacheLookup(true);
                 return cached;
             }
             monitoringMetrics.RecordCacheLookup(false);
-
-            var now = DateTime.UtcNow;
-            var top = filter.Top > 0 ? filter.Top : 10;
 
             // Top promotions by CurrentUses
             var topPromotions = await context.Promotions
@@ -137,18 +138,19 @@ public class AnalyticsService(
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
-            var cacheKey = $"analytics_pricing_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
+            var now = DateTime.UtcNow;
+            var top = filter.Top > 0 ? filter.Top : 10;
+            var dateFrom = filter.DateFrom ?? now.AddMonths(-12);
+            var dateTo = filter.DateTo ?? now;
+            var normDateFrom = dateFrom.Date.ToString("yyyyMMdd");
+            var normDateTo   = dateTo.Date.ToString("yyyyMMdd");
+            var cacheKey = $"analytics_pricing_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out PricingAnalyticsDashboardDto? cached) && cached is not null)
             {
                 monitoringMetrics.RecordCacheLookup(true);
                 return cached;
             }
             monitoringMetrics.RecordCacheLookup(false);
-
-            var now = DateTime.UtcNow;
-            var top = filter.Top > 0 ? filter.Top : 10;
-            var dateFrom = filter.DateFrom ?? now.AddMonths(-12);
-            var dateTo = filter.DateTo ?? now;
 
             // Top price lists by usage
             var priceListUsage = await context.DocumentRows
@@ -257,7 +259,11 @@ public class AnalyticsService(
             if (!tenantId.HasValue)
                 throw new InvalidOperationException("Tenant context is required for analytics operations.");
 
-            var cacheKey = $"analytics_sales_{tenantId}_{filter.DateFrom}_{filter.DateTo}_{filter.GroupBy}";
+            var now = DateTime.UtcNow;
+            var top = filter.Top > 0 ? filter.Top : 10;
+            var normDateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date.ToString("yyyyMMdd");
+            var normDateTo   = (filter.DateTo   ?? now).Date.ToString("yyyyMMdd");
+            var cacheKey = $"analytics_sales_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out SalesAnalyticsDashboardDto? cached) && cached is not null)
             {
                 monitoringMetrics.RecordCacheLookup(true);
@@ -265,8 +271,6 @@ public class AnalyticsService(
             }
             monitoringMetrics.RecordCacheLookup(false);
 
-            var now = DateTime.UtcNow;
-            var top = filter.Top > 0 ? filter.Top : 10;
             var dateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date;
             var dateTo = (filter.DateTo ?? now).Date.AddDays(1).AddTicks(-1);
 

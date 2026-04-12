@@ -106,4 +106,9 @@ public interface ISalesService
     /// Checks if sessions can be merged.
     /// </summary>
     Task<bool> CanMergeSessionsAsync(List<Guid> sessionIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns distinct product IDs purchased by a customer in their most recent sessions.
+    /// </summary>
+    Task<IEnumerable<Guid>?> GetCustomerPurchasedProductIdsAsync(Guid customerId, int maxSessions = 30, CancellationToken cancellationToken = default);
 }

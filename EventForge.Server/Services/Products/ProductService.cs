@@ -81,6 +81,55 @@ public class ProductService(
         }
     }
 
+    public async Task<PagedResult<ProductDto>> GetProductsForPosCatalogAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product operations.");
+            }
+
+            var query = context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var lowerSearchTerm = searchTerm.ToLower();
+                query = query.Where(p =>
+                    p.Code.ToLower().Contains(lowerSearchTerm) ||
+                    p.Name.ToLower().Contains(lowerSearchTerm) ||
+                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+            }
+
+            // Only include navigations needed by the POS grid — skip Codes, Units, BundleItems.
+            query = query
+                .Include(p => p.VatRate)
+                .Include(p => p.ImageDocument);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+            var products = await query
+                .OrderBy(p => p.Name)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var productDtos = products.Select(MapToPosCatalogDto);
+
+            return new PagedResult<ProductDto>
+            {
+                Items = productDtos,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = totalCount
+            };
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+    }
+
     public async Task<ProductDto?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
@@ -1489,6 +1538,24 @@ public class ProductService(
     }
 
     // Private mapping methods
+
+    private static ProductDto MapToPosCatalogDto(Product product)
+    {
+        return new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Code = product.Code,
+            ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
+            ImageDocumentId = product.ImageDocumentId,
+            DefaultPrice = product.DefaultPrice,
+            VatRateId = product.VatRateId,
+            VatRateName = product.VatRate?.Name,
+            CategoryNodeId = product.CategoryNodeId,
+            Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
+            IsVatIncluded = product.IsVatIncluded
+        };
+    }
 
     private static ProductDto MapToProductDto(Product product)
     {

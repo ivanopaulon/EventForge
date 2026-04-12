@@ -16,10 +16,10 @@ else if (!Products.Any())
         <span>Nessun articolo trovato</span>
     </div>
 }
-else if (Products.Count() > 200)
+else if (Products.Count > 50)
 {
     <div class="pos26-product-grid">
-        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="10">
+        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="5">
             <Pos26ProductCard Product="@product"
                               CartQuantity="@GetCartQty(product.Id)"
                               IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
@@ -45,7 +45,7 @@ else
 }
 
 @code {
-    [Parameter] public IEnumerable<ProductDto> Products { get; set; } = [];
+    [Parameter] public IReadOnlyList<ProductDto> Products { get; set; } = [];
     [Parameter] public Dictionary<Guid, int> CartQuantities { get; set; } = new();
     [Parameter] public HashSet<Guid> LastPurchaseIds { get; set; } = new();
     [Parameter] public HashSet<Guid> BestSellerIds { get; set; } = new();

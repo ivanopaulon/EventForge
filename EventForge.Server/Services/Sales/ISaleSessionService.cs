@@ -216,4 +216,14 @@ public interface ISaleSessionService
     /// Checks if multiple sessions can be merged.
     /// </summary>
     Task<bool> CanMergeSessionsAsync(List<Guid> sessionIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the distinct product IDs purchased by a customer in their most recent completed sessions.
+    /// Used by the POS to highlight previously purchased products without loading full session data.
+    /// </summary>
+    /// <param name="customerId">Customer (BusinessParty) ID</param>
+    /// <param name="maxSessions">Maximum number of recent sessions to scan (default: 30)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Set of product IDs purchased by the customer</returns>
+    Task<IEnumerable<Guid>> GetCustomerPurchasedProductIdsAsync(Guid customerId, int maxSessions = 30, CancellationToken cancellationToken = default);
 }

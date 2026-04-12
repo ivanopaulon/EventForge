@@ -20,6 +20,11 @@ public interface IProductService
     Task<ProductDto?> GetProductDetailAsync(Guid id, CancellationToken ct = default);
 
     Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets a lean product catalog for POS display (excludes Codes, Units, BundleItems).
+    /// </summary>
+    Task<PagedResult<ProductDto>?> GetPosCatalogAsync(int page = 1, int pageSize = 100, string? searchTerm = null, CancellationToken ct = default);
     Task<ProductDto?> CreateProductAsync(CreateProductDto createDto, CancellationToken ct = default);
     Task<ProductDetailDto?> CreateProductWithCodesAndUnitsAsync(CreateProductWithCodesAndUnitsDto createDto, CancellationToken ct = default);
     Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateDto, CancellationToken ct = default);
