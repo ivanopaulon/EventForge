@@ -13,14 +13,14 @@
           MinWidth="min(720px, 95vw)">
     <ChildContent>
 
-        <MudStepper @ref="_stepper"
-                    ActiveIndex="@_step"
-                    ActiveIndexChanged="@(i => _step = i)"
-                    NonLinear="false"
-                    Color="Color.Primary"
-                    Variant="Variant.Filled"
-                    DisableAnimation="false"
-                    Style="min-height:0;">
+        <MudStepper Class="min-h-0" @ref="_stepper"
+ ActiveIndex="@_step"
+ ActiveIndexChanged="@(i => _step = i)"
+ NonLinear="false"
+ Color="Color.Primary"
+ Variant="Variant.Filled"
+ DisableAnimation="false"
+>
             <MudStep Title="Configurazione" Icon="@Icons.Material.Outlined.Settings">
             <div class="d-flex flex-column gap-3">
                 <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Outlined.Info">
@@ -97,8 +97,8 @@
                 @* Summary counters *@
                 <MudGrid Spacing="2">
                     <MudItem xs="3">
-                        <MudPaper Class="pa-2 text-center" Elevation="1"
-                                  Style="border-left:3px solid var(--mud-palette-success);">
+                        <MudPaper Class="pa-2 text-center border-success-l-3" Elevation="1"
+>
                             <MudText Typo="Typo.h6" Color="Color.Success">@_updated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">Aggiornati</MudText>
                         </MudPaper>
@@ -138,7 +138,7 @@
                         <div style="max-height:240px; overflow-y:auto;">
                             <MudTable Items="@_log" Dense="true" Striped="true" Hover="false" Elevation="0">
                                 <HeaderContent>
-                                    <MudTh Style="width:32px;"></MudTh>
+                                    <MudTh Class="ef-w-32"></MudTh>
                                     <MudTh>Business Party</MudTh>
                                     <MudTh>P.IVA</MudTh>
                                     <MudTh>Esito</MudTh>

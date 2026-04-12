@@ -64,18 +64,18 @@
             <!-- VAT Number with Lookup -->
             <MudItem xs="12">
                 <div class="d-flex gap-2">
-                    <MudTextField @bind-Value="Party.VatNumber"
-                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="@(!IsEditMode)"
-                                  MaxLength="20"
-                                  Placeholder="IT12345678901"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Business"
-                                  HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
-                                  @bind-Value:after="NotifyUpdated"
-                                  Style="flex-grow: 1;"
-                    Margin="Margin.Dense"/>
+                    <MudTextField Class="flex-grow-1" @bind-Value="Party.VatNumber"
+ Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+ Variant="Variant.Outlined"
+ ReadOnly="@(!IsEditMode)"
+ MaxLength="20"
+ Placeholder="IT12345678901"
+ Adornment="Adornment.Start"
+ AdornmentIcon="@Icons.Material.Outlined.Business"
+ HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
+ @bind-Value:after="NotifyUpdated"
+ 
+ Margin="Margin.Dense"/>
                     @if (IsEditMode)
                     {
                         <MudButton Variant="Variant.Filled"

@@ -96,8 +96,8 @@
         <MudPaper Elevation="2" Class="pa-0" Style="flex:1; overflow:hidden; position:relative; min-height:400px;">
             @if (_isLoading)
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary"
-                                   Style="position:absolute;top:0;left:0;right:0;z-index:10;" />
+                <MudProgressLinear Class="progress-absolute-top" Indeterminate="true" Color="Color.Primary"
+ />
             }
             <SfSchedule TValue="SchedulerItem"
                         @ref="_schedulerRef"

@@ -13,16 +13,16 @@
             <div class="efd-progress">
                 @if (IsProcessing)
                 {
-                    <MudProgressLinear Color="Color.Primary"
-                                       Indeterminate="true"
-                                       Style="height:3px; border-radius:4px 4px 0 0; margin:0;" />
+                    <MudProgressLinear Class="progress-thin-rounded-top" Color="Color.Primary"
+ Indeterminate="true"
+ />
                 }
                 else
                 {
-                    <MudProgressLinear Color="Color.Primary"
-                                       Value="100"
-                                       Max="100"
-                                       Style="height:3px; border-radius:4px 4px 0 0; margin:0;" />
+                    <MudProgressLinear Class="progress-thin-rounded-top" Color="Color.Primary"
+ Value="100"
+ Max="100"
+ />
                 }
             </div>
 

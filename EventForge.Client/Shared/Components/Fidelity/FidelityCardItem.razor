@@ -6,7 +6,7 @@
         <!-- Header: Tipo Card + Badge Status -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@GetCardIcon()" Size="Size.Medium" Style="color: white;" />
+                <MudIcon Class="text-white-full" Icon="@GetCardIcon()" Size="Size.Medium" />
                 <MudText Typo="Typo.h6" Class="fw-semibold text-white-full">
                     @Card.Type
                 </MudText>
@@ -80,61 +80,61 @@
         
         <!-- Azioni -->
         <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
-            <MudIconButton Icon="@Icons.Material.Outlined.History"
-                           Color="Color.Default"
-                           Size="Size.Small"
-                           OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
-                           title="Storico transazioni"
-                           Style="color: white;" />
+            <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.History"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
+ title="Storico transazioni"
+ />
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.AddCircle"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
-                               title="Gestisci punti"
-                               Style="color: white;" />
+                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.AddCircle"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
+ title="Gestisci punti"
+ />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="@(() => OnEdit.InvokeAsync(Card))"
-                               title="Modifica card"
-                               Style="color: white;" />
+                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Edit"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnEdit.InvokeAsync(Card))"
+ title="Modifica card"
+ />
             }
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Pause"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="@(() => OnSuspend.InvokeAsync(Card))"
-                               title="Sospendi card"
-                               Style="color: white;" />
+                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Pause"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnSuspend.InvokeAsync(Card))"
+ title="Sospendi card"
+ />
             }
             
             @if (Card.Status == FidelityCardStatus.Suspended)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="@(() => OnActivate.InvokeAsync(Card))"
-                               title="Riattiva card"
-                               Style="color: white;" />
+                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.PlayArrow"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnActivate.InvokeAsync(Card))"
+ title="Riattiva card"
+ />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Block"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="@(() => OnRevoke.InvokeAsync(Card))"
-                               title="Revoca card"
-                               Style="color: white;" />
+                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Block"
+ Color="Color.Default"
+ Size="Size.Small"
+ OnClick="@(() => OnRevoke.InvokeAsync(Card))"
+ title="Revoca card"
+ />
             }
         </MudStack>
         

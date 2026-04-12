@@ -66,7 +66,7 @@
                                       @onmouseenter="@(() => _hoveredMetricIndex = index)"
                                       @onmouseleave="@(() => _hoveredMetricIndex = null)">
                                 <div class="d-flex align-center gap-3">
-                                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Style="cursor: move;" />
+                                    <MudIcon Class="cursor-move" Icon="@Icons.Material.Outlined.DragIndicator" />
                                     <MudChip T="string" Size="Size.Small" Color="Color.Primary">@(index + 1)</MudChip>
                                     <div class="flex-grow-1">
                                         <MudText Typo="Typo.body1">@metric.Title</MudText>

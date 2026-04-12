@@ -443,7 +443,7 @@
                         @if (_loadingAgentPrinters)
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" Style="width:14px;height:14px;display:inline-block;" />
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1 spinner-14-i" />
                                 Caricamento stampanti dall'agente...
                             </MudText>
                         }
@@ -909,7 +909,7 @@
         </MudExpansionPanels>
 
         @* Test scontrino *@
-        <MudCard Elevation="0" Class="mb-4" Style="border: 1px solid var(--mud-palette-lines-default);">
+        <MudCard Elevation="0" Class="mb-4 border-default">
             <MudCardContent>
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Stampa Scontrino di Test</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">

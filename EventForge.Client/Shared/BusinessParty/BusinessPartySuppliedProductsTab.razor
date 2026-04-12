@@ -62,7 +62,7 @@
             </MudText>
         </ToolBarContent>
         <HeaderContent Context="_">
-            <MudTh Style="width: 50px;">
+            <MudTh Class="ef-w-50">
                 <MudCheckBox T="bool" 
                             Value="@_selectAll" 
                             ValueChanged="@((bool val) => ToggleSelectAll(val))"
@@ -80,7 +80,7 @@
             <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate Context="context">
-            <MudTd Style="width: 50px;">
+            <MudTd Class="ef-w-50">
                 <MudCheckBox T="bool" 
                             Value="@_selectedProducts.Contains(context.ProductId)" 
                             ValueChanged="@((bool val) => ToggleSelection(context.ProductId, val))"

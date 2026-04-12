@@ -28,7 +28,7 @@ New implementations should use QuickFilters instead.
             @foreach (var metric in _metricResults)
             {
                 <MudItem xs="12" sm="6" md="3" lg="2">
-                    <MudCard Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-divider);">
+                    <MudCard Elevation="0" Class="pa-2 border-divider">
                         <MudCardContent Class="pa-1">
                             <div class="d-flex align-center mb-1">
                                 @if (!string.IsNullOrEmpty(metric.Icon))
@@ -44,7 +44,7 @@ New implementations should use QuickFilters instead.
                                 @if (!string.IsNullOrEmpty(metric.Description))
                                 {
                                     <MudTooltip Text="@metric.Description">
-                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="font-size: 0.8rem;" Class="ml-1" />
+                                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="ml-1 text-sm-custom" />
                                     </MudTooltip>
                                 }
                             </div>

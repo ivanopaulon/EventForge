@@ -13,14 +13,14 @@
           OnClose="Cancel"
           MinWidth="min(750px, 95vw)">
     <ChildContent>
-        <MudStepper @ref="_stepper"
-                    ActiveIndex="@_step"
-                    ActiveIndexChanged="@(i => _step = i)"
-                    NonLinear="false"
-                    Color="Color.Primary"
-                    Variant="Variant.Filled"
-                    DisableAnimation="false"
-                    Style="min-height:0;">
+        <MudStepper Class="min-h-0" @ref="_stepper"
+ ActiveIndex="@_step"
+ ActiveIndexChanged="@(i => _step = i)"
+ NonLinear="false"
+ Color="Color.Primary"
+ Variant="Variant.Filled"
+ DisableAnimation="false"
+>
             <MudStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6">
@@ -130,7 +130,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                        <MudPaper Class="pa-3 text-center border-success-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Success">@_previewResult.MovementsCreated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.toCreate", "Da creare")
@@ -138,7 +138,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                        <MudPaper Class="pa-3 text-center border-warning-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Warning">@_previewResult.MovementsUpdated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.toUpdate", "Da aggiornare")
@@ -281,7 +281,7 @@
 
                 <MudGrid Spacing="2">
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                        <MudPaper Class="pa-3 text-center border-success-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Success">@_applyResult.MovementsCreated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.movementsCreated", "Movimenti creati")
@@ -291,7 +291,7 @@
                     @if (_applyResult.MovementsUpdated > 0)
                     {
                         <MudItem xs="6" sm="3">
-                            <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                            <MudPaper Class="pa-3 text-center border-warning-l-3" Elevation="2">
                                 <MudText Typo="Typo.h5" Color="Color.Warning">@_applyResult.MovementsUpdated</MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("rebuildMovements.movementsUpdated", "Movimenti aggiornati")

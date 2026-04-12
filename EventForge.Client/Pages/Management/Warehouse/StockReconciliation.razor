@@ -161,7 +161,7 @@
         @* Info Banner *@
         @if (_reconciliationResult != null)
         {
-            <MudPaper Elevation="1" Class="pa-3 mb-3" Style="background-color: var(--mud-palette-info-lighten);">
+            <MudPaper Elevation="1" Class="pa-3 mb-3 bg-info-light-color">
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
                     <MudText Typo="Typo.body2">
@@ -356,7 +356,7 @@
                 </MudText>
                 <MudGrid>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+                        <MudPaper Class="pa-3 bg-info-light-color" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.totalProducts", "Total Products")
                             </MudText>
@@ -380,7 +380,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                        <MudPaper Class="pa-3 bg-error-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.majorDiscrepancies", "Major Discrepancies")
                             </MudText>
@@ -396,7 +396,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-primary-lighten);">
+                        <MudPaper Class="pa-3 bg-primary-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.totalDifference", "Total Difference")
                             </MudText>
@@ -592,7 +592,7 @@
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                                    <MudPaper Class="pa-3 bg-error-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.errors", "Errori")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Error">@_rebuildResult.Errors</MudText>
                                     </MudPaper>
