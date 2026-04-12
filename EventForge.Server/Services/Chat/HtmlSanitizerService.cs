@@ -34,9 +34,11 @@ public sealed class HtmlSanitizerService : IHtmlSanitizerService
             _sanitizer.AllowedTags.Add(tag);
         }
 
-        // Allow only the href and target attributes (for links).
+        // Allow href, rel, and target attributes for links.
+        // target="_blank" is always paired with rel="noopener noreferrer" via the PostProcessNode hook below.
         _sanitizer.AllowedAttributes.Clear();
         _sanitizer.AllowedAttributes.Add("href");
+        _sanitizer.AllowedAttributes.Add("rel");
         _sanitizer.AllowedAttributes.Add("target");
 
         // Strip all inline styles — toolbar does not produce them.
@@ -47,6 +49,17 @@ public sealed class HtmlSanitizerService : IHtmlSanitizerService
         _sanitizer.AllowedSchemes.Add("http");
         _sanitizer.AllowedSchemes.Add("https");
         _sanitizer.AllowedSchemes.Add("mailto");
+
+        // Enforce rel="noopener noreferrer" on every <a> tag to prevent tabnabbing.
+        _sanitizer.PostProcessNode += (_, e) =>
+        {
+            if (e.Node is AngleSharp.Dom.IElement element &&
+                string.Equals(element.TagName, "A", StringComparison.OrdinalIgnoreCase))
+            {
+                element.SetAttribute("rel", "noopener noreferrer");
+                element.SetAttribute("target", "_blank");
+            }
+        };
     }
 
     /// <inheritdoc/>

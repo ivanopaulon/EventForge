@@ -58,12 +58,12 @@
                               ValueChanged="@OnRteValueChanged"
                               Placeholder="@GetPlaceholderText()"
                               Height="80px"
-                              EnableXhtml="true"
-                              OnImageUploadSuccess="@OnRteImageUploadSuccess">
+                              EnableXhtml="true">
                 <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems" />
                 <RichTextEditorImageSettings SaveUrl="@RteImageUploadUrl"
-                                             Path="/api/v1/chat/image-uploads/" />
-                <RichTextEditorEvents OnActionComplete="@OnRteActionComplete" />
+                                             Path="/api/v1/chat/image-uploads" />
+                <RichTextEditorEvents OnActionComplete="@OnRteActionComplete"
+                                      OnImageUploadSuccess="@OnRteImageUploadSuccess" />
             </SfRichTextEditor>
         </div>
 

@@ -5,6 +5,7 @@
 @inject IRealtimeService RealtimeService
 @inject IJSRuntime JS
 @inject ILogger<FloatingChat> Logger
+@inject ITranslationService TranslationService
 @implements IAsyncDisposable
 
 <!-- Floating Action Button – visible when panel is closed or minimised -->
@@ -153,7 +154,7 @@
                             @if (msg.IsEdited)
                             {
                                 <span class="message-edited-indicator" title="@msg.EditedAt?.ToString("g")">
-                                    (modificato)
+                                    @TranslationService.GetTranslation("chat.edited", "(modificato)")
                                 </span>
                             }
                             <span class="fc-bubble-time">@msg.SentAt.ToString("HH:mm")</span>
