@@ -38,6 +38,7 @@
 
                 <!-- Tab 1: Info Generale -->
                 <MudTabPanel Text="@TranslationService.GetTranslation("pricelist.tab.info", "Info")" Icon="@Icons.Material.Filled.Info">
+                    <MudForm @ref="_form">
                     <MudGrid>
                         <!-- Left Column: Form Fields -->
                         <MudItem xs="12" md="8">
@@ -186,6 +187,7 @@
                             </MudStack>
                         </MudItem>
                     </MudGrid>
+                    </MudForm>
                 </MudTabPanel>
 
                 <!-- Tab 2: Voci Listino -->
@@ -686,8 +688,7 @@
     private bool _isLoading = true;
     private bool _hasChanges = false;
     private bool _isSaving = false;
-
-    // Active Tab
+    private MudForm? _form;
     private int _activeTab = 0;
 
     // Tab 1: Info Form
@@ -1097,6 +1098,11 @@
 
     private async Task SavePriceList()
     {
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
         _isSaving = true;
         try
         {

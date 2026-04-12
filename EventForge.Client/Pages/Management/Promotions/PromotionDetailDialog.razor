@@ -40,8 +40,7 @@
 
                 <!-- Tab 1: Dettagli -->
                 <MudTabPanel Text="@TranslationService.GetTranslation("promotion.tab.details", "Dettagli")" Icon="@Icons.Material.Filled.Info">
-                    <EditForm Model="_updateModel" OnValidSubmit="SavePromotion">
-                        <DataAnnotationsValidator />
+                    <MudForm @ref="_form">
                         <MudGrid Spacing="3">
                             <MudItem xs="12">
                                 <MudPaper Elevation="0" Class="pa-4">
@@ -56,7 +55,6 @@
                                                           Class="ef-input"
                                                           @bind-Value:after="@(() => _hasChanges = true)"
                     Margin="Margin.Dense"/>
-                                            <ValidationMessage For="() => _updateModel.Name" />
                                         </MudItem>
                                         <!-- Descrizione -->
                                         <MudItem xs="12">
@@ -163,7 +161,7 @@
                                 </MudPaper>
                             </MudItem>
                         </MudGrid>
-                    </EditForm>
+                    </MudForm>
                 </MudTabPanel>
 
                 <!-- Tab 2: Utilizzi & Info -->
@@ -613,7 +611,7 @@
 
     private bool _isLoading = true;
     private bool _isSaving = false;
-    private bool _hasChanges = false;
+    private MudForm? _form;    private bool _hasChanges = false;
     private int _activeTab = 0;
 
     private PromotionDto? _promotion;
@@ -697,6 +695,12 @@
     private async Task SavePromotion()
     {
         if (_promotion == null) return;
+
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
 
         try
         {
