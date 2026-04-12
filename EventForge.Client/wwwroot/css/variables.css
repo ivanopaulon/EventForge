@@ -18,6 +18,9 @@
  --button-primary-bg: var(--primary);
  --button-primary-text: var(--mud-palette-primary-contrast, #ffffff);
 
+ /* AppBar hover / interactive surface */
+ --ef-hover-dark: #384048;
+
  /* Form & focus */
  --form-focus-border: rgba(36,123,255,0.6);
 

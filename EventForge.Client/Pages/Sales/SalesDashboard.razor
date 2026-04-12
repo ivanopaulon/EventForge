@@ -139,7 +139,7 @@
                                     <tr>
                                         <td>@d.Name</td>
                                         <td>@d.CurrencyCode</td>
-                                        <td style="font-weight:600;">@FormatEuro(d.CurrentBalance)</td>
+                                        <td class="fw-semibold">@FormatEuro(d.CurrentBalance)</td>
                                         <td>@FormatEuro(d.SessionTotalSales)</td>
                                         <td>
                                             @if (d.HasOpenSession)
@@ -177,7 +177,7 @@
                         {
                             <tr>
                                 <td>@p.Date.ToString("ddd dd/MM")</td>
-                                <td style="font-weight:600;">@FormatEuro(p.TotalSales)</td>
+                                <td class="fw-semibold">@FormatEuro(p.TotalSales)</td>
                                 <td>@p.TransactionCount</td>
                             </tr>
                         }

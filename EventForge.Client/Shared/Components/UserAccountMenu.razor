@@ -10,7 +10,7 @@
 {
     <MudMenu Class="ef-account-menu">
         <ActivatorContent>
-            <div @onclick="@context.ToggleAsync" style="cursor: pointer">
+            <div @onclick="@context.ToggleAsync" class="cursor-pointer">
                 <MudAvatar Size="Size.Small">
                     @if (!string.IsNullOrEmpty(_currentUser.AvatarUrl))
                     {

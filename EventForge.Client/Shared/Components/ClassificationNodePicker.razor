@@ -39,7 +39,7 @@
                 {
                     <MudTreeViewItem Items="@nodeItem.Children" Expanded="@nodeItem.Expanded">
                         <BodyContent>
-                            <div class="d-flex justify-space-between align-center" style="width:100%">
+                            <div class="d-flex justify-space-between align-center w-full">
                                 <div class="d-flex align-center gap-2">
                                     <MudIcon Icon="@GetNodeIcon(nodeItem.Node)" Size="Size.Small" Class="mr-1" />
                                     <MudText Typo="Typo.body2" Class="@(nodeItem.IsMatch ? "matched-node" : "")">@nodeItem.Node.Name</MudText>

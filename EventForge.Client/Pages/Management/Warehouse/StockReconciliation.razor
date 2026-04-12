@@ -24,7 +24,7 @@
 
 @if (!_isLoading)
 {
-    <div class="stock-reconciliation-page-root" style="overflow-y:auto;">
+    <div class="stock-reconciliation-page-root overflow-y-auto">
         <MudText Typo="Typo.h4" Class="mb-4">
             @TranslationService.GetTranslation("stockReconciliation.title", "Warehouse Stock Reconciliation")
         </MudText>
@@ -311,7 +311,7 @@
                                                     <th>@TranslationService.GetTranslation("field.type", "Type")</th>
                                                     <th>@TranslationService.GetTranslation("field.reference", "Reference")</th>
                                                     <th>@TranslationService.GetTranslation("field.date", "Date")</th>
-                                                    <th style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantity")</th>
+                                                    <th class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantity")</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -321,7 +321,7 @@
                                                         <td>@movement.Type</td>
                                                         <td>@movement.Reference</td>
                                                         <td>@movement.Date.ToString("dd/MM/yyyy HH:mm")</td>
-                                                        <td style="text-align:right;">
+                                                        <td class="text-right">
                                                             <MudText Color="@(movement.Quantity > 0 ? Color.Success : Color.Error)">
                                                                 @((movement.Quantity > 0 ? "+" : ""))@movement.Quantity.ToString("N2")
                                                             </MudText>

@@ -264,7 +264,7 @@ code {
 
 .ef-tile {
     padding: 1rem 1.5rem 1rem 1.5rem !important; /* pa-3 pa-sm-4 equivalent */
-    box-shadow: var(--shadow-sm) !important; /* Elevation="1" equivalent */
+    box-shadow: var(--shadow-sm); /* matches EventForgeTheme.GetShadows() Elevation[1] */
     background-color: var(--card-background) !important;
     border-radius: var(--radius-md) !important;
     border: 1px solid var(--card-border) !important;
@@ -278,11 +278,7 @@ code {
 }
 
 /* Ensure ef-tile works well with MudPaper and MudCard */
-.mud-paper.ef-tile,
-.mud-card.ef-tile {
-    /* Override any conflicting MudBlazor styles */
-    box-shadow: var(--shadow-sm) !important;
-}
+/* box-shadow is now provided by EventForgeTheme.GetShadows() Elevation[1] — no override needed */
 
 /* Accessibility improvements for ef-tile */
 .ef-tile:focus-within {
@@ -1261,8 +1257,9 @@ kbd {
 .rounded-4  { border-radius: 4px; }
 
 /* MudPaper/MudStack size helpers */
-.w-full         { width: 100%; }
-.h-full         { height: 100%; }
+.w-full          { width: 100%; }
+.h-full          { height: 100%; }
+.overflow-y-auto { overflow-y: auto; }
 .h-full-min-280 { height: 100%; min-height: 280px; }
 .min-width-150  { min-width: 150px; }
 .ef-min-200     { min-width: 200px; }

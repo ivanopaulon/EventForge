@@ -430,7 +430,7 @@
                                             }
                                             else
                                             {
-                                                <div class="d-flex align-center gap-1" style="cursor: pointer;" @onclick="@(() => StartEditPrice(item))">
+                                                <div class="d-flex align-center gap-1 cursor-pointer" @onclick="@(() => StartEditPrice(item))">
                                                     <MudText Typo="Typo.body2">€ @item.Price.ToString("N2")</MudText>
                                                     <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Color="Color.Primary" />
                                                 </div>

@@ -24,6 +24,16 @@ public static class EventForgeTheme
             AppbarHeight = "48px",
             DrawerWidthLeft = "280px",
             DrawerMiniWidthLeft = "56px"
+        },
+        Shadows = GetShadows(),
+        ZIndex = new ZIndex
+        {
+            Drawer = 1100,
+            Popover = 1200,
+            AppBar = 1100,
+            Dialog = 1300,
+            Snackbar = 1400,
+            Tooltip = 1500
         }
     };
 
@@ -236,5 +246,44 @@ public static class EventForgeTheme
             LetterSpacing = "0.08333em",
             TextTransform = "uppercase"
         }
+    };
+
+    /// <summary>
+    /// Returns a lighter shadow set than the Material Design defaults.
+    /// These values match the --shadow-sm/md/lg CSS variables defined in variables.css,
+    /// ensuring MudBlazor components (MudPaper, MudCard, MudDialog etc.) use the
+    /// same shadow style as manually-styled elements — without requiring !important overrides.
+    /// </summary>
+    private static Shadow GetShadows() => new()
+    {
+        Elevation =
+        [
+            "none",                                          // 0
+            "0 1px 3px rgba(0,0,0,0.08)",                   // 1 — card (≈ --shadow-sm)
+            "0 2px 6px rgba(0,0,0,0.08)",                   // 2
+            "0 3px 8px rgba(0,0,0,0.10)",                   // 3
+            "0 4px 12px rgba(0,0,0,0.10)",                  // 4 — elevated card (≈ --shadow-md)
+            "0 5px 14px rgba(0,0,0,0.10)",                  // 5
+            "0 6px 16px rgba(0,0,0,0.12)",                  // 6
+            "0 7px 18px rgba(0,0,0,0.12)",                  // 7
+            "0 8px 20px rgba(0,0,0,0.12)",                  // 8 — popover
+            "0 9px 22px rgba(0,0,0,0.12)",                  // 9
+            "0 10px 24px rgba(0,0,0,0.12)",                 // 10
+            "0 10px 26px rgba(0,0,0,0.12)",                 // 11
+            "0 10px 28px rgba(0,0,0,0.12)",                 // 12
+            "0 10px 30px rgba(0,0,0,0.12)",                 // 13 — drawer (≈ --shadow-lg)
+            "0 10px 30px rgba(0,0,0,0.13)",                 // 14
+            "0 10px 30px rgba(0,0,0,0.13)",                 // 15
+            "0 10px 30px rgba(0,0,0,0.14)",                 // 16 — dialog
+            "0 12px 32px rgba(0,0,0,0.14)",                 // 17
+            "0 12px 34px rgba(0,0,0,0.14)",                 // 18
+            "0 12px 36px rgba(0,0,0,0.14)",                 // 19
+            "0 12px 38px rgba(0,0,0,0.15)",                 // 20
+            "0 12px 40px rgba(0,0,0,0.15)",                 // 21
+            "0 12px 40px rgba(0,0,0,0.15)",                 // 22
+            "0 12px 40px rgba(0,0,0,0.15)",                 // 23
+            "0 12px 40px rgba(0,0,0,0.15)",                 // 24 — tooltip / high elevation
+            "0 14px 44px rgba(0,0,0,0.18)"                  // 25
+        ]
     };
 }

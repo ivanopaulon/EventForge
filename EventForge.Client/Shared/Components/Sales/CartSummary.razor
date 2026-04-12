@@ -18,9 +18,9 @@
             <thead>
                 <tr>
                     <th>Prodotto</th>
-                    <th style="text-align: center;">Quantità</th>
-                    <th style="text-align: right;">Prezzo</th>
-                    <th style="text-align: right;">Totale</th>
+                    <th class="text-center">Quantità</th>
+                    <th class="text-right">Prezzo</th>
+                    <th class="text-right">Totale</th>
                     <th style="width: 48px;"></th>
                 </tr>
             </thead>
@@ -43,7 +43,7 @@
                                 }
                             </div>
                         </td>
-                        <td style="text-align: center;">
+                        <td class="text-center">
                             @if (AllowEdit)
                             {
                                 <div class="d-flex align-center justify-center">
@@ -62,7 +62,7 @@
                                 <MudText Typo="Typo.body2">@item.Quantity</MudText>
                             }
                         </td>
-                        <td style="text-align: right;">
+                        <td class="text-right">
                             <MudText Typo="Typo.body2">@item.UnitPrice.ToString("C")</MudText>
                             @if (item.DiscountPercent > 0)
                             {
@@ -71,7 +71,7 @@
                                 </MudText>
                             }
                         </td>
-                        <td style="text-align: right;">
+                        <td class="text-right">
                             <MudText Typo="Typo.body2"><strong>@item.TotalAmount.ToString("C")</strong></MudText>
                         </td>
                         <td>

@@ -145,7 +145,7 @@
                         @foreach (var ev in _upcomingEvents.Take(6))
                         {
                             <MudListItem T="EventDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
                                         <MudText Typo="Typo.body2" Class="fw-medium">@ev.Name</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -191,7 +191,7 @@
                         @foreach (var task in _openTasks.Take(6))
                         {
                             <MudListItem T="CalendarReminderDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
                                         <MudText Typo="Typo.body2" Class="fw-medium">@task.Title</MudText>
                                         <MudText Typo="Typo.caption"
@@ -238,7 +238,7 @@
                         @foreach (var rem in _activeReminders.Take(6))
                         {
                             <MudListItem T="CalendarReminderDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
                                         <MudText Typo="Typo.body2" Class="fw-medium">@rem.Title</MudText>
                                         <MudText Typo="Typo.caption"
