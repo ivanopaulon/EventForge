@@ -57,9 +57,9 @@
 }
 
 .ef-appbar {
-    background-color: var(--mud-palette-appbar-background) !important;
+    background-color: var(--mud-palette-appbar-background);
     padding: 0px !important;
-    color: var(--mud-palette-appbar-text) !important;
+    color: var(--mud-palette-appbar-text);
     min-height: 48px !important;
     height: 48px !important;
 }
@@ -74,13 +74,13 @@
 /* Drawer clip and AppBar height overrides are in _mudblazor-overrides.css */
 
 .ef-dialog {
-    background-color: var(--mud-palette-surface) !important;
+    background-color: var(--mud-palette-surface);
     padding: 0px !important;
 }
 
     .ef-dialog .mud-dialog-title {
-        background-color: var(--mud-palette-appbar-background) !important;
-        color: var(--mud-palette-appbar-text) !important;
+        background-color: var(--mud-palette-appbar-background);
+        color: var(--mud-palette-appbar-text);
         align-items: flex-end !important;
         min-height: 48px !important;
         height: 48px !important;
@@ -98,7 +98,7 @@
     width: 36px !important;
     margin: -2px 16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: var(--mud-palette-appbar-text) !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 4px;
 }
 
@@ -114,13 +114,13 @@
     width: 36px !important;
     margin: -2px -16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: var(--mud-palette-appbar-text) !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 4px;
 }
 
 /* ----------- MENU TRIGGER (il bottone del menu) ----------- */
 .ef-account-menu .mud-button-root {
-    color: var(--mud-palette-appbar-text) !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 6px !important;
     padding: 4px 12px !important;
     transition: background-color .2s;
@@ -134,8 +134,8 @@
 /* ----------- POPOVER (il contenitore del menu a discesa) ----------- */
 /* ATTENZIONE: il popover NON è dentro .ef-account-menu, quindi usa attributo data o classe globale */
 .mud-popover-open.ef-account-menu-popover {
-    background-color: var(--mud-palette-surface) !important;
-    border-radius: 8px !important;
+    background-color: var(--mud-palette-surface);
+    border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
     min-width: 250px !important;
 }
@@ -143,12 +143,12 @@
 /* ----------- LISTA MENU ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-list {
     padding: 4px 0 !important;
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 /* ----------- ITEM DEL MENU ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-list-item {
-    color: var(--mud-palette-text-primary) !important;
+    color: var(--mud-palette-text-primary);
     padding: 10px 16px !important;
     font-size: 0.95rem !important;
 }
@@ -160,18 +160,18 @@
 
 /* Disabilitati */
 .mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled {
-    color: var(--mud-palette-text-disabled) !important;
-    background-color: transparent !important;
+    color: var(--mud-palette-text-disabled);
+    background-color: transparent;
 }
 
 .mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled:hover {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 /* ----------- DIVIDER ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-divider {
-    border-color: var(--mud-palette-divider) !important;
-    margin: 4px 0 !important;
+    border-color: var(--mud-palette-divider);
+    margin: 4px 0;
 }
 
 /* ----------- EFTable – column headers (non-sticky) ----------- */

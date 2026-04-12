@@ -29,5 +29,5 @@
  */
 .mud-drawer-clipped-left,
 .mud-drawer-clipped-right {
-    top: 48px !important;
+    top: var(--mud-appbar-height) !important;
 }
