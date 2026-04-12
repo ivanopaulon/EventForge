@@ -56,7 +56,8 @@
                                                   Variant="Variant.Outlined"
                                                   Required="true"
                                                   MaxLength="100"
-                                                  Class="ef-input" />
+                                                  Class="ef-input"
+                    Margin="Margin.Dense"/>
                                     <ValidationMessage For="() => _model.Name" />
                                 </MudItem>
 
@@ -67,7 +68,8 @@
                                                   Variant="Variant.Outlined"
                                                   Lines="3"
                                                   MaxLength="500"
-                                                  Class="ef-input" />
+                                                  Class="ef-input"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 <!-- Date inizio / fine -->
@@ -76,14 +78,16 @@
                                                    Label="@($"{TranslationService.GetTranslation("field.startDate", "Data Inizio")} *")"
                                                    Variant="Variant.Outlined"
                                                    DateFormat="dd/MM/yyyy"
-                                                   Required="true" />
+                                                   Required="true"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                                 <MudItem xs="12" md="6">
                                     <MudDatePicker @bind-Date="_endDate"
                                                    Label="@($"{TranslationService.GetTranslation("field.endDate", "Data Fine")} *")"
                                                    Variant="Variant.Outlined"
                                                    DateFormat="dd/MM/yyyy"
-                                                   Required="true" />
+                                                   Required="true"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 @if (_dateError)
@@ -102,7 +106,8 @@
                                                      Variant="Variant.Outlined"
                                                      Min="0"
                                                      Class="ef-numeric"
-                                                     HelperText="@TranslationService.GetTranslation("promotion.priorityHint", "Valore più alto = maggiore priorità")" />
+                                                     HelperText="@TranslationService.GetTranslation("promotion.priorityHint", "Valore più alto = maggiore priorità")"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 <!-- Max Utilizzi -->
@@ -112,7 +117,8 @@
                                                      Variant="Variant.Outlined"
                                                      Placeholder="@TranslationService.GetTranslation("promotion.unlimited", "Illimitato")"
                                                      Class="ef-numeric"
-                                                     HelperText="@TranslationService.GetTranslation("promotion.maxUsesHint", "Lasciare vuoto per utilizzi illimitati")" />
+                                                     HelperText="@TranslationService.GetTranslation("promotion.maxUsesHint", "Lasciare vuoto per utilizzi illimitati")"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 <!-- Codice Coupon -->
@@ -122,7 +128,8 @@
                                                   Variant="Variant.Outlined"
                                                   MaxLength="50"
                                                   Class="ef-input"
-                                                  HelperText="@TranslationService.GetTranslation("promotion.couponHint", "Facoltativo: richiede inserimento del codice per attivare")" />
+                                                  HelperText="@TranslationService.GetTranslation("promotion.couponHint", "Facoltativo: richiede inserimento del codice per attivare")"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 <!-- Importo Minimo Ordine -->
@@ -133,7 +140,8 @@
                                                      Format="F2"
                                                      Adornment="Adornment.Start"
                                                      AdornmentText="€"
-                                                     Class="ef-numeric" />
+                                                     Class="ef-numeric"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
 
                                 <!-- Combinabile -->

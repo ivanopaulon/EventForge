@@ -44,7 +44,7 @@
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -74,7 +74,7 @@
             else if (column.PropertyName == "Description")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-400" >
                         @(string.IsNullOrEmpty(ctx.Item.Description) ? "-" : ctx.Item.Description)
                     </MudText>
                 </MudTd>

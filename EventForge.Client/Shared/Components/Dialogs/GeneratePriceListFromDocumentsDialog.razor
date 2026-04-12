@@ -17,12 +17,12 @@
             <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudStepper @ref="_stepper"
-                            NonLinear="false"
-                            Color="Color.Primary"
-                            Variant="Variant.Filled"
-                            DisableAnimation="false"
-                            Style="min-height:0;">
+                <MudStepper Class="min-h-0" @ref="_stepper"
+ NonLinear="false"
+ Color="Color.Primary"
+ Variant="Variant.Filled"
+ DisableAnimation="false"
+>
                     <MudStep Title="Informazioni di Base" Icon="@Icons.Material.Outlined.Info">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
@@ -38,7 +38,8 @@
                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                               MaxLength="200"
                                               Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Label" />
+                                              AdornmentIcon="@Icons.Material.Outlined.Label"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="4">
                                 <MudTextField @bind-Value="_code"
@@ -47,7 +48,8 @@
                                               HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
                                               MaxLength="50"
                                               Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Tag" />
+                                              AdornmentIcon="@Icons.Material.Outlined.Tag"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_description"
@@ -56,7 +58,8 @@
                                               Lines="2"
                                               MaxLength="500"
                                               Adornment="Adornment.Start"
-                                              AdornmentIcon="@Icons.Material.Outlined.Description" />
+                                              AdornmentIcon="@Icons.Material.Outlined.Description"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudStep>
@@ -80,7 +83,8 @@
                                                  AdornmentIcon="@Icons.Material.Outlined.Business"
                                                  ResetValueOnEmptyText="true"
                                                  CoerceText="true"
-                                                 CoerceValue="true" />
+                                                 CoerceValue="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudDatePicker @bind-Date="_fromDate"
@@ -90,7 +94,8 @@
                                                Required="true"
                                                DateFormat="dd/MM/yyyy"
                                                Adornment="Adornment.Start"
-                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudDatePicker @bind-Date="_toDate"
@@ -100,7 +105,8 @@
                                                Required="true"
                                                DateFormat="dd/MM/yyyy"
                                                Adornment="Adornment.Start"
-                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
+                                               AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudStep>
@@ -170,7 +176,8 @@
                                                      Max="500"
                                                      HelperText="@TranslationService.GetTranslation("pricelist.markupHelper", "Es: 20 = +20%")"
                                                      Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Outlined.Percent" />
+                                                     AdornmentIcon="@Icons.Material.Outlined.Percent"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudSelect @bind-Value="_roundingStrategy"
@@ -198,7 +205,8 @@
                                                      Min="0"
                                                      HelperText="@TranslationService.GetTranslation("pricelist.minQuantityHelper", "Opzionale")"
                                                      Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                                                     AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                             </MudGrid>
                         </MudExpansionPanel>

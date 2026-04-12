@@ -40,20 +40,23 @@
                                           Label="Nome"
                                           Required="true"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField @bind-Value="_groupCode"
                                           Label="Codice"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_description"
                                           Label="Descrizione"
                                           Lines="3"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudSelect @bind-Value="_groupType"
@@ -71,21 +74,22 @@
                                              Min="0"
                                              Max="100"
                                              Variant="Variant.Outlined"
-                                             @bind-Value:after="@MarkChanged" />
+                                             @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                 <MudColorPicker @bind-Text="_colorHex"
                                                 Label="Colore"
                                                 Variant="Variant.Outlined"
-                                                Style="flex: 1;"
+                                                Class="flex-1"
                                                 @bind-Text:after="@MarkChanged" />
                                 @{
                                     var safeColor = GetSafeColorHex();
                                 }
                                 @if (!string.IsNullOrEmpty(safeColor))
                                 {
-                                    <div style="width: 50px; height: 50px; background: @safeColor; border-radius: 8px; border: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                                    <div class="color-swatch-50r8" style="background: @safeColor;"
                                          title="Anteprima colore: @safeColor">
                                     </div>
                                 }
@@ -129,7 +133,7 @@
                             {
                                 <MudGrid Spacing="2">
                                     <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-primary-lighten);">
+                                        <MudPaper Elevation="0" Class="pa-2 bg-primary-light">
                                             <MudStack Spacing="0" AlignItems="AlignItems.Center">
                                                 <MudText Typo="Typo.h5" Color="Color.Primary">@_members.Count()</MudText>
                                                 <MudText Typo="Typo.caption">Totali</MudText>
@@ -137,7 +141,7 @@
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-success-lighten);">
+                                        <MudPaper Elevation="0" Class="pa-2 bg-success-light">
                                             <MudStack Spacing="0" AlignItems="AlignItems.Center">
                                                 <MudText Typo="Typo.h5" Color="Color.Success">
                                                     @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Active)
@@ -147,7 +151,7 @@
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-warning-lighten);">
+                                        <MudPaper Elevation="0" Class="pa-2 bg-warning-light">
                                             <MudStack Spacing="0" AlignItems="AlignItems.Center">
                                                 <MudText Typo="Typo.h5" Color="Color.Warning">
                                                     @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Suspended)
@@ -189,7 +193,7 @@
                                 <RowTemplate Context="member">
                                     <MudTd DataLabel="Business Party">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2" Class="fw-semibold">
                                                 @member.BusinessPartyName
                                                 @if (member.IsFeatured)
                                                 {

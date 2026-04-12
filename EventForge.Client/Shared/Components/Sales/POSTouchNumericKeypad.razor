@@ -2,7 +2,7 @@
 
 <div class="pos-touch-keypad">
     <!-- Display -->
-    <MudPaper Elevation="1" Class="pa-2 mb-1" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+    <MudPaper Elevation="1" Class="pa-2 mb-1 bg-grey-r8">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <MudText Typo="Typo.caption" Color="Color.Secondary">
                 @if (!string.IsNullOrEmpty(Label))
@@ -14,7 +14,7 @@
                     @TranslationService.GetTranslation("sales.quantity", "Quantità")
                 }
             </MudText>
-            <MudText Typo="Typo.h5" Style="font-weight: 700; min-width: 80px; text-align: right; font-family: monospace;">
+            <MudText Typo="Typo.h5" Class="fw-bold text-mono-right" Align="Align.Right">
                 @(_input.Length > 0 ? _input : "0")
             </MudText>
         </MudStack>

@@ -76,10 +76,12 @@
     </ChildContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
-        <MudButton Color="Color.Secondary" OnClick="ClearFilters">
+        <MudButton Color="Color.Secondary" OnClick="ClearFilters"
+                               Variant="Variant.Text">
             @TranslationService.GetTranslation("common.clearFilters", "Cancella Filtri")
         </MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Apply">

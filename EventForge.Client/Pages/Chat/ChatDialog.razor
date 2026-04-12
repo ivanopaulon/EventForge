@@ -6,7 +6,6 @@
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
-@inject IWhatsAppClientService WhatsAppClientService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -114,8 +113,8 @@
                         {
                             <div class="d-flex flex-column align-center justify-center pa-6 gap-2">
                                 <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline"
-                                         Size="Size.Large"
-                                         Style="opacity:.3;" />
+                                         Size="Size.Large" Class="opacity-30"
+ />
                                 <MudText Typo="Typo.body2" Color="Color.Tertiary">
                                     @TranslationService.GetTranslation("chat.noChats", "Nessuna chat disponibile")
                                 </MudText>
@@ -138,12 +137,12 @@
                                         <div class="d-flex align-center w-100 gap-3">
 
                                             @* Avatar + presence dot *@
-                                            <div style="position:relative;flex-shrink:0;">
+                                            <div class="pos-rel-no-shrink">
                                                 @if (isWa)
                                                 {
-                                                    <MudAvatar Style="background:#25D366;width:40px;height:40px;">
-                                                        <MudIcon Icon="@Icons.Custom.Brands.WhatsApp"
-                                                                 Style="color:white;font-size:22px;" />
+                                                    <MudAvatar Class="avatar-40 avatar-whatsapp">
+                                                        <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Class="icon-22" Color="Color.Inherit"
+ />
                                                     </MudAvatar>
                                                 }
                                                 else
@@ -159,8 +158,7 @@
                                             <div class="flex-grow-1 overflow-hidden">
                                                 <div class="d-flex justify-space-between align-center">
                                                     <MudText Typo="Typo.body2"
-                                                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                                                             Class="@(chat.UnreadCount > 0 ? "font-weight-bold" : "")">
+                                                             Class="@(chat.UnreadCount > 0 ? "fw-bold text-truncate-ef" : "text-truncate-ef")">
                                                         @(isWa ? (chat.BusinessPartyName ?? chat.ExternalPhoneNumber ?? chatName) : chatName)
                                                     </MudText>
                                                     @if (chat.UnreadCount > 0)
@@ -174,8 +172,7 @@
                                                     }
                                                 </div>
                                                 <MudText Typo="Typo.caption"
-                                                         Color="Color.Secondary"
-                                                         Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">
+                                                         Color="Color.Secondary" Class="text-truncate-block">
                                                     @StripHtml(chat.LastMessage?.Content ?? "")
                                                 </MudText>
                                             </div>
@@ -213,16 +210,16 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Menu"
                                                Color="Color.Inherit"
                                                Size="Size.Small"
-                                               Style="margin-right:4px;flex-shrink:0;"
+                                               Class="mr-1 flex-no-shrink"
                                                OnClick="@(() => _sidebarVisible = true)" />
                             </MudTooltip>
                         }
                         @* Avatar *@
-                        <div style="position:relative;flex-shrink:0;margin-right:12px;">
+                        <div class="chat-avatar-wrap">
                             @if (selIsWa)
                             {
-                                <MudAvatar Style="background:#25D366;width:36px;height:36px;">
-                                    <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Style="color:white;font-size:20px;" />
+                                <MudAvatar Class="avatar-36 avatar-whatsapp">
+                                    <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Class="icon-20" Color="Color.Inherit" />
                                 </MudAvatar>
                             }
                             else
@@ -244,24 +241,23 @@
                         @* Name + channel chip + presence *@
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="d-flex align-center gap-2 flex-wrap">
-                                <MudText Typo="Typo.subtitle1"
-                                         Style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,0.87);">
+                                <MudText Typo="Typo.subtitle1" Class="fw-semibold text-truncate-ef text-white-87">
                                     @(selIsWa
                                         ? (_selectedChat.BusinessPartyName ?? _selectedChat.ExternalPhoneNumber ?? GetChatName(_selectedChat))
                                         : GetChatName(_selectedChat))
                                 </MudText>
                                 @if (selIsWa)
                                 {
-                                    <MudChip T="string" Label="true" Size="Size.Small"
-                                             Style="background:#dcf8c6;color:#1a7a4a;height:20px;font-size:.7rem;padding:0 6px;">
+                                    <MudChip T="string" Label="true" Size="Size.Small" Class="chip-whatsapp chip-sm"
+>
                                         WA
                                     </MudChip>
                                 }
                                 else
                                 {
                                     <MudChip T="string" Label="true" Size="Size.Small" Variant="Variant.Outlined"
-                                             Color="Color.Primary"
-                                             Style="height:20px;font-size:.7rem;padding:0 6px;">
+                                             Color="Color.Primary" Class="chip-sm"
+>
                                         Interno
                                     </MudChip>
                                 }
@@ -325,7 +321,7 @@
                                     <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1 message-item")">
                                         @if (!isMe)
                                         {
-                                            <div style="margin-right:8px;flex-shrink:0;align-self:flex-end;">
+                                            <div class="chat-avatar-mini">
                                                 <MudAvatar Size="Size.Small"
                                                            Style="@($"background:{GetAvatarColor(msg.SenderName ?? "?")};color:#fff;font-size:.65rem;font-weight:600;width:28px;height:28px;")">
                                                     @GetInitials(msg.SenderName ?? "?")
@@ -426,7 +422,7 @@
                                 {
                                     var isSelf = m.UserId == _currentUserId;
                                     <div class="d-flex align-center gap-2 mb-2">
-                                        <div style="position:relative;flex-shrink:0;">
+                                        <div class="pos-rel-no-shrink">
                                             <MudAvatar Size="Size.Small"
                                                        Style="@($"background:{GetAvatarColor(m.DisplayName ?? m.Username ?? "?")};color:#fff;font-size:.65rem;font-weight:600;width:28px;height:28px;")">
                                                 @GetInitials(m.DisplayName ?? m.Username ?? "?")
@@ -435,7 +431,7 @@
                                         </div>
                                         <div class="flex-grow-1 overflow-hidden">
                                             <MudText Typo="Typo.body2"
-                                                     Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                     Class="text-truncate-ef">
                                                 @(m.DisplayName ?? m.Username)
                                                 @if (isSelf)
                                                 {
@@ -468,8 +464,8 @@
                 {
                     @* Welcome / empty state *@
                     <div class="d-flex flex-column justify-center align-center" style="height:100%;gap:12px;">
-                        <MudIcon Icon="@Icons.Material.Outlined.Forum"
-                                 Style="font-size:64px;opacity:.2;" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Forum" Class="icon-64 opacity-20"
+ />
                         <MudText Typo="Typo.h6" Color="Color.Tertiary">
                             @TranslationService.GetTranslation("chat.welcomeTitle", "Seleziona una conversazione")
                         </MudText>
@@ -932,7 +928,12 @@
         }
     }
 
-    private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); _messageIds.Remove(id); InvokeAsync(StateHasChanged); }
+    private void OnMessageDeleted(Guid id)
+    {
+        _messages.RemoveAll(m => m.Id == id);
+        _messageIds.Remove(id);
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnMessageRead(Guid chatId, Guid msgId)
     {

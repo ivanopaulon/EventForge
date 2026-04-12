@@ -16,7 +16,7 @@
     {
         <!-- Statistics Cards -->
         <MudStack Row="true" Spacing="2" Class="mb-4">
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 200px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 border-r-sm-200">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("price.averagePurchase", "Prezzo Acquisto Medio")
                 </MudText>
@@ -27,7 +27,7 @@
                     @TranslationService.GetTranslation("price.range", "Range"): €@PriceTrend.MinPurchasePrice.ToString("N2") - €@PriceTrend.MaxPurchasePrice.ToString("N2")
                 </MudText>
             </MudPaper>
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 200px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 border-r-sm-200">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("price.averageSale", "Prezzo Vendita Medio")
                 </MudText>
@@ -46,7 +46,7 @@
             var margin = PriceTrend.CurrentAverageSalePrice - PriceTrend.CurrentAveragePurchasePrice;
             var marginPercent = (margin / PriceTrend.CurrentAverageSalePrice) * 100;
             
-            <MudPaper Elevation="0" Class="pa-3 mb-4" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+            <MudPaper Elevation="0" Class="pa-3 mb-4 border-r-sm">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("price.averageMargin", "Margine Medio")
                 </MudText>

@@ -30,35 +30,35 @@
                     <MudPaper Elevation="0" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">Order Information</MudText>
                         <MudGrid Spacing="2">
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Number:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Number:</MudText></MudItem>
                             <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.Number</MudText></MudItem>
 
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Series:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Series:</MudText></MudItem>
                             <MudItem xs="7"><MudText Typo="Typo.body2">@(_transferOrder.Series ?? "N/A")</MudText></MudItem>
 
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Status:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Status:</MudText></MudItem>
                             <MudItem xs="7">
                                 <MudChip T="string" Color="@GetStatusColor(_transferOrder.Status)" Size="Size.Small">
                                     @_transferOrder.Status
                                 </MudChip>
                             </MudItem>
 
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Order Date:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Order Date:</MudText></MudItem>
                             <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.OrderDate.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
 
                             @if (_transferOrder.ShipmentDate.HasValue)
                             {
-                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Shipment Date:</MudText></MudItem>
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Shipment Date:</MudText></MudItem>
                                 <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ShipmentDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
                             }
                             @if (_transferOrder.ExpectedArrivalDate.HasValue)
                             {
-                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Expected Arrival:</MudText></MudItem>
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Expected Arrival:</MudText></MudItem>
                                 <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ExpectedArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
                             }
                             @if (_transferOrder.ActualArrivalDate.HasValue)
                             {
-                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Actual Arrival:</MudText></MudItem>
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Actual Arrival:</MudText></MudItem>
                                 <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ActualArrivalDate.Value.ToString("yyyy-MM-dd HH:mm")</MudText></MudItem>
                             }
                         </MudGrid>
@@ -69,20 +69,20 @@
                     <MudPaper Elevation="0" Class="pa-4">
                         <MudText Typo="Typo.h6" Class="mb-3">Warehouse Information</MudText>
                         <MudGrid Spacing="2">
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Source Warehouse:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Source Warehouse:</MudText></MudItem>
                             <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.SourceWarehouseName</MudText></MudItem>
 
-                            <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Destination Warehouse:</MudText></MudItem>
+                            <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Destination Warehouse:</MudText></MudItem>
                             <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.DestinationWarehouseName</MudText></MudItem>
 
                             @if (!string.IsNullOrEmpty(_transferOrder.ShippingReference))
                             {
-                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Shipping Reference:</MudText></MudItem>
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Shipping Reference:</MudText></MudItem>
                                 <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.ShippingReference</MudText></MudItem>
                             }
                             @if (!string.IsNullOrEmpty(_transferOrder.Notes))
                             {
-                                <MudItem xs="5"><MudText Typo="Typo.body2" Style="font-weight:600;">Notes:</MudText></MudItem>
+                                <MudItem xs="5"><MudText Typo="Typo.body2" Class="fw-semibold">Notes:</MudText></MudItem>
                                 <MudItem xs="7"><MudText Typo="Typo.body2">@_transferOrder.Notes</MudText></MudItem>
                             }
                         </MudGrid>

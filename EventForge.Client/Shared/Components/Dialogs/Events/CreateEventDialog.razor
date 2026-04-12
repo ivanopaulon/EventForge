@@ -105,14 +105,14 @@
                             <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
                                 <input type="color" value="@(_model.Color ?? "#4285F4")"
                                        @onchange="OnColorChanged"
-                                       style="width:44px;height:44px;border:none;border-radius:8px;cursor:pointer;padding:2px;" />
+                                       class="color-swatch-btn" />
                                 <MudStack Spacing="1">
                                     <MudText Typo="Typo.caption">@TranslationService.GetTranslation("events.presetColors", "Colori rapidi")</MudText>
                                     <MudStack Row Spacing="1">
                                         @foreach (var color in _presetColors)
                                         {
                                             <div @onclick="() => _model.Color = color"
-                                                 style="width:20px;height:20px;border-radius:50%;background:@color;cursor:pointer;border:2px solid @(_model.Color==color?"white":"transparent");" />
+                                                 class="color-swatch-20" style="background:@color;border:2px solid @(_model.Color==color?"white":"transparent");" />
                                         }
                                     </MudStack>
                                 </MudStack>

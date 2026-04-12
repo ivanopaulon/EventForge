@@ -44,7 +44,8 @@
                                       Disabled="@(!_isCreateMode)"
                                       Class="ef-input"
                                       @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.code", "Codice univoco (es. CASH, CARD, BANK)")" />
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.code", "Codice univoco (es. CASH, CARD, BANK)")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <MudItem xs="12" md="6">
@@ -57,7 +58,8 @@
                                       Immediate="true"
                                       Class="ef-input"
                                       @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.name", "Nome visualizzato (es. Contanti, Carta di Credito)")" />
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.name", "Nome visualizzato (es. Contanti, Carta di Credito)")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <MudItem xs="12">
@@ -68,7 +70,8 @@
                                       MaxLength="500"
                                       Class="ef-input"
                                       @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.description", "Descrizione opzionale del metodo di pagamento")" />
+                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.description", "Descrizione opzionale del metodo di pagamento")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <MudItem xs="12" md="6">
@@ -118,7 +121,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="6">
-                        <MudPaper Elevation="0" Class="pa-3 d-flex align-center" Style="border: 1px solid var(--mud-palette-divider);">
+                        <MudPaper Elevation="0" Class="pa-3 d-flex align-center border-divider">
                             <MudText Typo="Typo.body2" Class="mr-3">
                                 @TranslationService.GetTranslation("paymentMethod.iconPreview", "Anteprima Icona:")
                             </MudText>
@@ -141,7 +144,8 @@
                                         Variant="Variant.Outlined"
                                         Min="0"
                                         @bind-Value:after="@MarkChanged"
-                                        HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.displayOrder", "Ordine di visualizzazione (0 = primo)")" />
+                                        HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.displayOrder", "Ordine di visualizzazione (0 = primo)")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <MudItem xs="12" md="4">
@@ -187,7 +191,7 @@
                                         "Nota: La configurazione di integrazione non viene visualizzata per motivi di sicurezza. Lasciare vuoto per mantenere quella esistente, oppure inserire una nuova configurazione.")
                                 </MudAlert>
                             }
-                            <MudTextField @bind-Value="PaymentMethodIntegrationConfig"
+                            <MudTextField Margin="Margin.Dense" @bind-Value="PaymentMethodIntegrationConfig"
                                           Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
                                           Variant="Variant.Outlined"
                                           Lines="5"

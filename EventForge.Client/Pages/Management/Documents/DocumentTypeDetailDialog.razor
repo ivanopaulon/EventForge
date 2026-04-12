@@ -44,7 +44,8 @@
                                       MaxLength="50"
                                       Immediate="true"
                                       OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="name-help" />
+                                      aria-describedby="name-help"
+                    Margin="Margin.Dense"/>
                         <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("documentType.helperText.name", "Inserisci il nome del tipo documento")
                         </MudText>
@@ -60,7 +61,8 @@
                                       MaxLength="10"
                                       Immediate="true"
                                       OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="code-help" />
+                                      aria-describedby="code-help"
+                    Margin="Margin.Dense"/>
                         <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("documentType.helperText.code", "Codice univoco per il tipo documento (es: DDT, FT, NC)")
                         </MudText>
@@ -74,7 +76,8 @@
                                       Lines="3"
                                       MaxLength="200"
                                       OnBlur="@(() => MarkChanged())"
-                                      aria-describedby="notes-help" />
+                                      aria-describedby="notes-help"
+                    Margin="Margin.Dense"/>
                         <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
                             @TranslationService.GetTranslation("documentType.helperText.notes", "Note o descrizione aggiuntiva")
                         </MudText>
@@ -155,7 +158,8 @@
                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
                                           ReadOnly="true"
-                                          aria-label="@TranslationService.GetTranslation("documentType.aria.uniqueId", "Identificativo unico")" />
+                                          aria-label="@TranslationService.GetTranslation("documentType.aria.uniqueId", "Identificativo unico")"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     }
                 </MudGrid>

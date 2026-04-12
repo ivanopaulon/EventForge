@@ -2,7 +2,7 @@
 @inject ITranslationService TranslationService
 
 <MudStack Spacing="1">
-    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+    <MudText Typo="Typo.caption" Class="text-secondary-color">
         <MudIcon Icon="@Icons.Material.Outlined.Comment" Size="Size.Small" Class="mr-1" />
         @TranslationService.GetTranslation("documents.notes", "Note")
     </MudText>
@@ -19,7 +19,8 @@
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Outlined.Comment"
                   HelperText="@GetHelperText()"
-                  Disabled="@Disabled" />
+                  Disabled="@Disabled"
+                    Margin="Margin.Dense"/>
 </MudStack>
 
 @code {

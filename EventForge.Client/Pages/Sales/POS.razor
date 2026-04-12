@@ -232,10 +232,9 @@
                     <!-- Loading State -->
                     @if (ViewModel.IsUpdatingItems)
                     {
-                        <MudProgressLinear Color="Color.Primary" 
-                                           Indeterminate="true" 
-                                           Class="mb-2" 
-                                           Style="border-radius: 4px;" />
+                        <MudProgressLinear Color="Color.Primary"
+                                           Indeterminate="true"
+                                           Class="mb-2 rounded-4" />
                         
                         <MudAlert Severity="Severity.Info" 
                                   Dense="true" 
@@ -295,7 +294,7 @@
             else
             {
                 <!-- No Session State -->
-                <MudPaper Elevation="0" Class="pa-8" Style="text-align: center;">
+                <MudPaper Elevation="0" Class="pa-8 text-center">
                     
                     <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" 
                              Size="Size.Large" 

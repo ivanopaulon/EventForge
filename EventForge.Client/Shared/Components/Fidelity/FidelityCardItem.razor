@@ -6,135 +6,135 @@
         <!-- Header: Tipo Card + Badge Status -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIcon Icon="@GetCardIcon()" Size="Size.Medium" Style="color: white;" />
-                <MudText Typo="Typo.h6" Style="color: white; font-weight: 600;">
+                <MudIcon Class="text-white-full" Icon="@GetCardIcon()" Size="Size.Medium" />
+                <MudText Typo="Typo.h6" Class="fw-semibold text-white-full">
                     @Card.Type
                 </MudText>
             </MudStack>
             <MudChip T="string" 
                      Size="Size.Small" 
-                     Color="@GetStatusColor()" 
-                     Style="font-weight: 600;">
+                     Color="@GetStatusColor()" Class="fw-semibold" 
+>
                 @GetStatusText()
             </MudChip>
         </MudStack>
         
         <!-- Numero Card -->
-        <MudText Typo="Typo.body2" Style="font-family: monospace; color: rgba(255,255,255,0.9); letter-spacing: 2px;">
+        <MudText Typo="Typo.body2" Class="text-card-mono">
             @Card.CardNumber
         </MudText>
         
         <!-- Validità -->
-        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8);">
+        <MudText Typo="Typo.caption" Class="text-white-80">
             Validità: @Card.ValidFrom.ToString("dd/MM/yyyy") - @Card.ValidTo.ToString("dd/MM/yyyy")
         </MudText>
         
-        <MudDivider Style="background: rgba(255,255,255,0.3);" />
+        <MudDivider Class="divider-dark-bg" />
         
         <!-- Contatori Punti -->
         <MudGrid Spacing="2">
             <MudItem xs="4">
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Punti Attuali</MudText>
-                    <MudText Typo="Typo.h5" Style="color: white; font-weight: 700;">@Card.CurrentPoints</MudText>
+                    <MudText Typo="Typo.caption" Class="text-dark-secondary">Punti Attuali</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold text-white-full">@Card.CurrentPoints</MudText>
                 </MudStack>
             </MudItem>
             <MudItem xs="4">
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Tot. Guadagnati</MudText>
-                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">@Card.TotalPointsEarned</MudText>
+                    <MudText Typo="Typo.caption" Class="text-dark-secondary">Tot. Guadagnati</MudText>
+                    <MudText Typo="Typo.body1" Class="text-white-90">@Card.TotalPointsEarned</MudText>
                 </MudStack>
             </MudItem>
             <MudItem xs="4">
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.7);">Tot. Utilizzati</MudText>
-                    <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.9);">@Card.TotalPointsRedeemed</MudText>
+                    <MudText Typo="Typo.caption" Class="text-dark-secondary">Tot. Utilizzati</MudText>
+                    <MudText Typo="Typo.body1" Class="text-white-90">@Card.TotalPointsRedeemed</MudText>
                 </MudStack>
             </MudItem>
         </MudGrid>
         
         <!-- Vantaggi -->
-        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+        <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
             @if (Card.DiscountPercentage > 0)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount" Class="chip-white-alpha"
+>
                     Sconto @Card.DiscountPercentage%
                 </MudChip>
             }
             @if (Card.HasPriorityAccess)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Star"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Star" Class="chip-white-alpha"
+>
                     Priority Access
                 </MudChip>
             }
             @if (Card.HasBirthdayBonus)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Cake"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Cake" Class="chip-white-alpha"
+>
                     Birthday Bonus
                 </MudChip>
             }
         </MudStack>
         
         <!-- Azioni -->
-        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
-            <MudIconButton Icon="@Icons.Material.Outlined.History"
+        <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
+            <MudIconButton Class="text-white-full"
+                           Icon="@Icons.Material.Outlined.History"
                            Color="Color.Default"
                            Size="Size.Small"
                            OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
-                           title="Storico transazioni"
-                           Style="color: white;" />
+                           title="Storico transazioni" />
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.AddCircle"
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.AddCircle"
                                Color="Color.Default"
                                Size="Size.Small"
                                OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
-                               title="Gestisci punti"
-                               Style="color: white;" />
+                               title="Gestisci punti" />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Edit"
                                Color="Color.Default"
                                Size="Size.Small"
                                OnClick="@(() => OnEdit.InvokeAsync(Card))"
-                               title="Modifica card"
-                               Style="color: white;" />
+                               title="Modifica card" />
             }
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Pause"
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Pause"
                                Color="Color.Default"
                                Size="Size.Small"
                                OnClick="@(() => OnSuspend.InvokeAsync(Card))"
-                               title="Sospendi card"
-                               Style="color: white;" />
+                               title="Sospendi card" />
             }
             
             @if (Card.Status == FidelityCardStatus.Suspended)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.PlayArrow"
                                Color="Color.Default"
                                Size="Size.Small"
                                OnClick="@(() => OnActivate.InvokeAsync(Card))"
-                               title="Riattiva card"
-                               Style="color: white;" />
+                               title="Riattiva card" />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Block"
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Block"
                                Color="Color.Default"
                                Size="Size.Small"
                                OnClick="@(() => OnRevoke.InvokeAsync(Card))"
-                               title="Revoca card"
-                               Style="color: white;" />
+                               title="Revoca card" />
             }
         </MudStack>
         

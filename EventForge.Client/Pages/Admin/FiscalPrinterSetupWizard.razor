@@ -25,7 +25,7 @@
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
 
 <MudText Typo="Typo.h5" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1" Style="vertical-align:middle;" />
+    <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1 vertical-middle" />
     @(_isEditMode ? "Modifica Stampante" : "Configurazione Stampante Fiscale")
 </MudText>
 
@@ -54,7 +54,7 @@
 
         <MudRadioGroup T="string" @bind-Value="_connectionType">
             <MudStack Spacing="3">
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("TCP")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>TCP/IP – Diretto</b></MudText>
@@ -62,7 +62,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("TcpViaAgent")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>TCP/IP via Agente</b> – stampante in rete dell'Agent</MudText>
@@ -70,7 +70,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("Serial")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>Seriale RS232</b> – Porta COM</MudText>
@@ -78,7 +78,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("UsbViaAgent")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>USB via Agente</b> – EventForge UpdateAgent</MudText>
@@ -86,7 +86,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("NetworkShare")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>Condivisione di Rete</b> – Windows Network Share</MudText>
@@ -177,13 +177,15 @@
                                   Variant="Variant.Outlined"
                                   Placeholder="es. 192.168.1.100"
                                   Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Router" />
+                                  AdornmentIcon="@Icons.Material.Filled.Router"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <MudNumericField T="int" @bind-Value="_tcpPort"
                                      Label="Porta *"
                                      Variant="Variant.Outlined"
-                                     Min="1" Max="65535" />
+                                     Min="1" Max="65535"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 @if (_protocolType == "Epson")
                 {
@@ -194,7 +196,8 @@
                                       Placeholder="local_printer"
                                       HelperText="Identificativo dispositivo configurato sul server web della stampante (default: local_printer)"
                                       Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Print" />
+                                      AdornmentIcon="@Icons.Material.Filled.Print"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 }
             </MudGrid>
@@ -258,7 +261,8 @@
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Filled.Computer"
                                   Immediate="true"
-                                  @oninput="@(() => { _testConnectionResult = null; })" />
+                                  @oninput="@(() => { _testConnectionResult = null; })"
+                    Margin="Margin.Dense"/>
                 </MudItem>
 
                 @* IP / Port *@
@@ -269,13 +273,15 @@
                                   Placeholder="es. 192.168.1.100"
                                   HelperText="Indirizzo IP della stampante sulla rete locale dell'Agente"
                                   Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Router" />
+                                  AdornmentIcon="@Icons.Material.Filled.Router"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <MudNumericField T="int" @bind-Value="_tcpPort"
                                      Label="Porta *"
                                      Variant="Variant.Outlined"
-                                     Min="1" Max="65535" />
+                                     Min="1" Max="65535"
+                    Margin="Margin.Dense"/>
                 </MudItem>
 
                 @if (_protocolType == "Epson")
@@ -287,7 +293,8 @@
                                       Placeholder="local_printer"
                                       HelperText="Identificativo dispositivo Epson (default: local_printer)"
                                       Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Print" />
+                                      AdornmentIcon="@Icons.Material.Filled.Print"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 }
             </MudGrid>
@@ -409,7 +416,8 @@
                                   Label="ID Agente UpdateAgent"
                                   Variant="Variant.Outlined"
                                   Placeholder="es. 00000000-0000-0000-0000-000000000001"
-                                  HelperText="GUID dell'agente UpdateAgent registrato nel sistema" />
+                                  HelperText="GUID dell'agente UpdateAgent registrato nel sistema"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 @if (_connectionType == "UsbViaAgent")
                 {
@@ -423,7 +431,8 @@
                                              ResetValueOnEmptyText="false"
                                              CoerceValue="true"
                                              HelperText="Seleziona dalla lista o digita manualmente l'ID dispositivo"
-                                             Placeholder="es. Microsoft Print to PDF" />
+                                             Placeholder="es. Microsoft Print to PDF"
+                    Margin="Margin.Dense"/>
                             <MudTooltip Text="Carica stampanti installate sull'agente">
                                 <MudIconButton Icon="@Icons.Material.Filled.Refresh"
                                                Color="Color.Primary"
@@ -434,7 +443,7 @@
                         @if (_loadingAgentPrinters)
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" Style="width:14px;height:14px;display:inline-block;" />
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1 spinner-14-i" />
                                 Caricamento stampanti dall'agente...
                             </MudText>
                         }
@@ -459,7 +468,8 @@
                                       Label="Percorso Condivisione di Rete"
                                       Variant="Variant.Outlined"
                                       Placeholder="es. \\server\stampante"
-                                      HelperText="Percorso UNC della stampante condivisa" />
+                                      HelperText="Percorso UNC della stampante condivisa"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 }
             </MudGrid>
@@ -522,13 +532,16 @@
         {
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudTextField Value="@(_printerInfo.Model ?? "—")" Label="Modello" ReadOnly="true" Variant="Variant.Outlined" />
+                    <MudTextField Value="@(_printerInfo.Model ?? "—")" Label="Modello" ReadOnly="true" Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField Value="@(_printerInfo.FirmwareVersion ?? "—")" Label="Versione Firmware" ReadOnly="true" Variant="Variant.Outlined" />
+                    <MudTextField Value="@(_printerInfo.FirmwareVersion ?? "—")" Label="Versione Firmware" ReadOnly="true" Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField Value="@(_printerInfo.FiscalSerialNumber ?? "—")" Label="Matricola Fiscale" ReadOnly="true" Variant="Variant.Outlined" />
+                    <MudTextField Value="@(_printerInfo.FiscalSerialNumber ?? "—")" Label="Matricola Fiscale" ReadOnly="true" Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     @if (_printerInfo.FiscalMemoryUsedPercent.HasValue)
@@ -543,7 +556,8 @@
                     }
                     else
                     {
-                        <MudTextField Value="@("N/D")" Label="Memoria Fiscale Utilizzata" ReadOnly="true" Variant="Variant.Outlined" />
+                        <MudTextField Value="@("N/D")" Label="Memoria Fiscale Utilizzata" ReadOnly="true" Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                     }
                 </MudItem>
             </MudGrid>
@@ -582,13 +596,15 @@
                               Variant="Variant.Outlined"
                               Placeholder="es. Stampante Fiscale Cassa 1"
                               HelperText="Nome descrittivo per identificare la stampante nel sistema"
-                              Required="true" />
+                              Required="true"
+                    Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="_printerLocation"
                               Label="Posizione Fisica"
                               Variant="Variant.Outlined"
-                              Placeholder="es. Cassa principale, piano terra" />
+                              Placeholder="es. Cassa principale, piano terra"
+                    Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudSelect T="string" Value="_protocolType"
@@ -660,7 +676,8 @@
                                  Label="Caratteri per riga (es. 42, 58, 80)"
                                  Variant="Variant.Outlined"
                                  Min="10" Max="200"
-                                 HelperText="Larghezza di stampa in caratteri (opzionale)" />
+                                 HelperText="Larghezza di stampa in caratteri (opzionale)"
+                    Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudSelect T="PaperWidth?" @bind-Value="_paperWidth"
@@ -743,7 +760,7 @@
                             <MudTd>
                                 <MudNumericField T="int" @bind-Value="context.FiscalCode"
                                                  Min="1" Max="10" Dense="true" Margin="Margin.Dense"
-                                                 Variant="Variant.Outlined" Style="max-width:100px;" />
+                                                 Variant="Variant.Outlined" Class="ef-input-100" />
                             </MudTd>
                             <MudTd>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.SuggestedCode</MudChip>
@@ -781,7 +798,7 @@
                             <MudTd>
                                 <MudNumericField T="int" @bind-Value="context.FiscalCode"
                                                  Min="1" Max="10" Dense="true" Margin="Margin.Dense"
-                                                 Variant="Variant.Outlined" Style="max-width:100px;" />
+                                                 Variant="Variant.Outlined" Class="ef-input-100" />
                             </MudTd>
                             <MudTd>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.SuggestedCode</MudChip>
@@ -892,7 +909,7 @@
         </MudExpansionPanels>
 
         @* Test scontrino *@
-        <MudCard Elevation="0" Class="mb-4" Style="border: 1px solid var(--mud-palette-lines-default);">
+        <MudCard Elevation="0" Class="mb-4 border-default">
             <MudCardContent>
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Stampa Scontrino di Test</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">

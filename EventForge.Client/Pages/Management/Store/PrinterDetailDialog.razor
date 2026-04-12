@@ -42,7 +42,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Print" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight:600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1" Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
@@ -64,7 +64,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="ViewModel.Entity.Type"
@@ -72,7 +73,8 @@
                                               MaxLength="30"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.Model"
@@ -80,7 +82,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.Location"
@@ -88,7 +91,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="8">
                                 <MudTextField @bind-Value="ViewModel.Entity.Address"
@@ -96,7 +100,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudSelect @bind-Value="ViewModel.Entity.Status"
@@ -140,7 +145,8 @@
                                                  Variant="Variant.Outlined"
                                                  Class="ef-input"
                                                  Min="1" Max="65535"
-                                                 @bind-Value:after="HandleEntityChanged" />
+                                                 @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudSwitch @bind-Value="ViewModel.Entity.IsThermal"
@@ -170,7 +176,8 @@
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
                                               HelperText="Es. Custom, Epson, RCH"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         }
                         <MudItem xs="12" md="6">
@@ -180,7 +187,8 @@
                                           Variant="Variant.Outlined"
                                           Class="ef-input"
                                           HelperText="Es. COM1, /dev/ttyUSB0"
-                                          @bind-Value:after="HandleEntityChanged" />
+                                          @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudNumericField @bind-Value="ViewModel.Entity.BaudRate"
@@ -188,7 +196,8 @@
                                              Variant="Variant.Outlined"
                                              Class="ef-input"
                                              Min="300" Max="115200"
-                                             @bind-Value:after="HandleEntityChanged" />
+                                             @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudNumericField @bind-Value="ViewModel.Entity.PrinterWidth"
@@ -196,7 +205,8 @@
                                              Variant="Variant.Outlined"
                                              Class="ef-input"
                                              Min="10" Max="200"
-                                             @bind-Value:after="HandleEntityChanged" />
+                                             @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudSelect @bind-Value="ViewModel.Entity.PaperWidth"
@@ -230,7 +240,8 @@
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
                                               HelperText="GUID dell'agente"
-                                              @bind-Value:after="@(() => { if (Guid.TryParse(_agentIdString, out var g)) ViewModel.Entity.AgentId = g; HandleEntityChanged(); })" />
+                                              @bind-Value:after="@(() => { if (Guid.TryParse(_agentIdString, out var g)) ViewModel.Entity.AgentId = g; HandleEntityChanged(); })"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudTextField @bind-Value="ViewModel.Entity.UsbDeviceId"
@@ -241,7 +252,8 @@
                                               Required="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent)"
                                               RequiredError="USB Device ID è obbligatorio per connessioni UsbViaAgent."
                                               HelperText="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent ? "Obbligatorio per USB via Agent" : null)"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         }
                     </MudGrid>

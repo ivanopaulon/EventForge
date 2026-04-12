@@ -50,14 +50,15 @@
         </MudStack>
     </ChildContent>
     <DialogActions>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width: 100%;">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="w-full">
             <div>
                 @if (State.CurrentView != InventoryDialogView.View && State.CurrentView != InventoryDialogView.History)
                 {
                     <MudButton OnClick="@HandleBack" 
                                Color="Color.Default" 
                                StartIcon="@Icons.Material.Outlined.ArrowBack"
-                               Disabled="@State.IsSaving">
+                               Disabled="@State.IsSaving"
+                               Variant="Variant.Text">
                         @TranslationService.GetTranslation("common.back", "Indietro")
                     </MudButton>
                 }
@@ -65,7 +66,8 @@
             <MudStack Row="true" Spacing="2">
                 <MudButton OnClick="@HandleClose" 
                            Color="Color.Default"
-                           Disabled="@State.IsSaving">
+                           Disabled="@State.IsSaving"
+                               Variant="Variant.Text">
                     @TranslationService.GetTranslation("common.close", "Chiudi")
                 </MudButton>
                 @if (State.CurrentView == InventoryDialogView.View)

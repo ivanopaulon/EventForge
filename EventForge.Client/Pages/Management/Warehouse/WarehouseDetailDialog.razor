@@ -45,7 +45,8 @@
                                               MaxLength="100"
                                               Immediate="true"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="name-help" />
+                                              aria-describedby="name-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.nomeMagazzino", "Nome del magazzino")
                                 </MudText>
@@ -61,7 +62,8 @@
                                               Immediate="true"
                                               ReadOnly="@(!_isCreateMode)"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="code-help" />
+                                              aria-describedby="code-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.codiceMagazzino", "Codice identificativo")
                                 </MudText>
@@ -73,7 +75,8 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="200"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="address-help" />
+                                              aria-describedby="address-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="address-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.indirizzo", "Indirizzo del magazzino")
                                 </MudText>
@@ -85,7 +88,8 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="30"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="phone-help" />
+                                              aria-describedby="phone-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="phone-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.telefono", "Numero di telefono")
                                 </MudText>
@@ -98,7 +102,8 @@
                                               MaxLength="100"
                                               InputType="InputType.Email"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="email-help" />
+                                              aria-describedby="email-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="email-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.email", "Indirizzo email")
                                 </MudText>
@@ -110,7 +115,8 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="100"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="manager-help" />
+                                              aria-describedby="manager-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="manager-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.responsabile", "Nome del responsabile")
                                 </MudText>
@@ -122,7 +128,8 @@
                                                  Variant="Variant.Outlined"
                                                  Min="0"
                                                  @bind-Value:after="@MarkChanged"
-                                                 aria-describedby="area-help" />
+                                                 aria-describedby="area-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="area-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.superficieMq", "Superficie in metri quadrati")
                                 </MudText>
@@ -134,7 +141,8 @@
                                                  Variant="Variant.Outlined"
                                                  Min="0"
                                                  @bind-Value:after="@MarkChanged"
-                                                 aria-describedby="capacity-help" />
+                                                 aria-describedby="capacity-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="capacity-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.capacitaMassima", "Capacità massima del magazzino")
                                 </MudText>
@@ -169,7 +177,8 @@
                                               Lines="3"
                                               MaxLength="500"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="notes-help" />
+                                              aria-describedby="notes-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.noteMagazzino", "Note aggiuntive")
                                 </MudText>
@@ -182,7 +191,8 @@
                                                   Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
                                                   Variant="Variant.Outlined"
                                                   ReadOnly="true"
-                                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                             }
                         </MudGrid>
@@ -227,7 +237,7 @@
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Codice">
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@context.Code</MudText>
+                                            <MudText Typo="Typo.body2" Class="fw-semibold">@context.Code</MudText>
                                         </MudTd>
                                         <MudTd DataLabel="Descrizione">
                                             <MudText Typo="Typo.body2">@(context.Description ?? "-")</MudText>

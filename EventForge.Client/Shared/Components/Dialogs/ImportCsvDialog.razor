@@ -28,7 +28,7 @@
                     <MudFileUpload T="IBrowserFile" OnFilesChanged="OnFileSelected" MaximumFileCount="1" 
                                    Accept=".csv">
                         <CustomContent Context="fileUpload">
-                            <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center" Style="border-style: dashed; cursor: pointer;" @onclick="@fileUpload.OpenFilePickerAsync">
+                            <MudPaper Outlined="true" Class="pa-8 d-flex flex-column align-center ef-drop-zone-dashed" @onclick="@fileUpload.OpenFilePickerAsync">
                                 <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
                                 <MudText Typo="Typo.body1">
                                     @TranslationService.GetTranslation("csvImport.dragDrop", "Trascina il file qui o clicca per selezionare")
@@ -211,7 +211,8 @@
                     </MudCheckBox>
 
                     <MudTextField @bind-Value="_importOptions.Currency" Label="@TranslationService.GetTranslation("csvImport.defaultCurrency", "Valuta Predefinita")" 
-                                  Variant="Variant.Outlined" MaxLength="3" />
+                                  Variant="Variant.Outlined" MaxLength="3"
+                    Margin="Margin.Dense"/>
                 </MudStack>
             </MudStep>
 
@@ -401,7 +402,8 @@
     <DialogActions>
         @if (_activeStepIndex == 0)
         {
-            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+            <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step1Next" 
                        Disabled="@(_selectedFile == null)">
                 @TranslationService.GetTranslation("common.next", "Avanti")
@@ -409,21 +411,24 @@
         }
         else if (_activeStepIndex == 1)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step2Next">
                 @TranslationService.GetTranslation("common.next", "Avanti")
             </MudButton>
         }
         else if (_activeStepIndex == 2)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _activeStepIndex++)">
                 @TranslationService.GetTranslation("common.next", "Avanti")
             </MudButton>
         }
         else if (_activeStepIndex == 3)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ImportCsv" 
                        Disabled="@(!_validationResult?.IsValid ?? true)">
                 @TranslationService.GetTranslation("csvImport.import", "Importa")

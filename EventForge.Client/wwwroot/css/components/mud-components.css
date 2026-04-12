@@ -57,9 +57,9 @@
 }
 
 .ef-appbar {
-    background-color: slategray !important;
+    background-color: var(--mud-palette-appbar-background);
     padding: 0px !important;
-    color: white !important;
+    color: var(--mud-palette-appbar-text);
     min-height: 48px !important;
     height: 48px !important;
 }
@@ -68,28 +68,19 @@
         margin: -2px 0px 0px -8px !important;
     }
     .ef-appbar .mud-image.hover{
-                cursor: pointer !important;
+                cursor: pointer;
     }
 
-/* Fix drawer clip: align drawer to the real AppBar height (48px) */
-.mud-drawer-clipped-left,
-.mud-drawer-clipped-right {
-    top: 48px !important;
-}
-
-/* Fix: MudBlazor CSS variable for AppBar height */
-:root {
-    --mud-appbar-height: 48px;
-}
+/* Drawer clip and AppBar height overrides are in _mudblazor-overrides.css */
 
 .ef-dialog {
-    background-color: whitesmoke !important;
+    background-color: var(--mud-palette-surface);
     padding: 0px !important;
 }
 
     .ef-dialog .mud-dialog-title {
-        background-color: slategray !important;
-        color: white !important;
+        background-color: var(--mud-palette-appbar-background);
+        color: var(--mud-palette-appbar-text);
         align-items: flex-end !important;
         min-height: 48px !important;
         height: 48px !important;
@@ -107,13 +98,13 @@
     width: 36px !important;
     margin: -2px 16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: whitesmoke !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 4px;
 }
 
     .ef-menu-button:hover {
-        background-color: #384048 !important;
-        cursor: pointer !important;
+        background-color: var(--ef-hover-dark) !important;
+        cursor: pointer;
     }
 
 .ef-account-menu {
@@ -123,28 +114,28 @@
     width: 36px !important;
     margin: -2px -16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: whitesmoke !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 4px;
 }
 
 /* ----------- MENU TRIGGER (il bottone del menu) ----------- */
 .ef-account-menu .mud-button-root {
-    color: white !important;
+    color: var(--mud-palette-appbar-text);
     border-radius: 6px !important;
     padding: 4px 12px !important;
     transition: background-color .2s;
 }
 
 .ef-account-menu .mud-button-root:hover {
-    background-color: #384048 !important;
-    cursor: pointer !important;
+    background-color: var(--ef-hover-dark) !important;
+    cursor: pointer;
 }
 
 /* ----------- POPOVER (il contenitore del menu a discesa) ----------- */
 /* ATTENZIONE: il popover NON è dentro .ef-account-menu, quindi usa attributo data o classe globale */
 .mud-popover-open.ef-account-menu-popover {
-    background-color: #f9f9f9 !important;
-    border-radius: 8px !important;
+    background-color: var(--mud-palette-surface);
+    border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
     min-width: 250px !important;
 }
@@ -152,35 +143,35 @@
 /* ----------- LISTA MENU ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-list {
     padding: 4px 0 !important;
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 /* ----------- ITEM DEL MENU ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-list-item {
-    color: #333 !important;
+    color: var(--mud-palette-text-primary);
     padding: 10px 16px !important;
     font-size: 0.95rem !important;
 }
 
 .mud-popover-open.ef-account-menu-popover .mud-list-item:hover {
-    background-color: #e3f0ff !important;
-    color: #003c80 !important;
+    background-color: var(--mud-palette-primary-hover) !important;
+    color: var(--mud-palette-primary) !important;
 }
 
 /* Disabilitati */
 .mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled {
-    color: #999 !important;
-    background-color: transparent !important;
+    color: var(--mud-palette-text-disabled);
+    background-color: transparent;
 }
 
 .mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled:hover {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 /* ----------- DIVIDER ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-divider {
-    border-color: #ddd !important;
-    margin: 4px 0 !important;
+    border-color: var(--mud-palette-divider);
+    margin: 4px 0;
 }
 
 /* ----------- EFTable – column headers (non-sticky) ----------- */
@@ -208,3 +199,14 @@
     z-index: 1200;
 }
 
+
+/* ----------- Outlined input variant (Variant.Outlined) ----------- */
+.ef-input .mud-input-outlined-input {
+    height: 30px !important;
+    font-size: 0.90rem !important;
+    padding: 0 12px !important;
+}
+
+.ef-input .mud-input-label-outlined {
+    font-size: 0.90rem !important;
+}

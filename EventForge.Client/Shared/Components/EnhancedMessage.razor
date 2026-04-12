@@ -94,8 +94,7 @@
  <!-- Image preview -->
  <MudImage Src="@attachment.FileUrl" 
  Alt="@attachment.OriginalFileName"
- Class="attachment-image"
- Style="max-width:300px; max-height:200px; border-radius:8px; cursor: pointer;"
+ Class="attachment-image chat-img-thumb"
  @onclick="@(() => OpenImagePreview(attachment))" />
  }
  else
@@ -139,8 +138,8 @@
  Variant="@(reaction.HasCurrentUserReacted ? Variant.Filled : Variant.Outlined)"
  Color="@(reaction.HasCurrentUserReacted ? Color.Primary : Color.Default)"
  OnClick="@(() => ToggleReaction(reaction.Emoji))"
- Style="cursor: pointer; min-height:24px;"
- aria-label="@($"{reaction.Emoji} reaction, {reaction.Count} users, {(reaction.HasCurrentUserReacted ? "remove" : "add")} your reaction")" />
+
+ aria-label="@($"{reaction.Emoji} reaction, {reaction.Count} users, {(reaction.HasCurrentUserReacted ? "remove" : "add")} your reaction")" Class="chip-touch" />
  }
  </div>
  </div>
@@ -263,7 +262,7 @@
  {
  <MudButton Variant="Variant.Text"
  Size="Size.Small"
- Style="min-width:32px; height:32px; padding:2px;"
+ Class="ef-compact-btn"
  OnClick="@(() => AddReaction(emoji))"
  aria-label="@($"React with {emoji}")">
  @emoji

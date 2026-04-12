@@ -18,8 +18,8 @@
                         <MudAvatar Color="Color.Primary" Size="Size.Large">
                             <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
                         </MudAvatar>
-                        <MudStack Spacing="0" Style="flex: 1;">
-                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                        <MudStack Spacing="0" Class="flex-1">
+                            <MudText Typo="Typo.h6" Class="fw-semibold">
                                 @Member.BusinessPartyName
                             </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -119,7 +119,7 @@
                 <MudPaper Outlined="true" Class="pa-3">
                     <MudText Typo="Typo.subtitle2" Class="mb-2">Azioni Rapide</MudText>
                     
-                    <MudStack Row="true" Spacing="2" Style="flex-wrap: wrap;">
+                    <MudStack Row="true" Spacing="2" Class="flex-wrap-wrap">
                         <MudButton OnClick="@(() => _status = BusinessPartyGroupMemberStatus.Suspended)" 
                                    Color="Color.Warning"
                                    Variant="Variant.Outlined"

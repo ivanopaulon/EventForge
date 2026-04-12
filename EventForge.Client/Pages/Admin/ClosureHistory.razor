@@ -23,7 +23,7 @@
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudText Typo="Typo.h5">
-        <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2 mb-1" Style="vertical-align:middle;" />
+        <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2 mb-1 vertical-middle" />
         Storico Chiusure Fiscali
         @if (!string.IsNullOrEmpty(_printerName))
         {
@@ -45,14 +45,16 @@
                            Label="Data da"
                            Variant="Variant.Outlined"
                            Clearable="true"
-                           DateFormat="dd/MM/yyyy" />
+                           DateFormat="dd/MM/yyyy"
+                    Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" md="4">
             <MudDatePicker @bind-Date="_filterToDate"
                            Label="Data a"
                            Variant="Variant.Outlined"
                            Clearable="true"
-                           DateFormat="dd/MM/yyyy" />
+                           DateFormat="dd/MM/yyyy"
+                    Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12" md="4">
             <MudTextField @bind-Value="_filterZReport"
@@ -60,7 +62,8 @@
                           Variant="Variant.Outlined"
                           Clearable="true"
                           Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" />
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                    Margin="Margin.Dense"/>
         </MudItem>
         <MudItem xs="12">
             <MudStack Row="true" Spacing="2">
@@ -102,16 +105,16 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ClosedAt" InitialDirection="SortDirection.Descending">Data/Ora</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ZReportNumber">N° Z-Report</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right"><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right"><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
+            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
+            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
             <MudTh>Operatore</MudTh>
             <MudTh>Azioni</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Data/Ora">@context.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
             <MudTd DataLabel="N° Z-Report"><b>#@context.ZReportNumber</b></MudTd>
-            <MudTd DataLabel="Scontrini" Style="text-align:right">@context.ReceiptCount</MudTd>
-            <MudTd DataLabel="Totale" Style="text-align:right">@context.TotalAmount.ToString("C2")</MudTd>
+            <MudTd DataLabel="Scontrini" >@context.ReceiptCount</MudTd>
+            <MudTd DataLabel="Totale" >@context.TotalAmount.ToString("C2")</MudTd>
             <MudTd DataLabel="Operatore">@(context.Operator ?? "—")</MudTd>
             <MudTd>
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">

@@ -245,7 +245,7 @@
 
                             <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.Warning">
                                 <MudStack Spacing="1">
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Style="gap:8px">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap gap-2">
                                         <MudStack Spacing="0">
                                             <MudText Typo="Typo.body2">
                                                 <strong>L'Agent non è raggiungibile</strong>
@@ -452,7 +452,7 @@
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.location", "Location")</strong></MudText></MudItem>
                                     <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.Location ?? "-")</MudText></MudItem>
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.userAgent", "User Agent")</strong></MudText></MudItem>
-                                    <MudItem xs="7"><MudText Typo="Typo.body2" Style="word-break:break-all;">@_selectedSessionForDetails.UserAgent</MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2" Class="text-breakall">@_selectedSessionForDetails.UserAgent</MudText></MudItem>
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.isCurrentSession", "Is Current Session")</strong></MudText></MudItem>
                                     <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.IsCurrentSession ? TranslationService.GetTranslation("common.yes", "Yes") : TranslationService.GetTranslation("common.no", "No"))</MudText></MudItem>
                                 </MudGrid>
@@ -493,7 +493,7 @@
                                                  Min="5"
                                                  Max="300"
                                                  Step="5"
-                                                 Style="width: 120px;"
+                                                 Class="ef-input-120"
                                                  Variant="Variant.Outlined"
                                                  Margin="Margin.Dense" />
                             }
@@ -525,13 +525,15 @@
                                     <MudDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
                                                    Label="@TranslationService.GetTranslation("health.startDate", "From Date")"
                                                    Variant="Variant.Outlined"
-                                                   Dense="true" />
+                                                   Dense="true"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                                 <MudItem xs="12" md="3">
                                     <MudDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
                                                    Label="@TranslationService.GetTranslation("health.endDate", "To Date")"
                                                    Variant="Variant.Outlined"
-                                                   Dense="true" />
+                                                   Dense="true"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                                 <MudItem xs="12" md="3">
                                     <MudTextField @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
@@ -539,7 +541,8 @@
                                                   Placeholder="@TranslationService.GetTranslation("health.searchPlaceholder", "Search...")"
                                                   Variant="Variant.Outlined"
                                                   Clearable="true"
-                                                  Dense="true" />
+                                                  Dense="true"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                             </MudGrid>
                             <div class="d-flex justify-end mt-3">
@@ -584,7 +587,7 @@
                                                  Text="@context.Level" />
                                     </MudTd>
                                     <MudTd DataLabel="Message">
-                                        <MudText Typo="Typo.body2" Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <MudText Typo="Typo.body2" Class="ef-max-300 text-truncate-ef">
                                             @context.Message
                                         </MudText>
                                     </MudTd>
@@ -625,7 +628,7 @@
                                                  Text="@context.Level" />
                                     </MudTd>
                                     <MudTd DataLabel="Message">
-                                        <MudText Typo="Typo.body2" Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <MudText Typo="Typo.body2" Class="ef-max-300 text-truncate-ef">
                                             @context.Message
                                         </MudText>
                                     </MudTd>

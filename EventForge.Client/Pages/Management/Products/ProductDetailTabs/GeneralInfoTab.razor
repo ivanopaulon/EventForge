@@ -12,7 +12,7 @@
     <MudGrid Spacing="3">
         <!-- Left: Basic Info wrapped in its own Paper -->
         <MudItem xs="12" md="8">
-            <MudPaper Elevation="1" Class="pa-4" Style="height:100%;">
+            <MudPaper Elevation="1" Class="pa-4 h-full">
                 <MudText Typo="Typo.h6" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
                     @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
@@ -28,7 +28,8 @@
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.QrCode"
                                       @bind-Value:after="NotifyUpdated"
-                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Name -->
@@ -40,7 +41,8 @@
                                       MaxLength="100"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Label"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Short description -->
@@ -52,7 +54,8 @@
                                       MaxLength="50"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Subject"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Description -->
@@ -64,7 +67,8 @@
                                       ReadOnly="@(!IsEditMode)"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Description"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Status and Bundle -->
@@ -97,7 +101,7 @@
 
         <!-- Right: Image section -->
         <MudItem xs="12" md="4">
-            <MudPaper Elevation="1" Class="pa-4" Style="height:100%;">
+            <MudPaper Elevation="1" Class="pa-4 h-full">
                 <MudText Typo="Typo.h6" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
                     @TranslationService.GetTranslation("product.productImage", "Immagine")

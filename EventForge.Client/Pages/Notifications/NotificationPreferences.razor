@@ -13,7 +13,7 @@
 <PageTitle>@TranslationService.GetTranslation("notificationPreferences.title", "Preferenze Notifiche - PRYM")</PageTitle>
 
 <!-- Main container following existing project pattern -->
-<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0" Style="width:100%; min-height:100vh; display:flex; flex-direction:column;">
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4 px-0 ef-app-container">
     <MudGrid Spacing="4">
         
         <!-- Page Header Card -->
@@ -106,7 +106,8 @@
                                              Min="1" Max="365"
                                              Clearable="true"
                                              HelperText="@TranslationService.GetTranslation("notificationPreferences.autoArchiveHelp", "Lascia vuoto per disabilitare")"
-                                             @bind-Value:after="OnPreferenceChanged" />
+                                             @bind-Value:after="OnPreferenceChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>

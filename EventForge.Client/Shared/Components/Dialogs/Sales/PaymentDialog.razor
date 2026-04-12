@@ -105,7 +105,8 @@
                              Required="true"
                              Error="@_hasAmountError"
                              ErrorText="@_amountErrorText"
-                             Class="mb-3" />
+                             Class="mb-3"
+                    Margin="Margin.Dense"/>
 
             <!-- Quick Amount Buttons -->
             @if (_selectedMethod != null)
@@ -147,7 +148,8 @@
                           Label="@TranslationService.GetTranslation("common.notes", "Note")"
                           Variant="Variant.Outlined"
                           Lines="2"
-                          Class="mb-3" />
+                          Class="mb-3"
+                    Margin="Margin.Dense"/>
 
             <!-- Add Payment Button -->
             <MudButton Color="Color.Primary" 

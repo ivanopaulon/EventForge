@@ -23,9 +23,9 @@
         else if (_profile != null)
         {
             <!-- Avatar header strip -->
-            <MudPaper Elevation="0" Class="pa-3 mb-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+            <MudPaper Elevation="0" Class="pa-3 mb-3 border-divider-b">
                 <div class="d-flex align-center gap-3">
-                    <MudAvatar Style="width:64px;height:64px;font-size:1.4rem;background:var(--mud-palette-primary);color:#fff;">
+                    <MudAvatar Class="avatar-64 avatar-primary">
                         @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
                         {
                             <MudImage Src="@_profile.AvatarUrl" Alt="@_profile.FullName" />
@@ -36,7 +36,7 @@
                         }
                     </MudAvatar>
                     <div class="flex-grow-1">
-                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@_profile.FullName</MudText>
+                        <MudText Typo="Typo.subtitle1" Class="fw-semibold">@_profile.FullName</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@_profile.Email</MudText>
                         @if (_profile.Roles?.Any() == true)
                         {
@@ -78,22 +78,26 @@
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_updateProfile.FirstName"
                                               Label="@TranslationService.GetTranslation("field.firstName", "Nome")"
-                                              Variant="Variant.Outlined" Required="true" />
+                                              Variant="Variant.Outlined" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_updateProfile.LastName"
                                               Label="@TranslationService.GetTranslation("field.lastName", "Cognome")"
-                                              Variant="Variant.Outlined" Required="true" />
+                                              Variant="Variant.Outlined" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_updateProfile.Email"
                                               Label="@TranslationService.GetTranslation("field.email", "Email")"
-                                              Variant="Variant.Outlined" InputType="InputType.Email" Required="true" />
+                                              Variant="Variant.Outlined" InputType="InputType.Email" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_updateProfile.PhoneNumber"
                                               Label="@TranslationService.GetTranslation("field.phoneNumber", "Telefono")"
-                                              Variant="Variant.Outlined" />
+                                              Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSelect T="string" @bind-Value="_updateProfile.PreferredLanguage"
@@ -108,7 +112,8 @@
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_updateProfile.TimeZone"
                                               Label="@TranslationService.GetTranslation("field.timeZone", "Fuso orario")"
-                                              Variant="Variant.Outlined" Placeholder="Europe/Rome" />
+                                              Variant="Variant.Outlined" Placeholder="Europe/Rome"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12">
                                 <div class="d-flex align-center gap-3">
@@ -151,17 +156,20 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_changePassword.CurrentPassword"
                                               Label="@TranslationService.GetTranslation("field.currentPassword", "Password attuale")"
-                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_changePassword.NewPassword"
                                               Label="@TranslationService.GetTranslation("field.newPassword", "Nuova password")"
-                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField @bind-Value="_changePassword.ConfirmPassword"
                                               Label="@TranslationService.GetTranslation("field.confirmPassword", "Conferma password")"
-                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true" />
+                                              Variant="Variant.Outlined" InputType="InputType.Password" Required="true"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" Class="d-flex justify-end">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -291,7 +299,7 @@
                             {
                                 <MudExpansionPanel>
                                     <TitleContent>
-                                        <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                        <div class="d-flex justify-space-between align-center w-full">
                                             <div>
                                                 <MudIcon Icon="@(entry.WasSuccessful ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)"
                                                          Color="@(entry.WasSuccessful ? Color.Success : Color.Error)"

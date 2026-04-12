@@ -57,7 +57,7 @@
                             <MudTh>@TranslationService.GetTranslation("field.cost", "Costo")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempo")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.confidence", "Affidabilità")</MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.supplier", "Fornitore")">
@@ -90,7 +90,7 @@
                                     @context.Confidence.ToString()
                                 </MudChip>
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
                                 <MudIconButton Icon="@Icons.Material.Filled.Info"
                                                Size="Size.Small"
                                                Color="Color.Info"
@@ -167,7 +167,8 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
     </DialogActions>
 </EFDialog>
 

@@ -29,12 +29,14 @@
                               Label="Nome Configurazione"
                               Variant="Variant.Outlined"
                               Required="true"
-                              Immediate="true" />
+                              Immediate="true"
+                    Margin="Margin.Dense"/>
                 
                 <MudTextField @bind-Value="_configurationDescription"
                               Label="Descrizione (opzionale)"
                               Variant="Variant.Outlined"
-                              Lines="3" />
+                              Lines="3"
+                    Margin="Margin.Dense"/>
                 
                 <MudCheckBox @bind-Value="_setAsDefault"
                              Color="Color.Primary"
@@ -53,7 +55,7 @@
                 }
                 else
                 {
-                    <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    <MudPaper Elevation="0" Class="pa-2 border-default">
                         @foreach (var (metric, index) in _metrics.Select((m, i) => (m, i)))
                         {
                             <MudPaper Elevation="1" Class="pa-2 mb-2 metric-card"
@@ -64,7 +66,7 @@
                                       @onmouseenter="@(() => _hoveredMetricIndex = index)"
                                       @onmouseleave="@(() => _hoveredMetricIndex = null)">
                                 <div class="d-flex align-center gap-3">
-                                    <MudIcon Icon="@Icons.Material.Outlined.DragIndicator" Style="cursor: move;" />
+                                    <MudIcon Class="cursor-move" Icon="@Icons.Material.Outlined.DragIndicator" />
                                     <MudChip T="string" Size="Size.Small" Color="Color.Primary">@(index + 1)</MudChip>
                                     <div class="flex-grow-1">
                                         <MudText Typo="Typo.body1">@metric.Title</MudText>
@@ -161,7 +163,8 @@
         </MudStack>
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">Annulla</MudButton>
         @if (_isFirstTimeSetup)
         {
             <MudButton Color="Color.Primary"

@@ -18,17 +18,17 @@
                           Style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px;">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudStack Spacing="0">
-                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.55);">
+                            <MudText Typo="Typo.body2" Class="text-dark-muted">
                                 @if (!string.IsNullOrEmpty(Item.ProductCode))
                                 {
                                     @Item.ProductCode
                                 }
                             </MudText>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">
+                            <MudText Typo="Typo.subtitle2" Class="fw-semibold">
                                 @Item.ProductName
                             </MudText>
                         </MudStack>
-                        <MudText Typo="Typo.h6" Style="font-weight: 700; color: var(--mud-palette-primary);">
+                        <MudText Typo="Typo.h6" Class="fw-bold" Color="Color.Primary">
                             @_lineTotal.ToString("C")
                         </MudText>
                     </MudStack>
@@ -36,7 +36,7 @@
 
                 <!-- Quantity row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.quantity", "Quantità")
                     </MudText>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -44,26 +44,27 @@
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        Size="Size.Large"
-                                       Style="min-width: 52px; height: 52px;"
+                                       Class="touch-52"
                                        OnClick="@DecreaseQty"
                                        Disabled="@(_qty <= 1)" />
                         <MudNumericField @bind-Value="_qty"
                                          Variant="Variant.Outlined"
                                          Min="1"
                                          HideSpinButtons="true"
-                                         Style="max-width: 100px; text-align: center; font-size: 1.3rem; font-weight: 700;" />
+                                         Style="max-width: 100px; text-align: center; font-size: 1.3rem; font-weight: 700;"
+                    Margin="Margin.Dense"/>
                         <MudIconButton Icon="@Icons.Material.Filled.Add"
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        Size="Size.Large"
-                                       Style="min-width: 52px; height: 52px;"
+                                       Class="touch-52"
                                        OnClick="@IncreaseQty" />
                     </MudStack>
                 </MudStack>
 
                 <!-- Price row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.unitPrice", "Prezzo unitario (€)")
                     </MudText>
                     <MudNumericField @bind-Value="_unitPrice"
@@ -72,12 +73,13 @@
                                      Format="F2"
                                      Adornment="Adornment.Start"
                                      AdornmentText="€"
-                                     Style="font-size: 1.1rem;" />
+                                     Class="text-lg-custom"
+                    Margin="Margin.Dense"/>
                 </MudStack>
 
                 <!-- Discount row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.discountPercent", "Sconto (%)")
                     </MudText>
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
@@ -86,7 +88,7 @@
                             <MudButton Variant="@(_discountPercent == preset ? Variant.Filled : Variant.Outlined)"
                                        Color="@(_discountPercent == preset ? Color.Warning : Color.Default)"
                                        Size="Size.Medium"
-                                       Style="min-width: 56px; font-weight: 600;"
+                                       Style="min-width: 56px;" Class="fw-semibold"
                                        OnClick="@(() => _discountPercent = preset)">
                                 @preset%
                             </MudButton>
@@ -96,7 +98,8 @@
                                          Min="0"
                                          Max="100"
                                          Suffix="%"
-                                         Style="max-width: 100px;" />
+                                         Class="ef-input-100"
+                    Margin="Margin.Dense"/>
                     </MudStack>
                     @if (_discountPercent > 0)
                     {

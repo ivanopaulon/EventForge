@@ -94,7 +94,7 @@
                         
                         <MudGrid>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-info-lighten);">
+                                <MudPaper Elevation="0" Class="pa-3 bg-info-light">
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("pricelist.totalRows", "Righe Totali")
                                     </MudText>
@@ -102,7 +102,7 @@
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-success-lighten);">
+                                <MudPaper Elevation="0" Class="pa-3 bg-success-light">
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("pricelist.validRows", "Righe Valide")
                                     </MudText>
@@ -110,7 +110,7 @@
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-error-lighten);">
+                                <MudPaper Elevation="0" Class="pa-3 bg-error-lighten">
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         @TranslationService.GetTranslation("pricelist.invalidRows", "Righe Non Valide")
                                     </MudText>
@@ -209,7 +209,7 @@
                     <!-- Result Summary (after import) -->
                     @if (_importResult != null)
                     {
-                        <MudPaper Elevation="2" Class="pa-4" Style="background: var(--mud-palette-success-lighten);">
+                        <MudPaper Elevation="2" Class="pa-4 bg-success-light">
                             <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Success">
                                 <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-2" />
                                 @TranslationService.GetTranslation("pricelist.importComplete", "Importazione Completata")
@@ -269,11 +269,13 @@
         @if (_parsedEntries != null && _importResult == null)
         {
             <MudButton OnClick="ResetImport"
-                      StartIcon="@Icons.Material.Outlined.Refresh">
+                      StartIcon="@Icons.Material.Outlined.Refresh"
+                               Variant="Variant.Text" Color="Color.Secondary">
                 @TranslationService.GetTranslation("button.reset", "Ricarica File")
             </MudButton>
         }
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">
             @TranslationService.GetTranslation("button.cancel", _importResult != null ? "Chiudi" : "Annulla")
         </MudButton>
         @if (_parsedEntries != null && _validRowCount > 0 && _importResult == null)

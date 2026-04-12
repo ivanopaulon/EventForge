@@ -21,8 +21,8 @@
                    Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
                    Variant="Variant.Outlined"
                    Clearable="true"
-                   Class="ml-2"
-                   Style="min-width: 150px;">
+                   Class="ml-2 min-width-150"
+>
             <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
             <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
             <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
@@ -80,7 +80,7 @@
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")">
                     <div>
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">@ctx.Item.Code</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Code</MudText>
                         @if (!string.IsNullOrEmpty(ctx.Item.Barcode))
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.Barcode</MudText>

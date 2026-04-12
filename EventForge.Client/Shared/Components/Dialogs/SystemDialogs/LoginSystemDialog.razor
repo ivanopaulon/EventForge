@@ -21,8 +21,8 @@
     @if (_isLoadingTenants)
     {
         <div class="lsd-loading-row">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary"
-                                 Style="width:22px;height:22px;flex-shrink:0;" />
+            <MudProgressCircular Class="spinner-22" Indeterminate="true" Color="Color.Primary"
+ />
             <span class="lsd-loading-text">@_subtitle</span>
         </div>
     }
@@ -105,8 +105,8 @@
             <span class="lsd-btn-content">
                 @if (_isLoading)
                 {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true"
-                                         Style="width:16px;height:16px;flex-shrink:0;" />
+                    <MudProgressCircular Class="spinner-16" Size="Size.Small" Indeterminate="true"
+ />
                 }
                 @TranslationService.GetTranslation("auth.login", "Accedi")
             </span>

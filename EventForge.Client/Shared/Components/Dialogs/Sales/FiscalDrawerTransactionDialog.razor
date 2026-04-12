@@ -24,7 +24,8 @@
                                          Variant="Variant.Outlined"
                                          Class="ef-input"
                                          Adornment="Adornment.Start"
-                                         AdornmentText="@GetCurrencySymbol(CurrencyCode)" />
+                                         AdornmentText="@GetCurrencySymbol(CurrencyCode)"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     <MudItem xs="12">
                         <MudSelect @bind-Value="_model.PaymentType"
@@ -63,7 +64,8 @@
                                       MaxLength="200"
                                       Variant="Variant.Outlined"
                                       Class="ef-input"
-                                      Lines="2" />
+                                      Lines="2"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 </MudGrid>
             </MudForm>

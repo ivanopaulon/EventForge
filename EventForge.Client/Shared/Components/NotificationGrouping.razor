@@ -6,7 +6,7 @@
 <div class="notification-group mb-4">
     <MudCard Elevation="2" Class="group-header">
         <MudCardContent Class="pa-3">
-            <div class="d-flex justify-space-between align-center" @onclick="ToggleGroup" style="cursor: pointer;">
+            <div class="d-flex justify-space-between align-center cursor-pointer" @onclick="ToggleGroup">
                 <div class="d-flex align-center">
                     <MudIcon Icon="@(Group.IsCollapsed ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ExpandLess)" 
                              Class="mr-2" />

@@ -88,7 +88,7 @@
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -126,7 +126,7 @@
                     @if (ctx.Item.Groups != null && ctx.Item.Groups.Any())
                     {
                         var sortedGroups = GetSortedGroups(ctx.Item.Groups).ToList();
-                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Style="max-width: 300px;">
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="ef-max-300">
                             @foreach (var group in sortedGroups.Take(3))
                             {
                                 <MudTooltip Text="@GetGroupTooltip(group)" Placement="Placement.Top">

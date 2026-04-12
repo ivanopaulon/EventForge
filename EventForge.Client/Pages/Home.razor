@@ -41,7 +41,7 @@
         {
             <!-- Products count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-primary);">
+                <MudPaper Class="pa-3 d-flex align-center gap-3 border-primary-l">
                     @if (_statsLoading)
                     {
                         <MudSkeleton Width="100%" Height="48px" />
@@ -50,7 +50,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_productCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_productCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti</MudText>
                         </div>
                     }
@@ -59,7 +59,7 @@
 
             <!-- Business parties count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-secondary);">
+                <MudPaper Class="pa-3 d-flex align-center gap-3 border-secondary-l">
                     @if (_statsLoading)
                     {
                         <MudSkeleton Width="100%" Height="48px" />
@@ -68,7 +68,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Secondary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_businessPartyCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_businessPartyCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Business Party</MudText>
                         </div>
                     }
@@ -77,7 +77,7 @@
 
             <!-- Documents count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3" Style="border-left: 4px solid var(--mud-palette-tertiary);">
+                <MudPaper Class="pa-3 d-flex align-center gap-3 border-tertiary-l">
                     @if (_statsLoading)
                     {
                         <MudSkeleton Width="100%" Height="48px" />
@@ -86,7 +86,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Tertiary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4" Style="font-weight:700;">@_documentCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_documentCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti</MudText>
                         </div>
                     }
@@ -95,7 +95,7 @@
 
             <!-- Quick actions -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3" Style="border-left: 4px solid var(--mud-palette-warning);">
+                <MudPaper Class="pa-3 border-warning-l">
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Azioni Rapide</MudText>
                     <div class="d-flex flex-column gap-1">
                         <MudButton Variant="Variant.Text" Size="Size.Small"
@@ -120,8 +120,8 @@
 
         <!-- UPCOMING EVENTS panel -->
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
-                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+            <MudPaper Class="pa-0 h-full-min-280">
+                <div class="d-flex align-center pa-3 border-divider-b">
                     <MudIcon Icon="@Icons.Material.Outlined.Event" Color="Color.Info" Class="mr-2" />
                     <MudText Typo="Typo.subtitle1">Prossimi Eventi</MudText>
                     <MudSpacer />
@@ -145,9 +145,9 @@
                         @foreach (var ev in _upcomingEvents.Take(6))
                         {
                             <MudListItem T="EventDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@ev.Name</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@ev.Name</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                                             @ev.StartDate.ToString("dd/MM HH:mm")
                                         </MudText>
@@ -166,8 +166,8 @@
 
         <!-- TASKS panel -->
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
-                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+            <MudPaper Class="pa-0 h-full-min-280">
+                <div class="d-flex align-center pa-3 border-divider-b">
                     <MudIcon Icon="@Icons.Material.Outlined.CheckBox" Color="Color.Warning" Class="mr-2" />
                     <MudText Typo="Typo.subtitle1">Task Aperti</MudText>
                     <MudSpacer />
@@ -191,9 +191,9 @@
                         @foreach (var task in _openTasks.Take(6))
                         {
                             <MudListItem T="CalendarReminderDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@task.Title</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@task.Title</MudText>
                                         <MudText Typo="Typo.caption"
                                                  Color="@(task.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
                                             @task.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
@@ -213,8 +213,8 @@
 
         <!-- REMINDERS panel -->
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-0" Style="height:100%; min-height:280px;">
-                <div class="d-flex align-center pa-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
+            <MudPaper Class="pa-0 h-full-min-280">
+                <div class="d-flex align-center pa-3 border-divider-b">
                     <MudIcon Icon="@Icons.Material.Outlined.Alarm" Color="Color.Error" Class="mr-2" />
                     <MudText Typo="Typo.subtitle1">Promemoria Attivi</MudText>
                     <MudSpacer />
@@ -238,9 +238,9 @@
                         @foreach (var rem in _activeReminders.Take(6))
                         {
                             <MudListItem T="CalendarReminderDto">
-                                <div class="d-flex justify-space-between align-center" style="width:100%">
+                                <div class="d-flex justify-space-between align-center w-full">
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight:500;">@rem.Title</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@rem.Title</MudText>
                                         <MudText Typo="Typo.caption"
                                                  Color="@(rem.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
                                             @rem.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
@@ -263,11 +263,11 @@
     <!-- SALES SUMMARY WIDGET (visible to admin/manager) -->
     @if ((_isAdmin || _isManager || _isSuperAdmin) && _salesDashboard is not null)
     {
-        <MudPaper Class="pa-4 mt-4" Elevation="1" Style="border-left: 4px solid var(--mud-palette-success);">
+        <MudPaper Class="pa-4 mt-4 border-success-l" Elevation="1">
             <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
                 <div class="d-flex align-center gap-2">
                     <MudIcon Icon="@Icons.Material.Outlined.BarChart" Color="Color.Success" />
-                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Riepilogo Vendite Oggi</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="fw-semibold">Riepilogo Vendite Oggi</MudText>
                 </div>
                 <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.OpenInNew"
                            Href="/sales/dashboard" Color="Color.Primary">
@@ -277,7 +277,7 @@
             <MudGrid Spacing="2">
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6" Style="font-weight:700; color: var(--mud-palette-success);">
+                        <MudText Typo="Typo.h6" Class="fw-bold" Color="Color.Success">
                             €@_salesDashboard.TodayTotalSales.ToString("N2")
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Vendite oggi</MudText>
@@ -285,7 +285,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6" Style="font-weight:700;">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             €@_salesDashboard.WeekTotalSales.ToString("N2")
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Settimana</MudText>
@@ -293,7 +293,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6" Style="font-weight:700;">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             €@_salesDashboard.TotalDrawerBalance.ToString("N2")
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo cassetti</MudText>
@@ -301,7 +301,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6" Style="font-weight:700;">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             @_salesDashboard.OpenSessionsCount / @_salesDashboard.ActiveDrawersCount
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Sessioni aperte</MudText>

@@ -54,7 +54,8 @@
                                            Format="N2"
                                            Adornment="Adornment.End"
                                            AdornmentIcon="@GetValueIcon()"
-                                           HelperText="@GetValueHelperText()" />
+                                           HelperText="@GetValueHelperText()"
+                    Margin="Margin.Dense"/>
 
                             <!-- Rounding Strategy -->
                             <MudSelect T="RoundingStrategy"
@@ -99,7 +100,8 @@
                                                        Min="0"
                                                        Clearable="true"
                                                        Adornment="Adornment.Start"
-                                                       AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                                                       AdornmentIcon="@Icons.Material.Outlined.Euro"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudNumericField @bind-Value="_filterMaxPrice"
@@ -108,7 +110,8 @@
                                                        Min="0"
                                                        Clearable="true"
                                                        Adornment="Adornment.Start"
-                                                       AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                                                       AdornmentIcon="@Icons.Material.Outlined.Euro"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                 </MudGrid>
                             </MudStack>
@@ -127,7 +130,7 @@
                             <!-- Summary Stats -->
                             <MudGrid Class="mb-3">
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-primary-lighten);">
+                                    <MudPaper Elevation="0" Class="pa-3 bg-primary-lighten">
                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                             @TranslationService.GetTranslation("pricelist.affectedProducts", "Prodotti interessati")
                                         </MudText>
@@ -135,7 +138,7 @@
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-info-lighten);">
+                                    <MudPaper Elevation="0" Class="pa-3 bg-info-light">
                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                             @TranslationService.GetTranslation("pricelist.totalValue", "Valore totale")
                                         </MudText>
@@ -145,7 +148,7 @@
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="0" Class="pa-3" Style="background: var(--mud-palette-success-lighten);">
+                                    <MudPaper Elevation="0" Class="pa-3 bg-success-light">
                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                             @TranslationService.GetTranslation("pricelist.averageIncrease", "Incremento medio")
                                         </MudText>
@@ -169,16 +172,16 @@
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.currentPrice", "Prezzo Attuale")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.newPrice", "Nuovo Prezzo")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.change", "Variazione")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.currentPrice", "Prezzo Attuale")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.newPrice", "Nuovo Prezzo")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.change", "Variazione")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Prodotto">@context.ProductName</MudTd>
                                         <MudTd DataLabel="Codice">@context.ProductCode</MudTd>
-                                        <MudTd DataLabel="Prezzo Attuale" Style="text-align: right;">€@context.CurrentPrice.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Nuovo Prezzo" Style="text-align: right;">€@context.NewPrice.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Variazione" Style="text-align: right;">
+                                        <MudTd DataLabel="Prezzo Attuale" >€@context.CurrentPrice.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Nuovo Prezzo" >€@context.NewPrice.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Variazione" >
                                             <MudChip T="string" Size="Size.Small" Color="@(context.ChangeAmount >= 0 ? Color.Success : Color.Error)">
                                                 @(context.ChangeAmount >= 0 ? "+" : "")€@context.ChangeAmount.ToString("N2") (@(context.ChangePercentage >= 0 ? "+" : "")@context.ChangePercentage.ToString("N2")%)
                                             </MudChip>
@@ -199,7 +202,8 @@
         </div>
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">
             @TranslationService.GetTranslation("button.cancel", "Annulla")
         </MudButton>
         @if (_previewResult == null)

@@ -5,14 +5,14 @@
 
 <MudStack Spacing="1">
     <!-- Label -->
-    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+    <MudText Typo="Typo.caption" Class="text-secondary-color">
         <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
         @TranslationService.GetTranslation("documents.product", "Prodotto")
     </MudText>
 
     <!-- Autocomplete + optional barcode scanner button -->
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-        <div style="flex: 1; min-width: 0;">
+        <div class="flex-1 min-w-0">
             <!-- Autocomplete - EXACT PATTERN from GenericDocumentProcedure -->
             <MudAutocomplete T="ProductDto"
                              @bind-Value="SelectedProduct"
@@ -39,7 +39,7 @@
                             <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
                             @if (!string.IsNullOrEmpty(product.Code))
                             {
-                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                                <MudText Typo="Typo.caption" Class="text-secondary-color">
                                     @product.Code
                                 </MudText>
                             }
@@ -55,7 +55,7 @@
 
                 <!-- NoItemsTemplate -->
                 <NoItemsTemplate>
-                    <MudText Typo="Typo.body2" Style="color: var(--mud-palette-text-disabled);">
+                    <MudText Typo="Typo.body2" Class="text-disabled">
                         @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
                     </MudText>
                 </NoItemsTemplate>
@@ -81,20 +81,20 @@
         <MudPaper Elevation="1" Class="pa-2 mt-2">
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                    <MudText Typo="Typo.caption" Class="text-secondary-color">
                         <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" Class="mr-1" />
                         @TranslationService.GetTranslation("documents.productSelected", "Prodotto Selezionato")
                     </MudText>
                     <MudText Typo="Typo.body2"><strong>@SelectedProduct.Name</strong></MudText>
                     @if (!string.IsNullOrEmpty(SelectedProduct.Code))
                     {
-                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
+                        <MudText Typo="Typo.caption" Class="text-secondary-color">
                             @TranslationService.GetTranslation("documents.code", "Codice"): @SelectedProduct.Code
                         </MudText>
                     }
                     @if (SelectedProduct.DefaultPrice.HasValue)
                     {
-                        <MudText Typo="Typo.caption" Style="color: var(--mud-palette-primary);">
+                        <MudText Typo="Typo.caption" Color="Color.Primary">
                             @TranslationService.GetTranslation("documents.defaultPrice", "Prezzo"): @SelectedProduct.DefaultPrice.Value.ToString("C2")
                         </MudText>
                     }

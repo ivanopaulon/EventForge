@@ -50,7 +50,8 @@
                                                       Variant="Variant.Outlined"
                                                       Required="true"
                                                       Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)" />
+                                                      @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12">
                                         <MudTextField @bind-Value="_updateModel.Description"
@@ -58,7 +59,8 @@
                                                       Variant="Variant.Outlined"
                                                       Lines="3"
                                                       Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)" />
+                                                      @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" md="6">
                                         <MudSelect @bind-Value="_updateModel.Status"
@@ -77,7 +79,8 @@
                                                          Variant="Variant.Outlined"
                                                          Min="0" Max="100"
                                                          Class="ef-numeric"
-                                                         @bind-Value:after="@(() => _hasChanges = true)" />
+                                                         @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" md="12">
                                         <MudSwitch @bind-Value="_updateModel.IsDefault"
@@ -89,13 +92,15 @@
                                         <MudDatePicker @bind-Date="_validFrom"
                                                        Label="@TranslationService.GetTranslation("field.validFrom", "Valido Dal")"
                                                        Variant="Variant.Outlined"
-                                                       @bind-Date:after="@(() => _hasChanges = true)" />
+                                                       @bind-Date:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" md="6">
                                         <MudDatePicker @bind-Date="_validTo"
                                                        Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino Al")"
                                                        Variant="Variant.Outlined"
-                                                       @bind-Date:after="@(() => _hasChanges = true)" />
+                                                       @bind-Date:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12">
                                         <MudTextField @bind-Value="_updateModel.Notes"
@@ -103,7 +108,8 @@
                                                       Variant="Variant.Outlined"
                                                       Lines="4"
                                                       Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)" />
+                                                      @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -224,7 +230,8 @@
                                                              AdornmentIcon="@Icons.Material.Filled.Euro"
                                                              Min="0" Step="0.01M" Format="N2"
                                                              Disabled="@(_selectedProductToAdd == null)"
-                                                             Class="ef-numeric" />
+                                                             Class="ef-numeric"
+                    Margin="Margin.Dense"/>
                                             <MudButton Variant="Variant.Filled" Color="Color.Success"
                                                        StartIcon="@Icons.Material.Filled.Add" FullWidth="true"
                                                        OnClick="@AddProductQuick"
@@ -282,7 +289,8 @@
                                                          Min="0"
                                                          @bind-Value:after="FilterEntries"
                                                          Clearable="true"
-                                                         Class="ef-numeric" />
+                                                         Class="ef-numeric"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" md="3">
                                         <MudNumericField @bind-Value="_filterMaxPrice"
@@ -291,7 +299,8 @@
                                                          Min="0"
                                                          @bind-Value:after="FilterEntries"
                                                          Clearable="true"
-                                                         Class="ef-numeric" />
+                                                         Class="ef-numeric"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" md="3">
                                         <MudButton Variant="Variant.Outlined" Color="Color.Default"
@@ -391,7 +400,7 @@
                                     {
                                         <MudTd DataLabel="@TranslationService.GetTranslation("field.product", "Prodotto")">
                                             <div>
-                                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@item.ProductName</MudText>
+                                                <MudText Typo="Typo.body2" Class="fw-semibold">@item.ProductName</MudText>
                                                 @if (item.UnitOfMeasureId.HasValue || item.MaxQuantity > 0)
                                                 {
                                                     <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined" Class="mt-1">
@@ -412,15 +421,16 @@
                                                                      Adornment="Adornment.Start"
                                                                      AdornmentIcon="@Icons.Material.Filled.Euro"
                                                                      Min="0" Step="0.01M" Format="N2"
-                                                                     Class="ef-numeric"
-                                                                     Style="width: 150px;"
+                                                                     Class="ef-numeric ef-input-150"
+
                                                                      @onkeydown="@(e => HandlePriceEditKeyDown(e, item))"
-                                                                     Immediate="true" />
+                                                                     Immediate="true"
+                    Margin="Margin.Dense"/>
                                                 </div>
                                             }
                                             else
                                             {
-                                                <div class="d-flex align-center gap-1" style="cursor: pointer;" @onclick="@(() => StartEditPrice(item))">
+                                                <div class="d-flex align-center gap-1 cursor-pointer" @onclick="@(() => StartEditPrice(item))">
                                                     <MudText Typo="Typo.body2">€ @item.Price.ToString("N2")</MudText>
                                                     <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" Color="Color.Primary" />
                                                 </div>

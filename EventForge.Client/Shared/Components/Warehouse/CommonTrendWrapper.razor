@@ -6,7 +6,7 @@
 @inject ILogger<CommonTrendWrapper> Logger
 @inject IAppNotificationService AppNotification
 
-<MudPaper Elevation="1" Class="pa-4 mb-4" Style="width:100%;">
+<MudPaper Elevation="1" Class="pa-4 mb-4 w-full">
     <MudStack Spacing="2">
         <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="Justify.SpaceBetween">
             <MudText Typo="Typo.h6">
@@ -16,14 +16,14 @@
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
         </MudStack>
 
-        <div style="width:100%;">
+        <div class="w-full">
             @ChildContent
         </div>
 
         <!-- Documents Table -->
         @if (ProductId.HasValue)
         {
-            <MudPaper Elevation="0" Class="mt-4 pa-3" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+            <MudPaper Elevation="0" Class="mt-4 pa-3 border-r-sm">
                 <MudText Typo="Typo.subtitle1" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" Size="Size.Small" />
                     @GetDocumentsPanelText()
@@ -48,9 +48,9 @@
                             <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.number", "Numero")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
-                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
-                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")</MudTh>
-                            <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.businessParty", "Controparte")</MudTh>
                             <MudTh></MudTh>
                         </HeaderContent>
@@ -64,15 +64,15 @@
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
                                 @d.DocumentTypeName
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" >
                                 <MudChip T="string" Size="Size.Small" Color="@(d.IsStockIncrease ? Color.Success : Color.Error)">
                                     @(d.IsStockIncrease ? "+" : "-")@d.Quantity.ToString("N2")
                                 </MudChip>
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")" Style="text-align:right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo Unitario")" >
                                 €@d.UnitPrice.ToString("N2")
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")" Style="text-align:right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.lineTotal", "Totale Riga")" >
                                 <strong>€@d.LineTotal.ToString("N2")</strong>
                             </MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.businessParty", "Controparte")">

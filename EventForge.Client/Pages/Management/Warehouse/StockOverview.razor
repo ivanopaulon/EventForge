@@ -26,8 +26,8 @@
 
 @if (!_isLoading)
 {
-    <div class="stock-overview-page-root" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
-        <div class="eftable-wrapper" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+    <div class="stock-overview-page-root ef-flex-col-fill">
+        <div class="eftable-wrapper ef-flex-child-fill">
             @* Filter active indicator *@
             @if (_filters.HasActiveFilters)
             {
@@ -192,7 +192,7 @@
                     else if (column.PropertyName == "ReconciledQty")
                     {
                         <EFTableColumnHeader TItem="StockLocationDetail" PropertyName="ReconciledQty" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                            <MudTh Style="text-align:right;">
+                            <MudTh >
                                 <div class="d-flex align-center justify-end gap-1">
                                     <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" />
                                     @TranslationService.GetTranslation("field.reconciledQty", "Qtà Riconciliata")
@@ -201,7 +201,7 @@
                         </EFTableColumnHeader>
                     }
                 }
-                <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
 
             <RowTemplate Context="item">
@@ -220,7 +220,7 @@
                     else if (column.PropertyName == "ProductName")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.productName", "Nome Prodotto")">
-                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">@item.ProductName</MudText>
+                            <MudText Typo="Typo.body2" Class="text-truncate ef-max-300" >@item.ProductName</MudText>
                         </MudTd>
                     }
                     else if (column.PropertyName == "WarehouseName")
@@ -272,7 +272,7 @@
                     }
                     else if (column.PropertyName == "Quantity")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" >
                             @if (item.StockId == Guid.Empty)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
@@ -289,7 +289,7 @@
                                                      Min="0"
                                                      Max="999999"
                                                      HideSpinButtons="false"
-                                                     Style="width:120px;" />
+                                                     Class="ef-input-120" />
                                     <MudIconButton Icon="@Icons.Material.Outlined.Check"
                                                    Color="Color.Success"
                                                    Size="Size.Small"
@@ -303,9 +303,8 @@
                             else
                             {
                                 <MudTooltip Text="@TranslationService.GetTranslation("stock.doubleClickToEdit", "Doppio click per modifica rapida")">
-                                    <MudText Typo="Typo.body2" 
-                                             Style="font-weight:600; cursor:pointer;"
-                                             @ondblclick="@(() => StartQuickEdit(item, "Quantity"))">
+                                    <MudText Typo="Typo.body2"
+                                             @ondblclick="@(() => StartQuickEdit(item, "Quantity"))" Class="fw-semibold cursor-pointer">
                                         @item.Quantity.ToString("N2")
                                     </MudText>
                                 </MudTooltip>
@@ -314,27 +313,27 @@
                     }
                     else if (column.PropertyName == "Reserved")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reserved", "Riservato")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reserved", "Riservato")" >
                             <MudText Typo="Typo.body2">@item.Reserved.ToString("N2")</MudText>
                         </MudTd>
                     }
                     else if (column.PropertyName == "Available")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.available", "Disponibile")" Style="text-align:right;">
-                            <MudText Typo="Typo.body2" Style="font-weight:600;" Color="@(item.Available > 0 ? Color.Success : Color.Error)">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.available", "Disponibile")" >
+                            <MudText Typo="Typo.body2" Color="@(item.Available > 0 ? Color.Success : Color.Error)" Class="fw-semibold">
                                 @item.Available.ToString("N2")
                             </MudText>
                         </MudTd>
                     }
                     else if (column.PropertyName == "ReorderPoint")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reorderPoint", "Punto Riordino")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reorderPoint", "Punto Riordino")" >
                             <MudText Typo="Typo.body2">@(item.ReorderPoint?.ToString("N2") ?? "-")</MudText>
                         </MudTd>
                     }
                     else if (column.PropertyName == "SafetyStock")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.safetyStock", "Scorta Sicurezza")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.safetyStock", "Scorta Sicurezza")" >
                             <MudText Typo="Typo.body2">@(item.SafetyStock?.ToString("N2") ?? "-")</MudText>
                         </MudTd>
                     }
@@ -350,14 +349,14 @@
                     }
                     else if (column.PropertyName == "ReconciledQty")
                     {
-                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reconciledQty", "Qtà Riconciliata")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("field.reconciledQty", "Qtà Riconciliata")" >
                             @if (_reconciliationData.TryGetValue(item.StockId, out var recon))
                             {
                                 var delta = recon.CalculatedQuantity - item.Quantity;
                                 <div class="d-flex flex-column align-end gap-0">
                                     <MudTooltip Text="@TranslationService.GetTranslationFormatted("stock.reconciledQtyTooltip", "Qtà calcolata dai movimenti: {0:N2}. Differenza: {1:+0.##;-0.##;0}", recon.CalculatedQuantity, delta)">
-                                        <MudText Typo="Typo.body2" Style="font-weight:600; cursor:pointer;"
-                                                 @onclick="@(() => OpenFullEditPopoverWithReconciledQty(item, recon.CalculatedQuantity))">
+                                        <MudText Typo="Typo.body2"
+                                                 @onclick="@(() => OpenFullEditPopoverWithReconciledQty(item, recon.CalculatedQuantity))" Class="fw-semibold cursor-pointer">
                                             @recon.CalculatedQuantity.ToString("N2")
                                         </MudText>
                                     </MudTooltip>
@@ -506,7 +505,8 @@
                                  Min="0"
                                  Max="999999"
                                  HideSpinButtons="false"
-                                 Class="mb-3" />
+                                 Class="mb-3"
+                    Margin="Margin.Dense"/>
 
                 @if (_editingNewQuantity != _editingItem.Quantity)
                 {
@@ -548,7 +548,7 @@
                     </MudSelectItem>
                 </MudSelect>
 
-                <MudTextField @bind-Value="_editingNotes"
+                <MudTextField Margin="Margin.Dense" @bind-Value="_editingNotes"
                               @bind-Value:after="UpdateEditingValidation"
                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                               Variant="Variant.Outlined"

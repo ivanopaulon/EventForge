@@ -15,7 +15,8 @@
                      Required="true"
                      ReadOnly="@ReadOnlyDescription"
                      Adornment="Adornment.Start"
-                     AdornmentIcon="@Icons.Material.Outlined.Description" />
+                     AdornmentIcon="@Icons.Material.Outlined.Description"
+                    Margin="Margin.Dense"/>
         
         <!-- Quantità e Prezzo in Grid compatto -->
         <MudGrid Spacing="2">
@@ -29,7 +30,8 @@
                                 Min="0.0001m"
                                 Variant="Variant.Outlined"
                                 Adornment="Adornment.Start"
-                                AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                                AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                    Margin="Margin.Dense"/>
                 
                 <MudSelect T="Guid?"
                           Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
@@ -59,7 +61,8 @@
                                 Format="N2"
                                 Variant="Variant.Outlined"
                                 Adornment="Adornment.Start"
-                                AdornmentIcon="@Icons.Material.Outlined.Euro" />
+                                AdornmentIcon="@Icons.Material.Outlined.Euro"
+                    Margin="Margin.Dense"/>
             </MudItem>
         </MudGrid>
     </MudStack>

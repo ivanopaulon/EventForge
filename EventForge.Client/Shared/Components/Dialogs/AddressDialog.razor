@@ -90,7 +90,7 @@
                    Disabled="@(!_isValid || _isProcessing)">
             @if (_isProcessing)
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="width:18px;height:18px;margin-right:6px;" />
+                <MudProgressCircular Class="spinner-18-mr" Size="Size.Small" Indeterminate="true" />
             }
             @TranslationService.GetTranslation("button.save", "Salva")
         </MudButton>

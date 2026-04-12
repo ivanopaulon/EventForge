@@ -68,18 +68,23 @@
                                    Date="_filter.DateFrom"
                                    DateChanged="@(v => { _filter.DateFrom = v; _activePeriod = "custom"; })"
                                    DateFormat="dd/MM/yyyy"
-                                   Clearable="true" />
+                                   Clearable="true"
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
                     <MudDatePicker Label="@TranslationService.GetTranslation("analytics.dateTo", "Data fine")"
                                    Date="_filter.DateTo"
                                    DateChanged="@(v => { _filter.DateTo = v; _activePeriod = "custom"; })"
                                    DateFormat="dd/MM/yyyy"
-                                   Clearable="true" />
+                                   Clearable="true"
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="string" Label="@TranslationService.GetTranslation("analytics.groupBy", "Raggruppa per")"
-                               @bind-Value="_filter.GroupBy">
+                               @bind-Value="_filter.GroupBy"
+                    Variant="Variant.Outlined">
                         <MudSelectItem Value="@("month")">@TranslationService.GetTranslation("analytics.groupBy.month", "Mese")</MudSelectItem>
                         <MudSelectItem Value="@("week")">@TranslationService.GetTranslation("analytics.groupBy.week", "Settimana")</MudSelectItem>
                         <MudSelectItem Value="@("day")">@TranslationService.GetTranslation("analytics.groupBy.day", "Giorno")</MudSelectItem>
@@ -87,7 +92,8 @@
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="int" Label="@TranslationService.GetTranslation("analytics.top", "Top N")"
-                               @bind-Value="_topValue">
+                               @bind-Value="_topValue"
+                    Variant="Variant.Outlined">
                         <MudSelectItem Value="5">Top 5</MudSelectItem>
                         <MudSelectItem Value="10">Top 10</MudSelectItem>
                         <MudSelectItem Value="20">Top 20</MudSelectItem>

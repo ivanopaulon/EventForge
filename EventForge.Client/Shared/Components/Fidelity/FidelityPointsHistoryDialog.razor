@@ -10,7 +10,7 @@
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@Icons.Material.Outlined.Info" />
-                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                <MudText Typo="Typo.body2" Class="fw-semibold">
                     MODALITÀ DEMO - I dati verranno persi al refresh della pagina
                 </MudText>
             </MudStack>
@@ -19,7 +19,7 @@
         <!-- Informazioni Card -->
         <MudPaper Outlined="true" Class="pa-3 mb-4">
             <MudStack Spacing="2">
-                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+                <MudText Typo="Typo.subtitle1" Class="fw-semibold">
                     Storico Transazioni - Card @Card.Type
                 </MudText>
                 <MudText Typo="Typo.body2">
@@ -48,8 +48,8 @@
                 <HeaderContent Context="columns">
                     <MudTh>Data</MudTh>
                     <MudTh>Tipo</MudTh>
-                    <MudTh Style="text-align: right;">Punti</MudTh>
-                    <MudTh Style="text-align: right;">Saldo Dopo</MudTh>
+                    <MudTh >Punti</MudTh>
+                    <MudTh >Saldo Dopo</MudTh>
                     <MudTh>Descrizione</MudTh>
                 </HeaderContent>
                 <RowTemplate Context="t">
@@ -62,15 +62,15 @@
                             @GetTransactionTypeText(t.Type)
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Punti" Style="text-align: right;">
+                    <MudTd DataLabel="Punti" >
                         <MudText Typo="Typo.body2"
                                  Color="@(t.Points > 0 ? Color.Success : Color.Warning)"
-                                 Style="font-weight: 600;">
+                                  Class="fw-semibold">
                             @(t.Points > 0 ? "+" : "")@t.Points
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="Saldo Dopo" Style="text-align: right;">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500;">@t.BalanceAfter</MudText>
+                    <MudTd DataLabel="Saldo Dopo" >
+                        <MudText Typo="Typo.body2" Class="fw-medium">@t.BalanceAfter</MudText>
                     </MudTd>
                     <MudTd DataLabel="Descrizione">
                         <MudText Typo="Typo.body2">@t.Description</MudText>

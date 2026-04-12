@@ -10,10 +10,10 @@
     <ChildContent>
         @if (Notification != null)
         {
-            <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+            <div class="dlg-body-col">
 
                 @* Priority/Type badge row *@
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="nfd-chips-row">
                     <MudChip T="string"
                              Color="@GetPriorityColor(Notification.Priority)"
                              Size="Size.Small"
@@ -37,30 +37,30 @@
                 @if (!string.IsNullOrWhiteSpace(Notification.Payload?.Message))
                 {
                     <div>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Messaggio</MudText>
-                        <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.87); margin-top: 4px;">@Notification.Payload.Message</MudText>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Messaggio</MudText>
+                        <MudText Typo="Typo.body1" Class="text-white-87 mt-4-px">@Notification.Payload.Message</MudText>
                     </div>
                 }
 
                 @* Sender *@
                 @if (!string.IsNullOrWhiteSpace(Notification.SenderName))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Mittente</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px;">@Notification.SenderName</MudText>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Mittente</MudText>
+                        <MudText Typo="Typo.body2" Class="text-dark-secondary mt-1-px">@Notification.SenderName</MudText>
                     </div>
                 }
 
                 @* Action URL *@
                 @if (!string.IsNullOrWhiteSpace(Notification.Payload?.ActionUrl))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Collegamento</MudText>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Collegamento</MudText>
                         <MudLink Href="@Notification.Payload.ActionUrl"
                                  Target="_blank"
-                                 Style="color: var(--mud-palette-primary); margin-top: 4px; display: block; word-break: break-all;">
+                                 Class="nfd-action-link">
                             @Notification.Payload.ActionUrl
                         </MudLink>
                     </div>
@@ -69,10 +69,10 @@
                 @* Tags *@
                 @if (Notification.Payload?.Tags?.Any() == true)
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Tag</MudText>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                        <MudText Typo="Typo.caption" Class="text-section-label">Tag</MudText>
+                        <div class="nfd-tags-row">
                             @foreach (var tag in Notification.Payload.Tags)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@tag</MudChip>
@@ -82,17 +82,17 @@
                 }
 
                 @* Timestamps *@
-                <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <MudDivider Class="divider-dark" />
+                <div class="nfd-grid-2col">
                     <div>
-                        <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Ricevuta</MudText>
-                        <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Ricevuta</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
                     </div>
                     @if (Notification.ReadAt.HasValue)
                     {
                         <div>
-                            <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em;">Letta</MudText>
-                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.70); margin-top: 4px; font-family: monospace;">@Notification.ReadAt.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
+                            <MudText Typo="Typo.caption" Class="text-section-label">Letta</MudText>
+                            <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.ReadAt.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
                         </div>
                     }
                 </div>

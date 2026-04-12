@@ -22,7 +22,7 @@
                 <MudText Typo="Typo.body1">
                     @TranslationService.GetTranslation("documents.netTotal", "Totale Netto")
                 </MudText>
-                <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                <MudText Typo="Typo.body1" Class="fw-medium">
                     @Document.TotalNetAmount.ToString("C2")
                 </MudText>
             </MudStack>
@@ -32,7 +32,7 @@
                 <MudText Typo="Typo.body1">
                     @TranslationService.GetTranslation("documents.vatTotal", "Totale IVA")
                 </MudText>
-                <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                <MudText Typo="Typo.body1" Class="fw-medium">
                     @Document.VatAmount.ToString("C2")
                 </MudText>
             </MudStack>
@@ -41,11 +41,11 @@
 
             <!-- Gross Total - Enhanced -->
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="pa-3 gross-total-gradient">
-                <MudText Typo="Typo.h6" Style="font-weight: 700; color: white;">
+                <MudText Typo="Typo.h6" Class="fw-bold text-white-full">
                     <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Class="mr-2" />
                     @TranslationService.GetTranslation("documents.grossTotal", "Totale Lordo")
                 </MudText>
-                <MudText Typo="Typo.h5" Style="font-weight: 700; color: white;" Class="total-value-highlight">
+                <MudText Typo="Typo.h5" Class="total-value-highlight fw-bold text-white-full">
                     @Document.TotalGrossAmount.ToString("C2")
                 </MudText>
             </MudStack>
@@ -97,7 +97,7 @@
                             <MudText Typo="Typo.body2">
                                 @TranslationService.GetTranslation("documents.amountPaid", "Importo Pagato"):
                             </MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                            <MudText Typo="Typo.body2" Class="fw-medium">
                                 @Document.AmountPaid.ToString("C2")
                             </MudText>
                         </MudStack>
@@ -106,7 +106,7 @@
                             <MudText Typo="Typo.body2">
                                 @TranslationService.GetTranslation("documents.amountRemaining", "Importo Residuo"):
                             </MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 500;" Color="Color.Warning">
+                            <MudText Typo="Typo.body2" Color="Color.Warning" Class="fw-medium">
                                 @((Document.TotalGrossAmount - Document.AmountPaid).ToString("C2"))
                             </MudText>
                         </MudStack>

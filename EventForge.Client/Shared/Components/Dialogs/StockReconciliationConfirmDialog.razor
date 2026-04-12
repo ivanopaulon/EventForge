@@ -7,7 +7,7 @@
           IsProcessing="false"
           OnClose="Cancel">
     <ChildContent>
-        <MudPaper Class="pa-4 mb-4" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+        <MudPaper Class="pa-4 mb-4 bg-warning-light" Elevation="0">
             <div class="d-flex align-center gap-2 mb-3">
                 <MudIcon Icon="@Icons.Material.Outlined.Warning" Color="Color.Warning" Size="Size.Large" />
                 <MudText Typo="Typo.h6">
@@ -59,7 +59,7 @@
                                 Summary.CorrectCount)
                         </MudText>
                     }
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">
                         @TranslationService.GetTranslationFormatted(
                             "stockReconciliation.confirmDialog.itemsToUpdate",
                             "To update: {0}",

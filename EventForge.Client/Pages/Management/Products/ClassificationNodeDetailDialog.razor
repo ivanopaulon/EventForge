@@ -51,14 +51,16 @@
                                                       RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                                       MaxLength="100"
                                                       Immediate="true"
-                                                      OnBlur="@(()=> MarkChanged())" />
+                                                      OnBlur="@(()=> MarkChanged())"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
                                         <MudTextField Value="@(NodeCode ?? "-")"
                                                       Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                                       Variant="Variant.Outlined"
-                                                      ReadOnly="true" />
+                                                      ReadOnly="true"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12">
@@ -67,7 +69,8 @@
                                                       Variant="Variant.Outlined"
                                                       Lines="3"
                                                       MaxLength="200"
-                                                      OnBlur="@(()=> MarkChanged())" />
+                                                      OnBlur="@(()=> MarkChanged())"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
@@ -161,7 +164,7 @@
                                         {
                                             <MudTreeViewItem Items="@nodeItem.Children" Expanded="@nodeItem.Expanded">
                                                 <BodyContent>
-                                                    <div class="d-flex justify-space-between align-center" style="width:100%">
+                                                    <div class="d-flex justify-space-between align-center w-full">
                                                         <div class="d-flex align-center gap-2">
                                                             <MudText Typo="Typo.body2">@nodeItem.Node.Name</MudText>
                                                             @if (!string.IsNullOrWhiteSpace(nodeItem.Node.Code))

@@ -31,15 +31,16 @@
                                          Placeholder="Digita per cercare..."
                                          AdornmentIcon="@Icons.Material.Filled.Search"
                                          Adornment="Adornment.Start"
-                                         ValueChanged="@OnBusinessPartySelected">
+                                         ValueChanged="@OnBusinessPartySelected"
+                    Margin="Margin.Dense">
                             <ItemTemplate Context="bp">
-                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="w-full">
                                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                         <MudAvatar Color="Color.Primary" Size="Size.Small">
                                             <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
                                         </MudAvatar>
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@bp.Name</MudText>
+                                            <MudText Typo="Typo.body2" Class="fw-semibold">@bp.Name</MudText>
                                             @if (!string.IsNullOrEmpty(bp.VatNumber))
                                             {
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">P.IVA: @bp.VatNumber</MudText>
@@ -57,7 +58,7 @@
                         {
                             <MudText Typo="Typo.subtitle2">Business Party Selezionati (@_selectedBusinessParties.Count)</MudText>
                             
-                            <MudPaper Outlined="true" Class="pa-2" Style="max-height: 300px; overflow-y: auto;">
+                            <MudPaper Outlined="true" Class="pa-2 mh-300-scroll">
                                 <MudStack Spacing="1">
                                     @foreach (var bp in _selectedBusinessParties)
                                     {
@@ -73,7 +74,7 @@
                                             @bp.Name
                                             @if (isAlreadyMember)
                                             {
-                                                <MudText Typo="Typo.caption" Style="margin-left: 8px;">(Già membro)</MudText>
+                                                <MudText Typo="Typo.caption" Class="ml-2">(Già membro)</MudText>
                                             }
                                         </MudChip>
                                     }
@@ -135,7 +136,7 @@
                             <MudDivider />
                             <MudText Typo="Typo.subtitle2">Anteprima Importazione (@_csvParsedBusinessParties.Count elementi)</MudText>
                             
-                            <MudSimpleTable Striped="true" Dense="true" Style="max-height: 300px; overflow-y: auto;">
+                            <MudSimpleTable Striped="true" Dense="true" Class="mh-300-scroll">
                                 <thead>
                                     <tr>
                                         <th>Nome</th>

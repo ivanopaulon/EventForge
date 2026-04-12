@@ -1,0 +1,33 @@
+/*
+ * _mudblazor-overrides.css
+ * ========================
+ * Legitimate structural overrides for MudBlazor v6 internals that cannot be
+ * expressed through the MudTheme API (palette / typography / layout-properties).
+ *
+ * Ground rules:
+ *   1. Every block MUST have a comment explaining WHY the override is needed.
+ *   2. Use !important only when MudBlazor's own specificity leaves no other option.
+ *   3. If a visual property can be set via the theme palette, do it there instead.
+ *   4. This file is imported once by app.css — do NOT duplicate it in component sheets.
+ */
+
+/* ─── 1. AppBar height ──────────────────────────────────────────────────────
+ * MudBlazor defaults to 64px. EventForge uses a compact 48px AppBar to
+ * maximise vertical screen space.  The CSS variable must also be overridden
+ * so that all MudBlazor calculations that rely on --mud-appbar-height remain
+ * consistent (e.g. drawer clipping, page offset).
+ */
+:root {
+    --mud-appbar-height: 48px;
+}
+
+/* ─── 2. Drawer clip alignment ──────────────────────────────────────────────
+ * When a drawer uses Variant="DrawerVariant.Persistent" with ClipMode="Clipped"
+ * MudBlazor hard-codes `top: var(--mud-appbar-height)` which, without the
+ * override above, would be 64px.  We also need !important here because the
+ * MudBlazor stylesheet sets an inline-ish value via JS.
+ */
+.mud-drawer-clipped-left,
+.mud-drawer-clipped-right {
+    top: var(--mud-appbar-height) !important;
+}

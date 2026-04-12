@@ -46,7 +46,7 @@
         <MudTh>
             @TranslationService.GetTranslation("field.status", "Stato")
         </MudTh>
-        <MudTh Style="text-align: right;">
+        <MudTh >
             @TranslationService.GetTranslation("field.actions", "Azioni")
         </MudTh>
     </HeaderContent>
@@ -54,7 +54,7 @@
         <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.businessPartyName", "Partner Commerciale")">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Color="Color.Primary" />
-                <MudText Typo="Typo.body2" Style="font-weight: 500;">@context.BusinessPartyName</MudText>
+                <MudText Typo="Typo.body2" Class="fw-medium">@context.BusinessPartyName</MudText>
             </MudStack>
         </MudTd>
         <MudTd DataLabel="@TranslationService.GetTranslation("pricelist.businessPartyType", "Tipo Partner")">
@@ -93,7 +93,7 @@
                                      Format="N2"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
-                                     Style="width: 120px;" />
+                                     Class="ef-input-120" />
                     <MudIconButton Icon="@Icons.Material.Filled.Check"
                                    Color="Color.Success"
                                    Size="Size.Small"
@@ -132,7 +132,7 @@
         <MudTd DataLabel="@TranslationService.GetTranslation("field.validity", "Validità")">
             @if (context.SpecificValidFrom.HasValue || context.SpecificValidTo.HasValue)
             {
-                <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">
+                <MudText Typo="Typo.body2" Class="text-sm-custom">
                     @(context.SpecificValidFrom?.ToString("dd/MM/yyyy") ?? "∞") - @(context.SpecificValidTo?.ToString("dd/MM/yyyy") ?? "∞")
                 </MudText>
             }
@@ -151,7 +151,7 @@
                 @GetStatusText(context.Status)
             </MudChip>
         </MudTd>
-        <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+        <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"

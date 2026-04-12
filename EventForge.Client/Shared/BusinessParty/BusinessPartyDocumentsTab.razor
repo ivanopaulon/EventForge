@@ -18,8 +18,10 @@
                                    Clearable="true"
                                    Density="Density.Compact">
                     <PickerActions>
-                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
-                        <MudButton OnClick="@(() => LoadDocumentsAsync())">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
+                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })"
+                               Variant="Variant.Text" Color="Color.Secondary">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
+                        <MudButton OnClick="@(() => LoadDocumentsAsync())"
+                               Variant="Variant.Outlined" Color="Color.Primary">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
                     </PickerActions>
                 </MudDateRangePicker>
             </MudItem>
@@ -30,7 +32,8 @@
                              Clearable="true"
                              Density="Density.Compact"
                              Adornment="Adornment.End"
-                             AdornmentIcon="@Icons.Material.Filled.Search" />
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                    Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6" md="2">
                 <MudSelect T="ApprovalStatus?" @bind-Value="_selectedApprovalStatus"
@@ -85,10 +88,10 @@
             <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
             <MudTh>@TranslationService.GetTranslation("document.type", "Tipo")</MudTh>
             <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
-            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.totalNet", "Totale Netto")</MudTh>
-            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("document.totalNet", "Totale Netto")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")</MudTh>
             <MudTh>@TranslationService.GetTranslation("document.approvalStatus", "Stato")</MudTh>
-            <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate Context="context">
             <MudTd DataLabel="@TranslationService.GetTranslation("document.date", "Data")">@context.Date.ToShortDateString()</MudTd>
@@ -103,10 +106,10 @@
                     <text>@context.Number</text>
                 }
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalNet", "Totale Netto")" Style="text-align: right;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalNet", "Totale Netto")" >
                 @context.TotalNetAmount.ToString("C2")
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")" Style="text-align: right;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")" >
                 @context.TotalGrossAmount.ToString("C2")
             </MudTd>
             <MudTd DataLabel="@TranslationService.GetTranslation("document.approvalStatus", "Stato")">
@@ -114,7 +117,7 @@
                     @GetApprovalStatusText(context.ApprovalStatus)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: center;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
                 <MudTooltip Text="@TranslationService.GetTranslation("document.view", "Visualizza")">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility"
                                   Color="Color.Primary"

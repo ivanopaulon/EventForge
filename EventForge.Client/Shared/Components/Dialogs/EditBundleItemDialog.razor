@@ -22,7 +22,8 @@
                                      Variant="Variant.Outlined"
                                      ToStringFunc="@(p => p != null ? $"{p.Name} ({p.Code})" : string.Empty)"
                                      Required="true"
-                                     RequiredError="@TranslationService.GetTranslation("validation.componentProductRequired", "Il prodotto componente è obbligatorio")" />
+                                     RequiredError="@TranslationService.GetTranslation("validation.componentProductRequired", "Il prodotto componente è obbligatorio")"
+                    Margin="Margin.Dense"/>
                     <MudText Typo="Typo.caption" Class="mud-input-helper-text">
                         @TranslationService.GetTranslation("helperText.componentProduct", "Seleziona il prodotto da includere nel bundle")
                     </MudText>

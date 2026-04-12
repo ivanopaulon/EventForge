@@ -264,7 +264,7 @@ code {
 
 .ef-tile {
     padding: 1rem 1.5rem 1rem 1.5rem !important; /* pa-3 pa-sm-4 equivalent */
-    box-shadow: var(--shadow-sm) !important; /* Elevation="1" equivalent */
+    box-shadow: var(--shadow-sm); /* matches EventForgeTheme.GetShadows() Elevation[1] */
     background-color: var(--card-background) !important;
     border-radius: var(--radius-md) !important;
     border: 1px solid var(--card-border) !important;
@@ -278,11 +278,7 @@ code {
 }
 
 /* Ensure ef-tile works well with MudPaper and MudCard */
-.mud-paper.ef-tile,
-.mud-card.ef-tile {
-    /* Override any conflicting MudBlazor styles */
-    box-shadow: var(--shadow-sm) !important;
-}
+/* box-shadow is now provided by EventForgeTheme.GetShadows() Elevation[1] — no override needed */
 
 /* Accessibility improvements for ef-tile */
 .ef-tile:focus-within {
@@ -470,7 +466,7 @@ kbd {
     font-family: monospace;
     font-size: 0.85em;
     color: #fff;
-    background-color: #333;
+    background-color: var(--neutral-dark-light);
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);
 }
@@ -883,10 +879,24 @@ kbd {
     border: 2px solid var(--mud-palette-background-grey);
 }
 
-.status-dot--online  { background: #47d16c; }
-.status-dot--away    { background: #f8a723; }
-.status-dot--busy    { background: #e8323a; }
+.status-dot--online  { background: var(--ef-status-online); }
+.status-dot--away    { background: var(--ef-status-away); }
+.status-dot--busy    { background: var(--ef-status-busy); }
 .status-dot--offline { background: var(--mud-palette-text-disabled); }
+
+/* Smaller presence dot variant (8px, used in chat user lists) */
+.presence-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid white;
+}
+.presence-dot--online { background: var(--ef-status-online); }
+.presence-dot--away   { background: var(--ef-status-away); }
+.presence-dot--busy   { background: var(--ef-status-busy); }
 
 /* Override dot border colour inside dialogs / headers */
 .mud-dialog .status-dot,
@@ -1046,7 +1056,7 @@ kbd {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+    background: linear-gradient(90deg, transparent, var(--mud-palette-success), transparent);
     top: 50%;
 }
 
@@ -1066,7 +1076,7 @@ kbd {
     position: absolute;
     width: 20px;
     height: 20px;
-    border-color: #4CAF50;
+    border-color: var(--mud-palette-success);
     border-style: solid;
 }
 
@@ -1109,7 +1119,7 @@ kbd {
 }
 
 .camera-scanner-ctrl-btn--active.mud-icon-button {
-    color: #FFC107 !important;
+    color: var(--mud-palette-warning) !important;
 }
 
 /* Last detected code badge */
@@ -1127,6 +1137,339 @@ kbd {
     to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
 }
 
+/* Typography utility classes — replaces Style="font-weight: N" on MudText */
+.fw-medium    { font-weight: 500 !important; }
+.fw-semibold  { font-weight: 600 !important; }
+.fw-bold      { font-weight: 700 !important; }
+.fw-extrabold { font-weight: 800 !important; }
+
+/* ── Text utility classes — replaces Style= on MudText ───────────────────── */
+/* Text overflow / nowrap */
+.text-truncate-ef { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-nowrap      { white-space: nowrap; }
+.text-prewrap     { white-space: pre-wrap; }
+.text-breakall    { word-break: break-all; }
+.text-breakword   { word-break: break-word; }
+
+/* Opacity / muted */
+.text-opacity-70  { opacity: 0.7; }
+.text-opacity-80  { opacity: 0.8; }
+
+/* Monospace / code */
+.text-mono        { font-family: monospace; }
+.text-mono-sm     { font-family: monospace; font-size: 0.8rem; }
+
+/* Section label style (used in dialog headers for dark backgrounds) */
+.text-section-label {
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Muted text on dark backgrounds */
+.text-dark-muted     { color: rgba(255, 255, 255, 0.55); }
+.text-dark-secondary { color: rgba(255, 255, 255, 0.70); }
+.text-dark-primary   { color: rgba(255, 255, 255, 0.87); }
+.text-dark-full      { color: rgba(255, 255, 255, 1); }
+
+/* Max-width constraints for table cells */
+.ef-max-200 { max-width: 200px; }
+.ef-max-300 { max-width: 300px; }
+.ef-max-400 { max-width: 400px; }
+
+/* Display */
+.d-inline { display: inline; }
+
+/* Flex utilities for MudText */
+.flex-1        { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+/* Cursor */
+.cursor-pointer { cursor: pointer; }
+
+/* Margin utilities */
+.mt-1-px { margin-top: 4px; }
+
+/* ── Additional text utility classes (Phase 3b) ──────────────────────────── */
+/* Color aliases for MudBlazor palette vars (where Color= param doesn't apply) */
+.text-disabled    { color: var(--mud-palette-text-disabled); }
+.text-secondary-color { color: var(--mud-palette-text-secondary); }
+.text-success-color   { color: var(--mud-palette-success); }
+.text-error-color     { color: var(--mud-palette-error); }
+.text-warning-color   { color: var(--mud-palette-warning); }
+.text-primary-color   { color: var(--mud-palette-primary); }
+
+/* White text with various opacity levels */
+.text-white-80    { color: rgba(255, 255, 255, 0.8); }
+.text-white-87    { color: rgba(255, 255, 255, 0.87); }
+.text-white-90    { color: rgba(255, 255, 255, 0.9); }
+.text-white-full  { color: #ffffff; }
+
+/* Opacity variants */
+.opacity-80       { opacity: 0.8; }
+.opacity-90       { opacity: 0.9; }
+
+/* Code/monospace with specific styling */
+.text-code-muted  { font-family: monospace; color: rgba(255, 255, 255, 0.70); margin-top: 4px; }
+.text-card-mono   { font-family: monospace; color: rgba(255, 255, 255, 0.9); letter-spacing: 2px; }
+
+/* Font size helpers (for sizes below Typo.caption) */
+.text-xxs  { font-size: 0.65rem; }
+.text-xs   { font-size: 0.70rem; }
+.text-sm-custom { font-size: 0.80rem; }
+.text-lg-custom { font-size: 1.10rem; }
+
+/* Combined helpers */
+.text-truncate-block { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.text-header-dark  {
+    color: rgba(255, 255, 255, 0.87);
+    font-weight: 500;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.text-mono-right { font-family: monospace; min-width: 80px; text-align: right; }
+.text-italic-centered { flex: 1; text-align: center; font-style: italic; }
+
+/* MudText margin helper */
+.mt-4-px  { margin-top: 4px; }
+
+/* Max width 180 */
+.ef-max-180 { max-width: 180px; }
+
+/* Non-standard brand colors */
+.text-success-light { color: #90EE90; }
+
+/* ── Table cell alignment utility classes (Phase 3c) ─────────────────────── */
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+.text-left  { text-align: left !important; }
+
+/* Table column width helpers */
+.ef-min-120 { min-width: 120px; }
+.ef-w-120   { width: 120px; }
+.ef-w-50    { width: 50px; }
+.ef-w-32    { width: 32px; }
+
+/* ── Phase 3d utility classes ─────────────────────────────────────────────── */
+
+/* MudPaper background variants */
+.bg-grey          { background-color: var(--mud-palette-background-grey) !important; }
+.bg-white         { background: #ffffff !important; }
+.bg-warning-light { background-color: var(--mud-palette-warning-lighten) !important; }
+.bg-success-light { background-color: var(--mud-palette-success-lighten) !important; }
+.bg-info-light    { background: var(--mud-palette-info-lighten) !important; }
+
+/* MudPaper border variants */
+.border-default     { border: 1px solid var(--mud-palette-lines-default); }
+.border-subtle      { border: 1px solid rgba(0, 0, 0, 0.12); }
+.border-primary-l   { border-left: 4px solid var(--mud-palette-primary); }
+.border-secondary-l { border-left: 4px solid var(--mud-palette-secondary); }
+.border-success-l   { border-left: 4px solid var(--mud-palette-success); }
+.border-warning-l   { border-left: 4px solid var(--mud-palette-warning); }
+.border-error-l     { border-left: 4px solid var(--mud-palette-error); }
+.border-info-l      { border-left: 4px solid var(--mud-palette-info); }
+/* 3-pixel left border variants */
+.border-error-l-3   { border-left: 3px solid var(--mud-palette-error); }
+.border-info-l-3    { border-left: 3px solid var(--mud-palette-info); }
+/* 2-pixel full border in warning colour */
+.border-warning-2   { border: 2px solid var(--mud-palette-warning); }
+
+/* Border radius */
+.rounded-12 { border-radius: 12px; }
+.rounded-4  { border-radius: 4px; }
+
+/* MudPaper/MudStack size helpers */
+.w-full          { width: 100%; }
+.h-full          { height: 100%; }
+.overflow-y-auto { overflow-y: auto; }
+.overflow-x-auto { overflow-x: auto; }
+.h-full-min-280 { height: 100%; min-height: 280px; }
+.min-width-150  { min-width: 150px; }
+.ef-min-200     { min-width: 200px; }
+/* Position helpers */
+.pos-relative   { position: relative; }
+/* Background helpers */
+.bg-transparent         { background: transparent; }
+.bg-primary-lighten     { background: var(--mud-palette-primary-lighten); }
+.bg-error-lighten       { background: var(--mud-palette-error-lighten); }
+
+/* Flex helpers for MudStack/MudSelect */
+.flex-wrap-wrap { flex-wrap: wrap; }
+.flex-no-shrink { flex-shrink: 0; }
+.gap-2          { gap: 8px; }
+.gap-3          { gap: 12px; }
+.min-w-0        { min-width: 0; }
+.min-width-80   { min-width: 80px; }
+
+/* MudDivider dark background helpers */
+.divider-dark    { border-color: rgba(255, 255, 255, 0.12) !important; }
+.divider-dark-bg { background: rgba(255, 255, 255, 0.3) !important; }
+
+/* Combined paper card with popup border */
+.ef-popup-card { border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; min-width: 150px; }
+
+/* MudButton card/menu variants */
+.ef-card-btn    { height: 80px; text-align: left; justify-content: flex-start; padding: 16px; }
+.ef-compact-btn { min-width: 32px; height: 32px; padding: 2px; }
+
+/* Touch target sizes for MudIconButton */
+.touch-44       { min-width: 44px !important; height: 44px !important; }
+.touch-52       { min-width: 52px !important; height: 52px !important; }
+.icon-btn-muted { color: rgba(255, 255, 255, 0.70); flex-shrink: 0; }
+
+/* MudNumericField/MudTextField width constraints */
+.ef-input-60  { max-width:  60px; }
+.ef-input-100 { max-width: 100px; }
+.ef-input-120 { max-width: 120px; }
+.ef-input-150 { max-width: 150px; }
+
+/* Margin/padding helpers */
+.mt-1-em { margin-top: 4px; }
+
+/* ── Phase 3e utility classes ─────────────────────────────────────────────── */
+
+/* MudIcon size helpers (MudBlazor Size.Small/Medium/Large = 20/24/32px — 48px needs custom) */
+.icon-48    { font-size: 48px; }
+.icon-64    { font-size: 64px; }
+.icon-32    { font-size: 32px; }
+.icon-22    { font-size: 22px; }
+.icon-20    { font-size: 20px; }
+.icon-16    { font-size: 16px; }
+.icon-14    { font-size: 14px; }
+.icon-12    { font-size: 12px; }
+
+/* MudIcon misc */
+.vertical-middle   { vertical-align: middle; }
+.opacity-20        { opacity: 0.2; }
+.opacity-30        { opacity: 0.3; }
+
+/* MudChip size variants for small chips */
+.chip-sm  { height: 20px; font-size: 0.7rem; padding: 0 6px; }
+.chip-xs  { height: 18px; font-size: 0.65rem; padding: 0 4px; }
+.chip-xxs { height: 18px; font-size: 0.65rem; padding: 0 6px; }
+.chip-touch { cursor: pointer; min-height: 24px; }
+.chip-white-alpha { background: rgba(255,255,255,0.2); color: white; }
+.chip-white-alpha-3 { background: rgba(255,255,255,0.3); color: white; }
+.chip-whatsapp { background: #dcf8c6; color: #1a7a4a; }
+
+/* MudAvatar size/color helpers */
+.avatar-88   { width: 88px; height: 88px; font-size: 2rem; }
+.avatar-64   { width: 64px; height: 64px; font-size: 1.5rem; }
+.avatar-44   { width: 44px; height: 44px; }
+.avatar-40   { width: 40px; height: 40px; }
+.avatar-36   { width: 36px; height: 36px; }
+.avatar-primary { background: var(--mud-palette-primary); color: #ffffff; }
+.avatar-whatsapp { background: #25D366; color: white; }
+
+/* ── Phase 3f utility classes ─────────────────────────────────────────────── */
+
+/* MudPaper additional border/bg variants */
+.border-divider      { border: 1px solid var(--mud-palette-divider); }
+.border-divider-r    { border-right: 1px solid var(--mud-palette-divider); }
+.border-dark-sm      { border: 1px solid rgba(255,255,255,0.12); }
+.border-dark-sm-r8   { border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; }
+.border-r-sm         { border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; }
+.border-r-sm-200     { border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; min-width: 200px; }
+.h-full-border       { height: 100%; border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; }
+.border-success-l-3  { border-left: 3px solid var(--mud-palette-success); }
+.border-warning-l-3  { border-left: 3px solid var(--mud-palette-warning); }
+
+/* ── Phase 7 utility classes ─────────────────────────────────────────────────── */
+
+/* Flex column layout: full-height container with hidden overflow */
+.ef-flex-col-fill    { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+/* Flex child that fills remaining height */
+.ef-flex-child-fill  { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+/* Positioned relative + no flex shrink (for avatar + presence dot) */
+.pos-rel-no-shrink   { position:relative; flex-shrink:0; }
+/* Scrollable container capped at 300px */
+.mh-300-scroll       { max-height:300px; overflow-y:auto; }
+/* Scrollable container capped at 350px */
+.mh-350-scroll       { max-height:350px; overflow-y:auto; }
+/* Pre-formatted monospace log text */
+.log-pre-mono        { white-space:pre-wrap; font-size:0.75rem; font-family:monospace; }
+/* Pre-formatted log text with top margin (exception stack traces) */
+.log-pre-mt          { white-space:pre-wrap; font-size:0.75rem; margin-top:4px; }
+/* Muted helper text (opacity + spacing) */
+.opacity-60-ml-4     { opacity:0.6; margin-left:4px; }
+/* Grey rounded panel (used in detail dialogs and POS keypad) */
+.bg-grey-r8          { background:var(--mud-palette-background-grey); border-radius:8px; }
+/* Dialog body: padded flex-column with gap */
+.dlg-body-col        { padding:16px 20px; display:flex; flex-direction:column; gap:16px; }
+/* Color swatch button (44×44, no native border) */
+.color-swatch-btn    { width:44px; height:44px; border:none; border-radius:8px; cursor:pointer; padding:2px; }
+.border-tertiary-l   { border-left: 4px solid var(--mud-palette-tertiary); }
+.bg-white-glass      { background: rgba(255,255,255,0.05); border-radius: 4px; }
+.bg-primary-light    { background-color: var(--mud-palette-primary-lighten); }
+.bg-error-light      { background-color: var(--mud-palette-error-lighten); }
+.bg-info-light-color { background-color: var(--mud-palette-info-lighten); }
+
+/* MudProgressLinear */
+.progress-thin             { height: 3px; margin: 0; }
+.progress-thin-rounded-top { height: 3px; border-radius: 4px 4px 0 0; margin: 0; }
+.progress-absolute-top     { position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+
+/* MudProgressCircular inline spinners */
+.spinner-18-mr { width: 18px; height: 18px; margin-right: 6px; }
+.spinner-14    { width: 14px; height: 14px; }
+.spinner-14-i  { width: 14px; height: 14px; display: inline-block; }
+.spinner-22    { width: 22px; height: 22px; flex-shrink: 0; }
+.spinner-16    { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* MudContainer full-page layout */
+.ef-app-container { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* MudStepper height reset */
+.min-h-0 { min-height: 0; }
+
+/* Cursor move */
+.cursor-move { cursor: move; }
+
+/* Flex grow */
+.flex-grow-1 { flex-grow: 1; }
+
+/* Margin helpers */
+.mr-2 { margin-right: 8px; }
+.border-divider-b    { border-bottom: 1px solid var(--mud-palette-divider); }
+
+/* ── Phase 9 utility classes ─────────────────────────────────────────────── */
+
+/* Color dot/swatch shapes — use alongside Style="background:@color" */
+.color-dot-10        { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.color-swatch-20     { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; }
+.color-swatch-30r4   { width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--mud-palette-lines-default); }
+.color-swatch-50r8   { width: 50px; height: 50px; border-radius: 8px; border: 2px solid var(--mud-palette-lines-default); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* Scrollable containers — additional height variants */
+.mh-200-scroll       { max-height: 200px; overflow-y: auto; }
+.mh-240-scroll       { max-height: 240px; overflow-y: auto; }
+.mh-280-scroll       { max-height: 280px; overflow-y: auto; }
+
+/* Chat-specific layout helpers */
+.chat-pre-wrap       { white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; }
+.chat-avatar-wrap    { position: relative; flex-shrink: 0; margin-right: 12px; }
+.chat-avatar-mini    { margin-right: 8px; flex-shrink: 0; align-self: flex-end; }
+.chat-img-thumb      { max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer; }
+
+/* Interactive touch/click card */
+.ef-touch-card       { cursor: pointer; border-radius: 16px; transition: all 0.15s ease; }
+
+/* Notification center dialog layout helpers */
+.ncd-toolbar         { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.ncd-icon-row        { display: flex; gap: 4px; }
+.ncd-loading         { display: flex; justify-content: center; padding: 32px; }
+.ncd-empty           { display: flex; flex-direction: column; align-items: center; padding: 40px 16px; gap: 12px; color: rgba(255,255,255,0.38); }
+
+/* Notification detail dialog layout helpers */
+.nfd-chips-row       { display: flex; gap: 8px; flex-wrap: wrap; }
+.nfd-tags-row        { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.nfd-grid-2col       { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.nfd-action-link     { color: var(--mud-palette-primary); margin-top: 4px; display: block; word-break: break-all; }
+
+/* Drop-zone dashed border */
+.ef-drop-zone-dashed { border-style: dashed; cursor: pointer; }
 /* ============================================================
    RTE content rendered inside chat message bubbles
    ============================================================ */

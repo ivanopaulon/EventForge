@@ -45,7 +45,8 @@
                                               MaxLength="200"
                                               Immediate="true"
                                               OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="name-help" />
+                                              aria-describedby="name-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.nomeBrand", "Inserisci il nome del marchio")
                                 </MudText>
@@ -57,7 +58,8 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="100"
                                               OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="country-help" />
+                                              aria-describedby="country-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="country-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.paese", "Paese di origine del marchio")
                                 </MudText>
@@ -70,7 +72,8 @@
                                               Lines="3"
                                               MaxLength="1000"
                                               OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="description-help" />
+                                              aria-describedby="description-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.descrizioneBrand", "Descrizione opzionale del marchio")
                                 </MudText>
@@ -82,7 +85,8 @@
                                               Variant="Variant.Outlined"
                                               MaxLength="500"
                                               OnBlur="@(() => MarkChanged())"
-                                              aria-describedby="website-help" />
+                                              aria-describedby="website-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="website-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.sitoWeb", "URL del sito web del marchio")
                                 </MudText>
@@ -95,7 +99,8 @@
                                                   Label="@TranslationService.GetTranslation("drawer.field.id", "ID")"
                                                   Variant="Variant.Outlined"
                                                   ReadOnly="true"
-                                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")" />
+                                                  aria-label="@TranslationService.GetTranslation("drawer.aria.identificativoUnico", "Identificativo unico")"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                             }
                         </MudGrid>
@@ -147,7 +152,7 @@
                                 <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <RowTemplate Context="context">
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
@@ -163,7 +168,7 @@
                                 </MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                   Color="Color.Primary"
                                                   Size="Size.Small"

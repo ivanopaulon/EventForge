@@ -40,7 +40,7 @@
             {
                 <div class="camera-scanner-loading">
                     <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
-                    <MudText Typo="Typo.body2" Class="mt-3" Style="color: white;">
+                    <MudText Typo="Typo.body2" Class="mt-3 text-white-full">
                         @TranslationService.GetTranslation("camera.starting", "Avvio fotocamera...")
                     </MudText>
                 </div>
@@ -67,7 +67,7 @@
                         <div class="camera-scanner-corner br"></div>
                         <div class="camera-scanner-line @(_scanning ? "scanning" : "")"></div>
                     </div>
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.8); margin-top: 12px; text-align: center;">
+                    <MudText Typo="Typo.caption" Class="text-white-80 mt-3">
                         @HelperText
                     </MudText>
                 </div>

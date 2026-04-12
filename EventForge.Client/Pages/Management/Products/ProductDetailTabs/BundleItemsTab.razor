@@ -32,14 +32,14 @@
                         <HeaderContent>
                             <MudTh>@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.componentProduct", "Prodotto Componente")'>
                                 @GetProductName(context.ComponentProductId)
                             </MudTd>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.quantity", "Quantità")'>@context.Quantity</MudTd>
-                            <MudTd DataLabel='@TranslationService.GetTranslation("field.actions", "Azioni")' Style="text-align: right;">
+                            <MudTd DataLabel='@TranslationService.GetTranslation("field.actions", "Azioni")' >
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                                Color="Color.Primary" 
                                                OnClick="@(() => OpenEditDialog(context))" />

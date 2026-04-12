@@ -23,7 +23,7 @@
 
                 <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Message:</strong></MudText></MudItem>
                 <MudItem xs="9">
-                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap; word-break: break-word;">@_message</MudText>
+                    <MudText Typo="Typo.body2" Class="text-prewrap text-breakword">@_message</MudText>
                 </MudItem>
 
                 @if (!string.IsNullOrEmpty(_source))
@@ -64,7 +64,7 @@
                     @if (!string.IsNullOrEmpty(AdminLog.TraceId))
                     {
                         <MudItem xs="3"><MudText Typo="Typo.body2"><strong>Trace ID:</strong></MudText></MudItem>
-                        <MudItem xs="9"><MudText Typo="Typo.body2" Style="font-family: monospace; font-size: 0.8rem;">@AdminLog.TraceId</MudText></MudItem>
+                        <MudItem xs="9"><MudText Typo="Typo.body2" Class="text-mono-sm">@AdminLog.TraceId</MudText></MudItem>
                     }
                 </MudGrid>
 
@@ -72,15 +72,15 @@
                 {
                     <MudAlert Severity="Severity.Error" Class="mt-2">
                         <strong>Exception:</strong>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; margin-top: 4px;">@AdminLog.Exception</pre>
+                        <pre class="log-pre-mt">@AdminLog.Exception</pre>
                     </MudAlert>
                 }
 
                 @if (AdminLog.Properties?.Any() == true)
                 {
-                    <MudPaper Elevation="0" Class="mt-2 pa-2" Style="background: rgba(255,255,255,0.05); border-radius: 4px;">
+                    <MudPaper Elevation="0" Class="mt-2 pa-2 bg-white-glass">
                         <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(AdminLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                        <pre class="log-pre-mono">@System.Text.Json.JsonSerializer.Serialize(AdminLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
                     </MudPaper>
                 }
             }
@@ -97,9 +97,9 @@
 
                 @if (SanitizedLog.PublicProperties?.Any() == true)
                 {
-                    <MudPaper Elevation="0" Class="mt-2 pa-2" Style="background: rgba(255,255,255,0.05); border-radius: 4px;">
+                    <MudPaper Elevation="0" Class="mt-2 pa-2 bg-white-glass">
                         <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(SanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                        <pre class="log-pre-mono">@System.Text.Json.JsonSerializer.Serialize(SanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
                     </MudPaper>
                 }
             }

@@ -24,13 +24,13 @@
 
 @if (!_isLoading)
 {
-    <div class="stock-reconciliation-page-root" style="overflow-y:auto;">
+    <div class="stock-reconciliation-page-root overflow-y-auto">
         <MudText Typo="Typo.h4" Class="mb-4">
             @TranslationService.GetTranslation("stockReconciliation.title", "Warehouse Stock Reconciliation")
         </MudText>
 
         @* Filters Section *@
-        <MudPaper Class="pa-4 mb-4" Elevation="2" Style="background-color: var(--mud-palette-background-grey);">
+        <MudPaper Class="pa-4 mb-4 bg-grey" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">
                 <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
                 @TranslationService.GetTranslation("stockReconciliation.filters", "Filters and Options")
@@ -42,7 +42,8 @@
                                    Variant="Variant.Outlined"
                                    Clearable="true"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                   Adornment="Adornment.Start" />
+                                   Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_toDate"
@@ -50,7 +51,8 @@
                                    Variant="Variant.Outlined"
                                    Clearable="true"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                   Adornment="Adornment.Start" />
+                                   Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect @bind-Value="_selectedWarehouseId"
@@ -111,7 +113,8 @@
                                      Adornment="Adornment.End"
                                      AdornmentText="%"
                                      HelperText="@TranslationService.GetTranslation("stockReconciliation.discrepancyThresholdHelp", "Differenze superiori a questa soglia saranno marcate come discrepanze maggiori")"
-                                     Clearable="false" />
+                                     Clearable="false"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <!-- Switches on a separate row -->
@@ -158,7 +161,7 @@
         @* Info Banner *@
         @if (_reconciliationResult != null)
         {
-            <MudPaper Elevation="1" Class="pa-3 mb-3" Style="background-color: var(--mud-palette-info-lighten);">
+            <MudPaper Elevation="1" Class="pa-3 mb-3 bg-info-light-color">
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
                     <MudText Typo="Typo.body2">
@@ -246,10 +249,10 @@
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.product", "Product")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.warehouse", "Warehouse")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.location", "Location")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")</MudTh>
-                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
@@ -260,7 +263,7 @@
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.product", "Product")">
                             <div>
-                                <MudText Typo="Typo.body2" Style="font-weight:600;">@context.ProductCode</MudText>
+                                <MudText Typo="Typo.body2" Class="fw-semibold">@context.ProductCode</MudText>
                                 <MudText Typo="Typo.caption">@context.ProductName</MudText>
                             </div>
                         </MudTd>
@@ -270,16 +273,16 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.location", "Location")">
                             @context.LocationCode
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")" >
                             <MudText Typo="Typo.body2">@context.CurrentQuantity.ToString("N2")</MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" Style="text-align:right;">
-                            <MudText Typo="Typo.body2" Style="font-weight:600;">@context.CalculatedQuantity.ToString("N2")</MudText>
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" >
+                            <MudText Typo="Typo.body2" Class="fw-semibold">@context.CalculatedQuantity.ToString("N2")</MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" >
                             <MudText Typo="Typo.body2" 
                                      Color="@(context.Difference > 0 ? Color.Success : (context.Difference < 0 ? Color.Error : Color.Default))"
-                                     Style="font-weight:600;">
+                                      Class="fw-semibold">
                                 @((context.Difference > 0 ? "+" : "") + context.Difference.ToString("N2"))
                                 @if (context.DifferencePercentage != 0)
                                 {
@@ -287,7 +290,7 @@
                                 }
                             </MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")" Style="text-align:center;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")" >
                             <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
                                 @TranslationService.GetTranslation($"stockReconciliation.severity.{context.Severity.ToString().ToLower()}", context.Severity.ToString())
                             </MudChip>
@@ -297,18 +300,18 @@
                         @if (_expandedRows.Contains(context) && context.SourceMovements.Any())
                         {
                             <MudTr>
-                                <td colspan="8" style="padding:0;">
-                                    <MudPaper Class="pa-3 ma-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                <td colspan="8" class="pa-0">
+                                    <MudPaper Class="pa-3 ma-2 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.subtitle2" Class="mb-2">
                                             @TranslationService.GetTranslation("stockReconciliation.sourceMovements", "Source Movements")
                                         </MudText>
-                                        <MudSimpleTable Dense="true" Hover="true" Style="overflow-x: auto;">
+                                        <MudSimpleTable Dense="true" Hover="true" Class="overflow-x-auto">
                                             <thead>
                                                 <tr>
                                                     <th>@TranslationService.GetTranslation("field.type", "Type")</th>
                                                     <th>@TranslationService.GetTranslation("field.reference", "Reference")</th>
                                                     <th>@TranslationService.GetTranslation("field.date", "Date")</th>
-                                                    <th style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantity")</th>
+                                                    <th class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantity")</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -318,7 +321,7 @@
                                                         <td>@movement.Type</td>
                                                         <td>@movement.Reference</td>
                                                         <td>@movement.Date.ToString("dd/MM/yyyy HH:mm")</td>
-                                                        <td style="text-align:right;">
+                                                        <td class="text-right">
                                                             <MudText Color="@(movement.Quantity > 0 ? Color.Success : Color.Error)">
                                                                 @((movement.Quantity > 0 ? "+" : ""))@movement.Quantity.ToString("N2")
                                                             </MudText>
@@ -353,7 +356,7 @@
                 </MudText>
                 <MudGrid>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-info-lighten);">
+                        <MudPaper Class="pa-3 bg-info-light-color" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.totalProducts", "Total Products")
                             </MudText>
@@ -361,7 +364,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                        <MudPaper Class="pa-3 bg-success-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.correct", "Correct")
                             </MudText>
@@ -369,7 +372,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                        <MudPaper Class="pa-3 bg-warning-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.minorDiscrepancies", "Minor Discrepancies")
                             </MudText>
@@ -377,7 +380,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                        <MudPaper Class="pa-3 bg-error-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.majorDiscrepancies", "Major Discrepancies")
                             </MudText>
@@ -393,7 +396,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-primary-lighten);">
+                        <MudPaper Class="pa-3 bg-primary-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.totalDifference", "Total Difference")
                             </MudText>
@@ -442,7 +445,8 @@
                                                Variant="Variant.Outlined"
                                                Clearable="true"
                                                AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                               Adornment="Adornment.Start" />
+                                               Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudDatePicker @bind-Date="_rebuildToDate"
@@ -450,7 +454,8 @@
                                                Variant="Variant.Outlined"
                                                Clearable="true"
                                                AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                               Adornment="Adornment.Start" />
+                                               Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudSelect @bind-Value="_rebuildWarehouseId"
@@ -557,37 +562,37 @@
 
                             <MudGrid Spacing="2" Class="mb-3">
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.documentsScanned", "Documenti")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.DocumentsScanned</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.rowsScanned", "Righe")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.RowsScanned</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                                    <MudPaper Class="pa-3 bg-success-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.movementsCreated", "Creati")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Success">@_rebuildResult.MovementsCreated</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.alreadyExist", "Già esistenti")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.RowsAlreadyHadMovement</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                                    <MudPaper Class="pa-3 bg-warning-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.skipped", "Saltati (no loc.)")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Warning">@_rebuildResult.RowsSkippedNoLocation</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-error-lighten);">
+                                    <MudPaper Class="pa-3 bg-error-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.errors", "Errori")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Error">@_rebuildResult.Errors</MudText>
                                     </MudPaper>
@@ -607,16 +612,16 @@
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.document", "Documento")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.product", "Prodotto")</MudTh>
-                                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.quantity", "Quantità")</MudTh>
-                                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.movementType", "Tipo mov.")</MudTh>
-                                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.status", "Stato")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.quantity", "Quantità")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.movementType", "Tipo mov.")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.status", "Stato")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.error", "Errore")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Documento">@context.DocumentNumber</MudTd>
                                         <MudTd DataLabel="Prodotto">@context.ProductName</MudTd>
-                                        <MudTd DataLabel="Quantità" Style="text-align:right;">@context.Quantity.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Tipo mov." Style="text-align:center;">
+                                        <MudTd DataLabel="Quantità" >@context.Quantity.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Tipo mov." >
                                             @if (context.MovementType == "Inbound")
                                             {
                                                 <MudChip T="string" Size="Size.Small" Color="Color.Success">
@@ -630,7 +635,7 @@
                                                 </MudChip>
                                             }
                                         </MudTd>
-                                        <MudTd DataLabel="Stato" Style="text-align:center;">
+                                        <MudTd DataLabel="Stato" >
                                             @{
                                                 var (chipColor, chipText) = context.Status switch
                                                 {

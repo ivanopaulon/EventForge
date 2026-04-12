@@ -20,7 +20,7 @@
         <!-- Two column layout: procurement data (left) and stock summary (right) -->
         <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-3" Style="height:100%; border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                <MudPaper Elevation="0" Class="pa-3 h-full-border">
                     <MudText Typo="Typo.subtitle1" Class="mb-3">
                         <MudIcon Icon="@Icons.Material.Outlined.Inventory" Class="mr-1" Size="Size.Small" />
                         @TranslationService.GetTranslation("product.procurementData", "Dati Approvvigionamento")
@@ -33,7 +33,8 @@
                                              ReadOnly="true"
                                              Min="0" 
                                              Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.reorderPoint", "Livello di riordino")" />
+                                             HelperText="@TranslationService.GetTranslation("helper.reorderPoint", "Livello di riordino")"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
@@ -43,7 +44,8 @@
                                              ReadOnly="true"
                                              Min="0" 
                                              Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.safetyStock", "Scorta minima")" />
+                                             HelperText="@TranslationService.GetTranslation("helper.safetyStock", "Scorta minima")"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
@@ -53,7 +55,8 @@
                                              ReadOnly="true"
                                              Min="0" 
                                              Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.targetStockLevel", "Stock target")" />
+                                             HelperText="@TranslationService.GetTranslation("helper.targetStockLevel", "Stock target")"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
@@ -63,14 +66,15 @@
                                              ReadOnly="true"
                                              Min="0" 
                                              Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.averageDailyDemand", "Media giornaliera")" />
+                                             HelperText="@TranslationService.GetTranslation("helper.averageDailyDemand", "Media giornaliera")"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudPaper>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudPaper Elevation="0" Class="pa-3" Style="height:100%; border: 1px solid rgba(0,0,0,0.12); border-radius:4px;">
+                <MudPaper Elevation="0" Class="pa-3 h-full-border">
                     <MudText Typo="Typo.subtitle1" Class="mb-3">
                         <MudIcon Icon="@Icons.Material.Outlined.Store" Class="mr-1" Size="Size.Small" />
                         @TranslationService.GetTranslation("product.availabilityStock", "Disponibilità e Giacenza")

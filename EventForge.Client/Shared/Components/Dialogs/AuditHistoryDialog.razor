@@ -50,19 +50,22 @@
                                           Placeholder="@TranslationService.GetTranslation("audit.userPlaceholder", "Nome utente...")"
                                           Variant="Variant.Outlined"
                                           Clearable="true"
-                                          Dense="true" />
+                                          Dense="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="3">
                             <MudDatePicker @bind-Date="_fromDate" @bind-Date:after="OnFilterChanged"
                                            Label="@TranslationService.GetTranslation("audit.fromDate", "Da data")"
                                            Variant="Variant.Outlined"
-                                           Dense="true" />
+                                           Dense="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="3">
                             <MudDatePicker @bind-Date="_toDate" @bind-Date:after="OnFilterChanged"
                                            Label="@TranslationService.GetTranslation("audit.toDate", "A data")"
                                            Variant="Variant.Outlined"
-                                           Dense="true" />
+                                           Dense="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_fieldFilter" @bind-Value:after="OnFilterChanged"
@@ -70,7 +73,8 @@
                                           Placeholder="@TranslationService.GetTranslation("audit.fieldPlaceholder", "Nome campo modificato...")"
                                           Variant="Variant.Outlined"
                                           Clearable="true"
-                                          Dense="true" />
+                                          Dense="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                     <div class="d-flex justify-end mt-3">
@@ -189,8 +193,7 @@
                             }
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("audit.notes", "Note")">
-                            <MudText Typo="Typo.body2"
-                                     Style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <MudText Typo="Typo.body2" Class="ef-max-200 text-truncate-ef">
                                 @log.Notes
                             </MudText>
                         </MudTd>

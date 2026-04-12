@@ -12,7 +12,7 @@
     <MudStack Spacing="2">
         <!-- Header with Edit Button -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+            <MudText Typo="Typo.subtitle1" Class="fw-semibold">
                 <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
                 @TranslationService.GetTranslation("products.quickInfo", "Info Rapida Prodotto")
             </MudText>
@@ -63,7 +63,7 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @TranslationService.GetTranslation("products.code", "Codice")
                         </MudText>
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        <MudText Typo="Typo.body2" Class="fw-semibold">
                             @Product.Code
                         </MudText>
                     </MudItem>
@@ -71,7 +71,7 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @TranslationService.GetTranslation("products.name", "Nome")
                         </MudText>
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        <MudText Typo="Typo.body2" Class="fw-semibold">
                             @Product.Name
                         </MudText>
                     </MudItem>
@@ -105,7 +105,7 @@
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @TranslationService.GetTranslation("warehouse.currentStock", "Giacenza Attuale")
                             </MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                            <MudText Typo="Typo.body2" Class="fw-semibold">
                                 @CurrentStockQuantity.Value.ToString("N2") @(_currentUnitSymbol ?? "")
                             </MudText>
                         </MudItem>
@@ -123,14 +123,16 @@
                                       Required="true"
                                       RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                       MaxLength="100"
-                                      Immediate="true" />
+                                      Immediate="true"
+                    Margin="Margin.Dense"/>
 
                         <MudTextField @bind-Value="_editDescription"
                                       Label="@TranslationService.GetTranslation("products.description", "Descrizione")"
                                       Variant="Variant.Outlined"
                                       Lines="2"
                                       MaxLength="500"
-                                      Immediate="true" />
+                                      Immediate="true"
+                    Margin="Margin.Dense"/>
 
                         <MudSelect T="Guid?"
                                    @bind-Value="_editUnitOfMeasureId"

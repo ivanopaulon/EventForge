@@ -13,14 +13,14 @@
           OnClose="Cancel"
           MinWidth="min(750px, 95vw)">
     <ChildContent>
-        <MudStepper @ref="_stepper"
-                    ActiveIndex="@_step"
-                    ActiveIndexChanged="@(i => _step = i)"
-                    NonLinear="false"
-                    Color="Color.Primary"
-                    Variant="Variant.Filled"
-                    DisableAnimation="false"
-                    Style="min-height:0;">
+        <MudStepper Class="min-h-0" @ref="_stepper"
+ ActiveIndex="@_step"
+ ActiveIndexChanged="@(i => _step = i)"
+ NonLinear="false"
+ Color="Color.Primary"
+ Variant="Variant.Filled"
+ DisableAnimation="false"
+>
             <MudStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6">
@@ -130,7 +130,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                        <MudPaper Class="pa-3 text-center border-success-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Success">@_previewResult.MovementsCreated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.toCreate", "Da creare")
@@ -138,7 +138,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                        <MudPaper Class="pa-3 text-center border-warning-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Warning">@_previewResult.MovementsUpdated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.toUpdate", "Da aggiornare")
@@ -146,7 +146,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-info);">
+                        <MudPaper Class="pa-3 text-center border-info-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Info">@_previewResult.RowsAlreadyHadMovement</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.alreadyPresent", "Già presenti")
@@ -180,26 +180,26 @@
                         @TranslationService.GetTranslation("rebuildMovements.previewDetail", "Dettaglio movimenti da creare")
                         @if (PreviewCreatedCount > _previewMaxRows)
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2" Style="display:inline;">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2 d-inline" >
                                 (mostrati @_previewMaxRows di @PreviewCreatedCount)
                             </MudText>
                         }
                     </MudText>
-                    <div style="max-height:280px; overflow-y:auto;">
+                    <div class="mh-280-scroll">
                         <MudTable Items="@PreviewCreatedItems"
                                   Dense="true" Striped="true" Hover="true" Elevation="0">
                             <HeaderContent>
                                 <MudTh>@TranslationService.GetTranslation("field.document", "Documento")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
-                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd>
                                     <MudText Typo="Typo.body2">@context.DocumentNumber</MudText>
                                 </MudTd>
                                 <MudTd>
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:200px;">@context.ProductName</MudText>
+                                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-200" >@context.ProductName</MudText>
                                 </MudTd>
                                 <MudTd>
                                     <MudChip T="string" Size="Size.Small"
@@ -210,8 +210,8 @@
                                             : TranslationService.GetTranslation("rebuildMovements.outbound", "↓ Uscita"))
                                     </MudChip>
                                 </MudTd>
-                                <MudTd Style="text-align:right;">
-                                    <MudText Typo="Typo.body2" Style="font-weight:600;">@context.Quantity.ToString("N2")</MudText>
+                                <MudTd >
+                                    <MudText Typo="Typo.body2" Class="fw-semibold">@context.Quantity.ToString("N2")</MudText>
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
@@ -281,7 +281,7 @@
 
                 <MudGrid Spacing="2">
                     <MudItem xs="6" sm="3">
-                        <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-success);">
+                        <MudPaper Class="pa-3 text-center border-success-l-3" Elevation="2">
                             <MudText Typo="Typo.h5" Color="Color.Success">@_applyResult.MovementsCreated</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("rebuildMovements.movementsCreated", "Movimenti creati")
@@ -291,7 +291,7 @@
                     @if (_applyResult.MovementsUpdated > 0)
                     {
                         <MudItem xs="6" sm="3">
-                            <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-warning);">
+                            <MudPaper Class="pa-3 text-center border-warning-l-3" Elevation="2">
                                 <MudText Typo="Typo.h5" Color="Color.Warning">@_applyResult.MovementsUpdated</MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("rebuildMovements.movementsUpdated", "Movimenti aggiornati")
@@ -302,7 +302,7 @@
                     @if (_applyResult.Errors > 0)
                     {
                         <MudItem xs="6" sm="3">
-                            <MudPaper Class="pa-3 text-center" Elevation="2" Style="border-left: 3px solid var(--mud-palette-error);">
+                            <MudPaper Class="pa-3 text-center border-error-l-3" Elevation="2">
                                 <MudText Typo="Typo.h5" Color="Color.Error">@_applyResult.Errors</MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("common.errors", "Errori")
@@ -325,7 +325,7 @@
                     <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
                         @TranslationService.GetTranslation("rebuildMovements.errorDetail", "Dettaglio errori")
                     </MudText>
-                    <div style="max-height:200px; overflow-y:auto;">
+                    <div class="mh-200-scroll">
                         <MudTable Items="@ApplyErrorItems"
                                   Dense="true" Elevation="0">
                             <HeaderContent>

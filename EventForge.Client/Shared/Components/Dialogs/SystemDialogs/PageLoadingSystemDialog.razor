@@ -25,16 +25,16 @@
                     <span class="plsd-log-icon">
                         @if (isFirst)
                         {
-                            <MudProgressCircular Size="MudBlazor.Size.Small"
-                                                 Indeterminate="true"
-                                                 Color="Color.Primary"
-                                                 Style="width:14px;height:14px;" />
+                            <MudProgressCircular Class="spinner-14" Size="MudBlazor.Size.Small"
+ Indeterminate="true"
+ Color="Color.Primary"
+ />
                         }
                         else
                         {
                             <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline"
                                      Size="MudBlazor.Size.Small"
-                                     Style="color:#66bb6a;font-size:14px;" />
+                                     Style="color:#66bb6a" Class="icon-14" />
                         }
                     </span>
                     <span class="plsd-log-text @(isFirst ? "plsd-log-text-active" : "")">

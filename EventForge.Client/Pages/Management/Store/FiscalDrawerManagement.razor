@@ -66,7 +66,7 @@
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -117,7 +117,7 @@
             else if (column.PropertyName == "CurrentBalance")
             {
                 <MudTd DataLabel="Saldo">
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">
                         @FormatCurrency(ctx.Item.CurrentBalance, ctx.Item.CurrencyCode)
                     </MudText>
                 </MudTd>

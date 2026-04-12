@@ -99,14 +99,13 @@ else if (!ViewModel.SelectedPosId.HasValue)
             {
                 <MudItem xs="12" sm="6" md="4">
                     <MudPaper Elevation="3"
-                              Class="pos-touch-pos-card"
-                              Style="cursor: pointer; border-radius: 16px;"
+                              Class="pos-touch-pos-card ef-touch-card"
                               @onclick="@(() => OnPosCardSelectedAsync(pos))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-5">
                             <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
                                      Color="Color.Primary"
                                      Style="font-size: 2.5rem;" />
-                            <MudText Typo="Typo.h6" Style="font-weight: 600; text-align: center;">
+                            <MudText Typo="Typo.h6" Class="fw-semibold" Align="Align.Center">
                                 @pos.Name
                             </MudText>
                             @if (!string.IsNullOrEmpty(pos.Location))
@@ -146,7 +145,7 @@ else
             <MudStack Spacing="3">
 
                 <!-- Product scanner -->
-                <MudPaper Elevation="2" Class="pa-3" Style="border-radius: 12px;">
+                <MudPaper Elevation="2" Class="pa-3 rounded-12">
                     <UnifiedProductScanner
                         SelectedProduct="@_currentProduct"
                         SelectedProductChanged="@OnProductSelectedAsync"
@@ -164,7 +163,7 @@ else
                 </MudPaper>
 
                 <!-- Keypad + mode toggle -->
-                <MudPaper Elevation="2" Class="pa-3" Style="border-radius: 12px;">
+                <MudPaper Elevation="2" Class="pa-3 rounded-12">
 
                     <!-- Mode toggle -->
                     <MudButtonGroup Variant="Variant.Outlined"
@@ -225,8 +224,7 @@ else
                             <!-- Hint when nothing selected -->
                             <MudText Typo="Typo.caption"
                                      Color="Color.Secondary"
-                                     Class="d-flex align-center justify-center"
-                                     Style="flex: 1; text-align: center; font-style: italic;">
+                                     Class="d-flex align-center justify-center text-italic-centered">
                                 @TranslationService.GetTranslation("sales.touchItemOrScan",
                                     "Tocca un articolo nel carrello per modificarlo, oppure scansiona un prodotto")
                             </MudText>
@@ -238,7 +236,7 @@ else
                 <!-- Quick actions row -->
                 @if (ViewModel.CurrentSession?.Items.Any() == true)
                 {
-                    <MudPaper Elevation="1" Class="pa-2" Style="border-radius: 12px;">
+                    <MudPaper Elevation="1" Class="pa-2 rounded-12">
                         <MudStack Row="true" Spacing="1" Justify="Justify.SpaceAround" Wrap="Wrap.Wrap">
 
                             <MudButton Variant="Variant.Text"
@@ -297,9 +295,9 @@ else
                 <!-- Loading progress -->
                 @if (ViewModel.IsUpdatingItems)
                 {
-                    <MudProgressLinear Color="Color.Primary"
-                                       Indeterminate="true"
-                                       Style="border-radius: 4px;" />
+                    <MudProgressLinear Class="rounded-4"
+                                       Color="Color.Primary"
+                                       Indeterminate="true" />
                 }
 
                 <!-- Cart list (scrollable) -->
@@ -317,7 +315,7 @@ else
                 <!-- Totals summary -->
                 @if (ViewModel.CurrentSession != null)
                 {
-                    <MudPaper Elevation="3" Class="pa-4" Style="border-radius: 12px;">
+                    <MudPaper Elevation="3" Class="pa-4 rounded-12">
 
                         <MudStack Spacing="1">
 
@@ -357,10 +355,10 @@ else
                             <MudDivider Class="my-1" />
 
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudText Typo="Typo.h6" Style="font-weight: 700;">
+                                <MudText Typo="Typo.h6" Class="fw-bold">
                                     @TranslationService.GetTranslation("sales.total", "TOTALE")
                                 </MudText>
-                                <MudText Typo="Typo.h4" Style="font-weight: 800; color: var(--mud-palette-primary);">
+                                <MudText Typo="Typo.h4" Class="fw-extrabold" Color="Color.Primary">
                                     @ViewModel.GrandTotal.ToString("C")
                                 </MudText>
                             </MudStack>
@@ -381,10 +379,10 @@ else
                             @if (ViewModel.CurrentSession.RemainingAmount > 0)
                             {
                                 <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                    <MudText Typo="Typo.body1" Color="Color.Error" Style="font-weight: 600;">
+                                    <MudText Typo="Typo.body1" Color="Color.Error" Class="fw-semibold">
                                         @TranslationService.GetTranslation("sales.remaining", "Da pagare")
                                     </MudText>
-                                    <MudText Typo="Typo.body1" Color="Color.Error" Style="font-weight: 600;">
+                                    <MudText Typo="Typo.body1" Color="Color.Error" Class="fw-semibold">
                                         @ViewModel.CurrentSession.RemainingAmount.ToString("C")
                                     </MudText>
                                 </MudStack>

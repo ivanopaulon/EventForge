@@ -36,7 +36,7 @@ else if (RecentTransactions != null && RecentTransactions.Any())
                         <MudText Typo="Typo.body2">@context.DocumentDate.ToString("dd/MM/yyyy")</MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("documents.price", "Prezzo")">
-                        <MudText Typo="Typo.body2" Style="font-weight: 500; color: var(--mud-palette-primary);">
+                        <MudText Typo="Typo.body2" Class="fw-medium" Color="Color.Primary">
                             @context.EffectiveUnitPrice.ToString("C2")
                         </MudText>
                     </MudTd>
@@ -65,7 +65,7 @@ else if (RecentTransactions != null && RecentTransactions.Any())
 else if (!_isLoading && ProductId.HasValue)
 {
     <!-- No Transactions Found -->
-    <MudPaper Elevation="1" Class="pa-3 mt-2" Style="background-color: var(--mud-palette-background-grey);">
+    <MudPaper Elevation="1" Class="pa-3 mt-2 bg-grey">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
             <MudText Typo="Typo.body2" Color="Color.Info">

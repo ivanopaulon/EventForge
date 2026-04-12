@@ -47,7 +47,7 @@
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
     <RowTemplate Context="ctx">
         @foreach (var column in ctx.Cols)
@@ -77,17 +77,17 @@
             else if (column.PropertyName == "ShortDescription")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
-                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:400px;">
+                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-400" >
                         @(string.IsNullOrEmpty(ctx.Item.ShortDescription) ? "-" : ctx.Item.ShortDescription)
                     </MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "DefaultPrice")
             {
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align:right;">
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" >
                     @if (ctx.Item.DefaultPrice.HasValue)
                     {
-                        <MudText Typo="Typo.body2" Style="font-weight:600;">@ctx.Item.DefaultPrice.Value.ToString("C2")</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.DefaultPrice.Value.ToString("C2")</MudText>
                     }
                     else
                     {

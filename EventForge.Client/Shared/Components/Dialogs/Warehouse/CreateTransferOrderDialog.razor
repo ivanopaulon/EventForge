@@ -61,14 +61,16 @@
                                        Label="@($"{TranslationService.GetTranslation("transferOrder.orderDate", "Data Ordine")} *")"
                                        Variant="Variant.Outlined"
                                        Required="true"
-                                       Editable="true" />
+                                       Editable="true"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudTextField @bind-Value="_model.Series"
                                       Label="@TranslationService.GetTranslation("transferOrder.series", "Serie")"
                                       Variant="Variant.Outlined"
                                       MaxLength="10"
-                                      HelperText="@TranslationService.GetTranslation("transferOrder.seriesHelperText", "Opzionale, si auto-genera se vuoto")" />
+                                      HelperText="@TranslationService.GetTranslation("transferOrder.seriesHelperText", "Opzionale, si auto-genera se vuoto")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 </MudGrid>
 
@@ -77,7 +79,8 @@
                               Label="@TranslationService.GetTranslation("transferOrder.notes", "Note")"
                               Variant="Variant.Outlined"
                               Lines="2"
-                              MaxLength="500" />
+                              MaxLength="500"
+                    Margin="Margin.Dense"/>
 
                 <!-- Transfer Items Section -->
                 <MudPaper Elevation="2" Class="pa-3">
@@ -142,7 +145,8 @@
                                                  Variant="Variant.Outlined"
                                                  ShowProgressIndicator="true"
                                                  Adornment="Adornment.Start"
-                                                 AdornmentIcon="@Icons.Material.Filled.Inventory">
+                                                 AdornmentIcon="@Icons.Material.Filled.Inventory"
+                    Margin="Margin.Dense">
                                     <ItemTemplate Context="product">
                                         <MudText>@product.Name</MudText>
                                         <MudText Typo="Typo.caption">@product.Code</MudText>
@@ -167,7 +171,8 @@
                                                  Label="@TranslationService.GetTranslation("transferOrder.quantity", "Quantità")"
                                                  Variant="Variant.Outlined"
                                                  Min="0.01m"
-                                                 Format="N2" />
+                                                 Format="N2"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="2">
                                 <MudSelect @bind-Value="_newRow.LotId"

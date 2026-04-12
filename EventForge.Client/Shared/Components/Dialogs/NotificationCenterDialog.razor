@@ -18,19 +18,19 @@
     <ChildContent>
 
         @* Filter tabs + bulk actions toolbar *@
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <div class="ncd-toolbar">
             <MudTabs @bind-ActivePanelIndex="_activeTab"
                      Elevation="0"
                      Rounded="false"
                      PanelClass="pa-0"
                      MinimumTabWidth="80px"
-                     Style="background: transparent;">
+                     Class="bg-transparent">
                 <MudTabPanel Text="Tutte" />
                 <MudTabPanel Text="@($"Non lette{(_unreadCount > 0 ? $" ({_unreadCount})" : "")}")" />
                 <MudTabPanel Text="Archiviate" />
             </MudTabs>
 
-            <div style="display: flex; gap: 4px;">
+            <div class="ncd-icon-row">
                 <MudTooltip Text="Segna tutto come letto">
                     <MudIconButton Icon="@Icons.Material.Filled.DoneAll"
                                    Size="Size.Small"
@@ -63,14 +63,14 @@
 
             @if (_isLoading)
             {
-                <div style="display: flex; justify-content: center; padding: 32px;">
+                <div class="ncd-loading">
                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                 </div>
             }
             else if (FilteredNotifications.Count == 0)
             {
-                <div style="display: flex; flex-direction: column; align-items: center; padding: 40px 16px; gap: 12px; color: rgba(255,255,255,0.38);">
-                    <MudIcon Icon="@Icons.Material.Outlined.NotificationsNone" Style="font-size: 48px;" />
+                <div class="ncd-empty">
+                    <MudIcon Icon="@Icons.Material.Outlined.NotificationsNone" Class="icon-48" />
                     <MudText Typo="Typo.body1">@GetEmptyMessage()</MudText>
                 </div>
             }
