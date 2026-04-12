@@ -1,9 +1,9 @@
 # MudBlazor Design System Audit — EventForge.Client
 
-**Version:** Phase 1+2+3d+3e+3f  
+**Version:** Phase 1+2+3d+3e+3f+3g+3h+4  
 **MudBlazor:** 9.2.0  
 **Framework:** Blazor WASM (.NET 10)  
-**Audit date:** 2025  
+**Audit date:** 2025 — updated 2026-04-12  
 
 ---
 
@@ -12,16 +12,16 @@
 | Cat | Category | Count | Severity | Status |
 |-----|----------|-------|----------|--------|
 | A | MudTextField/Select/NumericField without Variant | 1166 → ~0 | High | ✅ Fixed (Task 6) |
-| B | MudButton without Variant | 244 → 213 | Medium | ✅ Fixed (Task 4) — 31 automated, 213 already had Variant |
-| C | `Style="font-weight:N"` on MudText (single-value) | 137 | Medium | ✅ Fixed (Task 5) |
+| B | MudButton without Variant | 244 → **18** | Medium | ✅ Substantially fixed — 18 remaining are intentional (e.g. icon-only buttons) |
+| C | `Style="font-weight:N"` on MudText (single-value) | 137 → 0 | Medium | ✅ Fixed (Task 5) |
 | D | `Style="text-align:..."` on MudText (multi-value, skipped) | 6 | Low | 📋 Documented |
 | E | `Style="font-weight:N"` multi-value (skipped) | ~50 | Low | 📋 Documented |
-| F | CSS `!important` overrides | 207 | High | ⚠️ Partially fixed |
-| G | `.mud-*` class overrides | 200 | Medium | ⚠️ Partially fixed |
-| H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 | High | ✅ Fixed (Task 3) |
-| I | `<MudThemeProvider />` with no theme binding | 1 | High | ✅ Fixed (Task 1) — bound to IThemeService |
-| J | `Style=` (capital-S) inline on MudBlazor components | 826 → ~78 | Medium | ✅ Substantially fixed — Phase 3a–3f: 748+ replacements total |
-| K | `style=` (lowercase) HTML inline | 110 | Low | 📋 Documented |
+| F | CSS `!important` overrides | 229 → **224** | High | ⚠️ Partially fixed — target ~50 requires full MudTheme migration |
+| G | `.mud-*` class overrides | 282 → **280** | Medium | ⚠️ Partially fixed — target ~30 requires full MudTheme migration |
+| H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 → 0 | High | ✅ Fixed (Task 3) |
+| I | `<MudThemeProvider />` with no theme binding | 1 → 0 | High | ✅ Fixed (Task 1) — bound to IThemeService |
+| J | `Style=` (capital-S) inline on MudBlazor components | 826 → **151** | Medium | ⚠️ Substantially fixed — 675+ replacements total; 108 remaining are dynamic (@expr), 43 complex multi-value |
+| K | `style=` (lowercase) HTML inline | 110 → **64** | Low | ✅ Phase 3g: 46 simple styles converted to CSS classes — 52 complex multi-property + 12 single-use remain |
 
 **Total fixed in Phase 2:** ~1315 automated replacements  
 **Total fixed in Phase 3a/3b:** ~85 additional (31 MudButton + 53 MudText + App.razor theme)  
@@ -29,7 +29,10 @@
 **Total fixed in Phase 3d:** 135 additional (MudPaper 63 + MudStack 19 + MudDivider 10 + MudIconButton 9 + MudButton 12 + MudNumericField 12 + MudSelect 10)  
 **Total fixed in Phase 3e:** ~47 additional (MudIcon, MudAvatar, MudChip, MudAlert, MudText remaining)  
 **Total fixed in Phase 3f:** ~74 additional (MudPaper, MudCard, MudProgressLinear, MudProgressCircular, MudContainer, MudStepper, MudTh/Td, MudLink, MudIcon, MudIconButton)  
-**Remaining static Style=:** ~78 (complex multi-value, custom colors, specific constraints — intentionally kept)
+**Total fixed in Phase 3g:** 26 HTML inline style → CSS class conversions (overflow-y:auto, width:100%, cursor:pointer, font-weight:600, text-align:right/center on td/th); `.overflow-y-auto` utility class added  
+**Total fixed in Phase 3h:** Added `--ef-hover-dark` CSS variable (replaces 2 hardcoded `#384048`); removed `!important` from 3 `cursor:pointer` hover rules + 1 redundant box-shadow  
+**Total fixed in Phase 4:** `EventForgeTheme.GetMudTheme()` now includes `Shadows` (26 lighter elevation levels aligned to `--shadow-sm/md/lg`) and explicit `ZIndex` configuration; removed `.mud-paper.ef-tile { box-shadow !important }` override block  
+**Remaining static Style=:** ~151 (108 dynamic `@expr`, 43 complex multi-value — intentionally kept)
 
 ---
 
@@ -386,29 +389,48 @@ Approximately 50 instances of `Style=` on MudText that contain multiple CSS prop
 - `Style="opacity:.7"` — acceptable for semantic opacity
 - `Style="min-width:Npx"` — layout constraint, may need CSS class
 
-### Category F — CSS `!important` overrides (207 instances)
+### Category F — CSS `!important` overrides (224 instances, updated 2026-04-12)
 
-Located across 15 CSS files. High density in:
-- `mud-components.css` — 80+ (intentional MudBlazor override layer)
-- `_mudblazor-overrides.css` — 40+
-- `management.css` — 20+
+Located across 12 CSS files. High density in:
 
-Most are legitimate overrides for MudBlazor's specificity. Priority items to review:
-- Multiple conflicting `!important` on same selector
-- `!important` used to override `!important` (specificity war)
+| File | Count |
+|------|-------|
+| `components/mud-components.css` | 81 |
+| `app.css` | 57 |
+| `dialogs.css` | 23 |
+| `components/action-button-group.css` | 23 |
+| `icon-color-override.css` | 17 |
+| `document.css` | 8 |
+| `components/entity-drawer.css` | 5 |
+| `sidepanel.css` | 3 |
+| `_mudblazor-overrides.css` | 3 |
+| `sales.css` | 2 |
+| `components/overlays.css` | 1 |
 
-### Category G — `.mud-*` class overrides (200 instances)
+Most are legitimate overrides for MudBlazor's specificity. **Phase 3h** removed 4 unnecessary `!important`
+(3x `cursor:pointer` hover rules where `:hover` specificity is sufficient; 1x redundant `box-shadow`
+on `.mud-paper.ef-tile` now covered by `EventForgeTheme.GetShadows()` Elevation[1]).  
+**Reaching ~50 requires full MudTheme migration** (moving palette-driven overrides in `mud-components.css` into `EventForgeTheme`).
+
+### Category G — `.mud-*` class overrides (280 instances, updated 2026-04-12)
 
 MudBlazor internal CSS class overrides. Risk: breaks on MudBlazor version updates.
 
-**Top override patterns:**
-| Selector | Count | File |
-|----------|-------|------|
-| `.mud-input-root` | 4 | mud-components.css |
-| `.mud-select-input` | 3 | mud-components.css |
-| `.mud-dialog-title` | 2 | mud-components.css |
-| `.mud-table-head th` | 2 | mud-components.css |
-| `.mud-button-root` | 2 | mud-components.css |
+| File | Count |
+|------|-------|
+| `components/action-button-group.css` | 82 |
+| `icon-color-override.css` | 61 |
+| `dialogs.css` | 42 |
+| `components/mud-components.css` | 32 |
+| `app.css` | 19 |
+| `sales.css` | 15 |
+| `components/entity-drawer.css` | 13 |
+| `document.css` | 10 |
+| `_mudblazor-overrides.css` | 2 |
+| `themes/carbon-neon-theme.css` | 2 |
+
+**Reaching ~30 requires full MudTheme migration** — moving component-specific palette, border-radius, and
+elevation overrides from CSS into `EventForgeTheme.GetLightPalette()`/`GetDarkPalette()`.
 
 ### Category H — Hardcoded colors in CSS (FIXED ✅)
 
@@ -431,8 +453,9 @@ MudBlazor internal CSS class overrides. Risk: breaks on MudBlazor version update
 | `#999` (disabled) | `var(--mud-palette-text-disabled)` | mud-components.css |
 | `#ddd` (divider) | `var(--mud-palette-divider)` | mud-components.css |
 
-**Remaining hardcoded** (intentional or needs review):
-- `#384048` in `.ef-menu-button:hover` — dark hover for app bar button (acceptable)
+**Phase 3h additional:** `#384048` (dark hover on appbar buttons) replaced with CSS variable `--ef-hover-dark` (defined in `variables.css`).
+
+**Remaining hardcoded** (intentional):
 - `#25D366` in chat components — WhatsApp brand color (acceptable)
 
 ### Category I — `<MudThemeProvider />` without theme binding ✅ FIXED
@@ -442,7 +465,7 @@ MudBlazor internal CSS class overrides. Risk: breaks on MudBlazor version update
 subscribed to `ThemeService.OnThemeChanged`, and bound `<MudThemeProvider Theme="_appTheme" />`.  
 App.razor now reacts to theme changes the same way `MainLayout.razor` does.
 
-### Category J — `Style=` on MudBlazor components (826 instances)
+### Category J — `Style=` on MudBlazor components (**151 remaining**, updated 2026-04-12)
 
 Distribution of top inline style patterns:
 | Pattern | Count | Recommendation |
@@ -454,44 +477,66 @@ Distribution of top inline style patterns:
 | `color:var(--...)` | ~50 | Use Color parameter where available |
 | `display:flex` layout | ~80 | CSS class |
 
-### Category K — HTML `style=` inline (110 instances)
+**Remaining 151:** 108 are dynamic expressions (`@expr`, `@bgColor`, `@GetCardStyle()` etc.) — cannot be automated; 43 are complex static multi-value styles kept intentionally.
 
-Lowercase `style=` on HTML elements (`div`, `td`, `th`, `span`). Generally acceptable but review for:
-- Layout constraints that should be CSS classes
-- Color values that should use theme vars
+### Category K — HTML `style=` inline (**64 remaining**, updated 2026-04-12)
 
----
+**Phase 3g** converted 26 simple single-property inline styles on HTML elements to existing CSS utility classes:
+- `style="overflow-y:auto"` → `class="overflow-y-auto"` (new utility added to `app.css`)
+- `style="width:100%"` on div/MudPaper → `w-full`
+- `style="cursor:pointer"` on div → `cursor-pointer`
+- `style="font-weight:600"` on td → `fw-semibold`
+- `style="text-align:right/center"` on td/th → `text-right` / `text-center`
+
+**Remaining 64:**
+- 52 complex multi-property styles (e.g. `display:flex; flex-direction:column; height:100%; overflow:hidden`) — require creating single-use CSS classes with no reuse value; intentionally kept
+- 12 single-property unique constraints (`height:200px`, `max-height:55vh`, `border-top:...`, `position:relative` etc.) — context-specific, no matching utility class exists
 
 ## §1.5 CSS Analysis
 
-### `!important` usage (207 instances)
+### `!important` usage (**224 instances**, updated 2026-04-12)
 
-Files with highest density:
+Files with current counts:
 | File | Count |
 |------|-------|
-| wwwroot/css/components/mud-components.css | ~60 |
-| wwwroot/css/_mudblazor-overrides.css | ~40 |
-| wwwroot/css/management.css | ~25 |
-| wwwroot/css/sales.css | ~20 |
-| wwwroot/css/document.css | ~15 |
+| `wwwroot/css/components/mud-components.css` | 81 |
+| `wwwroot/css/app.css` | 57 |
+| `wwwroot/css/dialogs.css` | 23 |
+| `wwwroot/css/components/action-button-group.css` | 23 |
+| `wwwroot/css/icon-color-override.css` | 17 |
+| `wwwroot/css/document.css` | 8 |
+| `wwwroot/css/components/entity-drawer.css` | 5 |
+| `wwwroot/css/sidepanel.css` | 3 |
+| `wwwroot/css/_mudblazor-overrides.css` | 3 |
+| `wwwroot/css/sales.css` | 2 |
+| `wwwroot/css/components/overlays.css` | 1 |
 
 Most are necessary to override MudBlazor's specificity. However, some cascade into specificity wars.
+**Phase 3h** eliminated 4 unnecessary `!important` declarations. Reaching ~50 requires full MudTheme migration.
 
-### `--mud-*` variable usage (119 instances)
+### `--mud-*` variable usage
 
 Good usage of `var(--mud-palette-surface)`, `var(--mud-palette-primary)`, etc. in newer CSS.
+`--ef-hover-dark` (added Phase 3h) centralises the app-bar hover colour `#384048` in `variables.css`.
+
+### MudTheme configuration (Phase 4)
+
+`EventForgeTheme.GetMudTheme()` now includes:
+- **`Shadows`** — 26 custom elevation levels lighter than Material Design defaults, aligned to `--shadow-sm/md/lg` CSS variables, so `MudPaper Elevation="1"` produces the same shadow as manually styled elements
+- **`ZIndex`** — explicit Drawer/AppBar/Dialog/Snackbar/Tooltip z-index values
+- **`LayoutProperties`** — AppbarHeight 48px, DefaultBorderRadius 8px, DrawerWidths
+
+The `.mud-paper.ef-tile { box-shadow !important }` override block was removed as it is now redundant.
 
 ---
 
-## §1.6 Prioritized Fix List for Phase 3
+## §1.6 Prioritized Fix List — Remaining Work
 
-1. **[P1] Connect `App.razor` to `EventForgeTheme`** — bind theme and dark mode
-2. **[P1] MudButton variant standardization** — audit all 244 buttons without Variant
-3. **[P2] Multi-value Style= on MudText** — extract font-weight+color combinations to semantic classes
-4. **[P2] `Style="text-align:..."` on MudText** — 6 multi-value instances need manual fix
-5. **[P2] Color parameter adoption** — replace `Style="color:var(--mud-palette-primary)"` with `Color=Color.Primary`
-6. **[P3] CSS !important audit** — identify and eliminate specificity wars
-7. **[P3] MudAlert density standardization** — consistent `Dense` usage
+1. **[P1] Cat J dynamic Style= (108 instances)** — audit each `@expr` to determine if it can be replaced by a CSS class or MudBlazor parameter
+2. **[P2] Full MudTheme migration** — move `mud-components.css` palette/elevation overrides into `EventForgeTheme`; this is the only path to Cat F ~50 and Cat G ~30
+3. **[P3] Cat B remaining (18 MudButton)** — verify each is intentional (icon-only, fab, etc.) or add `Variant`
+4. **[P3] Cat K complex multi-property (52)** — evaluate if repeated patterns warrant new CSS utility classes
+5. **[P3] CSS !important consolidation** — after MudTheme migration, audit remaining `!important` in `app.css` (57) for specificity-raising alternatives
 
 ---
 
