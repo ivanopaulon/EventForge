@@ -19,6 +19,16 @@ public interface IProductService
     Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a lean product list for POS catalog display.
+    /// Only loads fields needed by the POS grid (excludes Codes, Units, BundleItems).
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of products (slim, POS-optimized)</returns>
+    Task<PagedResult<ProductDto>> GetProductsForPosCatalogAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a product by ID.
     /// </summary>
     /// <param name="id">Product ID</param>

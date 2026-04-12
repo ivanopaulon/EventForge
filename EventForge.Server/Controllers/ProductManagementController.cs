@@ -84,9 +84,38 @@ public class ProductManagementController(
     }
 
     /// <summary>
-    /// Gets a product by ID.
+    /// Gets a lean product catalog for POS display.
+    /// Returns only the fields needed by the POS grid (excludes Codes, Units, BundleItems for faster loading).
     /// </summary>
-    /// <param name="id">Product ID</param>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="searchTerm">Optional search term</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Slim paginated list of products optimized for POS</returns>
+    /// <response code="200">Returns the paginated POS product catalog</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/pos-catalog")]
+    [ProducesResponseType(typeof(PagedResult<ProductDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetPosCatalog(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        [FromQuery] string? searchTerm = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await productService.GetProductsForPosCatalogAsync(pagination, searchTerm, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the POS catalog.", ex);
+        }
+    }
+
+
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Product information</returns>
     /// <response code="200">Returns the product</response>
