@@ -20,10 +20,13 @@
 
     @if (_isLoadingTenants)
     {
-        <div class="lsd-loading-row">
-            <MudProgressCircular Class="spinner-22" Indeterminate="true" Color="Color.Primary"
- />
-            <span class="lsd-loading-text">@_subtitle</span>
+        <div class="plsd-log">
+            <div class="plsd-log-row plsd-log-active">
+                <span class="plsd-log-icon">
+                    <span class="plsd-spinner" aria-hidden="true"></span>
+                </span>
+                <span class="plsd-log-text plsd-log-text-active">@_subtitle</span>
+            </div>
         </div>
     }
     else if (_isChangePasswordMode)
@@ -39,18 +42,15 @@
 
                 @if (_tenants?.Any() == true)
                 {
-                    <MudSelect T="string" @bind-Value="_selectedTenantId"
-                               Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
-                               Variant="Variant.Outlined"
-                               Required="true"
-                               Dense="true"
-                               Margin="Margin.Dense"
-                               Disabled="_isLoading">
+                    <PrymSelect T="string" @bind-Value="_selectedTenantId"
+                                Label="@TranslationService.GetTranslation("auth.selectTenant", "Seleziona Tenant")"
+                                Required="true"
+                                Disabled="_isLoading">
                         @foreach (var t in _tenants)
                         {
                             <MudSelectItem Value="@t.Id.ToString()">@($"{t.DisplayName} ({t.Name})")</MudSelectItem>
                         }
-                    </MudSelect>
+                    </PrymSelect>
                 }
                 else
                 {
@@ -59,58 +59,49 @@
                     </MudAlert>
                 }
 
-                <MudTextField @bind-Value="_loginRequest.Username"
-                              Label="@TranslationService.GetTranslation("auth.username", "Username")"
-                              Variant="Variant.Outlined"
-                              Required="true"
-                              Disabled="_isLoading"
-                              autocomplete="username"
-                              Margin="Margin.Dense"
-                              InputType="InputType.Text" />
+                <PrymTextField T="string" @bind-Value="_loginRequest.Username"
+                               Label="@TranslationService.GetTranslation("auth.username", "Username")"
+                               Required="true"
+                               Disabled="_isLoading"
+                               autocomplete="username"
+                               InputType="InputType.Text" />
 
-                <MudTextField @bind-Value="_loginRequest.Password"
-                              Label="@TranslationService.GetTranslation("auth.password", "Password")"
-                              Variant="Variant.Outlined"
-                              InputType="@_passwordInputType"
-                              Required="true"
-                              Disabled="_isLoading"
-                              autocomplete="current-password"
-                              Margin="Margin.Dense"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@_passwordVisibilityIcon"
-                              OnAdornmentClick="TogglePasswordVisibility" />
+                <PrymTextField T="string" @bind-Value="_loginRequest.Password"
+                               Label="@TranslationService.GetTranslation("auth.password", "Password")"
+                               InputType="@_passwordInputType"
+                               Required="true"
+                               Disabled="_isLoading"
+                               autocomplete="current-password"
+                               Adornment="Adornment.End"
+                               AdornmentIcon="@_passwordVisibilityIcon"
+                               OnAdornmentClick="TogglePasswordVisibility" />
 
-                <MudCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
-                             Label="@TranslationService.GetTranslation("auth.rememberMe", "Ricordami")"
-                             Disabled="_isLoading" />
+                <PrymCheckBox T="bool" @bind-Value="_loginRequest.RememberMe"
+                              Label="@TranslationService.GetTranslation("auth.rememberMe", "Ricordami")"
+                              Disabled="_isLoading" />
+
+                <MudLink OnClick="OpenChangePasswordInline"
+                         Underline="Underline.Hover"
+                         Disabled="_isLoading"
+                         Class="mt-1">
+                    @TranslationService.GetTranslation("auth.changePassword", "Cambia Password")
+                </MudLink>
 
             </MudStack>
         </MudForm>
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-3">
-            <MudButton Variant="Variant.Text" Color="Color.Default"
-                       OnClick="Cancel" Disabled="_isLoading">
+            <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                        OnClick="Cancel" Disabled="_isLoading">
                 @TranslationService.GetTranslation("common.cancel", "Annulla")
-            </MudButton>
+            </PrymButton>
             <MudSpacer />
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                       OnClick="OpenChangePasswordInline" Disabled="_isLoading">
-                @TranslationService.GetTranslation("auth.changePassword", "Cambia Password")
-            </MudButton>
-        </MudStack>
-
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-                   OnClick="HandleLogin" Class="mt-2"
-                   Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)">
-            <span class="lsd-btn-content">
-                @if (_isLoading)
-                {
-                    <MudProgressCircular Class="spinner-16" Size="Size.Small" Indeterminate="true"
- />
-                }
+            <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                        OnClick="HandleLogin"
+                        Disabled="@(!_isFormValid || _isLoading || _tenants?.Any() != true)">
                 @TranslationService.GetTranslation("auth.login", "Accedi")
-            </span>
-        </MudButton>
+            </PrymButton>
+        </MudStack>
     }
 
 </EFSystemDialog>
@@ -258,7 +249,7 @@
     {
         _isChangePasswordMode = true;
         _changePasswordIsMandatory = false;
-        _subtitle = "Cambio password richiesto";
+        _subtitle = "Cambio password";
         InvokeAsync(StateHasChanged);
     }
 
@@ -293,6 +284,7 @@
             else
             {
                 _isChangePasswordMode = false;
+                _subtitle = "Accedi al sistema";
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -334,24 +326,3 @@
     public void Dispose() { }
 }
 
-<style>
-    .lsd-loading-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 0 6px 0;
-    }
-
-    .lsd-loading-text {
-        color: rgba(255, 255, 255, 0.80);
-        font-size: 0.9rem;
-    }
-
-    .lsd-btn-content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        white-space: nowrap;
-    }
-</style>
