@@ -2292,7 +2292,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 .Where(s => !s.IsDeleted
                     && s.TenantId == currentTenantId.Value
                     && s.CustomerId == customerId)
-                .OrderByDescending(s => s.UpdatedAt)
+                .OrderByDescending(s => s.ModifiedAt ?? s.CreatedAt)
                 .Take(maxSessions)
                 .Select(s => s.Id)
                 .ToListAsync(cancellationToken);

@@ -283,4 +283,18 @@ public class SalesService(
             return false;
         }
     }
+
+    public async Task<IEnumerable<Guid>?> GetCustomerPurchasedProductIdsAsync(Guid customerId, int maxSessions = 30, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<IEnumerable<Guid>>(
+                $"{BaseUrl}/customers/{customerId}/purchased-product-ids?maxSessions={maxSessions}", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving purchased product IDs for customer {CustomerId}", customerId);
+            return null;
+        }
+    }
 }
