@@ -37,46 +37,37 @@
                     <MudForm @ref="_form">
                     <MudGrid Spacing="3">
                         <MudItem xs="12" md="6">
-                            <MudTextField @bind-Value="_groupName"
-                                          Label="Nome"
-                                          Required="true"
-                                          Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField @bind-Value="_groupName"
+                                           Label="Nome"
+                                           Required="true"
+                                           @bind-Value:after="@MarkChanged" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField @bind-Value="_groupCode"
-                                          Label="Codice"
-                                          Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField @bind-Value="_groupCode"
+                                           Label="Codice"
+                                           @bind-Value:after="@MarkChanged" />
                         </MudItem>
                         <MudItem xs="12">
-                            <MudTextField @bind-Value="_description"
-                                          Label="Descrizione"
-                                          Lines="3"
-                                          Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField @bind-Value="_description"
+                                           Label="Descrizione"
+                                           Lines="3"
+                                           @bind-Value:after="@MarkChanged" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudSelect @bind-Value="_groupType"
-                                       Label="Tipo Gruppo"
-                                       Variant="Variant.Outlined"
-                                       @bind-Value:after="@MarkChanged">
+                            <PrymSelect @bind-Value="_groupType"
+                                        Label="Tipo Gruppo"
+                                        @bind-Value:after="@MarkChanged">
                                 <MudSelectItem Value="BusinessPartyGroupType.Customer">Cliente</MudSelectItem>
                                 <MudSelectItem Value="BusinessPartyGroupType.Supplier">Fornitore</MudSelectItem>
                                 <MudSelectItem Value="BusinessPartyGroupType.Both">Entrambi</MudSelectItem>
-                            </MudSelect>
+                            </PrymSelect>
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="_priority"
-                                             Label="Priorità"
-                                             Min="0"
-                                             Max="100"
-                                             Variant="Variant.Outlined"
-                                             @bind-Value:after="@MarkChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField @bind-Value="_priority"
+                                              Label="Priorità"
+                                              Min="0"
+                                              Max="100"
+                                              @bind-Value:after="@MarkChanged" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -113,20 +104,18 @@
                                     Membri del Gruppo
                                 </MudText>
                                 <MudStack Row="true" Spacing="2">
-                                    <MudButton Variant="Variant.Text"
-                                               StartIcon="@Icons.Material.Filled.Download"
-                                               OnClick="@ExportMembersToCsv"
-                                               Size="Size.Small"
-                                               Disabled="@(!_members?.Any() ?? true)">
+                                    <PrymButton Intent="Ghost"
+                                                StartIcon="@Icons.Material.Filled.Download"
+                                                OnClick="@ExportMembersToCsv"
+                                                Size="Size.Small"
+                                                Disabled="@(!_members?.Any() ?? true)">
                                         Esporta CSV
-                                    </MudButton>
-                                    <MudButton Variant="Variant.Filled"
-                                               Color="Color.Primary"
-                                               StartIcon="@Icons.Material.Filled.GroupAdd"
-                                               Size="Size.Small"
-                                               OnClick="@OpenManageMembersDialog">
+                                    </PrymButton>
+                                    <PrymButton StartIcon="@Icons.Material.Filled.GroupAdd"
+                                                Size="Size.Small"
+                                                OnClick="@OpenManageMembersDialog">
                                         Gestisci Membri
-                                    </MudButton>
+                                    </PrymButton>
                                 </MudStack>
                             </div>
                             <MudDivider />
@@ -258,11 +247,11 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveAsync" Disabled="_isSaving || _isLoading || (_group == null && !_isCreateMode)">
+        <PrymButton Intent="Ghost" OnClick="Cancel" Disabled="_isSaving">Annulla</PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync" Disabled="_isSaving || _isLoading || (_group == null && !_isCreateMode)">
             Salva
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
